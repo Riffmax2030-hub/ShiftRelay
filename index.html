@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ShiftRelay turns frontline shift updates into accountable handovers." />
+    <title>ShiftRelay — Every handover, accounted for</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="ShiftRelay home"><span class="brand-mark">↝</span>ShiftRelay</a>
+        <div class="topbar-meta"><span class="live-dot"></span> Nairobi Central · Evening shift</div>
+        <button class="avatar" aria-label="Open profile">AO</button>
+      </header>
+
+      <section class="hero">
+        <div>
+          <p class="eyebrow">SHIFT HANDOVER, WITHOUT THE GUESSWORK</p>
+          <h1>Nothing critical gets<br />lost at shift change.</h1>
+          <p class="hero-copy">Turn rushed voice notes and updates into a clear, accountable handover for the team arriving next.</p>
+        </div>
+        <div class="model-card"><span>AI HANDOVER ENGINE</span><strong>GPT-5.6 Sol</strong><p>Extracts operational facts, risks, ownership, and gaps.</p></div>
+      </section>
+
+      <nav class="steps" aria-label="Create handover steps">
+        <span class="step active"><b>1</b> Capture update</span><span></span><span class="step"><b>2</b> Review handover</span><span></span><span class="step"><b>3</b> Relay to next shift</span>
+      </nav>
+
+      <section class="workspace" id="capture-view">
+        <article class="capture-panel">
+          <div class="panel-heading"><div><p class="eyebrow">OUTGOING SHIFT</p><h2>What happened today?</h2></div><span class="shift-badge">14:00 — 22:00</span></div>
+          <label for="shift-notes">Paste an update or use the sample below</label>
+          <textarea id="shift-notes" placeholder="Example: The pharmacy delivery is late. Amina called the supplier and they said it should arrive by 8pm. The cold-room temperature went up briefly...">At 17:40, cold-room temperature rose to 9°C for 12 minutes. Generator was checked and is working; temperature is back at 4°C. Please check the temperature log at 23:00 and call the maintenance line if it rises above 6°C again.
+
+The pharmacy delivery has not arrived. Amina called the supplier; they promised arrival by 20:00 but did not give a tracking number. Four doses of insulin remain in stock.
+
+Mr. Otieno's family called twice about his discharge. The doctor has not signed the discharge note yet. Please update them after the 21:30 ward round.</textarea>
+          <div class="capture-actions"><button class="secondary-button" id="clear-button">Clear</button><button class="primary-button" id="generate-button">Generate handover <span>→</span></button></div>
+          <p class="privacy-note" id="analysis-status">Connect your server-side GPT-5.6 Sol key for live analysis. The included demo remains available without credentials.</p>
+        </article>
+        <aside class="why-panel">
+          <p class="eyebrow">WHAT SHIFTRELAY LOOKS FOR</p>
+          <ul><li><span class="icon risk">!</span><div><strong>Safety risks</strong><p>Escalations that cannot wait for the next team.</p></div></li><li><span class="icon task">✓</span><div><strong>Open actions</strong><p>Specific tasks with a clear owner and time.</p></div></li><li><span class="icon gap">?</span><div><strong>Missing context</strong><p>Details that could make a handover unsafe.</p></div></li></ul>
+        </aside>
+      </section>
+
+      <section class="handover hidden" id="handover-view" aria-live="polite">
+        <div class="handover-head"><div><p class="eyebrow">READY FOR REVIEW</p><h2>Evening → Night handover</h2><p id="handover-summary">3 items need the incoming team's attention.</p></div><div class="handover-actions"><button class="secondary-button" id="edit-button">Edit update</button><button class="primary-button" id="relay-button">Relay to night shift <span>→</span></button></div></div>
+        <div class="handover-grid" id="handover-grid">
+          <article class="priority-card"><div class="card-label"><span class="severity high">HIGH PRIORITY</span><span>Before 23:00</span></div><h3>Monitor cold-room temperature</h3><p>Temperature briefly reached 9°C at 17:40. It is currently stable at 4°C; generator has been checked.</p><div class="card-footer"><span>Owner: <b>Night supervisor</b></span><span class="source">Source: shift note</span></div></article>
+          <article class="priority-card"><div class="card-label"><span class="severity medium">FOLLOW UP</span><span>By 22:30</span></div><h3>Confirm delayed pharmacy delivery</h3><p>Supplier promised delivery by 20:00, but no tracking number was provided. Four insulin doses remain in stock.</p><div class="card-footer"><span>Owner: <b>Charge nurse</b></span><span class="source">Source: shift note</span></div></article>
+          <article class="priority-card"><div class="card-label"><span class="severity low">UPDATE FAMILY</span><span>After 21:30 round</span></div><h3>Call Mr. Otieno’s family</h3><p>Family is awaiting a discharge update. Doctor’s signature is still pending.</p><div class="card-footer"><span>Owner: <b>Ward nurse</b></span><span class="source">Source: shift note</span></div></article>
+          <article class="gap-card"><span class="icon gap">?</span><div><p class="eyebrow">MISSING DETAIL</p><h3>Who has the maintenance-line number?</h3><p>Add it before relaying so the night team can act immediately if temperature rises again.</p><button id="resolve-gap">Mark as resolved</button></div></article>
+        </div>
+      </section>
+
+      <section class="success hidden" id="success-view"><span class="success-icon">✓</span><p class="eyebrow">HANDOVER RELAYED</p><h2>The night shift knows exactly what matters.</h2><p>Your handover was sent with three accountable actions and one resolved context gap.</p><button class="primary-button" id="new-handover">Start another handover</button></section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

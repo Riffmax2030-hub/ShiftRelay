@@ -1,0 +1,14 @@
+{
+  "name": "shiftrelay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-powered shift handovers built for OpenAI Build Week.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
