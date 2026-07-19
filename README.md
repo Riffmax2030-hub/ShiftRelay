@@ -16,7 +16,7 @@ ShiftRelay prevents critical context from being lost at shift change. An outgoin
 
 ## Run locally
 
-This project is dependency-free and needs Node.js 18+ only. Start the server from the project folder:
+This project needs Node.js 18+ and PostgreSQL. Copy `.env.example` to `.env`, set `DATABASE_URL`, then start the server:
 
 ```bash
 npm start
@@ -28,9 +28,9 @@ The repository includes `render.yaml` for a Node.js web service. In Render, crea
 
 The app works in demo mode without environment variables. To enable live GPT-5.6 Sol analysis and voice transcription, add these environment variables in the Render dashboard:
 
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL`
-- `OPENAI_TRANSCRIPTION_MODEL`
+- `DATABASE_URL` (required for accounts, schedules, time tracking, and notifications)
+- `OPENAI_API_KEY`, `OPENAI_MODEL`, and `OPENAI_TRANSCRIPTION_MODEL` (optional live AI and voice features)
+- `RESEND_API_KEY`, `EMAIL_FROM`, and `APP_URL` (optional; enable email when a verified domain is available)
 
 ## GPT-5.6 Sol integration
 
@@ -55,7 +55,7 @@ The model prompt should require evidence from the submitted update, preserve unc
 
 ## Roles, storage, and notifications
 
-The MVP includes three role-specific demo identities: outgoing worker, shift supervisor, and incoming worker. It persists handovers, acknowledgement events, and in-app notifications to a local JSON store under `data/`, which is excluded from Git.
+ShiftRelay includes secure password sign-in, organisation registration, worker approval, role assignment, shift scheduling, clock-in/out history, calendar leave/swap requests, in-app notifications, incident reporting, analytics, audit history, and installable PWA support. PostgreSQL persists these records.
 
 For a production deployment, replace the demo identity selector with a real authentication provider and move the JSON store to a managed database. The API permission checks and handover state machine are already separated from the interface to make that migration straightforward.
 
@@ -72,9 +72,6 @@ Click **Record voice update**, allow microphone access, and stop recording. Shif
 
 The included scenario models a clinical evening-to-night handover. It demonstrates a cold-room temperature alert, delayed medication delivery, and a pending family update. The app is deliberately designed so the workflow can be adapted for retail, security, field services, hospitality, or logistics teams.
 
-## Next production steps
+## Security
 
-1. Add authenticated roles for outgoing worker, supervisor, and incoming worker.
-2. Store handovers and acknowledgement events in a database.
-3. Add a server-side GPT-5.6 Sol endpoint; never expose an API key in the browser.
-4. Add voice transcription and notification delivery.
+Never commit `.env` or any API key. If a key was ever committed or pasted into a tracked file, revoke it in the provider dashboard and create a replacement before deployment.
