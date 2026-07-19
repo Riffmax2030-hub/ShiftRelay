@@ -15,7 +15,8 @@
       <header class="topbar">
         <a class="brand" href="#" aria-label="ShiftRelay home"><span class="brand-mark">↝</span>ShiftRelay</a>
         <div class="topbar-meta"><span class="live-dot"></span> Nairobi Central · Evening shift</div>
-        <button class="avatar" aria-label="Open profile">AO</button>
+        <label class="role-picker" for="user-select">Acting as <select id="user-select" aria-label="Select ShiftRelay role"><option value="amina">Amina · outgoing nurse</option><option value="david">David · supervisor</option><option value="faith">Faith · incoming nurse</option></select></label>
+        <button class="notification-button" id="notification-button" aria-label="Open notifications">⌁<span id="notification-count">0</span></button>
       </header>
 
       <section class="hero">
@@ -40,6 +41,7 @@
 The pharmacy delivery has not arrived. Amina called the supplier; they promised arrival by 20:00 but did not give a tracking number. Four doses of insulin remain in stock.
 
 Mr. Otieno's family called twice about his discharge. The doctor has not signed the discharge note yet. Please update them after the 21:30 ward round.</textarea>
+          <div class="voice-controls"><button class="voice-button" id="record-button" type="button">● Record voice update</button><span id="voice-status">or paste a written update</span></div>
           <div class="capture-actions"><button class="secondary-button" id="clear-button">Clear</button><button class="primary-button" id="generate-button">Generate handover <span>→</span></button></div>
           <p class="privacy-note" id="analysis-status">Connect your server-side GPT-5.6 Sol key for live analysis. The included demo remains available without credentials.</p>
         </article>
@@ -50,7 +52,7 @@ Mr. Otieno's family called twice about his discharge. The doctor has not signed 
       </section>
 
       <section class="handover hidden" id="handover-view" aria-live="polite">
-        <div class="handover-head"><div><p class="eyebrow">READY FOR REVIEW</p><h2>Evening → Night handover</h2><p id="handover-summary">3 items need the incoming team's attention.</p></div><div class="handover-actions"><button class="secondary-button" id="edit-button">Edit update</button><button class="primary-button" id="relay-button">Relay to night shift <span>→</span></button></div></div>
+        <div class="handover-head"><div><p class="eyebrow">READY FOR REVIEW</p><h2>Evening → Night handover</h2><p id="handover-summary">3 items need the incoming team's attention.</p></div><div class="handover-actions"><button class="secondary-button" id="edit-button">Edit update</button><button class="secondary-button" id="download-button">Download brief</button><button class="secondary-button" id="save-button">Save for supervisor</button><button class="primary-button" id="relay-button">Relay to night shift <span>→</span></button></div></div>
         <div class="handover-grid" id="handover-grid">
           <article class="priority-card"><div class="card-label"><span class="severity high">HIGH PRIORITY</span><span>Before 23:00</span></div><h3>Monitor cold-room temperature</h3><p>Temperature briefly reached 9°C at 17:40. It is currently stable at 4°C; generator has been checked.</p><div class="card-footer"><span>Owner: <b>Night supervisor</b></span><span class="source">Source: shift note</span></div></article>
           <article class="priority-card"><div class="card-label"><span class="severity medium">FOLLOW UP</span><span>By 22:30</span></div><h3>Confirm delayed pharmacy delivery</h3><p>Supplier promised delivery by 20:00, but no tracking number was provided. Four insulin doses remain in stock.</p><div class="card-footer"><span>Owner: <b>Charge nurse</b></span><span class="source">Source: shift note</span></div></article>
@@ -60,6 +62,8 @@ Mr. Otieno's family called twice about his discharge. The doctor has not signed 
       </section>
 
       <section class="success hidden" id="success-view"><span class="success-icon">✓</span><p class="eyebrow">HANDOVER RELAYED</p><h2>The night shift knows exactly what matters.</h2><p>Your handover was sent with three accountable actions and one resolved context gap.</p><button class="primary-button" id="new-handover">Start another handover</button></section>
+      <section class="inbox" id="inbox-view"><div class="inbox-heading"><div><p class="eyebrow">OPERATIONS INBOX</p><h2>Handover activity</h2></div><button class="secondary-button" id="refresh-button">Refresh</button></div><div class="inbox-list" id="inbox-list"><p class="empty-state">Select a role to load their handovers.</p></div></section>
+      <aside class="notification-panel hidden" id="notification-panel"><div class="notification-heading"><strong>Notifications</strong><button id="mark-read-button">Mark all read</button></div><div id="notification-list"></div></aside>
     </main>
     <script src="app.js"></script>
   </body>
