@@ -22,6 +22,16 @@ This project is dependency-free and needs Node.js 18+ only. Start the server fro
 npm start
 ```
 
+## Deploy on Render
+
+The repository includes `render.yaml` for a Node.js web service. In Render, create a new **Blueprint**, connect `Riffmax2030-hub/ShiftRelay`, and deploy the detected Blueprint. Render uses `npm install`, starts the app with `npm start`, and checks `/health`.
+
+The app works in demo mode without environment variables. To enable live GPT-5.6 Sol analysis and voice transcription, add these environment variables in the Render dashboard:
+
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+- `OPENAI_TRANSCRIPTION_MODEL`
+
 ## GPT-5.6 Sol integration
 
 The interface runs in **demo mode** when no credentials are set, so reviewers can test the complete product experience without credentials. For live analysis, copy `.env.example` to `.env`, add your OpenAI API key, and set `OPENAI_MODEL` to the exact GPT-5.6 Sol model ID available in your account. Set `OPENAI_TRANSCRIPTION_MODEL` to the transcription model available in your account for voice notes. Then start the app with `npm start`.

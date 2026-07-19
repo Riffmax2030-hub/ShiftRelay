@@ -174,6 +174,7 @@ async function serveStatic(response, url) {
 
 createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
+  if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok' });
   if (url.pathname.startsWith('/api/')) return handleApi(request, response, url);
   return serveStatic(response, url);
 }).listen(port, () => console.log(`ShiftRelay is running at http://localhost:${port}`));
