@@ -3,8 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#126e68" />
-    <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icon.svg" />
     <meta name="theme-color" content="#126e68" />
@@ -22,6 +20,12 @@
     <link rel="stylesheet" href="quote.css" />
     <link rel="stylesheet" href="dashboard.css" />
     <link rel="stylesheet" href="profile.css" />
+    <link rel="stylesheet" href="account-menu.css" />
+    <link rel="stylesheet" href="metrics.css" />
+    <link rel="stylesheet" href="notification-ui.css" />
+    <link rel="stylesheet" href="language.css" />
+    <link rel="stylesheet" href="preferences.css" />
+    <link rel="stylesheet" href="checklists.css" />
   </head>
   <body>
     <main class="login-page" id="login-view">
@@ -40,20 +44,24 @@
       <aside class="sidebar">
         <a class="brand" href="#"><span>↝</span>ShiftRelay</a>
         <div class="signed-in"><span class="avatar" id="sidebar-avatar">AO</span><div><strong id="sidebar-name"></strong><small id="sidebar-role"></small></div></div>
-        <nav class="side-nav"><button class="active" data-view="dashboard">Dashboard</button><button data-view="handover">New handover</button><button data-view="activity">Activity</button><button data-view="notifications">Notifications</button><button data-view="calendar">Calendar</button><button data-view="people">People</button><button data-view="workflows">Workflows</button><button data-view="analytics">Analytics</button><button data-view="incidents">Incidents</button><button data-view="settings">Settings</button></nav>
+        <nav class="side-nav"><button class="active" data-view="dashboard">Dashboard</button><button data-view="handover">New handover</button><button data-view="activity">Activity</button><button data-view="notifications">Notifications</button><button data-view="calendar">Calendar</button><button data-view="people">Staffs</button><button data-view="workflows">Workflows</button><button data-view="analytics">Analytics</button><button data-view="incidents">Incidents</button><button data-view="settings">Settings</button></nav>
         <button class="logout" id="logout-button">Switch role</button>
       </aside>
       <section class="main-content">
-        <header class="app-header"><div><p class="eyebrow" id="page-kicker">YOUR WORKSPACE</p><h1 id="page-title">Dashboard</h1></div><div class="header-actions"><span class="api-status" id="api-status">Checking AI connection…</span><button class="bell" id="notification-button" aria-label="Open notifications">⌁<b id="notification-count">0</b></button></div></header>
+        <header class="app-header"><div><p class="eyebrow" id="page-kicker">YOUR WORKSPACE</p><h1 id="page-title">Dashboard</h1></div><div class="header-actions"><span class="api-status" id="api-status">Checking AI connection…</span><button class="bell notification-trigger" id="notification-button" aria-label="Open notifications"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><b id="notification-count">0</b></button><button class="account-menu-button" id="account-menu-button" aria-label="Open account menu" aria-expanded="false">☰</button></div></header>
         <section id="dashboard"></section>
       </section>
-      <aside class="notification-panel hidden" id="notification-panel"><div><strong>Notifications</strong><button id="mark-read-button">Mark all read</button></div><section id="notification-list"></section></aside>
+      <aside class="notification-panel hidden" id="notification-panel"><div><strong>Notifications</strong></div><section id="notification-list"></section></aside>
     </main>
     <div class="toast hidden" id="toast"></div>
+    <script src="language.js"></script>
+    <script src="language-pack.js"></script>
     <script src="app.js"></script>
     <script src="notifications.js"></script>
-    <script src="profile.js"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js').catch(()=>{});</script>
+   <script src="profile.js"></script>
+   <script src="checklists.js"></script>
+    <script src="attendance.js"></script>
+    <script src="account-menu.js"></script>
     <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js').catch(()=>{});</script>
   </body>
 </html>

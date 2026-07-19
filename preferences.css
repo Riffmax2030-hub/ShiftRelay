@@ -1,0 +1,1 @@
+.language-choice{display:grid;gap:7px;margin-top:12px;color:var(--ink);font-size:12px;font-weight:700}.language-choice select{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);font:inherit}

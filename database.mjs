@@ -229,9 +229,17 @@ const schema = `
     read_at timestamptz,
     created_at timestamptz not null default now()
   );
+  create table if not exists account_deletion_requests (
+    id uuid primary key,
+    email text not null,
+    reason text,
+    status varchar(24) not null default 'requested',
+    requested_at timestamptz not null default now()
+  );
   create index if not exists idx_memberships_org on memberships(organisation_id);
   create index if not exists idx_work_items_org_status on work_items(organisation_id, status);
   create index if not exists idx_notifications_recipient on notifications(recipient_membership_id, read_at);
+  create index if not exists idx_deletion_requests_email on account_deletion_requests(email, requested_at desc);
   create index if not exists idx_sessions_expiry on user_sessions(expires_at);
   create index if not exists idx_time_entries_member on time_entries(membership_id, clocked_in_at desc);
   create index if not exists idx_audit_events_org on audit_events(organisation_id, created_at desc);

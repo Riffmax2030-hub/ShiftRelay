@@ -70,7 +70,8 @@ async function getUser(request) {
     const result = await query(`select m.id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id where s.id = $1 and s.expires_at > now()`, [token]);
     if (result.rows[0]?.status === 'active') return result.rows[0];
   }
-  return users.find((user) => user.id === request.headers['x-shiftrelay-user']) || null;
+  const demoUser = users.find((user) => user.id === request.headers['x-shiftrelay-user']);
+  return demoUser ? { ...demoUser, organisation_id: demoOrganisation.id } : null;
 }
 
 async function hashPassword(password) { const salt = randomBytes(16).toString('hex'); const hash = await scrypt(password, salt, 64); return `${salt}:${Buffer.from(hash).toString('hex')}`; }
@@ -156,7 +157,7 @@ async function reviewMembership(owner, membershipId, body) {
     await query('insert into notifications (id, organisation_id, recipient_membership_id, message) values ($1,$2,$3,$4)', [crypto.randomUUID(), owner.organisation_id, membershipId, 'Your ShiftRelay access request was not approved. Contact your organisation administrator for details.']);
     return { status: 'rejected' };
   }
-  const allowedRoles = ['outgoing', 'incoming', 'supervisor'];
+  const allowedRoles = ['outgoing', 'incoming', 'supervisor', 'workforce_admin'];
   if (!allowedRoles.includes(body.role)) throw new Error('Select an approved workplace role.');
   if (body.workflowTemplateId) {
     const workflow = (await query('select id from workflow_templates where id = $1 and organisation_id = $2', [body.workflowTemplateId, owner.organisation_id])).rows[0];
@@ -202,6 +203,10 @@ async function organisationAnalytics(organisationId) {
     query("select count(*)::int as open from incidents where organisation_id = $1 and status = 'open'", [organisationId])
   ]);
   return { members: members.rows[0], handovers: handovers.rows[0], monthlyHours: Math.round(Number(hours.rows[0].total) * 10) / 10, openIncidents: incidents.rows[0].open };
+}
+async function dailyAttendance(organisationId) {
+  const result = await query(`select m.id, u.full_name as name, m.title, m.role, max(t.clocked_in_at) filter (where t.clocked_out_at is null) as clocked_in_at, max(t.clocked_out_at) as last_clocked_out_at, coalesce(sum(extract(epoch from (coalesce(t.clocked_out_at, now()) - t.clocked_in_at))/3600) filter (where t.clocked_in_at >= date_trunc('day', now())),0) as hours_today from memberships m join portal_users u on u.id = m.user_id left join time_entries t on t.membership_id = m.id and t.clocked_in_at >= date_trunc('day', now()) where m.organisation_id = $1 and m.status = 'active' group by m.id, u.full_name, m.title, m.role order by u.full_name`, [organisationId]);
+  return result.rows.map((row) => ({ ...row, hours_today: Math.round(Number(row.hours_today) * 10) / 10, status: row.clocked_in_at ? 'clocked_in' : row.hours_today > 0 ? 'clocked_out' : 'not_clocked_in' }));
 }
 
 async function signIn(body) {
@@ -254,15 +259,34 @@ async function transcribeAudio(request) {
 
 async function handleApi(request, response, url) {
   const user = await getUser(request);
-  if (url.pathname === '/api/users' && request.method === 'GET') return sendJson(response, 200, { users });
+  if (url.pathname === '/api/users' && request.method === 'GET') return sendJson(response, 200, { users: users.map((demoUser) => ({ ...demoUser, organisation_id: demoOrganisation.id })) });
   if (url.pathname === '/api/config' && request.method === 'GET') return sendJson(response, 200, { aiConfigured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL), assistantConfigured: Boolean((process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL) || process.env.GEMINI_API_KEY), transcriptionConfigured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_TRANSCRIPTION_MODEL), databaseReady });
   if (url.pathname === '/api/auth/session' && request.method === 'GET') return user ? sendJson(response, 200, { user }) : sendJson(response, 401, { error: 'Sign in to continue.' });
+  if (url.pathname === '/api/account-deletion-requests' && request.method === 'POST') {
+    try {
+      const body = await readJson(request); const email = String(body.email || '').trim().toLowerCase();
+      if (!/^\S+@\S+\.\S+$/.test(email)) return sendJson(response, 400, { error: 'Enter the email address used for your ShiftRelay account.' });
+      if (databaseReady) await query('insert into account_deletion_requests (id, email, reason) values ($1,$2,$3)', [crypto.randomUUID(), email, String(body.reason || '').slice(0, 1000) || null]);
+      return sendJson(response, 201, { ok: true });
+    } catch (error) { return sendJson(response, 400, { error: error.message || 'Unable to submit your request.' }); }
+  }
   if (url.pathname === '/api/auth/sign-in' && request.method === 'POST') {
     try { const session = await signIn(await readJson(request)); response.setHeader('Set-Cookie', sessionCookie(session.sessionId)); return sendJson(response, 200, { user: session.user }); }
     catch (error) { return sendJson(response, 401, { error: error.message }); }
   }
   if (url.pathname === '/api/auth/sign-out' && request.method === 'POST') {
     const token = sessionId(request); if (token && databaseReady) await query('delete from user_sessions where id = $1', [token]); response.setHeader('Set-Cookie', sessionCookie('', 0)); return sendJson(response, 200, { ok: true });
+  }
+  if (url.pathname === '/api/auth/password' && request.method === 'PUT') {
+    try {
+      if (!user || !databaseReady) throw new Error('Password changes require a signed-in organisation account.');
+      const body = await readJson(request);
+      if (!body.currentPassword || !body.newPassword || body.newPassword.length < 10) throw new Error('Use a new password with at least 10 characters.');
+      const account = (await query('select u.id, u.password_hash from portal_users u join memberships m on m.user_id = u.id where m.id = $1', [user.id])).rows[0];
+      if (!account || !(await passwordMatches(body.currentPassword, account.password_hash))) throw new Error('Your current password is not correct.');
+      await query('update portal_users set password_hash = $1 where id = $2', [await hashPassword(body.newPassword), account.id]);
+      return sendJson(response, 200, { ok: true });
+    } catch (error) { return sendJson(response, 400, { error: error.message }); }
   }
   if (url.pathname === '/api/organisations' && request.method === 'POST') {
     try { const body = await readJson(request); if (!body.legalName || !body.workEmail || !body.ownerName || typeof body.password !== 'string' || body.password.length < 10) return sendJson(response, 400, { error: 'Organisation name, owner name, work email, and a password of at least 10 characters are required.' }); const organisation = await registerOrganisation(body); const session = await createSession(organisation.ownerMembershipId, organisation.ownerMembershipId); response.setHeader('Set-Cookie', sessionCookie(session)); return sendJson(response, 201, { organisation, user: { id: organisation.ownerMembershipId, name: body.ownerName, email: body.workEmail, role: 'owner', title: 'Organisation owner', department: 'Leadership', organisationId: organisation.organisationId } }); }
@@ -281,6 +305,10 @@ async function handleApi(request, response, url) {
   if (url.pathname === '/api/analytics' && request.method === 'GET') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can view analytics.' });
     return sendJson(response, 200, await organisationAnalytics(user.organisation_id));
+  }
+  if (url.pathname === '/api/attendance/today' && request.method === 'GET') {
+    if (!['owner', 'workforce_admin'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners or workforce managers can view attendance.' });
+    return sendJson(response, 200, { attendance: await dailyAttendance(user.organisation_id) });
   }
   if (url.pathname === '/api/workflow-templates' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Workflow templates require an organisation account.' });
@@ -454,6 +482,17 @@ async function handleApi(request, response, url) {
     }
     const store = await getStore();
     return sendJson(response, 200, { notifications: store.notifications.filter((notification) => notification.recipientId === user.id).slice(0, 8) });
+  }
+
+  if (/^\/api\/notifications\/[^/]+\/read$/.test(url.pathname) && request.method === 'POST') {
+    const notificationId = url.pathname.split('/')[3];
+    if (databaseReady) {
+      await query('update notifications set read_at = now() where id = $1 and organisation_id = $2 and recipient_membership_id = $3 and read_at is null', [notificationId, demoOrganisation.id, user.id]);
+      return sendJson(response, 200, { ok: true });
+    }
+    const notification = store.notifications.find((item) => item.id === notificationId && item.recipientId === user.id);
+    if (notification) notification.read = true;
+    return sendJson(response, 200, { ok: true });
   }
 
   if (url.pathname === '/api/notifications/read' && request.method === 'POST') {

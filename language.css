@@ -1,0 +1,1 @@
+html[dir="rtl"] .app-header,html[dir="rtl"] .header-actions,html[dir="rtl"] .button-row{direction:rtl}html[dir="rtl"] .side-nav button,html[dir="rtl"] .account-menu-list button{text-align:right}html[dir="rtl"] .notification-panel,html[dir="rtl"] .account-menu{right:auto;left:18px}@media(max-width:800px){html[dir="rtl"] .notification-panel,html[dir="rtl"] .account-menu{left:14px}}
