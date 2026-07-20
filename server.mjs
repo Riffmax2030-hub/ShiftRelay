@@ -332,6 +332,59 @@ async function handleApi(request, response, url) {
   if (url.pathname === '/api/calendar/shifts' && request.method === 'POST') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can schedule shifts.' }); const body = await readJson(request); if (!body.membershipId || !body.startsAt || !body.endsAt) return sendJson(response, 400, { error: 'Worker, shift start, and shift end are required.' }); const id = crypto.randomUUID(); await query('insert into scheduled_shifts (id, organisation_id, membership_id, starts_at, ends_at) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, body.membershipId, body.startsAt, body.endsAt]); await audit(user.organisation_id, user.id, 'shift_scheduled', 'scheduled_shift', id, 'Shift added to calendar.'); return sendJson(response, 201, { id });
   }
+  if (url.pathname === '/api/schedule-import' && request.method === 'POST') {
+    if (!['owner', 'workforce_admin'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only workforce managers can import schedules.' });
+    const body = await readJson(request); if (!Array.isArray(body.rows) || !body.rows.length) return sendJson(response, 400, { error: 'Upload a CSV with at least one schedule row.' });
+    let imported = 0; const skipped = [];
+    for (const row of body.rows.slice(0, 250)) { const email = String(row.email || '').trim().toLowerCase(); if (!email || !row.startsAt || !row.endsAt) { skipped.push(email || 'blank row'); continue; } const member = (await query(`select m.id from memberships m join portal_users u on u.id = m.user_id where m.organisation_id = $1 and lower(u.email) = $2 and m.status = 'active'`, [user.organisation_id, email])).rows[0]; if (!member) { skipped.push(email); continue; } await query('insert into scheduled_shifts (id, organisation_id, membership_id, starts_at, ends_at) values ($1,$2,$3,$4,$5)', [crypto.randomUUID(), user.organisation_id, member.id, row.startsAt, row.endsAt]); imported += 1; }
+    await audit(user.organisation_id, user.id, 'schedule_imported', 'scheduled_shift', null, `${imported} shifts imported.`); return sendJson(response, 201, { imported, skipped });
+  }
+  if (url.pathname === '/api/open-shifts' && request.method === 'GET') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Open shifts require an organisation account.' });
+    const shifts = await query(`select o.*, creator.full_name as created_by_name, count(a.id)::int as applicants from open_shifts o join memberships cm on cm.id = o.created_by_membership_id join portal_users creator on creator.id = cm.user_id left join open_shift_applications a on a.open_shift_id = o.id and a.status = 'pending' where o.organisation_id = $1 and o.status = 'open' group by o.id, creator.full_name order by o.starts_at`, [user.organisation_id]);
+    return sendJson(response, 200, { shifts: shifts.rows });
+  }
+  if (url.pathname === '/api/community' && request.method === 'GET') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Community requires an organisation account.' });
+    const announcements = await query(`select a.*, u.full_name as author_name from announcements a join memberships m on m.id = a.author_membership_id join portal_users u on u.id = m.user_id where a.organisation_id = $1 order by a.created_at desc limit 12`, [user.organisation_id]);
+    let channels = await query('select id, name, description from community_channels where organisation_id = $1 order by created_at', [user.organisation_id]);
+    if (!channels.rows.length) { await query('insert into community_channels (id, organisation_id, name, description) values ($1,$2,$3,$4)', [crypto.randomUUID(), user.organisation_id, 'Team updates', 'A shared space for the whole organisation.']); channels = await query('select id, name, description from community_channels where organisation_id = $1 order by created_at', [user.organisation_id]); }
+    const channel = channels.rows[0]; const messages = await query(`select cm.*, u.full_name as author_name from community_messages cm join memberships m on m.id = cm.author_membership_id join portal_users u on u.id = m.user_id where cm.channel_id = $1 order by cm.created_at desc limit 30`, [channel.id]);
+    return sendJson(response, 200, { announcements: announcements.rows, channels: channels.rows, activeChannelId: channel.id, messages: messages.rows.reverse() });
+  }
+  if (url.pathname === '/api/community/announcements' && request.method === 'POST') {
+    if (!['owner', 'workforce_admin', 'supervisor'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only team leaders can post announcements.' });
+    const body = await readJson(request); if (!body.title || !body.body) return sendJson(response, 400, { error: 'Add an announcement title and message.' }); const id = crypto.randomUUID();
+    await query('insert into announcements (id, organisation_id, author_membership_id, title, body) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, user.id, body.title, body.body]); await notifyOrganisationOwners(user.organisation_id, `Announcement posted: ${body.title}`); return sendJson(response, 201, { id });
+  }
+  if (url.pathname === '/api/community/messages' && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Community requires an organisation account.' }); const body = await readJson(request); if (!body.channelId || !body.body?.trim()) return sendJson(response, 400, { error: 'Choose a channel and write a message.' });
+    const channel = (await query('select id from community_channels where id = $1 and organisation_id = $2', [body.channelId, user.organisation_id])).rows[0]; if (!channel) return sendJson(response, 404, { error: 'Channel not found.' });
+    const id = crypto.randomUUID(); await query('insert into community_messages (id, channel_id, author_membership_id, body) values ($1,$2,$3,$4)', [id, channel.id, user.id, body.body.trim()]); return sendJson(response, 201, { id });
+  }
+  if (url.pathname === '/api/community/direct-messages' && request.method === 'GET') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Direct messages require an organisation account.' });
+    const messages = await query(`select d.*, sender.full_name as sender_name, recipient.full_name as recipient_name from direct_messages d join memberships sm on sm.id = d.sender_membership_id join portal_users sender on sender.id = sm.user_id join memberships rm on rm.id = d.recipient_membership_id join portal_users recipient on recipient.id = rm.user_id where d.organisation_id = $1 and (d.sender_membership_id = $2 or d.recipient_membership_id = $2) order by d.created_at desc limit 30`, [user.organisation_id, user.id]);
+    return sendJson(response, 200, { messages: messages.rows.reverse() });
+  }
+  if (url.pathname === '/api/community/direct-messages' && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Direct messages require an organisation account.' }); const body = await readJson(request); if (!body.recipientMembershipId || !body.body?.trim()) return sendJson(response, 400, { error: 'Choose a staff member and write a message.' });
+    const recipient = (await query('select id from memberships where id = $1 and organisation_id = $2 and status = $3', [body.recipientMembershipId, user.organisation_id, 'active'])).rows[0]; if (!recipient) return sendJson(response, 404, { error: 'Staff member not found.' });
+    const id = crypto.randomUUID(); await query('insert into direct_messages (id, organisation_id, sender_membership_id, recipient_membership_id, body) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, user.id, recipient.id, body.body.trim()]); await notifyMembership(user.organisation_id, recipient.id, `${user.name} sent you a direct message.`); return sendJson(response, 201, { id });
+  }
+  if (url.pathname === '/api/open-shifts' && request.method === 'POST') {
+    if (!['owner', 'workforce_admin'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only workforce managers can post open shifts.' });
+    const body = await readJson(request); if (!body.title || !body.startsAt || !body.endsAt) return sendJson(response, 400, { error: 'Title, start time, and end time are required.' });
+    const id = crypto.randomUUID(); await query('insert into open_shifts (id, organisation_id, created_by_membership_id, title, starts_at, ends_at, slots, notes) values ($1,$2,$3,$4,$5,$6,$7,$8)', [id, user.organisation_id, user.id, body.title, body.startsAt, body.endsAt, Math.max(1, Number(body.slots) || 1), body.notes || null]);
+    await notifyOrganisationOwners(user.organisation_id, `New open shift posted: ${body.title}.`); return sendJson(response, 201, { id });
+  }
+  if (/^\/api\/open-shifts\/[^/]+\/apply$/.test(url.pathname) && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Open shifts require an organisation account.' });
+    const shiftId = url.pathname.split('/')[3]; const shift = (await query('select id, title from open_shifts where id = $1 and organisation_id = $2 and status = $3', [shiftId, user.organisation_id, 'open'])).rows[0];
+    if (!shift) return sendJson(response, 404, { error: 'That open shift is no longer available.' });
+    await query('insert into open_shift_applications (id, open_shift_id, membership_id) values ($1,$2,$3) on conflict (open_shift_id, membership_id) do nothing', [crypto.randomUUID(), shiftId, user.id]);
+    await notifyOrganisationOwners(user.organisation_id, `${user.name} applied to cover ${shift.title}.`); return sendJson(response, 201, { ok: true });
+  }
   if (url.pathname === '/api/leave-requests' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Leave requests require an organisation account.' }); const where = user.role === 'owner' ? 'organisation_id = $1' : 'organisation_id = $1 and membership_id = $2'; const values = user.role === 'owner' ? [user.organisation_id] : [user.organisation_id, user.id]; const requests = await query(`select * from leave_requests where ${where} order by created_at desc`, values); return sendJson(response, 200, { requests: requests.rows });
   }

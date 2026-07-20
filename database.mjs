@@ -137,6 +137,58 @@ const schema = `
     status varchar(24) not null default 'scheduled',
     created_at timestamptz not null default now()
   );
+  create table if not exists open_shifts (
+    id uuid primary key,
+    organisation_id uuid not null references organisations(id) on delete cascade,
+    created_by_membership_id uuid not null references memberships(id) on delete cascade,
+    title text not null,
+    starts_at timestamptz not null,
+    ends_at timestamptz not null,
+    slots integer not null default 1,
+    notes text,
+    status varchar(24) not null default 'open',
+    created_at timestamptz not null default now()
+  );
+  create table if not exists open_shift_applications (
+    id uuid primary key,
+    open_shift_id uuid not null references open_shifts(id) on delete cascade,
+    membership_id uuid not null references memberships(id) on delete cascade,
+    status varchar(24) not null default 'pending',
+    created_at timestamptz not null default now(),
+    unique(open_shift_id, membership_id)
+  );
+  create table if not exists announcements (
+    id uuid primary key,
+    organisation_id uuid not null references organisations(id) on delete cascade,
+    author_membership_id uuid not null references memberships(id) on delete cascade,
+    title text not null,
+    body text not null,
+    created_at timestamptz not null default now()
+  );
+  create table if not exists community_channels (
+    id uuid primary key,
+    organisation_id uuid not null references organisations(id) on delete cascade,
+    name text not null,
+    description text,
+    created_at timestamptz not null default now(),
+    unique(organisation_id, name)
+  );
+  create table if not exists community_messages (
+    id uuid primary key,
+    channel_id uuid not null references community_channels(id) on delete cascade,
+    author_membership_id uuid not null references memberships(id) on delete cascade,
+    body text not null,
+    created_at timestamptz not null default now()
+  );
+  create table if not exists direct_messages (
+    id uuid primary key,
+    organisation_id uuid not null references organisations(id) on delete cascade,
+    sender_membership_id uuid not null references memberships(id) on delete cascade,
+    recipient_membership_id uuid not null references memberships(id) on delete cascade,
+    body text not null,
+    read_at timestamptz,
+    created_at timestamptz not null default now()
+  );
   create table if not exists leave_requests (
     id uuid primary key,
     organisation_id uuid not null references organisations(id) on delete cascade,
@@ -245,6 +297,10 @@ const schema = `
   create index if not exists idx_audit_events_org on audit_events(organisation_id, created_at desc);
   create index if not exists idx_incidents_org on incidents(organisation_id, status);
   create index if not exists idx_scheduled_shifts_member on scheduled_shifts(membership_id, starts_at);
+  create index if not exists idx_open_shifts_org_status on open_shifts(organisation_id, status, starts_at);
+  create index if not exists idx_announcements_org on announcements(organisation_id, created_at desc);
+  create index if not exists idx_community_messages_channel on community_messages(channel_id, created_at desc);
+  create index if not exists idx_direct_messages_recipient on direct_messages(recipient_membership_id, created_at desc);
 `;
 
 export function databaseConfigured() {

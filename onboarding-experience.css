@@ -1,0 +1,1 @@
+.phone-field{display:grid;grid-template-columns:minmax(130px,.8fr) 1fr;gap:7px}.phone-field select,.phone-field input{padding:12px;border:1px solid #cbd7d8;border-radius:8px;background:#fff;font:inherit}.access-form [data-phone-onboarding] small{color:var(--muted);font-size:10px;font-weight:500;line-height:1.4}

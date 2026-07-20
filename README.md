@@ -16,11 +16,28 @@ ShiftRelay prevents critical context from being lost at shift change. An outgoin
 
 ## Run locally
 
-This project needs Node.js 18+ and PostgreSQL. Copy `.env.example` to `.env`, set `DATABASE_URL`, then start the server:
+This project needs Node.js 18+ and PostgreSQL. Install dependencies, copy `.env.example` to `.env`, set `DATABASE_URL`, then start the server:
 
 ```bash
+npm install
 npm start
 ```
+
+Open `http://localhost:3000`. The health check is available at `http://localhost:3000/health`.
+
+## Judge quick start
+
+No credentials are needed to explore the workflow.
+
+1. Open the deployed ShiftRelay link or run the app locally.
+2. Select **Preview workspace roles** on the landing page.
+3. Use the demo roles to see the full relay chain:
+   - **Amina Otieno — Operations worker:** create a handover, clock in/out, and view her schedule.
+   - **David Kariuki — Shift supervisor:** review and relay an outgoing handover.
+   - **Faith Wanjiku — Incoming worker:** acknowledge the handover and complete the incoming-shift checklist.
+   - **Jordan Lee — Organisation owner:** review staff access, roles, workflows, attendance, and analytics.
+
+For a complete demonstration, start with Amina’s handover, switch to David to approve it, then switch to Faith to acknowledge it. This shows the human review chain that is central to ShiftRelay.
 
 ## Deploy on Render
 
@@ -66,7 +83,24 @@ Click **Record voice update**, allow microphone access, and stop recording. Shif
 ## Why Codex and GPT-5.6 Sol
 
 - **GPT-5.6 Sol** powers the core reasoning task: distinguishing facts from uncertainty in unstructured operational updates, assigning actionable ownership, and detecting context gaps before a handover is relayed.
-- **Codex** accelerated the product implementation: rapid UI iteration, interaction logic, structured-output contract design, and documentation.
+- **Codex** accelerated the product implementation: rapid UI iteration, interaction logic, role-based workflow design, PostgreSQL data flows, structured-output contract design, debugging, performance fixes, and documentation.
+
+## Technical implementation notes
+
+- The AI request is made by the Node.js server, never from the browser, so API credentials remain private.
+- Handovers move through explicit states: draft, awaiting supervisor review, relayed, and acknowledged.
+- Role-based access controls separate worker, supervisor, workforce-manager, and owner actions.
+- PostgreSQL stores organisations, memberships, handovers, approvals, schedules, clock entries, notifications, and audit records.
+- The mobile-first interface uses immediate UI feedback and background refreshes for routine actions so frontline users are not blocked by a full dashboard reload.
+- The Progressive Web App setup provides installable web-app behaviour and mobile-ready presentation while native Capacitor projects are included for future Android and iOS store releases.
+
+## Submission checklist
+
+- Public repository: `https://github.com/Riffmax2030-hub/ShiftRelay`
+- Live demo: add the deployed Render URL to the Devpost **Try it out** field.
+- Demo access: no credentials are required; use **Preview workspace roles**.
+- Demo video: show the worker → supervisor → incoming-worker flow and explain where Codex and GPT-5.6 Sol were used.
+- Keep `.env` files and API keys out of Git. Use `.env.example` only for variable names.
 
 ## Sample scenario
 
