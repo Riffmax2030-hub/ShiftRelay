@@ -45,6 +45,27 @@ async function saveStore(store) {
   await writeFile(dataPath, JSON.stringify(store, null, 2));
 }
 
+function demoTimeSummary(user, store, month) {
+  if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
+  const now = new Date();
+  const monthStart = month ? new Date(`${month.slice(0, 7)}-01T00:00:00.000Z`) : new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(monthStart);
+  monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+  const entries = store.timeEntries
+    .filter((entry) => entry.membershipId === user.id && new Date(entry.clockedInAt) >= monthStart && new Date(entry.clockedInAt) < monthEnd)
+    .sort((a, b) => new Date(b.clockedInAt) - new Date(a.clockedInAt));
+  const hoursFor = (entry) => (new Date(entry.clockedOutAt || now) - new Date(entry.clockedInAt)) / 3600000;
+  const totalHours = entries.reduce((total, entry) => total + hoursFor(entry), 0);
+  const weekStart = new Date(now.getTime() - 7 * 86400000);
+  const weekHours = entries.filter((entry) => new Date(entry.clockedInAt) >= weekStart).reduce((total, entry) => total + hoursFor(entry), 0);
+  return {
+    active: entries.find((entry) => !entry.clockedOutAt) || null,
+    totalHours: Math.round(totalHours * 10) / 10,
+    weekHours: Math.round(weekHours * 10) / 10,
+    entries: entries.map((entry) => ({ id: entry.id, clocked_in_at: entry.clockedInAt, clocked_out_at: entry.clockedOutAt, note: entry.note || null, hours: Math.round(hoursFor(entry) * 10) / 10 }))
+  };
+}
+
 function sendJson(response, status, payload) {
   response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
   response.end(JSON.stringify(payload));
@@ -177,6 +198,7 @@ const wellbeingQuotes = [
   ['care-6', 'Success is the sum of small efforts repeated day in and day out.', 'Robert Collier']
 ];
 async function timeSummary(user, month) {
+  if (!databaseReady) return demoTimeSummary(user, await getStore(), month);
   const result = await query(`select id, clocked_in_at, clocked_out_at, note, extract(epoch from (coalesce(clocked_out_at, now()) - clocked_in_at))/3600 as hours from time_entries where membership_id = $1 and clocked_in_at >= date_trunc('month', $2::date) and clocked_in_at < date_trunc('month', $2::date) + interval '1 month' order by clocked_in_at desc`, [user.id, month || new Date().toISOString().slice(0, 7) + '-01']);
   const active = result.rows.find((entry) => !entry.clocked_out_at) || null;
   const totalHours = result.rows.reduce((total, entry) => total + Number(entry.hours), 0);
@@ -449,12 +471,29 @@ async function handleApi(request, response, url) {
   if (url.pathname === '/api/time-entries' && request.method === 'GET') return sendJson(response, 200, await timeSummary(user, url.searchParams.get('month') ? `${url.searchParams.get('month')}-01` : null));
   if (url.pathname === '/api/time-entries/clock-in' && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Clocking in is available for authenticated organisation accounts.' });
+    if (!databaseReady) {
+      const store = await getStore();
+      if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
+      if (store.timeEntries.some((entry) => entry.membershipId === user.id && !entry.clockedOutAt)) return sendJson(response, 409, { error: 'You are already clocked in.' });
+      store.timeEntries.unshift({ id: crypto.randomUUID(), organisationId: user.organisation_id, membershipId: user.id, clockedInAt: new Date().toISOString(), clockedOutAt: null, note: null });
+      await saveStore(store);
+      return sendJson(response, 201, demoTimeSummary(user, store));
+    }
     const existing = (await query('select id from time_entries where membership_id = $1 and clocked_out_at is null', [user.id])).rows[0];
     if (existing) return sendJson(response, 409, { error: 'You are already clocked in.' });
     await query('insert into time_entries (id, organisation_id, membership_id, clocked_in_at) values ($1,$2,$3,now())', [crypto.randomUUID(), user.organisation_id, user.id]);
     return sendJson(response, 201, await timeSummary(user));
   }
   if (url.pathname === '/api/time-entries/clock-out' && request.method === 'POST') {
+    if (!databaseReady) {
+      const store = await getStore();
+      if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
+      const active = store.timeEntries.find((entry) => entry.membershipId === user.id && !entry.clockedOutAt);
+      if (!active) return sendJson(response, 409, { error: 'You are not clocked in.' });
+      active.clockedOutAt = new Date().toISOString();
+      await saveStore(store);
+      return sendJson(response, 200, demoTimeSummary(user, store));
+    }
     const active = (await query('select id from time_entries where membership_id = $1 and clocked_out_at is null', [user.id])).rows[0];
     if (!active) return sendJson(response, 409, { error: 'You are not clocked in.' });
     await query('update time_entries set clocked_out_at = now() where id = $1', [active.id]);
