@@ -632,6 +632,7 @@ const server = createServer((request, response) => {
     return serveStatic(response, url);
   }).catch((error) => {
     console.error('Request failed:', error.message);
+    if (databaseReady && /DATABASE|relation .* does not exist|connection|timeout|ECONN/i.test(error.message || '')) databaseReady = false;
     if (!response.headersSent) sendJson(response, 500, { error: 'The request could not be completed. Please try again.' });
     else response.destroy();
   });
