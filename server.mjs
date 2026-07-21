@@ -326,6 +326,7 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/analytics' && request.method === 'GET') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can view analytics.' });
+    if (!databaseReady) return sendJson(response, 200, { members: { total: demoMembers.length, active: demoMembers.length }, handovers: { total: 3, complete: 1, waiting: 1 }, monthlyHours: 24.5, openIncidents: 0 });
     return sendJson(response, 200, await organisationAnalytics(user.organisation_id));
   }
   if (url.pathname === '/api/attendance/today' && request.method === 'GET') {
@@ -334,6 +335,7 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/workflow-templates' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Workflow templates require an organisation account.' });
+    if (!databaseReady) return sendJson(response, 200, { templates: [{ id: 'demo-workflow-1', name: 'Standard shift handover', description: 'Outgoing worker → supervisor review → incoming worker acknowledgement.', created_at: new Date().toISOString() }] });
     const templates = await query('select id, name, description, created_at from workflow_templates where organisation_id = $1 order by created_at desc', [user.organisation_id]);
     return sendJson(response, 200, { templates: templates.rows });
   }
@@ -432,6 +434,7 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/organisation/settings' && request.method === 'GET') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can view settings.' });
+    if (!databaseReady) return sendJson(response, 200, { organisation: { legal_name: 'ShiftRelay Global Demo Organisation', trading_name: 'ShiftRelay Global', industry: 'Operations', country: 'Global', time_zone: 'UTC', preferred_language: 'en' } });
     const organisation = (await query('select legal_name, trading_name, industry, country, time_zone, preferred_language, settings from organisations where id = $1', [user.organisation_id])).rows[0];
     return sendJson(response, 200, { organisation });
   }
@@ -441,6 +444,7 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/directory' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Directory is available for authenticated organisation accounts.' });
+    if (!databaseReady) return sendJson(response, 200, { members: demoMembers.map((member) => ({ ...member, time_zone: 'UTC', status: 'active', shift_start: member.role === 'incoming' ? '14:00' : '06:00', shift_end: member.role === 'incoming' ? '22:00' : '14:00' })) });
     const members = await query(`select m.id, u.full_name as name, u.email, u.time_zone, m.role, m.title, m.department, m.status, m.shift_start, m.shift_end from memberships m join portal_users u on u.id = m.user_id where m.organisation_id = $1 order by u.full_name`, [user.organisation_id]); return sendJson(response, 200, { members: members.rows });
   }
   if (url.pathname === '/api/incidents' && request.method === 'GET') {
@@ -453,7 +457,9 @@ async function handleApi(request, response, url) {
     const body = await readJson(request); if (!body.category || !body.severity || !body.description) return sendJson(response, 400, { error: 'Category, severity, and description are required.' }); const id = crypto.randomUUID(); await query('insert into incidents (id, organisation_id, reported_by_membership_id, category, severity, description) values ($1,$2,$3,$4,$5,$6)', [id, user.organisation_id, user.id, body.category, body.severity, body.description]); await audit(user.organisation_id, user.id, 'incident_reported', 'incident', id, `${body.severity} ${body.category} incident reported.`); await notifyOrganisationOwners(user.organisation_id, `${user.name} reported a ${body.severity} ${body.category} incident.`); return sendJson(response, 201, { id });
   }
   if (url.pathname === '/api/audit-events' && request.method === 'GET') {
-    if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can view audit history.' }); const events = await query('select a.*, u.full_name as actor_name from audit_events a left join memberships m on m.id = a.actor_membership_id left join portal_users u on u.id = m.user_id where a.organisation_id = $1 order by a.created_at desc limit 50', [user.organisation_id]); return sendJson(response, 200, { events: events.rows });
+    if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can view audit history.' });
+    if (!databaseReady) return sendJson(response, 200, { events: [{ event_type: 'demo_workspace_ready', actor_name: 'ShiftRelay', created_at: new Date().toISOString() }] });
+    const events = await query('select a.*, u.full_name as actor_name from audit_events a left join memberships m on m.id = a.actor_membership_id left join portal_users u on u.id = m.user_id where a.organisation_id = $1 order by a.created_at desc limit 50', [user.organisation_id]); return sendJson(response, 200, { events: events.rows });
   }
 
   if (url.pathname === '/api/memberships/pending' && request.method === 'GET') {
