@@ -324,6 +324,7 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/calendar' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Calendar requires an organisation account.' });
+    if (!databaseReady) return sendJson(response, 200, { shifts: [], leave: [] });
     const month = url.searchParams.get('month') || new Date().toISOString().slice(0, 7); const start = `${month}-01`;
     const shifts = await query(`select s.id, s.starts_at, s.ends_at, s.status, m.id as membership_id, u.full_name as worker_name from scheduled_shifts s join memberships m on m.id = s.membership_id join portal_users u on u.id = m.user_id where s.organisation_id = $1 and s.starts_at >= date_trunc('month',$2::date) and s.starts_at < date_trunc('month',$2::date) + interval '1 month' order by s.starts_at`, [user.organisation_id, start]);
     const leave = await query(`select l.*, u.full_name as worker_name from leave_requests l join memberships m on m.id = l.membership_id join portal_users u on u.id = m.user_id where l.organisation_id = $1 and l.starts_on < date_trunc('month',$2::date) + interval '1 month' and l.ends_on >= date_trunc('month',$2::date) order by l.starts_on`, [user.organisation_id, start]);
@@ -341,11 +342,13 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/open-shifts' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Open shifts require an organisation account.' });
+    if (!databaseReady) return sendJson(response, 200, { shifts: [] });
     const shifts = await query(`select o.*, creator.full_name as created_by_name, count(a.id)::int as applicants from open_shifts o join memberships cm on cm.id = o.created_by_membership_id join portal_users creator on creator.id = cm.user_id left join open_shift_applications a on a.open_shift_id = o.id and a.status = 'pending' where o.organisation_id = $1 and o.status = 'open' group by o.id, creator.full_name order by o.starts_at`, [user.organisation_id]);
     return sendJson(response, 200, { shifts: shifts.rows });
   }
   if (url.pathname === '/api/community' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Community requires an organisation account.' });
+    if (!databaseReady) return sendJson(response, 200, { announcements: [], channels: [{ id: 'demo-team-updates', name: 'Team updates', description: 'A shared space for the whole organisation.' }], activeChannelId: 'demo-team-updates', messages: [] });
     const announcements = await query(`select a.*, u.full_name as author_name from announcements a join memberships m on m.id = a.author_membership_id join portal_users u on u.id = m.user_id where a.organisation_id = $1 order by a.created_at desc limit 12`, [user.organisation_id]);
     let channels = await query('select id, name, description from community_channels where organisation_id = $1 order by created_at', [user.organisation_id]);
     if (!channels.rows.length) { await query('insert into community_channels (id, organisation_id, name, description) values ($1,$2,$3,$4)', [crypto.randomUUID(), user.organisation_id, 'Team updates', 'A shared space for the whole organisation.']); channels = await query('select id, name, description from community_channels where organisation_id = $1 order by created_at', [user.organisation_id]); }
@@ -386,7 +389,8 @@ async function handleApi(request, response, url) {
     await notifyOrganisationOwners(user.organisation_id, `${user.name} applied to cover ${shift.title}.`); return sendJson(response, 201, { ok: true });
   }
   if (url.pathname === '/api/leave-requests' && request.method === 'GET') {
-    if (!user.organisation_id) return sendJson(response, 400, { error: 'Leave requests require an organisation account.' }); const where = user.role === 'owner' ? 'organisation_id = $1' : 'organisation_id = $1 and membership_id = $2'; const values = user.role === 'owner' ? [user.organisation_id] : [user.organisation_id, user.id]; const requests = await query(`select * from leave_requests where ${where} order by created_at desc`, values); return sendJson(response, 200, { requests: requests.rows });
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Leave requests require an organisation account.' });
+    if (!databaseReady) return sendJson(response, 200, { requests: [] }); const where = user.role === 'owner' ? 'organisation_id = $1' : 'organisation_id = $1 and membership_id = $2'; const values = user.role === 'owner' ? [user.organisation_id] : [user.organisation_id, user.id]; const requests = await query(`select * from leave_requests where ${where} order by created_at desc`, values); return sendJson(response, 200, { requests: requests.rows });
   }
   if (url.pathname === '/api/leave-requests' && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Leave requests require an organisation account.' }); const body = await readJson(request); if (!body.startsOn || !body.endsOn) return sendJson(response, 400, { error: 'Leave dates are required.' }); const id = crypto.randomUUID(); await query('insert into leave_requests (id, organisation_id, membership_id, starts_on, ends_on, reason) values ($1,$2,$3,$4,$5,$6)', [id, user.organisation_id, user.id, body.startsOn, body.endsOn, body.reason || null]); await audit(user.organisation_id, user.id, 'leave_requested', 'leave_request', id, 'Leave request submitted.'); await notifyOrganisationOwners(user.organisation_id, `${user.name} requested leave from ${body.startsOn} to ${body.endsOn}.`); return sendJson(response, 201, { id });
@@ -419,6 +423,7 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/incidents' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Incident reporting is available for authenticated organisation accounts.' });
+    if (!databaseReady) return sendJson(response, 200, { incidents: [] });
     const incidents = await query('select i.*, u.full_name as reporter_name from incidents i join memberships m on m.id = i.reported_by_membership_id join portal_users u on u.id = m.user_id where i.organisation_id = $1 order by i.created_at desc limit 30', [user.organisation_id]); return sendJson(response, 200, { incidents: incidents.rows });
   }
   if (url.pathname === '/api/incidents' && request.method === 'POST') {
@@ -543,6 +548,7 @@ async function handleApi(request, response, url) {
       await query('update notifications set read_at = now() where id = $1 and organisation_id = $2 and recipient_membership_id = $3 and read_at is null', [notificationId, demoOrganisation.id, user.id]);
       return sendJson(response, 200, { ok: true });
     }
+    const store = await getStore();
     const notification = store.notifications.find((item) => item.id === notificationId && item.recipientId === user.id);
     if (notification) notification.read = true;
     return sendJson(response, 200, { ok: true });
@@ -573,11 +579,17 @@ async function serveStatic(response, url) {
   } catch { response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); response.end('Not found'); }
 }
 
-const server = createServer(async (request, response) => {
-  const url = new URL(request.url, `http://${request.headers.host}`);
-  if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok' });
-  if (url.pathname.startsWith('/api/')) return handleApi(request, response, url);
-  return serveStatic(response, url);
+const server = createServer((request, response) => {
+  Promise.resolve().then(async () => {
+    const url = new URL(request.url, `http://${request.headers.host}`);
+    if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok' });
+    if (url.pathname.startsWith('/api/')) return handleApi(request, response, url);
+    return serveStatic(response, url);
+  }).catch((error) => {
+    console.error('Request failed:', error.message);
+    if (!response.headersSent) sendJson(response, 500, { error: 'The request could not be completed. Please try again.' });
+    else response.destroy();
+  });
 });
 
 initializeDatabase()
