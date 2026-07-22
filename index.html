@@ -58,6 +58,13 @@
         <header class="app-header"><div><p class="eyebrow" id="page-kicker">YOUR WORKSPACE</p><h1 id="page-title">Dashboard</h1></div><div class="header-actions"><span class="api-status" id="api-status">Checking AI connection…</span><button class="bell notification-trigger" id="notification-button" aria-label="Open notifications"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><b id="notification-count">0</b></button><button class="account-menu-button" id="account-menu-button" aria-label="Open account menu" aria-expanded="false">☰</button></div></header>
         <section id="dashboard"></section>
       </section>
+      <nav class="mobile-nav" aria-label="Primary navigation">
+        <button data-go="dashboard" class="active"><span>⌂</span><small>Home</small></button>
+        <button data-go="calendar"><span>▦</span><small>Schedule</small></button>
+        <button data-go="handover"><span>↗</span><small>Relay</small></button>
+        <button data-go="notifications"><span>♢</span><small>Alerts</small></button>
+        <button data-go="settings"><span>☰</span><small>Menu</small></button>
+      </nav>
       <aside class="notification-panel hidden" id="notification-panel"><div><strong>Notifications</strong></div><section id="notification-list"></section></aside>
     </main>
     <div class="toast hidden" id="toast"></div>

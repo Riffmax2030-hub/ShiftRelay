@@ -25,5 +25,13 @@ body{background:linear-gradient(135deg,#eef8f5 0%,#f7f8f3 52%,#edf3fb 100%)}
 .app .bell,.app .account-menu-button{background:rgba(255,255,255,.62)!important;border-color:rgba(255,255,255,.9);box-shadow:0 8px 20px rgba(42,79,82,.1);backdrop-filter:blur(16px)}
 .app .notification-panel{background:rgba(255,255,255,.78)!important;border-color:rgba(255,255,255,.9);backdrop-filter:blur(24px)}
 .app .welcome-card{border:1px solid rgba(255,255,255,.35)}
+.mobile-nav{display:none}
+.app-header .header-actions{position:relative}
+.account-menu-button{width:40px;height:40px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-size:18px}
+.side-nav button.active{position:relative}.side-nav button.active:before{position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:4px;background:var(--lime);content:''}
+.workspace-card h2,.worker-support h3{letter-spacing:-.045em}
+.action-list{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+.handover-item{min-height:92px}
 @media(max-width:900px){.app{display:block}.sidebar{display:none}.main-content{padding:22px 20px 82px}.app-header{margin-bottom:20px}.worker-support{grid-template-columns:1fr}.worker-support .clock-card{grid-column:auto}}
+@media(max-width:900px){.mobile-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);right:14px;bottom:14px;left:14px;z-index:20;padding:8px;border:1px solid rgba(255,255,255,.9);border-radius:20px;background:rgba(16,47,53,.92);box-shadow:0 16px 35px rgba(10,52,57,.24);backdrop-filter:blur(22px)}.mobile-nav button{display:grid;justify-items:center;gap:3px;border:0;border-radius:13px;background:transparent;color:#a9c7c4;padding:7px 2px}.mobile-nav button.active,.mobile-nav button:hover{background:#1d7774;color:#fff}.mobile-nav span{font-size:20px;line-height:1}.mobile-nav small{font-size:10px;font-weight:700}}
 @media(max-width:560px){body{background:var(--canvas)}.main-content{padding:16px 14px 76px}.app-header{gap:10px}.app-header h1{font-size:28px}.header-actions{gap:7px}.welcome-card{padding:20px;border-radius:17px}.welcome-card h2{font-size:28px}.metric-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.metric{min-height:88px;padding:12px 9px;border-radius:12px}.metric span{font-size:10px;line-height:1.2}.metric strong{font-size:22px}.workspace-card{padding:18px;border-radius:15px}.worker-support article{min-height:145px;padding:18px;border-radius:15px}.primary,.secondary,.voice{min-height:42px;padding:11px 13px}}

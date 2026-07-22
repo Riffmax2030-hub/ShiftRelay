@@ -19,6 +19,7 @@ go=async function(view){
   if(state.navigating)return;
   state.navigating=true;
   buttons.forEach((button)=>{button.disabled=true;button.classList.toggle('active',button.dataset.view===view)});
+  document.querySelectorAll('.mobile-nav [data-go]').forEach((button)=>button.classList.toggle('active',button.dataset.go===view));
   dashboardHeader('Loading…');
   $('#dashboard').innerHTML='<p class="empty">Loading your workspace…</p>';
   try{
