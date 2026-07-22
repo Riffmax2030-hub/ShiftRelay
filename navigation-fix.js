@@ -23,7 +23,7 @@ go=async function(view){
   dashboardHeader('Loading…');
   $('#dashboard').innerHTML='<p class="empty">Loading your workspace…</p>';
   try{
-    if(view==='handover')await renderHandoverForm();
+    if(view==='handover'){await renderHandoverForm();await enhanceRelayHistory();}
     else if(view==='activity')await renderActivity();
     else if(view==='notifications')await renderNotificationCentre();
     else if(view==='calendar')await renderCalendar();
@@ -41,6 +41,8 @@ go=async function(view){
     buttons.forEach((button)=>button.disabled=false);
   }
 };
+
+async function enhanceRelayHistory(){const dashboard=$('#dashboard');if(!dashboard||$('#relay-history'))return;try{const handovers=await getHandovers();dashboard.insertAdjacentHTML('beforeend',`<section class="workspace-card relay-history" id="relay-history"><p class="eyebrow">YOUR RELAY HISTORY</p><h2>Every handover in one place.</h2><p>Follow updates from creation through review and acknowledgement.</p>${handoverList(handovers,'')}</section>`)}catch(error){console.warn('Relay history unavailable',error)}}
 
 const loadDashboard=renderDashboard;
 renderDashboard=async function(){
