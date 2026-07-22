@@ -216,6 +216,10 @@ async function notifyOrganisationOwners(organisationId, message) {
 async function notifyMembership(organisationId, membershipId, message) {
   await query('insert into notifications (id, organisation_id, recipient_membership_id, message) values ($1,$2,$3,$4)', [crypto.randomUUID(), organisationId, membershipId, message]);
 }
+async function notifyOrganisationMembers(organisationId, senderId, message) {
+  const members = await query("select id from memberships where organisation_id = $1 and status = 'active' and id <> $2", [organisationId, senderId]);
+  for (const member of members.rows) await notifyMembership(organisationId, member.id, message);
+}
 
 async function organisationAnalytics(organisationId) {
   const [members, handovers, hours, incidents] = await Promise.all([
@@ -372,7 +376,11 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/community' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Community requires an organisation account.' });
-    if (!databaseReady) return sendJson(response, 200, { announcements: [], channels: [{ id: 'demo-team-updates', name: 'Team updates', description: 'A shared space for the whole organisation.' }], activeChannelId: 'demo-team-updates', messages: [] });
+    if (!databaseReady) {
+      const store = await getStore();
+      const messages = Array.isArray(store.communityMessages) ? store.communityMessages : [];
+      return sendJson(response, 200, { announcements: [], channels: [{ id: 'demo-team-updates', name: 'Team updates', description: 'A shared space for the whole organisation.' }], activeChannelId: 'demo-team-updates', messages });
+    }
     const announcements = await query(`select a.*, u.full_name as author_name from announcements a join memberships m on m.id = a.author_membership_id join portal_users u on u.id = m.user_id where a.organisation_id = $1 order by a.created_at desc limit 12`, [user.organisation_id]);
     let channels = await query('select id, name, description from community_channels where organisation_id = $1 order by created_at', [user.organisation_id]);
     if (!channels.rows.length) { await query('insert into community_channels (id, organisation_id, name, description) values ($1,$2,$3,$4)', [crypto.randomUUID(), user.organisation_id, 'Team updates', 'A shared space for the whole organisation.']); channels = await query('select id, name, description from community_channels where organisation_id = $1 order by created_at', [user.organisation_id]); }
@@ -386,16 +394,26 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/community/messages' && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Community requires an organisation account.' }); const body = await readJson(request); if (!body.channelId || !body.body?.trim()) return sendJson(response, 400, { error: 'Choose a channel and write a message.' });
+    if (!databaseReady) {
+      const store = await getStore(); if (!Array.isArray(store.communityMessages)) store.communityMessages = [];
+      const message = { id: crypto.randomUUID(), channel_id: body.channelId, author_membership_id: user.id, author_name: user.name, body: body.body.trim(), created_at: new Date().toISOString() };
+      store.communityMessages.push(message); await saveStore(store);
+      for (const member of demoMembers.filter((member) => member.id !== user.id)) { const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []); notifications.unshift({ id: crypto.randomUUID(), recipientId: member.id, message: `${user.name} posted in Team chat.`, createdAt: new Date().toISOString(), read: false }); }
+      for (const mention of body.body.matchAll(/@([\w.-]+)/g)) { const target = demoMembers.find((member) => member.name.toLowerCase().replace(/\s+/g, '.') === mention[1].toLowerCase() || member.email.split('@')[0].toLowerCase() === mention[1].toLowerCase()); if (target && target.id !== user.id) { const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []); notifications.unshift({ id: crypto.randomUUID(), recipientId: target.id, message: `${user.name} mentioned you in Team chat.`, createdAt: new Date().toISOString(), read: false }); } }
+      await saveStore(store); return sendJson(response, 201, { id: message.id });
+    }
     const channel = (await query('select id from community_channels where id = $1 and organisation_id = $2', [body.channelId, user.organisation_id])).rows[0]; if (!channel) return sendJson(response, 404, { error: 'Channel not found.' });
-    const id = crypto.randomUUID(); await query('insert into community_messages (id, channel_id, author_membership_id, body) values ($1,$2,$3,$4)', [id, channel.id, user.id, body.body.trim()]); return sendJson(response, 201, { id });
+    const id = crypto.randomUUID(); await query('insert into community_messages (id, channel_id, author_membership_id, body) values ($1,$2,$3,$4)', [id, channel.id, user.id, body.body.trim()]); await notifyOrganisationMembers(user.organisation_id, user.id, `${user.name} posted in Team chat.`); return sendJson(response, 201, { id });
   }
   if (url.pathname === '/api/community/direct-messages' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Direct messages require an organisation account.' });
+    if (!databaseReady) { const store = await getStore(); return sendJson(response, 200, { messages: (store.directMessages || []).filter((message) => message.sender_membership_id === user.id || message.recipient_membership_id === user.id) }); }
     const messages = await query(`select d.*, sender.full_name as sender_name, recipient.full_name as recipient_name from direct_messages d join memberships sm on sm.id = d.sender_membership_id join portal_users sender on sender.id = sm.user_id join memberships rm on rm.id = d.recipient_membership_id join portal_users recipient on recipient.id = rm.user_id where d.organisation_id = $1 and (d.sender_membership_id = $2 or d.recipient_membership_id = $2) order by d.created_at desc limit 30`, [user.organisation_id, user.id]);
     return sendJson(response, 200, { messages: messages.rows.reverse() });
   }
   if (url.pathname === '/api/community/direct-messages' && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Direct messages require an organisation account.' }); const body = await readJson(request); if (!body.recipientMembershipId || !body.body?.trim()) return sendJson(response, 400, { error: 'Choose a staff member and write a message.' });
+    if (!databaseReady) { const recipient = demoMembers.find((member) => member.id === body.recipientMembershipId); if (!recipient) return sendJson(response, 404, { error: 'Coworker not found.' }); const store = await getStore(); if (!Array.isArray(store.directMessages)) store.directMessages = []; const message = { id: crypto.randomUUID(), sender_membership_id: user.id, recipient_membership_id: recipient.id, sender_name: user.name, recipient_name: recipient.name, body: body.body.trim(), created_at: new Date().toISOString() }; store.directMessages.push(message); const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []); notifications.unshift({ id: crypto.randomUUID(), recipientId: recipient.id, message: `${user.name} sent you a private message.`, createdAt: new Date().toISOString(), read: false }); await saveStore(store); return sendJson(response, 201, { id: message.id }); }
     const recipient = (await query('select id from memberships where id = $1 and organisation_id = $2 and status = $3', [body.recipientMembershipId, user.organisation_id, 'active'])).rows[0]; if (!recipient) return sendJson(response, 404, { error: 'Staff member not found.' });
     const id = crypto.randomUUID(); await query('insert into direct_messages (id, organisation_id, sender_membership_id, recipient_membership_id, body) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, user.id, recipient.id, body.body.trim()]); await notifyMembership(user.organisation_id, recipient.id, `${user.name} sent you a direct message.`); return sendJson(response, 201, { id });
   }
