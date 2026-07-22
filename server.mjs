@@ -23,6 +23,7 @@ const dataPath = join(dataDirectory, 'shiftrelay.json');
 const mimeTypes = { '.css': 'text/css', '.html': 'text/html', '.js': 'application/javascript', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml' };
 const users = demoMembers;
 let databaseReady = false;
+const eventClients = new Set();
 const scrypt = promisify(scryptCallback);
 
 const schema = {
@@ -70,6 +71,7 @@ function sendJson(response, status, payload) {
   response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
   response.end(JSON.stringify(payload));
 }
+function broadcastEvent(event, payload) { const message = `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`; for (const client of eventClients) { if (payload.organisationId && client.organisationId !== payload.organisationId) continue; try { client.response.write(message); } catch { eventClients.delete(client); } } }
 
 async function readJson(request) {
   const chunks = [];
@@ -287,6 +289,7 @@ async function handleApi(request, response, url) {
   const user = await getUser(request);
   if (url.pathname === '/api/users' && request.method === 'GET') return sendJson(response, 200, { users: users.map((demoUser) => ({ ...demoUser, organisation_id: demoOrganisation.id })) });
   if (url.pathname === '/api/config' && request.method === 'GET') return sendJson(response, 200, { aiConfigured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL), assistantConfigured: Boolean((process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL) || process.env.GEMINI_API_KEY), transcriptionConfigured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_TRANSCRIPTION_MODEL), databaseReady });
+  if (url.pathname === '/api/events' && request.method === 'GET') { const eventUser = user || (url.searchParams.get('user') ? { ...users.find((demoUser) => demoUser.id === url.searchParams.get('user')), organisation_id: demoOrganisation.id } : null); if (!eventUser?.id) return sendJson(response, 401, { error: 'Select a ShiftRelay role to continue.' }); response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' }); response.write(`event: ready\ndata: ${JSON.stringify({ connectedAt: new Date().toISOString() })}\n\n`); const client = { response, userId: eventUser.id, organisationId: eventUser.organisation_id }; eventClients.add(client); const heartbeat = setInterval(() => { try { response.write(': heartbeat\n\n'); } catch { clearInterval(heartbeat); eventClients.delete(client); } }, 25000); request.on('close', () => { clearInterval(heartbeat); eventClients.delete(client); }); return; }
   if (url.pathname === '/api/auth/session' && request.method === 'GET') return user ? sendJson(response, 200, { user }) : sendJson(response, 401, { error: 'Sign in to continue.' });
   if (url.pathname === '/api/account-deletion-requests' && request.method === 'POST') {
     try {
@@ -400,10 +403,10 @@ async function handleApi(request, response, url) {
       store.communityMessages.push(message); await saveStore(store);
       for (const member of demoMembers.filter((member) => member.id !== user.id)) { const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []); notifications.unshift({ id: crypto.randomUUID(), recipientId: member.id, message: `${user.name} posted in Team chat.`, createdAt: new Date().toISOString(), read: false }); }
       for (const mention of body.body.matchAll(/@([\w.-]+)/g)) { const target = demoMembers.find((member) => member.name.toLowerCase().replace(/\s+/g, '.') === mention[1].toLowerCase() || member.email.split('@')[0].toLowerCase() === mention[1].toLowerCase()); if (target && target.id !== user.id) { const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []); notifications.unshift({ id: crypto.randomUUID(), recipientId: target.id, message: `${user.name} mentioned you in Team chat.`, createdAt: new Date().toISOString(), read: false }); } }
-      await saveStore(store); return sendJson(response, 201, { id: message.id });
+      await saveStore(store); broadcastEvent('team-message', { organisationId: user.organisation_id, message }); return sendJson(response, 201, { id: message.id });
     }
     const channel = (await query('select id from community_channels where id = $1 and organisation_id = $2', [body.channelId, user.organisation_id])).rows[0]; if (!channel) return sendJson(response, 404, { error: 'Channel not found.' });
-    const id = crypto.randomUUID(); await query('insert into community_messages (id, channel_id, author_membership_id, body) values ($1,$2,$3,$4)', [id, channel.id, user.id, body.body.trim()]); await notifyOrganisationMembers(user.organisation_id, user.id, `${user.name} posted in Team chat.`); return sendJson(response, 201, { id });
+    const id = crypto.randomUUID(); await query('insert into community_messages (id, channel_id, author_membership_id, body) values ($1,$2,$3,$4)', [id, channel.id, user.id, body.body.trim()]); await notifyOrganisationMembers(user.organisation_id, user.id, `${user.name} posted in Team chat.`); broadcastEvent('team-message', { organisationId: user.organisation_id, message: { id, channel_id: channel.id, author_membership_id: user.id, author_name: user.name, body: body.body.trim(), created_at: new Date().toISOString() } }); return sendJson(response, 201, { id });
   }
   if (url.pathname === '/api/community/direct-messages' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Direct messages require an organisation account.' });
@@ -413,9 +416,9 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/community/direct-messages' && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Direct messages require an organisation account.' }); const body = await readJson(request); if (!body.recipientMembershipId || !body.body?.trim()) return sendJson(response, 400, { error: 'Choose a staff member and write a message.' });
-    if (!databaseReady) { const recipient = demoMembers.find((member) => member.id === body.recipientMembershipId); if (!recipient) return sendJson(response, 404, { error: 'Coworker not found.' }); const store = await getStore(); if (!Array.isArray(store.directMessages)) store.directMessages = []; const message = { id: crypto.randomUUID(), sender_membership_id: user.id, recipient_membership_id: recipient.id, sender_name: user.name, recipient_name: recipient.name, body: body.body.trim(), created_at: new Date().toISOString() }; store.directMessages.push(message); const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []); notifications.unshift({ id: crypto.randomUUID(), recipientId: recipient.id, message: `${user.name} sent you a private message.`, createdAt: new Date().toISOString(), read: false }); await saveStore(store); return sendJson(response, 201, { id: message.id }); }
+    if (!databaseReady) { const recipient = demoMembers.find((member) => member.id === body.recipientMembershipId); if (!recipient) return sendJson(response, 404, { error: 'Coworker not found.' }); const store = await getStore(); if (!Array.isArray(store.directMessages)) store.directMessages = []; const message = { id: crypto.randomUUID(), organisationId: user.organisation_id, sender_membership_id: user.id, recipient_membership_id: recipient.id, sender_name: user.name, recipient_name: recipient.name, body: body.body.trim(), created_at: new Date().toISOString() }; store.directMessages.push(message); const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []); notifications.unshift({ id: crypto.randomUUID(), recipientId: recipient.id, message: `${user.name} sent you a private message.`, createdAt: new Date().toISOString(), read: false }); await saveStore(store); broadcastEvent('private-message', message); return sendJson(response, 201, { id: message.id }); }
     const recipient = (await query('select id from memberships where id = $1 and organisation_id = $2 and status = $3', [body.recipientMembershipId, user.organisation_id, 'active'])).rows[0]; if (!recipient) return sendJson(response, 404, { error: 'Staff member not found.' });
-    const id = crypto.randomUUID(); await query('insert into direct_messages (id, organisation_id, sender_membership_id, recipient_membership_id, body) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, user.id, recipient.id, body.body.trim()]); await notifyMembership(user.organisation_id, recipient.id, `${user.name} sent you a direct message.`); return sendJson(response, 201, { id });
+    const id = crypto.randomUUID(); await query('insert into direct_messages (id, organisation_id, sender_membership_id, recipient_membership_id, body) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, user.id, recipient.id, body.body.trim()]); await notifyMembership(user.organisation_id, recipient.id, `${user.name} sent you a private message.`); broadcastEvent('private-message', { organisationId: user.organisation_id, recipientMembershipId: recipient.id, senderMembershipId: user.id, body: body.body.trim(), id }); return sendJson(response, 201, { id });
   }
   if (url.pathname === '/api/open-shifts' && request.method === 'POST') {
     if (!['owner', 'workforce_admin'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only workforce managers can post open shifts.' });
