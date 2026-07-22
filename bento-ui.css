@@ -1,5 +1,5 @@
 :root{--surface-raised:#fff;--shadow-soft:0 12px 30px rgba(25,36,43,.07);--shadow-hover:0 18px 36px rgba(25,36,43,.11)}
-body{background:linear-gradient(135deg,#eef8f5 0%,#f7f8f3 52%,#edf3fb 100%)}
+body{background:linear-gradient(135deg,#eef8f5 0%,#f7f8f3 52%,#edf3fb 100%);font-family:Inter,Manrope,Arial,sans-serif}
 .app{grid-template-columns:264px minmax(0,1fr)}
 .sidebar{background:#102f35;color:#f4fffc;backdrop-filter:blur(18px);box-shadow:8px 0 30px rgba(10,52,57,.14)}
 .sidebar .brand{color:#fff}.sidebar .signed-in{border-color:#31545a}.sidebar .signed-in small{color:#a9c7c4}.sidebar .avatar{background:#dff26e;color:#102f35}.sidebar .side-nav button{color:#b9d2cf}.sidebar .side-nav button.active,.sidebar .side-nav button:hover{background:#1d7774;color:#fff}.sidebar .logout{color:#ffb3a8}
@@ -15,6 +15,8 @@ body{background:linear-gradient(135deg,#eef8f5 0%,#f7f8f3 52%,#edf3fb 100%)}
 .worker-support article{min-height:170px;padding:22px;border:1px solid var(--line);border-radius:18px;background:var(--surface-raised)}
 .worker-support .clock-card{grid-column:span 2;background:linear-gradient(135deg,#126e68,#1b9488)!important;color:#fff}
 .worker-support .clock-card .eyebrow,.worker-support .clock-card p,.worker-support .clock-card span{color:#dff8f1}.worker-support .clock-card .primary{border-color:#fff;background:#fff;color:var(--teal)}
+.app .worker-support .clock-card{background:linear-gradient(135deg,#075f5a 0%,#11847a 100%)!important;color:#fff!important;border:1px solid #4cc7b7;box-shadow:0 16px 34px rgba(7,95,90,.25)}
+.app .worker-support .clock-card h2{color:#fff!important;font-size:clamp(24px,3vw,32px);font-weight:800;letter-spacing:-.045em}.app .worker-support .clock-card p:not(.eyebrow){color:#effffc!important;font-weight:600}.app .worker-support .clock-card .eyebrow{color:#dff26e!important;font-weight:800}.app .worker-support .clock-card .button-row span{color:#e8fffa!important;font-weight:700}
 .worker-support .history-card ul{padding-left:18px;line-height:1.9}.side-nav button{padding:12px 14px;border-radius:10px;transition:background .16s ease,color .16s ease,transform .16s ease}.side-nav button:hover{transform:translateX(2px)}
 .notification-panel{box-shadow:0 20px 45px rgba(25,36,43,.16);backdrop-filter:blur(18px)}
 .app .main-content{position:relative;isolation:isolate}
@@ -36,3 +38,4 @@ body{background:linear-gradient(135deg,#eef8f5 0%,#f7f8f3 52%,#edf3fb 100%)}
 @media(max-width:900px){.app{display:block}.sidebar{display:none}.main-content{padding:22px 20px 82px}.app-header{margin-bottom:20px}.worker-support{grid-template-columns:1fr}.worker-support .clock-card{grid-column:auto}}
 @media(max-width:900px){.mobile-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);right:14px;bottom:14px;left:14px;z-index:20;padding:8px;border:1px solid rgba(255,255,255,.9);border-radius:20px;background:rgba(16,47,53,.92);box-shadow:0 16px 35px rgba(10,52,57,.24);backdrop-filter:blur(22px)}.mobile-nav button{display:grid;justify-items:center;gap:3px;border:0;border-radius:13px;background:transparent;color:#a9c7c4;padding:7px 2px}.mobile-nav button.active,.mobile-nav button:hover{background:#1d7774;color:#fff}.mobile-nav span{font-size:20px;line-height:1}.mobile-nav small{font-size:10px;font-weight:700}}
 @media(max-width:560px){body{background:var(--canvas)}.main-content{padding:16px 14px 76px}.app-header{gap:10px}.app-header h1{font-size:28px}.header-actions{gap:7px}.welcome-card{padding:20px;border-radius:17px}.welcome-card h2{font-size:28px}.metric-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.metric{min-height:88px;padding:12px 9px;border-radius:12px}.metric span{font-size:10px;line-height:1.2}.metric strong{font-size:22px}.workspace-card{padding:18px;border-radius:15px}.worker-support article{min-height:145px;padding:18px;border-radius:15px}.primary,.secondary,.voice{min-height:42px;padding:11px 13px}}
+.app .worker-support .clock-card .primary{font-size:13px;font-weight:800;box-shadow:0 5px 12px rgba(0,0,0,.14)}
