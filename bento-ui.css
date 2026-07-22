@@ -1,7 +1,8 @@
 :root{--surface-raised:#fff;--shadow-soft:0 12px 30px rgba(25,36,43,.07);--shadow-hover:0 18px 36px rgba(25,36,43,.11)}
-body{background:radial-gradient(circle at 85% 0%,#e8f5f0 0,transparent 34%),var(--canvas)}
-.app{grid-template-columns:252px minmax(0,1fr)}
-.sidebar{background:rgba(255,255,255,.88);backdrop-filter:blur(18px);box-shadow:8px 0 30px rgba(25,36,43,.035)}
+body{background:linear-gradient(135deg,#eef8f5 0%,#f7f8f3 52%,#edf3fb 100%)}
+.app{grid-template-columns:264px minmax(0,1fr)}
+.sidebar{background:#102f35;color:#f4fffc;backdrop-filter:blur(18px);box-shadow:8px 0 30px rgba(10,52,57,.14)}
+.sidebar .brand{color:#fff}.sidebar .signed-in{border-color:#31545a}.sidebar .signed-in small{color:#a9c7c4}.sidebar .avatar{background:#dff26e;color:#102f35}.sidebar .side-nav button{color:#b9d2cf}.sidebar .side-nav button.active,.sidebar .side-nav button:hover{background:#1d7774;color:#fff}.sidebar .logout{color:#ffb3a8}
 .main-content{max-width:1440px;width:100%;margin:0 auto;padding-top:30px}
 .app-header{align-items:center;margin-bottom:24px}.app-header h1{font-size:clamp(30px,3vw,42px)}
 .metric-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
@@ -9,7 +10,7 @@ body{background:radial-gradient(circle at 85% 0%,#e8f5f0 0,transparent 34%),var(
 .metric:hover,.handover-item:hover{border-color:#afd1c8;box-shadow:var(--shadow-hover);transform:translateY(-2px)}
 .metric{min-height:112px;padding:20px;background:var(--surface-raised)}.metric strong{font-size:32px}
 .welcome-card{min-height:184px;margin-bottom:18px;box-shadow:0 20px 42px rgba(18,110,104,.16)}
-.welcome-activity{background:rgba(8,66,62,.5);backdrop-filter:blur(10px)}.workspace-card{background:rgba(255,255,255,.93)}
+.welcome-activity{background:rgba(8,66,62,.5);backdrop-filter:blur(10px)}.workspace-card{background:rgba(255,255,255,.96);border-color:#c7e0db}
 .worker-support{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .worker-support article{min-height:170px;padding:22px;border:1px solid var(--line);border-radius:18px;background:var(--surface-raised)}
 .worker-support .clock-card{grid-column:span 2;background:linear-gradient(135deg,#126e68,#1b9488)!important;color:#fff}
