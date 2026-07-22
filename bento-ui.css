@@ -17,5 +17,13 @@ body{background:linear-gradient(135deg,#eef8f5 0%,#f7f8f3 52%,#edf3fb 100%)}
 .worker-support .clock-card .eyebrow,.worker-support .clock-card p,.worker-support .clock-card span{color:#dff8f1}.worker-support .clock-card .primary{border-color:#fff;background:#fff;color:var(--teal)}
 .worker-support .history-card ul{padding-left:18px;line-height:1.9}.side-nav button{padding:12px 14px;border-radius:10px;transition:background .16s ease,color .16s ease,transform .16s ease}.side-nav button:hover{transform:translateX(2px)}
 .notification-panel{box-shadow:0 20px 45px rgba(25,36,43,.16);backdrop-filter:blur(18px)}
+.app .main-content{position:relative;isolation:isolate}
+.app .main-content:before,.app .main-content:after{position:absolute;z-index:-1;width:240px;height:240px;border-radius:50%;content:'';filter:blur(10px);opacity:.42}
+.app .main-content:before{top:40px;right:8%;background:#b8ecdf}.app .main-content:after{bottom:12%;left:3%;background:#d8e8ff}
+.app .workspace-card,.app .metric,.app .handover-item,.app .worker-support article{background:rgba(255,255,255,.58)!important;border:1px solid rgba(255,255,255,.82);box-shadow:0 14px 40px rgba(42,79,82,.11),inset 0 1px rgba(255,255,255,.8);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+.app .metric:hover,.app .handover-item:hover{background:rgba(255,255,255,.78)!important}
+.app .bell,.app .account-menu-button{background:rgba(255,255,255,.62)!important;border-color:rgba(255,255,255,.9);box-shadow:0 8px 20px rgba(42,79,82,.1);backdrop-filter:blur(16px)}
+.app .notification-panel{background:rgba(255,255,255,.78)!important;border-color:rgba(255,255,255,.9);backdrop-filter:blur(24px)}
+.app .welcome-card{border:1px solid rgba(255,255,255,.35)}
 @media(max-width:900px){.app{display:block}.sidebar{display:none}.main-content{padding:22px 20px 82px}.app-header{margin-bottom:20px}.worker-support{grid-template-columns:1fr}.worker-support .clock-card{grid-column:auto}}
 @media(max-width:560px){body{background:var(--canvas)}.main-content{padding:16px 14px 76px}.app-header{gap:10px}.app-header h1{font-size:28px}.header-actions{gap:7px}.welcome-card{padding:20px;border-radius:17px}.welcome-card h2{font-size:28px}.metric-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.metric{min-height:88px;padding:12px 9px;border-radius:12px}.metric span{font-size:10px;line-height:1.2}.metric strong{font-size:22px}.workspace-card{padding:18px;border-radius:15px}.worker-support article{min-height:145px;padding:18px;border-radius:15px}.primary,.secondary,.voice{min-height:42px;padding:11px 13px}}
