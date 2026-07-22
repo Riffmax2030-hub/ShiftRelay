@@ -1,5 +1,5 @@
-const CACHE='shiftrelay-v22';
-const ASSETS=['/','/index.html','/styles.css','/bento-ui.css','/portal.css','/approval.css','/worker.css','/assistant.css','/app.js','/navigation-fix.js','/profile.js','/profile.css','/calendar-experience.js','/calendar-experience.css','/notification-experience.js','/notification-experience.css','/community-experience.js','/community-experience.css','/manifest.webmanifest','/icon.svg'];
+const CACHE='shiftrelay-v23';
+const ASSETS=['/','/index.html','/styles.css','/bento-ui.css','/portal.css','/approval.css','/worker.css','/assistant.css','/app.js','/navigation-fix.js','/profile.js','/profile.css','/calendar-experience.js','/calendar-experience.css','/notification-experience.js','/notification-experience.css','/community-experience.js','/community-experience.css','/community-overrides.css','/manifest.webmanifest','/icon.svg'];
 self.addEventListener('install',(event)=>event.waitUntil(caches.open(CACHE).then((cache)=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',(event)=>event.waitUntil(caches.keys().then((keys)=>Promise.all(keys.filter((key)=>key!==CACHE).map((key)=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',(event)=>{
