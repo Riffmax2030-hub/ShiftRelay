@@ -26,6 +26,7 @@ body{background:linear-gradient(135deg,#eef8f5 0%,#f7f8f3 52%,#edf3fb 100%)}
 .app .notification-panel{background:rgba(255,255,255,.78)!important;border-color:rgba(255,255,255,.9);backdrop-filter:blur(24px)}
 .app .welcome-card{border:1px solid rgba(255,255,255,.35)}
 .mobile-nav{display:none}
+.mobile-nav button[data-go="community"] span{color:#8ee4d5}.mobile-nav button[data-go="activity"] span{color:#dff26e}.mobile-nav button[data-go="calendar"] span{color:#b9d5ff}
 .app-header .header-actions{position:relative}
 .account-menu-button{width:40px;height:40px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-size:18px}
 .side-nav button.active{position:relative}.side-nav button.active:before{position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:4px;background:var(--lime);content:''}
