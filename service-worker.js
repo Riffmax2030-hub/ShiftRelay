@@ -1,4 +1,4 @@
-const CACHE='shiftrelay-v37';
+const CACHE='shiftrelay-v38';
 const ASSETS=['/','/index.html','/styles.css','/bento-ui.css','/portal.css','/approval.css','/worker.css','/assistant.css','/app.js','/navigation-fix.js','/profile.js','/profile.css','/calendar-experience.js','/calendar-experience.css','/schedule-polish.css','/notification-experience.js','/notification-experience.css','/community-experience.js','/community-experience.css','/community-overrides.css','/team-realtime.js','/manifest.webmanifest','/icon.svg'];
 self.addEventListener('install',(event)=>event.waitUntil(caches.open(CACHE).then((cache)=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',(event)=>event.waitUntil(caches.keys().then((keys)=>Promise.all(keys.filter((key)=>key!==CACHE).map((key)=>caches.delete(key)))).then(()=>self.clients.claim())));
