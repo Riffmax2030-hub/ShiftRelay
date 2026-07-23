@@ -20,8 +20,6 @@ go=async function(view){
   state.navigating=true;
   buttons.forEach((button)=>{button.disabled=true;button.classList.toggle('active',button.dataset.view===view)});
   document.querySelectorAll('.mobile-nav [data-go]').forEach((button)=>button.classList.toggle('active',button.dataset.go===view));
-  dashboardHeader('Loading…');
-  $('#dashboard').innerHTML='<p class="empty">Loading your workspace…</p>';
   try{
     if(view==='handover'){await renderHandoverForm();await enhanceRelayHistory();}
     else if(view==='activity')await renderActivity();
