@@ -48,11 +48,8 @@ renderDashboard=async function(){
   const hour=new Date().getHours();
   const greeting=hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
   const firstName=escape(state.user.name.split(' ')[0]);
-  $('#dashboard').innerHTML=`<section class="welcome-card"><div><p class="eyebrow">YOUR WORKDAY, YOUR FLOW</p><h2>${greeting}, ${firstName}</h2><p>Stay clear, stay connected, and make the next person’s work easier.</p></div><div class="welcome-activity"><span>RECENT ACTIVITY</span><strong>Preparing your shift workspace…</strong></div></section><div class="metric-grid metric-grid-compact dashboard-metrics-loading"><article class="metric"><span>Review</span><strong>—</strong></article><article class="metric"><span>Incoming shift</span><strong>—</strong></article><article class="metric"><span>Acknowledged</span><strong>—</strong></article></div>`;
-  try{await loadDashboard()}catch(error){
-    console.warn('Dashboard details unavailable',error);
-    bindNavigation();
-  }
+  $('#dashboard').innerHTML=`<section class="welcome-card"><div><p class="eyebrow">YOUR WORKDAY, YOUR FLOW</p><h2>${greeting}, ${firstName}</h2><p>Stay clear, stay connected, and make the next person’s work easier.</p></div><div class="welcome-activity"><span>RECENT ACTIVITY</span><strong>Your shift workspace is ready.</strong></div></section><div class="metric-grid metric-grid-compact dashboard-metrics-loading"><article class="metric"><span>Review</span><strong>0</strong></article><article class="metric"><span>Incoming shift</span><strong>0</strong></article><article class="metric"><span>Acknowledged</span><strong>0</strong></article></div>`;
+  bindNavigation();
 };
 
 var workerSupportVersion=0;
