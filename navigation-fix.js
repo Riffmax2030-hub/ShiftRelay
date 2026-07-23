@@ -24,7 +24,7 @@ go=async function(view){
     if(view==='handover'){await renderHandoverForm();await enhanceRelayHistory();}
     else if(view==='activity')await renderActivity();
     else if(view==='notifications')await renderNotificationCentre();
-    else if(view==='calendar')await renderCalendar();
+    else if(view==='calendar'){renderScheduleShell();renderCalendar().catch((error)=>console.warn('Schedule details unavailable',error));}
     else if(view==='community')await renderCommunity();
     else if(view==='people')await renderPeople();
     else if(view==='workflows')await renderWorkflows();
@@ -39,6 +39,8 @@ go=async function(view){
     buttons.forEach((button)=>button.disabled=false);
   }
 };
+
+function renderScheduleShell(){const now=new Date(),year=now.getFullYear(),month=now.getMonth(),monthName=now.toLocaleString(undefined,{month:'long',year:'numeric'}),first=new Date(year,month,1).getDay(),days=new Date(year,month+1,0).getDate();const cells=Array.from({length:first+days},(_,index)=>index<first?'<span class="calendar-blank"></span>':`<span class="calendar-day"><b>${index-first+1}</b></span>`).join('');$('#dashboard').innerHTML=`<section class="schedule-experience"><header class="schedule-hero"><div><p class="eyebrow">WORKFORCE PLANNER</p><h2>Schedule</h2><p>See your shifts, find coverage, and keep the team roster clear.</p></div><span class="schedule-hero-mark">▦</span></header><section class="calendar-card-3d"><div class="schedule-head"><h2>${monthName}</h2></div><div class="calendar-weekdays"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div class="calendar-grid">${cells}</div></section><section class="schedule-panel"><p class="eyebrow">MY SCHEDULE</p><h2>Preparing your shifts…</h2></section></section>`}
 
 async function enhanceRelayHistory(){const dashboard=$('#dashboard');if(!dashboard||$('#relay-history'))return;try{const handovers=await getHandovers();dashboard.insertAdjacentHTML('beforeend',`<section class="workspace-card relay-history" id="relay-history"><p class="eyebrow">YOUR RELAY HISTORY</p><h2>Every handover in one place.</h2><p>Follow updates from creation through review and acknowledgement.</p>${handoverList(handovers,'')}</section>`)}catch(error){console.warn('Relay history unavailable',error)}}
 
