@@ -47,6 +47,9 @@ async function enhanceRelayHistory(){const dashboard=$('#dashboard');if(!dashboa
 const loadDashboard=renderDashboard;
 renderDashboard=async function(){
   dashboardHeader('Dashboard');
+  if(state.user?.role==='owner'){
+    $('#dashboard').innerHTML=`<section class="owner-home"><header class="owner-hero"><div><p class="eyebrow">ORGANISATION CONTROL CENTRE</p><h2>Run the work behind every shift.</h2><p>Approve staffs, manage workflows, and keep a clear record of what happens across your organisation.</p></div><span class="owner-mark">⌁</span></header><div class="owner-metrics"><article><span>Staffs</span><strong>—</strong><small>Active workforce</small></article><article><span>Open approvals</span><strong>—</strong><small>Waiting for review</small></article><article><span>Handover rate</span><strong>—</strong><small>This month</small></article></div><div class="owner-actions"><button class="owner-action" data-go="people"><b>Approve staffs</b><small>Review access requests and assign roles</small></button><button class="owner-action" data-go="workflows"><b>Build workflows</b><small>Set the route from outgoing to incoming worker</small></button><button class="owner-action" data-go="analytics"><b>View workforce records</b><small>Track hours, handovers, and incidents</small></button></div><section class="owner-records"><p class="eyebrow">RECENT OPERATIONS</p><h3>Organisation activity</h3><p>Live staff activity and handover records will appear here.</p></section></section>`;bindNavigation();Promise.resolve(loadDashboard()).catch((error)=>console.warn('Owner dashboard details unavailable',error));return;
+  }
   const hour=new Date().getHours();
   const greeting=hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
   const firstName=escape(state.user.name.split(' ')[0]);
