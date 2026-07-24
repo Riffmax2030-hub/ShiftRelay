@@ -106,34 +106,36 @@ function notify(store, recipientId, handoverId, message) {
 }
 
 async function databaseHandovers(user) {
-  const result = await query(`select wi.id, wi.status, wi.payload, wi.created_at, wi.updated_at, wi.acknowledged_at, wi.created_by_membership_id, wi.assigned_to_membership_id, reviewer.full_name as reviewer_name from work_items wi left join portal_users reviewer on reviewer.id = wi.created_by_membership_id where wi.organisation_id = $1 and ($2 in ('supervisor', 'owner') or wi.created_by_membership_id = $3 or wi.assigned_to_membership_id = $3) order by wi.created_at desc`, [demoOrganisation.id, user.role, user.id]);
+  const result = await query(`select wi.id, wi.status, wi.payload, wi.created_at, wi.updated_at, wi.acknowledged_at, wi.created_by_membership_id, wi.assigned_to_membership_id, reviewer.full_name as reviewer_name from work_items wi left join portal_users reviewer on reviewer.id = wi.created_by_membership_id where wi.organisation_id = $1 and ($2 in ('supervisor', 'owner') or wi.created_by_membership_id = $3 or wi.assigned_to_membership_id = $3) order by wi.created_at desc`, [user.organisation_id, user.role, user.id]);
   return result.rows.map((row) => ({ id: row.id, createdBy: row.created_by_membership_id, assignedTo: row.assigned_to_membership_id, handover: row.payload, status: row.status, acknowledgement: row.acknowledged_at ? { by: row.assigned_to_membership_id, at: row.acknowledged_at } : null, createdAt: row.created_at, updatedAt: row.updated_at, reviewedBy: row.reviewer_name }));
 }
 
 async function createDatabaseHandover(user, body) {
   const runId = crypto.randomUUID();
   const workItemId = crypto.randomUUID();
-  const supervisor = demoMembers.find((member) => member.role === 'supervisor');
-  const incomingWorker = demoMembers.find((member) => member.role === 'incoming');
-  const assignedTo = demoMembers.some((member) => member.id === body.assignedTo) ? body.assignedTo : incomingWorker.id;
-  await query('insert into workflow_runs (id, organisation_id, created_by_membership_id, status, priority) values ($1, $2, $3, $4, $5)', [runId, demoOrganisation.id, user.id, 'in_progress', 'normal']);
-  await query('insert into work_items (id, workflow_run_id, organisation_id, assigned_to_membership_id, created_by_membership_id, item_type, title, status, priority, payload) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)', [workItemId, runId, demoOrganisation.id, assignedTo, user.id, 'handover', body.handover.summary, 'awaiting_review', 'normal', JSON.stringify(body.handover)]);
-  await query('insert into work_events (id, organisation_id, workflow_run_id, work_item_id, actor_membership_id, event_type, message) values ($1, $2, $3, $4, $5, $6, $7)', [crypto.randomUUID(), demoOrganisation.id, runId, workItemId, user.id, 'submitted', `${user.name} submitted a handover for review.`]);
-  await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), demoOrganisation.id, supervisor.id, workItemId, `${user.name} created a handover for review.`]);
+  const supervisor = (await query("select id from memberships where organisation_id = $1 and role = 'supervisor' and status = 'active' order by created_at limit 1", [user.organisation_id])).rows[0];
+  const incomingWorker = (await query("select id from memberships where organisation_id = $1 and role = 'incoming' and status = 'active' order by created_at limit 1", [user.organisation_id])).rows[0];
+  if (!supervisor || !incomingWorker) throw new Error('Your organisation needs an active supervisor and incoming worker before sending handovers.');
+  const requested = body.assignedTo ? (await query('select id from memberships where id = $1 and organisation_id = $2 and role = \'incoming\' and status = \'active\'', [body.assignedTo, user.organisation_id])).rows[0] : null;
+  const assignedTo = requested?.id || incomingWorker.id;
+  await query('insert into workflow_runs (id, organisation_id, created_by_membership_id, status, priority) values ($1, $2, $3, $4, $5)', [runId, user.organisation_id, user.id, 'in_progress', 'normal']);
+  await query('insert into work_items (id, workflow_run_id, organisation_id, assigned_to_membership_id, created_by_membership_id, item_type, title, status, priority, payload) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)', [workItemId, runId, user.organisation_id, assignedTo, user.id, 'handover', body.handover.summary, 'awaiting_review', 'normal', JSON.stringify(body.handover)]);
+  await query('insert into work_events (id, organisation_id, workflow_run_id, work_item_id, actor_membership_id, event_type, message) values ($1, $2, $3, $4, $5, $6, $7)', [crypto.randomUUID(), user.organisation_id, runId, workItemId, user.id, 'submitted', `${user.name} submitted a handover for review.`]);
+  await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, supervisor.id, workItemId, `${user.name} created a handover for review.`]);
   return (await databaseHandovers(user)).find((item) => item.id === workItemId);
 }
 
 async function updateDatabaseHandover(user, id, action) {
-  const item = (await query('select * from work_items where id = $1 and organisation_id = $2', [id, demoOrganisation.id])).rows[0];
+  const item = (await query('select * from work_items where id = $1 and organisation_id = $2', [id, user.organisation_id])).rows[0];
   if (!item) throw new Error('Handover not found.');
   if (action === 'relay') {
     if (user.role !== 'supervisor') throw new Error('Only a supervisor can approve and relay this handover.');
     await query('update work_items set status = $1, updated_at = now() where id = $2', ['relayed', id]);
-    await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), demoOrganisation.id, item.assigned_to_membership_id, id, 'A supervisor approved a handover for your shift.']);
+    await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, item.assigned_to_membership_id, id, 'A supervisor approved a handover for your shift.']);
   } else {
     if (user.id !== item.assigned_to_membership_id) throw new Error('This handover is assigned to another worker.');
     await query('update work_items set status = $1, acknowledged_at = now(), updated_at = now() where id = $2', ['acknowledged', id]);
-    await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), demoOrganisation.id, item.created_by_membership_id, id, `${user.name} acknowledged the handover.`]);
+    await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, item.created_by_membership_id, id, `${user.name} acknowledged the handover.`]);
   }
   return (await databaseHandovers(user)).find((handover) => handover.id === id);
 }
@@ -601,7 +603,7 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/notifications' && request.method === 'GET') {
     if (databaseReady) {
-      const result = await query('select id, message, read_at, created_at from notifications where organisation_id = $1 and recipient_membership_id = $2 order by created_at desc limit 8', [demoOrganisation.id, user.id]);
+      const result = await query('select id, message, read_at, created_at from notifications where organisation_id = $1 and recipient_membership_id = $2 order by created_at desc limit 8', [user.organisation_id, user.id]);
       return sendJson(response, 200, { notifications: result.rows.map((row) => ({ id: row.id, message: row.message, read: Boolean(row.read_at), createdAt: row.created_at })) });
     }
     const store = await getStore();
@@ -611,7 +613,7 @@ async function handleApi(request, response, url) {
   if (/^\/api\/notifications\/[^/]+\/read$/.test(url.pathname) && request.method === 'POST') {
     const notificationId = url.pathname.split('/')[3];
     if (databaseReady) {
-      await query('update notifications set read_at = now() where id = $1 and organisation_id = $2 and recipient_membership_id = $3 and read_at is null', [notificationId, demoOrganisation.id, user.id]);
+      await query('update notifications set read_at = now() where id = $1 and organisation_id = $2 and recipient_membership_id = $3 and read_at is null', [notificationId, user.organisation_id, user.id]);
       return sendJson(response, 200, { ok: true });
     }
     const store = await getStore();
@@ -622,7 +624,7 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/notifications/read' && request.method === 'POST') {
     if (databaseReady) {
-      await query('update notifications set read_at = now() where organisation_id = $1 and recipient_membership_id = $2 and read_at is null', [demoOrganisation.id, user.id]);
+      await query('update notifications set read_at = now() where organisation_id = $1 and recipient_membership_id = $2 and read_at is null', [user.organisation_id, user.id]);
       return sendJson(response, 200, { ok: true });
     }
     const store = await getStore();
