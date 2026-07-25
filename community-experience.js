@@ -1,5 +1,6 @@
 async function renderCommunity(){
   dashboardHeader('Team','WORKPLACE MESSENGER');
+  document.body.classList.add('team-page-active');
   try{
     const [data,directory,direct]=await Promise.all([api('/api/community'),api('/api/directory').catch(()=>({members:[]})),api('/api/community/direct-messages').catch(()=>({messages:[]}))]);
     const members=(directory.members||[]).filter((member)=>member.id!==state.user.id&&member.status==='active');
