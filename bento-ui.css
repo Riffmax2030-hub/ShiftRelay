@@ -1,56 +1,97 @@
-:root{--surface-raised:#fff;--shadow-soft:0 12px 30px rgba(25,36,43,.07);--shadow-hover:0 18px 36px rgba(25,36,43,.11)}
-body{background:linear-gradient(135deg,#eef8f5 0%,#f7f8f3 52%,#edf3fb 100%);font-family:Inter,Manrope,Arial,sans-serif}
-.app{grid-template-columns:264px minmax(0,1fr)}
-.sidebar{background:#102f35;color:#f4fffc;backdrop-filter:blur(18px);box-shadow:8px 0 30px rgba(10,52,57,.14)}
-.sidebar .brand{color:#fff}.sidebar .signed-in{border-color:#31545a}.sidebar .signed-in small{color:#a9c7c4}.sidebar .avatar{background:#dff26e;color:#102f35}.sidebar .side-nav button{color:#b9d2cf}.sidebar .side-nav button.active,.sidebar .side-nav button:hover{background:#1d7774;color:#fff}.sidebar .logout{color:#ffb3a8}
-.main-content{max-width:1440px;width:100%;margin:0 auto;padding-top:30px}
-.app-header{align-items:center;margin-bottom:24px}.app-header h1{font-size:clamp(30px,3vw,42px)}
-.metric-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.metric,.workspace-card,.handover-item,.worker-support article{box-shadow:var(--shadow-soft);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
-.metric:hover,.handover-item:hover{border-color:#afd1c8;box-shadow:var(--shadow-hover);transform:translateY(-2px)}
-.metric{min-height:112px;padding:20px;background:var(--surface-raised)}.metric strong{font-size:32px}
-.welcome-card{min-height:184px;margin-bottom:18px;box-shadow:0 20px 42px rgba(18,110,104,.16)}
-.welcome-activity{background:rgba(8,66,62,.5);backdrop-filter:blur(10px)}.workspace-card{background:rgba(255,255,255,.96);border-color:#c7e0db}
-.worker-support{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.worker-support article{min-height:170px;padding:22px;border:1px solid var(--line);border-radius:18px;background:var(--surface-raised)}
-.worker-support .clock-card{grid-column:span 2;background:linear-gradient(135deg,#126e68,#1b9488)!important;color:#fff}
-.worker-support{position:relative}.worker-support .clock-card{min-height:196px;padding-right:38%}.worker-support .clock-card .button-row{max-width:420px}.worker-support .clock-card+.quote-card{position:absolute;top:16px;right:16px;width:32%;min-height:164px;margin:0;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.13)!important;color:#fff;box-shadow:none;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}.worker-support .clock-card+.quote-card .eyebrow,.worker-support .clock-card+.quote-card p{color:#e8fffa!important}.worker-support .clock-card+.quote-card blockquote{color:#fff;font-weight:700;line-height:1.45}
-.worker-support .clock-card .eyebrow,.worker-support .clock-card p,.worker-support .clock-card span{color:#dff8f1}.worker-support .clock-card .primary{border-color:#fff;background:#fff;color:var(--teal)}
-.app .worker-support .clock-card{background:linear-gradient(135deg,#075f5a 0%,#11847a 100%)!important;color:#fff!important;border:1px solid #4cc7b7;box-shadow:0 16px 34px rgba(7,95,90,.25)}
-.app .worker-support .clock-card h2{color:#fff!important;font-size:clamp(24px,3vw,32px);font-weight:800;letter-spacing:-.045em}.app .worker-support .clock-card p:not(.eyebrow){color:#effffc!important;font-weight:600}.app .worker-support .clock-card .eyebrow{color:#dff26e!important;font-weight:800}.app .worker-support .clock-card .button-row span{color:#e8fffa!important;font-weight:700}
-.worker-support .history-card ul{padding-left:18px;line-height:1.9}.side-nav button{padding:12px 14px;border-radius:10px;transition:background .16s ease,color .16s ease,transform .16s ease}.side-nav button:hover{transform:translateX(2px)}
-.notification-panel{box-shadow:0 20px 45px rgba(25,36,43,.16);backdrop-filter:blur(18px)}
-.app .main-content{position:relative;isolation:isolate}
-.app .main-content:before,.app .main-content:after{position:absolute;z-index:-1;width:240px;height:240px;border-radius:50%;content:'';filter:blur(10px);opacity:.42}
-.app .main-content:before{top:40px;right:8%;background:#b8ecdf}.app .main-content:after{bottom:12%;left:3%;background:#d8e8ff}
-.app .workspace-card,.app .metric,.app .handover-item,.app .worker-support article{background:rgba(255,255,255,.58)!important;border:1px solid rgba(255,255,255,.82);box-shadow:0 14px 40px rgba(42,79,82,.11),inset 0 1px rgba(255,255,255,.8);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
-.app .metric:hover,.app .handover-item:hover{background:rgba(255,255,255,.78)!important}
-.app .bell,.app .account-menu-button{background:rgba(255,255,255,.62)!important;border-color:rgba(255,255,255,.9);box-shadow:0 8px 20px rgba(42,79,82,.1);backdrop-filter:blur(16px)}
-.app .notification-panel{background:rgba(255,255,255,.78)!important;border-color:rgba(255,255,255,.9);backdrop-filter:blur(24px)}
-.app .welcome-card{border:1px solid rgba(255,255,255,.35)}
-.mobile-nav{display:none}
-.mobile-nav button[data-go="community"] span{color:#8ee4d5}.mobile-nav button[data-go="activity"] span{color:#dff26e}.mobile-nav button[data-go="calendar"] span{color:#b9d5ff}.mobile-nav button[data-go="handover"] span{color:#ffcf7a}
-.app-header .header-actions{position:relative}
-.account-menu-button{width:40px;height:40px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-size:18px}
-.side-nav button.active{position:relative}.side-nav button.active:before{position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:4px;background:var(--lime);content:''}
-.workspace-card h2,.worker-support h3{letter-spacing:-.045em}
-.action-list{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
-.handover-item{min-height:92px}
-@media(max-width:900px){.app{display:block}.sidebar{display:none}.main-content{padding:22px 20px 82px}.app-header{margin-bottom:20px}.worker-support{grid-template-columns:1fr}.worker-support .clock-card{grid-column:auto;padding-right:22px}.worker-support .clock-card+.quote-card{position:static;width:auto;min-height:145px;margin-top:-2px;background:rgba(255,255,255,.58)!important;color:var(--ink);box-shadow:var(--shadow-soft);backdrop-filter:blur(22px)}.worker-support .clock-card+.quote-card .eyebrow,.worker-support .clock-card+.quote-card p,.worker-support .clock-card+.quote-card blockquote{color:var(--ink)!important}}
-@media(max-width:900px){.mobile-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);right:14px;bottom:14px;left:14px;z-index:20;padding:8px;border:1px solid rgba(255,255,255,.9);border-radius:20px;background:rgba(16,47,53,.92);box-shadow:0 16px 35px rgba(10,52,57,.24);backdrop-filter:blur(22px)}.mobile-nav button{display:grid;justify-items:center;gap:3px;border:0;border-radius:13px;background:transparent;color:#a9c7c4;padding:7px 2px}.mobile-nav button.active,.mobile-nav button:hover{background:#1d7774;color:#fff}.mobile-nav span{font-size:20px;line-height:1}.mobile-nav small{font-size:10px;font-weight:700}}
-@media(max-width:560px){body{background:var(--canvas)}.main-content{padding:16px 14px 76px}.app-header{gap:10px}.app-header h1{font-size:28px}.header-actions{gap:7px}.welcome-card{padding:20px;border-radius:17px}.welcome-card h2{font-size:28px}.metric-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.metric{min-height:88px;padding:12px 9px;border-radius:12px}.metric span{font-size:10px;line-height:1.2}.metric strong{font-size:22px}.workspace-card{padding:18px;border-radius:15px}.worker-support article{min-height:145px;padding:18px;border-radius:15px}.primary,.secondary,.voice{min-height:42px;padding:11px 13px}}
-.app .worker-support .clock-card .primary{font-size:13px;font-weight:800;box-shadow:0 5px 12px rgba(0,0,0,.14)}
-.app[data-role="outgoing"] .welcome-card,.app[data-role="incoming"] .welcome-card,.app[data-role="supervisor"] .welcome-card{display:none}
-.app[data-role="outgoing"] .worker-support:before,.app[data-role="incoming"] .worker-support:before,.app[data-role="supervisor"] .worker-support:before{display:block;grid-column:1/-1;padding:8px 0 2px;color:var(--ink);content:attr(data-worker-name) "  ·  " attr(data-worker-title);font-size:20px;font-weight:800;letter-spacing:-.04em}
-.assistant-fab{position:fixed;right:22px;bottom:108px;z-index:15;width:48px;height:48px;border:0;border-radius:16px;background:#102f35;color:#dff26e;box-shadow:0 12px 25px rgba(10,52,57,.24);font-size:24px;cursor:pointer}.assistant-fab:hover{background:#1d7774;transform:translateY(-2px)}
-.relay-assistant-dialog{position:fixed;inset:0;z-index:30;background:rgba(8,32,35,.28);backdrop-filter:blur(5px)}.relay-assistant-window{position:absolute;right:24px;bottom:170px;width:min(390px,calc(100% - 32px));height:min(580px,calc(100% - 210px));display:flex;flex-direction:column;padding:18px;border:1px solid rgba(255,255,255,.8);border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 24px 60px rgba(10,52,57,.25)}.relay-assistant-window header{display:flex;justify-content:space-between;align-items:flex-start}.relay-assistant-window h2{margin:0;font-size:22px}.assistant-close{border:0;background:transparent;color:var(--muted);font-size:25px}.relay-assistant-messages{flex:1;overflow:auto;margin:14px 0;padding:12px;border-radius:14px;background:#eef6f3}.assistant-welcome,.assistant-message{max-width:88%;margin:0 0 10px;padding:10px 12px;border-radius:13px;background:#fff;color:var(--ink);font-size:12px;line-height:1.5}.assistant-message.user{margin-left:auto;background:#126e68;color:#fff}.assistant-message.error{background:#fff0d9;color:#8a5410}.relay-assistant-window form{display:grid;grid-template-columns:1fr auto;gap:8px}.relay-assistant-window textarea{min-height:44px;max-height:100px;padding:10px;border:1px solid var(--line);border-radius:11px;resize:vertical;font:12px Manrope,Arial,sans-serif}
-@media(max-width:560px){.assistant-fab{right:16px;bottom:92px;width:44px;height:44px;border-radius:14px}}
-@media(max-width:560px){.relay-assistant-window{right:10px;bottom:78px;width:calc(100% - 20px);height:calc(100% - 106px);border-radius:18px}}
-.app{display:block}.sidebar{display:none}.main-content{padding-bottom:108px}
-.mobile-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);right:22px;bottom:18px;left:22px;z-index:20;max-width:920px;margin:auto;padding:9px;border:1px solid rgba(255,255,255,.9);border-radius:22px;background:rgba(16,47,53,.94);box-shadow:0 18px 40px rgba(10,52,57,.27);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
-.mobile-nav button{display:grid;justify-items:center;gap:4px;border:0;border-radius:14px;background:transparent;color:#a9c7c4;padding:9px 6px}.mobile-nav button.active,.mobile-nav button:hover{background:#1d7774;color:#fff}.mobile-nav span{font-size:21px;line-height:1}.mobile-nav .tab-icon{display:grid;place-items:center;width:24px;height:24px}.mobile-nav .tab-icon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.8}.mobile-nav small{font-size:10px;font-weight:800;letter-spacing:.02em}
-.mobile-nav .relay-tab{position:static;margin-top:0;align-self:stretch;padding:9px 6px;border:0;border-radius:14px;background:transparent;color:#a9c7c4;box-shadow:none}.mobile-nav .relay-tab:hover,.mobile-nav .relay-tab.active{background:#1d7774;color:#fff}.mobile-nav .relay-tab span{font-size:21px;color:#ffcf7a!important}.mobile-nav .relay-tab small{font-size:10px;color:inherit}
-.brand{display:flex;align-items:center;gap:9px}.brand img{width:31px;height:31px;border-radius:9px;box-shadow:0 4px 12px rgba(10,52,57,.18)}
-@media(max-width:560px){.mobile-nav{right:10px;bottom:10px;left:10px;padding:7px;border-radius:18px}.mobile-nav button{padding:7px 2px}.mobile-nav span{font-size:19px}.mobile-nav small{font-size:9px}}
-.app .worker-support .clock-card{padding-right:40%!important}.app .worker-support .clock-card+.quote-card{position:absolute;top:12px;right:12px;width:36%;min-height:145px;margin:0;background:rgba(255,255,255,.13)!important;color:#fff;box-shadow:none;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}.app .worker-support .clock-card+.quote-card .eyebrow,.app .worker-support .clock-card+.quote-card p,.app .worker-support .clock-card+.quote-card blockquote{color:#fff!important}
-@media(max-width:560px){.app .worker-support .clock-card{min-height:190px;padding:18px 40% 18px 18px!important}.app .worker-support .clock-card+.quote-card{top:12px;right:10px;width:37%;min-height:150px;padding:14px}.app .worker-support .clock-card+.quote-card blockquote{font-size:12px}}
+/* ==========================================================================
+   ShiftRelay Layout Extensions
+   Minimal clean cards and responsive helpers.
+   ========================================================================== */
+
+.app {
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+.main-content {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.worker-support {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.worker-support article {
+  min-height: 160px;
+  padding: 22px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.worker-support .clock-card {
+  grid-column: span 2;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+}
+
+.worker-support .clock-card h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 4px 0 8px;
+  color: var(--text-main);
+}
+
+.worker-support .clock-card p:not(.eyebrow) {
+  margin: 0 0 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.worker-support .clock-card .button-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.worker-support .clock-card .button-row span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.worker-support .quote-card blockquote {
+  margin: 8px 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-main);
+  line-height: 1.5;
+  font-style: normal;
+}
+
+.worker-support .history-card ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .worker-support {
+    grid-template-columns: 1fr;
+  }
+  .worker-support .clock-card {
+    grid-column: span 1;
+  }
+}

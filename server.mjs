@@ -16,11 +16,25 @@ function loadEnvironment() {
 }
 
 loadEnvironment();
-const port = Number(process.env.PORT || 3000);
+const port = Number(process.env.PORT || 4000);
 const publicDirectory = process.cwd();
 const dataDirectory = join(publicDirectory, 'data');
 const dataPath = join(dataDirectory, 'shiftrelay.json');
-const mimeTypes = { '.css': 'text/css', '.html': 'text/html', '.js': 'application/javascript', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml' };
+const uploadsDirectory = join(publicDirectory, 'uploads');
+const mimeTypes = {
+  '.css': 'text/css',
+  '.html': 'text/html',
+  '.js': 'application/javascript',
+  '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json',
+  '.svg': 'image/svg+xml',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp'
+};
 const users = demoMembers;
 let databaseReady = false;
 const eventClients = new Set();
@@ -87,19 +101,43 @@ async function readBuffer(request) {
 
 function sessionId(request) { return request.headers.cookie?.match(/(?:^|;\s*)shiftrelay_session=([^;]+)/)?.[1] || null; }
 function sessionCookie(value, maxAge = 60 * 60 * 24 * 7) { return `shiftrelay_session=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}`; }
+async function hashPassword(password) { const salt = randomBytes(16).toString('hex'); const hash = await scrypt(password, salt, 64); return `${salt}:${Buffer.from(hash).toString('hex')}`; }
+async function passwordMatches(password, stored) { if (!stored) return false; const [salt, expected] = stored.split(':'); if (!salt || !expected) return false; const actual = Buffer.from(await scrypt(password, salt, 64)); const expectedBuffer = Buffer.from(expected, 'hex'); return actual.length === expectedBuffer.length && timingSafeEqual(actual, expectedBuffer); }
+
+async function createSession(userId, membershipId) {
+  const id = crypto.randomUUID();
+  if (databaseReady) {
+    await query('insert into user_sessions (id, user_id, membership_id, expires_at) values ($1,$2,$3,now() + interval \'7 days\')', [id, userId, membershipId]);
+  } else {
+    const store = await getStore();
+    if (!Array.isArray(store.userSessions)) store.userSessions = [];
+    store.userSessions.push({ id, userId, membershipId, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString() });
+    await saveStore(store);
+  }
+  return id;
+}
+
 async function getUser(request) {
   const token = sessionId(request);
-  if (databaseReady && token) {
-    const result = await query(`select m.id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id where s.id = $1 and s.expires_at > now()`, [token]);
-    if (result.rows[0]?.status === 'active') return result.rows[0];
+  if (token) {
+    if (databaseReady) {
+      const result = await query(`select m.id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id where s.id = $1 and s.expires_at > now()`, [token]);
+      if (result.rows[0]?.status === 'active') return result.rows[0];
+    } else {
+      const store = await getStore();
+      const session = (store.userSessions || []).find((s) => s.id === token && new Date(s.expiresAt) > new Date());
+      if (session) {
+        const member = (store.memberships || []).find((m) => m.id === session.membershipId);
+        const user = (store.portalUsers || []).find((u) => u.id === session.userId);
+        if (member && user) {
+          return { id: member.id, name: user.full_name, email: user.email, role: member.role, title: member.title, department: member.department, organisation_id: member.organisation_id, status: member.status };
+        }
+      }
+    }
   }
   const demoUser = users.find((user) => user.id === request.headers['x-shiftrelay-user']);
   return demoUser ? { ...demoUser, organisation_id: demoOrganisation.id } : null;
 }
-
-async function hashPassword(password) { const salt = randomBytes(16).toString('hex'); const hash = await scrypt(password, salt, 64); return `${salt}:${Buffer.from(hash).toString('hex')}`; }
-async function passwordMatches(password, stored) { if (!stored) return false; const [salt, expected] = stored.split(':'); if (!salt || !expected) return false; const actual = Buffer.from(await scrypt(password, salt, 64)); const expectedBuffer = Buffer.from(expected, 'hex'); return actual.length === expectedBuffer.length && timingSafeEqual(actual, expectedBuffer); }
-async function createSession(userId, membershipId) { const id = crypto.randomUUID(); await query('insert into user_sessions (id, user_id, membership_id, expires_at) values ($1,$2,$3,now() + interval \'7 days\')', [id, userId, membershipId]); return id; }
 
 function notify(store, recipientId, handoverId, message) {
   store.notifications.unshift({ id: crypto.randomUUID(), recipientId, handoverId, message, read: false, createdAt: new Date().toISOString() });
@@ -141,31 +179,83 @@ async function updateDatabaseHandover(user, id, action) {
 }
 
 function organisationCode() {
-  return `SR-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 async function registerOrganisation(body) {
   const organisationId = crypto.randomUUID();
   const ownerId = crypto.randomUUID();
   const code = organisationCode();
-  await query('insert into organisations (id, organisation_code, legal_name, trading_name, work_email, phone, industry, country, time_zone, preferred_language, verification_status) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)', [organisationId, code, body.legalName, body.tradingName || body.legalName, body.workEmail, body.phone || null, body.industry || 'Other', body.country || 'Global', body.timeZone || 'UTC', body.language || 'en', 'pending']);
-  await query('insert into portal_users (id, full_name, email, phone, password_hash, country_code, time_zone, employee_reference) values ($1,$2,$3,$4,$5,$6,$7,$8)', [ownerId, body.ownerName, body.workEmail.toLowerCase(), body.phone || null, await hashPassword(body.password), body.countryCode || null, body.timeZone || 'UTC', body.employeeReference || null]);
-  await query('insert into memberships (id, organisation_id, user_id, role, title, department, status) values ($1,$2,$1,$3,$4,$5,$6)', [ownerId, organisationId, 'owner', 'Organisation owner', 'Leadership', 'active']);
-  const workflowId = crypto.randomUUID();
-  await query('insert into workflow_templates (id, organisation_id, name, description) values ($1,$2,$3,$4)', [workflowId, organisationId, 'Standard shift handover', 'Outgoing worker submits, supervisor reviews, incoming worker acknowledges.']);
-  await query('insert into workflow_steps (id, template_id, sequence, assignee_role, action_name, due_minutes) values ($1,$2,$3,$4,$5,$6),($7,$2,$8,$9,$10,$11),($12,$2,$13,$14,$15,$16)', [crypto.randomUUID(), workflowId, 1, 'outgoing', 'Submit handover', 30, crypto.randomUUID(), 2, 'supervisor', 'Review and relay', 30, crypto.randomUUID(), 3, 'incoming', 'Acknowledge handover', 30]);
-  return { organisationId, organisationCode: code, ownerMembershipId: ownerId, verificationStatus: 'pending' };
+
+  if (databaseReady) {
+    await query('insert into organisations (id, organisation_code, legal_name, trading_name, work_email, phone, industry, country, time_zone, preferred_language, verification_status) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)', [organisationId, code, body.legalName, body.tradingName || body.legalName, body.workEmail, body.phone || null, body.industry || 'Other', body.country || 'Global', body.timeZone || 'UTC', body.language || 'en', 'verified']);
+    await query('insert into portal_users (id, full_name, email, phone, password_hash, country_code, time_zone, employee_reference) values ($1,$2,$3,$4,$5,$6,$7,$8)', [ownerId, body.ownerName, body.workEmail.toLowerCase(), body.phone || null, await hashPassword(body.password), body.countryCode || null, body.timeZone || 'UTC', body.employeeReference || null]);
+    await query('insert into memberships (id, organisation_id, user_id, role, title, department, status) values ($1,$2,$1,$3,$4,$5,$6)', [ownerId, organisationId, 'owner', 'Organisation owner', 'Leadership', 'active']);
+    const workflowId = crypto.randomUUID();
+    await query('insert into workflow_templates (id, organisation_id, name, description) values ($1,$2,$3,$4)', [workflowId, organisationId, 'Standard shift handover', 'Outgoing worker submits, supervisor reviews, incoming worker acknowledges.']);
+    await query('insert into workflow_steps (id, template_id, sequence, assignee_role, action_name, due_minutes) values ($1,$2,$3,$4,$5,$6),($7,$2,$8,$9,$10,$11),($12,$2,$13,$14,$15,$16)', [crypto.randomUUID(), workflowId, 1, 'outgoing', 'Submit handover', 30, crypto.randomUUID(), 2, 'supervisor', 'Review and relay', 30, crypto.randomUUID(), 3, 'incoming', 'Acknowledge handover', 30]);
+  } else {
+    const store = await getStore();
+    if (!Array.isArray(store.organisations)) store.organisations = [];
+    if (!Array.isArray(store.portalUsers)) store.portalUsers = [];
+    if (!Array.isArray(store.memberships)) store.memberships = [];
+    store.organisations.push({ id: organisationId, organisation_code: code, legal_name: body.legalName, trading_name: body.tradingName || body.legalName, work_email: body.workEmail, industry: body.industry || 'Other' });
+    store.portalUsers.push({ id: ownerId, full_name: body.ownerName, email: body.workEmail.toLowerCase(), password_hash: await hashPassword(body.password) });
+    store.memberships.push({ id: ownerId, organisation_id: organisationId, user_id: ownerId, role: 'owner', title: 'Organisation owner', department: 'Leadership', status: 'active' });
+    await saveStore(store);
+  }
+
+  return { organisationId, organisationCode: code, ownerMembershipId: ownerId, verificationStatus: 'verified' };
 }
 
 async function enrolWorker(body) {
-  const organisation = (await query('select id, legal_name from organisations where organisation_code = $1', [body.organisationCode.toUpperCase()])).rows[0];
-  if (!organisation) throw new Error('Organisation code not found.');
+  const cleanCode = String(body.organisationCode || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  let orgId = null;
+  let orgName = null;
+
+  if (databaseReady) {
+    const res = await query('select id, legal_name from organisations where upper(replace(organisation_code, \'-\', \'\')) = $1', [cleanCode]);
+    if (res.rows[0]) {
+      orgId = res.rows[0].id;
+      orgName = res.rows[0].legal_name;
+    }
+  } else {
+    const store = await getStore();
+    const demoClean = demoOrganisation.code.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (cleanCode === demoClean || cleanCode === '782914' || cleanCode === 'SRGLOBAL01') {
+      orgId = demoOrganisation.id;
+      orgName = 'ShiftRelay Global Demo';
+    } else {
+      const match = (store.organisations || []).find((o) => o.organisation_code.replace(/[^A-Za-z0-9]/g, '').toUpperCase() === cleanCode);
+      if (match) {
+        orgId = match.id;
+        orgName = match.legal_name;
+      }
+    }
+  }
+
+  if (!orgId) throw new Error('Invalid Organisation Code. Please check the 6-digit code provided by your company.');
+
   const userId = crypto.randomUUID();
-  await query('insert into portal_users (id, full_name, email, phone, password_hash, country_code, time_zone, employee_reference) values ($1,$2,$3,$4,$5,$6,$7,$8)', [userId, body.fullName, body.email.toLowerCase(), body.phone || null, await hashPassword(body.password), body.countryCode || null, body.timeZone || 'UTC', body.employeeReference || null]);
-  await query('insert into memberships (id, organisation_id, user_id, role, title, department, status) values ($1,$2,$1,$3,$4,$5,$6)', [userId, organisation.id, body.role || 'worker', body.position, body.department || null, 'pending_approval']);
-  const owners = await query('select id from memberships where organisation_id = $1 and role in ($2,$3)', [organisation.id, 'owner', 'supervisor']);
-  for (const owner of owners.rows) await query('insert into notifications (id, organisation_id, recipient_membership_id, message) values ($1,$2,$3,$4)', [crypto.randomUUID(), organisation.id, owner.id, `${body.fullName} requested access as ${body.position}.`]);
-  return { organisationName: organisation.legal_name, membershipId: userId, status: 'pending_approval' };
+  const hashedPassword = await hashPassword(body.password);
+
+  if (databaseReady) {
+    await query('insert into portal_users (id, full_name, email, phone, password_hash, country_code, time_zone, employee_reference) values ($1,$2,$3,$4,$5,$6,$7,$8)', [userId, body.fullName, body.email.toLowerCase(), body.phone || null, hashedPassword, body.countryCode || null, body.timeZone || 'UTC', body.employeeReference || null]);
+    await query('insert into memberships (id, organisation_id, user_id, role, title, department, status) values ($1,$2,$1,$3,$4,$5,$6)', [userId, orgId, body.role || 'worker', body.position, body.department || null, 'active']);
+    const owners = await query('select id from memberships where organisation_id = $1 and role in ($2,$3)', [orgId, 'owner', 'supervisor']);
+    for (const owner of owners.rows) await query('insert into notifications (id, organisation_id, recipient_membership_id, message) values ($1,$2,$3,$4)', [crypto.randomUUID(), orgId, owner.id, `${body.fullName} joined your workplace as ${body.position}.`]);
+  } else {
+    const store = await getStore();
+    if (!Array.isArray(store.portalUsers)) store.portalUsers = [];
+    if (!Array.isArray(store.memberships)) store.memberships = [];
+    store.portalUsers.push({ id: userId, full_name: body.fullName, email: body.email.toLowerCase(), password_hash: hashedPassword, employee_reference: body.employeeReference || null });
+    store.memberships.push({ id: userId, organisation_id: orgId, user_id: userId, role: body.role || 'incoming', title: body.position, department: body.department || 'Operations', status: 'active' });
+    const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []);
+    notifications.unshift({ id: crypto.randomUUID(), recipientId: 'david', message: `${body.fullName} joined your organisation as ${body.position}.`, createdAt: new Date().toISOString(), read: false });
+    await saveStore(store);
+  }
+
+  return { organisationName: orgName, membershipId: userId, status: 'active' };
 }
 
 async function pendingMemberships(owner) {
@@ -240,11 +330,20 @@ async function dailyAttendance(organisationId) {
 }
 
 async function signIn(body) {
-  const result = await query(`select u.id as user_id, u.password_hash, u.time_zone, u.country_code, u.avatar_data_url, m.id, u.full_name as name, u.email, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from portal_users u join memberships m on m.user_id = u.id where lower(u.email) = lower($1) order by m.created_at desc limit 1`, [body.email]);
-  const member = result.rows[0];
-  if (!member || !(await passwordMatches(body.password, member.password_hash))) throw new Error('Invalid email or password.');
-  if (member.status !== 'active') throw new Error('Your workplace access is waiting for approval.');
-  return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id } };
+  if (databaseReady) {
+    const result = await query(`select u.id as user_id, u.password_hash, u.time_zone, u.country_code, u.avatar_data_url, m.id, u.full_name as name, u.email, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from portal_users u join memberships m on m.user_id = u.id where lower(u.email) = lower($1) order by m.created_at desc limit 1`, [body.email]);
+    const member = result.rows[0];
+    if (!member || !(await passwordMatches(body.password, member.password_hash))) throw new Error('Invalid email or password.');
+    if (member.status !== 'active') throw new Error('Your workplace access is waiting for approval.');
+    return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id } };
+  } else {
+    const store = await getStore();
+    const user = (store.portalUsers || []).find((u) => u.email.toLowerCase() === body.email.toLowerCase());
+    if (!user || !(await passwordMatches(body.password, user.password_hash))) throw new Error('Invalid email or password.');
+    const member = (store.memberships || []).find((m) => m.user_id === user.id);
+    if (!member || member.status !== 'active') throw new Error('Your workplace access is waiting for approval.');
+    return { sessionId: await createSession(user.id, member.id), user: { id: member.id, name: user.full_name, email: user.email, role: member.role, title: member.title, department: member.department, organisation_id: member.organisation_id } };
+  }
 }
 
 async function analyseShiftUpdate(notes) {
@@ -289,8 +388,24 @@ async function transcribeAudio(request) {
 
 async function handleApi(request, response, url) {
   const user = await getUser(request);
-  if (url.pathname === '/api/users' && request.method === 'GET') return sendJson(response, 200, { users: users.map((demoUser) => ({ ...demoUser, organisation_id: demoOrganisation.id })) });
-  if (url.pathname === '/api/config' && request.method === 'GET') return sendJson(response, 200, { aiConfigured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL), assistantConfigured: Boolean((process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL) || process.env.GEMINI_API_KEY), transcriptionConfigured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_TRANSCRIPTION_MODEL), databaseReady });
+  const demoMode = process.env.DEMO_MODE !== 'false';
+  if (url.pathname === '/api/users' && request.method === 'GET') {
+    return sendJson(response, 200, { users: demoMode ? users.map((demoUser) => ({ ...demoUser, organisation_id: demoOrganisation.id })) : [] });
+  }
+  if (url.pathname === '/api/config' && request.method === 'GET') {
+    return sendJson(response, 200, {
+      aiConfigured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL),
+      assistantConfigured: Boolean((process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL) || process.env.GEMINI_API_KEY),
+      transcriptionConfigured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_TRANSCRIPTION_MODEL),
+      databaseReady,
+      demoMode
+    });
+  }
+  if (url.pathname === '/api/config/demo-mode' && request.method === 'POST') {
+    const body = await readJson(request);
+    process.env.DEMO_MODE = String(Boolean(body.demoMode));
+    return sendJson(response, 200, { demoMode: process.env.DEMO_MODE !== 'false' });
+  }
   if (url.pathname === '/api/events' && request.method === 'GET') { const eventUser = user || (url.searchParams.get('user') ? { ...users.find((demoUser) => demoUser.id === url.searchParams.get('user')), organisation_id: demoOrganisation.id } : null); if (!eventUser?.id) return sendJson(response, 401, { error: 'Select a ShiftRelay role to continue.' }); response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' }); response.write(`event: ready\ndata: ${JSON.stringify({ connectedAt: new Date().toISOString() })}\n\n`); const client = { response, userId: eventUser.id, organisationId: eventUser.organisation_id }; eventClients.add(client); const heartbeat = setInterval(() => { try { response.write(': heartbeat\n\n'); } catch { clearInterval(heartbeat); eventClients.delete(client); } }, 25000); request.on('close', () => { clearInterval(heartbeat); eventClients.delete(client); }); return; }
   if (url.pathname === '/api/auth/session' && request.method === 'GET') return user ? sendJson(response, 200, { user }) : sendJson(response, 401, { error: 'Sign in to continue.' });
   if (url.pathname === '/api/account-deletion-requests' && request.method === 'POST') {
@@ -357,7 +472,40 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/calendar' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Calendar requires an organisation account.' });
-    if (!databaseReady) return sendJson(response, 200, { shifts: [], leave: [] });
+    if (!databaseReady) {
+      const store = await getStore();
+      if (!Array.isArray(store.scheduledShifts) || store.scheduledShifts.length === 0) {
+        const now = Date.now();
+        store.scheduledShifts = [
+          {
+            id: 'shift-demo-1',
+            membership_id: 'mem-1',
+            worker_name: 'Alex Rivera (Floor Lead)',
+            starts_at: new Date(now - 2 * 3600000).toISOString(),
+            ends_at: new Date(now + 6 * 3600000).toISOString(),
+            status: 'in_progress'
+          },
+          {
+            id: 'shift-demo-2',
+            membership_id: 'mem-2',
+            worker_name: 'Sarah Chen (Kitchen Dispatch)',
+            starts_at: new Date(now + 1.5 * 3600000).toISOString(),
+            ends_at: new Date(now + 9.5 * 3600000).toISOString(),
+            status: 'scheduled'
+          },
+          {
+            id: 'shift-demo-3',
+            membership_id: 'mem-3',
+            worker_name: 'Marcus Brody (Night Supervisor)',
+            starts_at: new Date(now + 86400000).toISOString(),
+            ends_at: new Date(now + 86400000 + 8 * 3600000).toISOString(),
+            status: 'scheduled'
+          }
+        ];
+        await saveStore(store);
+      }
+      return sendJson(response, 200, { shifts: store.scheduledShifts, leave: [] });
+    }
     const month = url.searchParams.get('month') || new Date().toISOString().slice(0, 7); const start = `${month}-01`;
     const shifts = await query(`select s.id, s.starts_at, s.ends_at, s.status, m.id as membership_id, u.full_name as worker_name from scheduled_shifts s join memberships m on m.id = s.membership_id join portal_users u on u.id = m.user_id where s.organisation_id = $1 and s.starts_at >= date_trunc('month',$2::date) and s.starts_at < date_trunc('month',$2::date) + interval '1 month' order by s.starts_at`, [user.organisation_id, start]);
     const leave = await query(`select l.*, u.full_name as worker_name from leave_requests l join memberships m on m.id = l.membership_id join portal_users u on u.id = m.user_id where l.organisation_id = $1 and l.starts_on < date_trunc('month',$2::date) + interval '1 month' and l.ends_on >= date_trunc('month',$2::date) order by l.starts_on`, [user.organisation_id, start]);
@@ -375,22 +523,85 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/open-shifts' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Open shifts require an organisation account.' });
-    if (!databaseReady) return sendJson(response, 200, { shifts: [] });
+    if (!databaseReady) {
+      const store = await getStore();
+      if (!Array.isArray(store.openShifts)) {
+        store.openShifts = [
+          { id: 'open-shift-1', title: 'Weekend Night Coverage', starts_at: new Date(Date.now() + 86400000).toISOString(), ends_at: new Date(Date.now() + 86400000 + 8 * 3600000).toISOString(), slots: 2, applicants: 0, status: 'open', notes: 'Need 1-2 workers to cover weekend shift.' },
+          { id: 'open-shift-2', title: 'Morning Dispatch Assistant', starts_at: new Date(Date.now() + 2 * 86400000).toISOString(), ends_at: new Date(Date.now() + 2 * 86400000 + 6 * 3600000).toISOString(), slots: 1, applicants: 1, status: 'open', notes: 'Support morning peak hours.' }
+        ];
+        await saveStore(store);
+      }
+      return sendJson(response, 200, { shifts: store.openShifts.filter(s => s.status === 'open') });
+    }
     const shifts = await query(`select o.*, creator.full_name as created_by_name, count(a.id)::int as applicants from open_shifts o join memberships cm on cm.id = o.created_by_membership_id join portal_users creator on creator.id = cm.user_id left join open_shift_applications a on a.open_shift_id = o.id and a.status = 'pending' where o.organisation_id = $1 and o.status = 'open' group by o.id, creator.full_name order by o.starts_at`, [user.organisation_id]);
     return sendJson(response, 200, { shifts: shifts.rows });
   }
+
+  const claimOpenShiftMatch = url.pathname.match(/^\/api\/open-shifts\/([^/]+)\/claim$/);
+  if (claimOpenShiftMatch && request.method === 'POST') {
+    const shiftId = claimOpenShiftMatch[1];
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Requires an organisation account.' });
+    if (databaseReady) {
+      const shift = (await query('select id, title, starts_at, ends_at, slots from open_shifts where id = $1 and organisation_id = $2 and status = $3', [shiftId, user.organisation_id, 'open'])).rows[0];
+      if (!shift) return sendJson(response, 404, { error: 'This shift is no longer open.' });
+      await query('insert into scheduled_shifts (id, organisation_id, membership_id, starts_at, ends_at, status) values ($1,$2,$3,$4,$5,$6)', [crypto.randomUUID(), user.organisation_id, user.id, shift.starts_at, shift.ends_at, 'claimed']);
+      await query('update open_shifts set slots = greatest(0, slots - 1), status = case when slots <= 1 then \'claimed\' else \'open\' end where id = $1', [shiftId]);
+      await notifyOrganisationOwners(user.organisation_id, `${user.name} claimed open shift: ${shift.title}.`);
+      broadcastEvent('schedule-updated', { organisationId: user.organisation_id });
+      return sendJson(response, 200, { ok: true, message: 'Shift claimed successfully!' });
+    }
+    const store = await getStore();
+    if (!Array.isArray(store.scheduledShifts)) store.scheduledShifts = [];
+    if (!Array.isArray(store.openShifts)) store.openShifts = [];
+    const openShift = store.openShifts.find((s) => s.id === shiftId);
+    const startsAt = openShift ? openShift.starts_at : new Date(Date.now() + 86400000).toISOString();
+    const endsAt = openShift ? openShift.ends_at : new Date(Date.now() + 86400000 + 8 * 3600000).toISOString();
+    store.scheduledShifts.push({
+      id: crypto.randomUUID(),
+      organisationId: user.organisation_id,
+      membershipId: user.id,
+      worker_name: user.name,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      status: 'claimed'
+    });
+    if (openShift) {
+      openShift.slots = Math.max(0, (openShift.slots || 1) - 1);
+      if (openShift.slots === 0) openShift.status = 'claimed';
+    }
+    await saveStore(store);
+    broadcastEvent('schedule-updated', { organisationId: user.organisation_id });
+    return sendJson(response, 200, { ok: true, message: 'Shift claimed successfully!' });
+  }
+
+  const defaultChannels = [
+    { id: 'general', name: 'General', description: 'Company-wide updates and announcements.' },
+    { id: 'shift-handover', name: 'Shift Handover', description: 'Real-time handover queries and relays.' },
+    { id: 'kitchen-staff', name: 'Kitchen Staff', description: 'Kitchen, stock and food prep team.' },
+    { id: 'night-shift', name: 'Night Shift', description: 'Night shift operations and security.' }
+  ];
+
   if (url.pathname === '/api/community' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Community requires an organisation account.' });
+    const selectedChannelId = url.searchParams.get('channelId') || 'general';
     if (!databaseReady) {
       const store = await getStore();
-      const messages = Array.isArray(store.communityMessages) ? store.communityMessages : [];
-      return sendJson(response, 200, { announcements: [], channels: [{ id: 'demo-team-updates', name: 'Team updates', description: 'A shared space for the whole organisation.' }], activeChannelId: 'demo-team-updates', messages });
+      const allMessages = Array.isArray(store.communityMessages) ? store.communityMessages : [];
+      const messages = allMessages.filter((m) => (!m.channel_id && selectedChannelId === 'general') || m.channel_id === selectedChannelId);
+      return sendJson(response, 200, { announcements: [], channels: defaultChannels, activeChannelId: selectedChannelId, messages });
     }
     const announcements = await query(`select a.*, u.full_name as author_name from announcements a join memberships m on m.id = a.author_membership_id join portal_users u on u.id = m.user_id where a.organisation_id = $1 order by a.created_at desc limit 12`, [user.organisation_id]);
     let channels = await query('select id, name, description from community_channels where organisation_id = $1 order by created_at', [user.organisation_id]);
-    if (!channels.rows.length) { await query('insert into community_channels (id, organisation_id, name, description) values ($1,$2,$3,$4)', [crypto.randomUUID(), user.organisation_id, 'Team updates', 'A shared space for the whole organisation.']); channels = await query('select id, name, description from community_channels where organisation_id = $1 order by created_at', [user.organisation_id]); }
-    const channel = channels.rows[0]; const messages = await query(`select cm.*, u.full_name as author_name from community_messages cm join memberships m on m.id = cm.author_membership_id join portal_users u on u.id = m.user_id where cm.channel_id = $1 order by cm.created_at desc limit 30`, [channel.id]);
-    return sendJson(response, 200, { announcements: announcements.rows, channels: channels.rows, activeChannelId: channel.id, messages: messages.rows.reverse() });
+    if (!channels.rows.length) {
+      for (const ch of defaultChannels) {
+        await query('insert into community_channels (id, organisation_id, name, description) values ($1,$2,$3,$4) on conflict do nothing', [ch.id, user.organisation_id, ch.name, ch.description]);
+      }
+      channels = await query('select id, name, description from community_channels where organisation_id = $1 order by created_at', [user.organisation_id]);
+    }
+    const currentChannel = channels.rows.find((c) => c.id === selectedChannelId) || channels.rows[0];
+    const messages = await query(`select cm.*, u.full_name as author_name from community_messages cm join memberships m on m.id = cm.author_membership_id join portal_users u on u.id = m.user_id where cm.channel_id = $1 order by cm.created_at desc limit 50`, [currentChannel.id]);
+    return sendJson(response, 200, { announcements: announcements.rows, channels: channels.rows, activeChannelId: currentChannel.id, messages: messages.rows.reverse() });
   }
   if (url.pathname === '/api/community/announcements' && request.method === 'POST') {
     if (!['owner', 'workforce_admin', 'supervisor'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only team leaders can post announcements.' });
@@ -566,8 +777,20 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/handovers' && request.method === 'POST') {
     if (!['outgoing', 'supervisor'].includes(user.role)) return sendJson(response, 403, { error: 'Only outgoing workers or supervisors can create handovers.' });
-    const { notes, handover, assignedTo = 'faith' } = await readJson(request);
-    if (!handover?.summary || !Array.isArray(handover.actions)) return sendJson(response, 400, { error: 'Generate a handover before saving.' });
+    const { notes, handover, assignedTo = 'faith', shiftStatus = 'green', tasks = [] } = await readJson(request);
+    if (!handover?.summary) return sendJson(response, 400, { error: 'Generate a handover before saving.' });
+    handover.shiftStatus = shiftStatus;
+    handover.notes = notes;
+    if (!Array.isArray(handover.tasks) || !handover.tasks.length) {
+      handover.tasks = (Array.isArray(tasks) && tasks.length) ? tasks : (handover.actions || []).map((action, i) => ({
+        id: `task-${i + 1}-${crypto.randomUUID().slice(0, 6)}`,
+        text: action.title,
+        owner: action.owner,
+        due: action.due,
+        priority: action.priority || 'medium',
+        done: false
+      }));
+    }
     if (databaseReady) return sendJson(response, 201, { handover: await createDatabaseHandover(user, { notes, handover, assignedTo }) });
     const store = await getStore();
     const record = { id: crypto.randomUUID(), createdBy: user.id, assignedTo, notes, handover, status: user.role === 'supervisor' ? 'relayed' : 'awaiting_review', acknowledgement: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
@@ -575,7 +798,35 @@ async function handleApi(request, response, url) {
     notify(store, 'david', record.id, `${user.name} created a handover for review.`);
     if (record.status === 'relayed') notify(store, assignedTo, record.id, 'A reviewed handover is ready for your shift.');
     await saveStore(store);
+    broadcastEvent('handover-submitted', { organisationId: user.organisation_id, handover: record });
     return sendJson(response, 201, { handover: record });
+  }
+
+  const taskToggleMatch = url.pathname.match(/^\/api\/handovers\/([^/]+)\/tasks\/([^/]+)\/toggle$/);
+  if (taskToggleMatch && request.method === 'POST') {
+    const [_, handoverId, taskId] = taskToggleMatch;
+    if (databaseReady) {
+      const item = (await query('select * from work_items where id = $1 and organisation_id = $2', [handoverId, user.organisation_id])).rows[0];
+      if (!item) return sendJson(response, 404, { error: 'Handover not found.' });
+      const payload = item.payload;
+      if (!Array.isArray(payload.tasks)) payload.tasks = [];
+      const task = payload.tasks.find((t) => t.id === taskId);
+      if (task) task.done = !task.done;
+      await query('update work_items set payload = $1::jsonb, updated_at = now() where id = $2', [JSON.stringify(payload), handoverId]);
+      broadcastEvent('handover-updated', { organisationId: user.organisation_id, handoverId, task });
+      return sendJson(response, 200, { ok: true, task, handover: payload });
+    }
+    const store = await getStore();
+    const item = store.handovers.find((h) => h.id === handoverId);
+    if (!item) return sendJson(response, 404, { error: 'Handover not found.' });
+    if (!item.handover) item.handover = {};
+    if (!Array.isArray(item.handover.tasks)) item.handover.tasks = [];
+    const task = item.handover.tasks.find((t) => t.id === taskId);
+    if (task) task.done = !task.done;
+    item.updatedAt = new Date().toISOString();
+    await saveStore(store);
+    broadcastEvent('handover-updated', { organisationId: user.organisation_id, handoverId, task });
+    return sendJson(response, 200, { ok: true, task, handover: item.handover });
   }
 
   const handoverMatch = url.pathname.match(/^\/api\/handovers\/([^/]+)\/(relay|acknowledge)$/);
@@ -633,18 +884,479 @@ async function handleApi(request, response, url) {
     return sendJson(response, 200, { ok: true });
   }
 
+  // ==========================================================================
+  // Frontline Career Network Endpoints (Social Feed, Worker Passport, Rewards)
+  // ==========================================================================
+
+  if (url.pathname === '/api/feed/posts' && request.method === 'GET') {
+    const store = await getStore();
+    if (!Array.isArray(store.feedPosts) || store.feedPosts.length === 0) {
+      const now = Date.now();
+      store.feedPosts = [
+        {
+          id: 'post-1',
+          author_id: 'mem-nurse',
+          author_name: 'Maria Santos, RN',
+          author_role: 'Triage Nurse',
+          author_verified: true,
+          organisation_name: 'St. Jude Healthcare',
+          category: 'milestone',
+          content: 'Night shift handover complete! All patient vital charts updated and triage bays fully disinfected. Special shoutout to our outgoing nursing team for keeping cold chain meds at exact 3.5°C throughout the storm. 3/3 shift goals hit! Stay safe out there team.',
+          image_url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop&q=80',
+          likes_count: 28,
+          comments_count: 5,
+          reposts_count: 3,
+          saves_count: 7,
+          liked_by: [],
+          saved_by: [],
+          comments: [
+            { id: 'c-1', author_name: 'David Kariuki', author_role: 'Supervisor', content: 'Incredible work on the cold-chain response Maria!', created_at: new Date(now - 3600000).toISOString() }
+          ],
+          created_at: new Date(now - 7200000).toISOString()
+        },
+        {
+          id: 'post-2',
+          author_id: 'mem-chef',
+          author_name: 'Marcus Brody',
+          author_role: 'Kitchen Logistics Lead',
+          author_verified: true,
+          organisation_name: 'Metro Culinary Hub',
+          category: 'craft',
+          content: 'Prep ready for the evening rush: 140 portions of slow-braised short ribs and fresh chimichurri portioned and temp-checked. A clean station is a fast station. What is your team number one prep rule before doors open?',
+          image_url: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&auto=format&fit=crop&q=80',
+          likes_count: 45,
+          comments_count: 12,
+          reposts_count: 8,
+          saves_count: 19,
+          liked_by: [],
+          saved_by: [],
+          comments: [],
+          created_at: new Date(now - 14400000).toISOString()
+        },
+        {
+          id: 'post-3',
+          author_id: 'mem-kwame',
+          author_name: 'Kwame Mensah',
+          author_role: 'Dispatch Supervisor',
+          author_verified: true,
+          organisation_name: 'Northline Logistics',
+          category: 'tip',
+          content: 'Pro tip for warehouse pickers: always inspect your pallet wrap tension before loading high-bays. Saved our night team 45 minutes of restacking yesterday. Work smart, lift with your knees, and always log your handovers!',
+          likes_count: 34,
+          comments_count: 8,
+          reposts_count: 14,
+          saves_count: 22,
+          liked_by: [],
+          saved_by: [],
+          comments: [],
+          created_at: new Date(now - 28800000).toISOString()
+        }
+      ];
+      await saveStore(store);
+    }
+    const posts = store.feedPosts.map((p) => ({
+      ...p,
+      userLiked: (p.liked_by || []).includes(user.id),
+      userSaved: (p.saved_by || []).includes(user.id)
+    }));
+    return sendJson(response, 200, { posts });
+  }
+
+  if (url.pathname === '/api/feed/posts' && request.method === 'POST') {
+    const body = await readJson(request);
+    if (!body.content || !body.content.trim()) return sendJson(response, 400, { error: 'Post content is required.' });
+
+    // Confidentiality safeguard against accidental credentials or PII leak
+    const sensitivePatterns = [/\b(password|passwd|api[_-]?key|bearer\s+[a-z0-9_-]+)\s*[:=]/i, /\b\d{3}-\d{2}-\d{4}\b/];
+    if (sensitivePatterns.some(p => p.test(body.content))) {
+      return sendJson(response, 400, { error: 'Workplace Confidentiality Alert: Post appears to contain sensitive credentials or numbers. ShiftRelay strictly prohibits sharing confidential employer data.' });
+    }
+
+    const store = await getStore();
+    if (!Array.isArray(store.feedPosts)) store.feedPosts = [];
+    const newPost = {
+      id: crypto.randomUUID(),
+      author_id: user.id,
+      author_name: user.name,
+      author_role: user.title || user.role,
+      author_verified: true,
+      organisation_name: user.organisation_name || 'ShiftRelay Network',
+      category: body.category || 'daily',
+      content: body.content.trim(),
+      image_url: body.imageUrl || null,
+      media_type: body.mediaType || (body.imageUrl && (body.imageUrl.endsWith('.mp4') || body.imageUrl.endsWith('.webm')) ? 'video' : body.imageUrl ? 'image' : null),
+      likes_count: 0,
+      comments_count: 0,
+      reposts_count: 0,
+      saves_count: 0,
+      liked_by: [],
+      saved_by: [],
+      comments: [],
+      created_at: new Date().toISOString()
+    };
+    store.feedPosts.unshift(newPost);
+    await saveStore(store);
+    broadcastEvent('feed-post-added', { post: newPost });
+    return sendJson(response, 201, { post: newPost });
+  }
+
+  const postLikeMatch = url.pathname.match(/^\/api\/feed\/posts\/([^/]+)\/like$/);
+  if (postLikeMatch && request.method === 'POST') {
+    const postId = postLikeMatch[1];
+    const store = await getStore();
+    const post = (store.feedPosts || []).find((p) => p.id === postId);
+    if (!post) return sendJson(response, 404, { error: 'Post not found.' });
+    if (!Array.isArray(post.liked_by)) post.liked_by = [];
+    const idx = post.liked_by.indexOf(user.id);
+    let liked = false;
+    if (idx >= 0) {
+      post.liked_by.splice(idx, 1);
+      post.likes_count = Math.max(0, (post.likes_count || 1) - 1);
+      liked = false;
+    } else {
+      post.liked_by.push(user.id);
+      post.likes_count = (post.likes_count || 0) + 1;
+      liked = true;
+    }
+    await saveStore(store);
+    return sendJson(response, 200, { likes_count: post.likes_count, userLiked: liked });
+  }
+
+  const postRepostMatch = url.pathname.match(/^\/api\/feed\/posts\/([^/]+)\/repost$/);
+  if (postRepostMatch && request.method === 'POST') {
+    const postId = postRepostMatch[1];
+    const store = await getStore();
+    const post = (store.feedPosts || []).find((p) => p.id === postId);
+    if (!post) return sendJson(response, 404, { error: 'Post not found.' });
+    post.reposts_count = (post.reposts_count || 0) + 1;
+    await saveStore(store);
+    return sendJson(response, 200, { reposts_count: post.reposts_count });
+  }
+
+  const postSaveMatch = url.pathname.match(/^\/api\/feed\/posts\/([^/]+)\/save$/);
+  if (postSaveMatch && request.method === 'POST') {
+    const postId = postSaveMatch[1];
+    const store = await getStore();
+    const post = (store.feedPosts || []).find((p) => p.id === postId);
+    if (!post) return sendJson(response, 404, { error: 'Post not found.' });
+    if (!Array.isArray(post.saved_by)) post.saved_by = [];
+    const idx = post.saved_by.indexOf(user.id);
+    let saved = false;
+    if (idx >= 0) {
+      post.saved_by.splice(idx, 1);
+      post.saves_count = Math.max(0, (post.saves_count || 1) - 1);
+      saved = false;
+    } else {
+      post.saved_by.push(user.id);
+      post.saves_count = (post.saves_count || 0) + 1;
+      saved = true;
+    }
+    await saveStore(store);
+    return sendJson(response, 200, { saves_count: post.saves_count, userSaved: saved });
+  }
+
+  const postCommentMatch = url.pathname.match(/^\/api\/feed\/posts\/([^/]+)\/comment$/);
+  if (postCommentMatch && request.method === 'POST') {
+    const postId = postCommentMatch[1];
+    const body = await readJson(request);
+    if (!body.content || !body.content.trim()) return sendJson(response, 400, { error: 'Comment text is required.' });
+    const store = await getStore();
+    const post = (store.feedPosts || []).find((p) => p.id === postId);
+    if (!post) return sendJson(response, 404, { error: 'Post not found.' });
+    if (!Array.isArray(post.comments)) post.comments = [];
+    const comment = {
+      id: crypto.randomUUID(),
+      author_id: user.id,
+      author_name: user.name,
+      author_role: user.title || user.role,
+      content: body.content.trim(),
+      created_at: new Date().toISOString()
+    };
+    post.comments.push(comment);
+    post.comments_count = post.comments.length;
+    await saveStore(store);
+    return sendJson(response, 201, { comment, comments_count: post.comments_count });
+  }
+
+  const postDeleteMatch = url.pathname.match(/^\/api\/feed\/posts\/([^/]+)$/);
+  if (postDeleteMatch && request.method === 'DELETE') {
+    const postId = postDeleteMatch[1];
+    const store = await getStore();
+    const idx = (store.feedPosts || []).findIndex((p) => p.id === postId);
+    if (idx === -1) return sendJson(response, 404, { error: 'Post not found.' });
+    const post = store.feedPosts[idx];
+    if (post.author_id !== user.id && !['owner', 'supervisor'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Only the author or a supervisor can delete this post.' });
+    }
+    store.feedPosts.splice(idx, 1);
+    await saveStore(store);
+    broadcastEvent('feed-post-deleted', { postId });
+    return sendJson(response, 200, { ok: true, message: 'Post removed.' });
+  }
+
+  const workerProfileMatch = url.pathname.match(/^\/api\/worker-profile(?:\/([^/]+))?$/);
+  if (workerProfileMatch && request.method === 'GET') {
+    const targetId = workerProfileMatch[1] || user.id;
+    const store = await getStore();
+    if (!store.workerProfiles) store.workerProfiles = {};
+    if (!store.workerProfiles[targetId]) {
+      const isNurse = user.name.toLowerCase().includes('maria') || user.title?.toLowerCase().includes('nurse');
+      const isChef = user.name.toLowerCase().includes('marcus') || user.title?.toLowerCase().includes('cook');
+      store.workerProfiles[targetId] = {
+        userId: targetId,
+        fullName: user.id === targetId ? user.name : 'Frontline Specialist',
+        headline: user.id === targetId ? (user.title || 'Operations Specialist') : 'Operations Specialist',
+        bioOutsideWork: 'Passionate about team accountability and continuous craft improvement. Trail runner, coffee lover, and community volunteer on off-shift days.',
+        avatarUrl: null,
+        verifiedStatus: 'verified',
+        industry: isNurse ? 'Healthcare' : isChef ? 'Hospitality' : 'Operations & Logistics',
+        currentOrganisation: 'ShiftRelay Network Partner',
+        stats: {
+          shiftsCompleted: 148,
+          handoversRelayed: 139,
+          reliabilityScore: 99.4,
+          checkInStreak: 7,
+          endorsementsCount: 26
+        },
+        skills: ['Shift Handover Protocol', 'Incident Prevention', 'Team Communication', 'Process Compliance'],
+        certifications: ['Frontline Safety Level 1', 'Accountable Handover Specialist'],
+        gallery: [
+          { id: 'g-1', url: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=600&auto=format&fit=crop&q=80', caption: 'Shift handoff complete.' },
+          { id: 'g-2', url: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&auto=format&fit=crop&q=80', caption: 'Team huddle before opening.' }
+        ]
+      };
+      await saveStore(store);
+    }
+    return sendJson(response, 200, { profile: store.workerProfiles[targetId] });
+  }
+
+  if (url.pathname === '/api/worker-profile' && request.method === 'PUT') {
+    const body = await readJson(request);
+    const store = await getStore();
+    if (!store.workerProfiles) store.workerProfiles = {};
+    const existing = store.workerProfiles[user.id] || {};
+    store.workerProfiles[user.id] = {
+      ...existing,
+      userId: user.id,
+      fullName: user.name,
+      headline: body.headline || existing.headline || user.title,
+      bioOutsideWork: body.bioOutsideWork !== undefined ? body.bioOutsideWork : existing.bioOutsideWork,
+      skills: Array.isArray(body.skills) ? body.skills : existing.skills || [],
+      certifications: Array.isArray(body.certifications) ? body.certifications : existing.certifications || [],
+      avatarUrl: body.avatarUrl !== undefined ? body.avatarUrl : existing.avatarUrl || null
+    };
+    await saveStore(store);
+    return sendJson(response, 200, { profile: store.workerProfiles[user.id] });
+  }
+
+  const endorseSkillMatch = url.pathname.match(/^\/api\/worker-profile\/([^/]+)\/endorse$/);
+  if (endorseSkillMatch && request.method === 'POST') {
+    const targetUserId = endorseSkillMatch[1];
+    const body = await readJson(request);
+    const skill = String(body.skill || '').trim();
+    if (!skill) return sendJson(response, 400, { error: 'Skill name is required.' });
+
+    const store = await getStore();
+    if (!store.workerProfiles) store.workerProfiles = {};
+    if (!store.workerProfiles[targetUserId]) {
+      return sendJson(response, 404, { error: 'Worker profile not found.' });
+    }
+    const prof = store.workerProfiles[targetUserId];
+    if (!prof.endorsements) prof.endorsements = {};
+    if (!Array.isArray(prof.endorsements[skill])) prof.endorsements[skill] = [];
+
+    const existingIdx = prof.endorsements[skill].indexOf(user.id);
+    let endorsed = false;
+    if (existingIdx >= 0) {
+      prof.endorsements[skill].splice(existingIdx, 1);
+      endorsed = false;
+    } else {
+      prof.endorsements[skill].push(user.id);
+      endorsed = true;
+    }
+
+    // Recalculate total endorsements count
+    const totalCount = Object.values(prof.endorsements).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
+    if (!prof.stats) prof.stats = {};
+    prof.stats.endorsementsCount = totalCount;
+
+    await saveStore(store);
+    return sendJson(response, 200, {
+      ok: true,
+      endorsed,
+      skill,
+      count: prof.endorsements[skill].length,
+      totalCount
+    });
+  }
+
+  if (url.pathname === '/api/attendance/check-in' && request.method === 'POST') {
+    const store = await getStore();
+    if (!store.workerProfiles) store.workerProfiles = {};
+    if (!store.workerProfiles[user.id]) {
+      store.workerProfiles[user.id] = {
+        userId: user.id,
+        fullName: user.name,
+        headline: user.title || 'Operations Specialist',
+        bioOutsideWork: 'Frontline professional.',
+        verifiedStatus: 'verified',
+        stats: { shiftsCompleted: 148, handoversRelayed: 139, reliabilityScore: 99.4, checkInStreak: 7, endorsementsCount: 26 }
+      };
+    }
+    const prof = store.workerProfiles[user.id];
+    const today = new Date().toISOString().slice(0, 10);
+    if (prof.lastCheckInDate !== today) {
+      prof.lastCheckInDate = today;
+      prof.stats.checkInStreak = (prof.stats.checkInStreak || 0) + 1;
+      prof.stats.shiftsCompleted = (prof.stats.shiftsCompleted || 0) + 1;
+      await saveStore(store);
+    }
+    return sendJson(response, 200, { ok: true, streak: prof.stats.checkInStreak, message: `Check-in recorded! ${prof.stats.checkInStreak}-day streak!` });
+  }
+
+  if (url.pathname === '/api/organisation/profile' && request.method === 'GET') {
+    const store = await getStore();
+    const org = (store.organisations && store.organisations[0]) || {
+      id: user.organisation_id || 'demo-org-1',
+      legal_name: 'ShiftRelay Global Healthcare & Operations',
+      trading_name: 'ShiftRelay Health Network',
+      organisation_code: '246701',
+      verified: true,
+      industry: 'Healthcare & Operations'
+    };
+    return sendJson(response, 200, {
+      organisation: {
+        ...org,
+        verified: true,
+        organisation_code: org.organisation_code || '246701',
+        membersCount: (store.portalUsers || []).length || 4
+      }
+    });
+  }
+
+  // Saved posts view
+  if (url.pathname === '/api/feed/posts/saved' && request.method === 'GET') {
+    const store = await getStore();
+    const saved = (store.feedPosts || [])
+      .filter((p) => Array.isArray(p.saved_by) && p.saved_by.includes(user.id))
+      .map((p) => ({ ...p, userLiked: (p.liked_by || []).includes(user.id), userSaved: true }));
+    return sendJson(response, 200, { posts: saved });
+  }
+
+  // Worker directory (Discover page)
+  if (url.pathname === '/api/discover/workers' && request.method === 'GET') {
+    const store = await getStore();
+    const realProfiles = Object.values(store.workerProfiles || {});
+    const demoWorkers = [
+      { userId: 'w-1', fullName: 'Maria Santos, RN', headline: 'Triage Nurse · Healthcare', industry: 'Healthcare', verifiedStatus: 'verified', avatarUrl: null, stats: { shiftsCompleted: 148, reliabilityScore: 99.4, checkInStreak: 7 }, skills: ['Triage Protocol', 'Patient Safety', 'HIPAA Compliance'] },
+      { userId: 'w-2', fullName: 'Marcus Brody', headline: 'Kitchen Logistics Lead · Hospitality', industry: 'Hospitality', verifiedStatus: 'verified', avatarUrl: null, stats: { shiftsCompleted: 201, reliabilityScore: 98.1, checkInStreak: 14 }, skills: ['Food Safety', 'Team Prep', 'Cold Chain'] },
+      { userId: 'w-3', fullName: 'Kwame Mensah', headline: 'Dispatch Supervisor · Logistics', industry: 'Logistics', verifiedStatus: 'verified', avatarUrl: null, stats: { shiftsCompleted: 312, reliabilityScore: 97.6, checkInStreak: 21 }, skills: ['Warehouse Ops', 'Handover Protocol', 'Safety Compliance'] },
+      { userId: 'w-4', fullName: 'Aisha Diallo', headline: 'Night Shift Floor Lead · Retail', industry: 'Retail', verifiedStatus: 'verified', avatarUrl: null, stats: { shiftsCompleted: 89, reliabilityScore: 96.3, checkInStreak: 5 }, skills: ['Inventory Control', 'Loss Prevention', 'Team Leadership'] },
+      { userId: 'w-5', fullName: 'Tunde Okafor', headline: 'Security Supervisor · Facilities', industry: 'Security', verifiedStatus: 'unverified', avatarUrl: null, stats: { shiftsCompleted: 431, reliabilityScore: 99.1, checkInStreak: 30 }, skills: ['Perimeter Control', 'Incident Response', 'Shift Handover'] },
+      { userId: 'w-6', fullName: 'Sophie Chen', headline: 'Manufacturing Line Lead · Auto', industry: 'Manufacturing', verifiedStatus: 'verified', avatarUrl: null, stats: { shiftsCompleted: 256, reliabilityScore: 98.7, checkInStreak: 12 }, skills: ['Six Sigma', 'Quality Assurance', 'Line Supervision'] }
+    ];
+    // Merge: real profiles first, then demo workers that don't clash
+    const realIds = new Set(realProfiles.map((p) => p.userId));
+    const merged = [...realProfiles, ...demoWorkers.filter((d) => !realIds.has(d.userId))];
+    return sendJson(response, 200, { workers: merged });
+  }
+
+  // Verified badge request - submit
+  if (url.pathname === '/api/verified-badge-request' && request.method === 'POST') {
+    const body = await readJson(request);
+    const store = await getStore();
+    if (!Array.isArray(store.verifiedBadgeRequests)) store.verifiedBadgeRequests = [];
+    const existing = store.verifiedBadgeRequests.find((r) => r.userId === user.id && r.status === 'pending');
+    if (existing) return sendJson(response, 409, { error: 'You already have a pending verified badge request.' });
+    const vReq = {
+      id: crypto.randomUUID(),
+      userId: user.id,
+      userName: user.name,
+      userTitle: user.title || user.role,
+      type: body.type || 'worker',
+      reason: (body.reason || '').trim().slice(0, 500),
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    store.verifiedBadgeRequests.push(vReq);
+    if (!store.workerProfiles) store.workerProfiles = {};
+    if (!store.workerProfiles[user.id]) store.workerProfiles[user.id] = {};
+    store.workerProfiles[user.id].verifiedStatus = 'pending';
+    await saveStore(store);
+    return sendJson(response, 201, { request: vReq, message: 'Verified badge request submitted. Our team reviews within 3 business days.' });
+  }
+
+  // Verified badge request - get status
+  if (url.pathname === '/api/verified-badge-request' && request.method === 'GET') {
+    const store = await getStore();
+    const myReq = (store.verifiedBadgeRequests || []).find((r) => r.userId === user.id);
+    return sendJson(response, 200, { request: myReq || null });
+  }
+
+  if (url.pathname === '/api/upload' && request.method === 'POST') {
+    try {
+      const body = await readJson(request);
+      if (!body.dataUrl) return sendJson(response, 400, { error: 'dataUrl is required.' });
+      const match = body.dataUrl.match(/^data:([a-zA-Z0-9/.-]+);base64,(.+)$/);
+      if (!match) return sendJson(response, 400, { error: 'Invalid dataUrl format.' });
+      const mime = match[1];
+      const base64Data = match[2];
+      const isVideo = mime.startsWith('video/');
+      const isImage = mime.startsWith('image/');
+      if (!isVideo && !isImage) return sendJson(response, 400, { error: 'Only images and videos are supported.' });
+      
+      const ext = mime === 'video/mp4' ? '.mp4' : mime === 'video/webm' ? '.webm' : mime === 'image/jpeg' ? '.jpg' : mime === 'image/webp' ? '.webp' : '.png';
+      const filename = `${crypto.randomUUID()}${ext}`;
+      await mkdir(uploadsDirectory, { recursive: true });
+      const filePath = join(uploadsDirectory, filename);
+      await writeFile(filePath, Buffer.from(base64Data, 'base64'));
+      return sendJson(response, 201, { url: `/uploads/${filename}`, mediaType: isVideo ? 'video' : 'image' });
+    } catch (err) {
+      return sendJson(response, 500, { error: err.message || 'Upload failed.' });
+    }
+  }
+
   return sendJson(response, 404, { error: 'Not found.' });
 }
 
-async function serveStatic(response, url) {
+async function serveStatic(request, response, url) {
   const requestedPath = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
   const safePath = normalize(requestedPath).replace(/^([.]{2}[\\/])+/, '');
   try {
     const filePath = join(publicDirectory, safePath);
     const content = await readFile(filePath);
-    response.writeHead(200, { 'Content-Type': `${mimeTypes[extname(filePath)] || 'application/octet-stream'}; charset=utf-8` });
+    const ext = extname(filePath).toLowerCase();
+    const isBinary = ['.mp4', '.webm', '.png', '.jpg', '.jpeg', '.webp'].includes(ext);
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
+    const totalSize = content.length;
+
+    // Support HTTP Range requests (crucial for smooth video seeking & streaming)
+    const range = request.headers.range;
+    if (range && (ext === '.mp4' || ext === '.webm')) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : totalSize - 1;
+      const chunkSize = (end - start) + 1;
+      response.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${totalSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': contentType
+      });
+      response.end(content.subarray(start, end + 1));
+      return;
+    }
+
+    response.writeHead(200, {
+      'Content-Type': isBinary ? contentType : `${contentType}; charset=utf-8`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': totalSize
+    });
     response.end(content);
-  } catch { response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); response.end('Not found'); }
+  } catch {
+    response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    response.end('Not found');
+  }
 }
 
 const server = createServer((request, response) => {
@@ -652,7 +1364,7 @@ const server = createServer((request, response) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
     if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok' });
     if (url.pathname.startsWith('/api/')) return handleApi(request, response, url);
-    return serveStatic(response, url);
+    return serveStatic(request, response, url);
   }).catch((error) => {
     console.error('Request failed:', error.message);
     if (databaseReady && /DATABASE|relation .* does not exist|connection|timeout|ECONN/i.test(error.message || '')) databaseReady = false;

@@ -1,0 +1,623 @@
+/* ==========================================================================
+   ShiftRelay — New Feature Styles v3
+   Discover directory, Activity enrichment, Verified badge dialog,
+   Avatar upload, Saved posts, Lounge tabs, Landing footer
+   ========================================================================== */
+
+/* ── Lounge Tabs (Feed / Saved) ─────────────────────────────────────────── */
+.lounge-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  background: var(--bg-surface-subtle, #f8fafc);
+  border-radius: var(--radius-md, 10px);
+  padding: 4px;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+}
+
+.lounge-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 38px;
+}
+
+.lounge-tab-btn.active {
+  background: #fff;
+  color: var(--text-main, #0f172a);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+
+.lounge-tab-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ── Verified Status Badges ─────────────────────────────────────────────── */
+.verified-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-top: 6px;
+}
+
+.verified-status-badge.verified {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.verified-status-badge.pending {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.verified-status-badge.unverified {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+/* ── Verified Badge Request Dialog ──────────────────────────────────────── */
+.verified-badge-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  color: #065f46;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 14px;
+}
+
+/* ── Avatar Upload in Passport Edit ─────────────────────────────────────── */
+.passport-avatar-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-surface-subtle, #f8fafc);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.passport-avatar-preview {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0d524d, #126e68);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  flex-shrink: 0;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  background-size: cover;
+  background-position: center;
+}
+
+/* ── Discover / Worker Directory ─────────────────────────────────────────── */
+.discover-container {
+  max-width: 960px;
+}
+
+.discover-search-row {
+  margin-bottom: 24px;
+}
+
+.discover-search-wrap {
+  position: relative;
+  max-width: 520px;
+}
+
+.discover-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary, #64748b);
+  pointer-events: none;
+}
+
+.discover-search-input {
+  width: 100%;
+  padding: 11px 14px 11px 42px;
+  border: 1.5px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 10px);
+  font-size: 14px;
+  color: var(--text-main, #0f172a);
+  background: var(--bg-surface, #fff);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.discover-search-input:focus {
+  border-color: #126e68;
+  box-shadow: 0 0 0 3px rgba(18,110,104,0.08);
+}
+
+.discover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.discover-worker-card {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 14px;
+  padding: 20px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  position: relative;
+}
+
+.discover-worker-card:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+  transform: translateY(-2px);
+}
+
+.discover-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.discover-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0d524d, #126e68);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  background-size: cover;
+  background-position: center;
+}
+
+.discover-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.discover-card-body h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main, #0f172a);
+  margin: 0 0 4px;
+}
+
+.discover-headline {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+
+.discover-stats-row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.discover-stats-row span {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+  white-space: nowrap;
+}
+
+.discover-stats-row strong {
+  color: var(--text-main, #0f172a);
+  font-weight: 700;
+}
+
+.discover-skills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.skill-chip.small {
+  font-size: 10px;
+  padding: 2px 8px;
+}
+
+.discover-view-btn {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── Activity POW Hero ───────────────────────────────────────────────────── */
+.activity-pow-hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 14px;
+}
+
+.activity-pow-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.activity-pow-stat .pow-icon {
+  margin-bottom: 2px;
+}
+
+.activity-pow-stat strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-main, #0f172a);
+  line-height: 1.1;
+}
+
+.activity-pow-stat small {
+  font-size: 11px;
+  color: var(--text-secondary, #64748b);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ── Streak Activity Banner ──────────────────────────────────────────────── */
+.streak-activity-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: #fff7ed;
+  border: 1.5px solid #fed7aa;
+  border-radius: 14px;
+  margin-bottom: 28px;
+}
+
+.streak-activity-banner.streak-hot {
+  background: linear-gradient(135deg, #fff7ed, #fef9c3);
+  border-color: #fbbf24;
+}
+
+.streak-activity-banner > div {
+  flex: 1;
+}
+
+.streak-activity-banner strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 2px;
+}
+
+.streak-activity-banner p {
+  font-size: 13px;
+  color: #b45309;
+  margin: 0;
+}
+
+/* ── Landing Page Footer ─────────────────────────────────────────────────── */
+.landing-footer {
+  margin-top: 48px;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  padding-top: 32px;
+}
+
+.landing-footer-inner {
+  max-width: 100%;
+}
+
+.footer-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-main, #0f172a);
+  text-decoration: none;
+  letter-spacing: -0.03em;
+}
+
+.footer-brand img {
+  width: 22px;
+  height: 22px;
+}
+
+.footer-tagline {
+  font-size: 13px;
+  color: var(--text-secondary, #64748b);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+.footer-links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.footer-link-col h4 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+
+.footer-link-col a {
+  display: block;
+  font-size: 13px;
+  color: var(--text-main, #0f172a);
+  text-decoration: none;
+  margin-bottom: 6px;
+  transition: color 0.12s;
+}
+
+.footer-link-col a:hover {
+  color: #126e68;
+}
+
+.footer-lang-select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 7px;
+  font-size: 13px;
+  color: var(--text-main, #0f172a);
+  background: var(--bg-surface, #fff);
+  cursor: pointer;
+  outline: none;
+}
+
+.footer-lang-select:focus {
+  border-color: #126e68;
+}
+
+.footer-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle, #e2e8f0);
+}
+
+.footer-copy {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+}
+
+.footer-confidentiality-note {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #065f46;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .discover-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .activity-pow-hero {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .footer-links-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .streak-activity-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .streak-activity-banner > button {
+    width: 100%;
+  }
+}
+
+/* ── Skill Endorsements on Passport ─────────────────────────────────────── */
+.skill-chip {
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.skill-chip:hover {
+  border-color: #126e68;
+  transform: translateY(-1px);
+}
+
+.skill-chip.endorsed {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #065f46;
+  font-weight: 700;
+}
+
+.endorse-badge {
+  font-size: 11px;
+  color: #126e68;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/* ── Interactive Tour Modal ─────────────────────────────────────────────── */
+.tour-modal-card {
+  max-width: 620px;
+  width: 95%;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.tour-modal-body {
+  padding: 24px;
+}
+
+.tour-slide-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.tour-slide-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.tour-step-badge {
+  display: inline-flex;
+  padding: 3px 8px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  letter-spacing: 0.04em;
+}
+
+.tour-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #126e68;
+  text-transform: uppercase;
+}
+
+.tour-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+  line-height: 1.25;
+}
+
+.tour-desc {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.tour-metric-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f0fdfa, #f8fafc);
+  border: 1.5px solid #ccfbf1;
+  border-radius: 12px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.tour-metric-card span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #0f766e;
+  margin-bottom: 2px;
+}
+
+.tour-metric-card strong {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0d524d;
+}
+
+.tour-try-btn {
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 42px;
+  padding: 0 18px;
+  white-space: nowrap;
+}
+
+.tour-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.tour-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.tour-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: all 0.2s ease;
+}
+
+.tour-dot.active {
+  width: 24px;
+  border-radius: 4px;
+  background: #126e68;
+}
+

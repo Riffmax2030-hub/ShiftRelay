@@ -7,16 +7,28 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "dev": "node --watch server.mjs"
+    "dev": "node --watch server.mjs",
+    "build:mobile": "node scripts/build-mobile.mjs",
+    "cap:sync": "npm run build:mobile && npx cap sync",
+    "cap:android": "npx cap open android",
+    "cap:ios": "npx cap open ios"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/camera": "^8.2.6",
     "@capacitor/cli": "^8.4.2",
     "@capacitor/core": "^8.4.2",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.4.2",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
+    "dotenv": "^18.0.8",
     "pg": "^8.22.0"
   },
   "devDependencies": {

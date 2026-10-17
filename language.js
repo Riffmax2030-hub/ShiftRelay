@@ -1,9 +1,355 @@
-const languages={en:'English',fr:'Français',es:'Español',sw:'Kiswahili',ar:'العربية'};
-const translations={fr:{Dashboard:'Tableau de bord',Notifications:'Notifications',Calendar:'Calendrier',Staffs:'Personnel',Workflows:'Flux de travail',Analytics:'Analyses',Incidents:'Incidents',Settings:'Paramètres',Preferences:'Préférences','Change password':'Modifier le mot de passe','Sign out':'Se déconnecter',Review:'À examiner','Incoming shift':'Équipe entrante',Acknowledged:'Confirmé','New handover':'Nouvelle relève',Activity:'Activité','Good morning':'Bonjour','Good afternoon':'Bon après-midi','Good evening':'Bonsoir'},es:{Dashboard:'Panel',Notifications:'Notificaciones',Calendar:'Calendario',Staffs:'Personal',Workflows:'Flujos de trabajo',Analytics:'Análisis',Incidents:'Incidentes',Settings:'Configuración',Preferences:'Preferencias','Change password':'Cambiar contraseña','Sign out':'Cerrar sesión',Review:'Revisión','Incoming shift':'Turno entrante',Acknowledged:'Confirmado','New handover':'Nueva entrega',Activity:'Actividad','Good morning':'Buenos días','Good afternoon':'Buenas tardes','Good evening':'Buenas noches'},sw:{Dashboard:'Dashibodi',Notifications:'Arifa',Calendar:'Kalenda',Staffs:'Wafanyakazi',Workflows:'Mtiririko wa kazi',Analytics:'Takwimu',Incidents:'Matukio',Settings:'Mipangilio',Preferences:'Mapendeleo','Change password':'Badilisha nenosiri','Sign out':'Ondoka',Review:'Mapitio','Incoming shift':'Zamu inayofuata',Acknowledged:'Imethibitishwa','New handover':'Makabidhiano mapya',Activity:'Shughuli','Good morning':'Habari za asubuhi','Good afternoon':'Habari za mchana','Good evening':'Habari za jioni'},ar:{Dashboard:'لوحة التحكم',Notifications:'الإشعارات',Calendar:'التقويم',Staffs:'الموظفون',Workflows:'مسارات العمل',Analytics:'التحليلات',Incidents:'الحوادث',Settings:'الإعدادات',Preferences:'التفضيلات','Change password':'تغيير كلمة المرور','Sign out':'تسجيل الخروج',Review:'للمراجعة','Incoming shift':'الوردية القادمة',Acknowledged:'تم التأكيد','New handover':'تسليم جديد',Activity:'النشاط','Good morning':'صباح الخير','Good afternoon':'مساء الخير','Good evening':'مساء الخير'}};
-const languageOriginals=new WeakMap();
-function appLanguage(){return localStorage.getItem('shiftrelay-language')||'en'}
-function formatLocale(){return appLanguage()==='sw'?'sw-KE':appLanguage()==='ar'?'ar':appLanguage()}
-function translateInterface(root=document.body){const dictionary=translations[appLanguage()]||{};root.querySelectorAll('*').forEach((element)=>{if(element.children.length)return;for(const node of element.childNodes){if(node.nodeType!==Node.TEXT_NODE||!node.nodeValue.trim())continue;const source=languageOriginals.get(node)||node.nodeValue.trim();languageOriginals.set(node,source);if(dictionary[source])node.nodeValue=node.nodeValue.replace(source,dictionary[source])}});document.documentElement.lang=appLanguage();document.documentElement.dir=appLanguage()==='ar'?'rtl':'ltr'}
-function setAppLanguage(language){localStorage.setItem('shiftrelay-language',language);translateInterface();document.dispatchEvent(new Event('shiftrelay-language-change'))}
-new MutationObserver(()=>translateInterface()).observe(document.documentElement,{childList:true,subtree:true});
-document.addEventListener('DOMContentLoaded',()=>translateInterface());
+const languages = {
+  en: 'English',
+  fr: 'Français',
+  es: 'Español',
+  sw: 'Kiswahili',
+  ar: 'العربية',
+  de: 'Deutsch',
+  zh: '中文',
+  pt: 'Português',
+  hi: 'हिन्दी'
+};
+
+const translations = {
+  fr: {
+    Dashboard: 'Tableau de bord',
+    'Shift Lounge': 'Salon des quarts',
+    'Worker Passport': 'Passeport travailleur',
+    Discover: 'Découvrir',
+    Notifications: 'Notifications',
+    Calendar: 'Calendrier',
+    Staffs: 'Personnel',
+    Workflows: 'Flux de travail',
+    Analytics: 'Analyses',
+    Incidents: 'Incidents',
+    Settings: 'Paramètres',
+    Preferences: 'Préférences',
+    'Change password': 'Modifier le mot de passe',
+    'Sign out': 'Se déconnecter',
+    Review: 'À examiner',
+    'Incoming shift': 'Équipe entrante',
+    Acknowledged: 'Confirmé',
+    'New handover': 'Nouvelle relève',
+    Activity: 'Activité',
+    'Good morning': 'Bonjour',
+    'Good afternoon': 'Bon après-midi',
+    'Good evening': 'Bonsoir',
+    'Today': 'Aujourd’hui',
+    'Relay': 'Relais',
+    'Shifts': 'Quarts',
+    'Saved': 'Enregistré',
+    'All Posts': 'Tous les messages',
+    'Milestones': 'Jalons',
+    'Shift Tips': 'Astuces de quart',
+    'Craft & Prep': 'Artisanat & Prép',
+    'Daily Win': 'Victoire du jour',
+    'Post to Lounge': 'Publier dans le salon',
+    'Verified Worker': 'Travailleur vérifié',
+    'Check In Now': 'Pointer maintenant',
+    'Day Streak': 'Jours consécutifs'
+  },
+  es: {
+    Dashboard: 'Panel',
+    'Shift Lounge': 'Salón de turnos',
+    'Worker Passport': 'Pasaporte del trabajador',
+    Discover: 'Descubrir',
+    Notifications: 'Notificaciones',
+    Calendar: 'Calendario',
+    Staffs: 'Personal',
+    Workflows: 'Flujos de trabajo',
+    Analytics: 'Análisis',
+    Incidents: 'Incidentes',
+    Settings: 'Configuración',
+    Preferences: 'Preferencias',
+    'Change password': 'Cambiar contraseña',
+    'Sign out': 'Cerrar sesión',
+    Review: 'Revisión',
+    'Incoming shift': 'Turno entrante',
+    Acknowledged: 'Confirmado',
+    'New handover': 'Nueva entrega',
+    Activity: 'Actividad',
+    'Good morning': 'Buenos días',
+    'Good afternoon': 'Buenas tardes',
+    'Good evening': 'Buenas noches',
+    'Today': 'Hoy',
+    'Relay': 'Relevo',
+    'Shifts': 'Turnos',
+    'Saved': 'Guardado',
+    'All Posts': 'Todas las publicaciones',
+    'Milestones': 'Hitos',
+    'Shift Tips': 'Consejos de turno',
+    'Craft & Prep': 'Oficio y prep',
+    'Daily Win': 'Logro diario',
+    'Post to Lounge': 'Publicar en el salón',
+    'Verified Worker': 'Trabajador verificado',
+    'Check In Now': 'Registrar entrada',
+    'Day Streak': 'Días en racha'
+  },
+  sw: {
+    Dashboard: 'Dashibodi',
+    'Shift Lounge': 'Chumba cha zamu',
+    'Worker Passport': 'Pasipoti ya mfanyakazi',
+    Discover: 'Gundua',
+    Notifications: 'Arifa',
+    Calendar: 'Kalenda',
+    Staffs: 'Wafanyakazi',
+    Workflows: 'Mtiririko wa kazi',
+    Analytics: 'Takwimu',
+    Incidents: 'Matukio',
+    Settings: 'Mipangilio',
+    Preferences: 'Mapendeleo',
+    'Change password': 'Badilisha nenosiri',
+    'Sign out': 'Ondoka',
+    Review: 'Mapitio',
+    'Incoming shift': 'Zamu inayofuata',
+    Acknowledged: 'Imethibitishwa',
+    'New handover': 'Makabidhiano mapya',
+    Activity: 'Shughuli',
+    'Good morning': 'Habari za asubuhi',
+    'Good afternoon': 'Habari za mchana',
+    'Good evening': 'Habari za jioni',
+    'Today': 'Leo',
+    'Relay': 'Uwasilishaji',
+    'Shifts': 'Zamu',
+    'Saved': 'Imehifadhiwa',
+    'All Posts': 'Machapisho Yote',
+    'Milestones': 'Mafanikio',
+    'Shift Tips': 'Vidokezo vya Zamu',
+    'Craft & Prep': 'Maandalizi ya Kazi',
+    'Daily Win': 'Ushindi wa Leo',
+    'Post to Lounge': 'Tuma kwenye Chumba',
+    'Verified Worker': 'Mfanyakazi Aliyethibitishwa',
+    'Check In Now': 'Ingia Zamu Sasa',
+    'Day Streak': 'Mfululizo wa Siku'
+  },
+  ar: {
+    Dashboard: 'لوحة التحكم',
+    'Shift Lounge': 'استراحة الوردية',
+    'Worker Passport': 'جواز العامل',
+    Discover: 'استكشاف',
+    Notifications: 'الإشعارات',
+    Calendar: 'التقويم',
+    Staffs: 'الموظفون',
+    Workflows: 'مسارات العمل',
+    Analytics: 'التحليلات',
+    Incidents: 'الحوادث',
+    Settings: 'الإعدادات',
+    Preferences: 'التفضيلات',
+    'Change password': 'تغيير كلمة المرور',
+    'Sign out': 'تسجيل الخروج',
+    Review: 'للمراجعة',
+    'Incoming shift': 'الوردية القادمة',
+    Acknowledged: 'تم التأكيد',
+    'New handover': 'تسليم جديد',
+    Activity: 'النشاط',
+    'Good morning': 'صباح الخير',
+    'Good afternoon': 'مساء الخير',
+    'Good evening': 'مساء الخير',
+    'Today': 'اليوم',
+    'Relay': 'التسليم',
+    'Shifts': 'الورديات',
+    'Saved': 'المحفوظات',
+    'All Posts': 'جميع المنشورات',
+    'Milestones': 'الإنجازات',
+    'Shift Tips': 'نصائح الوردية',
+    'Craft & Prep': 'الحرفة والتجهيز',
+    'Daily Win': 'فوز اليوم',
+    'Post to Lounge': 'نشر في الاستراحة',
+    'Verified Worker': 'عامل موثق',
+    'Check In Now': 'تسجيل الحضور الآن',
+    'Day Streak': 'أيام متتالية'
+  },
+  de: {
+    Dashboard: 'Übersicht',
+    'Shift Lounge': 'Schicht-Lounge',
+    'Worker Passport': 'Mitarbeiter-Pass',
+    Discover: 'Entdecken',
+    Notifications: 'Benachrichtigungen',
+    Calendar: 'Kalender',
+    Staffs: 'Mitarbeitende',
+    Workflows: 'Arbeitsabläufe',
+    Analytics: 'Analysen',
+    Incidents: 'Vorfälle',
+    Settings: 'Einstellungen',
+    Preferences: 'Präferenzen',
+    'Change password': 'Passwort ändern',
+    'Sign out': 'Abmelden',
+    Review: 'Prüfung',
+    'Incoming shift': 'Kommende Schicht',
+    Acknowledged: 'Bestätigt',
+    'New handover': 'Neue Übergabe',
+    Activity: 'Aktivität',
+    'Good morning': 'Guten Morgen',
+    'Good afternoon': 'Guten Tag',
+    'Good evening': 'Guten Abend',
+    'Today': 'Heute',
+    'Relay': 'Übergabe',
+    'Shifts': 'Schichten',
+    'Saved': 'Gespeichert',
+    'All Posts': 'Alle Beiträge',
+    'Milestones': 'Meilensteine',
+    'Shift Tips': 'Schicht-Tipps',
+    'Craft & Prep': 'Vorbereitung',
+    'Daily Win': 'Tageserfolg',
+    'Post to Lounge': 'In Lounge posten',
+    'Verified Worker': 'Verifizierter Mitarbeiter',
+    'Check In Now': 'Jetzt einchecken',
+    'Day Streak': 'Tages-Serie'
+  },
+  zh: {
+    Dashboard: '仪表板',
+    'Shift Lounge': '班次休息区',
+    'Worker Passport': '工人护照',
+    Discover: '发现',
+    Notifications: '通知',
+    Calendar: '日历',
+    Staffs: '员工',
+    Workflows: '工作流程',
+    Analytics: '分析',
+    Incidents: '事件',
+    Settings: '设置',
+    Preferences: '偏好设置',
+    'Change password': '更改密码',
+    'Sign out': '退出登录',
+    Review: '待审核',
+    'Incoming shift': '下一班',
+    Acknowledged: '已确认',
+    'New handover': '新交接',
+    Activity: '活动',
+    'Good morning': '早上好',
+    'Good afternoon': '下午好',
+    'Good evening': '晚上好',
+    'Today': '今天',
+    'Relay': '交接',
+    'Shifts': '班次',
+    'Saved': '已保存',
+    'All Posts': '所有动态',
+    'Milestones': '里程碑',
+    'Shift Tips': '换班建议',
+    'Craft & Prep': '准备与技术',
+    'Daily Win': '每日成就',
+    'Post to Lounge': '发布到休息区',
+    'Verified Worker': '已认证工人',
+    'Check In Now': '立即签到',
+    'Day Streak': '连续签到天数'
+  },
+  pt: {
+    Dashboard: 'Painel',
+    'Shift Lounge': 'Lounge de Turnos',
+    'Worker Passport': 'Passaporte do Trabalhador',
+    Discover: 'Descobrir',
+    Notifications: 'Notificações',
+    Calendar: 'Calendário',
+    Staffs: 'Equipa',
+    Workflows: 'Fluxos de trabalho',
+    Analytics: 'Análises',
+    Incidents: 'Incidentes',
+    Settings: 'Definições',
+    Preferences: 'Preferências',
+    'Change password': 'Alterar palavra-passe',
+    'Sign out': 'Terminar sessão',
+    Review: 'Revisão',
+    'Incoming shift': 'Turno de entrada',
+    Acknowledged: 'Confirmado',
+    'New handover': 'Nova passagem',
+    Activity: 'Atividade',
+    'Good morning': 'Bom dia',
+    'Good afternoon': 'Boa tarde',
+    'Good evening': 'Boa noite',
+    'Today': 'Hoje',
+    'Relay': 'Relé',
+    'Shifts': 'Turnos',
+    'Saved': 'Guardado',
+    'All Posts': 'Todas as publicações',
+    'Milestones': 'Marcos',
+    'Shift Tips': 'Dicas de turno',
+    'Craft & Prep': 'Preparação',
+    'Daily Win': 'Vitória do dia',
+    'Post to Lounge': 'Publicar no Lounge',
+    'Verified Worker': 'Trabalhador Verificado',
+    'Check In Now': 'Registar Entrada',
+    'Day Streak': 'Sequência de Dias'
+  },
+  hi: {
+    Dashboard: 'डैशबोर्ड',
+    'Shift Lounge': 'शिफ्ट लाउंज',
+    'Worker Passport': 'वर्कर पासपोर्ट',
+    Discover: 'खोजें',
+    Notifications: 'सूचनाएं',
+    Calendar: 'कैलेंडर',
+    Staffs: 'कर्मचारी',
+    Workflows: 'वर्कफ़्लो',
+    Analytics: 'विश्लेषण',
+    Incidents: 'घटनाएँ',
+    Settings: 'सेटिंग्स',
+    Preferences: 'प्राथमिकताएं',
+    'Change password': 'पासवर्ड बदलें',
+    'Sign out': 'साइन आउट',
+    Review: 'समीक्षा',
+    'Incoming shift': 'आने वाली शिफ्ट',
+    Acknowledged: 'पुष्टि की गई',
+    'New handover': 'नया हैंडओवर',
+    Activity: 'गतिविधि',
+    'Good morning': 'शुभ प्रभात',
+    'Good afternoon': 'शुभ दोपहर',
+    'Good evening': 'शुभ संध्या',
+    'Today': 'आज',
+    'Relay': 'रिले',
+    'Shifts': 'शिफ्ट',
+    'Saved': 'सहेजा गया',
+    'All Posts': 'सभी पोस्ट',
+    'Milestones': 'मील के पत्थर',
+    'Shift Tips': 'शिफ्ट टिप्स',
+    'Craft & Prep': 'तैयारी व कार्य',
+    'Daily Win': 'दैनिक उपलब्धि',
+    'Post to Lounge': 'लाउंज में पोस्ट करें',
+    'Verified Worker': 'सत्यापित कार्यकर्ता',
+    'Check In Now': 'अभी चेक-इन करें',
+    'Day Streak': 'दिनों का सिलसिला'
+  }
+};
+
+const languageOriginals = new WeakMap();
+
+function appLanguage() {
+  return localStorage.getItem('shiftrelay-language') || 'en';
+}
+
+function formatLocale() {
+  const lang = appLanguage();
+  if (lang === 'sw') return 'sw-KE';
+  if (lang === 'ar') return 'ar';
+  if (lang === 'hi') return 'hi-IN';
+  return lang;
+}
+
+function translateInterface(root = document.body) {
+  const dictionary = translations[appLanguage()] || {};
+  root.querySelectorAll('*').forEach((element) => {
+    if (element.children.length) return;
+    for (const node of element.childNodes) {
+      if (node.nodeType !== Node.TEXT_NODE || !node.nodeValue.trim()) continue;
+      const source = languageOriginals.get(node) || node.nodeValue.trim();
+      languageOriginals.set(node, source);
+      if (dictionary[source]) {
+        node.nodeValue = node.nodeValue.replace(source, dictionary[source]);
+      }
+    }
+  });
+  document.documentElement.lang = appLanguage();
+  document.documentElement.dir = appLanguage() === 'ar' ? 'rtl' : 'ltr';
+}
+
+function setAppLanguage(language) {
+  localStorage.setItem('shiftrelay-language', language);
+  translateInterface();
+  document.dispatchEvent(new Event('shiftrelay-language-change'));
+}
+
+window.setAppLanguage = setAppLanguage;
+window.setLanguage = setAppLanguage;
+window.appLanguage = appLanguage;
+window.formatLocale = formatLocale;
+
+new MutationObserver(() => translateInterface()).observe(document.documentElement, { childList: true, subtree: true });
+document.addEventListener('DOMContentLoaded', () => translateInterface());

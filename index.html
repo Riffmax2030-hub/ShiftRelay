@@ -11,7 +11,7 @@
     <title>ShiftRelay | Work moves forward</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="bento-ui.css" />
     <link rel="stylesheet" href="portal.css" />
@@ -34,17 +34,169 @@
     <link rel="stylesheet" href="direct-messages.css" />
     <link rel="stylesheet" href="onboarding-experience.css" />
     <link rel="stylesheet" href="checklists.css" />
+    <link rel="stylesheet" href="frontline-social.css" />
+    <link rel="stylesheet" href="shiftrelay-v3.css" />
     <link rel="stylesheet" href="bento-ui.css" />
   </head>
   <body>
     <main class="login-page" id="login-view">
       <section class="login-intro">
-        <a class="brand" href="#"><img src="icon.svg" alt="" />ShiftRelay</a>
-        <p class="eyebrow">WORKPLACE HANDOVER SYSTEM</p>
-        <h1>Every shift starts<br />with the full picture.</h1>
-        <p>ShiftRelay turns rushed updates into clear work that the next person can trust, review, and act on.</p>
-        <div class="workflow-line"><b>Capture</b><i></i><b>Review</b><i></i><b>Acknowledge</b></div>
-        <div class="landing-actions"><button class="primary" data-access="register">Register your organisation</button><button class="secondary" data-access="join">Join with organisation ID</button></div>
+        <!-- Heritage & Trust Badge -->
+        <div class="landing-header-row">
+          <a class="brand" href="#"><img src="icon.svg" alt="" />ShiftRelay</a>
+          <div class="heritage-badge">
+            <span class="badge-dot-live"></span>
+            <span class="heritage-text"><b>No. 1 Frontline Productivity Engine</b> · Enterprise Reactive Hub</span>
+          </div>
+        </div>
+
+        <div class="landing-hero-copy">
+          <p class="eyebrow">WORLDWIDE FRONTLINE OPERATING SYSTEM</p>
+          <h1>Where 2.7 Billion Shift Workers Power Modern Industry.</h1>
+          <p class="landing-subtitle">From healthcare triage to 24/7 manufacturing, ShiftRelay connects frontline teams, eliminates lost shift context, verifies daily proof-of-work streaks, and provides a global career network for shift specialists.</p>
+          
+          <div class="landing-actions">
+            <button class="primary" data-access="register">Register Your Organisation</button>
+            <button class="secondary" data-access="join">Join with Org Code</button>
+            <button class="secondary tour-landing-btn" id="btn-landing-tour" style="display:inline-flex;align-items:center;gap:6px;border-color:#126e68;color:#0d524d;font-weight:700;">
+              <span>🎬</span> <span>Interactive Tour</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Frontline Workers (Male & Female Holding Industrial Tablet on Shift) Showcase -->
+        <div class="workers-tablet-showcase">
+          <div class="workers-visual-card">
+            <div class="workers-composite">
+              <img src="https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1000&auto=format&fit=crop&q=80" alt="Frontline male and female team members on shift" class="workers-bg-img" />
+              <div class="workers-overlay-gradient"></div>
+
+              <!-- Industrial Tablet Frame Overlay -->
+              <div class="industrial-tablet-frame">
+                <div class="tablet-top-rim"><div class="tablet-lens"></div></div>
+                <div class="tablet-screen">
+                  <div class="tablet-status-strip">
+                    <span class="tablet-status-pill">● LIVE ENGINE</span>
+                    <span class="tablet-org-badge">ORG #246701</span>
+                    <span class="tablet-clock">17:40 RELAY</span>
+                  </div>
+                  <div class="tablet-active-handover">
+                    <div class="handover-title-row">
+                      <strong>Day → Night Shift Handover</strong>
+                      <span class="handover-state-badge">🟡 In Progress</span>
+                    </div>
+                    <div class="tablet-task-check-list">
+                      <div class="tab-check-row done"><span class="tab-box">✓</span><span>Cold-room temperature logged (4°C)</span></div>
+                      <div class="tab-check-row done"><span class="tab-box">✓</span><span>Disinfection cycle complete</span></div>
+                      <div class="tab-check-row pending"><span class="tab-box">○</span><span>Pharmacy shipment intake</span></div>
+                    </div>
+                    <div class="tablet-task-counter">
+                      <span>Tasks to Relay</span>
+                      <b>2/3 Completed</b>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Floating Glassmorphic Telemetry Chips -->
+              <div class="floating-glass-chip chip-streak">
+                <span class="chip-symbol">🔥</span>
+                <div>
+                  <strong>7-Day Streak Active</strong>
+                  <small>Proof-of-Work Verified</small>
+                </div>
+              </div>
+
+              <div class="floating-glass-chip chip-org">
+                <span class="chip-symbol">🛡️</span>
+                <div>
+                  <strong>Verified Workplace</strong>
+                  <small>Zero Lost Context</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="workers-footer-caption">
+              <strong>Male &amp; Female Shift Specialists on Active Duty</strong>
+              <span>Holding industrial tablet with ShiftRelay real-time handover telemetry.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Engine Video Showcase (ShiftRelay-demo-edited.mp4) -->
+        <div class="engine-video-showcase">
+          <div class="engine-video-header">
+            <div class="video-live-pill">
+              <span class="pulse-ring"></span>
+              <b>LIVE ENGINE PLAYTHROUGH</b>
+            </div>
+            <span class="engine-framerate">60 FPS · Reactive Architecture</span>
+          </div>
+
+          <div class="engine-video-container">
+            <video id="landing-engine-video" src="/ShiftRelay-demo-edited.mp4" controls playsinline loop muted autoplay class="engine-video-frame" poster="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200&auto=format&fit=crop&q=80"></video>
+            <div class="engine-watermark">ShiftRelay Frontline Engine v2.4</div>
+          </div>
+
+        <!-- Engine Specs Grid -->
+          <div class="engine-specs-grid">
+            <div class="spec-item"><span class="spec-dot"></span> <b>Instant Multi-Tenant</b> (6-Digit Org Lock-in)</div>
+            <div class="spec-item"><span class="spec-dot"></span> <b>Digital Handover Hub</b> (Strict 2/2 Format)</div>
+            <div class="spec-item"><span class="spec-dot"></span> <b>Frontline Social Network</b> (Photo &amp; Video Feeds)</div>
+          </div>
+        </div>
+
+        <!-- Landing Page Footer -->
+        <footer class="landing-footer">
+          <div class="landing-footer-inner">
+            <div class="footer-brand-row">
+              <a class="footer-brand" href="#"><img src="icon.svg" alt="" />ShiftRelay</a>
+              <p class="footer-tagline">The frontline productivity engine for 2.7 billion shift workers worldwide.</p>
+            </div>
+            <div class="footer-links-grid">
+              <div class="footer-link-col">
+                <h4>Platform</h4>
+                <a href="#" data-access="register">Register Organisation</a>
+                <a href="#" data-access="join">Join with Org Code</a>
+                <a href="#" id="footer-terms-link">Terms of Service</a>
+              </div>
+              <div class="footer-link-col">
+                <h4>Support</h4>
+                <a href="mailto:support@shiftrelay.io">Contact Support</a>
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="terms.html">Legal</a>
+              </div>
+              <div class="footer-link-col">
+                <h4>Industries</h4>
+                <a href="#">Healthcare</a>
+                <a href="#">Logistics</a>
+                <a href="#">Hospitality</a>
+                <a href="#">Manufacturing</a>
+              </div>
+              <div class="footer-link-col">
+                <h4>Language</h4>
+                <select class="footer-lang-select" id="footer-lang-select" aria-label="Select language">
+                  <option value="en">English</option>
+                  <option value="fr">Français</option>
+                  <option value="es">Español</option>
+                  <option value="ar">العربية</option>
+                  <option value="zh">中文</option>
+                  <option value="hi">हिन्दी</option>
+                  <option value="sw">Kiswahili</option>
+                  <option value="pt">Português</option>
+                  <option value="de">Deutsch</option>
+                </select>
+              </div>
+            </div>
+            <div class="footer-bottom-row">
+              <span class="footer-copy">&copy; ShiftRelay. All rights reserved.</span>
+              <span class="footer-confidentiality-note">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+                Workplace confidentiality protected
+              </span>
+            </div>
+          </div>
+        </footer>
       </section>
       <section class="login-panel" id="access-panel"></section>
     </main>
@@ -53,23 +205,67 @@
       <aside class="sidebar">
         <a class="brand" href="#"><img src="icon.svg" alt="" />ShiftRelay</a>
         <div class="signed-in"><span class="avatar" id="sidebar-avatar">AO</span><div><strong id="sidebar-name"></strong><small id="sidebar-role"></small></div></div>
-        <nav class="side-nav"><button class="active" data-view="dashboard">Dashboard</button><button data-view="handover">New handover</button><button data-view="activity">Activity</button><button data-view="notifications">Notifications</button><button data-view="calendar">Calendar</button><button data-view="community">Community</button><button data-view="people">Staffs</button><button data-view="workflows">Workflows</button><button data-view="analytics">Analytics</button><button data-view="incidents">Incidents</button><button data-view="settings">Settings</button></nav>
+        <nav class="side-nav"><button class="active" data-view="dashboard">Dashboard</button><button data-view="handover">New handover</button><button data-view="lounge">Shift Lounge</button><button data-view="passport">Worker Passport</button><button data-view="discover">Discover</button><button data-view="calendar">Calendar</button><button data-view="community">Community</button><button data-view="activity">Activity</button><button data-view="notifications">Notifications</button><button data-view="people">Staffs</button><button data-view="workflows">Workflows</button><button data-view="analytics">Analytics</button><button data-view="incidents">Incidents</button><button data-view="settings">Settings</button></nav>
         <button class="logout" id="logout-button">Switch role</button>
       </aside>
       <section class="main-content">
-        <header class="app-header"><div><p class="eyebrow" id="page-kicker">YOUR WORKSPACE</p><h1 id="page-title">Dashboard</h1></div><div class="header-actions"><span class="api-status" id="api-status">Checking AI connection…</span><button class="bell notification-trigger" id="notification-button" aria-label="Open notifications"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><b id="notification-count">0</b></button><button class="account-menu-button" id="account-menu-button" aria-label="Open account menu" aria-expanded="false">☰</button></div></header>
+        <header class="app-header"><div><p class="eyebrow" id="page-kicker">YOUR WORKSPACE</p><h1 id="page-title">Dashboard</h1></div><div class="header-actions"><button class="secondary tour-header-btn" id="btn-header-tour" style="min-height:36px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;font-weight:700;"><span>🎬</span> <span>Tour</span></button><span class="api-status" id="api-status">Checking AI connection…</span><button class="bell notification-trigger" id="notification-button" aria-label="Open notifications"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg><b id="notification-count">0</b></button><button class="account-menu-button" id="account-menu-button" aria-label="Open account menu" aria-expanded="false">☰</button></div></header>
         <section id="dashboard"></section>
       </section>
       <nav class="mobile-nav" aria-label="Primary navigation">
         <button data-go="dashboard" class="active"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9Z"/></svg></span><small>Today</small></button>
-        <button data-go="activity"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h3l2-6 4 12 2-6h5"/></svg></span><small>Pulse</small></button>
+        <button data-go="lounge"><span class="tab-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><small>Lounge</small></button>
         <button data-go="handover" class="relay-tab"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h10a4 4 0 0 1 4 4v1"/><path d="m15 9 4 3-4 3"/><path d="M19 17H9a4 4 0 0 1-4-4v-1"/><path d="m9 15-4-3 4-3"/></svg></span><small>Relay</small></button>
-        <button data-go="calendar"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M7 14h3M14 14h3M7 17h3"/></svg></span><small>Shifts</small></button>
-        <button data-go="community"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.5 8.5 0 0 1-4-.9L4 20l1.3-3.4A7.3 7.3 0 0 1 4 12.5 7.5 7.5 0 0 1 12 5a7.5 7.5 0 0 1 8 6.5Z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg></span><small>Team</small></button>
+        <button data-go="discover"><span class="tab-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/></svg></span><small>Discover</small></button>
+        <button data-go="passport"><span class="tab-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><small>Passport</small></button>
       </nav>
       <aside class="notification-panel hidden" id="notification-panel"><div><strong>Notifications</strong></div><section id="notification-list"></section></aside>
     </main>
+    
+    <!-- Terms & Workplace Confidentiality Policy Modal -->
+    <div class="modal-backdrop hidden" id="terms-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: #0d524d; display: inline-flex;">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+              </svg>
+            </span>
+            <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--text-main);">Terms of Service &amp; Workplace Confidentiality</h3>
+          </div>
+          <button class="modal-close" id="btn-close-terms" aria-label="Close modal">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="confidentiality-critical-alert">
+            <strong>Workplace Confidentiality is an Absolute Requirement:</strong>
+            <p>ShiftRelay connects frontline teams and empowers shift workers. <strong>All users are strictly prohibited from publishing or leaking confidential employer, client, or patient data on any public area of the platform (including the Shift Lounge, media uploads, and public comments).</strong></p>
+          </div>
+
+          <h4 style="margin: 16px 0 6px; font-size: 14px; font-weight: 700;">1. Prohibited Disclosures on Public Feeds</h4>
+          <ul style="padding-left: 20px; margin: 0 0 14px; font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+            <li><strong>Healthcare (HIPAA &amp; GDPR):</strong> Patient names, vital charts, room numbers, diagnoses, or clinical photography.</li>
+            <li><strong>Logistics &amp; Warehouse:</strong> Internal inventory manifests, client shipping volumes, gate security PINs, or facility access codes.</li>
+            <li><strong>Hospitality &amp; Food Service:</strong> Proprietary culinary formulas/recipes, internal POS revenues, or guest booking lists.</li>
+            <li><strong>Manufacturing &amp; Engineering:</strong> Proprietary blueprints, equipment downtime logs, and trade secrets.</li>
+          </ul>
+
+          <h4 style="margin: 16px 0 6px; font-size: 14px; font-weight: 700;">2. Private Organisation Relays vs. Public Shift Lounge</h4>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 10px;">
+            <strong>Internal Organisation Portal:</strong> Shift handovers, daily task checklists, supervisor reviews, and internal team chats are encrypted and strictly accessible only to verified workers of your specific organization code.
+          </p>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+            <strong>Public Shift Lounge:</strong> Dedicated solely to general career milestones, non-proprietary shift tips, personal craft recognition, and positive frontline community. Leaking internal data will result in immediate ban, revocation of verified status, and employer notification.
+          </p>
+        </div>
+        <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end;">
+          <button class="primary" id="btn-accept-terms" style="min-height: 42px; padding: 0 20px;">I Understand &amp; Agree</button>
+        </div>
+      </div>
+    </div>
+
     <div class="toast hidden" id="toast"></div>
+    <script src="icons.js"></script>
     <script src="language.js"></script>
     <script src="language-pack.js"></script>
     <script src="app.js"></script>
@@ -84,8 +280,10 @@
     <script src="schedule-import.js"></script>
     <script src="direct-messages.js"></script>
     <script src="team-realtime.js"></script>
-<script src="onboarding-experience.js"></script>
-<script src="navigation-fix.js"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=45',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script src="onboarding-experience.js"></script>
+    <script src="frontline-social.js"></script>
+    <script src="navigation-fix.js"></script>
+    <script src="tour-experience.js"></script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=46',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>

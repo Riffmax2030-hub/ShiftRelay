@@ -1,1 +1,421 @@
-.schedule-experience{max-width:920px}.schedule-head{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 18px}.schedule-head h2{margin:0;font-size:24px}.calendar-arrow{width:38px;height:38px;border:1px solid var(--line);border-radius:50%;background:var(--paper);font-size:26px;color:var(--ink)}.calendar-weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.calendar-weekdays{margin-bottom:8px;color:var(--muted);font-size:10px;text-align:center;font-weight:800;text-transform:uppercase}.calendar-day{display:grid;place-items:center;gap:5px;min-height:53px;border:0;border-radius:14px;background:transparent;color:var(--ink)}.calendar-day:hover{background:#eaf4f1}.calendar-day.selected{background:var(--teal);color:#fff;box-shadow:0 8px 16px #126e6828}.calendar-day i{display:flex;min-height:4px;gap:3px}.dot{width:4px;height:4px;border-radius:50%;background:#35a5f7}.dot-1{background:#e46db1}.dot-2{background:#4bbd7b}.schedule-tabs{display:flex;gap:4px;margin:22px 0 16px;padding:4px;border-radius:13px;background:#e8eeec}.schedule-tabs button{flex:1;padding:10px 8px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:12px;font-weight:800}.schedule-tabs button.active{background:var(--paper);color:var(--ink);box-shadow:0 2px 8px #1e32321a}.schedule-tabs b{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:var(--teal);color:#fff;font-size:10px}.schedule-panel{padding:22px;border:1px solid var(--line);border-radius:18px;background:var(--paper)}.panel-title{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin-bottom:16px}.panel-title h2{margin:0;font-size:20px}.schedule-card,.open-shift-card{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}.schedule-card:last-child,.open-shift-card:last-child{border-bottom:0}.schedule-card span,.open-shift-card p,.open-shift-card small{display:block;margin:0;color:var(--muted);font-size:11px}.schedule-card h3,.open-shift-card h3{margin:4px 0;font-size:17px}.schedule-card>b{padding:6px 9px;border-radius:999px;background:#e2f4e8;color:#267043;font-size:10px;text-transform:capitalize}.open-shift-card strong{font-size:14px}.roster-group{padding:10px 0;border-bottom:1px solid var(--line)}.roster-group h3{font-size:14px}.roster-group h3 small{color:var(--muted)}.roster-row{display:flex;align-items:center;gap:11px;padding:10px 0}.avatar-mini{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#d9ece8;color:var(--teal);font-weight:800}.roster-row div{flex:1}.roster-row strong{font-size:13px}.roster-row p{margin:2px 0 0;color:var(--muted);font-size:11px}.roster-status{padding:5px 8px;border-radius:999px;font-size:10px}.roster-status.on{background:#def4e4;color:#1e7640}.roster-status.soon{background:#fff0d9;color:#9b5d13}.roster-status.later{background:#e7eef9;color:#41678f}.roster-empty{margin:10px 0;color:var(--muted);font-size:12px}@media(max-width:520px){.calendar-day{min-height:48px;border-radius:11px}.schedule-tabs button{font-size:10px}.schedule-panel{padding:16px}.open-shift-card{align-items:flex-start;flex-direction:column}.open-shift-card button{width:100%}}
+/* ==========================================================================
+   ShiftRelay Reactive Calendar & Workforce Planner
+   Linear / WhatsApp Aesthetic - Clean, fast, mobile-first design.
+   ========================================================================== */
+
+.schedule-experience {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.schedule-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.schedule-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+}
+
+.calendar-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-arrow {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.calendar-arrow:hover {
+  background-color: var(--bg-surface-subtle);
+  border-color: var(--border-medium);
+}
+
+/* Schedule Tab Switcher */
+.schedule-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background-color: var(--bg-surface-subtle);
+  padding: 5px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.schedule-tabs button {
+  flex: 1;
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.schedule-tabs button.active {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
+.schedule-tabs button b {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--whatsapp-green);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Monthly Calendar Grid */
+.calendar-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendar-blank {
+  min-height: 52px;
+}
+
+.calendar-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.calendar-day:hover {
+  background-color: var(--bg-surface-subtle);
+  border-color: var(--border-medium);
+}
+
+.calendar-day.selected {
+  background-color: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+.calendar-day.selected i .dot {
+  background-color: #38bdf8 !important;
+}
+
+.calendar-day.today {
+  border-color: var(--whatsapp-green);
+  font-weight: 700;
+}
+
+.calendar-day b {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.calendar-day i {
+  display: flex;
+  min-height: 6px;
+  gap: 3px;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--whatsapp-green);
+}
+
+.dot-1 { background-color: #0284c7; }
+.dot-2 { background-color: #d97706; }
+
+/* Agenda & Shift Panels */
+.schedule-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.panel-title h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.roster-group {
+  margin-bottom: 24px;
+}
+
+.roster-group:last-child {
+  margin-bottom: 0;
+}
+
+.roster-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.roster-group-title .count-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
+}
+
+.roster-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  min-height: 48px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  background-color: var(--bg-surface);
+  transition: all 0.12s ease;
+}
+
+.roster-row:hover {
+  border-color: var(--border-medium);
+  background-color: var(--bg-surface-subtle);
+}
+
+.avatar-mini {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.roster-row div {
+  flex: 1;
+}
+
+.roster-row strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.roster-row p {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.roster-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.roster-status.on {
+  background-color: var(--status-green-bg);
+  color: var(--status-green-text);
+  border: 1px solid var(--status-green-border);
+}
+
+.roster-status.soon {
+  background-color: var(--status-yellow-bg);
+  color: var(--status-yellow-text);
+  border: 1px solid var(--status-yellow-border);
+}
+
+.roster-status.later {
+  background-color: var(--bg-surface-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #059669;
+  animation: pulse 1.8s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+/* Open Shift Cards */
+.open-shift-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.open-shift-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  transition: all 0.15s ease;
+}
+
+.open-shift-card:hover {
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-sm);
+}
+
+.open-shift-card.is-claimed {
+  background-color: #f0fdf4;
+  border-color: #86efac;
+}
+
+.open-shift-card h3 {
+  margin: 2px 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.open-shift-card .shift-time {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.open-shift-card .shift-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.btn-claim {
+  min-height: 48px;
+  min-width: 130px;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.btn-claim.claimed {
+  background-color: #ecfdf5;
+  border: 1px solid #10b981;
+  color: #065f46;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .open-shift-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .open-shift-card .btn-claim {
+    width: 100%;
+  }
+  .schedule-tabs button {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+}

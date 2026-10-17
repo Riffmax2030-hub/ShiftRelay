@@ -1,4 +1,13 @@
 .env
+.env.local
 .DS_Store
-node_modules
+node_modules/
 data/
+www/
+uploads/*
+!uploads/.gitkeep
+scratch/
+.codex/
+video-review/
+*.log
+Angela_Gail_Goff_Remote_Work_Resume.*

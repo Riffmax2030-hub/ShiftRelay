@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://shiftrelay_user:shiftrelay_secret@pgbouncer:6432/shiftrelay_prod
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis:
+        condition: service_started
+    volumes:
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=shiftrelay_prod
+      - POSTGRES_USER=shiftrelay_user
+      - POSTGRES_PASSWORD=shiftrelay_secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shiftrelay_user -d shiftrelay_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    restart: unless-stopped
+    environment:
+      - DB_USER=shiftrelay_user
+      - DB_PASSWORD=shiftrelay_secret
+      - DB_HOST=postgres
+      - DB_NAME=shiftrelay_prod
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=5000
+      - DEFAULT_POOL_SIZE=50
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:
