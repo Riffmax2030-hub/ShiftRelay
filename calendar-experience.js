@@ -89,7 +89,7 @@ function buildRosterSections(shifts) {
     if (statusType === 'on') {
       badgeHtml = `<b class="roster-status on"><span class="pulse-dot"></span> Clocked In</b>`;
     } else if (statusType === 'soon') {
-      badgeHtml = `<b class="roster-status soon">🕒 Up Next</b>`;
+      badgeHtml = `<b class="roster-status soon">${Icons.clock()} Up Next</b>`;
     } else {
       badgeHtml = `<b class="roster-status later">${escape(shift.status || 'Scheduled')}</b>`;
     }
@@ -110,7 +110,7 @@ function buildRosterSections(shifts) {
     <!-- Currently Clocked In -->
     <div class="roster-group">
       <div class="roster-group-title">
-        <span>🟢 Currently Clocked In</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;"><span class="pulse-dot"></span> Currently Clocked In</span>
         <span class="count-badge">${clockedIn.length} active</span>
       </div>
       ${clockedIn.length ? clockedIn.map((s) => renderWorkerRow(s, 'on')).join('') : '<p class="roster-empty">No staff currently clocked in.</p>'}
@@ -119,7 +119,7 @@ function buildRosterSections(shifts) {
     <!-- Up Next -->
     <div class="roster-group">
       <div class="roster-group-title">
-        <span>🕒 Up Next (Next 4 Hours)</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;">${Icons.clock()} Up Next (Next 4 Hours)</span>
         <span class="count-badge">${upNext.length}</span>
       </div>
       ${upNext.length ? upNext.map((s) => renderWorkerRow(s, 'soon')).join('') : '<p class="roster-empty">No shifts starting in the next 4 hours.</p>'}
@@ -128,7 +128,7 @@ function buildRosterSections(shifts) {
     <!-- Selected Day Agenda -->
     <div class="roster-group">
       <div class="roster-group-title">
-        <span>📅 ${formatDayLabel(calendarState.selected)}</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;">${Icons.calendar()} ${formatDayLabel(calendarState.selected)}</span>
         <span class="count-badge">${selectedDayShifts.length} scheduled</span>
       </div>
       ${selectedDayShifts.length ? selectedDayShifts.map((s) => renderWorkerRow(s, 'later')).join('') : '<p class="roster-empty">No scheduled shifts for this day.</p>'}
@@ -150,16 +150,33 @@ function buildOpenShiftsMarket(marketShifts, canManage) {
       ${marketShifts.map((shift) => {
         const isClaimed = calendarState.claimedShiftIds.has(shift.id) || shift.status === 'claimed';
         const shiftDate = new Date(shift.starts_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        const rateDisplay = shift.rate || '$28.50/hr';
+        const slotsCount = shift.slots ?? 1;
         return `
           <article class="open-shift-card ${isClaimed ? 'is-claimed' : ''}" id="shift-card-${shift.id}">
             <div>
-              <p class="shift-meta">${shiftDate}</p>
-              <h3>${escape(shift.title || 'General Frontline Shift')}</h3>
-              <p class="shift-time">${clock(shift.starts_at)} – ${clock(shift.ends_at)}</p>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+                <p class="shift-meta" style="margin:0;">${shiftDate}</p>
+                <span class="shift-rate-badge" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;background:#ecfdf5;color:#047857;padding:2px 8px;border-radius:12px;border:1px solid #a7f3d0;">
+                  ${Icons.dollar()} ${rateDisplay}
+                </span>
+              </div>
+              <h3 style="margin:0 0 4px;">${escape(shift.title || 'General Frontline Shift')}</h3>
+              <p class="shift-time" style="display:inline-flex;align-items:center;gap:4px;margin:2px 0 6px;">
+                ${Icons.clock()} ${clock(shift.starts_at)} – ${clock(shift.ends_at)}
+              </p>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <span style="font-size:11px;color:var(--text-secondary);display:inline-flex;align-items:center;gap:4px;">
+                  ${Icons.location()} ${escape(shift.location || 'Main Site Facility')}
+                </span>
+                <span style="font-size:11px;color:#0284c7;background:#f0f9ff;padding:2px 6px;border-radius:4px;font-weight:600;">
+                  ${slotsCount > 1 ? `${slotsCount} slots open` : '1 slot open'}
+                </span>
+              </div>
               ${shift.notes ? `<small class="shift-meta">Notes: ${escape(shift.notes)}</small>` : ''}
             </div>
             ${isClaimed 
-              ? `<button class="btn-claim claimed" disabled>Claimed ✓</button>`
+              ? `<button class="btn-claim claimed" disabled style="display:inline-flex;align-items:center;gap:6px;">${Icons.check()} Claimed</button>`
               : `<button class="primary btn-claim" data-claim-shift="${shift.id}" data-shift-title="${escape(shift.title || 'Shift')}">Claim Shift</button>`
             }
           </article>
@@ -293,7 +310,7 @@ async function renderCalendar() {
         calendarState.claimedShiftIds.add(shiftId);
         btn.disabled = true;
         btn.className = 'btn-claim claimed';
-        btn.textContent = 'Claimed ✓';
+        btn.innerHTML = `${Icons.check()} Claimed`;
 
         const card = document.getElementById(`shift-card-${shiftId}`);
         if (card) card.classList.add('is-claimed');
