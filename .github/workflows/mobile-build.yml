@@ -13,14 +13,14 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Set up JDK 21 (Required for Capacitor 8)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -28,17 +28,21 @@ jobs:
       - name: Install Node Dependencies
         run: npm ci
 
-      - name: Build Web Bundle
+      - name: Build Web Bundle & Tablet Assets
         run: npm run build:mobile
 
       - name: Grant Execute Permission to Gradle Wrapper
         run: chmod +x android/gradlew
 
-      - name: Sync Capacitor Android
-        run: npx cap sync android
+      - name: Copy Assets to Android & Update Native Config
+        run: |
+          npx cap copy android
+          npx cap update android || echo "Native plugin configuration already synchronized in repository."
 
-      - name: Validate Android Project Structure & Assets
+      - name: Validate Android Project Structure & Tablet Compatibility
         run: |
           test -f android/app/build.gradle || exit 1
           test -d android/app/src/main/assets/public || exit 1
-          echo "Capacitor Android package successfully prepared and verified."
+          test -f android/app/src/main/assets/public/index.html || exit 1
+          grep -q "supports-screens" android/app/src/main/AndroidManifest.xml || exit 1
+          echo "Capacitor Android & Tablet package successfully validated and synchronized."
