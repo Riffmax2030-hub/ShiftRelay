@@ -489,7 +489,40 @@ async function handleApi(request, response, url) {
   if (!user) return sendJson(response, 401, { error: 'Select a ShiftRelay role to continue.' });
 
   if (url.pathname === '/api/profile' && request.method === 'PUT') {
-    const body = await readJson(request); const avatar = body.avatarDataUrl || null; if (avatar && (!/^data:image\/(png|jpeg|webp);base64,/.test(avatar) || avatar.length > 2_000_000)) return sendJson(response, 400, { error: 'Use a PNG, JPEG, or WebP image smaller than 1.5 MB.' }); await query('update portal_users set avatar_data_url = $1 where id = (select user_id from memberships where id = $2)', [avatar, user.id]); return sendJson(response, 200, { avatarDataUrl: avatar });
+    const body = await readJson(request);
+    const avatar = body.avatarDataUrl || body.avatarUrl || null;
+    if (avatar && (!/^data:image\/(png|jpe?g|webp);base64,/i.test(avatar) || avatar.length > 7_000_000)) {
+      return sendJson(response, 400, { error: 'Please choose an image file (PNG, JPEG, WebP) under 5 MB.' });
+    }
+    const store = await getStore();
+    if (!store.workerProfiles) store.workerProfiles = {};
+    const existing = store.workerProfiles[user.id] || {};
+    store.workerProfiles[user.id] = {
+      ...existing,
+      userId: user.id,
+      fullName: user.name,
+      avatarUrl: avatar || existing.avatarUrl || null,
+      coverPhotoUrl: body.coverPhotoUrl !== undefined ? body.coverPhotoUrl : existing.coverPhotoUrl || null,
+      headline: body.headline || existing.headline || user.title,
+      bioOutsideWork: body.bioOutsideWork !== undefined ? body.bioOutsideWork : existing.bioOutsideWork,
+      currentJob: body.currentJob !== undefined ? body.currentJob : existing.currentJob || null,
+      skills: Array.isArray(body.skills) ? body.skills : existing.skills || [],
+      certifications: Array.isArray(body.certifications) ? body.certifications : existing.certifications || [],
+      workHistory: Array.isArray(body.workHistory) ? body.workHistory : existing.workHistory || []
+    };
+    await saveStore(store);
+
+    if (avatar) {
+      user.avatar_data_url = avatar;
+      if (databaseReady) {
+        try {
+          await query('update portal_users set avatar_data_url = $1 where id = (select user_id from memberships where id = $2)', [avatar, user.id]);
+        } catch (dbErr) {
+          console.warn('Could not update avatar in database, preserved in store:', dbErr.message);
+        }
+      }
+    }
+    return sendJson(response, 200, { avatarDataUrl: avatar, profile: store.workerProfiles[user.id] });
   }
 
   if (url.pathname === '/api/analytics' && request.method === 'GET') {
@@ -1185,11 +1218,24 @@ async function handleApi(request, response, url) {
       fullName: user.name,
       headline: body.headline || existing.headline || user.title,
       bioOutsideWork: body.bioOutsideWork !== undefined ? body.bioOutsideWork : existing.bioOutsideWork,
+      currentJob: body.currentJob !== undefined ? body.currentJob : existing.currentJob || null,
       skills: Array.isArray(body.skills) ? body.skills : existing.skills || [],
       certifications: Array.isArray(body.certifications) ? body.certifications : existing.certifications || [],
-      avatarUrl: body.avatarUrl !== undefined ? body.avatarUrl : existing.avatarUrl || null
+      workHistory: Array.isArray(body.workHistory) ? body.workHistory : existing.workHistory || [],
+      avatarUrl: body.avatarUrl !== undefined ? body.avatarUrl : existing.avatarUrl || null,
+      coverPhotoUrl: body.coverPhotoUrl !== undefined ? body.coverPhotoUrl : existing.coverPhotoUrl || null
     };
     await saveStore(store);
+
+    // If currentJob was provided, reflect it on the live user session
+    if (body.currentJob && typeof body.currentJob === 'object') {
+      if (body.currentJob.title) user.title = body.currentJob.title;
+      if (body.currentJob.department) user.department = body.currentJob.department;
+      if (body.currentJob.shiftStart) user.shift_start = body.currentJob.shiftStart;
+      if (body.currentJob.shiftEnd) user.shift_end = body.currentJob.shiftEnd;
+      if (body.currentJob.workingDays) user.shift_days = body.currentJob.workingDays;
+    }
+
     return sendJson(response, 200, { profile: store.workerProfiles[user.id] });
   }
 
