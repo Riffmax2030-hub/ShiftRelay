@@ -15,22 +15,22 @@ function renderJoinForm(){const panel=$('#access-panel');panel.innerHTML=`<p cla
 async function submitOrganisation(event){event.preventDefault();const form=Object.fromEntries(new FormData(event.currentTarget));if(form.password!==form.confirmPassword){$('#form-message').textContent='Passwords do not match.';return}delete form.confirmPassword;const button=event.submitter;button.disabled=true;button.textContent='Creating…';try{const result=await api('/api/organisations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});toast(`Organisation created. Your ID is ${result.organisation.organisationCode}.`);login(result.user)}catch(error){$('#form-message').textContent=error.message}finally{button.disabled=false;button.textContent='Create organisation'}}
 async function submitJoin(event){event.preventDefault();const form=Object.fromEntries(new FormData(event.currentTarget));if(form.password!==form.confirmPassword){$('#form-message').textContent='Passwords do not match.';return}delete form.confirmPassword;const button=event.submitter;button.disabled=true;button.textContent='Sending…';try{await api('/api/organisation-memberships',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});$('#form-message').textContent='Access request sent. Your owner or supervisor must approve it before you can enter the workplace.';event.currentTarget.reset()}catch(error){$('#form-message').textContent=error.message}finally{button.disabled=false;button.textContent='Request access'}}
 function login(user){state.user=user;sessionStorage.setItem('shiftrelay-user',user.id);$('#login-view').classList.add('hidden');$('#app-view').classList.remove('hidden');$('#app-view').dataset.role=user.role;$('#app-view').dataset.workerName=user.name;$('#app-view').dataset.workerTitle=user.title||'Workplace member';const initials=user.name.split(' ').map((n)=>n[0]).join('');$('#sidebar-avatar').textContent=initials;$('#sidebar-name').textContent=user.name;$('#sidebar-role').textContent=user.title;const ha=$('#header-avatar');if(ha){ha.textContent=initials}const hn=$('#header-name');if(hn){hn.textContent=user.name}const hr=$('#header-role');if(hr){hr.textContent=user.title||user.role}setApiStatus();renderDashboard();refreshNotifications();window.connectTeamRealtime?.()}
-function setApiStatus(){const badge=$('#api-status');if(state.config.aiConfigured){badge.textContent='GPT-5.6 Sol connected';badge.className='api-status connected'}else{badge.textContent='AI setup needed';badge.className='api-status missing'}}
+function setApiStatus(){const badge=$('#api-status');if(!badge)return;if(state.config.aiConfigured){badge.textContent='GPT-5.6 Sol connected';badge.className='api-status connected'}else{badge.textContent='AI setup needed';badge.className='api-status missing'}}
 function dashboardHeader(title,kicker='YOUR WORKSPACE'){document.body.classList.remove('team-page-active');const sharedHeader=document.querySelector('.app-header');if(sharedHeader)sharedHeader.style.display='';$('#page-title').textContent=title;$('#page-kicker').textContent=kicker}
 async function getHandovers(){return (await api('/api/handovers')).handovers}
 function pinnedHandoverFeed(handovers){
   const active=handovers.find((h)=>h.status==='relayed'||h.status==='awaiting_review')||handovers[0];
   if(!active)return '';
   const tone=active.handover?.shiftStatus||(active.handover?.risks?.length?'red':'green');
-  const toneLabel=tone==='red'?'🔴 Critical / Urgent':tone==='yellow'?'🟡 Needs Attention':'🟢 Normal / Clear Shift';
+  const toneLabel=tone==='red'?'Critical / Urgent':tone==='yellow'?'Needs Attention':'Normal / Clear Shift';
   const tasks=active.handover?.tasks||(active.handover?.actions||[]).map((a,i)=>({id:`task-${i+1}`,text:a.title,owner:a.owner,due:a.due,done:false}));
   const completed=tasks.filter((t)=>t.done).length;
   return `<section class="pinned-handover-card status-${tone}">
     <div class="pinned-handover-head">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <span class="shift-status-pill ${tone}">${toneLabel}</span>
+        <span class="shift-status-pill ${tone}"><span class="badge-dot-live" style="background:${tone==='red'?'#ef4444':tone==='yellow'?'#f59e0b':'#10b981'};display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;"></span>${toneLabel}</span>
         <span class="badge ${active.status}">${escape(active.status.replace('_',' '))}</span>
-        <span class="badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; font-size:11px; font-weight:700;">🔒 Internal Team Relay</span>
+        <span class="badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; font-size:11px; font-weight:700;"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:-1px;margin-right:3px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Internal Team Relay</span>
       </div>
       <small class="muted">Relayed ${new Date(active.createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</small>
     </div>
@@ -104,15 +104,15 @@ function renderHandoverForm(){
     <div class="shift-status-selector" id="status-selector">
       <label class="status-radio-option selected-green" data-tone="green">
         <input type="radio" name="shiftStatus" value="green" checked />
-        <span>🟢 Normal / Clear</span>
+        <span><span class="status-dot green" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:6px;"></span>Normal / Clear</span>
       </label>
       <label class="status-radio-option" data-tone="yellow">
         <input type="radio" name="shiftStatus" value="yellow" />
-        <span>🟡 Attention Needed</span>
+        <span><span class="status-dot yellow" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:6px;"></span>Attention Needed</span>
       </label>
       <label class="status-radio-option" data-tone="red">
         <input type="radio" name="shiftStatus" value="red" />
-        <span>🔴 Critical Alert</span>
+        <span><span class="status-dot red" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:6px;"></span>Critical Alert</span>
       </label>
     </div>
 

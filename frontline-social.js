@@ -84,10 +84,10 @@ async function renderShiftLounge() {
         <div class="composer-tag-row">
           <span class="composer-tag-label">Shift Tag:</span>
           <div class="composer-categories" id="composer-category-select">
-            <button class="category-chip active" data-cat="milestone">🏆 Shift Win</button>
-            <button class="category-chip" data-cat="tip">💡 Shift Tip</button>
-            <button class="category-chip" data-cat="craft">⚡ Craft &amp; Prep</button>
-            <button class="category-chip" data-cat="daily">⭐ Daily Relay</button>
+            <button class="category-chip active" data-cat="milestone">${Icons.award()} <span>Shift Win</span></button>
+            <button class="category-chip" data-cat="tip">${Icons.bulb()} <span>Shift Tip</span></button>
+            <button class="category-chip" data-cat="craft">${Icons.zap()} <span>Craft &amp; Prep</span></button>
+            <button class="category-chip" data-cat="daily">${Icons.star()} <span>Daily Relay</span></button>
           </div>
         </div>
 
@@ -96,9 +96,6 @@ async function renderShiftLounge() {
           <div class="composer-attach-tools">
             <button type="button" class="composer-tool-btn" id="btn-attach-media" title="Add photo or video clip">
               ${Icons.photo()} <span>Photo / Video</span>
-            </button>
-            <button type="button" class="composer-tool-btn secondary" id="btn-sample-image" title="Add sample photo">
-              ${Icons.streak()} <span>Sample Photo</span>
             </button>
           </div>
 
@@ -117,16 +114,16 @@ async function renderShiftLounge() {
       <!-- Modern Unified Feed Filter Bar -->
       <div class="feed-filter-bar">
         <button class="feed-filter-pill ${socialState.activeLoungeTab === 'feed' && socialState.activeCategory === 'all' ? 'active' : ''}" data-filter-type="cat" data-filter-val="all">
-          🌍 All Shifts
+          ${Icons.globe()} All Shifts
         </button>
         <button class="feed-filter-pill ${socialState.activeLoungeTab === 'feed' && socialState.activeCategory === 'milestone' ? 'active' : ''}" data-filter-type="cat" data-filter-val="milestone">
-          🏆 Shift Wins
+          ${Icons.award()} Shift Wins
         </button>
         <button class="feed-filter-pill ${socialState.activeLoungeTab === 'feed' && socialState.activeCategory === 'tip' ? 'active' : ''}" data-filter-type="cat" data-filter-val="tip">
-          💡 Shift Tips
+          ${Icons.bulb()} Shift Tips
         </button>
         <button class="feed-filter-pill ${socialState.activeLoungeTab === 'feed' && socialState.activeCategory === 'craft' ? 'active' : ''}" data-filter-type="cat" data-filter-val="craft">
-          ⚡ Craft &amp; Prep
+          ${Icons.zap()} Craft &amp; Prep
         </button>
         <button class="feed-filter-pill ${socialState.activeLoungeTab === 'saved' ? 'active' : ''}" data-filter-type="saved">
           ${Icons.save()} Saved
@@ -228,20 +225,6 @@ async function renderShiftLounge() {
     if (previewWrapper) previewWrapper.innerHTML = '';
   });
 
-  $('#btn-sample-image')?.addEventListener('click', () => {
-    const samples = [
-      'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&auto=format&fit=crop&q=80'
-    ];
-    const picked = samples[Math.floor(Math.random() * samples.length)];
-    stagedMedia = { dataUrl: null, directUrl: picked, mediaType: 'image', name: 'Sample Shift Photo' };
-    previewWrapper.innerHTML = `
-      <div class="preview-chip"><span class="preview-badge">Sample Photo</span> <strong>Sample Shift Photo</strong></div>
-      <img src="${picked}" style="max-height:160px;object-fit:cover;border-radius:6px;margin-top:8px;" />`;
-    previewBox?.classList.remove('hidden');
-  });
-
   // Post submission
   $('#btn-submit-post')?.addEventListener('click', async () => {
     const text = $('#composer-text').value.trim();
@@ -335,10 +318,10 @@ function renderPostCard(post) {
   const currentAvatarStyle = currentUser.avatar_data_url ? `background-image:url('${currentUser.avatar_data_url}');background-size:cover;background-position:center;color:transparent;` : '';
 
   const categoryMap = {
-    milestone: { label: '🏆 Shift Win', class: 'cat-milestone' },
-    tip: { label: '💡 Shift Tip', class: 'cat-tip' },
-    craft: { label: '⚡ Craft & Prep', class: 'cat-craft' },
-    daily: { label: '⭐ Daily Relay', class: 'cat-daily' },
+    milestone: { label: `${Icons.award()} <span>Shift Win</span>`, class: 'cat-milestone' },
+    tip: { label: `${Icons.bulb()} <span>Shift Tip</span>`, class: 'cat-tip' },
+    craft: { label: `${Icons.zap()} <span>Craft &amp; Prep</span>`, class: 'cat-craft' },
+    daily: { label: `${Icons.star()} <span>Daily Relay</span>`, class: 'cat-daily' },
   };
   const cat = categoryMap[post.category] || { label: escape(post.category || 'Shift'), class: 'cat-default' };
 
@@ -617,28 +600,28 @@ async function renderWorkerPassport(targetUserId) {
             </div>
             <div class="proof-badges-row">
               <div class="proof-badge-chip ${(profile.stats?.shiftsCompleted || 0) >= 50 ? 'earned' : ''}">
-                <div class="proof-badge-icon">🏆</div>
+                <div class="proof-badge-icon">${Icons.award()}</div>
                 <div>
                   <strong>Top Relayer</strong>
                   <small>${profile.stats?.shiftsCompleted || 0} Shifts Logged</small>
                 </div>
               </div>
               <div class="proof-badge-chip ${(profile.stats?.checkInStreak || 0) >= 5 ? 'earned' : ''}">
-                <div class="proof-badge-icon">⚡</div>
+                <div class="proof-badge-icon">${Icons.zap()}</div>
                 <div>
                   <strong>Iron Streak</strong>
                   <small>${profile.stats?.checkInStreak || 0}d Consecutive</small>
                 </div>
               </div>
               <div class="proof-badge-chip ${(profile.stats?.reliabilityScore || 0) >= 98 ? 'earned' : ''}">
-                <div class="proof-badge-icon">🛡️</div>
+                <div class="proof-badge-icon">${Icons.shield()}</div>
                 <div>
                   <strong>Zero-Defect Reliability</strong>
                   <small>${profile.stats?.reliabilityScore || 0}% Flawless</small>
                 </div>
               </div>
               <div class="proof-badge-chip ${(profile.stats?.endorsementsCount || 0) >= 5 ? 'earned' : ''}">
-                <div class="proof-badge-icon">🤝</div>
+                <div class="proof-badge-icon">${Icons.users()}</div>
                 <div>
                   <strong>Peer-Vouched Pro</strong>
                   <small>${profile.stats?.endorsementsCount || 0} Endorsements</small>

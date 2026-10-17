@@ -37,7 +37,6 @@
     <link rel="stylesheet" href="frontline-social.css" />
     <link rel="stylesheet" href="me-profile.css" />
     <link rel="stylesheet" href="shiftrelay-v3.css" />
-    <link rel="stylesheet" href="bento-ui.css" />
   </head>
   <body>
     <main class="login-page" id="login-view">
@@ -84,7 +83,7 @@
                   <div class="tablet-active-handover">
                     <div class="handover-title-row">
                       <strong>Day → Night Shift Handover</strong>
-                      <span class="handover-state-badge">🟡 In Progress</span>
+                      <span class="handover-state-badge"><span class="badge-dot-live" style="background:#eab308;display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;"></span>In Progress</span>
                     </div>
                     <div class="tablet-task-check-list">
                       <div class="tab-check-row done"><span class="tab-box">✓</span><span>Cold-room temperature logged (4°C)</span></div>
@@ -93,7 +92,7 @@
                     </div>
                     <div class="tablet-task-counter">
                       <span>Tasks to Relay</span>
-                      <b>2/3 Completed</b>
+                      <b>2/2 Completed</b>
                     </div>
                   </div>
                 </div>
@@ -101,7 +100,11 @@
 
               <!-- Floating Glassmorphic Telemetry Chips -->
               <div class="floating-glass-chip chip-streak">
-                <span class="chip-symbol">🔥</span>
+                <span class="chip-symbol">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+                  </svg>
+                </span>
                 <div>
                   <strong>7-Day Streak Active</strong>
                   <small>Proof-of-Work Verified</small>
@@ -109,7 +112,11 @@
               </div>
 
               <div class="floating-glass-chip chip-org">
-                <span class="chip-symbol">🛡️</span>
+                <span class="chip-symbol">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                  </svg>
+                </span>
                 <div>
                   <strong>Verified Workplace</strong>
                   <small>Zero Lost Context</small>
@@ -228,7 +235,6 @@
             <h1 id="page-title">Today</h1>
           </div>
           <div class="header-actions">
-            <span class="api-status" id="api-status">Checking…</span>
             <button class="bell notification-trigger" id="notification-button" aria-label="Open notifications">
               <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>

@@ -401,6 +401,9 @@
 }
 
 .category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 5px 12px;
   border-radius: 99px;
   border: 1px solid var(--border-subtle, #e2e8f0);
@@ -411,6 +414,12 @@
   cursor: pointer;
   transition: all 0.12s ease;
   white-space: nowrap;
+}
+
+.category-chip svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
 }
 
 .category-chip.active {
@@ -625,6 +634,9 @@
 }
 
 .post-category-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 4px 10px;
   border-radius: 99px;
   font-size: 11px;
@@ -633,6 +645,12 @@
   letter-spacing: 0.03em;
   border: 1px solid transparent;
   white-space: nowrap;
+}
+
+.post-category-tag svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
 }
 
 .post-category-tag.cat-milestone {
