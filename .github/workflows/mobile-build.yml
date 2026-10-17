@@ -25,9 +25,6 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Node Dependencies
         run: npm ci
 
@@ -45,7 +42,3 @@ jobs:
           test -f android/app/build.gradle || exit 1
           test -d android/app/src/main/assets/public || exit 1
           echo "Capacitor Android package successfully prepared and verified."
-
-      - name: Build Android Debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
