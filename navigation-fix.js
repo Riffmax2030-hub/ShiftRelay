@@ -7,6 +7,23 @@ function configureNavigation() {
   const role = state.user.role;
   const hasOrganisation = Boolean(state.user.organisation_id || state.user.organisationId);
 
+  // Dock visibility rules per role — show/hide tabs that aren't applicable
+  const dockDiscover = document.querySelector('.frontline-dock [data-go="discover"]');
+  const dockHandover = document.querySelector('.frontline-dock [data-go="handover"]');
+  const dockLounge   = document.querySelector('.frontline-dock [data-go="lounge"]');
+
+  // All roles see all 5 tabs — the dock is universal.
+  // Roles without handover access see the Relay tab lead to the lounge instead.
+  const canRelay = ['outgoing', 'incoming', 'supervisor', 'owner'].includes(role);
+  if (dockHandover && !canRelay) {
+    dockHandover.setAttribute('data-go', 'lounge');
+    dockHandover.setAttribute('aria-label', 'Shift Lounge');
+  }
+
+  // Legacy side-nav (now hidden) — guarded so no errors are thrown
+  const nav = document.querySelector('.side-nav');
+  if (!nav) return;
+
   const allowed = new Set(['dashboard', 'lounge', 'passport', 'discover', 'activity', 'notifications', 'incidents']);
   if (role === 'outgoing' || role === 'incoming' || role === 'supervisor') allowed.add('handover');
   if (hasOrganisation) {
@@ -21,36 +38,53 @@ function configureNavigation() {
     ? ['dashboard', 'lounge', 'passport', 'discover', 'people', 'workflows', 'calendar', 'community', 'analytics', 'notifications', 'incidents', 'settings']
     : ['dashboard', 'handover', 'lounge', 'passport', 'discover', 'calendar', 'community', 'activity', 'notifications', 'incidents'];
 
-  const nav = $('.side-nav');
-  if (nav) {
-    order.forEach((view) => {
-      const btn = nav.querySelector(`[data-view="${view}"]`);
-      if (btn) nav.append(btn);
-    });
-    nav.querySelectorAll('button').forEach((btn) => btn.classList.toggle('hidden', !allowed.has(btn.dataset.view)));
-  }
+  order.forEach((view) => {
+    const btn = nav.querySelector(`[data-view="${view}"]`);
+    if (btn) nav.append(btn);
+  });
+  nav.querySelectorAll('button').forEach((btn) => btn.classList.toggle('hidden', !allowed.has(btn.dataset.view)));
+}
 
-  const active = document.querySelector('.side-nav button.active');
-  if (active?.classList.contains('hidden')) {
-    document.querySelector('.side-nav button[data-view="dashboard"]')?.classList.add('active');
-  }
+/* ── ShiftRelay tab label map — title shown in the top header per route ──── */
+const TAB_LABELS = {
+  dashboard:     { title: 'Today',        kicker: 'YOUR SHIFT' },
+  lounge:        { title: 'Shift Lounge', kicker: 'FRONTLINE COMMUNITY' },
+  handover:      { title: 'New Relay',    kicker: 'SUBMIT HANDOVER BRIEF' },
+  discover:      { title: 'Discover',     kicker: 'OPEN SHIFTS & TALENT' },
+  passport:      { title: 'Passport',     kicker: 'YOUR CREDENTIALS' },
+  community:     { title: 'Channels',     kicker: 'TEAM COMMUNICATION' },
+  analytics:     { title: 'Analytics',    kicker: 'WORKFORCE INSIGHTS' },
+  calendar:      { title: 'Calendar',     kicker: 'SHIFT ROSTER' },
+  people:        { title: 'Staff',        kicker: 'TEAM MEMBERS' },
+  workflows:     { title: 'Workflows',    kicker: 'PROCESS AUTOMATION' },
+  incidents:     { title: 'Incidents',    kicker: 'SAFETY & REPORTING' },
+  notifications: { title: 'Alerts',       kicker: 'NOTIFICATIONS' },
+  activity:      { title: 'Activity',     kicker: 'RECENT ACTIONS' },
+  settings:      { title: 'Settings',     kicker: 'ACCOUNT & PREFERENCES' },
+};
+
+function updateDockHeader(view) {
+  const labels = TAB_LABELS[view] || { title: 'ShiftRelay', kicker: 'YOUR WORKSPACE' };
+  const titleEl = document.getElementById('page-title');
+  const kickerEl = document.getElementById('page-kicker');
+  if (titleEl) titleEl.textContent = labels.title;
+  if (kickerEl) kickerEl.textContent = labels.kicker;
 }
 
 go = async function(view) {
-  const buttons = document.querySelectorAll('.side-nav button');
   if (state.navigating) return;
   state.navigating = true;
 
   // Stop 30s feed refresh when leaving lounge
   window.stopFeedRefresh?.();
 
-  buttons.forEach((btn) => {
-    btn.disabled = true;
-    btn.classList.toggle('active', btn.dataset.view === view);
-  });
+  // Update dock-tab active state
   document.querySelectorAll('.frontline-dock [data-go]').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.go === view);
   });
+
+  // Update top header title
+  updateDockHeader(view);
 
   try {
     if (view === 'handover') await renderHandoverForm();
@@ -71,7 +105,6 @@ go = async function(view) {
     $('#dashboard').innerHTML = `<p class="empty">${escape(error.message || 'Unable to load this page.')}</p>`;
   } finally {
     state.navigating = false;
-    buttons.forEach((btn) => btn.disabled = false);
   }
 };
 
