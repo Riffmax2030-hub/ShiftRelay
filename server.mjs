@@ -3,7 +3,7 @@ import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:cry
 import { promisify } from 'node:util';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, normalize, resolve } from 'node:path';
 import { databaseConfigured, demoMembers, demoOrganisation, initializeDatabase, query, seedDemoOrganisation } from './database.mjs';
 
 function loadEnvironment() {
@@ -82,15 +82,59 @@ function demoTimeSummary(user, store, month) {
 }
 
 function sendJson(response, status, payload) {
-  response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+  response.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com; frame-ancestors 'none'",
+    'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+  });
   response.end(JSON.stringify(payload));
 }
 function broadcastEvent(event, payload) { const message = `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`; for (const client of eventClients) { if (payload.organisationId && client.organisationId !== payload.organisationId) continue; try { client.response.write(message); } catch { eventClients.delete(client); } } }
 
+/* ── IP Rate Limiter (sliding window, in-memory) ────────────────────────────
+   Protects all /api/ routes from brute-force and DDoS. Up to 120 requests
+   per 60 seconds per IP. Sensitive auth endpoints get a tighter 10/min cap.
+   ──────────────────────────────────────────────────────────────────────── */
+const rateLimitBuckets = new Map();
+const RATE_WINDOW_MS = 60_000;
+const RATE_LIMIT_GENERAL = 120;
+const RATE_LIMIT_AUTH = 10;
+
+function isRateLimited(ip, isAuth = false) {
+  const now = Date.now();
+  const limit = isAuth ? RATE_LIMIT_AUTH : RATE_LIMIT_GENERAL;
+  if (!rateLimitBuckets.has(ip)) rateLimitBuckets.set(ip, []);
+  const timestamps = rateLimitBuckets.get(ip).filter((t) => now - t < RATE_WINDOW_MS);
+  timestamps.push(now);
+  rateLimitBuckets.set(ip, timestamps);
+  return timestamps.length > limit;
+}
+
+// Prune rate-limit map every 5 minutes to prevent unbounded memory growth.
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, timestamps] of rateLimitBuckets) {
+    const fresh = timestamps.filter((t) => now - t < RATE_WINDOW_MS);
+    if (fresh.length === 0) rateLimitBuckets.delete(ip); else rateLimitBuckets.set(ip, fresh);
+  }
+}, 5 * 60_000);
+
 async function readJson(request) {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  const raw = Buffer.concat(chunks).toString('utf8');
+  const parsed = JSON.parse(raw);
+  // Prototype pollution guard — strip __proto__, constructor, prototype keys at top level.
+  if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    for (const key of Object.keys(parsed)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') delete parsed[key];
+    }
+  }
+  return parsed;
 }
 
 async function readBuffer(request) {
@@ -1349,11 +1393,39 @@ async function handleApi(request, response, url) {
   return sendJson(response, 404, { error: 'Not found.' });
 }
 
+
+/* Sensitive file patterns that must never be served over HTTP */
+const BLOCKED_FILE_PATTERNS = /(?:^|\/)(?:\.env|\.git|shiftrelay\.json|package-lock\.json|database\.mjs|server\.mjs|\.[a-z])/i;
+
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com; frame-ancestors 'none'",
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+};
+
 async function serveStatic(request, response, url) {
   const requestedPath = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
-  const safePath = normalize(requestedPath).replace(/^([.]{2}[\\/])+/, '');
+  const safePath = normalize(requestedPath).replace(/^([.]{2}[/\\])+/, '');
+
+  // ── Path traversal + sensitive-file guard ──────────────────────────────
+  const filePath = resolve(publicDirectory, safePath);
+  const publicDirResolved = resolve(publicDirectory);
+  const isInPublicDir = filePath.startsWith(publicDirResolved + '\\') || filePath.startsWith(publicDirResolved + '/') || filePath === publicDirResolved;
+  if (!isInPublicDir) {
+    response.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS });
+    response.end('Forbidden');
+    return;
+  }
+  if (BLOCKED_FILE_PATTERNS.test(safePath)) {
+    response.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS });
+    response.end('Forbidden');
+    return;
+  }
+
   try {
-    const filePath = join(publicDirectory, safePath);
     const content = await readFile(filePath);
     const ext = extname(filePath).toLowerCase();
     const isBinary = ['.mp4', '.webm', '.png', '.jpg', '.jpeg', '.webp'].includes(ext);
@@ -1371,7 +1443,8 @@ async function serveStatic(request, response, url) {
         'Content-Range': `bytes ${start}-${end}/${totalSize}`,
         'Accept-Ranges': 'bytes',
         'Content-Length': chunkSize,
-        'Content-Type': contentType
+        'Content-Type': contentType,
+        ...SECURITY_HEADERS,
       });
       response.end(content.subarray(start, end + 1));
       return;
@@ -1380,11 +1453,12 @@ async function serveStatic(request, response, url) {
     response.writeHead(200, {
       'Content-Type': isBinary ? contentType : `${contentType}; charset=utf-8`,
       'Accept-Ranges': 'bytes',
-      'Content-Length': totalSize
+      'Content-Length': totalSize,
+      ...SECURITY_HEADERS,
     });
     response.end(content);
   } catch {
-    response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS });
     response.end('Not found');
   }
 }
@@ -1393,7 +1467,17 @@ const server = createServer((request, response) => {
   Promise.resolve().then(async () => {
     const url = new URL(request.url, `http://${request.headers.host}`);
     if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok' });
-    if (url.pathname.startsWith('/api/')) return handleApi(request, response, url);
+
+    // ── IP Rate Limiting ─────────────────────────────────────────────────
+    if (url.pathname.startsWith('/api/')) {
+      const ip = (request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+      const isAuth = /^\/api\/auth\/|^\/api\/organisations$|^\/api\/organisation-memberships$/.test(url.pathname);
+      if (isRateLimited(ip, isAuth)) {
+        return sendJson(response, 429, { error: 'Too many requests. Please slow down and try again shortly.' });
+      }
+      return handleApi(request, response, url);
+    }
+
     return serveStatic(request, response, url);
   }).catch((error) => {
     console.error('Request failed:', error.message);

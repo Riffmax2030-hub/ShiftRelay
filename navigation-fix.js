@@ -48,7 +48,7 @@ go = async function(view) {
     btn.disabled = true;
     btn.classList.toggle('active', btn.dataset.view === view);
   });
-  document.querySelectorAll('.mobile-nav [data-go]').forEach((btn) => {
+  document.querySelectorAll('.frontline-dock [data-go]').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.go === view);
   });
 
@@ -57,7 +57,7 @@ go = async function(view) {
     else if (view === 'lounge') await renderShiftLounge();
     else if (view === 'passport') await renderWorkerPassport();
     else if (view === 'discover') await renderDiscover();
-    else if (view === 'community') await renderShiftLounge();
+    else if (view === 'community') await (typeof renderCommunity === 'function' ? renderCommunity() : renderShiftLounge());
     else if (view === 'activity') await renderSocialActivity();
     else if (view === 'notifications') await renderNotificationCentre();
     else if (view === 'calendar') await renderCalendar();
