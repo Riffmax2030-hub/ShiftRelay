@@ -51,7 +51,7 @@ const TAB_LABELS = {
   lounge:        { title: 'Shift Lounge', kicker: 'FRONTLINE COMMUNITY' },
   handover:      { title: 'New Relay',    kicker: 'SUBMIT HANDOVER BRIEF' },
   discover:      { title: 'Discover',     kicker: 'OPEN SHIFTS & TALENT' },
-  passport:      { title: 'Passport',     kicker: 'YOUR CREDENTIALS' },
+  passport:      { title: 'Me',           kicker: 'YOUR PROFILE' },
   community:     { title: 'Channels',     kicker: 'TEAM COMMUNICATION' },
   analytics:     { title: 'Analytics',    kicker: 'WORKFORCE INSIGHTS' },
   calendar:      { title: 'Calendar',     kicker: 'SHIFT ROSTER' },

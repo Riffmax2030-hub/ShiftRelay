@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="onboarding-experience.css" />
     <link rel="stylesheet" href="checklists.css" />
     <link rel="stylesheet" href="frontline-social.css" />
+    <link rel="stylesheet" href="me-profile.css" />
     <link rel="stylesheet" href="shiftrelay-v3.css" />
     <link rel="stylesheet" href="bento-ui.css" />
   </head>
@@ -304,18 +305,16 @@
             <span class="dock-label">Discover</span>
           </button>
 
-          <!-- PASSPORT — Worker Passport: professional credentials, milestones, proof-of-work certificate -->
-          <button class="dock-tab" data-go="passport" aria-label="Worker Passport — credentials and milestones">
+          <!-- ME — Personal profile: photo, bio, current position, experience, milestones -->
+          <button class="dock-tab" data-go="passport" aria-label="My profile — credentials and identity">
             <span class="dock-icon">
-              <!-- Official ID / passport icon -->
+              <!-- Person silhouette / Me icon -->
               <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="16" rx="2"/>
-                <circle cx="9" cy="10" r="2.5"/>
-                <path d="M15 8h2M15 12h2M5 16h14"/>
-                <path d="M5.5 15.5c.5-2 2-3 3.5-3s3 1 3.5 3"/>
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
               </svg>
             </span>
-            <span class="dock-label">Passport</span>
+            <span class="dock-label">Me</span>
           </button>
 
         </div>
@@ -387,6 +386,7 @@
     <script src="team-realtime.js"></script>
     <script src="onboarding-experience.js"></script>
     <script src="frontline-social.js"></script>
+    <script src="me-profile.js"></script>
     <script src="navigation-fix.js"></script>
     <script src="tour-experience.js"></script>
     <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=46',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
