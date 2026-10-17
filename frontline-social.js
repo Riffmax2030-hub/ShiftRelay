@@ -40,74 +40,97 @@ async function renderShiftLounge() {
   dashboardHeader('Shift Lounge', 'FRONTLINE CAREER NETWORK');
   stopFeedRefresh();
 
+  const user = state.user || {};
+  const userInitial = escape(user.name || 'W').slice(0, 1).toUpperCase();
+  const userAvatarStyle = user.avatar_data_url ? `background-image:url('${user.avatar_data_url}');background-size:cover;background-position:center;color:transparent;` : '';
+  const userFirstName = (user.name || 'Worker').split(' ')[0];
+  const isBannerDismissed = localStorage.getItem('sr_dismiss_confidentiality') === '1';
+
   $('#dashboard').innerHTML = `
     <section class="lounge-container">
-      <!-- Confidentiality Shield Alert Banner -->
-      <div class="confidentiality-shield-alert">
+      <!-- Confidentiality Shield Alert Banner (Compact & Dismissible) -->
+      ${!isBannerDismissed ? `
+      <div class="confidentiality-shield-alert" id="lounge-confidentiality-banner">
         <div class="shield-badge-icon">${Icons.shield()}</div>
         <div class="shield-copy">
-          <strong>Workplace Confidentiality is Mandatory:</strong>
-          <p>Never post internal patient data (HIPAA), customer records, facility security codes, or proprietary employer operations. Sharing private company data violates our Terms of Service and may result in immediate account suspension.</p>
+          <div class="shield-title-row">
+            <strong>Frontline Confidentiality Protected</strong>
+            <button class="shield-dismiss-btn" id="btn-dismiss-confidentiality" aria-label="Dismiss banner" title="Dismiss banner">✕</button>
+          </div>
+          <p>Shift updates are public. Keep posts HIPAA &amp; GDPR safe — never share internal patient data, security PINs, or proprietary operations. <a href="#" id="link-view-terms">Review Guidelines</a></p>
         </div>
       </div>
+      ` : ''}
 
-      <!-- Composer Card -->
+      <!-- Facebook / Threads-Style Composer Card -->
       <section class="lounge-composer">
-        <p class="eyebrow">SHARE WITH THE NETWORK</p>
-        <textarea id="composer-text" placeholder="Share a shift tip, safety milestone, or craft moment with frontline workers worldwide…"></textarea>
-        
-        <input type="file" id="composer-file-input" accept="image/*,video/*" class="hidden" />
-        
-        <div class="composer-media-toolbar">
-          <div class="media-btn-group">
-            <button type="button" class="composer-media-btn" id="btn-attach-media">
-              ${Icons.photo()} ${Icons.video()} <span>Add Photo / Video</span>
-            </button>
-            <button type="button" class="composer-media-btn secondary" id="btn-sample-image">
-              <span>Sample Photo</span>
-            </button>
+        <div class="composer-header-row">
+          <div class="composer-avatar" style="${userAvatarStyle}">
+            ${user.avatar_data_url ? '' : userInitial}
           </div>
-          <span class="media-specs-tag">Direct MP4 &amp; Photo Engine</span>
+          <div class="composer-input-wrap">
+            <textarea id="composer-text" placeholder="What happened on your shift today, ${escape(userFirstName)}? Share a win, tip, or safety milestone…" rows="3"></textarea>
+          </div>
         </div>
+
+        <input type="file" id="composer-file-input" accept="image/*,video/*" class="hidden" />
 
         <div id="composer-media-preview-container" class="composer-preview-box hidden">
           <div id="preview-content-wrapper" class="preview-content-wrapper"></div>
           <button type="button" class="btn-clear-media" id="btn-clear-media">✕ Remove</button>
         </div>
 
-        <label class="composer-confidentiality-confirm">
-          <input type="checkbox" id="composer-confidentiality-check" checked />
-          <span>I certify this post contains NO confidential patient, customer, or proprietary employer information.</span>
-        </label>
-
-        <div class="composer-toolbar">
+        <!-- Shift Tag Category Selector -->
+        <div class="composer-tag-row">
+          <span class="composer-tag-label">Shift Tag:</span>
           <div class="composer-categories" id="composer-category-select">
-            <button class="category-chip active" data-cat="milestone">Milestone</button>
-            <button class="category-chip" data-cat="tip">Shift Tip</button>
-            <button class="category-chip" data-cat="craft">Craft &amp; Prep</button>
-            <button class="category-chip" data-cat="daily">Daily Win</button>
+            <button class="category-chip active" data-cat="milestone">🏆 Shift Win</button>
+            <button class="category-chip" data-cat="tip">💡 Shift Tip</button>
+            <button class="category-chip" data-cat="craft">⚡ Craft &amp; Prep</button>
+            <button class="category-chip" data-cat="daily">⭐ Daily Relay</button>
           </div>
-          <button class="primary" id="btn-submit-post" style="min-height: 44px; padding: 0 20px;">
-            Post to Lounge
-          </button>
+        </div>
+
+        <!-- Composer Bottom Toolbar -->
+        <div class="composer-toolbar">
+          <div class="composer-attach-tools">
+            <button type="button" class="composer-tool-btn" id="btn-attach-media" title="Add photo or video clip">
+              ${Icons.photo()} <span>Photo / Video</span>
+            </button>
+            <button type="button" class="composer-tool-btn secondary" id="btn-sample-image" title="Add sample photo">
+              ${Icons.streak()} <span>Sample Photo</span>
+            </button>
+          </div>
+
+          <div class="composer-post-actions">
+            <label class="composer-confidentiality-inline" title="Workplace confidentiality requirement">
+              <input type="checkbox" id="composer-confidentiality-check" checked />
+              <span>HIPAA Safe</span>
+            </label>
+            <button class="primary btn-lounge-publish" id="btn-submit-post">
+              Post to Lounge
+            </button>
+          </div>
         </div>
       </section>
 
-      <!-- Lounge Tabs: Feed | Saved -->
-      <div class="lounge-tabs" style="display:flex; gap:4px; margin-bottom:16px;">
-        <button class="lounge-tab-btn ${socialState.activeLoungeTab === 'feed' ? 'active' : ''}" data-lounge-tab="feed">All Posts</button>
-        <button class="lounge-tab-btn ${socialState.activeLoungeTab === 'saved' ? 'active' : ''}" data-lounge-tab="saved">
+      <!-- Modern Unified Feed Filter Bar -->
+      <div class="feed-filter-bar">
+        <button class="feed-filter-pill ${socialState.activeLoungeTab === 'feed' && socialState.activeCategory === 'all' ? 'active' : ''}" data-filter-type="cat" data-filter-val="all">
+          🌍 All Shifts
+        </button>
+        <button class="feed-filter-pill ${socialState.activeLoungeTab === 'feed' && socialState.activeCategory === 'milestone' ? 'active' : ''}" data-filter-type="cat" data-filter-val="milestone">
+          🏆 Shift Wins
+        </button>
+        <button class="feed-filter-pill ${socialState.activeLoungeTab === 'feed' && socialState.activeCategory === 'tip' ? 'active' : ''}" data-filter-type="cat" data-filter-val="tip">
+          💡 Shift Tips
+        </button>
+        <button class="feed-filter-pill ${socialState.activeLoungeTab === 'feed' && socialState.activeCategory === 'craft' ? 'active' : ''}" data-filter-type="cat" data-filter-val="craft">
+          ⚡ Craft &amp; Prep
+        </button>
+        <button class="feed-filter-pill ${socialState.activeLoungeTab === 'saved' ? 'active' : ''}" data-filter-type="saved">
           ${Icons.save()} Saved
         </button>
-      </div>
-
-      <!-- Category Filter Tabs (only shown on feed tab) -->
-      <div class="dashboard-subnav ${socialState.activeLoungeTab === 'saved' ? 'hidden' : ''}" id="category-filter-bar" style="margin-bottom:20px;">
-        <button class="${socialState.activeCategory === 'all' ? 'active' : ''}" data-feed-cat="all">All Posts</button>
-        <button class="${socialState.activeCategory === 'milestone' ? 'active' : ''}" data-feed-cat="milestone">Milestones</button>
-        <button class="${socialState.activeCategory === 'tip' ? 'active' : ''}" data-feed-cat="tip">Shift Tips</button>
-        <button class="${socialState.activeCategory === 'craft' ? 'active' : ''}" data-feed-cat="craft">Craft &amp; Prep</button>
-        <button class="${socialState.activeCategory === 'daily' ? 'active' : ''}" data-feed-cat="daily">Daily Win</button>
       </div>
 
       <!-- Feed Stream -->
@@ -117,7 +140,22 @@ async function renderShiftLounge() {
     </section>
   `;
 
-  // Category chip clicks
+  // Banner dismiss and rules link
+  $('#btn-dismiss-confidentiality')?.addEventListener('click', () => {
+    localStorage.setItem('sr_dismiss_confidentiality', '1');
+    const banner = document.getElementById('lounge-confidentiality-banner');
+    if (banner) {
+      banner.style.opacity = '0';
+      banner.style.transform = 'translateY(-8px)';
+      setTimeout(() => banner.remove(), 200);
+    }
+  });
+  $('#link-view-terms')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('terms-modal')?.classList.remove('hidden');
+  });
+
+  // Category chip clicks in composer
   document.querySelectorAll('#composer-category-select .category-chip').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#composer-category-select .category-chip').forEach(b => b.classList.remove('active'));
@@ -125,14 +163,18 @@ async function renderShiftLounge() {
     });
   });
 
-  // Lounge tab switching
-  document.querySelectorAll('.lounge-tab-btn').forEach((btn) => {
+  // Unified feed filter pill clicks
+  document.querySelectorAll('.feed-filter-pill').forEach((btn) => {
     btn.addEventListener('click', () => {
-      socialState.activeLoungeTab = btn.dataset.loungeTab;
-      document.querySelectorAll('.lounge-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.feed-filter-pill').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const catBar = document.getElementById('category-filter-bar');
-      if (catBar) catBar.classList.toggle('hidden', socialState.activeLoungeTab === 'saved');
+      const filterType = btn.dataset.filterType;
+      if (filterType === 'saved') {
+        socialState.activeLoungeTab = 'saved';
+      } else {
+        socialState.activeLoungeTab = 'feed';
+        socialState.activeCategory = btn.dataset.filterVal || 'all';
+      }
       loadFeedPosts();
     });
   });
@@ -285,68 +327,88 @@ function renderPostCard(post) {
   const timeAgo = formatTimeAgo(post.created_at);
   const verifiedBadge = post.author_verified ? Icons.verified() : '';
   const isVideo = post.media_type === 'video' || (post.image_url && (post.image_url.endsWith('.mp4') || post.image_url.endsWith('.webm')));
-  const avatarStyle = post.author_avatar ? `background-image:url('${post.author_avatar}');background-size:cover;color:transparent;` : '';
+  const avatarStyle = post.author_avatar ? `background-image:url('${post.author_avatar}');background-size:cover;background-position:center;color:transparent;` : '';
   const canDelete = post.author_id === state.user?.id || ['owner', 'supervisor'].includes(state.user?.role);
+
+  const currentUser = state.user || {};
+  const currentInitial = escape(currentUser.name || 'W').slice(0, 1).toUpperCase();
+  const currentAvatarStyle = currentUser.avatar_data_url ? `background-image:url('${currentUser.avatar_data_url}');background-size:cover;background-position:center;color:transparent;` : '';
+
+  const categoryMap = {
+    milestone: { label: '🏆 Shift Win', class: 'cat-milestone' },
+    tip: { label: '💡 Shift Tip', class: 'cat-tip' },
+    craft: { label: '⚡ Craft & Prep', class: 'cat-craft' },
+    daily: { label: '⭐ Daily Relay', class: 'cat-daily' },
+  };
+  const cat = categoryMap[post.category] || { label: escape(post.category || 'Shift'), class: 'cat-default' };
 
   return `
     <article class="lounge-post-card" id="post-${post.id}">
+      <!-- Author Header -->
       <div class="post-author-row">
         <span class="post-avatar" style="${avatarStyle}">${post.author_avatar ? '' : initial}</span>
         <div class="post-meta">
           <h4>${escape(post.author_name)} ${verifiedBadge}</h4>
-          <p>${escape(post.author_role || 'Frontline Specialist')} · ${escape(post.organisation_name || 'ShiftRelay Network')} · ${timeAgo}</p>
+          <p>${escape(post.author_role || 'Frontline Specialist')} · ${escape(post.organisation_name || 'ShiftRelay Network')} · <time>${timeAgo}</time></p>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
-          <span class="post-category-tag">${escape(post.category || 'Shift')}</span>
+        <div class="post-top-right">
+          <span class="post-category-tag ${cat.class}">${cat.label}</span>
           ${canDelete ? `<button class="btn-delete-post" data-delete-post="${post.id}" title="Delete post" aria-label="Delete post">✕</button>` : ''}
         </div>
       </div>
 
+      <!-- Post Body -->
       <div class="post-body">${escape(post.content)}</div>
 
+      <!-- Media Attachment -->
       ${isVideo ? `
         <div class="post-video-container">
           <video src="${escape(post.image_url)}" controls playsinline preload="metadata" class="feed-video-player"></video>
         </div>
       ` : post.image_url ? `
         <div class="post-image-container">
-          <img src="${escape(post.image_url)}" alt="Post moment" loading="lazy" />
+          <img src="${escape(post.image_url)}" alt="Shift photo" loading="lazy" />
         </div>
       ` : ''}
 
-      <!-- Social Actions Bar — ZERO EMOJIS, 100% SVG -->
+      <!-- Engagement Action Bar (Facebook / Threads Style) -->
       <div class="post-actions-bar">
-        <button class="post-action-btn ${post.userLiked ? 'active-like' : ''}" data-post-action="like" data-post-id="${post.id}">
+        <button class="post-action-btn ${post.userLiked ? 'active-like' : ''}" data-post-action="like" data-post-id="${post.id}" title="High-five / Like">
           ${Icons.like(post.userLiked)}
           <span class="count">${post.likes_count || 0}</span>
         </button>
-        <button class="post-action-btn" data-post-action="comment" data-post-id="${post.id}">
+        <button class="post-action-btn" data-post-action="comment" data-post-id="${post.id}" title="Comment">
           ${Icons.comment()}
-          <span class="count">${post.comments_count || 0}</span>
+          <span class="count">${post.comments_count || (post.comments ? post.comments.length : 0)}</span>
         </button>
-        <button class="post-action-btn" data-post-action="repost" data-post-id="${post.id}">
+        <button class="post-action-btn" data-post-action="repost" data-post-id="${post.id}" title="Relay to network">
           ${Icons.repost()}
           <span class="count">${post.reposts_count || 0}</span>
         </button>
-        <button class="post-action-btn ${post.userSaved ? 'active-save' : ''}" data-post-action="save" data-post-id="${post.id}">
+        <button class="post-action-btn ${post.userSaved ? 'active-save' : ''}" data-post-action="save" data-post-id="${post.id}" title="Save post">
           ${Icons.save(post.userSaved)}
           <span class="count">${post.saves_count || 0}</span>
         </button>
-        <button class="post-action-btn" data-post-action="share" data-post-id="${post.id}">
+        <button class="post-action-btn" data-post-action="share" data-post-id="${post.id}" title="Share post link">
           ${Icons.share()}
         </button>
       </div>
 
       <!-- Inline Comment Drawer -->
-      <div class="post-comment-drawer hidden" id="drawer-${post.id}" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-subtle);">
-        <div class="comment-input-row" style="display:flex;gap:8px;">
-          <input type="text" id="comment-text-${post.id}" placeholder="Write a supportive comment…" style="flex:1;padding:8px 12px;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);font-size:13px;" />
-          <button class="secondary" data-submit-comment="${post.id}" style="min-height:38px;">Reply</button>
+      <div class="post-comment-drawer hidden" id="drawer-${post.id}">
+        <div class="comment-input-row">
+          <div class="comment-user-avatar" style="${currentAvatarStyle}">${currentUser.avatar_data_url ? '' : currentInitial}</div>
+          <input type="text" id="comment-text-${post.id}" data-comment-input="${post.id}" placeholder="Write a supportive reply or shift tip…" />
+          <button class="primary btn-send-comment" data-submit-comment="${post.id}">Reply</button>
         </div>
-        <div class="comment-list" id="comment-list-${post.id}" style="margin-top:10px;">
+        <div class="comment-list" id="comment-list-${post.id}">
           ${(post.comments || []).map(c => `
-            <div style="font-size:13px;padding:6px 0;border-bottom:1px solid #f1f5f9;">
-              <strong>${escape(c.author_name)}:</strong> ${escape(c.content)}
+            <div class="comment-bubble-item">
+              <div class="comment-author-avatar">${escape(c.author_name || 'W').slice(0, 1).toUpperCase()}</div>
+              <div class="comment-bubble">
+                <div class="comment-author-name">${escape(c.author_name)}</div>
+                <div class="comment-text">${escape(c.content)}</div>
+              </div>
             </div>
           `).join('')}
         </div>
@@ -376,7 +438,7 @@ function bindSocialInteractions() {
       const countSpan = btn.querySelector('.count');
       const current = parseInt(countSpan.textContent, 10) || 0;
       countSpan.textContent = current + 1;
-      toast('Reposted to your frontline network!');
+      toast('Relayed post to your frontline network!');
       await api(`/api/feed/posts/${btn.dataset.postId}/repost`, { method: 'POST' }).catch(() => {});
     });
   });
@@ -398,7 +460,10 @@ function bindSocialInteractions() {
   // Share
   document.querySelectorAll('[data-post-action="share"]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      navigator.clipboard?.writeText?.(window.location.href);
+      const shareUrl = `${window.location.origin}/#post-${btn.dataset.postId}`;
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(shareUrl);
+      }
       toast('Post link copied to clipboard!');
     });
   });
@@ -407,32 +472,60 @@ function bindSocialInteractions() {
   document.querySelectorAll('[data-post-action="comment"]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const drawer = document.getElementById(`drawer-${btn.dataset.postId}`);
-      if (drawer) drawer.classList.toggle('hidden');
+      if (drawer) {
+        drawer.classList.toggle('hidden');
+        if (!drawer.classList.contains('hidden')) {
+          document.getElementById(`comment-text-${btn.dataset.postId}`)?.focus();
+        }
+      }
     });
   });
 
-  // Submit comment
-  document.querySelectorAll('[data-submit-comment]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const postId = btn.dataset.submitComment;
-      const input = document.getElementById(`comment-text-${postId}`);
-      const text = input ? input.value.trim() : '';
-      if (!text) return;
-      try {
-        const res = await api(`/api/feed/posts/${postId}/comment`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: text }) });
-        input.value = '';
-        const list = document.getElementById(`comment-list-${postId}`);
-        if (list) {
-          list.insertAdjacentHTML('beforeend', `
-            <div style="font-size:13px;padding:6px 0;border-bottom:1px solid #f1f5f9;">
-              <strong>${escape(res.comment.author_name)}:</strong> ${escape(res.comment.content)}
+  // Submit comment handler function
+  const handleCommentSubmit = async (postId) => {
+    const input = document.getElementById(`comment-text-${postId}`);
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+    try {
+      const res = await api(`/api/feed/posts/${postId}/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: text })
+      });
+      input.value = '';
+      const list = document.getElementById(`comment-list-${postId}`);
+      if (list) {
+        const cName = escape(res.comment?.author_name || state.user?.name || 'Worker');
+        const cInitial = cName.slice(0, 1).toUpperCase();
+        list.insertAdjacentHTML('beforeend', `
+          <div class="comment-bubble-item">
+            <div class="comment-author-avatar">${cInitial}</div>
+            <div class="comment-bubble">
+              <div class="comment-author-name">${cName}</div>
+              <div class="comment-text">${escape(res.comment?.content || text)}</div>
             </div>
-          `);
-        }
-        const commentCount = document.querySelector(`[data-post-action="comment"][data-post-id="${postId}"] .count`);
-        if (commentCount) commentCount.textContent = res.comments_count;
-        toast('Comment posted!');
-      } catch (err) { toast(err.message); }
+          </div>
+        `);
+      }
+      const commentCount = document.querySelector(`[data-post-action="comment"][data-post-id="${postId}"] .count`);
+      if (commentCount) commentCount.textContent = res.comments_count || (parseInt(commentCount.textContent, 10) + 1);
+      toast('Comment posted!');
+    } catch (err) { toast(err.message); }
+  };
+
+  // Submit comment button click
+  document.querySelectorAll('[data-submit-comment]').forEach((btn) => {
+    btn.addEventListener('click', () => handleCommentSubmit(btn.dataset.submitComment));
+  });
+
+  // Submit comment on Enter key
+  document.querySelectorAll('[data-comment-input]').forEach((input) => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleCommentSubmit(input.dataset.commentInput);
+      }
     });
   });
 

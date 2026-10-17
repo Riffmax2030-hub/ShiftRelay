@@ -289,7 +289,7 @@ renderDashboard = async function() {
             </div>
             <div class="user-hero-info">
               <h2>${greeting}, ${firstName} ${Icons.verified()}</h2>
-              <p>${escape(state.user.title || 'Frontline Specialist')} · ${isClockedIn ? '🟢 Active on Shift' : 'Off Duty'}</p>
+              <p>${escape(state.user.title || 'Frontline Specialist')} · ${isClockedIn ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:4px;"></span>Active on Shift' : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#94a3b8;margin-right:4px;"></span>Off Duty'}</p>
             </div>
           </div>
 
@@ -307,13 +307,6 @@ renderDashboard = async function() {
               </button>
             </div>
           </div>
-        </div>
-
-        <!-- Dashboard Sub-Tabs -->
-        <div class="dashboard-subnav">
-          <button class="active" data-dash-sub="workspace">Shift Workspace</button>
-          <button data-dash-sub="lounge">Shift Lounge Feed</button>
-          <button data-dash-sub="passport">My Worker Passport</button>
         </div>
 
         <!-- Pinned Handover Feed (With 2/2 Tasks Counter) -->

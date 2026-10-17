@@ -522,8 +522,8 @@ label.checkbox input {
 
 .main-content {
   flex: 1;
-  padding: 24px 20px 96px;
-  max-width: 960px;
+  padding: 16px 18px calc(104px + env(safe-area-inset-bottom, 0px));
+  max-width: 780px;
   width: 100%;
   margin: 0 auto;
 }
@@ -533,9 +533,15 @@ label.checkbox input {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 24px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 20px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .brand-mark {
@@ -915,11 +921,12 @@ label.checkbox input {
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(226, 232, 240, 0.9);
   box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .dock-container {
@@ -928,7 +935,7 @@ label.checkbox input {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   align-items: center;
-  height: 68px;
+  height: 64px;
   padding: 0 8px;
   position: relative;
 }
@@ -1047,7 +1054,7 @@ label.checkbox input {
   }
 
   .main-content {
-    padding: 16px 14px 88px;
+    padding: 12px 14px calc(108px + env(safe-area-inset-bottom, 0px));
   }
 
   .app-header h1 {
