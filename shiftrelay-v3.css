@@ -259,6 +259,123 @@
   font-weight: 600;
 }
 
+/* ── Discover Sub-tabs & Open Shifts Marketplace ────────────────────────── */
+.discover-tab-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.discover-sub-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--radius-full, 99px);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  background: var(--bg-surface, #fff);
+  color: var(--text-secondary, #64748b);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.discover-sub-tab.active {
+  background: #0d524d;
+  color: #fff;
+  border-color: #0d524d;
+}
+
+.discover-sub-tab svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+.open-shift-card {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 14px;
+  padding: 20px;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.open-shift-card:hover {
+  border-color: #0d524d;
+  box-shadow: 0 6px 20px rgba(13, 82, 77, 0.08);
+  transform: translateY(-2px);
+}
+
+.open-shift-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.open-shift-rate-badge {
+  background: #ecfdf5;
+  color: #065f46;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #a7f3d0;
+}
+
+.open-shift-slots-badge {
+  font-size: 11px;
+  color: #b45309;
+  background: #fef3c7;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.open-shift-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main, #0f172a);
+  margin: 0 0 4px;
+}
+
+.open-shift-facility {
+  font-size: 13px;
+  color: var(--text-secondary, #64748b);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.open-shift-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 16px;
+  background: var(--bg-surface-subtle, #f8fafc);
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.open-shift-details div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.open-shift-details svg {
+  width: 14px;
+  height: 14px;
+  stroke: #0d524d;
+}
+
 /* ── Activity POW Hero ───────────────────────────────────────────────────── */
 .activity-pow-hero {
   display: grid;

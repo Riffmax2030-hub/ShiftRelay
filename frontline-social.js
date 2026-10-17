@@ -144,21 +144,36 @@ async function renderShiftLounge() {
 
   $('#btn-attach-media')?.addEventListener('click', () => fileInput?.click());
 
-  fileInput?.addEventListener('change', () => {
+  fileInput?.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
     if (!file) return;
     const isVideo = file.type.startsWith('video/');
     const isImage = file.type.startsWith('image/');
     if (!isVideo && !isImage) return toast('Please select an image or video file.');
 
+    if (isImage) {
+      toast('Processing photo…');
+      try {
+        const compressedDataUrl = (typeof window.compressImageFile === 'function')
+          ? await window.compressImageFile(file, 1400, 1400, 0.85)
+          : await new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsDataURL(file); });
+        stagedMedia = { dataUrl: compressedDataUrl, mediaType: 'image', name: file.name };
+        previewWrapper.innerHTML = `
+          <div class="preview-chip"><span class="preview-badge">Photo</span> <strong>${escape(file.name)}</strong> (Optimized)</div>
+          <img src="${compressedDataUrl}" style="max-height:160px;object-fit:cover;border-radius:6px;margin-top:8px;" />`;
+        previewBox?.classList.remove('hidden');
+      } catch (err) {
+        toast('Image processing failed: ' + err.message);
+      }
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
-      stagedMedia = { dataUrl: e.target.result, mediaType: isVideo ? 'video' : 'image', name: file.name };
-      previewWrapper.innerHTML = isVideo
-        ? `<div class="preview-chip"><span class="preview-badge">Video Clip</span> <strong>${escape(file.name)}</strong> (${(file.size/(1024*1024)).toFixed(1)} MB)</div>
-           <video src="${e.target.result}" controls style="max-height:160px;border-radius:6px;margin-top:8px;width:100%;"></video>`
-        : `<div class="preview-chip"><span class="preview-badge">Photo</span> <strong>${escape(file.name)}</strong> (${(file.size/1024).toFixed(0)} KB)</div>
-           <img src="${e.target.result}" style="max-height:160px;object-fit:cover;border-radius:6px;margin-top:8px;" />`;
+      stagedMedia = { dataUrl: e.target.result, mediaType: 'video', name: file.name };
+      previewWrapper.innerHTML = `
+        <div class="preview-chip"><span class="preview-badge">Video Clip</span> <strong>${escape(file.name)}</strong> (${(file.size/(1024*1024)).toFixed(1)} MB)</div>
+        <video src="${e.target.result}" controls style="max-height:160px;border-radius:6px;margin-top:8px;width:100%;"></video>`;
       previewBox?.classList.remove('hidden');
     };
     reader.readAsDataURL(file);
@@ -912,43 +927,162 @@ function openShiftOfferDialog(workerId, workerName) {
 
 // ─── Discover / Worker Directory ─────────────────────────────────────────────
 
-async function renderDiscover() {
-  dashboardHeader('Discover Workers', 'GLOBAL FRONTLINE DIRECTORY');
+async function renderDiscover(defaultTab = 'workers') {
+  dashboardHeader('Discover Opportunities', 'FRONTLINE NETWORK & SHIFTS');
   $('#dashboard').innerHTML = `
     <section class="discover-container">
+      <div class="discover-tab-row">
+        <button class="discover-sub-tab ${defaultTab === 'workers' ? 'active' : ''}" id="discover-tab-workers">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Frontline Professionals
+        </button>
+        <button class="discover-sub-tab ${defaultTab === 'shifts' ? 'active' : ''}" id="discover-tab-shifts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Open Shifts &amp; Overtime
+        </button>
+      </div>
+
       <div class="discover-search-row">
         <div class="discover-search-wrap">
           <svg class="discover-search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
-          <input type="text" id="discover-search-input" placeholder="Search by name, role, or industry…" class="discover-search-input" />
+          <input type="text" id="discover-search-input" placeholder="Search by name, role, facility, or skill…" class="discover-search-input" />
         </div>
       </div>
-      <div id="discover-worker-grid">
-        <p class="muted" style="text-align:center;padding:32px;">Loading frontline professionals…</p>
+      <div id="discover-content-grid">
+        <p class="muted" style="text-align:center;padding:32px;">Loading…</p>
       </div>
     </section>
   `;
 
-  $('#discover-search-input')?.addEventListener('input', (e) => {
-    socialState.discoverSearchQuery = e.target.value.toLowerCase();
-    renderDiscoverGrid(socialState.lastDiscoverWorkers || []);
+  let currentTab = defaultTab;
+
+  const loadWorkers = async () => {
+    const grid = document.getElementById('discover-content-grid');
+    if (!grid) return;
+    grid.innerHTML = `<p class="muted" style="text-align:center;padding:32px;">Loading frontline specialists…</p>`;
+    try {
+      const { workers } = await api('/api/discover/workers');
+      socialState.lastDiscoverWorkers = workers;
+      renderDiscoverGrid(workers);
+    } catch (err) {
+      grid.innerHTML = `<p class="muted">${escape(err.message)}</p>`;
+    }
+  };
+
+  const loadShifts = async () => {
+    const grid = document.getElementById('discover-content-grid');
+    if (!grid) return;
+    grid.innerHTML = `<p class="muted" style="text-align:center;padding:32px;">Loading open shifts…</p>`;
+    try {
+      const { shifts } = await api('/api/open-shifts');
+      renderOpenShiftsGrid(shifts || []);
+    } catch (err) {
+      grid.innerHTML = `<p class="muted">${escape(err.message)}</p>`;
+    }
+  };
+
+  $('#discover-tab-workers')?.addEventListener('click', (e) => {
+    currentTab = 'workers';
+    document.querySelectorAll('.discover-sub-tab').forEach(b => b.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+    loadWorkers();
   });
 
-  try {
-    const { workers } = await api('/api/discover/workers');
-    socialState.lastDiscoverWorkers = workers;
-    renderDiscoverGrid(workers);
-  } catch (err) {
-    const grid = document.getElementById('discover-worker-grid');
-    if (grid) grid.innerHTML = `<p class="muted">${escape(err.message)}</p>`;
+  $('#discover-tab-shifts')?.addEventListener('click', (e) => {
+    currentTab = 'shifts';
+    document.querySelectorAll('.discover-sub-tab').forEach(b => b.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+    loadShifts();
+  });
+
+  $('#discover-search-input')?.addEventListener('input', (e) => {
+    socialState.discoverSearchQuery = e.target.value.toLowerCase();
+    if (currentTab === 'workers') {
+      renderDiscoverGrid(socialState.lastDiscoverWorkers || []);
+    }
+  });
+
+  if (defaultTab === 'shifts') {
+    loadShifts();
+  } else {
+    loadWorkers();
   }
 
   bindNavigation();
 }
 
+function renderOpenShiftsGrid(shifts) {
+  const grid = document.getElementById('discover-content-grid');
+  if (!grid) return;
+
+  if (!shifts.length) {
+    grid.innerHTML = `<p class="muted" style="text-align:center;padding:32px;">No open shifts available right now. Check back soon!</p>`;
+    return;
+  }
+
+  grid.innerHTML = `<div class="discover-grid">${shifts.map(s => {
+    const starts = new Date(s.starts_at);
+    const ends = new Date(s.ends_at);
+    const dateStr = starts.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeStr = `${starts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} – ${ends.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+    const rate = s.hourly_rate || '$42/hr';
+    const facility = s.facility || 'ShiftRelay Healthcare Facility';
+    const slots = s.slots ?? 1;
+
+    return `
+      <article class="open-shift-card">
+        <div>
+          <div class="open-shift-badge-row">
+            <span class="open-shift-rate-badge">${escape(rate)}</span>
+            <span class="open-shift-slots-badge">${slots} slot${slots > 1 ? 's' : ''} open</span>
+          </div>
+          <h3 class="open-shift-title">${escape(s.title)}</h3>
+          <p class="open-shift-facility">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 21V10M16 21V10M2 10h20"/></svg>
+            ${escape(facility)}
+          </p>
+          <div class="open-shift-details">
+            <div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span><strong>${escape(dateStr)}</strong></span>
+            </div>
+            <div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>${escape(timeStr)}</span>
+            </div>
+            ${s.notes ? `<div style="margin-top:4px;color:#64748b;">${escape(s.notes)}</div>` : ''}
+          </div>
+        </div>
+        <button class="primary" data-claim-shift="${s.id}" style="width:100%;min-height:42px;font-weight:700;">
+          Claim Shift
+        </button>
+      </article>
+    `;
+  }).join('')}</div>`;
+
+  grid.querySelectorAll('[data-claim-shift]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const shiftId = btn.dataset.claimShift;
+      btn.disabled = true;
+      btn.textContent = 'Claiming…';
+      try {
+        await api(`/api/open-shifts/${shiftId}/claim`, { method: 'POST' });
+        btn.textContent = 'Claimed ✓';
+        btn.style.background = '#059669';
+        toast('Shift claimed! Added to your schedule.');
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Claim Shift';
+        toast('Could not claim shift: ' + err.message);
+      }
+    });
+  });
+}
+
 function renderDiscoverGrid(workers) {
-  const grid = document.getElementById('discover-worker-grid');
+  const grid = document.getElementById('discover-content-grid');
   if (!grid) return;
   const q = socialState.discoverSearchQuery;
   const filtered = q

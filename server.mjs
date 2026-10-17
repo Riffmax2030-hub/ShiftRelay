@@ -599,33 +599,34 @@ async function handleApi(request, response, url) {
     await audit(user.organisation_id, user.id, 'schedule_imported', 'scheduled_shift', null, `${imported} shifts imported.`); return sendJson(response, 201, { imported, skipped });
   }
   if (url.pathname === '/api/open-shifts' && request.method === 'GET') {
-    if (!user.organisation_id) return sendJson(response, 400, { error: 'Open shifts require an organisation account.' });
+    const orgId = user.organisation_id || demoOrganisation.id;
     if (!databaseReady) {
       const store = await getStore();
       if (!Array.isArray(store.openShifts)) {
         store.openShifts = [
-          { id: 'open-shift-1', title: 'Weekend Night Coverage', starts_at: new Date(Date.now() + 86400000).toISOString(), ends_at: new Date(Date.now() + 86400000 + 8 * 3600000).toISOString(), slots: 2, applicants: 0, status: 'open', notes: 'Need 1-2 workers to cover weekend shift.' },
-          { id: 'open-shift-2', title: 'Morning Dispatch Assistant', starts_at: new Date(Date.now() + 2 * 86400000).toISOString(), ends_at: new Date(Date.now() + 2 * 86400000 + 6 * 3600000).toISOString(), slots: 1, applicants: 1, status: 'open', notes: 'Support morning peak hours.' }
+          { id: 'open-shift-1', title: 'Weekend ICU Night Coverage', facility: 'St. Jude General Hospital', starts_at: new Date(Date.now() + 86400000).toISOString(), ends_at: new Date(Date.now() + 86400000 + 8 * 3600000).toISOString(), slots: 2, hourly_rate: '$48/hr', status: 'open', notes: 'Urgent night coverage needed for telemetry floor.' },
+          { id: 'open-shift-2', title: 'Morning Dispatch & Relay Lead', facility: 'DHL Logistics Hub', starts_at: new Date(Date.now() + 2 * 86400000).toISOString(), ends_at: new Date(Date.now() + 2 * 86400000 + 8 * 3600000).toISOString(), slots: 1, hourly_rate: '$36/hr', status: 'open', notes: 'Lead morning inbound sorting and shift brief.' },
+          { id: 'open-shift-3', title: 'Emergency Evening Cover', facility: 'Royal Free Healthcare', starts_at: new Date(Date.now() + 3 * 86400000).toISOString(), ends_at: new Date(Date.now() + 3 * 86400000 + 6 * 3600000).toISOString(), slots: 3, hourly_rate: '$44/hr', status: 'open', notes: 'Acute triage support and digital handover brief.' }
         ];
         await saveStore(store);
       }
       return sendJson(response, 200, { shifts: store.openShifts.filter(s => s.status === 'open') });
     }
-    const shifts = await query(`select o.*, creator.full_name as created_by_name, count(a.id)::int as applicants from open_shifts o join memberships cm on cm.id = o.created_by_membership_id join portal_users creator on creator.id = cm.user_id left join open_shift_applications a on a.open_shift_id = o.id and a.status = 'pending' where o.organisation_id = $1 and o.status = 'open' group by o.id, creator.full_name order by o.starts_at`, [user.organisation_id]);
+    const shifts = await query(`select o.*, creator.full_name as created_by_name, count(a.id)::int as applicants from open_shifts o join memberships cm on cm.id = o.created_by_membership_id join portal_users creator on creator.id = cm.user_id left join open_shift_applications a on a.open_shift_id = o.id and a.status = 'pending' where o.organisation_id = $1 and o.status = 'open' group by o.id, creator.full_name order by o.starts_at`, [orgId]);
     return sendJson(response, 200, { shifts: shifts.rows });
   }
 
   const claimOpenShiftMatch = url.pathname.match(/^\/api\/open-shifts\/([^/]+)\/claim$/);
   if (claimOpenShiftMatch && request.method === 'POST') {
     const shiftId = claimOpenShiftMatch[1];
-    if (!user.organisation_id) return sendJson(response, 400, { error: 'Requires an organisation account.' });
+    const orgId = user.organisation_id || demoOrganisation.id;
     if (databaseReady) {
-      const shift = (await query('select id, title, starts_at, ends_at, slots from open_shifts where id = $1 and organisation_id = $2 and status = $3', [shiftId, user.organisation_id, 'open'])).rows[0];
+      const shift = (await query('select id, title, starts_at, ends_at, slots from open_shifts where id = $1 and organisation_id = $2 and status = $3', [shiftId, orgId, 'open'])).rows[0];
       if (!shift) return sendJson(response, 404, { error: 'This shift is no longer open.' });
-      await query('insert into scheduled_shifts (id, organisation_id, membership_id, starts_at, ends_at, status) values ($1,$2,$3,$4,$5,$6)', [crypto.randomUUID(), user.organisation_id, user.id, shift.starts_at, shift.ends_at, 'claimed']);
+      await query('insert into scheduled_shifts (id, organisation_id, membership_id, starts_at, ends_at, status) values ($1,$2,$3,$4,$5,$6)', [crypto.randomUUID(), orgId, user.id, shift.starts_at, shift.ends_at, 'claimed']);
       await query('update open_shifts set slots = greatest(0, slots - 1), status = case when slots <= 1 then \'claimed\' else \'open\' end where id = $1', [shiftId]);
-      await notifyOrganisationOwners(user.organisation_id, `${user.name} claimed open shift: ${shift.title}.`);
-      broadcastEvent('schedule-updated', { organisationId: user.organisation_id });
+      await notifyOrganisationOwners(orgId, `${user.name} claimed open shift: ${shift.title}.`);
+      broadcastEvent('schedule-updated', { organisationId: orgId });
       return sendJson(response, 200, { ok: true, message: 'Shift claimed successfully!' });
     }
     const store = await getStore();

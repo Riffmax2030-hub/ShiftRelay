@@ -40,6 +40,7 @@ async function compressImageFile(file, maxWidth = 1200, maxHeight = 1200, qualit
     reader.readAsDataURL(file);
   });
 }
+window.compressImageFile = compressImageFile;
 
 /* ─── Local storage helpers ───────────────────────────────────────────────── */
 function meProfileKey(type, userId) {
