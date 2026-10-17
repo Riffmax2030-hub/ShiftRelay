@@ -1190,6 +1190,36 @@ async function handleApi(request, response, url) {
     });
   }
 
+  const shiftInviteMatch = url.pathname.match(/^\/api\/worker-profile\/([^/]+)\/shift-invite$/);
+  if (shiftInviteMatch && request.method === 'POST') {
+    const targetUserId = shiftInviteMatch[1];
+    const body = await readJson(request);
+    const store = await getStore();
+    const inviteMessage = `Shift Offer from ${user.name}: "${body.shiftTitle || 'Frontline Shift'}" on ${body.shiftDate || 'Upcoming Shift'} at ${body.location || 'Facility'} (${body.rate || 'Competitive Rate'}). Note: ${body.note || 'We would love to have you cover this shift!'}`;
+    if (!store.directMessages) store.directMessages = [];
+    const dm = {
+      id: `dm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      sender_id: user.id,
+      sender_name: user.name,
+      sender_role: user.title || user.role,
+      recipient_id: targetUserId,
+      body: inviteMessage,
+      created_at: new Date().toISOString()
+    };
+    store.directMessages.push(dm);
+    if (!store.notifications) store.notifications = [];
+    store.notifications.unshift({
+      id: `notif-${Date.now()}`,
+      user_id: targetUserId,
+      message: `New Shift Offer: ${user.name} invited you to cover a shift (${body.shiftTitle || 'Frontline Shift'}).`,
+      read: false,
+      created_at: new Date().toISOString()
+    });
+    await saveStore(store);
+    broadcastEvent('notification-added', { user_id: targetUserId });
+    return sendJson(response, 201, { ok: true, message: 'Shift offer and invite sent successfully to worker!' });
+  }
+
   if (url.pathname === '/api/attendance/check-in' && request.method === 'POST') {
     const store = await getStore();
     if (!store.workerProfiles) store.workerProfiles = {};

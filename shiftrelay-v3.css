@@ -621,3 +621,88 @@
   background: #126e68;
 }
 
+/* ── Tablet & Industrial Slate Responsiveness (768px - 1024px) ────────────── */
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+  .hero-panel {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 24px;
+  }
+  
+  .hero-card {
+    padding: 28px 24px;
+  }
+
+  .video-showcase-container {
+    max-width: 100%;
+    border-radius: 14px;
+  }
+
+  .video-showcase-player {
+    aspect-ratio: 16 / 9;
+    max-height: 380px;
+  }
+
+  /* Tablet Dual-Pane Bento Grid */
+  .bento-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px;
+  }
+
+  .bento-grid > .bento-span-2 {
+    grid-column: span 2;
+  }
+
+  /* Lounge & Feed Tablet Ergonomics */
+  .social-container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  .feed-post-card {
+    padding: 20px;
+  }
+
+  .social-action-btn {
+    min-height: 44px;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .passport-header-content {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .proof-of-work-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  /* Dialogs on Tablet */
+  .profile-dialog > div,
+  .tour-modal-content {
+    max-width: 700px;
+    width: 90%;
+  }
+
+  /* Industrial Touch Targets */
+  button, input, select, textarea {
+    touch-action: manipulation;
+  }
+}
+
+/* ── Landscape Tablets (1024px - 1280px) ─────────────────────────────────── */
+@media screen and (min-width: 1025px) and (max-width: 1280px) {
+  .hero-panel {
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 24px;
+  }
+
+  .proof-of-work-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+

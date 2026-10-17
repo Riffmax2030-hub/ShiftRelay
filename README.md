@@ -1,111 +1,146 @@
 # ShiftRelay
 
-ShiftRelay prevents critical context from being lost at shift change. An outgoing worker adds rushed voice-transcript or text updates; the system turns them into a concise, accountable handover with risks, owners, deadlines, and missing context.
+> **The Frontline Productivity Engine & Global Professional Network for 2.7 Billion Shift Workers**  
+> *"LinkedIn + Facebook for Frontline Teams"* — built for the OpenAI Build Week Challenge.
 
-## Hackathon category
+---
 
-**Work & Productivity** — built for the OpenAI Build Week Challenge.
+## 🚀 Hackathon Category
+**Work & Productivity** — Transforming shift handovers, team coordination, worker proof-of-work, and coverage marketplace across healthcare, manufacturing, logistics, hospitality, and energy.
 
-## Product workflow
+---
 
-1. An outgoing worker submits a written or recorded shift update.
-2. GPT-5.6 Sol identifies urgent risks, open actions, ownership, timing, and missing operational context.
-3. The outgoing worker saves the generated handover to the supervisor’s review queue.
-4. A supervisor reviews and relays it to the incoming worker.
-5. The incoming worker acknowledges receipt; both the creator and supervisor receive an in-app notification.
+## 🌟 What ShiftRelay Solves
+2.7 billion frontline workers operate in shifts, yet critical operational context is lost daily at shift handover. ShiftRelay replaces messy paper logs, fragmented WhatsApp chats, and rushed verbal notes with an **AI-powered handover relay** and an **enterprise frontline social network**.
 
-## Run locally
+### Core Pillars
+1. **AI-Powered Shift Relay (GPT-5.6 Sol)**:
+   - Outgoing workers speak or type unstructured operational updates.
+   - AI extracts safety risks, prioritized action items, owners, deadlines, and flags missing operational context before departure.
+   - Accountable human-in-the-loop relay: Outgoing Worker &rarr; Shift Supervisor Review &rarr; Incoming Worker Acknowledgement.
+2. **Frontline Social Network & Shift Lounge**:
+   - A dedicated professional community for shift workers to share wins, shift updates, and site announcements.
+   - **Zero Emoji Action Controls**: Custom engineered SVG vector icons for **Like, Comment, Repost, Save, and Share**.
+   - **Workplace Confidentiality Shield**: Mandatory policy verification certifying that no proprietary patient, customer, or facility data is disclosed publicly.
+   - Direct coworker messaging modal for fast peer handovers.
+3. **Worker Passport & Proof-of-Work Reliability**:
+   - Verified worker badges, live on-time shift completion rates, and daily check-in streaks.
+   - Clean `2/2` shift task tracking compliance (e.g. `2/2` instead of verbose formats).
+   - Interactive peer skill endorsements with real-time counters to prove real frontline competence to future employers.
+4. **Shift Coverage Marketplace**:
+   - Instant open-shift broadcasting, quick-claim workflows, and peer shift swapping.
+5. **Native Mobile & Offline Resilience**:
+   - Built on Capacitor 8 for native **Android** and **iOS** deployment with camera, haptics, and status bar integration.
+   - PWA Service Worker caching for seamless offline operation on spotty industrial connectivity.
 
-This project needs Node.js 18+ and PostgreSQL. Install dependencies, copy `.env.example` to `.env`, set `DATABASE_URL`, then start the server:
+---
 
+## 🛠️ Tech Stack & Architecture
+
+- **Backend Runtime**: Node.js 20+ (ES Modules), HTTP 206 Byte-Range streaming for video demos, Server-Sent Events (SSE) for real-time live feed & handover updates.
+- **AI Core**: OpenAI GPT-5.6 Sol & Whisper Voice Transcription API.
+- **Database & Datacenter**:
+  - PostgreSQL 16 with PgBouncer connection pooling (configured for 5,000+ concurrent frontline connections).
+  - Scalable data model for organisations, sites, memberships, handovers, feed posts, direct messages, and audit logs.
+  - Automatic fallback to high-concurrency local storage when running in standalone mode.
+- **Frontend**: Clean Vanilla JavaScript, Bento Grid UI, modern Glassmorphism, Zero-Emoji SVG iconography, responsive mobile-first layouts.
+- **Mobile Toolchain**: Capacitor 8 (`@capacitor/core`, `@capacitor/android`, `@capacitor/ios`, `@capacitor/camera`, `@capacitor/haptics`, `@capacitor/network`, `@capacitor/status-bar`).
+- **DevOps & Containers**: Docker, Docker Compose, Kubernetes manifests (`k8s/`), and GitHub Actions CI/CD workflows.
+
+---
+
+## ⚡ Quick Start (Local Run)
+
+ShiftRelay strictly runs on **Port 4000**.
+
+### 1. Prerequisites
+- Node.js 18+ (Node 20+ recommended)
+- Git
+
+### 2. Clone and Install
 ```bash
+git clone https://github.com/Riffmax2030-hub/ShiftRelay.git
+cd ShiftRelay
 npm install
+```
+
+### 3. Run Development Server
+```bash
 npm start
 ```
 
-Open `http://localhost:3000`. The health check is available at `http://localhost:3000/health`.
+Open **`http://localhost:4000`** in your browser.  
+Health check endpoint: **`http://localhost:4000/health`** (returns `{"status":"ok"}`).
 
-## Judge quick start
+---
 
-No credentials are needed to explore the workflow.
+## 🎯 Judge & Investor Quick Start
 
-1. Open the deployed ShiftRelay link or run the app locally.
-2. Select **Preview workspace roles** on the landing page.
-3. Use the demo roles to see the full relay chain:
-   - **Amina Otieno — Operations worker:** create a handover, clock in/out, and view her schedule.
-   - **David Kariuki — Shift supervisor:** review and relay an outgoing handover.
-   - **Faith Wanjiku — Incoming worker:** acknowledge the handover and complete the incoming-shift checklist.
-   - **Jordan Lee — Organisation owner:** review staff access, roles, workflows, attendance, and analytics.
+No credentials required! ShiftRelay includes an interactive **Guided Investor Tour** and one-click **Role Preview**:
 
-For a complete demonstration, start with Amina’s handover, switch to David to approve it, then switch to Faith to acknowledge it. This shows the human review chain that is central to ShiftRelay.
+1. **Launch Tour**: Click **"Start 60-Second Investor Tour"** on the landing page for a step-by-step interactive walkthrough.
+2. **Switch Roles**:
+   - **Amina Otieno (Operations Worker)**: Draft an AI-assisted handover, clock in with attendance streak tracking, or post in the Shift Lounge.
+   - **David Kariuki (Shift Supervisor)**: Review, edit risk ratings, and relay pending outgoing handovers.
+   - **Faith Wanjiku (Incoming Worker)**: Acknowledge the relayed handover and complete incoming tasks (`2/2`).
+   - **Jordan Lee (Organisation Owner)**: Review enterprise-wide workforce analytics, site compliance, and audit logs.
+3. **Explore the Shift Lounge**: Click **"Shift Lounge"** to see live video/image sharing, peer skill endorsements, and zero-emoji interaction controls.
+4. **Toggle Operational Modes**: Use the header mode switcher to toggle between **Investor Demo Mode** (seeded data & instant role switches) and **Clean Production Mode** (real worker sign-ups with zero mock accounts).
 
-## Deploy on Render
+---
 
-The repository includes `render.yaml` for a Node.js web service. In Render, create a new **Blueprint**, connect `Riffmax2030-hub/ShiftRelay`, and deploy the detected Blueprint. Render uses `npm install`, starts the app with `npm start`, and checks `/health`.
+## 📱 Mobile App (Android & iOS)
 
-The app works in demo mode without environment variables. To enable live GPT-5.6 Sol analysis and voice transcription, add these environment variables in the Render dashboard:
+To build and run the mobile apps:
 
-- `DATABASE_URL` (required for accounts, schedules, time tracking, and notifications)
-- `OPENAI_API_KEY`, `OPENAI_MODEL`, and `OPENAI_TRANSCRIPTION_MODEL` (optional live AI and voice features)
-- `RESEND_API_KEY`, `EMAIL_FROM`, and `APP_URL` (optional; enable email when a verified domain is available)
+```bash
+# 1. Package static assets into www/
+npm run build:mobile
 
-## GPT-5.6 Sol integration
+# 2. Synchronize native platforms with Capacitor plugins
+npm run cap:sync
 
-The interface runs in **demo mode** when no credentials are set, so reviewers can test the complete product experience without credentials. For live analysis, copy `.env.example` to `.env`, add your OpenAI API key, and set `OPENAI_MODEL` to the exact GPT-5.6 Sol model ID available in your account. Set `OPENAI_TRANSCRIPTION_MODEL` to the transcription model available in your account for voice notes. Then start the app with `npm start`.
-
-```powershell
-Copy-Item .env.example .env
+# 3. Open in Android Studio or Xcode
+npm run cap:android  # Launches Android Studio
+npm run cap:ios      # Launches Xcode (macOS)
 ```
 
-The server calls the Responses API server-side and returns structured JSON:
+---
 
-```json
-{
-  "summary": "...",
-  "actions": [{ "title": "...", "priority": "high", "owner": "...", "due": "...", "evidence": "..." }],
-  "risks": [{ "title": "...", "reason": "...", "escalation": "..." }],
-  "missing_context": [{ "question": "...", "why_it_matters": "..." }]
-}
+## 🐳 Docker & Datacenter Deployment
+
+Run the complete multi-tier enterprise stack (ShiftRelay Engine + PgBouncer + PostgreSQL + Redis):
+
+```bash
+docker-compose up -d
 ```
 
-The model prompt should require evidence from the submitted update, preserve uncertainty rather than invent facts, and prioritize safety-critical issues.
+The database initializes automatically using [`schema.sql`](schema.sql).
 
-## Roles, storage, and notifications
+### Kubernetes
+Enterprise deployment and service manifests are located in [`k8s/deployment.yaml`](k8s/deployment.yaml) with automated rolling updates and readiness/liveness health probes.
 
-ShiftRelay includes secure password sign-in, organisation registration, worker approval, role assignment, shift scheduling, clock-in/out history, calendar leave/swap requests, in-app notifications, incident reporting, analytics, audit history, and installable PWA support. PostgreSQL persists these records.
+---
 
-For a production deployment, replace the demo identity selector with a real authentication provider and move the JSON store to a managed database. The API permission checks and handover state machine are already separated from the interface to make that migration straightforward.
+## 🌐 Cloud Deployment (Render / Cloud Run)
 
-## Voice updates
+The repository includes [`render.yaml`](render.yaml) for zero-config deployment:
+1. Connect `Riffmax2030-hub/ShiftRelay` in Render.
+2. Set Environment Variables:
+   - `PORT=4000`
+   - `DATABASE_URL` (Managed Postgres connection string)
+   - `OPENAI_API_KEY` (For live GPT-5.6 Sol handover synthesis)
+3. Deploy!
 
-Click **Record voice update**, allow microphone access, and stop recording. ShiftRelay sends the audio directly to its server-side transcription endpoint; the browser never receives or stores your OpenAI API key. The transcript is appended to the shift update and can then be analysed into a handover.
+---
 
-## Why Codex and GPT-5.6 Sol
+## 🔒 Confidentiality & Security
+Frontline workers deal with sensitive operational environments (healthcare patients, industrial equipment, proprietary logistics). ShiftRelay enforces:
+- Strict **Workplace Confidentiality Shield** requiring certification prior to posting.
+- Server-side OpenAI API key isolation (keys are never exposed to browser or client devices).
+- Granular Role-Based Access Control (RBAC) and immutable audit event logging.
 
-- **GPT-5.6 Sol** powers the core reasoning task: distinguishing facts from uncertainty in unstructured operational updates, assigning actionable ownership, and detecting context gaps before a handover is relayed.
-- **Codex** accelerated the product implementation: rapid UI iteration, interaction logic, role-based workflow design, PostgreSQL data flows, structured-output contract design, debugging, performance fixes, and documentation.
+---
 
-## Technical implementation notes
-
-- The AI request is made by the Node.js server, never from the browser, so API credentials remain private.
-- Handovers move through explicit states: draft, awaiting supervisor review, relayed, and acknowledged.
-- Role-based access controls separate worker, supervisor, workforce-manager, and owner actions.
-- PostgreSQL stores organisations, memberships, handovers, approvals, schedules, clock entries, notifications, and audit records.
-- The mobile-first interface uses immediate UI feedback and background refreshes for routine actions so frontline users are not blocked by a full dashboard reload.
-- The Progressive Web App setup provides installable web-app behaviour and mobile-ready presentation while native Capacitor projects are included for future Android and iOS store releases.
-
-## Submission checklist
-
-- Public repository: `https://github.com/Riffmax2030-hub/ShiftRelay`
-- Live demo: add the deployed Render URL to the Devpost **Try it out** field.
-- Demo access: no credentials are required; use **Preview workspace roles**.
-- Demo video: show the worker → supervisor → incoming-worker flow and explain where Codex and GPT-5.6 Sol were used.
-- Keep `.env` files and API keys out of Git. Use `.env.example` only for variable names.
-
-## Sample scenario
-
-The included scenario models a clinical evening-to-night handover. It demonstrates a cold-room temperature alert, delayed medication delivery, and a pending family update. The app is deliberately designed so the workflow can be adapted for retail, security, field services, hospitality, or logistics teams.
-
-## Security
-
-Never commit `.env` or any API key. If a key was ever committed or pasted into a tracked file, revoke it in the provider dashboard and create a replacement before deployment.
+## 📄 License
+MIT License. Built for the OpenAI Build Week Challenge.
