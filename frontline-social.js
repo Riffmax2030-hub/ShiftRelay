@@ -774,6 +774,43 @@ function openVerifiedBadgeDialog() {
   });
 }
 
+function generateVerificationQrSvg(seed = 'SR-VERIFIED', size = 68) {
+  return `<svg viewBox="0 0 88 88" width="${size}" height="${size}" style="background:#fff;border-radius:6px;padding:4px;border:1px solid #cbd5e1;box-sizing:border-box;flex-shrink:0;" shape-rendering="crispEdges">
+    <rect width="88" height="88" fill="#ffffff"/>
+    <rect x="8" y="8" width="24" height="24" fill="#0f172a"/>
+    <rect x="12" y="12" width="16" height="16" fill="#ffffff"/>
+    <rect x="16" y="16" width="8" height="8" fill="#0f172a"/>
+    <rect x="56" y="8" width="24" height="24" fill="#0f172a"/>
+    <rect x="60" y="12" width="16" height="16" fill="#ffffff"/>
+    <rect x="64" y="16" width="8" height="8" fill="#0f172a"/>
+    <rect x="8" y="56" width="24" height="24" fill="#0f172a"/>
+    <rect x="12" y="60" width="16" height="16" fill="#ffffff"/>
+    <rect x="16" y="64" width="8" height="8" fill="#0f172a"/>
+    <rect x="36" y="10" width="4" height="4" fill="#0f172a"/>
+    <rect x="44" y="14" width="4" height="4" fill="#0f172a"/>
+    <rect x="36" y="22" width="4" height="4" fill="#0f172a"/>
+    <rect x="48" y="26" width="4" height="4" fill="#0f172a"/>
+    <rect x="10" y="36" width="4" height="4" fill="#0f172a"/>
+    <rect x="22" y="40" width="4" height="4" fill="#0f172a"/>
+    <rect x="14" y="48" width="4" height="4" fill="#0f172a"/>
+    <rect x="36" y="36" width="4" height="4" fill="#0f172a"/>
+    <rect x="44" y="40" width="4" height="4" fill="#0f172a"/>
+    <rect x="40" y="48" width="4" height="4" fill="#0f172a"/>
+    <rect x="48" y="44" width="4" height="4" fill="#0f172a"/>
+    <rect x="36" y="60" width="4" height="4" fill="#0f172a"/>
+    <rect x="44" y="68" width="4" height="4" fill="#0f172a"/>
+    <rect x="40" y="76" width="4" height="4" fill="#0f172a"/>
+    <rect x="60" y="36" width="4" height="4" fill="#0f172a"/>
+    <rect x="68" y="44" width="4" height="4" fill="#0f172a"/>
+    <rect x="76" y="40" width="4" height="4" fill="#0f172a"/>
+    <rect x="64" y="56" width="4" height="4" fill="#0f172a"/>
+    <rect x="72" y="64" width="4" height="4" fill="#0f172a"/>
+    <rect x="60" y="72" width="4" height="4" fill="#0f172a"/>
+    <rect x="76" y="76" width="4" height="4" fill="#0f172a"/>
+  </svg>`;
+}
+window.generateVerificationQrSvg = generateVerificationQrSvg;
+
 function openProofOfWorkCredentialDialog(profile) {
   const existing = document.getElementById('credential-dialog');
   if (existing) existing.remove();
@@ -834,16 +871,20 @@ function openProofOfWorkCredentialDialog(profile) {
           </div>
 
           <div class="credential-footer">
-            <div class="credential-seal">
-              ${Icons.shield()}
+            <div class="credential-seal" style="display:flex;align-items:center;gap:12px;">
+              ${generateVerificationQrSvg(certId, 64)}
               <div>
-                <span style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#047857;">Authenticity Guaranteed</span>
-                <small style="color:#64748b;font-weight:normal;">Issued on ${issueDate}</small>
+                <span style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#047857;font-weight:700;">Authenticity Guaranteed</span>
+                <small style="color:#64748b;font-weight:normal;display:block;">Issued on ${issueDate}</small>
+                <small style="color:#0284c7;font-family:monospace;font-size:10px;">shiftrelay.io/verify/${certId}</small>
               </div>
             </div>
-            <div style="display:flex;gap:8px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="secondary" id="btn-copy-verify-link" style="min-height:40px;padding:0 14px;font-size:13px;display:inline-flex;align-items:center;gap:6px;">
+                ${Icons.share()} Copy Link
+              </button>
               <button type="button" class="primary" id="btn-print-credential" style="min-height:40px;padding:0 18px;font-size:13px;">
-                ${Icons.share()} Print / Save PDF
+                Print / Save PDF
               </button>
             </div>
           </div>
@@ -853,6 +894,13 @@ function openProofOfWorkCredentialDialog(profile) {
   `);
 
   document.getElementById('close-credential-dialog')?.addEventListener('click', () => document.getElementById('credential-dialog')?.remove());
+  document.getElementById('btn-copy-verify-link')?.addEventListener('click', () => {
+    const url = `https://shiftrelay.io/verify/${certId}`;
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url);
+    }
+    toast('Public verification link copied to clipboard!');
+  });
   document.getElementById('btn-print-credential')?.addEventListener('click', () => {
     window.print();
   });

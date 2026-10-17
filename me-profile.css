@@ -681,3 +681,118 @@
   .me-avatar-wrap { bottom: -52px; }
   .me-name { font-size: 26px; }
 }
+
+/* ── Me Profile Sub-tabs, Relays List & Schedule ────────────────────────── */
+.me-relays-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.me-relay-card {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.15s ease;
+}
+
+.me-relay-card:hover {
+  border-color: #0d524d;
+  box-shadow: 0 4px 12px rgba(13, 82, 77, 0.06);
+}
+
+.me-relay-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.me-relay-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.me-relay-status.ack {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.me-relay-status.relayed {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.me-relay-time {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+}
+
+.me-relay-summary {
+  font-size: 14px;
+  color: var(--text-main, #0f172a);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.me-relay-actions-preview {
+  background: var(--bg-surface-subtle, #f8fafc);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.me-relay-actions-preview strong {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #64748b);
+  margin-bottom: 6px;
+}
+
+.me-relay-actions-preview ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.me-relay-actions-preview li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.me-switch-track::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+input:not(:checked) + .me-switch-track {
+  background: #cbd5e1 !important;
+}
+
+input:checked + .me-switch-track::before {
+  transform: translateX(20px);
+}
+

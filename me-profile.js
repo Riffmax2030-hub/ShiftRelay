@@ -90,6 +90,60 @@ const MeIcons = {
   badgeCheck: () => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg>`
 };
 
+/* ─── Share Frontline Passport Dialog ─────────────────────────────────────── */
+function openSharePassportDialog(profile, isSelf) {
+  const existing = document.getElementById('share-passport-dialog');
+  if (existing) existing.remove();
+
+  const userId = profile.userId || state.user?.id || 'w1';
+  const name = profile.fullName || state.user?.name || 'Frontline Worker';
+  const headline = profile.headline || (profile.currentJob?.title ? `${profile.currentJob.title} · ${profile.currentJob.employer}` : 'Frontline Specialist');
+  const initial = (name || 'W').slice(0, 2).toUpperCase();
+  const avatarStyle = profile.avatarUrl || state.user?.avatar_data_url ? `background-image:url('${profile.avatarUrl || state.user?.avatar_data_url}');background-size:cover;background-position:center;color:transparent;` : '';
+  const qrSvg = typeof window.generateVerificationQrSvg === 'function' ? window.generateVerificationQrSvg(`SR-PASS-${userId}`, 88) : '';
+  const shareUrl = `${window.location.origin}/#worker-${userId}`;
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <section class="profile-dialog" id="share-passport-dialog" style="display:flex;align-items:center;justify-content:center;z-index:9999;">
+      <div style="max-width:440px;width:92%;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.25);position:relative;border:1px solid #e2e8f0;">
+        <button class="dialog-close" id="close-share-dialog" style="position:absolute;top:12px;right:14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;z-index:10;">×</button>
+        
+        <div style="background:linear-gradient(135deg, #0a3d38, #0d524d, #10b981);padding:24px 20px 20px;color:#fff;text-align:center;">
+          <div style="width:72px;height:72px;border-radius:50%;margin:0 auto 12px;border:3px solid #fff;background:#064e3b;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.2);${avatarStyle}">
+            ${avatarStyle ? '' : initial}
+          </div>
+          <h3 style="margin:0;font-size:20px;font-weight:800;color:#fff;">${escape(name)}</h3>
+          <p style="margin:4px 0 0;font-size:13px;color:#d1fae5;opacity:0.95;">${escape(headline)}</p>
+          <span style="display:inline-block;margin-top:8px;background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Verified Frontline Passport</span>
+        </div>
+
+        <div style="padding:20px;text-align:center;">
+          <div style="display:flex;justify-content:center;margin-bottom:14px;">
+            ${qrSvg}
+          </div>
+          <p style="margin:0 0 4px;font-size:12px;color:#64748b;font-weight:600;">Scan to view verified credentials &amp; handovers</p>
+          <code style="display:block;background:#f8fafc;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:11px;color:#334155;word-break:break-all;margin-bottom:16px;">${shareUrl}</code>
+
+          <div style="display:flex;gap:8px;">
+            <button class="primary" id="copy-passport-link-btn" style="flex:1;min-height:42px;font-size:13px;font-weight:700;">Copy Passport Link</button>
+            <button class="secondary" id="close-passport-card-btn" style="min-height:42px;font-size:13px;">Done</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  `);
+
+  document.getElementById('close-share-dialog')?.addEventListener('click', () => document.getElementById('share-passport-dialog')?.remove());
+  document.getElementById('close-passport-card-btn')?.addEventListener('click', () => document.getElementById('share-passport-dialog')?.remove());
+  document.getElementById('copy-passport-link-btn')?.addEventListener('click', () => {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(shareUrl);
+    }
+    toast('Frontline Passport link copied to clipboard!');
+  });
+}
+window.openSharePassportDialog = openSharePassportDialog;
+
 /* ─── Main render function ───────────────────────────────────────────────── */
 async function renderMeProfile(targetUserId) {
   dashboardHeader('Me', 'YOUR PROFILE');
@@ -97,13 +151,16 @@ async function renderMeProfile(targetUserId) {
   const isSelf = !targetUserId || targetUserId === state.user?.id;
 
   try {
-    const [profileRes, badgeRes, timeRes] = await Promise.all([
+    const [profileRes, badgeRes, timeRes, handoversRes] = await Promise.all([
       api(`/api/worker-profile/${userId}`),
       api('/api/verified-badge-request').catch(() => ({ request: null })),
       api('/api/time-entries').catch(() => ({ active: null, totalHours: 0, weekHours: 0 })),
+      api('/api/handovers').catch(() => ({ handovers: [] }))
     ]);
 
     const profile = profileRes.profile || {};
+    const allHandovers = handoversRes.handovers || [];
+    const myHandovers = allHandovers.filter(h => h.createdBy === userId || (isSelf && h.createdBy === state.user?.id) || isSelf);
     const isClockedIn = Boolean(timeRes.active);
 
     // ── Cover photo (server profile or local storage fallback) ──
@@ -206,6 +263,9 @@ async function renderMeProfile(targetUserId) {
             </div>
             <div class="me-name-actions">
               ${isSelf ? `
+                <button class="secondary" id="me-share-passport-btn" style="min-height:36px;padding:0 14px;font-size:13px;display:inline-flex;align-items:center;gap:6px;">
+                  ${MeIcons.handshake()} Share Passport
+                </button>
                 <button class="primary" id="me-credential-top-btn" style="min-height:36px;padding:0 14px;font-size:13px;">Official Credential</button>
               ` : `
                 <button class="primary" id="me-offer-btn" data-worker-id="${userId}" data-worker-name="${escape(profile.fullName)}" style="min-height:36px;padding:0 14px;font-size:13px;background:#059669;border-color:#059669;">Offer Shift / Hire</button>
@@ -250,6 +310,22 @@ async function renderMeProfile(targetUserId) {
             <span>Reliability</span>
           </div>
         </div>
+
+        <!-- SUB-TABS ROW -->
+        <div class="discover-tab-row" style="margin:20px 0 16px;gap:8px;">
+          <button class="discover-sub-tab active" data-me-tab="credentials">
+            ${MeIcons.briefcase()} Credentials &amp; Career
+          </button>
+          <button class="discover-sub-tab" data-me-tab="relays">
+            ${MeIcons.award()} My Shift Relays &amp; Logs (${myHandovers.length})
+          </button>
+          <button class="discover-sub-tab" data-me-tab="schedule">
+            ${MeIcons.calendar2()} Roster &amp; Availability
+          </button>
+        </div>
+
+        <!-- 1. CREDENTIALS & CAREER PANEL -->
+        <div id="me-panel-credentials" class="me-tab-panel">
 
         <!-- D. ABOUT / BIO -->
         <div class="me-section">
@@ -555,6 +631,88 @@ async function renderMeProfile(targetUserId) {
           </div>
         ` : ''}
 
+        </div><!-- /#me-panel-credentials -->
+
+        <!-- 2. MY SHIFT RELAYS & LOGS PANEL -->
+        <div id="me-panel-relays" class="me-tab-panel" style="display:none;">
+          <div class="me-section">
+            <div class="me-section-header">
+              <h3 class="me-section-title">Verified Shift Relays &amp; Logs</h3>
+              ${isSelf ? `<button class="primary" data-go="handover" style="min-height:34px;padding:0 12px;font-size:12px;">+ New Relay</button>` : ''}
+            </div>
+            ${myHandovers.length ? `
+              <div class="me-relays-list">
+                ${myHandovers.map(h => {
+                  const hData = h.handover || {};
+                  const actionsCount = Array.isArray(hData.actions) ? hData.actions.length : 0;
+                  const dateStr = h.createdAt ? new Date(h.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent';
+                  const statusLabel = h.status === 'acknowledged' ? 'Acknowledged ✓' : h.status === 'relayed' ? 'Relayed Active' : 'Pending Review';
+                  const statusClass = h.status === 'acknowledged' ? 'ack' : 'relayed';
+                  return `
+                    <div class="me-relay-card">
+                      <div class="me-relay-top">
+                        <span class="me-relay-status ${statusClass}">${statusLabel}</span>
+                        <time class="me-relay-time">${dateStr}</time>
+                      </div>
+                      <p class="me-relay-summary">${escape(hData.summary || 'Shift handover briefing completed.')}</p>
+                      ${actionsCount > 0 ? `
+                        <div class="me-relay-actions-preview">
+                          <strong>${actionsCount} critical action${actionsCount > 1 ? 's' : ''} relayed:</strong>
+                          <ul>
+                            ${hData.actions.slice(0, 3).map(a => `<li><span class="priority-tag ${a.priority || 'medium'}">${escape(a.priority || 'med')}</span> ${escape(a.title || a)}</li>`).join('')}
+                          </ul>
+                        </div>
+                      ` : ''}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : `
+              <div style="text-align:center;padding:36px 20px;background:var(--bg-surface-subtle);border-radius:12px;border:1px dashed var(--border-subtle);">
+                <p style="margin:0 0 10px;font-size:14px;color:var(--text-secondary);">No shift handovers logged yet.</p>
+                ${isSelf ? `<button class="primary" data-go="handover" style="min-height:38px;padding:0 16px;font-size:13px;">Create First Relay</button>` : ''}
+              </div>
+            `}
+          </div>
+        </div>
+
+        <!-- 3. ROSTER & AVAILABILITY PANEL -->
+        <div id="me-panel-schedule" class="me-tab-panel" style="display:none;">
+          <div class="me-section">
+            <div class="me-section-header">
+              <h3 class="me-section-title">Weekly Roster &amp; Shift Schedule</h3>
+            </div>
+            
+            <div class="me-position-rows" style="margin-bottom:20px;">
+              <div class="me-position-row">
+                ${MeIcons.building()}
+                <strong>${escape(currentJob.employer)}</strong>
+                <span>· ${escape(currentJob.department)}</span>
+              </div>
+              <div class="me-position-row">
+                ${MeIcons.clock2()}
+                <span>Roster Hours: <strong>${escape(currentJob.shiftStart)} – ${escape(currentJob.shiftEnd)}</strong></span>
+              </div>
+              <div class="me-position-row">
+                ${MeIcons.calendar2()}
+                <span>Working Days: <strong>${escape(currentJob.workingDays)}</strong></span>
+              </div>
+            </div>
+
+            <!-- Overtime / Open Shifts Availability Card -->
+            <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+              <div>
+                <strong style="color:#065f46;font-size:14px;display:block;">Available for Open Shifts &amp; Overtime</strong>
+                <span style="font-size:12px;color:#047857;">Show your profile to supervisors looking for shift coverage.</span>
+              </div>
+              <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
+                <input type="checkbox" id="me-avail-toggle" ${getMeLocal('available_ot', userId, true) ? 'checked' : ''} style="opacity:0;width:0;height:0;" />
+                <span style="position:absolute;inset:0;background:#10b981;border-radius:99px;transition:0.2s;" class="me-switch-track"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
       </div>
     `;
 
@@ -844,6 +1002,33 @@ async function renderMeProfile(targetUserId) {
         finally { btn.disabled = false; }
       });
     });
+
+    // Sub-tab switching between Credentials, Relays, and Schedule
+    document.querySelectorAll('[data-me-tab]').forEach(tabBtn => {
+      tabBtn.addEventListener('click', () => {
+        const tabKey = tabBtn.dataset.meTab;
+        document.querySelectorAll('[data-me-tab]').forEach(b => b.classList.remove('active'));
+        tabBtn.classList.add('active');
+
+        document.querySelectorAll('.me-tab-panel').forEach(p => p.style.display = 'none');
+        const targetPanel = document.getElementById(`me-panel-${tabKey}`);
+        if (targetPanel) targetPanel.style.display = 'block';
+      });
+    });
+
+    // Share Frontline Passport card
+    $('#me-share-passport-btn')?.addEventListener('click', () => {
+      openSharePassportDialog(profile, isSelf);
+    });
+
+    // Overtime / Open Shifts availability toggle
+    const availToggle = $('#me-avail-toggle');
+    if (availToggle) {
+      availToggle.addEventListener('change', () => {
+        setMeLocal('available_ot', userId, availToggle.checked);
+        toast(availToggle.checked ? 'Status updated: Available for open shifts & overtime!' : 'Status updated: Overtime alerts paused.');
+      });
+    }
 
     // Official credential modal
     $('#me-credential-top-btn')?.addEventListener('click', () => {
