@@ -1302,3 +1302,169 @@
 .confidentiality-critical-alert p {
   margin: 0;
 }
+
+/* ── Proof-of-Work Milestones & Rewards ──────────────────────────────────── */
+.proof-badges-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.proof-badge-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  transition: all 0.2s ease;
+}
+
+.proof-badge-chip.earned {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.proof-badge-chip .proof-badge-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.proof-badge-chip strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.proof-badge-chip small {
+  display: block;
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ── Official Frontline Credential Certificate ───────────────────────────── */
+.credential-paper {
+  background: #ffffff;
+  border: 4px double #0d524d;
+  border-radius: 12px;
+  padding: 32px 28px;
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+  color: #0f172a;
+}
+
+.credential-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  font-size: 72px;
+  font-weight: 900;
+  color: rgba(13, 82, 77, 0.04);
+  pointer-events: none;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.credential-header {
+  text-align: center;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+}
+
+.credential-header h2 {
+  margin: 6px 0 2px;
+  font-size: 22px;
+  color: #0d524d;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.credential-header p {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.credential-worker-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.credential-stats-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.credential-stats-summary strong {
+  display: block;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.credential-stats-summary span {
+  display: block;
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.credential-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.credential-seal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #047857;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .credential-paper, .credential-paper * {
+    visibility: visible;
+  }
+  .credential-paper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none;
+    border-width: 2px;
+  }
+  .modal-close, .dialog-actions, button {
+    display: none !important;
+  }
+}
+

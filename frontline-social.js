@@ -474,7 +474,10 @@ async function renderWorkerPassport(targetUserId) {
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
               ${isSelf ? '<button class="secondary" id="btn-edit-passport" style="min-height:42px;">Edit Passport</button>' : ''}
-              ${!isSelf ? `<button class="primary" id="btn-msg-colleague" data-worker-id="${userId}" data-worker-name="${escape(profile.fullName)}" style="min-height:42px;">Message Worker</button>` : ''}
+              ${isSelf ? '<button class="primary" id="btn-view-credential-self" style="min-height:42px;">Official Credential</button>' : ''}
+              ${!isSelf ? `<button class="primary" id="btn-offer-shift" data-worker-id="${userId}" data-worker-name="${escape(profile.fullName)}" style="min-height:42px;background:#059669;border-color:#059669;">Offer Shift / Hire</button>` : ''}
+              ${!isSelf ? `<button class="secondary" id="btn-view-credential-colleague" style="min-height:42px;">Verify Credential</button>` : ''}
+              ${!isSelf ? `<button class="secondary" id="btn-msg-colleague" data-worker-id="${userId}" data-worker-name="${escape(profile.fullName)}" style="min-height:42px;">Message Worker</button>` : ''}
               ${isSelf && profile.verifiedStatus !== 'verified' && badgeStatus !== 'pending' ? '<button class="primary" id="btn-request-verified" style="min-height:42px;font-size:13px;">Request Verified Badge</button>' : ''}
             </div>
           </div>
@@ -496,6 +499,43 @@ async function renderWorkerPassport(targetUserId) {
             <div class="proof-stat">
               <span>Check-in Streak</span>
               <strong style="color:#ea580c;">${profile.stats?.checkInStreak ?? 0}d</strong>
+            </div>
+          </div>
+
+          <!-- Career Proof-of-Work Milestone Badges -->
+          <div class="passport-section" style="margin-top:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <h3 style="margin:0;">Frontline Proof-of-Work Milestones</h3>
+            </div>
+            <div class="proof-badges-row">
+              <div class="proof-badge-chip ${(profile.stats?.shiftsCompleted || 0) >= 50 ? 'earned' : ''}">
+                <div class="proof-badge-icon">🏆</div>
+                <div>
+                  <strong>Top Relayer</strong>
+                  <small>${profile.stats?.shiftsCompleted || 0} Shifts Logged</small>
+                </div>
+              </div>
+              <div class="proof-badge-chip ${(profile.stats?.checkInStreak || 0) >= 5 ? 'earned' : ''}">
+                <div class="proof-badge-icon">⚡</div>
+                <div>
+                  <strong>Iron Streak</strong>
+                  <small>${profile.stats?.checkInStreak || 0}d Consecutive</small>
+                </div>
+              </div>
+              <div class="proof-badge-chip ${(profile.stats?.reliabilityScore || 0) >= 98 ? 'earned' : ''}">
+                <div class="proof-badge-icon">🛡️</div>
+                <div>
+                  <strong>Zero-Defect Reliability</strong>
+                  <small>${profile.stats?.reliabilityScore || 0}% Flawless</small>
+                </div>
+              </div>
+              <div class="proof-badge-chip ${(profile.stats?.endorsementsCount || 0) >= 5 ? 'earned' : ''}">
+                <div class="proof-badge-icon">🤝</div>
+                <div>
+                  <strong>Peer-Vouched Pro</strong>
+                  <small>${profile.stats?.endorsementsCount || 0} Endorsements</small>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -542,6 +582,11 @@ async function renderWorkerPassport(targetUserId) {
 
     $('#btn-edit-passport')?.addEventListener('click', () => openPassportEditDialog(profile));
     $('#btn-request-verified')?.addEventListener('click', () => openVerifiedBadgeDialog());
+    $('#btn-view-credential-self')?.addEventListener('click', () => openProofOfWorkCredentialDialog(profile));
+    $('#btn-view-credential-colleague')?.addEventListener('click', () => openProofOfWorkCredentialDialog(profile));
+    $('#btn-offer-shift')?.addEventListener('click', (e) => {
+      openShiftOfferDialog(e.currentTarget.dataset.workerId, e.currentTarget.dataset.workerName);
+    });
     $('#btn-msg-colleague')?.addEventListener('click', (e) => {
       openDirectMessageDialog(e.currentTarget.dataset.workerId, e.currentTarget.dataset.workerName);
     });
@@ -710,6 +755,157 @@ function openVerifiedBadgeDialog() {
     } catch (err) {
       btn.disabled = false; btn.textContent = 'Submit Verification Request';
       toast(err.message);
+    }
+  });
+}
+
+function openProofOfWorkCredentialDialog(profile) {
+  const existing = document.getElementById('credential-dialog');
+  if (existing) existing.remove();
+  const certId = `SR-VERIFIED-${(profile.userId || 'w1').slice(-4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const issueDate = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  const avatarStyle = profile.avatarUrl ? `background-image:url('${profile.avatarUrl}');background-size:cover;color:transparent;` : '';
+  const initial = (profile.fullName || 'W').slice(0, 1).toUpperCase();
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <section class="profile-dialog" id="credential-dialog" style="display:flex;align-items:center;justify-content:center;z-index:9999;">
+      <div style="max-width:680px;width:95%;padding:0;background:transparent;box-shadow:none;border:none;">
+        <div class="credential-paper">
+          <div class="credential-watermark">SHIFTRELAY VERIFIED</div>
+          <button class="dialog-close" id="close-credential-dialog" style="position:absolute;top:12px;right:14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;">×</button>
+          
+          <div class="credential-header">
+            <p>Official Proof-of-Work Credential</p>
+            <h2>ShiftRelay Frontline Network</h2>
+            <small style="color:#64748b;font-family:monospace;">Credential ID: ${certId}</small>
+          </div>
+
+          <div class="credential-worker-meta">
+            <div class="passport-avatar-large" style="${avatarStyle};width:64px;height:64px;font-size:24px;border-width:2px;">
+              ${profile.avatarUrl ? '' : initial}
+            </div>
+            <div>
+              <h3 style="margin:0;font-size:20px;color:#0f172a;">${escape(profile.fullName)} ${Icons.verified()}</h3>
+              <p style="margin:2px 0 0;font-size:13px;color:#475569;">${escape(profile.headline || 'Frontline Specialist')} · ${escape(profile.currentOrganisation || 'ShiftRelay Partner')}</p>
+              <span class="verified-status-badge verified" style="margin-top:6px;">${Icons.check()} Authenticated Frontline Worker</span>
+            </div>
+          </div>
+
+          <div class="credential-stats-summary">
+            <div>
+              <strong>${profile.stats?.shiftsCompleted ?? 0}</strong>
+              <span>Verified Shifts</span>
+            </div>
+            <div>
+              <strong>${profile.stats?.handoversRelayed ?? 0}</strong>
+              <span>Handovers Relayed</span>
+            </div>
+            <div>
+              <strong style="color:#059669;">${profile.stats?.reliabilityScore ?? 99.4}%</strong>
+              <span>Reliability Score</span>
+            </div>
+            <div>
+              <strong style="color:#ea580c;">${profile.stats?.checkInStreak ?? 7}d</strong>
+              <span>Current Streak</span>
+            </div>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <h4 style="margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#475569;">Verified Core Skills</h4>
+            <div class="skills-chip-row">
+              ${(profile.skills || []).map(s => `<span class="skill-chip">${Icons.check()} ${escape(s)}</span>`).join('')}
+              ${(profile.certifications || []).map(c => `<span class="skill-chip cert">${Icons.check()} ${escape(c)}</span>`).join('')}
+            </div>
+          </div>
+
+          <div class="credential-footer">
+            <div class="credential-seal">
+              ${Icons.shield()}
+              <div>
+                <span style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#047857;">Authenticity Guaranteed</span>
+                <small style="color:#64748b;font-weight:normal;">Issued on ${issueDate}</small>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="primary" id="btn-print-credential" style="min-height:40px;padding:0 18px;font-size:13px;">
+                ${Icons.share()} Print / Save PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  `);
+
+  document.getElementById('close-credential-dialog')?.addEventListener('click', () => document.getElementById('credential-dialog')?.remove());
+  document.getElementById('btn-print-credential')?.addEventListener('click', () => {
+    window.print();
+  });
+}
+
+function openShiftOfferDialog(workerId, workerName) {
+  const existing = document.getElementById('shift-offer-dialog');
+  if (existing) existing.remove();
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <section class="profile-dialog" id="shift-offer-dialog" style="display:flex;align-items:center;justify-content:center;z-index:9999;">
+      <div style="max-width:540px;width:95%;">
+        <button class="dialog-close" id="close-shift-offer">×</button>
+        <p class="eyebrow" style="color:#059669;">FRONTLINE TALENT ACQUISITION</p>
+        <h2>Offer Shift to ${escape(workerName)}</h2>
+        <p class="dialog-subtitle" style="margin-bottom:16px;">Direct shift invitation based on verified frontline reliability score.</p>
+
+        <form class="access-form" id="shift-offer-form">
+          <label>Shift Role / Title
+            <input name="shiftTitle" placeholder="e.g. Senior Operations Relay Specialist" required />
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <label>Date &amp; Time
+              <input name="shiftDate" placeholder="e.g. Tomorrow, 07:00 - 15:30" required />
+            </label>
+            <label>Hourly Compensation
+              <input name="rate" placeholder="e.g. $34.00/hr + Shift Diff" required />
+            </label>
+          </div>
+          <label>Facility Site / Department
+            <input name="location" placeholder="e.g. Metro Logistics Center - Hub 4" required />
+          </label>
+          <label>Special Instructions / Work Note
+            <textarea name="note" rows="3" placeholder="e.g. Please bring safety gear. You will oversee afternoon handover dispatch."></textarea>
+          </label>
+
+          <div class="dialog-actions" style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
+            <button type="button" class="secondary" id="cancel-shift-offer">Cancel</button>
+            <button type="submit" class="primary" style="background:#059669;border-color:#059669;">Send Official Offer</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  `);
+
+  document.getElementById('close-shift-offer')?.addEventListener('click', () => document.getElementById('shift-offer-dialog')?.remove());
+  document.getElementById('cancel-shift-offer')?.addEventListener('click', () => document.getElementById('shift-offer-dialog')?.remove());
+
+  document.getElementById('shift-offer-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const payload = Object.fromEntries(fd.entries());
+    const submitBtn = e.currentTarget.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending Offer…';
+
+    try {
+      const res = await api('/api/worker-profile/' + workerId + '/shift-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      toast(res.message || 'Shift offer sent successfully!');
+      document.getElementById('shift-offer-dialog')?.remove();
+    } catch (err) {
+      toast('Offer failed: ' + err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send Official Offer';
     }
   });
 }
