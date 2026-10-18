@@ -335,7 +335,7 @@ function openAnnouncementDialog() {
   document.body.insertAdjacentHTML('beforeend', `
     <section class="profile-dialog" id="announcement-dialog">
       <div>
-        <button class="dialog-close" aria-label="Close">×</button>
+        <button class="dialog-close" aria-label="Close">${Icons.close(16)}</button>
         <p class="eyebrow">NEW ANNOUNCEMENT</p>
         <h2>Broadcast to the team.</h2>
         <form class="access-form" id="announcement-form">

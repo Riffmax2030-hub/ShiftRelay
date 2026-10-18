@@ -8,7 +8,7 @@ const tourSlides = [
     step: '01 / 05',
     kicker: 'CONTINUITY & ACCOUNTABILITY',
     title: 'The Digital Handover Feed',
-    description: 'Outgoing workers log shift updates, equipment readings, and safety events in seconds. Shift status is tagged 🟢 Normal, 🟡 Attention Needed, or 🔴 Critical Alert. Server-side AI distills updates into prioritized actions pinned directly to the incoming team’s dashboard in strict 2/2 task completion format.',
+    description: 'Outgoing workers log shift updates, equipment readings, and safety events in seconds. Shift status is tagged Normal, Attention Needed, or Critical Alert with SVG vector status indicators. Server-side AI distills updates into prioritized actions pinned directly to the incoming team’s dashboard in strict 2/2 task completion format.',
     metricLabel: 'Context Loss Prevented',
     metricValue: '100%',
     view: 'handover',
@@ -68,10 +68,10 @@ function openInvestorTourModal() {
       <div class="modal-card tour-modal-card">
         <div class="modal-header">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="color:#0d524d; font-size:18px;">🎬</span>
-            <h3 style="margin:0; font-size:16px; font-weight:700; color:var(--text-main);">ShiftRelay Engine Tour · Investor &amp; Partner Walkthrough</h3>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#0d524d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <h3 style="margin:0; font-size:16px; font-weight:700; color:var(--text-main);">ShiftRelay Engine Tour · Frontline Platform Overview</h3>
           </div>
-          <button class="modal-close" id="btn-close-tour" aria-label="Close walkthrough">✕</button>
+          <button class="modal-close" id="btn-close-tour" aria-label="Close walkthrough">${Icons.close(16)}</button>
         </div>
         <div class="modal-body tour-modal-body" id="tour-slide-container"></div>
         <div class="tour-modal-footer">

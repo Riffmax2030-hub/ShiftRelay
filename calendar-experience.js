@@ -354,7 +354,7 @@ function openPostOpenShift() {
   document.body.insertAdjacentHTML('beforeend', `
     <section class="profile-dialog" id="open-shift-dialog">
       <div>
-        <button class="dialog-close" id="close-open-shift-dialog">×</button>
+        <button class="dialog-close" id="close-open-shift-dialog">${Icons.close(16)}</button>
         <p class="eyebrow">OPEN SHIFT</p>
         <h2>Find coverage fast.</h2>
         <form class="access-form" id="open-shift-form">

@@ -55,7 +55,7 @@ async function renderShiftLounge() {
         <div class="shield-copy">
           <div class="shield-title-row">
             <strong>Frontline Confidentiality Protected</strong>
-            <button class="shield-dismiss-btn" id="btn-dismiss-confidentiality" aria-label="Dismiss banner" title="Dismiss banner">✕</button>
+            <button class="shield-dismiss-btn" id="btn-dismiss-confidentiality" aria-label="Dismiss banner" title="Dismiss banner">${Icons.close(14)}</button>
           </div>
           <p>Shift updates are public. Keep posts HIPAA &amp; GDPR safe — never share internal patient data, security PINs, or proprietary operations. <a href="#" id="link-view-terms">Review Guidelines</a></p>
         </div>
@@ -77,7 +77,7 @@ async function renderShiftLounge() {
 
         <div id="composer-media-preview-container" class="composer-preview-box hidden">
           <div id="preview-content-wrapper" class="preview-content-wrapper"></div>
-          <button type="button" class="btn-clear-media" id="btn-clear-media">✕ Remove</button>
+          <button type="button" class="btn-clear-media" id="btn-clear-media">${Icons.close(14)} Remove</button>
         </div>
 
         <!-- Shift Tag Category Selector -->
@@ -184,7 +184,7 @@ async function renderShiftLounge() {
           : '';
         const firstName = (u.name || 'Teammate').split(' ')[0];
         return `
-          <div class="story-ring story-unseen" style="display:inline-flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;cursor:pointer;vertical-align:top;">
+          <div class="story-ring story-unseen" data-story-uid="${u.id}" style="display:inline-flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;cursor:pointer;vertical-align:top;">
             <div class="story-avatar-ring story-unseen">
               <div class="story-avatar-inner" style="${avatarStyle}">${avatarInner}</div>
             </div>
@@ -192,8 +192,33 @@ async function renderShiftLounge() {
           </div>`;
       }).join('');
       slots.style.display = 'contents';
+
+      // Click handler for teammate stories
+      slots.querySelectorAll('.story-ring[data-story-uid]').forEach(ring => {
+        const uid = ring.dataset.storyUid;
+        const tm = teammates.find(t => t.id === uid);
+        if (!tm) return;
+        ring.addEventListener('click', () => {
+          ring.querySelector('.story-avatar-ring')?.classList.remove('story-unseen');
+          ring.querySelector('.story-avatar-ring')?.classList.add('story-seen');
+          openStoryViewer(tm);
+        });
+      });
     } catch (_) { /* stories fail silently */ }
   })();
+
+  // Your Story click -> focus composer with pulse
+  document.querySelector('.story-plus-ring')?.addEventListener('click', () => {
+    const textarea = document.getElementById('composer-text');
+    if (textarea) {
+      textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      textarea.focus();
+      const composer = document.querySelector('.lounge-composer');
+      composer?.classList.add('composer-pulse');
+      setTimeout(() => composer?.classList.remove('composer-pulse'), 1200);
+      toast("Share what's happening on your shift!");
+    }
+  });
 
   // Category chip clicks in composer
   document.querySelectorAll('#composer-category-select .category-chip').forEach((btn) => {
@@ -347,9 +372,42 @@ async function loadFeedPosts(silent = false) {
     }
 
     if (!posts.length) {
-      stream.innerHTML = socialState.activeLoungeTab === 'saved'
-        ? '<p class="muted" style="text-align:center;padding:32px;">No saved posts yet. Tap the bookmark icon on any post to save it.</p>'
-        : '<p class="muted" style="text-align:center;padding:32px;">No posts in this category yet. Be the first to share!</p>';
+      if (socialState.activeLoungeTab === 'saved') {
+        stream.innerHTML = `
+          <div class="empty-feed-card">
+            <div class="empty-feed-icon">${Icons.save(false)}</div>
+            <h3>No saved posts yet</h3>
+            <p>Save critical shift briefings, tips, or handover highlights so you can easily reference them later.</p>
+            <button class="secondary btn-empty-action" id="btn-empty-saved">Browse All Shift Posts</button>
+          </div>
+        `;
+        document.getElementById('btn-empty-saved')?.addEventListener('click', () => {
+          document.querySelectorAll('.feed-filter-pill').forEach(b => b.classList.remove('active'));
+          document.querySelector('.feed-filter-pill[data-filter-val="all"]')?.classList.add('active');
+          socialState.activeLoungeTab = 'feed';
+          socialState.activeCategory = 'all';
+          loadFeedPosts();
+        });
+      } else {
+        stream.innerHTML = `
+          <div class="empty-feed-card">
+            <div class="empty-feed-icon">${Icons.bulb()}</div>
+            <h3>No shift stories in this category yet</h3>
+            <p>Be the first on your team to log a handover highlight, safety win, or craft tip.</p>
+            <button class="primary btn-empty-action" id="btn-empty-create-post">Share Shift Moment</button>
+          </div>
+        `;
+        document.getElementById('btn-empty-create-post')?.addEventListener('click', () => {
+          const textarea = document.getElementById('composer-text');
+          if (textarea) {
+            textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            textarea.focus();
+            const composer = document.querySelector('.lounge-composer');
+            composer?.classList.add('composer-pulse');
+            setTimeout(() => composer?.classList.remove('composer-pulse'), 1200);
+          }
+        });
+      }
       return;
     }
 
@@ -391,7 +449,7 @@ function renderPostCard(post) {
         </div>
         <div class="post-top-right">
           <span class="post-category-tag ${cat.class}">${cat.label}</span>
-          ${canDelete ? `<button class="btn-delete-post" data-delete-post="${post.id}" title="Delete post" aria-label="Delete post">✕</button>` : ''}
+          ${canDelete ? `<button class="btn-delete-post" data-delete-post="${post.id}" title="Delete post" aria-label="Delete post">${Icons.close(14)}</button>` : ''}
         </div>
       </div>
 
@@ -404,8 +462,9 @@ function renderPostCard(post) {
           <video src="${escape(post.image_url)}" controls playsinline preload="metadata" class="feed-video-player"></video>
         </div>
       ` : post.image_url ? `
-        <div class="post-image-container">
+        <div class="post-image-container" data-lightbox-src="${escape(post.image_url)}" data-author="${escape(post.author_name)}" data-caption="${escape(post.content)}" data-time="${timeAgo}" title="Tap to expand photo">
           <img src="${escape(post.image_url)}" alt="Shift photo" loading="lazy" />
+          <span class="image-tap-hint">Tap to expand</span>
         </div>
       ` : ''}
 
@@ -581,7 +640,155 @@ function bindSocialInteractions() {
       }
     });
   });
+
+  // Post image tap (lightbox) and double-tap (like gesture)
+  document.querySelectorAll('.post-image-container[data-lightbox-src]').forEach((container) => {
+    let lastTap = 0;
+    container.addEventListener('click', (e) => {
+      const now = Date.now();
+      const timesince = now - lastTap;
+      if (timesince < 320 && timesince > 0) {
+        // Double-tap to like
+        const card = container.closest('.lounge-post-card');
+        const likeBtn = card?.querySelector('[data-post-action="like"]');
+        if (likeBtn) {
+          if (!likeBtn.classList.contains('active-like')) {
+            likeBtn.click();
+          }
+          showFloatingHeart(container);
+        }
+      } else {
+        // Single tap: open fullscreen photo lightbox
+        openPhotoLightbox(
+          container.dataset.lightboxSrc,
+          container.dataset.author,
+          container.dataset.caption,
+          container.dataset.time
+        );
+      }
+      lastTap = now;
+    });
+  });
 }
+
+function showFloatingHeart(container) {
+  const burst = document.createElement('div');
+  burst.className = 'floating-heart-burst';
+  burst.innerHTML = Icons.like(true);
+  container.appendChild(burst);
+  setTimeout(() => burst.remove(), 800);
+}
+
+function openPhotoLightbox(src, authorName = '', caption = '', timeAgo = '') {
+  let modal = document.getElementById('photo-lightbox-modal');
+  if (modal) modal.remove();
+
+  modal = document.createElement('div');
+  modal.id = 'photo-lightbox-modal';
+  modal.className = 'photo-lightbox-modal';
+  modal.innerHTML = `
+    <div class="lightbox-backdrop"></div>
+    <div class="lightbox-shell">
+      <div class="lightbox-top-bar">
+        <div class="lightbox-author-info">
+          <strong>${escape(authorName || 'Shift Moment')}</strong>
+          ${timeAgo ? `<time>${escape(timeAgo)}</time>` : ''}
+        </div>
+        <button class="lightbox-close-btn" id="lightbox-close-btn" aria-label="Close photo preview">
+          ${Icons.close(18)}
+        </button>
+      </div>
+      <div class="lightbox-image-wrap">
+        <img src="${escape(src)}" alt="Shift photo full size" class="lightbox-img" />
+      </div>
+      ${caption ? `<div class="lightbox-caption"><p>${escape(caption)}</p></div>` : ''}
+    </div>
+  `;
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add('active'));
+
+  const close = () => {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 250);
+  };
+  modal.querySelector('.lightbox-backdrop')?.addEventListener('click', close);
+  modal.querySelector('#lightbox-close-btn')?.addEventListener('click', close);
+  const onKey = (e) => {
+    if (e.key === 'Escape') {
+      close();
+      window.removeEventListener('keydown', onKey);
+    }
+  };
+  window.addEventListener('keydown', onKey);
+}
+window.openPhotoLightbox = openPhotoLightbox;
+
+function openStoryViewer(teammate) {
+  let modal = document.getElementById('story-viewer-modal');
+  if (modal) modal.remove();
+
+  const firstName = escape((teammate.name || 'Teammate').split(' ')[0]);
+  const initial = escape(teammate.name || 'T').slice(0, 1).toUpperCase();
+  const avatarStyle = teammate.avatar_data_url
+    ? `background-image:url('${teammate.avatar_data_url}');background-size:cover;background-position:center;color:transparent;`
+    : '';
+
+  // Look for any cached post from this teammate
+  const userPost = (socialState.postsCache || []).find(p => p.author_id === teammate.id);
+  const storyHeadline = userPost ? escape(userPost.content) : `Active on shift. Working safely and keeping team relays accurate!`;
+  const storyImage = userPost?.image_url;
+
+  modal = document.createElement('div');
+  modal.id = 'story-viewer-modal';
+  modal.className = 'story-viewer-modal';
+  modal.innerHTML = `
+    <div class="story-modal-backdrop"></div>
+    <div class="story-modal-card">
+      <div class="story-progress-bar">
+        <div class="story-progress-fill"></div>
+      </div>
+      <div class="story-header-row">
+        <div class="story-viewer-avatar" style="${avatarStyle}">${teammate.avatar_data_url ? '' : initial}</div>
+        <div class="story-viewer-info">
+          <h4>${escape(teammate.name)} ${Icons.verified()}</h4>
+          <p>${escape(teammate.title || teammate.role || 'Frontline Specialist')}</p>
+        </div>
+        <button class="story-close-btn" id="story-close-btn" aria-label="Close story">${Icons.close(18)}</button>
+      </div>
+      <div class="story-card-body">
+        ${storyImage ? `<div class="story-image-wrap"><img src="${escape(storyImage)}" alt="Shift story photo" /></div>` : ''}
+        <div class="story-quote-box">
+          <p class="story-text">"${storyHeadline}"</p>
+          <small class="story-tag">${userPost ? 'Latest Shift Update' : 'Live Frontline Status'}</small>
+        </div>
+      </div>
+      <div class="story-actions-footer">
+        <button class="primary btn-story-kudos" id="btn-story-kudos">${Icons.like(true)} Send Kudos</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add('active'));
+
+  const close = () => {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 250);
+  };
+  modal.querySelector('.story-modal-backdrop')?.addEventListener('click', close);
+  modal.querySelector('#story-close-btn')?.addEventListener('click', close);
+  modal.querySelector('#btn-story-kudos')?.addEventListener('click', () => {
+    toast(`Kudos sent to ${firstName}!`);
+    close();
+  });
+  const onKey = (e) => {
+    if (e.key === 'Escape') {
+      close();
+      window.removeEventListener('keydown', onKey);
+    }
+  };
+  window.addEventListener('keydown', onKey);
+}
+window.openStoryViewer = openStoryViewer;
 
 // ─── Worker Passport ─────────────────────────────────────────────────────────
 
@@ -715,7 +922,7 @@ async function renderWorkerPassport(targetUserId) {
             <h3>Shift Moments Gallery</h3>
             <div class="shift-gallery-grid">
               ${(profile.gallery || []).map(g => `
-                <div class="shift-gallery-item">
+                <div class="shift-gallery-item" data-lightbox-src="${escape(g.url)}" data-author="${escape(profile.fullName)}" data-caption="${escape(g.caption)}" style="cursor:pointer;" title="Tap to view fullscreen photo">
                   <img src="${escape(g.url)}" alt="Shift moment" loading="lazy" />
                   <small>${escape(g.caption)}</small>
                 </div>
@@ -725,6 +932,12 @@ async function renderWorkerPassport(targetUserId) {
         </div>
       </section>
     `;
+
+    document.querySelectorAll('.shift-gallery-item[data-lightbox-src]').forEach(item => {
+      item.addEventListener('click', () => {
+        openPhotoLightbox(item.dataset.lightboxSrc, item.dataset.author, item.dataset.caption);
+      });
+    });
 
     $('#btn-edit-passport')?.addEventListener('click', () => openPassportEditDialog(profile));
     $('#btn-request-verified')?.addEventListener('click', () => openVerifiedBadgeDialog());
@@ -772,7 +985,7 @@ function openPassportEditDialog(profile) {
   document.body.insertAdjacentHTML('beforeend', `
     <section class="profile-dialog" id="passport-dialog">
       <div>
-        <button class="dialog-close" id="close-passport-dialog">×</button>
+        <button class="dialog-close" id="close-passport-dialog">${Icons.close(16)}</button>
         <p class="eyebrow">EDIT WORKER PASSPORT</p>
         <h2>Your Professional Frontline Identity</h2>
 
@@ -862,7 +1075,7 @@ function openVerifiedBadgeDialog() {
   document.body.insertAdjacentHTML('beforeend', `
     <section class="profile-dialog" id="verified-badge-dialog">
       <div>
-        <button class="dialog-close" id="close-badge-dialog">×</button>
+        <button class="dialog-close" id="close-badge-dialog">${Icons.close(16)}</button>
         <p class="eyebrow">REQUEST VERIFIED BADGE</p>
         <h2>Prove Your Frontline Credentials</h2>
         <p style="font-size:14px;color:var(--text-secondary);margin-bottom:20px;">The ShiftRelay Verified Badge confirms your identity and shift work experience. Once approved, a verification checkmark appears on your posts, passport, and directory listing.</p>
@@ -955,7 +1168,7 @@ function openProofOfWorkCredentialDialog(profile) {
       <div style="max-width:680px;width:95%;padding:0;background:transparent;box-shadow:none;border:none;">
         <div class="credential-paper">
           <div class="credential-watermark">SHIFTRELAY VERIFIED</div>
-          <button class="dialog-close" id="close-credential-dialog" style="position:absolute;top:12px;right:14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;">×</button>
+          <button class="dialog-close" id="close-credential-dialog" style="position:absolute;top:12px;right:14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;">${Icons.close(16)}</button>
           
           <div class="credential-header">
             <p>Official Proof-of-Work Credential</p>
@@ -1044,7 +1257,7 @@ function openShiftOfferDialog(workerId, workerName) {
   document.body.insertAdjacentHTML('beforeend', `
     <section class="profile-dialog" id="shift-offer-dialog" style="display:flex;align-items:center;justify-content:center;z-index:9999;">
       <div style="max-width:540px;width:95%;">
-        <button class="dialog-close" id="close-shift-offer">×</button>
+        <button class="dialog-close" id="close-shift-offer">${Icons.close(16)}</button>
         <p class="eyebrow" style="color:#059669;">FRONTLINE TALENT ACQUISITION</p>
         <h2>Offer Shift to ${escape(workerName)}</h2>
         <p class="dialog-subtitle" style="margin-bottom:16px;">Direct shift invitation based on verified frontline reliability score.</p>
@@ -1129,6 +1342,12 @@ async function renderDiscover(defaultTab = 'workers') {
           <input type="text" id="discover-search-input" placeholder="Search by name, role, facility, or skill…" class="discover-search-input" />
         </div>
       </div>
+      <div class="discover-filter-chips" id="discover-specialist-chips" style="display:flex;gap:8px;margin-bottom:18px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;">
+        <button class="category-chip active" data-spec-filter="all">${Icons.globe()} <span>All Specialists</span></button>
+        <button class="category-chip" data-spec-filter="healthcare">${Icons.award()} <span>Clinical &amp; Health</span></button>
+        <button class="category-chip" data-spec-filter="logistics">${Icons.zap()} <span>Operations</span></button>
+        <button class="category-chip" data-spec-filter="verified">${Icons.verified()} <span>Verified Only</span></button>
+      </div>
       <div id="discover-content-grid">
         <p class="muted" style="text-align:center;padding:32px;">Loading…</p>
       </div>
@@ -1140,6 +1359,7 @@ async function renderDiscover(defaultTab = 'workers') {
   const loadWorkers = async () => {
     const grid = document.getElementById('discover-content-grid');
     if (!grid) return;
+    document.getElementById('discover-specialist-chips')?.style.setProperty('display', 'flex');
     grid.innerHTML = `<p class="muted" style="text-align:center;padding:32px;">Loading frontline specialists…</p>`;
     try {
       const { workers } = await api('/api/discover/workers');
@@ -1153,6 +1373,7 @@ async function renderDiscover(defaultTab = 'workers') {
   const loadShifts = async () => {
     const grid = document.getElementById('discover-content-grid');
     if (!grid) return;
+    document.getElementById('discover-specialist-chips')?.style.setProperty('display', 'none');
     grid.innerHTML = `<p class="muted" style="text-align:center;padding:32px;">Loading open shifts…</p>`;
     try {
       const { shifts } = await api('/api/open-shifts');
@@ -1183,6 +1404,15 @@ async function renderDiscover(defaultTab = 'workers') {
     }
   });
 
+  document.querySelectorAll('#discover-specialist-chips .category-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#discover-specialist-chips .category-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      socialState.discoverSpecialtyFilter = btn.dataset.specFilter || 'all';
+      renderDiscoverGrid(socialState.lastDiscoverWorkers || []);
+    });
+  });
+
   if (defaultTab === 'shifts') {
     loadShifts();
   } else {
@@ -1197,7 +1427,17 @@ function renderOpenShiftsGrid(shifts) {
   if (!grid) return;
 
   if (!shifts.length) {
-    grid.innerHTML = `<p class="muted" style="text-align:center;padding:32px;">No open shifts available right now. Check back soon!</p>`;
+    grid.innerHTML = `
+      <div class="empty-feed-card">
+        <div class="empty-feed-icon">${Icons.zap()}</div>
+        <h3>No Open Shifts Right Now</h3>
+        <p>All shift rosters are currently staffed. New overtime opportunities and shift trades are posted frequently.</p>
+        <button class="secondary btn-empty-action" id="btn-empty-switch-workers">Explore Frontline Specialists</button>
+      </div>
+    `;
+    document.getElementById('btn-empty-switch-workers')?.addEventListener('click', () => {
+      document.getElementById('discover-tab-workers')?.click();
+    });
     return;
   }
 
@@ -1248,7 +1488,7 @@ function renderOpenShiftsGrid(shifts) {
       btn.textContent = 'Claiming…';
       try {
         await api(`/api/open-shifts/${shiftId}/claim`, { method: 'POST' });
-        btn.textContent = 'Claimed ✓';
+        btn.innerHTML = `${Icons.verified()} Claimed`;
         btn.style.background = '#059669';
         toast('Shift claimed! Added to your schedule.');
       } catch (err) {
@@ -1264,17 +1504,47 @@ function renderDiscoverGrid(workers) {
   const grid = document.getElementById('discover-content-grid');
   if (!grid) return;
   const q = socialState.discoverSearchQuery;
-  const filtered = q
-    ? workers.filter(w =>
-        (w.fullName || '').toLowerCase().includes(q) ||
-        (w.headline || '').toLowerCase().includes(q) ||
-        (w.industry || '').toLowerCase().includes(q) ||
-        (w.skills || []).some(s => s.toLowerCase().includes(q))
-      )
-    : workers;
+  const spec = socialState.discoverSpecialtyFilter || 'all';
+
+  let filtered = workers;
+  if (spec === 'verified') {
+    filtered = filtered.filter(w => w.verifiedStatus === 'verified');
+  } else if (spec === 'healthcare') {
+    filtered = filtered.filter(w => {
+      const text = `${w.industry || ''} ${w.headline || ''} ${(w.skills || []).join(' ')}`.toLowerCase();
+      return text.includes('health') || text.includes('nurse') || text.includes('care') || text.includes('medic') || text.includes('clinic');
+    });
+  } else if (spec === 'logistics') {
+    filtered = filtered.filter(w => {
+      const text = `${w.industry || ''} ${w.headline || ''} ${(w.skills || []).join(' ')}`.toLowerCase();
+      return text.includes('oper') || text.includes('logist') || text.includes('facil') || text.includes('ware') || text.includes('shift');
+    });
+  }
+
+  if (q) {
+    filtered = filtered.filter(w =>
+      (w.fullName || '').toLowerCase().includes(q) ||
+      (w.headline || '').toLowerCase().includes(q) ||
+      (w.industry || '').toLowerCase().includes(q) ||
+      (w.skills || []).some(s => s.toLowerCase().includes(q))
+    );
+  }
 
   if (!filtered.length) {
-    grid.innerHTML = '<p class="muted" style="text-align:center;padding:32px;">No workers match your search.</p>';
+    grid.innerHTML = `
+      <div class="empty-feed-card">
+        <div class="empty-feed-icon">${Icons.users()}</div>
+        <h3>No Specialists Found</h3>
+        <p>No frontline workers match "${escape(q)}". Try searching for another skill, facility, or role.</p>
+        <button class="secondary btn-empty-action" id="btn-empty-clear-search">Clear Search Filter</button>
+      </div>
+    `;
+    document.getElementById('btn-empty-clear-search')?.addEventListener('click', () => {
+      const input = document.getElementById('discover-search-input');
+      if (input) input.value = '';
+      socialState.discoverSearchQuery = '';
+      renderDiscoverGrid(workers);
+    });
     return;
   }
 
@@ -1326,7 +1596,7 @@ function openDirectMessageDialog(recipientId, recipientName) {
   document.body.insertAdjacentHTML('beforeend', `
     <section class="profile-dialog" id="direct-msg-modal">
       <div>
-        <button class="dialog-close" id="close-msg-dialog">×</button>
+        <button class="dialog-close" id="close-msg-dialog">${Icons.close(16)}</button>
         <p class="eyebrow">WORKPLACE DIRECT MESSAGE</p>
         <h2>Message ${escape(recipientName)}</h2>
         <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
