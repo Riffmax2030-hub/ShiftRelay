@@ -465,3 +465,36 @@ document.addEventListener('change', (e) => {
 window.configureNavigation = configureNavigation;
 window.renderDashboard = renderDashboard;
 window.go = go;
+
+// ─── Frontline Connection Monitor ──────────────────────────────────────────
+function setupNetworkMonitor() {
+  const showNetworkStatus = (online) => {
+    let banner = document.getElementById('network-status-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'network-status-banner';
+      banner.className = 'network-status-banner';
+      document.body.appendChild(banner);
+    }
+    if (!online) {
+      banner.innerHTML = `
+        <span class="network-dot offline"></span>
+        <span>Offline Mode · Updates saved locally and will sync when connection returns</span>
+      `;
+      banner.className = 'network-status-banner offline show';
+    } else {
+      banner.innerHTML = `
+        <span class="network-dot online"></span>
+        <span>Back Online · Frontline connection restored</span>
+      `;
+      banner.className = 'network-status-banner online show';
+      setTimeout(() => {
+        banner.classList.remove('show');
+      }, 3200);
+    }
+  };
+
+  window.addEventListener('offline', () => showNetworkStatus(false));
+  window.addEventListener('online', () => showNetworkStatus(true));
+}
+setupNetworkMonitor();

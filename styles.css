@@ -1797,3 +1797,52 @@ label.checkbox input {
   stroke: currentColor;
   stroke-width: 2;
 }
+
+/* ── Frontline Network Offline / Online Monitor ──────────────────────────── */
+.network-status-banner {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-35px);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 90vw;
+  text-align: center;
+}
+.network-status-banner.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.network-status-banner.offline {
+  background: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #475569;
+}
+.network-status-banner.online {
+  background: #065f46;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+.network-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+}
+.network-dot.offline {
+  background: #f59e0b;
+}
+.network-dot.online {
+  background: #34d399;
+}
