@@ -111,6 +111,21 @@ async function renderShiftLounge() {
         </div>
       </section>
 
+      <!-- Stories Bar (Facebook / Instagram style) -->
+      <div class="stories-bar" id="lounge-stories-bar">
+        <!-- Your Story (first) -->
+        <div class="story-ring story-plus-ring">
+          <div class="story-avatar-ring story-self">
+            <div class="story-avatar-inner" style="${userAvatarStyle}">
+              ${user.avatar_data_url ? `<img src="${user.avatar_data_url}" alt="${escape(user.name)}" />` : userInitial}
+            </div>
+          </div>
+          <span class="story-name">Your Story</span>
+        </div>
+        <!-- Team member placeholders (populated by JS after render) -->
+        <div id="stories-team-slots"></div>
+      </div>
+
       <!-- Modern Unified Feed Filter Bar -->
       <div class="feed-filter-bar">
         <button class="feed-filter-pill ${socialState.activeLoungeTab === 'feed' && socialState.activeCategory === 'all' ? 'active' : ''}" data-filter-type="cat" data-filter-val="all">
@@ -151,6 +166,34 @@ async function renderShiftLounge() {
     e.preventDefault();
     document.getElementById('terms-modal')?.classList.remove('hidden');
   });
+
+  // Populate stories bar with team members (async, non-blocking)
+  (async () => {
+    try {
+      const { users = [] } = await api('/api/users').catch(() => ({ users: [] }));
+      const slots = document.getElementById('stories-team-slots');
+      if (!slots) return;
+      const teammates = users.filter(u => u.id !== state.user?.id).slice(0, 6);
+      slots.innerHTML = teammates.map(u => {
+        const initial = (u.name || '?').slice(0, 1).toUpperCase();
+        const avatarInner = u.avatar_data_url
+          ? `<img src="${u.avatar_data_url}" alt="${escape(u.name)}" />`
+          : initial;
+        const avatarStyle = u.avatar_data_url
+          ? `background-image:url('${u.avatar_data_url}');background-size:cover;background-position:center;color:transparent;`
+          : '';
+        const firstName = (u.name || 'Teammate').split(' ')[0];
+        return `
+          <div class="story-ring story-unseen" style="display:inline-flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;cursor:pointer;vertical-align:top;">
+            <div class="story-avatar-ring story-unseen">
+              <div class="story-avatar-inner" style="${avatarStyle}">${avatarInner}</div>
+            </div>
+            <span class="story-name">${escape(firstName)}</span>
+          </div>`;
+      }).join('');
+      slots.style.display = 'contents';
+    } catch (_) { /* stories fail silently */ }
+  })();
 
   // Category chip clicks in composer
   document.querySelectorAll('#composer-category-select .category-chip').forEach((btn) => {
@@ -276,7 +319,19 @@ async function renderShiftLounge() {
 async function loadFeedPosts(silent = false) {
   const stream = $('#lounge-feed-stream');
   if (!stream) return;
-  if (!silent) stream.innerHTML = '<p class="muted" style="text-align:center;padding:24px;">Loading…</p>';
+  if (!silent) stream.innerHTML = Array(3).fill(0).map(() => `
+    <div class="skeleton-post-card">
+      <div class="skel-author-row">
+        <div class="skel-avatar skel-pulse"></div>
+        <div class="skel-text-block">
+          <div class="skel-line skel-pulse" style="width:62%"></div>
+          <div class="skel-line skel-pulse" style="width:40%;margin-top:7px"></div>
+        </div>
+      </div>
+      <div class="skel-line skel-pulse" style="width:100%;height:13px;margin:14px 0 8px"></div>
+      <div class="skel-line skel-pulse" style="width:88%"></div>
+      <div class="skel-line skel-pulse" style="width:70%;margin-top:8px"></div>
+    </div>`).join('');
 
   try {
     let posts;

@@ -866,7 +866,7 @@ label.checkbox input {
 /* Toast Notification */
 .toast {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -997,6 +997,11 @@ label.checkbox input {
 
 .dock-tab:active .dock-icon svg {
   transform: scale(0.92);
+}
+
+.dock-tab.active .dock-icon svg {
+  transform: scale(1.12);
+  stroke-width: 2.5;
 }
 
 /* Center Elevated Action Button (+ Post / Relay) */
@@ -1241,3 +1246,169 @@ label.checkbox input {
   color: var(--status-red-text);
 }
 
+
+/* ── Page Transition Fade-in ─────────────────────────────────────────────── */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.page-fade-in {
+  animation: pageFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Skeleton Loading Cards ──────────────────────────────────────────────── */
+.skeleton-post-card {
+  background: var(--bg-surface, #fff);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.skel-author-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.skel-avatar {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: #e2e8f0;
+}
+.skel-text-block { flex: 1; }
+.skel-line {
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 6px;
+}
+.skel-pulse {
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+@keyframes skeletonShimmer {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.42; }
+}
+
+/* ── Stories Bar (Lounge) ────────────────────────────────────────────────── */
+.stories-bar {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 2px 14px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  margin-bottom: 0;
+}
+.stories-bar::-webkit-scrollbar { display: none; }
+
+.story-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.story-avatar-ring {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, #0d524d 0%, #10b981 100%);
+  box-shadow: 0 2px 8px rgba(13,82,77,0.22);
+  transition: transform 0.15s ease;
+}
+.story-ring:hover .story-avatar-ring {
+  transform: scale(1.06);
+}
+.story-avatar-ring.story-self {
+  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+}
+.story-avatar-ring.story-unseen {
+  background: linear-gradient(135deg, #0d524d 0%, #10b981 100%);
+}
+.story-avatar-ring.story-seen {
+  background: #cbd5e1;
+}
+.story-avatar-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #134e4a 0%, #0d524d 100%);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 17px;
+  border: 2.5px solid #fff;
+  overflow: hidden;
+}
+.story-avatar-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.story-plus-ring .story-avatar-inner {
+  background: #f1f5f9;
+  color: #0d524d;
+}
+.story-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+  max-width: 62px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* ── Quick Actions Grid (Today dashboard) ───────────────────────────────── */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.quick-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 78px;
+  border: 1.5px solid var(--border-subtle, #e2e8f0);
+  border-radius: 14px;
+  background: var(--bg-surface, #fff);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16,1,0.3,1);
+  padding: 12px 6px 10px;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+.quick-action-btn:hover {
+  border-color: #0d524d;
+  color: #0d524d;
+  background: #f0fdf4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(13, 82, 77, 0.10);
+}
+.quick-action-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+.quick-action-btn svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}

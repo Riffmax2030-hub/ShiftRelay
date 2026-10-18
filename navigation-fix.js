@@ -86,6 +86,10 @@ go = async function(view) {
   // Update top header title
   updateDockHeader(view);
 
+  // Prep fade-in — remove class first so it can re-trigger on repeat taps
+  const dashboard = document.getElementById('dashboard');
+  if (dashboard) dashboard.classList.remove('page-fade-in');
+
   try {
     if (view === 'handover') await renderHandoverForm();
     else if (view === 'lounge') await renderShiftLounge();
@@ -101,6 +105,11 @@ go = async function(view) {
     else if (view === 'incidents') await renderIncidents();
     else if (view === 'settings') await renderSettings();
     else await renderDashboard();
+
+    // Trigger page fade-in after content is rendered
+    requestAnimationFrame(() => {
+      document.getElementById('dashboard')?.classList.add('page-fade-in');
+    });
   } catch (error) {
     $('#dashboard').innerHTML = `<p class="empty">${escape(error.message || 'Unable to load this page.')}</p>`;
   } finally {
@@ -313,7 +322,7 @@ renderDashboard = async function() {
         ${pinnedFeed}
 
         <!-- 3-Up Metric Overview -->
-        <div class="metric-grid metric-grid-compact" style="margin-bottom: 24px;">
+        <div class="metric-grid metric-grid-compact" style="margin-bottom: 16px;">
           <article class="metric">
             <span>Awaiting Review</span>
             <strong>${waiting}</strong>
@@ -326,6 +335,22 @@ renderDashboard = async function() {
             <span>Acknowledged</span>
             <strong style="color: #059669;">${acknowledged}</strong>
           </article>
+        </div>
+
+        <!-- Quick Actions Grid -->
+        <div class="quick-actions-grid">
+          <button class="quick-action-btn" data-go="handover">
+            ${Icons.zap()}<span>New Relay</span>
+          </button>
+          <button class="quick-action-btn" data-go="lounge">
+            ${Icons.comment()}<span>Shift Lounge</span>
+          </button>
+          <button class="quick-action-btn" data-go="passport">
+            ${Icons.verified()}<span>My Profile</span>
+          </button>
+          <button class="quick-action-btn" data-go="discover">
+            ${Icons.globe()}<span>Open Shifts</span>
+          </button>
         </div>
 
         <!-- Supervisor / Incoming Specific Focus -->
