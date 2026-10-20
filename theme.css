@@ -392,3 +392,303 @@ button.secondary:hover {
   border-color: #065f46 !important;
   color: #86efac !important;
 }
+
+
+/* ==========================================================================
+   COMPREHENSIVE DARK THEME — App Dashboard & All Remaining Surfaces
+   Added to ensure zero invisible text across the entire app in dark mode
+   ========================================================================== */
+
+/* --- App Header Bar --- */
+[data-theme="dark"] .app-header,
+[data-theme="dark"] #app-header {
+  background: rgba(17, 24, 39, 0.96) !important;
+  border-bottom-color: #1e293b !important;
+}
+
+[data-theme="dark"] .app-header-title,
+[data-theme="dark"] .app-header h1 {
+  color: #f8fafc !important;
+}
+
+/* --- Landing Page Hero --- */
+[data-theme="dark"] .landing-experience {
+  background: var(--bg-canvas) !important;
+}
+
+[data-theme="dark"] .landing-hero-visual {
+  background: linear-gradient(135deg, #111827 0%, #0f172a 100%) !important;
+}
+
+[data-theme="dark"] .hero-content h1,
+[data-theme="dark"] .hero-heading {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .hero-content p,
+[data-theme="dark"] .hero-subtext {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .landing-sticky-nav {
+  background: rgba(9, 13, 22, 0.95) !important;
+  border-bottom-color: #1e293b !important;
+}
+
+[data-theme="dark"] .brand-mark {
+  color: #f8fafc !important;
+}
+
+/* --- Access Panel (Login/Register forms) --- */
+[data-theme="dark"] .access-tab-strip {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .access-tab-btn {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .access-tab-btn.active {
+  background: #111827 !important;
+  color: #34d399 !important;
+}
+
+[data-theme="dark"] .form-label,
+[data-theme="dark"] label {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .form-help,
+[data-theme="dark"] .field-hint {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .telemetry-chip {
+  background: rgba(17, 24, 39, 0.9) !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+/* --- Dashboard Today Tab --- */
+[data-theme="dark"] #dashboard,
+[data-theme="dark"] .dashboard-inner {
+  background: var(--bg-canvas) !important;
+}
+
+[data-theme="dark"] .section-heading,
+[data-theme="dark"] .tab-section-title {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .section-label {
+  color: #64748b !important;
+}
+
+/* --- Handover Tab (Relay) --- */
+[data-theme="dark"] #relay-tab,
+[data-theme="dark"] .relay-view {
+  background: var(--bg-canvas) !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .handover-form-card {
+  background: #111827 !important;
+  border-color: #1e293b !important;
+}
+
+[data-theme="dark"] .relay-header h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .relay-header p {
+  color: #64748b !important;
+}
+
+/* --- Status Selector Pills --- */
+[data-theme="dark"] .status-option-label {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .status-option-label:hover {
+  border-color: #475569 !important;
+}
+
+/* --- Task Checklist Items --- */
+[data-theme="dark"] .task-item,
+[data-theme="dark"] .checklist-item {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .task-owner,
+[data-theme="dark"] .task-due {
+  color: #64748b !important;
+}
+
+/* --- Worker Profile (Me tab) --- */
+[data-theme="dark"] .me-view,
+[data-theme="dark"] #me-tab {
+  background: var(--bg-canvas) !important;
+}
+
+[data-theme="dark"] .profile-bio {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .credential-badge {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .skill-tag {
+  background: #062b28 !important;
+  border-color: #065f46 !important;
+  color: #6ee7b7 !important;
+}
+
+/* --- Modal & Dialog overlays --- */
+[data-theme="dark"] .modal-card,
+[data-theme="dark"] .dialog-card {
+  background: #111827 !important;
+  border-color: #1e293b !important;
+}
+
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .dialog-header {
+  border-bottom-color: #1e293b !important;
+}
+
+[data-theme="dark"] .modal-title,
+[data-theme="dark"] .dialog-title {
+  color: #f8fafc !important;
+}
+
+/* --- Notification / Alert Banners --- */
+[data-theme="dark"] .alert-banner {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+/* --- Tabs inside pages --- */
+[data-theme="dark"] .tab-row,
+[data-theme="dark"] .page-tab-strip {
+  border-bottom-color: #1e293b !important;
+}
+
+[data-theme="dark"] .page-tab-btn {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .page-tab-btn.active {
+  color: #34d399 !important;
+  border-bottom-color: #34d399 !important;
+}
+
+/* --- Scroll areas & lists --- */
+[data-theme="dark"] .scroll-list-item {
+  border-bottom-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .scroll-list-item:hover {
+  background: #1e293b !important;
+}
+
+/* --- Empty / Placeholder states --- */
+[data-theme="dark"] .empty-state {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .empty-state h3 {
+  color: #f8fafc !important;
+}
+
+/* --- Account Menu Dropdown --- */
+[data-theme="dark"] .account-menu {
+  background: #111827 !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme="dark"] .account-menu-item {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .account-menu-item:hover {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .account-menu-item svg {
+  stroke: #64748b !important;
+}
+
+[data-theme="dark"] .account-menu-item:hover svg {
+  stroke: #34d399 !important;
+}
+
+
+/* Role cards in demo drive */
+.role-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.role-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border-subtle);
+  background: var(--bg-surface);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.role-card:hover {
+  border-color: var(--brand-primary);
+  background: var(--bg-card-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.role-card:active {
+  transform: scale(0.98);
+}
+
+.role-card strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.role-card small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 1px;
+  text-transform: capitalize;
+}
+
+[data-theme="dark"] .role-card {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+[data-theme="dark"] .role-card:hover {
+  background: var(--bg-card-hover) !important;
+  border-color: var(--brand-primary) !important;
+}

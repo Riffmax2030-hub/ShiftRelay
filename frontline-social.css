@@ -2953,3 +2953,260 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
+/* ==========================================================================
+   DARK THEME OVERRIDES — Dock, Stories, Post Cards, Composer
+   Ensures all elements use CSS tokens in dark mode (WCAG AAA)
+   ========================================================================== */
+
+/* --- Dock Navigation --- */
+[data-theme="dark"] .frontline-dock {
+  background: rgba(17, 24, 39, 0.96) !important;
+  border-top-color: #1e293b !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .dock-tab {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .dock-tab.active {
+  color: #34d399 !important;
+}
+
+[data-theme="dark"] .dock-tab.active::after {
+  background: #34d399 !important;
+}
+
+[data-theme="dark"] .dock-compose-tab {
+  color: #34d399 !important;
+}
+
+[data-theme="dark"] .dock-compose-tab .dock-label {
+  color: #34d399 !important;
+}
+
+[data-theme="dark"] .dock-badge {
+  border-color: #111827 !important;
+}
+
+/* --- Stories bar --- */
+[data-theme="dark"] .story-name {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .story-plus-ring .story-avatar-ring {
+  background: linear-gradient(135deg, #1e293b, #334155) !important;
+  border-color: #475569 !important;
+}
+
+/* --- Lounge Post Cards --- */
+[data-theme="dark"] .lounge-post-card {
+  background: #111827 !important;
+  border-color: #1e293b !important;
+}
+
+[data-theme="dark"] .post-author-name {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .post-author-role,
+[data-theme="dark"] .post-timestamp {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .post-body {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .post-engagement-bar {
+  border-top-color: #1e293b !important;
+}
+
+[data-theme="dark"] .post-action-btn {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .post-action-btn:hover {
+  background: #1e293b !important;
+  color: #34d399 !important;
+}
+
+[data-theme="dark"] .post-action-btn.liked {
+  color: #f87171 !important;
+}
+
+[data-theme="dark"] .post-action-btn.saved {
+  color: #fbbf24 !important;
+}
+
+/* --- Comment Drawer --- */
+[data-theme="dark"] .comment-drawer {
+  background: #111827 !important;
+  border-color: #1e293b !important;
+}
+
+[data-theme="dark"] .comment-item {
+  background: #1e293b !important;
+}
+
+[data-theme="dark"] .comment-author-name {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .comment-text {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .comment-input-row input,
+[data-theme="dark"] .comment-input-row textarea {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+/* --- Post Composer --- */
+[data-theme="dark"] .compose-card,
+[data-theme="dark"] .composer-area {
+  background: #111827 !important;
+  border-color: #1e293b !important;
+}
+
+[data-theme="dark"] .compose-textarea,
+[data-theme="dark"] .compose-input {
+  background: transparent !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .compose-textarea::placeholder,
+[data-theme="dark"] .compose-input::placeholder {
+  color: #475569 !important;
+}
+
+[data-theme="dark"] .composer-tool-btn {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .composer-tool-btn:hover {
+  background: #334155 !important;
+  border-color: #475569 !important;
+}
+
+[data-theme="dark"] .composer-tool-btn svg {
+  stroke: #34d399 !important;
+}
+
+/* --- Discover Tab --- */
+[data-theme="dark"] .opportunity-card {
+  background: #111827 !important;
+  border-color: #1e293b !important;
+}
+
+[data-theme="dark"] .opportunity-card:hover {
+  border-color: #34d399 !important;
+  box-shadow: 0 4px 16px rgba(52, 211, 153, 0.12) !important;
+}
+
+[data-theme="dark"] .opp-body h4 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .opp-body p {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .opp-tag {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .discover-header h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .discover-header p {
+  color: #64748b !important;
+}
+
+/* --- Shift Swap Modal --- */
+[data-theme="dark"] .shift-swap-modal-card {
+  background: #111827 !important;
+}
+
+[data-theme="dark"] .swap-field-group select,
+[data-theme="dark"] .swap-field-group textarea,
+[data-theme="dark"] .swap-field-group input {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .swap-field-group label {
+  color: #94a3b8 !important;
+}
+
+/* --- Metric Cards (Today tab) --- */
+[data-theme="dark"] .metric-grid-compact .metric {
+  background: #111827 !important;
+  border-color: #1e293b !important;
+}
+
+[data-theme="dark"] .metric-grid-compact .metric strong {
+  color: #f8fafc !important;
+}
+
+/* --- Handover Cards --- */
+[data-theme="dark"] .pinned-handover-card {
+  background: #111827 !important;
+  border-color: #1e293b !important;
+}
+
+[data-theme="dark"] .handover-item,
+[data-theme="dark"] .handover-card {
+  background: #111827 !important;
+  border-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+/* --- Skeleton Loaders in dark mode --- */
+[data-theme="dark"] .skeleton-line,
+[data-theme="dark"] .skeleton-avatar {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%) !important;
+  background-size: 200% 100% !important;
+}
+
+/* --- Toast notification in dark mode --- */
+[data-theme="dark"] #toast {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* --- Me / Profile tab cover area --- */
+[data-theme="dark"] .passport-cover-bg {
+  border-bottom-color: #1e293b !important;
+}
+
+[data-theme="dark"] .passport-stats-card,
+[data-theme="dark"] .passport-skills-card,
+[data-theme="dark"] .passport-credentials-card {
+  background: #111827 !important;
+  border-color: #1e293b !important;
+}
+
+[data-theme="dark"] .passport-stats-card h3,
+[data-theme="dark"] .passport-skills-card h3,
+[data-theme="dark"] .passport-credentials-card h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .passport-stat-label {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .passport-stat-value {
+  color: #f8fafc !important;
+}

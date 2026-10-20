@@ -320,10 +320,10 @@ export const demoOrganisation = {
 };
 
 export const demoMembers = [
-  { id: '00000000-0000-4000-8000-000000000011', name: 'Amina Otieno', email: 'amina@shiftrelay.demo', role: 'outgoing', title: 'Operations worker', department: 'Operations' },
-  { id: '00000000-0000-4000-8000-000000000012', name: 'David Kariuki', email: 'david@shiftrelay.demo', role: 'supervisor', title: 'Shift supervisor', department: 'Operations' },
-  { id: '00000000-0000-4000-8000-000000000013', name: 'Faith Wanjiku', email: 'faith@shiftrelay.demo', role: 'incoming', title: 'Incoming worker', department: 'Operations' },
-  { id: '00000000-0000-4000-8000-000000000014', name: 'Jordan Lee', email: 'jordan@shiftrelay.demo', role: 'owner', title: 'Organisation owner', department: 'Leadership' }
+  { id: '00000000-0000-4000-8000-000000000011', name: 'Amina Otieno', email: 'amina@shiftrelay.demo', role: 'outgoing', title: 'Operations worker', department: 'Operations', avatar_data_url: '/uploads/avatars/avatar-amina.jpg', cover_photo_url: '/uploads/covers/cover-operations.jpg' },
+  { id: '00000000-0000-4000-8000-000000000012', name: 'David Kariuki', email: 'david@shiftrelay.demo', role: 'supervisor', title: 'Shift supervisor', department: 'Operations', avatar_data_url: '/uploads/avatars/avatar-david.jpg', cover_photo_url: '/uploads/covers/cover-supervisor.jpg' },
+  { id: '00000000-0000-4000-8000-000000000013', name: 'Faith Wanjiku', email: 'faith@shiftrelay.demo', role: 'incoming', title: 'Incoming worker', department: 'Operations', avatar_data_url: '/uploads/avatars/avatar-faith.jpg', cover_photo_url: '/uploads/covers/cover-logistics.jpg' },
+  { id: '00000000-0000-4000-8000-000000000014', name: 'Jordan Lee', email: 'jordan@shiftrelay.demo', role: 'owner', title: 'Organisation owner', department: 'Leadership', avatar_data_url: '/uploads/avatars/avatar-jordan.jpg', cover_photo_url: '/uploads/covers/cover-engineering.jpg' }
 ];
 
 export async function seedDemoOrganisation() {

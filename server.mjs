@@ -973,61 +973,138 @@ async function handleApi(request, response, url) {
       store.feedPosts = [
         {
           id: 'post-1',
-          author_id: 'mem-nurse',
-          author_name: 'Maria Santos, RN',
-          author_role: 'Triage Nurse',
+          author_id: '00000000-0000-4000-8000-000000000012',
+          author_name: 'David Kariuki',
+          author_role: 'Shift Supervisor · Operations',
+          author_avatar: '/uploads/avatars/avatar-david.jpg',
           author_verified: true,
-          organisation_name: 'St. Jude Healthcare',
+          organisation_name: 'ShiftRelay Global Ops',
           category: 'milestone',
-          content: 'Night shift handover complete! All patient vital charts updated and triage bays fully disinfected. Special shoutout to our outgoing nursing team for keeping cold chain meds at exact 3.5°C throughout the storm. 3/3 shift goals hit! Stay safe out there team.',
-          image_url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop&q=80',
-          likes_count: 28,
-          comments_count: 5,
-          reposts_count: 3,
-          saves_count: 7,
+          content: 'Big win for Team Delta tonight — 100% handover completion rate for the third consecutive week! Every relay was acknowledged before the next shift clocked in. This is what operational excellence looks like. Proud of this crew.',
+          image_url: '/uploads/feed/feed-triage-handover.jpg',
+          likes_count: 47,
+          comments_count: 6,
+          reposts_count: 9,
+          saves_count: 14,
           liked_by: [],
           saved_by: [],
           comments: [
-            { id: 'c-1', author_name: 'David Kariuki', author_role: 'Supervisor', content: 'Incredible work on the cold-chain response Maria!', created_at: new Date(now - 3600000).toISOString() }
+            { id: 'c-1-1', author_id: '00000000-0000-4000-8000-000000000011', author_name: 'Amina Otieno', author_role: 'Outgoing Ops', author_avatar: '/uploads/avatars/avatar-amina.jpg', content: 'We pushed hard this week. Thanks for recognising the team, David!', created_at: new Date(now - 1800000).toISOString() },
+            { id: 'c-1-2', author_id: '00000000-0000-4000-8000-000000000014', author_name: 'Jordan Lee', author_role: 'Organisation Owner', author_avatar: '/uploads/avatars/avatar-jordan.jpg', content: 'Outstanding performance. This is the standard we set from the top. Keep it going.', created_at: new Date(now - 900000).toISOString() }
+          ],
+          created_at: new Date(now - 3600000).toISOString()
+        },
+        {
+          id: 'post-2',
+          author_id: '00000000-0000-4000-8000-000000000011',
+          author_name: 'Amina Otieno',
+          author_role: 'Operations Specialist',
+          author_avatar: '/uploads/avatars/avatar-amina.jpg',
+          author_verified: true,
+          organisation_name: 'ShiftRelay Global Ops',
+          category: 'tip',
+          content: 'Shift tip from the floor: always do your handover brief BEFORE clocking out, not after. You think clearly when you are still in the zone. Walking out the door while dictating a handover is how critical details get missed. Log it while it is fresh. Your incoming teammate will thank you.',
+          image_url: null,
+          likes_count: 63,
+          comments_count: 11,
+          reposts_count: 22,
+          saves_count: 31,
+          liked_by: [],
+          saved_by: [],
+          comments: [
+            { id: 'c-2-1', author_id: '00000000-0000-4000-8000-000000000013', author_name: 'Faith Wanjiku', author_role: 'Incoming Specialist', author_avatar: '/uploads/avatars/avatar-faith.jpg', content: 'Yes! Nothing worse than getting a vague handover at shift start. Thank you for this reminder.', created_at: new Date(now - 5400000).toISOString() }
           ],
           created_at: new Date(now - 7200000).toISOString()
         },
         {
-          id: 'post-2',
-          author_id: 'mem-chef',
+          id: 'post-3',
+          author_id: 'demo-marcus',
           author_name: 'Marcus Brody',
           author_role: 'Kitchen Logistics Lead',
+          author_avatar: '/uploads/avatars/avatar-marcus.jpg',
           author_verified: true,
           organisation_name: 'Metro Culinary Hub',
           category: 'craft',
-          content: 'Prep ready for the evening rush: 140 portions of slow-braised short ribs and fresh chimichurri portioned and temp-checked. A clean station is a fast station. What is your team number one prep rule before doors open?',
-          image_url: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&auto=format&fit=crop&q=80',
-          likes_count: 45,
-          comments_count: 12,
+          content: 'Prep complete for the evening rush -- 140 portions of slow-braised short ribs and fresh chimichurri all portioned and temp-checked at exactly 3 degrees C. A clean station is a fast station. What is your team number one rule before the doors open?',
+          image_url: '/uploads/feed/feed-kitchen-prep.jpg',
+          likes_count: 89,
+          comments_count: 17,
+          reposts_count: 12,
+          saves_count: 28,
+          liked_by: [],
+          saved_by: [],
+          comments: [
+            { id: 'c-3-1', author_id: 'demo-zainab', author_name: 'Zainab Al-Rawi', author_role: 'F&B Supervisor', author_avatar: '/uploads/avatars/avatar-zainab.jpg', content: 'Mise en place is non-negotiable. Great work Marcus!', created_at: new Date(now - 10800000).toISOString() },
+            { id: 'c-3-2', author_id: 'demo-carlos', author_name: 'Carlos Reyes', author_role: 'Sous Chef', author_avatar: '/uploads/avatars/avatar-carlos.jpg', content: 'That chimichurri looks spotless. What herbs are you running this season?', created_at: new Date(now - 9000000).toISOString() }
+          ],
+          created_at: new Date(now - 14400000).toISOString()
+        },
+        {
+          id: 'post-4',
+          author_id: 'demo-kwame',
+          author_name: 'Kwame Mensah',
+          author_role: 'Dispatch Supervisor',
+          author_avatar: '/uploads/avatars/avatar-kwame.jpg',
+          author_verified: true,
+          organisation_name: 'Northline Logistics',
+          category: 'tip',
+          content: 'Pro tip for warehouse pickers: always inspect pallet wrap tension before loading high-bays. Our night crew saved 45 minutes of restacking because one worker caught a loose bottom layer before the reach truck moved it. Small checks, massive wins. Always log the near-misses in your handover!',
+          image_url: '/uploads/feed/feed-warehouse-safety.jpg',
+          likes_count: 54,
+          comments_count: 8,
+          reposts_count: 19,
+          saves_count: 33,
+          liked_by: [],
+          saved_by: [],
+          comments: [
+            { id: 'c-4-1', author_id: 'demo-carlos', author_name: 'Carlos Reyes', author_role: 'Logistics Lead', author_avatar: '/uploads/avatars/avatar-carlos.jpg', content: 'Near-miss logging is so underrated. It is the only way to prevent the real thing.', created_at: new Date(now - 21600000).toISOString() }
+          ],
+          created_at: new Date(now - 28800000).toISOString()
+        },
+        {
+          id: 'post-5',
+          author_id: '00000000-0000-4000-8000-000000000013',
+          author_name: 'Faith Wanjiku',
+          author_role: 'Incoming Shift Specialist',
+          author_avatar: '/uploads/avatars/avatar-faith.jpg',
+          author_verified: true,
+          organisation_name: 'ShiftRelay Global Ops',
+          category: 'milestone',
+          content: 'First solo shift as Incoming Lead and I hit every single checklist item. 7-day proof-of-work streak active! Grateful for the clean handover from Amina — gave me everything I needed to start confident. This app genuinely changes how teams communicate.',
+          image_url: null,
+          likes_count: 112,
+          comments_count: 14,
           reposts_count: 8,
           saves_count: 19,
           liked_by: [],
           saved_by: [],
-          comments: [],
-          created_at: new Date(now - 14400000).toISOString()
+          comments: [
+            { id: 'c-5-1', author_id: '00000000-0000-4000-8000-000000000011', author_name: 'Amina Otieno', author_role: 'Outgoing Ops', author_avatar: '/uploads/avatars/avatar-amina.jpg', content: 'You made it look easy Faith! Knew you would crush it.', created_at: new Date(now - 36000000).toISOString() },
+            { id: 'c-5-2', author_id: '00000000-0000-4000-8000-000000000012', author_name: 'David Kariuki', author_role: 'Shift Supervisor', author_avatar: '/uploads/avatars/avatar-david.jpg', content: '7-day streak on your first solo lead role. Massive. Well done.', created_at: new Date(now - 34200000).toISOString() }
+          ],
+          created_at: new Date(now - 43200000).toISOString()
         },
         {
-          id: 'post-3',
-          author_id: 'mem-kwame',
-          author_name: 'Kwame Mensah',
-          author_role: 'Dispatch Supervisor',
+          id: 'post-6',
+          author_id: 'demo-elena',
+          author_name: 'Elena Rostova',
+          author_role: 'Plant Maintenance Engineer',
+          author_avatar: '/uploads/avatars/avatar-elena.jpg',
           author_verified: true,
-          organisation_name: 'Northline Logistics',
-          category: 'tip',
-          content: 'Pro tip for warehouse pickers: always inspect your pallet wrap tension before loading high-bays. Saved our night team 45 minutes of restacking yesterday. Work smart, lift with your knees, and always log your handovers!',
-          likes_count: 34,
-          comments_count: 8,
+          organisation_name: 'Hartfield Industrial',
+          category: 'craft',
+          content: 'Night maintenance window complete. All 4 conveyor belt tension checks done, lubrication logs signed off, and the hydraulic leak on Line 3 is fully sealed with new O-ring kit. Morning crew will find everything tight and clean. Always leave the plant better than you found it.',
+          image_url: '/uploads/feed/feed-plant-machinery.jpg',
+          likes_count: 71,
+          comments_count: 6,
           reposts_count: 14,
           saves_count: 22,
           liked_by: [],
           saved_by: [],
-          comments: [],
-          created_at: new Date(now - 28800000).toISOString()
+          comments: [
+            { id: 'c-6-1', author_id: 'demo-kwame', author_name: 'Kwame Mensah', author_role: 'Dispatch Supervisor', author_avatar: '/uploads/avatars/avatar-kwame.jpg', content: 'That hydraulic seal on Line 3 has been causing issues for weeks. Nice fix Elena!', created_at: new Date(now - 50400000).toISOString() }
+          ],
+          created_at: new Date(now - 57600000).toISOString()
         }
       ];
       await saveStore(store);
@@ -1178,29 +1255,38 @@ async function handleApi(request, response, url) {
     const store = await getStore();
     if (!store.workerProfiles) store.workerProfiles = {};
     if (!store.workerProfiles[targetId]) {
-      const isNurse = user.name.toLowerCase().includes('maria') || user.title?.toLowerCase().includes('nurse');
-      const isChef = user.name.toLowerCase().includes('marcus') || user.title?.toLowerCase().includes('cook');
+      // Look up the demo member for avatar/cover
+      const demoPerson = users.find(u => u.id === targetId);
+      const avatarMap = {
+        '00000000-0000-4000-8000-000000000011': { avatar: '/uploads/avatars/avatar-amina.jpg', cover: '/uploads/covers/cover-operations.jpg', bio: 'Night shift operations veteran with 6 years of verified handover experience. Passionate about zero lost-context shifts, team accountability, and leaving every bay cleaner than I found it. Trail runner and community football coach on off days.', industry: 'Operations & Logistics', org: 'ShiftRelay Global Ops', skills: ['Shift Handover Protocol', 'Cold Chain Compliance', 'Incident Prevention', 'SOP Adherence', 'Team Communication'], stats: { shiftsCompleted: 312, handoversRelayed: 298, reliabilityScore: 99.1, checkInStreak: 14, endorsementsCount: 41 } },
+        '00000000-0000-4000-8000-000000000012': { avatar: '/uploads/avatars/avatar-david.jpg', cover: '/uploads/covers/cover-supervisor.jpg', bio: 'Shift Supervisor with 8+ years across multi-site operations. Specialise in handover quality, team escalation management, and zero-incident shift closures. Certified Lean Six Sigma Yellow Belt. Father of two, amateur chess player.', industry: 'Operations & Logistics', org: 'ShiftRelay Global Ops', skills: ['Shift Supervision', 'Escalation Management', 'Team Coaching', 'Lean Operations', 'Digital Handover Audit'], stats: { shiftsCompleted: 487, handoversRelayed: 463, reliabilityScore: 99.8, checkInStreak: 21, endorsementsCount: 78 } },
+        '00000000-0000-4000-8000-000000000013': { avatar: '/uploads/avatars/avatar-faith.jpg', cover: '/uploads/covers/cover-logistics.jpg', bio: 'New to the team but not new to the hustle. Incoming specialist with a track record of perfect first-day acknowledgements. Studying for my Advanced Handover Certification. Love hiking and building community gardens on weekends.', industry: 'Operations & Logistics', org: 'ShiftRelay Global Ops', skills: ['Incoming Brief Review', 'Checklist Execution', 'Workplace Safety', 'Digital Tools'], stats: { shiftsCompleted: 89, handoversRelayed: 84, reliabilityScore: 98.9, checkInStreak: 7, endorsementsCount: 22 } },
+        '00000000-0000-4000-8000-000000000014': { avatar: '/uploads/avatars/avatar-jordan.jpg', cover: '/uploads/covers/cover-engineering.jpg', bio: 'Organisation owner and frontline champion. Built ShiftRelay operations from 3 staff to 60+ verified shift workers across 4 sites. Believe deeply that every worker deserves to start their shift knowing exactly what happened before them.', industry: 'Multi-Site Operations', org: 'ShiftRelay Global Ops', skills: ['Organisation Management', 'Workforce Analytics', 'Process Design', 'Compliance Oversight', 'Talent Development'], stats: { shiftsCompleted: 0, handoversRelayed: 1203, reliabilityScore: 100, checkInStreak: 0, endorsementsCount: 134 } }
+      };
+      const personData = avatarMap[targetId] || {};
+      const targetUser = demoPerson || user;
       store.workerProfiles[targetId] = {
         userId: targetId,
-        fullName: user.id === targetId ? user.name : 'Frontline Specialist',
-        headline: user.id === targetId ? (user.title || 'Operations Specialist') : 'Operations Specialist',
-        bioOutsideWork: 'Passionate about team accountability and continuous craft improvement. Trail runner, coffee lover, and community volunteer on off-shift days.',
-        avatarUrl: null,
+        fullName: targetUser.name || 'Frontline Specialist',
+        headline: targetUser.title || 'Operations Specialist',
+        bioOutsideWork: personData.bio || 'Passionate about team accountability and continuous craft improvement. Trail runner, coffee lover, and community volunteer on off-shift days.',
+        avatarUrl: personData.avatar || (targetUser.avatar_data_url || null),
+        coverPhotoUrl: personData.cover || null,
         verifiedStatus: 'verified',
-        industry: isNurse ? 'Healthcare' : isChef ? 'Hospitality' : 'Operations & Logistics',
-        currentOrganisation: 'ShiftRelay Network Partner',
-        stats: {
+        industry: personData.industry || 'Operations & Logistics',
+        currentOrganisation: personData.org || 'ShiftRelay Network Partner',
+        stats: personData.stats || {
           shiftsCompleted: 148,
           handoversRelayed: 139,
           reliabilityScore: 99.4,
           checkInStreak: 7,
           endorsementsCount: 26
         },
-        skills: ['Shift Handover Protocol', 'Incident Prevention', 'Team Communication', 'Process Compliance'],
-        certifications: ['Frontline Safety Level 1', 'Accountable Handover Specialist'],
+        skills: personData.skills || ['Shift Handover Protocol', 'Incident Prevention', 'Team Communication', 'Process Compliance'],
+        certifications: ['ShiftRelay Accountable Handover Pro', 'Frontline Safety Level 1'],
         gallery: [
-          { id: 'g-1', url: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=600&auto=format&fit=crop&q=80', caption: 'Shift handoff complete.' },
-          { id: 'g-2', url: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600&auto=format&fit=crop&q=80', caption: 'Team huddle before opening.' }
+          { id: 'g-1', url: '/uploads/feed/feed-triage-handover.jpg', caption: 'Shift handoff complete.' },
+          { id: 'g-2', url: '/uploads/feed/feed-warehouse-safety.jpg', caption: 'Team huddle before opening.' }
         ]
       };
       await saveStore(store);

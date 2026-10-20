@@ -693,7 +693,9 @@ function renderPostCard(post) {
         <div class="comment-list" id="comment-list-${post.id}">
           ${(post.comments || []).map(c => `
             <div class="comment-bubble-item">
-              <div class="comment-author-avatar">${escape(c.author_name || 'W').slice(0, 1).toUpperCase()}</div>
+              <div class="comment-author-avatar" style="${c.author_avatar ? `background-image:url('${c.author_avatar}');background-size:cover;background-position:center;color:transparent;` : ''}">
+                ${c.author_avatar ? '' : escape(c.author_name || 'W').slice(0, 1).toUpperCase()}
+              </div>
               <div class="comment-bubble">
                 <div class="comment-author-name">${escape(c.author_name)}</div>
                 <div class="comment-text">${escape(c.content)}</div>
@@ -787,9 +789,10 @@ function bindSocialInteractions() {
       if (list) {
         const cName = escape(res.comment?.author_name || state.user?.name || 'Worker');
         const cInitial = cName.slice(0, 1).toUpperCase();
+        const cAvatar = state.user?.avatar_data_url || '';
         list.insertAdjacentHTML('beforeend', `
           <div class="comment-bubble-item">
-            <div class="comment-author-avatar">${cInitial}</div>
+            <div class="comment-author-avatar" style="${cAvatar ? `background-image:url('${cAvatar}');background-size:cover;background-position:center;color:transparent;` : ''}">${cAvatar ? '' : cInitial}</div>
             <div class="comment-bubble">
               <div class="comment-author-name">${cName}</div>
               <div class="comment-text">${escape(res.comment?.content || text)}</div>

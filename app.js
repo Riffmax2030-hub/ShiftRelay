@@ -101,15 +101,20 @@ function renderLogin(){
         <span class="badge" style="background:var(--brand-accent-subtle, rgba(16,185,129,0.1));color:var(--status-green-text, #065f46);border:1px solid var(--status-green-border, #a7f3d0);font-size:11px;font-weight:700;">Zero Password Needed</span>
       </div>
       <div class="role-cards" id="role-cards">
-        ${state.users.map((user)=>`
+        ${state.users.map((user)=>{
+          const avatarStyle = user.avatar_data_url
+            ? `background-image:url('${user.avatar_data_url}');background-size:cover;background-position:center;color:transparent;`
+            : '';
+          const initial = escape(user.name || 'U').slice(0,1).toUpperCase();
+          return `
           <button class="role-card" data-login="${user.id}" type="button" title="Sign in as ${escape(user.name)}">
-            <span class="role-icon">${roleIcon(user.role)}</span>
+            <span class="role-avatar" style="width:42px;height:42px;min-width:42px;border-radius:50%;display:grid;place-items:center;font-size:16px;font-weight:700;background:linear-gradient(135deg,#0d524d,#10b981);color:#fff;overflow:hidden;${avatarStyle}">${user.avatar_data_url ? '' : initial}</span>
             <span>
               <strong>${escape(user.name)}</strong>
               <small>${escape(user.title || user.role)}</small>
             </span>
-          </button>
-        `).join('')}
+          </button>`;
+        }).join('')}
       </div>
     </div>
   ` : '';
