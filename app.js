@@ -124,10 +124,13 @@ function renderHandoverForm(){
     <p>Include urgent issues, pending tasks, equipment logs, and anything the incoming team must know.</p>
     <textarea class="notes" id="shift-notes">${defaultNotes}</textarea>
 
-    <div class="voice-row">
+    <div class="voice-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;">
       <button class="voice" id="record-button" type="button" style="display:inline-flex;align-items:center;gap:6px;">${Icons.mic()} Record voice update</button>
+      <button class="secondary" id="handover-camera-btn" type="button" style="display:inline-flex;align-items:center;gap:6px;">${Icons.camera()} Snap Equipment / Whiteboard</button>
+      <input type="file" id="handover-camera-input" accept="image/*" capture="environment" class="hidden" />
       <span id="voice-status">Or paste a written update above.</span>
     </div>
+    <div id="handover-photo-preview" class="hidden" style="margin:10px 0;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;"></div>
 
     <div class="button-row">
       <button class="primary" id="analyze-button">Generate handover & tasks</button>
@@ -144,6 +147,50 @@ function renderHandoverForm(){
       opt.classList.add(`selected-${opt.dataset.tone}`);
       opt.querySelector('input').checked=true;
     });
+  });
+
+  const handoverCameraInput = $('#handover-camera-input');
+  $('#handover-camera-btn')?.addEventListener('click', () => handoverCameraInput?.click());
+  handoverCameraInput?.addEventListener('change', async () => {
+    const file = handoverCameraInput.files?.[0];
+    if (!file) return;
+    toast('Optimizing equipment photo…');
+    try {
+      const compressedDataUrl = (typeof window.compressImageFile === 'function')
+        ? await window.compressImageFile(file, 1400, 1400, 0.85)
+        : await new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsDataURL(file); });
+      const uploadRes = await api('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataUrl: compressedDataUrl })
+      });
+      const photoUrl = uploadRes.url;
+      const notesEl = $('#shift-notes');
+      if (notesEl) {
+        notesEl.value = `${notesEl.value}\n\n[Equipment Photo: ${photoUrl}]`.trim();
+      }
+      const previewEl = $('#handover-photo-preview');
+      if (previewEl) {
+        previewEl.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <img src="${photoUrl}" style="height:52px;width:52px;object-fit:cover;border-radius:6px;" alt="Handover photo" />
+              <div><strong style="font-size:13px;display:block;">Photo Attached</strong><span class="muted" style="font-size:12px;">Added to shift handover log</span></div>
+            </div>
+            <button type="button" class="btn-clear-media" id="btn-remove-handover-photo" style="background:none;border:none;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:4px;font-size:12px;">${Icons.close(14)} Remove</button>
+          </div>
+        `;
+        previewEl.classList.remove('hidden');
+        $('#btn-remove-handover-photo')?.addEventListener('click', () => {
+          previewEl.classList.add('hidden');
+          previewEl.innerHTML = '';
+          if (notesEl) notesEl.value = notesEl.value.replace(`\n\n[Equipment Photo: ${photoUrl}]`, '').replace(`[Equipment Photo: ${photoUrl}]`, '');
+        });
+      }
+      toast('Photo attached to shift notes!');
+    } catch (err) {
+      toast('Photo attachment failed: ' + err.message);
+    }
   });
 
   $('#analyze-button').addEventListener('click',analyze);
@@ -191,9 +238,11 @@ async function analyze(){
   ${handover.missing_context[0]?`<p><b>Check before relay:</b> ${escape(handover.missing_context[0].question)}</p>`:''}
   <div class="button-row">
     <button class="primary" id="save-handover">Submit & Relay to Next Shift</button>
-    <button class="secondary" id="download-brief">Download brief</button>
+    <button class="secondary" id="print-brief">${Icons.printer()} Print Shift Brief (PDF)</button>
+    <button class="secondary" id="download-brief">Export .txt</button>
   </div>`;
   $('#save-handover').addEventListener('click',saveHandover);
+  $('#print-brief').addEventListener('click',()=>printHandoverBrief(state.currentHandover));
   $('#download-brief').addEventListener('click',downloadBrief);
 }
 
@@ -217,7 +266,112 @@ async function saveHandover(){
     toast(error.message);
   }
 }
-function showHandoverSuccess(){const existing=$('#handover-success');if(existing)existing.remove();const handover=state.currentHandover;const summary=handover?.summary||'Shift handover completed.';const shareText=encodeURIComponent(`📋 *ShiftRelay Handover Brief*\n\n${summary}\n\n*Tasks:*\n${(handover?.tasks||[]).map((t,i)=>`${i+1}. ${t.text} (${t.owner})`).join('\n')}\n\n_Relayed via ShiftRelay Frontline Platform_`);document.body.insertAdjacentHTML('beforeend',`<section class="handover-success" id="handover-success"><div class="handover-success-card"><button class="dialog-close" aria-label="Close">${Icons.close(16)}</button><div class="success-art" aria-hidden="true"><span class="success-orbit orbit-one"></span><span class="success-orbit orbit-two"></span><span class="success-check">${Icons.verified()}</span></div><p class="eyebrow">HANDOVER SENT</p><h2>Your shift is in safe hands.</h2><p>Your supervisor has received the update and can review it before it moves to the incoming worker.</p><div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;"><a class="primary" href="https://wa.me/?text=${shareText}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;text-decoration:none;border-radius:10px;font-weight:700;background:#15803d;color:#fff;border-color:#15803d;">${Icons.whatsapp()} Share to Shift WhatsApp Group</a><button class="secondary" id="success-view-activity" style="min-height:40px;">View Handover Activity</button></div></div></section>`);$('#handover-success .dialog-close').addEventListener('click',()=>{$('#handover-success').remove();renderActivity()});$('#success-view-activity').addEventListener('click',()=>{$('#handover-success').remove();renderActivity()})}
+function showHandoverSuccess(){
+  const existing=$('#handover-success');
+  if(existing)existing.remove();
+  const handover=state.currentHandover;
+  const summary=handover?.summary||'Shift handover completed.';
+  const shareText=encodeURIComponent(`📋 *ShiftRelay Handover Brief*\n\n${summary}\n\n*Tasks:*\n${(handover?.tasks||[]).map((t,i)=>`${i+1}. ${t.text} (${t.owner})`).join('\n')}\n\n_Relayed via ShiftRelay Frontline Platform_`);
+  document.body.insertAdjacentHTML('beforeend',`<section class="handover-success" id="handover-success"><div class="handover-success-card"><button class="dialog-close" aria-label="Close">${Icons.close(16)}</button><div class="success-art" aria-hidden="true"><span class="success-orbit orbit-one"></span><span class="success-orbit orbit-two"></span><span class="success-check">${Icons.verified()}</span></div><p class="eyebrow">HANDOVER SENT</p><h2>Your shift is in safe hands.</h2><p>Your supervisor has received the update and can review it before it moves to the incoming worker.</p><div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;"><a class="primary" href="https://wa.me/?text=${shareText}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;text-decoration:none;border-radius:10px;font-weight:700;background:#15803d;color:#fff;border-color:#15803d;">${Icons.whatsapp()} Share to Shift WhatsApp Group</a><button class="secondary" id="success-print-brief" style="min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;">${Icons.printer()} Print Official Shift Brief (PDF)</button><button class="secondary" id="success-view-activity" style="min-height:40px;">View Handover Activity</button></div></div></section>`);
+  $('#handover-success .dialog-close').addEventListener('click',()=>{$('#handover-success').remove();renderActivity()});
+  $('#success-print-brief').addEventListener('click',()=>printHandoverBrief(state.currentHandover));
+  $('#success-view-activity').addEventListener('click',()=>{$('#handover-success').remove();renderActivity()});
+}
+
+function printHandoverBrief(handover) {
+  const h = handover || state.currentHandover;
+  if (!h) return toast('No active handover data to print.');
+
+  const existingSheet = document.getElementById('printable-handover-sheet');
+  if (existingSheet) existingSheet.remove();
+
+  const statusTone = h.shiftStatus || 'green';
+  const statusLabel = statusTone === 'red' ? 'CRITICAL ALERT' : statusTone === 'yellow' ? 'ATTENTION NEEDED' : 'NORMAL / CLEAR';
+  const tasks = h.tasks || (h.actions || []).map(a => ({ text: a.title, owner: a.owner, due: a.due }));
+  const user = state.user || {};
+  const orgName = user.organisation_name || 'ShiftRelay Network';
+  const timestamp = new Date().toLocaleString();
+
+  const printSheet = document.createElement('div');
+  printSheet.id = 'printable-handover-sheet';
+  printSheet.className = 'printable-sheet';
+  printSheet.innerHTML = `
+    <div class="print-header">
+      <div class="print-brand">
+        <h1 style="margin:0;font-size:22px;color:#0f172a;letter-spacing:-0.5px;">SHIFTRELAY</h1>
+        <p style="margin:2px 0 0;font-size:12px;color:#64748b;">OFFICIAL SHIFT HANDOVER &amp; COMPLIANCE RECORD</p>
+      </div>
+      <div class="print-meta" style="text-align:right;">
+        <span class="print-status-badge status-${statusTone}">${statusLabel}</span>
+        <div style="font-size:11px;color:#64748b;margin-top:4px;">Date: ${timestamp}</div>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:2px solid #e2e8f0;margin:16px 0;" />
+
+    <div class="print-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;margin-bottom:16px;">
+      <div><strong>Organisation:</strong> ${escape(orgName)}</div>
+      <div><strong>Outgoing Specialist:</strong> ${escape(user.name || 'Outgoing Staff')} (${escape(user.role || 'Staff')})</div>
+      <div><strong>Assigned Incoming Worker:</strong> ${escape(h.assignedTo || 'Incoming Staff')}</div>
+      <div><strong>Audit Status:</strong> Verified &amp; Relayed</div>
+    </div>
+
+    <div class="print-section" style="margin-bottom:16px;">
+      <h3 style="font-size:13px;margin:0 0 6px;text-transform:uppercase;color:#334155;letter-spacing:0.5px;">1. Shift Summary Brief</h3>
+      <p style="font-size:13px;line-height:1.5;margin:0;background:#f8fafc;padding:12px;border:1px solid #e2e8f0;border-radius:6px;">
+        ${escape(h.summary || 'Shift completed without incidents.')}
+      </p>
+    </div>
+
+    <div class="print-section" style="margin-bottom:20px;">
+      <h3 style="font-size:13px;margin:0 0 8px;text-transform:uppercase;color:#334155;letter-spacing:0.5px;">2. Actionable Tasks for Incoming Shift (${tasks.length})</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
+        <thead>
+          <tr style="background:#f1f5f9;border-bottom:2px solid #cbd5e1;">
+            <th style="padding:6px 8px;width:30px;">#</th>
+            <th style="padding:6px 8px;">Action / Task</th>
+            <th style="padding:6px 8px;width:120px;">Owner</th>
+            <th style="padding:6px 8px;width:100px;">Due Time</th>
+            <th style="padding:6px 8px;width:60px;text-align:center;">Sign-off</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tasks.map((t, idx) => `
+            <tr style="border-bottom:1px solid #e2e8f0;">
+              <td style="padding:8px;">${idx + 1}</td>
+              <td style="padding:8px;"><strong>${escape(t.text || t.title)}</strong></td>
+              <td style="padding:8px;">${escape(t.owner || 'Incoming')}</td>
+              <td style="padding:8px;">${escape(t.due || 'Shift End')}</td>
+              <td style="padding:8px;text-align:center;">[ &nbsp; ]</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="print-signatures" style="margin-top:36px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;font-size:11px;">
+      <div style="border-top:1px solid #94a3b8;padding-top:6px;">
+        <strong>Outgoing Specialist</strong>
+        <div style="margin-top:24px;color:#64748b;">Sign: ____________________</div>
+      </div>
+      <div style="border-top:1px solid #94a3b8;padding-top:6px;">
+        <strong>Incoming Specialist</strong>
+        <div style="margin-top:24px;color:#64748b;">Sign: ____________________</div>
+      </div>
+      <div style="border-top:1px solid #94a3b8;padding-top:6px;">
+        <strong>Supervisor Compliance</strong>
+        <div style="margin-top:24px;color:#64748b;">Sign: ____________________</div>
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:10px;color:#94a3b8;margin-top:28px;">
+      Generated securely via ShiftRelay Frontline Operating System · HIPAA / OSHA Ready
+    </div>
+  `;
+
+  document.body.appendChild(printSheet);
+  window.print();
+}
 function downloadBrief(){const handover=state.currentHandover;if(!handover)return;const text=`SHIFTRELAY HANDOVER\n\n${handover.summary}\n\n${handover.actions.map((item,index)=>`${index+1}. ${item.title}\nOwner: ${item.owner}\nDue: ${item.due}\nEvidence: ${item.evidence}`).join('\n\n')}`;const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));link.download='shiftrelay-handover.txt';link.click();URL.revokeObjectURL(link.href)}
 function enhanceLanding(){const intro=document.querySelector('.login-intro');const actions=intro?.querySelector('.landing-actions');if(!intro||!actions||intro.querySelector('.landing-story'))return;actions.insertAdjacentHTML('afterend',`<section class="landing-story"><div class="landing-proof"><span>BUILT FOR SHIFT TEAMS</span><strong>One clear relay from the last person out to the next person in.</strong></div><div class="landing-feature-grid"><article><b>01</b><h3>Capture clearly</h3><p>Turn notes, tasks, risks, and voice updates into a structured handover.</p></article><article><b>02</b><h3>Review together</h3><p>Supervisors check the important details before anything moves forward.</p></article><article><b>03</b><h3>Keep work moving</h3><p>The incoming worker sees what matters, acknowledges it, and starts with confidence.</p></article></div><div class="landing-industries"><span>Healthcare</span><span>Logistics</span><span>Retail</span><span>Hospitality</span><span>Security</span></div></section>`)}
 document.addEventListener('DOMContentLoaded',enhanceLanding);

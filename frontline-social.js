@@ -74,6 +74,7 @@ async function renderShiftLounge() {
         </div>
 
         <input type="file" id="composer-file-input" accept="image/*,video/*" class="hidden" />
+        <input type="file" id="composer-camera-input" accept="image/*" capture="environment" class="hidden" />
 
         <div id="composer-media-preview-container" class="composer-preview-box hidden">
           <div id="preview-content-wrapper" class="preview-content-wrapper"></div>
@@ -94,8 +95,14 @@ async function renderShiftLounge() {
         <!-- Composer Bottom Toolbar -->
         <div class="composer-toolbar">
           <div class="composer-attach-tools">
+            <button type="button" class="composer-tool-btn" id="btn-snap-camera" title="Snap photo with camera">
+              ${Icons.camera()} <span>Camera</span>
+            </button>
             <button type="button" class="composer-tool-btn" id="btn-attach-media" title="Add photo or video clip">
-              ${Icons.photo()} <span>Photo / Video</span>
+              ${Icons.photo()} <span>Media</span>
+            </button>
+            <button type="button" class="composer-tool-btn" id="btn-record-voice" title="Record shift voice dispatch">
+              <span id="voice-record-icon">${Icons.mic()}</span> <span id="voice-record-label">Voice Note</span>
             </button>
           </div>
 
@@ -143,6 +150,12 @@ async function renderShiftLounge() {
         <button class="feed-filter-pill ${socialState.activeLoungeTab === 'saved' ? 'active' : ''}" data-filter-type="saved">
           ${Icons.save()} Saved
         </button>
+      </div>
+
+      <!-- Pull to refresh indicator -->
+      <div id="lounge-pull-indicator" class="pull-refresh-indicator">
+        <span class="pull-refresh-icon">${Icons.refreshCw(16)}</span>
+        <span class="pull-refresh-label">Pull down to refresh feed</span>
       </div>
 
       <!-- Feed Stream -->
@@ -244,12 +257,108 @@ async function renderShiftLounge() {
     });
   });
 
-  // Media attachment
+  // Media attachment & Camera
   const fileInput = document.getElementById('composer-file-input');
+  const cameraInput = document.getElementById('composer-camera-input');
   const previewBox = document.getElementById('composer-media-preview-container');
   const previewWrapper = document.getElementById('preview-content-wrapper');
 
   $('#btn-attach-media')?.addEventListener('click', () => fileInput?.click());
+  $('#btn-snap-camera')?.addEventListener('click', () => cameraInput?.click());
+
+  // Camera snap handler
+  cameraInput?.addEventListener('change', async () => {
+    const file = cameraInput.files?.[0];
+    if (!file) return;
+    toast('Optimizing camera snap…');
+    try {
+      const compressedDataUrl = (typeof window.compressImageFile === 'function')
+        ? await window.compressImageFile(file, 1400, 1400, 0.85)
+        : await new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsDataURL(file); });
+      stagedMedia = { dataUrl: compressedDataUrl, mediaType: 'image', name: file.name || 'camera_snap.jpg' };
+      previewWrapper.innerHTML = `
+        <div class="preview-chip"><span class="preview-badge">Live Snap</span> <strong>Photo captured</strong> (Optimized)</div>
+        <img src="${compressedDataUrl}" style="max-height:160px;object-fit:cover;border-radius:6px;margin-top:8px;" />`;
+      previewBox?.classList.remove('hidden');
+      toast('Photo attached to post!');
+    } catch (err) {
+      toast('Camera snap failed: ' + err.message);
+    }
+  });
+
+  // Voice note recording
+  let voiceRecorder = null;
+  let voiceChunks = [];
+  let voiceSeconds = 0;
+  let voiceTimer = null;
+
+  const btnVoice = document.getElementById('btn-record-voice');
+  const voiceIcon = document.getElementById('voice-record-icon');
+  const voiceLabel = document.getElementById('voice-record-label');
+
+  function stopVoiceRecording() {
+    if (voiceTimer) { clearInterval(voiceTimer); voiceTimer = null; }
+    if (voiceRecorder && voiceRecorder.state === 'recording') {
+      voiceRecorder.stop();
+    }
+    btnVoice?.classList.remove('recording-pulse');
+    if (voiceIcon) voiceIcon.innerHTML = Icons.mic();
+    if (voiceLabel) voiceLabel.textContent = 'Voice Note';
+  }
+
+  btnVoice?.addEventListener('click', async () => {
+    if (voiceRecorder && voiceRecorder.state === 'recording') {
+      stopVoiceRecording();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceChunks = [];
+      voiceRecorder = new MediaRecorder(stream);
+      voiceSeconds = 0;
+
+      voiceRecorder.addEventListener('dataavailable', (e) => {
+        if (e.data && e.data.size > 0) voiceChunks.push(e.data);
+      });
+
+      voiceRecorder.addEventListener('stop', () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (!voiceChunks.length) return;
+        const mimeType = voiceRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(voiceChunks, { type: mimeType });
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target.result;
+          stagedMedia = { dataUrl, mediaType: 'audio', name: `Voice Note (${voiceSeconds}s)` };
+          previewWrapper.innerHTML = `
+            <div class="preview-chip"><span class="preview-badge">Voice Dispatch</span> <strong>Shift Voice Note (${voiceSeconds}s)</strong></div>
+            <audio src="${dataUrl}" controls style="width:100%;margin-top:8px;"></audio>`;
+          previewBox?.classList.remove('hidden');
+          toast('Voice note recorded and attached!');
+        };
+        reader.readAsDataURL(audioBlob);
+      });
+
+      voiceRecorder.start();
+      btnVoice?.classList.add('recording-pulse');
+      if (voiceIcon) voiceIcon.innerHTML = Icons.micStop(16);
+      if (voiceLabel) voiceLabel.textContent = 'Stop (0:00)';
+
+      voiceTimer = setInterval(() => {
+        voiceSeconds++;
+        const mins = Math.floor(voiceSeconds / 60);
+        const secs = String(voiceSeconds % 60).padStart(2, '0');
+        if (voiceLabel) voiceLabel.textContent = `Stop (${mins}:${secs})`;
+        if (voiceSeconds >= 60) {
+          stopVoiceRecording();
+          toast('Voice note reached 60s limit.');
+        }
+      }, 1000);
+    } catch (err) {
+      toast('Microphone access was not granted: ' + err.message);
+    }
+  });
 
   fileInput?.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
@@ -287,8 +396,10 @@ async function renderShiftLounge() {
   });
 
   $('#btn-clear-media')?.addEventListener('click', () => {
+    stopVoiceRecording();
     stagedMedia = null;
     if (fileInput) fileInput.value = '';
+    if (cameraInput) cameraInput.value = '';
     previewBox?.classList.add('hidden');
     if (previewWrapper) previewWrapper.innerHTML = '';
   });
@@ -318,13 +429,77 @@ async function renderShiftLounge() {
       await api('/api/feed/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: text, category, imageUrl, mediaType }) });
       toast('Post published to Shift Lounge!');
       $('#composer-text').value = '';
+      stopVoiceRecording();
       stagedMedia = null;
       if (fileInput) fileInput.value = '';
+      if (cameraInput) cameraInput.value = '';
       previewBox?.classList.add('hidden');
       if (previewWrapper) previewWrapper.innerHTML = '';
       loadFeedPosts();
     } catch (err) { toast(err.message); }
   });
+
+  // Pull-to-refresh gesture
+  const pullIndicator = document.getElementById('lounge-pull-indicator');
+  const feedStream = document.getElementById('lounge-feed-stream');
+  if (pullIndicator && feedStream) {
+    let startY = 0;
+    let currentY = 0;
+    let isPulling = false;
+    const pullIcon = pullIndicator.querySelector('.pull-refresh-icon');
+    const pullText = pullIndicator.querySelector('.pull-refresh-label');
+
+    window.addEventListener('touchstart', (e) => {
+      if (window.scrollY <= 5 && e.touches.length === 1) {
+        startY = e.touches[0].clientY;
+        isPulling = false;
+      } else {
+        startY = 0;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!startY) return;
+      currentY = e.touches[0].clientY;
+      const diff = currentY - startY;
+      if (diff > 12 && window.scrollY <= 5) {
+        isPulling = true;
+        const pullDist = Math.min(diff * 0.4, 72);
+        pullIndicator.style.height = `${pullDist}px`;
+        pullIndicator.style.opacity = Math.min(pullDist / 40, 1);
+        if (pullIcon) pullIcon.style.transform = `rotate(${pullDist * 5}deg)`;
+        if (pullText) pullText.textContent = pullDist >= 48 ? 'Release to refresh feed' : 'Pull down to refresh feed';
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', async () => {
+      if (!isPulling || !startY) {
+        startY = 0;
+        isPulling = false;
+        return;
+      }
+      const diff = currentY - startY;
+      startY = 0;
+      isPulling = false;
+      if (diff * 0.4 >= 48) {
+        pullIndicator.style.height = '44px';
+        pullIndicator.classList.add('pull-refreshing');
+        if (pullText) pullText.textContent = 'Updating feed…';
+        try {
+          await loadFeedPosts(true);
+          toast('Feed refreshed');
+        } catch (_) {}
+        setTimeout(() => {
+          pullIndicator.classList.remove('pull-refreshing');
+          pullIndicator.style.height = '0px';
+          pullIndicator.style.opacity = '0';
+        }, 350);
+      } else {
+        pullIndicator.style.height = '0px';
+        pullIndicator.style.opacity = '0';
+      }
+    }, { passive: true });
+  }
 
   // Category filter
   document.querySelectorAll('[data-feed-cat]').forEach((btn) => {
@@ -422,7 +597,8 @@ function renderPostCard(post) {
   const initial = escape(post.author_name || 'W').slice(0, 1).toUpperCase();
   const timeAgo = formatTimeAgo(post.created_at);
   const verifiedBadge = post.author_verified ? Icons.verified() : '';
-  const isVideo = post.media_type === 'video' || (post.image_url && (post.image_url.endsWith('.mp4') || post.image_url.endsWith('.webm')));
+  const isAudio = post.media_type === 'audio' || (post.image_url && (post.image_url.endsWith('.m4a') || post.image_url.endsWith('.ogg') || post.image_url.endsWith('.wav') || (post.image_url.endsWith('.webm') && post.media_type === 'audio')));
+  const isVideo = !isAudio && (post.media_type === 'video' || (post.image_url && (post.image_url.endsWith('.mp4') || post.image_url.endsWith('.webm'))));
   const avatarStyle = post.author_avatar ? `background-image:url('${post.author_avatar}');background-size:cover;background-position:center;color:transparent;` : '';
   const canDelete = post.author_id === state.user?.id || ['owner', 'supervisor'].includes(state.user?.role);
 
@@ -457,7 +633,23 @@ function renderPostCard(post) {
       <div class="post-body">${escape(post.content)}</div>
 
       <!-- Media Attachment -->
-      ${isVideo ? `
+      ${isAudio ? `
+        <div class="feed-audio-card" id="audio-card-${post.id}">
+          <button class="audio-play-toggle-btn" data-audio-post="${post.id}" aria-label="Play shift audio dispatch">
+            <span class="audio-play-icon" id="audio-icon-${post.id}">${Icons.play()}</span>
+          </button>
+          <div class="audio-track-body">
+            <div class="audio-track-header">
+              <span class="audio-label">${Icons.mic()} Voice Dispatch</span>
+              <span class="audio-timer" id="audio-time-${post.id}">0:00</span>
+            </div>
+            <div class="audio-progress-bar-wrap" data-audio-seek="${post.id}">
+              <div class="audio-progress-bar-fill" id="audio-fill-${post.id}" style="width: 0%"></div>
+            </div>
+          </div>
+          <audio id="audio-el-${post.id}" src="${escape(post.image_url)}" preload="metadata" class="hidden"></audio>
+        </div>
+      ` : isVideo ? `
         <div class="post-video-container">
           <video src="${escape(post.image_url)}" controls playsinline preload="metadata" class="feed-video-player"></video>
         </div>
@@ -667,6 +859,67 @@ function bindSocialInteractions() {
         );
       }
       lastTap = now;
+    });
+  });
+
+  // Inline Audio Play / Pause Toggle
+  document.querySelectorAll('.audio-play-toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const postId = btn.dataset.audioPost;
+      const audioEl = document.getElementById(`audio-el-${postId}`);
+      const iconSpan = document.getElementById(`audio-icon-${postId}`);
+      const fillBar = document.getElementById(`audio-fill-${postId}`);
+      const timeSpan = document.getElementById(`audio-time-${postId}`);
+      if (!audioEl) return;
+
+      if (audioEl.paused) {
+        // Pause any other playing audio on the page
+        document.querySelectorAll('audio').forEach(a => { if (a !== audioEl && !a.paused) a.pause(); });
+        document.querySelectorAll('.audio-play-icon').forEach(ic => { if (ic !== iconSpan) ic.innerHTML = Icons.play(); });
+
+        audioEl.play().catch(e => toast('Audio playback: ' + e.message));
+        if (iconSpan) iconSpan.innerHTML = Icons.pause();
+      } else {
+        audioEl.pause();
+        if (iconSpan) iconSpan.innerHTML = Icons.play();
+      }
+
+      if (!audioEl._hasAudioListeners) {
+        audioEl._hasAudioListeners = true;
+        audioEl.addEventListener('timeupdate', () => {
+          if (!audioEl.duration) return;
+          const pct = (audioEl.currentTime / audioEl.duration) * 100;
+          if (fillBar) fillBar.style.width = `${pct}%`;
+          if (timeSpan) {
+            const m = Math.floor(audioEl.currentTime / 60);
+            const s = String(Math.floor(audioEl.currentTime % 60)).padStart(2, '0');
+            timeSpan.textContent = `${m}:${s}`;
+          }
+        });
+
+        audioEl.addEventListener('ended', () => {
+          if (iconSpan) iconSpan.innerHTML = Icons.play();
+          if (fillBar) fillBar.style.width = '0%';
+          if (timeSpan) timeSpan.textContent = '0:00';
+        });
+
+        audioEl.addEventListener('pause', () => {
+          if (iconSpan) iconSpan.innerHTML = Icons.play();
+        });
+      }
+    });
+  });
+
+  // Audio scrub bar seeking
+  document.querySelectorAll('.audio-progress-bar-wrap').forEach((bar) => {
+    bar.addEventListener('click', (e) => {
+      const postId = bar.dataset.audioSeek;
+      const audioEl = document.getElementById(`audio-el-${postId}`);
+      if (!audioEl || !audioEl.duration) return;
+      const rect = bar.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const pct = Math.max(0, Math.min(1, clickX / rect.width));
+      audioEl.currentTime = pct * audioEl.duration;
     });
   });
 }

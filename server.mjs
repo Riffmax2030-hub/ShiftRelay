@@ -1062,7 +1062,7 @@ async function handleApi(request, response, url) {
       category: body.category || 'daily',
       content: body.content.trim(),
       image_url: body.imageUrl || null,
-      media_type: body.mediaType || (body.imageUrl && (body.imageUrl.endsWith('.mp4') || body.imageUrl.endsWith('.webm')) ? 'video' : body.imageUrl ? 'image' : null),
+      media_type: body.mediaType || (body.imageUrl && (body.imageUrl.endsWith('.mp4') || body.imageUrl.endsWith('.webm')) ? 'video' : body.imageUrl && (body.imageUrl.endsWith('.m4a') || body.imageUrl.endsWith('.ogg') || body.imageUrl.endsWith('.wav')) ? 'audio' : body.imageUrl ? 'image' : null),
       likes_count: 0,
       comments_count: 0,
       reposts_count: 0,
@@ -1424,14 +1424,15 @@ async function handleApi(request, response, url) {
       const base64Data = match[2];
       const isVideo = mime.startsWith('video/');
       const isImage = mime.startsWith('image/');
-      if (!isVideo && !isImage) return sendJson(response, 400, { error: 'Only images and videos are supported.' });
+      const isAudio = mime.startsWith('audio/');
+      if (!isVideo && !isImage && !isAudio) return sendJson(response, 400, { error: 'Only images, videos, and audio are supported.' });
       
-      const ext = mime === 'video/mp4' ? '.mp4' : mime === 'video/webm' ? '.webm' : mime === 'image/jpeg' ? '.jpg' : mime === 'image/webp' ? '.webp' : '.png';
+      const ext = mime === 'video/mp4' ? '.mp4' : mime === 'video/webm' ? '.webm' : mime === 'audio/webm' ? '.webm' : mime === 'audio/mp4' || mime === 'audio/m4a' ? '.m4a' : mime === 'audio/ogg' ? '.ogg' : mime === 'audio/wav' ? '.wav' : mime === 'image/jpeg' ? '.jpg' : mime === 'image/webp' ? '.webp' : '.png';
       const filename = `${crypto.randomUUID()}${ext}`;
       await mkdir(uploadsDirectory, { recursive: true });
       const filePath = join(uploadsDirectory, filename);
       await writeFile(filePath, Buffer.from(base64Data, 'base64'));
-      return sendJson(response, 201, { url: `/uploads/${filename}`, mediaType: isVideo ? 'video' : 'image' });
+      return sendJson(response, 201, { url: `/uploads/${filename}`, mediaType: isAudio ? 'audio' : isVideo ? 'video' : 'image' });
     } catch (err) {
       return sendJson(response, 500, { error: err.message || 'Upload failed.' });
     }
@@ -1448,8 +1449,8 @@ const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com; frame-ancestors 'none'",
+  'Permissions-Policy': 'camera=(self), microphone=(self), geolocation=()',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com; frame-ancestors 'none'",
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
 };
 
