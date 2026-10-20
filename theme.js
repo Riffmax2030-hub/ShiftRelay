@@ -83,13 +83,6 @@
       }
     });
 
-    // Auto-update buttons on any dynamic view re-render
-    const observer = new MutationObserver(() => {
-      const current = document.documentElement.dataset.theme || 'light';
-      updateThemeButtons(current);
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-
     // Watch OS color scheme changes if user hasn't explicitly set a preference
     if (window.matchMedia) {
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
