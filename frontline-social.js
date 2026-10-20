@@ -712,6 +712,7 @@ function bindSocialInteractions() {
   // Like
   document.querySelectorAll('[data-post-action="like"]').forEach((btn) => {
     btn.addEventListener('click', async () => {
+      window.SoundEngine?.play('like');
       const postId = btn.dataset.postId;
       const countSpan = btn.querySelector('.count');
       const isLiked = btn.classList.contains('active-like');
@@ -726,6 +727,7 @@ function bindSocialInteractions() {
   // Repost
   document.querySelectorAll('[data-post-action="repost"]').forEach((btn) => {
     btn.addEventListener('click', async () => {
+      window.SoundEngine?.play('confirm');
       const countSpan = btn.querySelector('.count');
       const current = parseInt(countSpan.textContent, 10) || 0;
       countSpan.textContent = current + 1;
@@ -737,6 +739,7 @@ function bindSocialInteractions() {
   // Save
   document.querySelectorAll('[data-post-action="save"]').forEach((btn) => {
     btn.addEventListener('click', async () => {
+      window.SoundEngine?.play('save');
       const postId = btn.dataset.postId;
       const countSpan = btn.querySelector('.count');
       const isSaved = btn.classList.contains('active-save');
@@ -1706,32 +1709,43 @@ function renderOpenShiftsGrid(shifts) {
 
   if (!shifts.length) {
     const opportunities = [
-      { org: 'City General Hospital', role: 'ICU Night Nurse', shift: 'Fri–Sun · 22:00–06:00', type: 'Overtime', pay: '+25% Rate', tags: ['Healthcare','Night','Critical Care'], urgency: 'urgent' },
-      { org: 'Metro Logistics Hub', role: 'Warehouse Lead', shift: 'Mon–Wed · 06:00–14:00', type: 'Cover', pay: 'Standard Rate', tags: ['Logistics','Morning','Forklift'], urgency: 'normal' },
-      { org: 'Grand Palace Hotel', role: 'F&B Supervisor', shift: 'Sat · 18:00–02:00', type: 'Trade', pay: '+15% Rate', tags: ['Hospitality','Evening'], urgency: 'normal' },
-      { org: 'Riverdale Care Home', role: 'Senior Carer', shift: 'Thu–Fri · 14:00–22:00', type: 'Cover', pay: 'Standard Rate', tags: ['Healthcare','Elderly Care'], urgency: 'normal' },
-      { org: 'FastPack Fulfilment', role: 'Packing Line Operator', shift: 'Tue · 06:00–18:00 (Long)', type: 'Overtime', pay: '+30% Rate', tags: ['Manufacturing','Day'], urgency: 'urgent' },
+      { org: 'Global AI Health Initiative', role: 'Clinical Triage AI Evaluator', shift: 'Flexible Hours · 10–20h/week', type: 'Remote AI Gig', pay: '$55–$75/hr', tags: ['Remote','AI Training','Healthcare','Flexible'], urgency: 'urgent', location: 'Global Remote' },
+      { org: 'Anthropic Frontline Partner', role: 'Industrial Logistics Data Annotator', shift: 'Project-based · Self-paced', type: 'Remote AI Gig', pay: '$40–$58/hr', tags: ['Remote','AI Training','Logistics','English'], urgency: 'urgent', location: 'Global Remote' },
+      { org: 'City General Hospital', role: 'ICU Night Nurse (Weekend Cover)', shift: 'Fri–Sun · 22:00–06:00', type: 'Local Shift', pay: '+25% Overtime', tags: ['Healthcare','Night','Critical Care'], urgency: 'urgent', location: 'On-Site' },
+      { org: 'DeepMind Safety Research', role: 'Engineering SOP & LOTO Multimodal Rater', shift: 'Weekend/Evening · 8–15h/wk', type: 'Remote AI Gig', pay: '$50–$70/hr', tags: ['Remote','AI Safety','Manufacturing'], urgency: 'normal', location: 'Global Remote' },
+      { org: 'Metro Logistics Hub', role: 'Warehouse Lead (Dock Cover)', shift: 'Mon–Wed · 06:00–14:00', type: 'Local Shift', pay: 'Standard Rate', tags: ['Logistics','Morning','Forklift'], urgency: 'normal', location: 'On-Site' },
+      { org: 'Open Frontier AI', role: 'Culinary & Recipe Workflow Reviewer', shift: 'Flexible · 5–10h/week', type: 'Remote AI Gig', pay: '$32–$45/hr', tags: ['Remote','AI Training','Hospitality'], urgency: 'normal', location: 'Global Remote' },
+      { org: 'FastPack Fulfilment', role: 'Packing Line Operator', shift: 'Tue · 06:00–18:00 (Surge)', type: 'Local Shift', pay: '+30% Overtime', tags: ['Manufacturing','Day'], urgency: 'urgent', location: 'On-Site' }
     ];
     grid.innerHTML = `
-      <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Featured Frontline Shifts</span>
-        <span class="opp-tag tag-green">Live Matches</span>
+      <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span style="font-size:12.5px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Global AI Training Gigs &amp; Shift Marketplace</span>
+        <div style="display:flex;gap:6px;">
+          <span class="opp-tag tag-blue" style="cursor:pointer;" id="filter-all-gigs">All (7)</span>
+          <span class="opp-tag tag-green" style="cursor:pointer;" id="filter-remote-ai">Remote AI (4)</span>
+          <span class="opp-tag" style="cursor:pointer;" id="filter-local-shifts">Local Shifts (3)</span>
+        </div>
       </div>
       <div class="discover-opportunities-list">
         ${opportunities.map(o => {
+          const isRemoteAI = o.type.includes('AI');
           const initials = o.org.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
           const urgencyTag = o.urgency === 'urgent' ? `<span class="opp-tag tag-green">Urgent</span>` : '';
-          const payTag = o.pay.includes('+') ? `<span class="opp-tag tag-blue">${escape(o.pay)}</span>` : `<span class="opp-tag">${escape(o.pay)}</span>`;
+          const payTag = `<span class="opp-tag tag-blue" style="font-weight:800;">${escape(o.pay)}</span>`;
+          const locTag = `<span class="opp-tag ${isRemoteAI ? 'tag-green' : ''}">${escape(o.location)}</span>`;
           return `
-            <div class="opportunity-card" data-opp-org="${escape(o.org)}" data-opp-role="${escape(o.role)}">
-              <div class="opp-org-logo">${escape(initials)}</div>
+            <div class="opportunity-card" data-opp-org="${escape(o.org)}" data-opp-role="${escape(o.role)}" data-is-remote="${isRemoteAI}">
+              <div class="opp-org-logo" style="${isRemoteAI ? 'background:linear-gradient(135deg,#2563eb,#06b6d4);' : ''}">${escape(initials)}</div>
               <div class="opp-body">
-                <h4>${escape(o.role)}</h4>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <h4>${escape(o.role)}</h4>
+                  ${locTag}
+                </div>
                 <p>${escape(o.org)} · ${escape(o.shift)}</p>
                 <div class="opp-tags">
                   ${urgencyTag}
                   ${payTag}
-                  <span class="opp-tag">${escape(o.type)}</span>
+                  <span class="opp-tag" style="font-weight:700;">${escape(o.type)}</span>
                   ${o.tags.map(t => `<span class="opp-tag">${escape(t)}</span>`).join('')}
                 </div>
               </div>
@@ -1740,11 +1754,24 @@ function renderOpenShiftsGrid(shifts) {
       </div>
     `;
 
+    // Filter toggles
+    const cards = grid.querySelectorAll('.opportunity-card');
+    document.getElementById('filter-all-gigs')?.addEventListener('click', () => {
+      cards.forEach(c => c.style.display = 'flex');
+    });
+    document.getElementById('filter-remote-ai')?.addEventListener('click', () => {
+      cards.forEach(c => c.style.display = c.dataset.isRemote === 'true' ? 'flex' : 'none');
+    });
+    document.getElementById('filter-local-shifts')?.addEventListener('click', () => {
+      cards.forEach(c => c.style.display = c.dataset.isRemote === 'false' ? 'flex' : 'none');
+    });
+
     grid.querySelectorAll('.opportunity-card').forEach(card => {
       card.addEventListener('click', () => {
+        window.SoundEngine?.play('save');
         const role = card.dataset.oppRole;
         const org = card.dataset.oppOrg;
-        toast(`Interest registered for ${role} at ${org}! Supervisor will review.`);
+        toast(`Application & Profile submitted for "${role}" at ${org}!`);
       });
     });
     return;

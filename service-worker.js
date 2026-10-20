@@ -1,10 +1,11 @@
-const CACHE = 'shiftrelay-v52';
+const CACHE = 'shiftrelay-v53';
 const ASSETS = [
   '/',
   '/index.html',
   '/styles.css',
   '/theme.css',
   '/theme.js',
+  '/alarm-engine.js',
   '/bento-ui.css',
   '/portal.css',
   '/approval.css',
