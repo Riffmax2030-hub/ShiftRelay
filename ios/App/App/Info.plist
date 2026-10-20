@@ -47,5 +47,13 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>ShiftRelay requires camera access to capture equipment photos, whiteboard logs, and shift handover visual evidence.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ShiftRelay requires microphone access to record shift voice dispatches and audio handover notes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ShiftRelay requires photo library access to attach shift images and documentation to handover reports.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>ShiftRelay requires photo library access to save shift handover briefs and credential certificates.</string>
 </dict>
 </plist>

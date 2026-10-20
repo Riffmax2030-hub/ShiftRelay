@@ -436,6 +436,17 @@ renderDashboard = async function() {
       });
     });
 
+    // Shift swap request buttons
+    document.querySelectorAll('[data-action="swap-request"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const summary = btn.dataset.summary || '';
+        if (typeof window.openShiftSwapModal === 'function') {
+          window.openShiftSwapModal(id, summary);
+        }
+      });
+    });
+
     bindNavigation();
   } catch (err) {
     $('#dashboard').innerHTML = `<p class="empty">${escape(err.message)}</p>`;

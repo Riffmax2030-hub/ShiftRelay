@@ -1115,6 +1115,7 @@
   gap: 16px;
   flex-wrap: wrap;
   margin-bottom: 24px;
+  padding-top: max(8px, env(safe-area-inset-top, 0px));
 }
 
 .heritage-badge {

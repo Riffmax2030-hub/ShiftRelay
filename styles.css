@@ -534,7 +534,7 @@ label.checkbox input {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 20px;
-  padding: 12px 0;
+  padding: max(12px, env(safe-area-inset-top, 12px)) max(16px, env(safe-area-inset-right, 16px)) 12px max(16px, env(safe-area-inset-left, 16px));
   border-bottom: 1px solid rgba(226, 232, 240, 0.85);
   position: sticky;
   top: 0;
