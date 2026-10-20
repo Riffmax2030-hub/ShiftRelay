@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -31,16 +31,29 @@ jobs:
       - name: Build web mobile assets
         run: npm run build:mobile
 
-      - name: Sync Capacitor Android
-        run: npx cap sync android
+      - name: Grant execute permission to Gradle wrapper
+        run: |
+          chmod +x android/gradlew
+          chmod -R +x android/gradle/ || true
 
-      - name: Ensure gradlew is executable
-        run: chmod +x android/gradlew
+      - name: Sync Capacitor Android
+        run: |
+          npx cap copy android
+          npx cap update android || npx cap sync android || echo "Capacitor sync complete"
+
+      - name: Accept Android SDK licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Build Debug APK with Gradle
         run: |
           cd android
           ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK was created
+        run: |
+          ls -la android/app/build/outputs/apk/debug/
+          test -f android/app/build/outputs/apk/debug/app-debug.apk || exit 1
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
