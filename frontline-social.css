@@ -2729,3 +2729,226 @@
     border-radius: 14px;
   }
 }
+
+/* ==========================================================================
+   DOCK BRIDGE — Makes existing .frontline-dock match new .bottom-dock design
+   ========================================================================== */
+.frontline-dock {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 900 !important;
+  height: 64px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-top: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.06) !important;
+  padding: 0 !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.dock-container {
+  display: flex !important;
+  align-items: stretch !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.dock-tab {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  padding: 8px 4px 6px !important;
+  min-height: 44px !important;
+  position: relative !important;
+  color: #94a3b8 !important;
+  transition: color 0.18s ease !important;
+  -webkit-tap-highlight-color: transparent !important;
+  border-radius: 0 !important;
+}
+
+.dock-tab:active {
+  background: rgba(15, 23, 42, 0.04) !important;
+}
+
+.dock-tab.active {
+  color: #0d524d !important;
+}
+
+.dock-icon svg,
+.dock-tab > svg {
+  width: 22px !important;
+  height: 22px !important;
+  stroke: currentColor !important;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  display: block !important;
+}
+
+.dock-tab.active .dock-icon svg,
+.dock-tab.active > svg {
+  transform: scale(1.12) !important;
+}
+
+.dock-label {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  line-height: 1 !important;
+  text-transform: capitalize !important;
+  color: currentColor !important;
+}
+
+/* Active pip indicator */
+.dock-tab.active::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 4px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 18px !important;
+  height: 3px !important;
+  background: #0d524d !important;
+  border-radius: 0 0 3px 3px !important;
+}
+
+/* Center Relay FAB button */
+.dock-compose-tab {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  padding: 6px 4px !important;
+  position: relative !important;
+  color: #0d524d !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.dock-compose-tab::after {
+  display: none !important;
+}
+
+.dock-compose-btn {
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, #0d524d 0%, #10b981 100%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 14px rgba(13, 82, 77, 0.35) !important;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease !important;
+  margin-bottom: 1px !important;
+}
+
+.dock-compose-tab:active .dock-compose-btn {
+  transform: scale(0.92) !important;
+  box-shadow: 0 2px 8px rgba(13, 82, 77, 0.25) !important;
+}
+
+.dock-compose-btn svg {
+  width: 22px !important;
+  height: 22px !important;
+  stroke: #ffffff !important;
+}
+
+.dock-compose-tab .dock-label {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: #0d524d !important;
+}
+
+/* Badge on dock tab */
+.dock-badge {
+  position: absolute !important;
+  top: 6px !important;
+  right: calc(50% - 18px) !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  background: #ef4444 !important;
+  color: #fff !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  border-radius: 99px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 4px !important;
+  border: 1.5px solid #fff !important;
+  pointer-events: none !important;
+}
+
+/* Main content bottom padding so dock doesn't overlap content */
+#dashboard,
+.app-content-area,
+.page-content {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* ==========================================================================
+   STORIES BAR BRIDGE — align existing story markup to new CSS
+   ========================================================================== */
+.story-avatar-ring {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  padding: 2.5px;
+  background: linear-gradient(135deg, #0d524d, #10b981, #34d399);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 8px rgba(13, 82, 77, 0.2);
+  transition: transform 0.18s ease;
+}
+
+.story-avatar-ring.story-seen {
+  background: linear-gradient(135deg, #cbd5e1, #e2e8f0) !important;
+  box-shadow: none !important;
+}
+
+.story-avatar-ring.story-unseen {
+  background: linear-gradient(135deg, #0d524d, #10b981, #34d399);
+}
+
+.story-ring {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 5px !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+
+.story-ring:active .story-avatar-ring {
+  transform: scale(0.94);
+}
+
+.story-plus-ring .story-avatar-ring {
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  box-shadow: none;
+  border: 2px dashed #94a3b8;
+}
+
+.story-name {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #334155;
+  text-align: center;
+  max-width: 58px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

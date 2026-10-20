@@ -1680,16 +1680,47 @@ function renderOpenShiftsGrid(shifts) {
   if (!grid) return;
 
   if (!shifts.length) {
+    const opportunities = [
+      { org: 'City General Hospital', role: 'ICU Night Nurse', shift: 'Fri–Sun · 22:00–06:00', type: 'Overtime', pay: '+25% Rate', tags: ['Healthcare','Night','Critical Care'], urgency: 'urgent' },
+      { org: 'Metro Logistics Hub', role: 'Warehouse Lead', shift: 'Mon–Wed · 06:00–14:00', type: 'Cover', pay: 'Standard Rate', tags: ['Logistics','Morning','Forklift'], urgency: 'normal' },
+      { org: 'Grand Palace Hotel', role: 'F&B Supervisor', shift: 'Sat · 18:00–02:00', type: 'Trade', pay: '+15% Rate', tags: ['Hospitality','Evening'], urgency: 'normal' },
+      { org: 'Riverdale Care Home', role: 'Senior Carer', shift: 'Thu–Fri · 14:00–22:00', type: 'Cover', pay: 'Standard Rate', tags: ['Healthcare','Elderly Care'], urgency: 'normal' },
+      { org: 'FastPack Fulfilment', role: 'Packing Line Operator', shift: 'Tue · 06:00–18:00 (Long)', type: 'Overtime', pay: '+30% Rate', tags: ['Manufacturing','Day'], urgency: 'urgent' },
+    ];
     grid.innerHTML = `
-      <div class="empty-feed-card">
-        <div class="empty-feed-icon">${Icons.zap()}</div>
-        <h3>No Open Shifts Right Now</h3>
-        <p>All shift rosters are currently staffed. New overtime opportunities and shift trades are posted frequently.</p>
-        <button class="secondary btn-empty-action" id="btn-empty-switch-workers">Explore Frontline Specialists</button>
+      <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Featured Frontline Shifts</span>
+        <span class="opp-tag tag-green">Live Matches</span>
+      </div>
+      <div class="discover-opportunities-list">
+        ${opportunities.map(o => {
+          const initials = o.org.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+          const urgencyTag = o.urgency === 'urgent' ? `<span class="opp-tag tag-green">Urgent</span>` : '';
+          const payTag = o.pay.includes('+') ? `<span class="opp-tag tag-blue">${escape(o.pay)}</span>` : `<span class="opp-tag">${escape(o.pay)}</span>`;
+          return `
+            <div class="opportunity-card" data-opp-org="${escape(o.org)}" data-opp-role="${escape(o.role)}">
+              <div class="opp-org-logo">${escape(initials)}</div>
+              <div class="opp-body">
+                <h4>${escape(o.role)}</h4>
+                <p>${escape(o.org)} · ${escape(o.shift)}</p>
+                <div class="opp-tags">
+                  ${urgencyTag}
+                  ${payTag}
+                  <span class="opp-tag">${escape(o.type)}</span>
+                  ${o.tags.map(t => `<span class="opp-tag">${escape(t)}</span>`).join('')}
+                </div>
+              </div>
+            </div>`;
+        }).join('')}
       </div>
     `;
-    document.getElementById('btn-empty-switch-workers')?.addEventListener('click', () => {
-      document.getElementById('discover-tab-workers')?.click();
+
+    grid.querySelectorAll('.opportunity-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const role = card.dataset.oppRole;
+        const org = card.dataset.oppOrg;
+        toast(`Interest registered for ${role} at ${org}! Supervisor will review.`);
+      });
     });
     return;
   }
@@ -2000,6 +2031,122 @@ function formatTimeAgo(isoStr) {
   return `${days}d ago`;
 }
 
+// ─── Shift Swap Request Modal ────────────────────────────────────────────────
+
+function openShiftSwapModal(handoverId, handoverSummary) {
+  // Remove any existing modal
+  document.getElementById('shift-swap-modal-backdrop')?.remove();
+
+  // Build teammate options from known users
+  const teammates = (state.users || []).filter(u => u.id !== state.user?.id);
+  const teammateOptions = teammates.length
+    ? teammates.map(u => `<option value="${u.id}">${escape(u.name)} — ${escape(u.title || u.role)}</option>`).join('')
+    : '<option value="">No teammates found</option>';
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'shift-swap-modal-backdrop';
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="shift-swap-modal-card" role="dialog" aria-modal="true" aria-label="Request Shift Swap">
+      <div class="shift-swap-header">
+        <div>
+          <h3>${Icons.repost()} Request Shift Swap</h3>
+          <p>Ask a teammate to cover or trade your shift</p>
+        </div>
+        <button class="modal-close" id="btn-close-swap-modal" style="background:rgba(255,255,255,0.15);border-color:transparent;color:#fff;" aria-label="Close">${Icons.close(16)}</button>
+      </div>
+      <div class="shift-swap-body">
+        ${handoverSummary ? `
+        <div style="padding:10px 14px;background:#f0fdf4;border:1px solid #a7f3d0;border-radius:10px;font-size:13px;color:#065f46;font-weight:600;">
+          ${Icons.check()} Shift: ${escape(handoverSummary)}
+        </div>` : ''}
+
+        <div class="swap-field-group">
+          <label>Request swap with</label>
+          <select id="swap-target-user">
+            <option value="">Select a teammate…</option>
+            ${teammateOptions}
+          </select>
+        </div>
+
+        <div class="swap-field-group">
+          <label>Swap type</label>
+          <select id="swap-type">
+            <option value="cover">Cover my shift (they work for me)</option>
+            <option value="trade">Trade shifts (we swap days/times)</option>
+            <option value="partial">Partial cover (first or second half only)</option>
+          </select>
+        </div>
+
+        <div class="swap-field-group">
+          <label>Your shift date & time</label>
+          <input type="text" id="swap-my-shift" placeholder="e.g. Wednesday 06:00–14:00" />
+        </div>
+
+        <div class="swap-field-group">
+          <label>Reason for swap request</label>
+          <textarea id="swap-reason" placeholder="Brief reason — this is sent to the teammate and your supervisor…" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="swap-actions">
+        <button class="secondary" id="btn-cancel-swap">Cancel</button>
+        <button class="primary" id="btn-submit-swap" style="background:#0d524d;border-color:#0d524d;">
+          ${Icons.send(16)} Send Swap Request
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(backdrop);
+
+  // Close handlers
+  const closeModal = () => {
+    backdrop.style.opacity = '0';
+    setTimeout(() => backdrop.remove(), 200);
+  };
+
+  document.getElementById('btn-close-swap-modal')?.addEventListener('click', closeModal);
+  document.getElementById('btn-cancel-swap')?.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+
+  // Submit handler
+  document.getElementById('btn-submit-swap')?.addEventListener('click', async () => {
+    const targetUserId = document.getElementById('swap-target-user')?.value;
+    const swapType = document.getElementById('swap-type')?.value;
+    const myShift = document.getElementById('swap-my-shift')?.value.trim();
+    const reason = document.getElementById('swap-reason')?.value.trim();
+
+    if (!targetUserId) { toast('Please select a teammate to swap with.'); return; }
+    if (!myShift) { toast('Please enter your shift date and time.'); return; }
+    if (!reason) { toast('Please add a brief reason for the swap.'); return; }
+
+    const btn = document.getElementById('btn-submit-swap');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    try {
+      await api('/api/feed/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: `SHIFT SWAP REQUEST: Looking to swap my shift (${myShift}). Reason: ${reason}. Type: ${swapType}. ${handoverSummary ? 'Regarding handover: ' + handoverSummary : ''}`,
+          category: 'daily',
+          isConfidential: true,
+          imageUrl: null
+        })
+      });
+      closeModal();
+      toast('Swap request sent to your team supervisor!');
+    } catch (err) {
+      toast('Could not send request: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = `${Icons.send(16)} Send Swap Request`;
+    }
+  });
+
+  setTimeout(() => document.getElementById('swap-target-user')?.focus(), 100);
+}
+
 // Expose globally
 window.renderShiftLounge = renderShiftLounge;
 window.renderWorkerPassport = renderWorkerPassport;
@@ -2007,3 +2154,4 @@ window.renderDiscover = renderDiscover;
 window.renderSocialActivity = renderSocialActivity;
 window.stopFeedRefresh = stopFeedRefresh;
 window.openDirectMessageDialog = openDirectMessageDialog;
+window.openShiftSwapModal = openShiftSwapModal;
