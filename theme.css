@@ -82,14 +82,14 @@ body[data-theme="light"] {
 :root[data-theme="dark"],
 html[data-theme="dark"],
 body[data-theme="dark"] {
-  /* Surfaces & Canvas (Dark Theme) */
-  --bg-canvas: #090d16;
-  --bg-surface: #111827;
-  --bg-surface-subtle: #1e293b;
-  --bg-surface-elevated: #1e293b;
-  --bg-card: #111827;
-  --bg-card-hover: #1e293b;
-  --bg-glass: rgba(17, 24, 39, 0.92);
+  /* Surfaces & Canvas (Dark Theme — Deep Blue / Navy, Soft & High Contrast) */
+  --bg-canvas: #0f172a;        /* Deep Navy Slate (not pitch black) */
+  --bg-surface: #1e293b;       /* Crisp Surface Slate */
+  --bg-surface-subtle: #24344d;/* Elevated / Subtle Layer */
+  --bg-surface-elevated: #283955;
+  --bg-card: #1e293b;
+  --bg-card-hover: #273752;
+  --bg-glass: rgba(30, 41, 59, 0.94);
 
   /* Typography Colors */
   --text-main: #f8fafc;       /* Slate 50 - Brilliant white */
@@ -128,10 +128,10 @@ body[data-theme="dark"] {
   --status-blue-border: #1e3a8a;
 
   /* Navigation Dock */
-  --dock-bg: rgba(17, 24, 39, 0.96);
-  --dock-border: #1e293b;
+  --dock-bg: rgba(30, 41, 59, 0.96);
+  --dock-border: #334155;
   --dock-active: #34d399;
-  --dock-inactive: #64748b;
+  --dock-inactive: #94a3b8;
 
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);

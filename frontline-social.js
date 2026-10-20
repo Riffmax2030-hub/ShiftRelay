@@ -1049,7 +1049,7 @@ window.openStoryViewer = openStoryViewer;
 // ─── Worker Passport ─────────────────────────────────────────────────────────
 
 async function renderWorkerPassport(targetUserId) {
-  dashboardHeader('Worker Passport', 'VERIFIED CAREER PROFILE');
+  dashboardHeader('Profile', 'YOUR PROFESSIONAL IDENTITY');
   const userId = targetUserId || state.user?.id;
 
   try {
@@ -1060,20 +1060,24 @@ async function renderWorkerPassport(targetUserId) {
     const isSelf = !targetUserId || targetUserId === state.user?.id;
     const initial = escape(profile.fullName || 'W').slice(0, 1).toUpperCase();
     const avatarStyle = profile.avatarUrl
-      ? `background-image:url('${profile.avatarUrl}');background-size:cover;color:transparent;`
+      ? `background-image:url('${profile.avatarUrl}');background-size:cover;background-position:center;color:transparent;`
       : '';
+    const coverPhoto = profile.coverPhotoUrl || (state.user?.role === 'supervisor' ? '/uploads/covers/cover-supervisor.jpg' : '/uploads/covers/cover-operations.jpg');
+    const coverStyle = `background-image:url('${coverPhoto}');`;
     const badgeStatus = badgeRes.request?.status;
     const verifiedStatusBadge = profile.verifiedStatus === 'verified'
-      ? `<span class="verified-status-badge verified">${Icons.verified()} Verified Worker</span>`
+      ? `<span class="verified-status-badge verified">${Icons.verified()} Verified Specialist</span>`
       : profile.verifiedStatus === 'pending' || badgeStatus === 'pending'
         ? `<span class="verified-status-badge pending">Verification Pending</span>`
-        : `<span class="verified-status-badge unverified">Not Verified</span>`;
+        : `<span class="verified-status-badge unverified">Standard Member</span>`;
 
     $('#dashboard').innerHTML = `
       <section class="passport-card">
-        <div class="passport-cover"></div>
+        <div class="passport-cover" id="passport-cover-banner" style="${coverStyle}" title="${isSelf ? 'Tap to view or change cover' : ''}"></div>
         <div class="passport-header-content">
-          <div class="passport-avatar-large" style="${avatarStyle}">${profile.avatarUrl ? '' : initial}</div>
+          <div class="passport-avatar-large" id="profile-main-avatar" style="${avatarStyle}" title="${isSelf ? 'Tap to view or change profile photo' : 'View profile photo'}">
+            ${profile.avatarUrl ? '' : initial}
+          </div>
           
           <div class="passport-name-row">
             <div>
@@ -1081,13 +1085,11 @@ async function renderWorkerPassport(targetUserId) {
               <p class="passport-headline">${escape(profile.headline)} · ${escape(profile.currentOrganisation || 'ShiftRelay Network')}</p>
               ${verifiedStatusBadge}
             </div>
-            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-              ${isSelf ? '<button class="secondary" id="btn-edit-passport" style="min-height:42px;">Edit Passport</button>' : ''}
-              ${isSelf ? '<button class="primary" id="btn-view-credential-self" style="min-height:42px;">Official Credential</button>' : ''}
-              ${!isSelf ? `<button class="primary" id="btn-offer-shift" data-worker-id="${userId}" data-worker-name="${escape(profile.fullName)}" style="min-height:42px;background:#059669;border-color:#059669;">Offer Shift / Hire</button>` : ''}
-              ${!isSelf ? `<button class="secondary" id="btn-view-credential-colleague" style="min-height:42px;">Verify Credential</button>` : ''}
-              ${!isSelf ? `<button class="secondary" id="btn-msg-colleague" data-worker-id="${userId}" data-worker-name="${escape(profile.fullName)}" style="min-height:42px;">Message Worker</button>` : ''}
-              ${isSelf && profile.verifiedStatus !== 'verified' && badgeStatus !== 'pending' ? '<button class="primary" id="btn-request-verified" style="min-height:42px;font-size:13px;">Request Verified Badge</button>' : ''}
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              ${isSelf ? '<button class="secondary" id="btn-edit-passport" style="min-height:38px;padding:6px 14px;font-size:13px;">Edit Profile</button>' : ''}
+              ${isSelf ? '<button class="primary" id="btn-view-credential-self" style="min-height:38px;padding:6px 14px;font-size:13px;">View Credential</button>' : ''}
+              ${!isSelf ? `<button class="primary" id="btn-offer-shift" data-worker-id="${userId}" data-worker-name="${escape(profile.fullName)}" style="min-height:38px;background:#059669;border-color:#059669;">Offer Shift</button>` : ''}
+              ${!isSelf ? `<button class="secondary" id="btn-msg-colleague" data-worker-id="${userId}" data-worker-name="${escape(profile.fullName)}" style="min-height:38px;">Message</button>` : ''}
             </div>
           </div>
 
@@ -1196,6 +1198,26 @@ async function renderWorkerPassport(targetUserId) {
     });
 
     $('#btn-edit-passport')?.addEventListener('click', () => openPassportEditDialog(profile));
+    
+    // View/Change Avatar Modal Trigger
+    $('#profile-main-avatar')?.addEventListener('click', () => {
+      openMediaLightboxModal({
+        title: 'Profile Photo',
+        imageUrl: profile.avatarUrl || '/uploads/avatars/avatar-amina.jpg',
+        canEdit: isSelf,
+        onEdit: () => openPassportEditDialog(profile)
+      });
+    });
+
+    // View/Change Cover Modal Trigger
+    $('#passport-cover-banner')?.addEventListener('click', () => {
+      openMediaLightboxModal({
+        title: 'Workplace Cover Banner',
+        imageUrl: profile.coverPhotoUrl || (state.user?.role === 'supervisor' ? '/uploads/covers/cover-supervisor.jpg' : '/uploads/covers/cover-operations.jpg'),
+        canEdit: isSelf,
+        onEdit: () => openPassportEditDialog(profile)
+      });
+    });
     $('#btn-request-verified')?.addEventListener('click', () => openVerifiedBadgeDialog());
     $('#btn-view-credential-self')?.addEventListener('click', () => openProofOfWorkCredentialDialog(profile));
     $('#btn-view-credential-colleague')?.addEventListener('click', () => openProofOfWorkCredentialDialog(profile));
@@ -2033,6 +2055,48 @@ function formatTimeAgo(isoStr) {
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
 }
+
+// ─── Photo Lightbox & Quick Edit Modal ──────────────────────────────────────
+
+function openMediaLightboxModal({ title, imageUrl, canEdit, onEdit }) {
+  document.getElementById('sr-lightbox-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'sr-lightbox-modal';
+  modal.className = 'modal-backdrop';
+  modal.innerHTML = `
+    <div class="shift-swap-modal-card" style="max-width:540px;overflow:hidden;border-radius:20px;background:var(--bg-surface);border:1px solid var(--border-subtle);" role="dialog">
+      <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-subtle);">
+        <h3 style="margin:0;font-size:16px;font-weight:700;color:var(--text-main);">${escape(title)}</h3>
+        <button id="btn-close-lightbox" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:6px;display:grid;place-items:center;">
+          ${Icons.close(18)}
+        </button>
+      </div>
+      <div style="padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);">
+        <img src="${imageUrl}" alt="${escape(title)}" style="max-width:100%;max-height:360px;object-fit:contain;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.4);" />
+      </div>
+      <div style="padding:14px 20px;display:flex;align-items:center;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-subtle);">
+        ${canEdit ? `
+          <button class="primary" id="btn-lightbox-edit" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-size:13px;font-weight:700;">
+            ✎ Change Photo
+          </button>
+        ` : ''}
+        <button class="secondary" id="btn-lightbox-dismiss" style="padding:8px 16px;font-size:13px;">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const close = () => modal.remove();
+  document.getElementById('btn-close-lightbox')?.addEventListener('click', close);
+  document.getElementById('btn-lightbox-dismiss')?.addEventListener('click', close);
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+
+  document.getElementById('btn-lightbox-edit')?.addEventListener('click', () => {
+    close();
+    onEdit?.();
+  });
+}
+window.openMediaLightboxModal = openMediaLightboxModal;
 
 // ─── Shift Swap Request Modal ────────────────────────────────────────────────
 

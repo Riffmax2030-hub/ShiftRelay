@@ -71,9 +71,9 @@
             <span class="badge-dot-live"></span>
             <span>Frontline Workforce Operating System</span>
           </div>
-          <h1 class="landing-hero-title">Eliminate Lost Shift Context. Empower Every Shift.</h1>
+          <h1 class="landing-hero-title">Frontline Operations. Zero Lost Shift Context.</h1>
           <p class="landing-hero-desc">
-            ShiftRelay connects frontline teams across healthcare, logistics, hospitality, and manufacturing. Seamless digital handovers, verified proof-of-work streaks, one-tap shift swaps, and an enterprise frontline social lounge.
+            The operating system and social career network designed for shift specialists. Digital handovers, verified proof-of-work streaks, one-tap shift swaps, and professional workforce identity.
           </p>
 
           <div class="landing-cta-row">
@@ -153,7 +153,7 @@
         <div class="landing-footer-inner">
           <div class="footer-brand-row">
             <a class="footer-brand" href="#"><img src="icon.svg" alt="" width="26" height="26" /><span>ShiftRelay</span></a>
-            <p class="footer-tagline">The frontline productivity engine for 2.7 billion shift specialists worldwide.</p>
+            <p class="footer-tagline">The frontline workforce operating system and social career network.</p>
           </div>
           <div class="footer-links-grid">
             <div class="footer-link-col">
@@ -170,16 +170,16 @@
             </div>
             <div class="footer-link-col">
               <h4>Industries</h4>
-              <span>Healthcare &amp; Triage</span>
-              <span>24/7 Logistics &amp; Warehousing</span>
-              <span>Manufacturing &amp; Plants</span>
-              <span>Hospitality &amp; Retail</span>
+              <a href="healthcare.html">Healthcare &amp; Triage</a>
+              <a href="logistics.html">24/7 Logistics &amp; Warehousing</a>
+              <a href="manufacturing.html">Manufacturing &amp; Plants</a>
+              <a href="hospitality.html">Hospitality &amp; Retail</a>
             </div>
             <div class="footer-link-col">
               <h4>Support &amp; Security</h4>
               <a href="mailto:support@shiftrelay.io">support@shiftrelay.io</a>
-              <span>256-bit Shift Encryption</span>
-              <span>HIPAA / GDPR Ready</span>
+              <a href="support-security.html">256-bit Shift Encryption</a>
+              <a href="support-security.html">HIPAA / GDPR Ready</a>
             </div>
           </div>
           <div class="footer-bottom-row">
@@ -219,9 +219,6 @@
             <h1 id="page-title">Today</h1>
           </div>
           <div class="header-actions">
-            <button class="theme-toggle-btn" id="header-theme-toggle" aria-label="Toggle dark mode" title="Toggle dark/light mode">
-              <span class="theme-icon-slot"></span>
-            </button>
             <button class="bell notification-trigger" id="notification-button" aria-label="Open notifications">
               <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
@@ -241,26 +238,24 @@
         <section id="dashboard"></section>
       </section>
 
-      <!-- ShiftRelay Native Bottom Dock — Today | Lounge | Relay | Discover | Passport -->
+      <!-- ShiftRelay Native Bottom Dock — Icons Only (Home | Lounge | Handover | Discover | Profile) -->
       <nav class="frontline-dock" aria-label="ShiftRelay primary navigation">
         <div class="dock-container">
 
-          <!-- TODAY — Shift command centre: clock-in status, daily metrics, handover feed -->
-          <button class="dock-tab active" data-go="dashboard" aria-label="Today — your shift">
+          <!-- HOME (former Today) -->
+          <button class="dock-tab active" data-go="dashboard" aria-label="Home — shift command" title="Home">
             <span class="dock-icon">
-              <!-- Shift clock / daily command icon -->
               <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9"/>
-                <polyline points="12 7 12 12 15.5 14.5"/>
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
             </span>
-            <span class="dock-label">Today</span>
+            <span class="dock-label">Home</span>
           </button>
 
-          <!-- LOUNGE — Shift Lounge: the frontline social feed, peer posts, open-shift notices -->
-          <button class="dock-tab" data-go="lounge" aria-label="Shift Lounge">
+          <!-- LOUNGE (frontline feed) -->
+          <button class="dock-tab" data-go="lounge" aria-label="Lounge — social feed" title="Lounge">
             <span class="dock-icon">
-              <!-- People / community icon -->
               <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
@@ -271,25 +266,21 @@
             <span class="dock-label">Lounge</span>
           </button>
 
-          <!-- RELAY — The core ShiftRelay action: submit a shift handover brief -->
-          <!-- Centre elevated floating action button branded with the relay double-arrow -->
-          <button class="dock-tab dock-compose-tab" data-go="handover" aria-label="New shift relay — submit handover">
+          <!-- HANDOVER (former Relay — Centre Action Button) -->
+          <button class="dock-tab dock-compose-tab" data-go="handover" aria-label="Handover brief" title="Handover">
             <span class="dock-compose-btn" aria-hidden="true">
-              <!-- ShiftRelay double-arrow relay icon -->
               <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 8h10a4 4 0 0 1 4 4v.5"/>
-                <polyline points="15 6 19 8 15 10"/>
-                <path d="M19 16H9a4 4 0 0 1-4-4v-.5"/>
-                <polyline points="9 18 5 16 9 14"/>
+                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                <polyline points="2 17 12 22 22 17"/>
+                <polyline points="2 12 12 17 22 12"/>
               </svg>
             </span>
-            <span class="dock-label">Relay</span>
+            <span class="dock-label">Handover</span>
           </button>
 
-          <!-- DISCOVER — Open shifts, talent network, workforce marketplace -->
-          <button class="dock-tab" data-go="discover" aria-label="Discover — open shifts and talent">
+          <!-- DISCOVER (shift opportunities & network) -->
+          <button class="dock-tab" data-go="discover" aria-label="Discover — shifts and network" title="Discover">
             <span class="dock-icon">
-              <!-- Compass / discover icon -->
               <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88"/>
@@ -298,11 +289,16 @@
             <span class="dock-label">Discover</span>
           </button>
 
-          <!-- ME — Personal profile: photo, bio, current position, experience, milestones -->
-          <button class="dock-tab" data-go="passport" aria-label="My profile — credentials and identity">
+          <!-- PROFILE (former Me / Passport) -->
+          <button class="dock-tab" data-go="passport" aria-label="Profile — credentials and identity" title="Profile">
             <span class="dock-icon">
-              <!-- Person silhouette / Me icon -->
               <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </span>
+            <span class="dock-label">Profile</span>
+          </button>
                 <circle cx="12" cy="8" r="4"/>
                 <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
               </svg>

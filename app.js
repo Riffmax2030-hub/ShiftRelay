@@ -12,8 +12,8 @@ function renderPortalTabs(activeTab) {
   return `
     <div class="portal-tab-strip" role="tablist" aria-label="Workplace access modes">
       <button type="button" role="tab" aria-selected="${activeTab==='signin'}" class="portal-tab-btn ${activeTab==='signin'?'active':''}" data-access="signin">Sign In</button>
-      <button type="button" role="tab" aria-selected="${activeTab==='register'}" class="portal-tab-btn ${activeTab==='register'?'active':''}" data-access="register">Create Workplace</button>
-      <button type="button" role="tab" aria-selected="${activeTab==='join'}" class="portal-tab-btn ${activeTab==='join'?'active':''}" data-access="join">Join with Code</button>
+      <button type="button" role="tab" aria-selected="${activeTab==='register'}" class="portal-tab-btn ${activeTab==='register'?'active':''}" data-access="register">Register Company / Admin</button>
+      <button type="button" role="tab" aria-selected="${activeTab==='join'}" class="portal-tab-btn ${activeTab==='join'?'active':''}" data-access="join">Join with Org ID</button>
     </div>
   `;
 }
@@ -45,7 +45,8 @@ function bindLandingActions() {
 
   getStartedBtn?.addEventListener('click', (e) => {
     e.preventDefault();
-    scrollToPortal('input[name="email"]');
+    renderOrganisationForm();
+    scrollToPortal('input[name="legalName"]');
   });
 
   navSignInBtn?.addEventListener('click', (e) => {
@@ -56,7 +57,8 @@ function bindLandingActions() {
 
   navStartBtn?.addEventListener('click', (e) => {
     e.preventDefault();
-    scrollToPortal('input[name="email"]');
+    renderOrganisationForm();
+    scrollToPortal('input[name="legalName"]');
   });
 
   demoBtn?.addEventListener('click', (e) => {
@@ -185,22 +187,35 @@ function renderOrganisationForm(){
   if (!panel) return;
   panel.innerHTML = `
     ${renderPortalTabs('register')}
-    <p class="eyebrow">CREATE A WORKPLACE</p>
-    <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Set up your ShiftRelay portal.</h2>
-    <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">Your organisation gets a unique 6-digit ID to share with approved workers.</p>
+    <p class="eyebrow">COMPANY &amp; SHIFT ADMIN REGISTRATION</p>
+    <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Register your organisation.</h2>
+    <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">Set up your workplace as Company Owner, Shift Supervisor, or Operations Manager. You'll receive a unique Company ID for your team.</p>
     <form class="access-form" id="organisation-form">
-      <label>Organisation legal name<input name="legalName" required placeholder="e.g. Metro General Hospital" /></label>
-      <label>Industry<select name="industry"><option>Healthcare</option><option>Logistics</option><option>Retail</option><option>Hospitality</option><option>Manufacturing</option><option>Other</option></select></label>
-      <label>Country or region<select name="countryCode" required><option value="">Select country</option>${countryOptions()}</select></label>
-      <label>Time zone<select name="timeZone" required>${timeZoneOptions()}</select></label>
-      <label>Your full name<input name="ownerName" required placeholder="e.g. Dr. Sarah Jenkins" /></label>
-      <label>Work email<input name="workEmail" type="email" required placeholder="s.jenkins@hospital.org" /></label>
-      <label>Create password<input name="password" type="password" minlength="10" required autocomplete="new-password" placeholder="At least 10 characters" /></label>
-      <label>Confirm password<input name="confirmPassword" type="password" minlength="10" required autocomplete="new-password" placeholder="Re-enter password" /></label>
-      <label class="checkbox"><input name="termsAccepted" type="checkbox" required /> I agree to the <a href="terms.html" class="terms-link-trigger" style="text-decoration: underline; color: inherit; font-weight: 700;">Terms of Service &amp; Workplace Confidentiality Agreement</a> (strict prohibition against sharing employer or client data publicly).</label>
-      <label class="checkbox"><input name="marketingOptIn" type="checkbox" /> I would like to receive product updates and helpful ShiftRelay emails.</label>
-      <div class="button-row" style="margin-top:10px;">
-        <button class="primary" type="submit" style="width:100%;justify-content:center;font-weight:700;">Create organisation</button>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;margin-bottom:8px;font-weight:700;">Your Administrative Role</label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;padding:10px;border:1px solid var(--border-medium);border-radius:8px;cursor:pointer;background:var(--bg-surface-subtle);font-size:13px;">
+            <input type="radio" name="adminRole" value="owner" checked /> Company Owner
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;padding:10px;border:1px solid var(--border-medium);border-radius:8px;cursor:pointer;background:var(--bg-surface-subtle);font-size:13px;">
+            <input type="radio" name="adminRole" value="supervisor" /> Shift Supervisor
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;padding:10px;border:1px solid var(--border-medium);border-radius:8px;cursor:pointer;background:var(--bg-surface-subtle);font-size:13px;">
+            <input type="radio" name="adminRole" value="manager" /> Operations Lead
+          </label>
+        </div>
+      </div>
+      <label>Company / Hospital / Facility name<input name="legalName" required placeholder="e.g. Metro General Hospital or Peak Logistics Ltd" /></label>
+      <label>Industry sector<select name="industry"><option value="Healthcare">Healthcare &amp; Clinical</option><option value="Logistics">Logistics &amp; Warehousing</option><option value="Manufacturing">Manufacturing &amp; Engineering</option><option value="Hospitality">Hospitality &amp; Culinary</option><option value="Retail">Retail &amp; Customer Ops</option><option value="Other">Other Frontline Service</option></select></label>
+      <label>Country<select name="countryCode" required><option value="">Select country</option>${countryOptions()}</select></label>
+      <label>Local time zone<select name="timeZone" required>${timeZoneOptions()}</select></label>
+      <label>Your full name<input name="ownerName" required placeholder="e.g. Sarah Jenkins" /></label>
+      <label>Your professional work email<input name="workEmail" type="email" required placeholder="s.jenkins@company.com" /></label>
+      <label>Create password<input name="password" type="password" minlength="8" required autocomplete="new-password" placeholder="At least 8 characters" /></label>
+      <label>Confirm password<input name="confirmPassword" type="password" minlength="8" required autocomplete="new-password" placeholder="Re-enter password" /></label>
+      <label class="checkbox"><input name="termsAccepted" type="checkbox" required /> I confirm this organisation and agree to ShiftRelay <a href="terms.html" class="terms-link-trigger" style="text-decoration: underline; color: inherit; font-weight: 700;">Terms &amp; Workplace Security Policy</a>.</label>
+      <div class="button-row" style="margin-top:14px;">
+        <button class="primary" type="submit" style="width:100%;justify-content:center;font-weight:700;font-size:15px;padding:12px;">Create Workplace &amp; Generate ID</button>
       </div>
     </form>
     <p class="form-message" id="form-message"></p>
@@ -214,21 +229,20 @@ function renderJoinForm(){
   if (!panel) return;
   panel.innerHTML = `
     ${renderPortalTabs('join')}
-    <p class="eyebrow">JOIN A WORKPLACE</p>
-    <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Use your organisation ID.</h2>
-    <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">Your request is sent to the owner or supervisor for approval before you can access work.</p>
+    <p class="eyebrow">JOIN EXISTING WORKPLACE</p>
+    <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Enter your Company ID.</h2>
+    <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">Provided by your shift supervisor or operations manager.</p>
     <form class="access-form" id="join-form">
-      <label>Organisation ID<input name="organisationCode" required placeholder="e.g. 246701" /></label>
-      <label>Full name<input name="fullName" required placeholder="e.g. Alex Morgan" /></label>
-      <label>Work email<input name="email" type="email" required placeholder="alex@company.com" /></label>
-      <label>Employee or staff number<input name="employeeReference" required placeholder="e.g. EMP-9921" /></label>
-      <label>Position at work<input name="position" required placeholder="e.g. ICU Night Nurse" /></label>
-      <label>Create password<input name="password" type="password" minlength="10" required autocomplete="new-password" placeholder="At least 10 characters" /></label>
-      <label>Confirm password<input name="confirmPassword" type="password" minlength="10" required autocomplete="new-password" placeholder="Re-enter password" /></label>
-      <label class="checkbox"><input name="termsAccepted" type="checkbox" required /> I agree to the <a href="terms.html" class="terms-link-trigger" style="text-decoration: underline; color: inherit; font-weight: 700;">Terms of Service &amp; Workplace Confidentiality Agreement</a> (strict prohibition against sharing employer or client data publicly).</label>
-      <label class="checkbox"><input name="marketingOptIn" type="checkbox" /> I would like to receive product updates and helpful ShiftRelay emails.</label>
-      <div class="button-row" style="margin-top:10px;">
-        <button class="primary" type="submit" style="width:100%;justify-content:center;font-weight:700;">Request access</button>
+      <label>Company / Organisation ID<input name="organisationCode" required placeholder="e.g. 246701" /></label>
+      <label>Your full name<input name="fullName" required placeholder="e.g. Alex Morgan" /></label>
+      <label>Work or personal email<input name="email" type="email" required placeholder="alex@workplace.com" /></label>
+      <label>Staff reference or badge ID<input name="employeeReference" required placeholder="e.g. EMP-9921" /></label>
+      <label>Position / Shift title<input name="position" required placeholder="e.g. ICU Night Specialist or Line Lead" /></label>
+      <label>Create password<input name="password" type="password" minlength="8" required autocomplete="new-password" placeholder="At least 8 characters" /></label>
+      <label>Confirm password<input name="confirmPassword" type="password" minlength="8" required autocomplete="new-password" placeholder="Re-enter password" /></label>
+      <label class="checkbox"><input name="termsAccepted" type="checkbox" required /> I agree to ShiftRelay <a href="terms.html" class="terms-link-trigger" style="text-decoration: underline; color: inherit; font-weight: 700;">Terms &amp; Workplace Security Policy</a>.</label>
+      <div class="button-row" style="margin-top:14px;">
+        <button class="primary" type="submit" style="width:100%;justify-content:center;font-weight:700;font-size:15px;padding:12px;">Request Access to Workplace</button>
       </div>
     </form>
     <p class="form-message" id="form-message"></p>
