@@ -1600,18 +1600,22 @@ function openShiftOfferDialog(workerId, workerName) {
 
 // ─── Discover / Worker Directory ─────────────────────────────────────────────
 
-async function renderDiscover(defaultTab = 'workers') {
-  dashboardHeader('Discover Opportunities', 'FRONTLINE NETWORK & SHIFTS');
+async function renderDiscover(defaultTab = 'shifts') {
+  dashboardHeader('Discover Opportunities', 'SHIFTS, JOBS & WORKFORCE NETWORK');
   $('#dashboard').innerHTML = `
     <section class="discover-container">
       <div class="discover-tab-row">
-        <button class="discover-sub-tab ${defaultTab === 'workers' ? 'active' : ''}" id="discover-tab-workers">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Frontline Professionals
-        </button>
         <button class="discover-sub-tab ${defaultTab === 'shifts' ? 'active' : ''}" id="discover-tab-shifts">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Open Shifts &amp; Overtime
+          Shifts
+        </button>
+        <button class="discover-sub-tab ${defaultTab === 'jobs' ? 'active' : ''}" id="discover-tab-jobs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          Jobs
+        </button>
+        <button class="discover-sub-tab ${defaultTab === 'workers' ? 'active' : ''}" id="discover-tab-workers">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Specialists
         </button>
       </div>
 
@@ -1620,10 +1624,10 @@ async function renderDiscover(defaultTab = 'workers') {
           <svg class="discover-search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
-          <input type="text" id="discover-search-input" placeholder="Search by name, role, facility, or skill…" class="discover-search-input" />
+          <input type="text" id="discover-search-input" placeholder="Search shifts, jobs, skills, or facilities…" class="discover-search-input" />
         </div>
       </div>
-      <div class="discover-filter-chips" id="discover-specialist-chips" style="display:flex;gap:8px;margin-bottom:18px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;">
+      <div class="discover-filter-chips" id="discover-specialist-chips" style="display:none;gap:8px;margin-bottom:18px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;">
         <button class="category-chip active" data-spec-filter="all">${Icons.globe()} <span>All Specialists</span></button>
         <button class="category-chip" data-spec-filter="healthcare">${Icons.award()} <span>Clinical &amp; Health</span></button>
         <button class="category-chip" data-spec-filter="logistics">${Icons.zap()} <span>Operations</span></button>
@@ -1655,27 +1659,41 @@ async function renderDiscover(defaultTab = 'workers') {
     const grid = document.getElementById('discover-content-grid');
     if (!grid) return;
     document.getElementById('discover-specialist-chips')?.style.setProperty('display', 'none');
-    grid.innerHTML = `<p class="muted" style="text-align:center;padding:32px;">Loading open shifts…</p>`;
+    grid.innerHTML = `<p class="muted" style="text-align:center;padding:32px;">Loading shifts…</p>`;
     try {
       const { shifts } = await api('/api/open-shifts');
-      renderOpenShiftsGrid(shifts || []);
+      renderShiftsPoolGrid(shifts || []);
     } catch (err) {
-      grid.innerHTML = `<p class="muted">${escape(err.message)}</p>`;
+      renderShiftsPoolGrid([]);
     }
   };
 
-  $('#discover-tab-workers')?.addEventListener('click', (e) => {
-    currentTab = 'workers';
-    document.querySelectorAll('.discover-sub-tab').forEach(b => b.classList.remove('active'));
-    e.currentTarget.classList.add('active');
-    loadWorkers();
-  });
+  const loadJobs = () => {
+    const grid = document.getElementById('discover-content-grid');
+    if (!grid) return;
+    document.getElementById('discover-specialist-chips')?.style.setProperty('display', 'none');
+    renderJobsGrid();
+  };
 
   $('#discover-tab-shifts')?.addEventListener('click', (e) => {
     currentTab = 'shifts';
     document.querySelectorAll('.discover-sub-tab').forEach(b => b.classList.remove('active'));
     e.currentTarget.classList.add('active');
     loadShifts();
+  });
+
+  $('#discover-tab-jobs')?.addEventListener('click', (e) => {
+    currentTab = 'jobs';
+    document.querySelectorAll('.discover-sub-tab').forEach(b => b.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+    loadJobs();
+  });
+
+  $('#discover-tab-workers')?.addEventListener('click', (e) => {
+    currentTab = 'workers';
+    document.querySelectorAll('.discover-sub-tab').forEach(b => b.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+    loadWorkers();
   });
 
   $('#discover-search-input')?.addEventListener('input', (e) => {
@@ -1694,88 +1712,144 @@ async function renderDiscover(defaultTab = 'workers') {
     });
   });
 
-  if (defaultTab === 'shifts') {
-    loadShifts();
-  } else {
+  if (defaultTab === 'jobs') {
+    loadJobs();
+  } else if (defaultTab === 'workers') {
     loadWorkers();
+  } else {
+    loadShifts();
   }
 
   bindNavigation();
 }
 
-function renderOpenShiftsGrid(shifts) {
+  bindNavigation();
+}
+
+function renderShiftsPoolGrid(shifts) {
   const grid = document.getElementById('discover-content-grid');
   if (!grid) return;
 
-  if (!shifts.length) {
-    const opportunities = [
-      { org: 'Global AI Health Initiative', role: 'Clinical Triage AI Evaluator', shift: 'Flexible Hours · 10–20h/week', type: 'Remote AI Gig', pay: '$55–$75/hr', tags: ['Remote','AI Training','Healthcare','Flexible'], urgency: 'urgent', location: 'Global Remote' },
-      { org: 'Anthropic Frontline Partner', role: 'Industrial Logistics Data Annotator', shift: 'Project-based · Self-paced', type: 'Remote AI Gig', pay: '$40–$58/hr', tags: ['Remote','AI Training','Logistics','English'], urgency: 'urgent', location: 'Global Remote' },
-      { org: 'City General Hospital', role: 'ICU Night Nurse (Weekend Cover)', shift: 'Fri–Sun · 22:00–06:00', type: 'Local Shift', pay: '+25% Overtime', tags: ['Healthcare','Night','Critical Care'], urgency: 'urgent', location: 'On-Site' },
-      { org: 'DeepMind Safety Research', role: 'Engineering SOP & LOTO Multimodal Rater', shift: 'Weekend/Evening · 8–15h/wk', type: 'Remote AI Gig', pay: '$50–$70/hr', tags: ['Remote','AI Safety','Manufacturing'], urgency: 'normal', location: 'Global Remote' },
-      { org: 'Metro Logistics Hub', role: 'Warehouse Lead (Dock Cover)', shift: 'Mon–Wed · 06:00–14:00', type: 'Local Shift', pay: 'Standard Rate', tags: ['Logistics','Morning','Forklift'], urgency: 'normal', location: 'On-Site' },
-      { org: 'Open Frontier AI', role: 'Culinary & Recipe Workflow Reviewer', shift: 'Flexible · 5–10h/week', type: 'Remote AI Gig', pay: '$32–$45/hr', tags: ['Remote','AI Training','Hospitality'], urgency: 'normal', location: 'Global Remote' },
-      { org: 'FastPack Fulfilment', role: 'Packing Line Operator', shift: 'Tue · 06:00–18:00 (Surge)', type: 'Local Shift', pay: '+30% Overtime', tags: ['Manufacturing','Day'], urgency: 'urgent', location: 'On-Site' }
-    ];
-    grid.innerHTML = `
-      <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <span style="font-size:12.5px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Global AI Training Gigs &amp; Shift Marketplace</span>
-        <div style="display:flex;gap:6px;">
-          <span class="opp-tag tag-blue" style="cursor:pointer;" id="filter-all-gigs">All (7)</span>
-          <span class="opp-tag tag-green" style="cursor:pointer;" id="filter-remote-ai">Remote AI (4)</span>
-          <span class="opp-tag" style="cursor:pointer;" id="filter-local-shifts">Local Shifts (3)</span>
-        </div>
-      </div>
-      <div class="discover-opportunities-list">
-        ${opportunities.map(o => {
-          const isRemoteAI = o.type.includes('AI');
-          const initials = o.org.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-          const urgencyTag = o.urgency === 'urgent' ? `<span class="opp-tag tag-green">Urgent</span>` : '';
-          const payTag = `<span class="opp-tag tag-blue" style="font-weight:800;">${escape(o.pay)}</span>`;
-          const locTag = `<span class="opp-tag ${isRemoteAI ? 'tag-green' : ''}">${escape(o.location)}</span>`;
-          return `
-            <div class="opportunity-card" data-opp-org="${escape(o.org)}" data-opp-role="${escape(o.role)}" data-is-remote="${isRemoteAI}">
-              <div class="opp-org-logo" style="${isRemoteAI ? 'background:linear-gradient(135deg,#2563eb,#06b6d4);' : ''}">${escape(initials)}</div>
-              <div class="opp-body">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                  <h4>${escape(o.role)}</h4>
-                  ${locTag}
-                </div>
-                <p>${escape(o.org)} · ${escape(o.shift)}</p>
-                <div class="opp-tags">
-                  ${urgencyTag}
-                  ${payTag}
-                  <span class="opp-tag" style="font-weight:700;">${escape(o.type)}</span>
-                  ${o.tags.map(t => `<span class="opp-tag">${escape(t)}</span>`).join('')}
-                </div>
+  const shiftPool = [
+    { org: 'City General Hospital', role: 'ICU Night Nurse (Weekend Cover)', shift: 'Fri–Sun · 22:00–06:00', type: 'Cover', pay: '+25% Overtime', tags: ['Healthcare','Night','Critical Care'], urgency: 'urgent', location: 'On-Site · Bay 4' },
+    { org: 'Metro Logistics Hub', role: 'Warehouse Lead (Dock Cover)', shift: 'Mon–Wed · 06:00–14:00', type: 'Swap', pay: 'Standard Rate', tags: ['Logistics','Morning','Forklift'], urgency: 'normal', location: 'On-Site · Dock B' },
+    { org: 'Grand Palace Hotel', role: 'F&B Dinner Supervisor', shift: 'Sat · 18:00–02:00', type: 'Overtime', pay: '+15% Rate', tags: ['Hospitality','Evening'], urgency: 'normal', location: 'On-Site · Floor 1' },
+    { org: 'Riverdale Care Home', role: 'Senior Carer (Day Turnover)', shift: 'Thu–Fri · 14:00–22:00', type: 'Cover', pay: 'Standard Rate', tags: ['Healthcare','Elderly Care'], urgency: 'normal', location: 'On-Site · Ward A' },
+    { org: 'FastPack Fulfilment', role: 'Packing Line Operator', shift: 'Tue · 06:00–18:00 (Surge)', type: 'Overtime', pay: '+30% Overtime', tags: ['Manufacturing','Day'], urgency: 'urgent', location: 'On-Site · Line 3' }
+  ];
+
+  grid.innerHTML = `
+    <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <span style="font-size:12.5px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Active Shift Pool &amp; Open Overtime</span>
+      <span class="opp-tag tag-green">${shiftPool.length} Shifts Available</span>
+    </div>
+    <div class="discover-opportunities-list">
+      ${shiftPool.map(o => {
+        const initials = o.org.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+        const urgencyTag = o.urgency === 'urgent' ? `<span class="opp-tag tag-green">Urgent</span>` : '';
+        const payTag = `<span class="opp-tag tag-blue" style="font-weight:800;">${escape(o.pay)}</span>`;
+        return `
+          <div class="opportunity-card" data-opp-org="${escape(o.org)}" data-opp-role="${escape(o.role)}">
+            <div class="opp-org-logo">${escape(initials)}</div>
+            <div class="opp-body">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <h4>${escape(o.role)}</h4>
+                <span class="opp-tag">${escape(o.location)}</span>
               </div>
-            </div>`;
-        }).join('')}
+              <p>${escape(o.org)} · ${escape(o.shift)}</p>
+              <div class="opp-tags">
+                ${urgencyTag}
+                ${payTag}
+                <span class="opp-tag" style="font-weight:700;">${escape(o.type)}</span>
+                ${o.tags.map(t => `<span class="opp-tag">${escape(t)}</span>`).join('')}
+              </div>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>
+  `;
+
+  grid.querySelectorAll('.opportunity-card').forEach(card => {
+    card.addEventListener('click', () => {
+      window.SoundEngine?.play('save');
+      const role = card.dataset.oppRole;
+      const org = card.dataset.oppOrg;
+      toast(`Shift claimed: Registered interest for "${role}" at ${org}!`);
+    });
+  });
+}
+
+function renderJobsGrid() {
+  const grid = document.getElementById('discover-content-grid');
+  if (!grid) return;
+
+  const jobs = [
+    { org: 'Global AI Health Initiative', role: 'Clinical Triage AI Evaluator', schedule: 'Flexible Hours · 10–20h/week', type: 'Remote AI Job', pay: '$55–$75/hr', tags: ['Remote','AI Training','Healthcare','Clinical'], urgency: 'urgent', location: 'Global Remote', category: 'remote-ai' },
+    { org: 'Anthropic Frontline Partner', role: 'Industrial Logistics Data Annotator', schedule: 'Project-based · Self-paced', type: 'Remote AI Job', pay: '$40–$58/hr', tags: ['Remote','AI Training','Logistics','English'], urgency: 'urgent', location: 'Global Remote', category: 'remote-ai' },
+    { org: 'DeepMind Safety Research', role: 'Engineering SOP & LOTO Multimodal Rater', schedule: 'Weekend/Evening · 8–15h/wk', type: 'Remote AI Job', pay: '$50–$70/hr', tags: ['Remote','AI Safety','Manufacturing'], urgency: 'normal', location: 'Global Remote', category: 'remote-ai' },
+    { org: 'Open Frontier AI', role: 'Culinary & Recipe Workflow Reviewer', schedule: 'Flexible · 5–10h/week', type: 'Remote AI Job', pay: '$32–$45/hr', tags: ['Remote','AI Training','Hospitality'], urgency: 'normal', location: 'Global Remote', category: 'remote-ai' },
+    { org: 'Regional Health Network', role: 'Permanent Ward Operations Lead', schedule: 'Full-time · 40h/week', type: 'General Job', pay: '$85,000/yr', tags: ['Permanent','Operations','Management'], urgency: 'normal', location: 'Regional HQ', category: 'general' },
+    { org: 'Apex Industrial Logistics', role: 'Fleet & Safety Compliance Officer', schedule: 'Full-time · Rotating Shift', type: 'General Job', pay: '$68,000/yr', tags: ['Safety','Logistics','Inspection'], urgency: 'normal', location: 'Main Terminal', category: 'general' }
+  ];
+
+  grid.innerHTML = `
+    <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <span style="font-size:12.5px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Career Opportunities &amp; Remote AI Jobs</span>
+      <div style="display:flex;gap:6px;">
+        <span class="opp-tag tag-blue" style="cursor:pointer;" id="filter-all-jobs">All Jobs (${jobs.length})</span>
+        <span class="opp-tag tag-green" style="cursor:pointer;" id="filter-remote-ai-jobs">Remote AI (4)</span>
+        <span class="opp-tag" style="cursor:pointer;" id="filter-general-jobs">General Jobs (2)</span>
       </div>
-    `;
+    </div>
+    <div class="discover-opportunities-list">
+      ${jobs.map(o => {
+        const isRemoteAI = o.category === 'remote-ai';
+        const initials = o.org.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+        const urgencyTag = o.urgency === 'urgent' ? `<span class="opp-tag tag-green">Urgent</span>` : '';
+        const payTag = `<span class="opp-tag tag-blue" style="font-weight:800;">${escape(o.pay)}</span>`;
+        const locTag = `<span class="opp-tag ${isRemoteAI ? 'tag-green' : ''}">${escape(o.location)}</span>`;
+        return `
+          <div class="opportunity-card" data-opp-org="${escape(o.org)}" data-opp-role="${escape(o.role)}" data-job-category="${o.category}">
+            <div class="opp-org-logo" style="${isRemoteAI ? 'background:linear-gradient(135deg,#2563eb,#06b6d4);' : ''}">${escape(initials)}</div>
+            <div class="opp-body">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <h4>${escape(o.role)}</h4>
+                ${locTag}
+              </div>
+              <p>${escape(o.org)} · ${escape(o.schedule)}</p>
+              <div class="opp-tags">
+                ${urgencyTag}
+                ${payTag}
+                <span class="opp-tag" style="font-weight:700;">${escape(o.type)}</span>
+                ${o.tags.map(t => `<span class="opp-tag">${escape(t)}</span>`).join('')}
+              </div>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>
+  `;
 
-    // Filter toggles
-    const cards = grid.querySelectorAll('.opportunity-card');
-    document.getElementById('filter-all-gigs')?.addEventListener('click', () => {
-      cards.forEach(c => c.style.display = 'flex');
-    });
-    document.getElementById('filter-remote-ai')?.addEventListener('click', () => {
-      cards.forEach(c => c.style.display = c.dataset.isRemote === 'true' ? 'flex' : 'none');
-    });
-    document.getElementById('filter-local-shifts')?.addEventListener('click', () => {
-      cards.forEach(c => c.style.display = c.dataset.isRemote === 'false' ? 'flex' : 'none');
-    });
+  // Filters
+  const cards = grid.querySelectorAll('.opportunity-card');
+  document.getElementById('filter-all-jobs')?.addEventListener('click', () => {
+    cards.forEach(c => c.style.display = 'flex');
+  });
+  document.getElementById('filter-remote-ai-jobs')?.addEventListener('click', () => {
+    cards.forEach(c => c.style.display = c.dataset.jobCategory === 'remote-ai' ? 'flex' : 'none');
+  });
+  document.getElementById('filter-general-jobs')?.addEventListener('click', () => {
+    cards.forEach(c => c.style.display = c.dataset.jobCategory === 'general' ? 'flex' : 'none');
+  });
 
-    grid.querySelectorAll('.opportunity-card').forEach(card => {
-      card.addEventListener('click', () => {
-        window.SoundEngine?.play('save');
-        const role = card.dataset.oppRole;
-        const org = card.dataset.oppOrg;
-        toast(`Application & Profile submitted for "${role}" at ${org}!`);
-      });
+  grid.querySelectorAll('.opportunity-card').forEach(card => {
+    card.addEventListener('click', () => {
+      window.SoundEngine?.play('save');
+      const role = card.dataset.oppRole;
+      const org = card.dataset.oppOrg;
+      toast(`Application submitted for "${role}" at ${org}!`);
     });
-    return;
-  }
+  });
+}
 
   grid.innerHTML = `<div class="discover-grid">${shifts.map(s => {
     const starts = new Date(s.starts_at);
