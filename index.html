@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="bento-ui.css" />
     <link rel="stylesheet" href="portal.css" />
     <link rel="stylesheet" href="approval.css" />
@@ -37,6 +38,7 @@
     <link rel="stylesheet" href="frontline-social.css" />
     <link rel="stylesheet" href="me-profile.css" />
     <link rel="stylesheet" href="shiftrelay-v3.css" />
+    <script src="theme.js"></script>
   </head>
   <body>
     <main class="login-page" id="login-view">
@@ -44,9 +46,14 @@
         <!-- Heritage & Trust Badge -->
         <div class="landing-header-row">
           <a class="brand" href="#"><img src="icon.svg" alt="" />ShiftRelay</a>
-          <div class="heritage-badge">
-            <span class="badge-dot-live"></span>
-            <span class="heritage-text"><b>No. 1 Frontline Productivity Engine</b> · Enterprise Reactive Hub</span>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button class="theme-toggle-btn" id="landing-theme-toggle" aria-label="Toggle dark mode" title="Toggle dark/light mode">
+              <span class="theme-icon-slot"></span>
+            </button>
+            <div class="heritage-badge">
+              <span class="badge-dot-live"></span>
+              <span class="heritage-text"><b>No. 1 Frontline Productivity Engine</b> · Enterprise Reactive Hub</span>
+            </div>
           </div>
         </div>
 
@@ -235,6 +242,9 @@
             <h1 id="page-title">Today</h1>
           </div>
           <div class="header-actions">
+            <button class="theme-toggle-btn" id="header-theme-toggle" aria-label="Toggle dark mode" title="Toggle dark/light mode">
+              <span class="theme-icon-slot"></span>
+            </button>
             <button class="bell notification-trigger" id="notification-button" aria-label="Open notifications">
               <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
@@ -395,6 +405,6 @@
     <script src="me-profile.js"></script>
     <script src="navigation-fix.js"></script>
     <script src="tour-experience.js"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=47',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=48',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
