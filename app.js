@@ -316,7 +316,30 @@ async function renderDashboard(){
   if(state.user.role==='supervisor')focus=reviewPanel(handovers);
   if(state.user.role==='incoming')focus=incomingPanel(handovers);
   if(state.user.role==='owner')focus=await ownerPanel(handovers);
-  $('#dashboard').innerHTML=`${welcome}${pinnedFeed}<div class="metric-grid metric-grid-compact"><article class="metric"><span>Awaiting Review</span><strong>${waiting}</strong></article><article class="metric"><span>Incoming Shift</span><strong>${relayed}</strong></article><article class="metric"><span>Acknowledged</span><strong>${acknowledged}</strong></article></div>${focus}`;
+  // ── Real-Time Shift Active Bar ──
+  const shiftStart = state.user.shift_start ? String(state.user.shift_start).slice(0, 5) : '07:00';
+  const shiftEnd = state.user.shift_end ? String(state.user.shift_end).slice(0, 5) : '19:00';
+  const activeShiftBanner = `
+    <div class="active-shift-timer-card" style="background:linear-gradient(135deg,var(--bg-surface) 0%,var(--bg-surface-subtle) 100%);border:1.5px solid var(--border-subtle);border-radius:16px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:var(--shadow-sm);">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:12px;height:12px;border-radius:50%;background:#10b981;box-shadow:0 0 10px #10b981;animation:pulse 2s infinite;"></div>
+        <div>
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:var(--brand-primary);text-transform:uppercase;">Active Shift Rotation</span>
+          <h3 style="margin:2px 0 0;font-size:16px;font-weight:800;color:var(--text-main);">${escape(state.user.title || 'Frontline Specialist')} · ${shiftStart}–${shiftEnd}</h3>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="badge" style="font-size:12px;padding:6px 10px;background:var(--brand-accent-subtle);color:var(--status-green-text);font-weight:700;">
+          ⏱️ Turnover at ${shiftEnd}
+        </span>
+        <button class="primary" data-go="handover" style="min-height:36px;padding:0 12px;font-size:12.5px;font-weight:700;">
+          Draft Brief
+        </button>
+      </div>
+    </div>
+  `;
+
+  $('#dashboard').innerHTML=`${welcome}${activeShiftBanner}${pinnedFeed}<div class="metric-grid metric-grid-compact"><article class="metric"><span>Awaiting Review</span><strong>${waiting}</strong></article><article class="metric"><span>Incoming Shift</span><strong>${relayed}</strong></article><article class="metric"><span>Acknowledged</span><strong>${acknowledged}</strong></article></div>${focus}`;
   bindNavigation();
   document.querySelectorAll('[data-toggle-handover]').forEach((box)=>{
     box.addEventListener('change',async()=>{
@@ -647,5 +670,69 @@ async function renderCalendar(){dashboardHeader('Calendar');const month=new Date
 async function submitLeaveRequest(event){event.preventDefault();try{await api('/api/leave-requests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(event.currentTarget)))});toast('Leave request submitted.');renderCalendar()}catch(error){toast(error.message)}}
 async function requestShiftSwap(button){button.disabled=true;try{await api('/api/shift-swaps',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shiftId:button.dataset.swapShift})});button.textContent='Swap requested';toast('Shift-swap request sent.')}catch(error){button.disabled=false;toast(error.message)}}
 async function reviewLeave(button){button.disabled=true;try{await api('/api/leave-requests/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:button.dataset.id,decision:button.dataset.leave})});toast('Leave request updated.');renderCalendar()}catch(error){button.disabled=false;toast(error.message)}}
-async function renderSwapReview(){if(state.user?.role!=='owner'||$('#page-title').textContent!=='Calendar')return;try{const [swaps,people]=await Promise.all([api('/api/shift-swaps'),api('/api/directory')]);const pending=swaps.swaps.filter((swap)=>swap.status==='pending');if(!pending.length)return;const options=people.members.filter((member)=>member.status==='active').map((member)=>`<option value="${member.id}">${escape(member.name)}</option>`).join('');const panel=document.createElement('section');panel.className='workspace-card';panel.innerHTML=`<p class="eyebrow">SHIFT SWAP REVIEW</p><h2>Choose who takes each shift.</h2><div class="action-list">${pending.map((swap)=>`<article class="handover-item"><div><h3>${escape(swap.requester_name)} requests a swap</h3><p>${new Date(swap.starts_at).toLocaleString()} — ${new Date(swap.ends_at).toLocaleString()}</p></div><div class="approval-controls"><label>Replacement<select data-swap-target="${swap.id}"><option value="">Select worker</option>${options}</select></label><div class="button-row"><button class="primary" data-swap-review="approved" data-id="${swap.id}">Approve</button><button class="secondary" data-swap-review="rejected" data-id="${swap.id}">Reject</button></div></div></article>`).join('')}</div>`;$('#dashboard').prepend(panel);document.querySelectorAll('[data-swap-review]').forEach((button)=>button.addEventListener('click',()=>reviewSwap(button)))}catch(error){console.warn('Swap review unavailable',error)}}
-async function reviewSwap(button){button.disabled=true;try{await api('/api/shift-swaps/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:button.dataset.id,decision:button.dataset.swapReview,targetMembershipId:$(`[data-swap-target="${button.dataset.id}"]`)?.value})});toast('Shift swap updated.');renderCalendar()}catch(error){button.disabled=false;toast(error.message)}}
+async function renderSwapReview(){
+  // Allow both supervisors and owners to review shift swaps
+  if(!state.user || (state.user.role !== 'owner' && state.user.role !== 'supervisor')) return;
+  try{
+    const swaps = await api('/api/shift-swaps');
+    const pending = (swaps.swaps || []).filter((swap)=>swap.status==='pending');
+    if(!pending.length) return;
+    
+    const panel = document.createElement('section');
+    panel.className = 'workspace-card';
+    panel.style.border = '1.5px solid var(--brand-primary)';
+    panel.style.marginBottom = '20px';
+    panel.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <p class="eyebrow" style="color:var(--brand-primary);font-weight:700;">ACTION REQUIRED · SHIFT SWAPS</p>
+          <h2 style="margin:2px 0 0;font-size:18px;">Pending Shift Swap Requests (${pending.length})</h2>
+        </div>
+        <span class="badge awaiting_review">Supervisor Approval</span>
+      </div>
+      <div class="action-list">
+        ${pending.map((swap)=>`
+          <article class="handover-item" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:14px;background:var(--bg-surface-subtle);border-radius:12px;">
+            <div>
+              <h3 style="margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:6px;">
+                ${escape(swap.requester_name)} 
+                <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--status-blue-bg);color:var(--status-blue-text);font-weight:600;">${escape(swap.swap_type)}</span>
+              </h3>
+              <p style="margin:0;font-size:12.5px;color:var(--text-secondary);">
+                ${swap.target_name ? `Target Partner: <strong>${escape(swap.target_name)}</strong> · ` : ''}
+                Reason: "${escape(swap.reason || 'No reason provided')}"
+              </p>
+            </div>
+            <div class="button-row" style="gap:8px;">
+              <button class="primary" data-swap-review="approved" data-id="${swap.id}" style="min-height:36px;padding:0 14px;font-size:13px;font-weight:700;background:#059669;border-color:#059669;">Approve Swap</button>
+              <button class="secondary" data-swap-review="rejected" data-id="${swap.id}" style="min-height:36px;padding:0 12px;font-size:13px;">Decline</button>
+            </div>
+          </article>
+        `).join('')}
+      </div>
+    `;
+    $('#dashboard').prepend(panel);
+    document.querySelectorAll('[data-swap-review]').forEach((button)=>button.addEventListener('click',()=>reviewSwap(button)));
+  }catch(error){
+    console.warn('Swap review unavailable',error);
+  }
+}
+
+async function reviewSwap(button){
+  button.disabled = true;
+  const decision = button.dataset.swapReview;
+  const swapId = button.dataset.id;
+  try {
+    window.SoundEngine?.play(decision === 'approved' ? 'confirm' : 'pop');
+    await api('/api/shift-swaps/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: swapId, decision })
+    });
+    toast(decision === 'approved' ? 'Shift swap approved and team schedules updated!' : 'Shift swap declined.');
+    renderDashboard();
+  } catch(error) {
+    button.disabled = false;
+    toast(error.message);
+  }
+}

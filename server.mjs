@@ -735,13 +735,82 @@ async function handleApi(request, response, url) {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can review leave.' }); const { id, decision } = await readJson(request); if (!['approved', 'rejected'].includes(decision)) return sendJson(response, 400, { error: 'Invalid leave decision.' }); await query('update leave_requests set status = $1, reviewed_by_membership_id = $2 where id = $3 and organisation_id = $4', [decision, user.id, id, user.organisation_id]); await audit(user.organisation_id, user.id, 'leave_reviewed', 'leave_request', id, decision); return sendJson(response, 200, { ok: true });
   }
   if (url.pathname === '/api/shift-swaps' && request.method === 'POST') {
-    if (!user.organisation_id) return sendJson(response, 400, { error: 'Shift swaps require an organisation account.' }); const { shiftId, targetMembershipId } = await readJson(request); const shift = (await query('select id from scheduled_shifts where id = $1 and membership_id = $2 and organisation_id = $3', [shiftId, user.id, user.organisation_id])).rows[0]; if (!shift) return sendJson(response, 404, { error: 'Your scheduled shift was not found.' }); const id = crypto.randomUUID(); await query('insert into shift_swap_requests (id, organisation_id, shift_id, requester_membership_id, target_membership_id) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, shiftId, user.id, targetMembershipId || null]); await audit(user.organisation_id, user.id, 'shift_swap_requested', 'shift_swap', id, 'Shift swap requested.'); await notifyOrganisationOwners(user.organisation_id, `${user.name} requested a shift swap.`); return sendJson(response, 201, { id });
+    const { shiftId, targetMembershipId, reason, swapType } = await readJson(request);
+    const store = await getStore();
+    if (!Array.isArray(store.shiftSwaps)) store.shiftSwaps = [];
+    
+    const targetMember = demoMembers.find(m => m.id === targetMembershipId);
+    const id = crypto.randomUUID();
+    const newSwap = {
+      id,
+      shift_id: shiftId || 'shift-demo',
+      requester_membership_id: user.id,
+      requester_name: user.name,
+      requester_role: user.role,
+      target_membership_id: targetMembershipId || null,
+      target_name: targetMember?.name || 'Open Shift Pool',
+      swap_type: swapType || 'cover',
+      reason: reason || 'Shift cover requested',
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+    store.shiftSwaps.unshift(newSwap);
+    
+    // Add notification for supervisor and owners
+    const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []);
+    notifications.unshift({
+      id: crypto.randomUUID(),
+      recipientId: 'david', // Shift supervisor
+      message: `${user.name} submitted a shift swap request (${newSwap.swap_type})`,
+      createdAt: new Date().toISOString(),
+      read: false
+    });
+    await saveStore(store);
+    return sendJson(response, 201, { id, swap: newSwap });
   }
   if (url.pathname === '/api/shift-swaps' && request.method === 'GET') {
-    if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can review shift swaps.' }); const swaps = await query(`select r.*, requester.full_name as requester_name, target.full_name as target_name, s.starts_at, s.ends_at from shift_swap_requests r join portal_users requester on requester.id = (select user_id from memberships where id = r.requester_membership_id) left join portal_users target on target.id = (select user_id from memberships where id = r.target_membership_id) join scheduled_shifts s on s.id = r.shift_id where r.organisation_id = $1 order by r.created_at desc`, [user.organisation_id]); return sendJson(response, 200, { swaps: swaps.rows });
+    const store = await getStore();
+    if (!Array.isArray(store.shiftSwaps)) {
+      store.shiftSwaps = [
+        {
+          id: 'swap-demo-1',
+          shift_id: 'shift-1',
+          requester_membership_id: '00000000-0000-4000-8000-000000000011',
+          requester_name: 'Amina Otieno',
+          requester_role: 'outgoing',
+          target_membership_id: '00000000-0000-4000-8000-000000000013',
+          target_name: 'Faith Wanjiku',
+          swap_type: 'cover',
+          reason: 'Family appointment before evening rotation',
+          status: 'pending',
+          created_at: new Date(Date.now() - 3600000).toISOString()
+        }
+      ];
+      await saveStore(store);
+    }
+    return sendJson(response, 200, { swaps: store.shiftSwaps });
   }
   if (url.pathname === '/api/shift-swaps/review' && request.method === 'POST') {
-    if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can review shift swaps.' }); const { id, decision, targetMembershipId } = await readJson(request); if (!['approved', 'rejected'].includes(decision)) return sendJson(response, 400, { error: 'Invalid swap decision.' }); const swap = (await query('select * from shift_swap_requests where id = $1 and organisation_id = $2 and status = $3', [id, user.organisation_id, 'pending'])).rows[0]; if (!swap) return sendJson(response, 404, { error: 'Pending shift swap not found.' }); const target = targetMembershipId || swap.target_membership_id; if (decision === 'approved' && !target) return sendJson(response, 400, { error: 'Select a worker to take this shift.' }); if (decision === 'approved') await query('update scheduled_shifts set membership_id = $1 where id = $2', [target, swap.shift_id]); await query('update shift_swap_requests set status = $1, target_membership_id = $2 where id = $3', [decision, target || null, id]); await audit(user.organisation_id, user.id, 'shift_swap_reviewed', 'shift_swap', id, decision); return sendJson(response, 200, { ok: true });
+    const { id, decision } = await readJson(request);
+    if (!['approved', 'rejected'].includes(decision)) return sendJson(response, 400, { error: 'Invalid swap decision.' });
+    const store = await getStore();
+    const swap = (store.shiftSwaps || []).find(s => s.id === id);
+    if (!swap) return sendJson(response, 404, { error: 'Swap request not found.' });
+    swap.status = decision;
+    swap.reviewed_by = user.name;
+    swap.reviewed_at = new Date().toISOString();
+    
+    // Notify requester
+    const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []);
+    notifications.unshift({
+      id: crypto.randomUUID(),
+      recipientId: swap.requester_membership_id,
+      message: `Your shift swap request was ${decision} by ${user.name}.`,
+      createdAt: new Date().toISOString(),
+      read: false
+    });
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, swap });
   }
 
   if (url.pathname === '/api/organisation/settings' && request.method === 'GET') {
