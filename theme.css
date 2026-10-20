@@ -1,37 +1,116 @@
 /* ==========================================================================
-   ShiftRelay Dual-Theme System — Light & Dark Skin
-   High-contrast OLED Dark Theme + Clean Linear Light Theme
+   ShiftRelay Design Tokens & Symmetrical Theme System
+   WCAG AAA High-Contrast Light and OLED Dark Themes
    ========================================================================== */
 
-/* ─── Dark Theme Tokens ─────────────────────────────────────────────────── */
+:root,
+html[data-theme="light"],
+body[data-theme="light"] {
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, Monaco, monospace;
+
+  /* Surfaces & Canvas (Light Theme - Linear/Stripe Inspired) */
+  --bg-canvas: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-subtle: #f1f5f9;
+  --bg-surface-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-glass: rgba(255, 255, 255, 0.92);
+
+  /* Typography Colors */
+  --text-main: #0f172a;       /* Slate 900 - High Contrast */
+  --text-secondary: #334155;  /* Slate 700 */
+  --text-muted: #64748b;      /* Slate 500 */
+  --text-subtle: #94a3b8;     /* Slate 400 */
+  --text-inverse: #ffffff;
+
+  /* Borders & Dividers */
+  --border-subtle: #e2e8f0;   /* Slate 200 */
+  --border-medium: #cbd5e1;   /* Slate 300 */
+  --border-focus: #0d524d;    /* Brand Teal */
+
+  /* Brand Accents (Surgical Emerald & Deep Teal) */
+  --brand-primary: #0d524d;
+  --brand-primary-hover: #093b37;
+  --brand-primary-active: #062b28;
+  --brand-accent: #10b981;
+  --brand-accent-subtle: #ecfdf5;
+
+  /* Status Colors */
+  --status-green-bg: #ecfdf5;
+  --status-green-text: #065f46;
+  --status-green-border: #a7f3d0;
+
+  --status-yellow-bg: #fffbeb;
+  --status-yellow-text: #92400e;
+  --status-yellow-border: #fde68a;
+
+  --status-red-bg: #fef2f2;
+  --status-red-text: #991b1b;
+  --status-red-border: #fecaca;
+
+  --status-blue-bg: #eff6ff;
+  --status-blue-text: #1d4ed8;
+  --status-blue-border: #bfdbfe;
+
+  /* Navigation Dock */
+  --dock-bg: rgba(255, 255, 255, 0.96);
+  --dock-border: rgba(226, 232, 240, 0.9);
+  --dock-active: #0d524d;
+  --dock-inactive: #94a3b8;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.1);
+  --shadow-dock: 0 -4px 20px rgba(15, 23, 42, 0.06);
+}
+
+/* ==========================================================================
+   Dark Theme (OLED Charcoal & Emerald Accent)
+   Strictly High Contrast, Zero Invisible Elements
+   ========================================================================== */
 :root[data-theme="dark"],
 html[data-theme="dark"],
 body[data-theme="dark"] {
+  /* Surfaces & Canvas (Dark Theme) */
   --bg-canvas: #090d16;
   --bg-surface: #111827;
   --bg-surface-subtle: #1e293b;
-  --bg-surface-elevated: #1f2937;
+  --bg-surface-elevated: #1e293b;
+  --bg-card: #111827;
+  --bg-card-hover: #1e293b;
+  --bg-glass: rgba(17, 24, 39, 0.92);
 
-  --text-main: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --text-subtle: #64748b;
+  /* Typography Colors */
+  --text-main: #f8fafc;       /* Slate 50 - Brilliant white */
+  --text-secondary: #cbd5e1;  /* Slate 300 - Clear readable */
+  --text-muted: #94a3b8;      /* Slate 400 */
+  --text-subtle: #64748b;     /* Slate 500 */
   --text-inverse: #090d16;
 
-  --border-subtle: #1e293b;
-  --border-medium: #334155;
-  --border-focus: #34d399;
+  /* Borders & Dividers */
+  --border-subtle: #1e293b;   /* Slate 800 */
+  --border-medium: #334155;   /* Slate 700 */
+  --border-focus: #34d399;    /* Bright Emerald */
 
+  /* Brand Accents */
   --brand-primary: #10b981;
   --brand-primary-hover: #34d399;
   --brand-primary-active: #059669;
+  --brand-accent: #34d399;
+  --brand-accent-subtle: #062b28;
 
-  --whatsapp-green: #10b981;
-  --whatsapp-green-hover: #34d399;
-  --whatsapp-green-active: #059669;
-  --whatsapp-green-light: #062b28;
-  --whatsapp-green-border: #065f46;
-
+  /* Status Colors (Dark Backgrounds) */
   --status-green-bg: #062b28;
   --status-green-text: #6ee7b7;
   --status-green-border: #065f46;
@@ -48,367 +127,110 @@ body[data-theme="dark"] {
   --status-blue-text: #93c5fd;
   --status-blue-border: #1e3a8a;
 
+  /* Navigation Dock */
+  --dock-bg: rgba(17, 24, 39, 0.96);
+  --dock-border: #1e293b;
+  --dock-active: #34d399;
+  --dock-inactive: #64748b;
+
+  /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.6);
-}
-
-/* ─── Global Dark Theme Overrides ───────────────────────────────────────── */
-[data-theme="dark"] body {
-  background-color: #090d16 !important;
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .login-page {
-  background-color: #090d16 !important;
-}
-
-[data-theme="dark"] .app-header {
-  background: rgba(17, 24, 39, 0.94) !important;
-  border-bottom: 1px solid #1e293b !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-}
-
-[data-theme="dark"] .app-header h1,
-[data-theme="dark"] #page-title {
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .header-user-pill {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .header-user-pill strong {
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .bell,
-[data-theme="dark"] .account-menu-button {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #f8fafc !important;
-}
-
-/* ─── Bottom Dock Dark Mode ─────────────────────────────────────────────── */
-[data-theme="dark"] .frontline-dock {
-  background: rgba(17, 24, 39, 0.96) !important;
-  border-top: 1px solid #1e293b !important;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
-}
-
-[data-theme="dark"] .dock-tab {
-  color: #64748b !important;
-}
-
-[data-theme="dark"] .dock-tab:hover,
-[data-theme="dark"] .dock-tab:active {
-  background: rgba(255, 255, 255, 0.04) !important;
-}
-
-[data-theme="dark"] .dock-tab.active {
-  color: #34d399 !important;
-}
-
-[data-theme="dark"] .dock-tab.active::after {
-  background: #34d399 !important;
-}
-
-[data-theme="dark"] .dock-compose-tab .dock-label {
-  color: #34d399 !important;
-}
-
-/* ─── Social Feed & Lounge Dark Mode ────────────────────────────────────── */
-[data-theme="dark"] .lounge-composer {
-  background-color: #111827 !important;
-  border-color: #1e293b !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
-}
-
-[data-theme="dark"] .lounge-composer textarea {
-  background-color: #090d16 !important;
-  border-color: #334155 !important;
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .lounge-composer textarea:focus {
-  border-color: #10b981 !important;
-  background-color: #0f172a !important;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
-}
-
-[data-theme="dark"] .composer-toolbar {
-  border-top-color: #1e293b !important;
-}
-
-[data-theme="dark"] .composer-tool-btn {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #e2e8f0 !important;
-}
-
-[data-theme="dark"] .composer-tool-btn:hover {
-  background: #334155 !important;
-  border-color: #475569 !important;
-}
-
-[data-theme="dark"] .category-chip {
-  background-color: #1e293b !important;
-  border-color: #334155 !important;
-  color: #cbd5e1 !important;
-}
-
-[data-theme="dark"] .category-chip.active {
-  background-color: #064e3b !important;
-  border-color: #10b981 !important;
-  color: #ffffff !important;
-}
-
-[data-theme="dark"] .feed-filter-pill {
-  background: #111827 !important;
-  border-color: #1e293b !important;
-  color: #94a3b8 !important;
-}
-
-[data-theme="dark"] .feed-filter-pill:hover {
-  border-color: #10b981 !important;
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .feed-filter-pill.active {
-  background: #064e3b !important;
-  border-color: #10b981 !important;
-  color: #ffffff !important;
-}
-
-[data-theme="dark"] .lounge-post-card {
-  background-color: #111827 !important;
-  border-color: #1e293b !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
-}
-
-[data-theme="dark"] .post-meta h4 {
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .post-body {
-  color: #e2e8f0 !important;
-}
-
-[data-theme="dark"] .post-actions-bar {
-  border-top-color: #1e293b !important;
-}
-
-[data-theme="dark"] .post-action-btn {
-  color: #94a3b8 !important;
-}
-
-[data-theme="dark"] .post-action-btn:hover {
-  background-color: #1e293b !important;
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .post-comment-drawer {
-  border-top-color: #1e293b !important;
-}
-
-[data-theme="dark"] .comment-input-row input {
-  background: #090d16 !important;
-  border-color: #334155 !important;
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .comment-bubble {
-  background: #1e293b !important;
-  color: #e2e8f0 !important;
-}
-
-[data-theme="dark"] .comment-author-name {
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .comment-text {
-  color: #cbd5e1 !important;
-}
-
-/* ─── Cards & Containers Dark Mode ──────────────────────────────────────── */
-[data-theme="dark"] .workspace-card,
-[data-theme="dark"] .access-form,
-[data-theme="dark"] .passport-card,
-[data-theme="dark"] .workers-visual-card {
-  background-color: #111827 !important;
-  border-color: #1e293b !important;
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .metric-grid-compact .metric {
-  background: #111827 !important;
-  border-color: #1e293b !important;
-}
-
-[data-theme="dark"] .metric-grid-compact .metric strong {
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .welcome-card {
-  background: linear-gradient(135deg, #052e2b 0%, #0b1e36 100%) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
-}
-
-[data-theme="dark"] .welcome-activity {
-  background: rgba(255, 255, 255, 0.06) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-[data-theme="dark"] .pinned-handover-card {
-  background: #111827 !important;
-  border-color: #334155 !important;
-}
-
-[data-theme="dark"] .pinned-handover-card.status-green {
-  background: #062b28 !important;
-  border-color: #065f46 !important;
-}
-
-[data-theme="dark"] .pinned-handover-card.status-yellow {
-  background: #281e05 !important;
-  border-color: #78350f !important;
-}
-
-[data-theme="dark"] .pinned-handover-card.status-red {
-  background: #2d0d12 !important;
-  border-color: #991b1b !important;
-}
-
-[data-theme="dark"] .handover-task-item {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .handover-task-item.done {
-  background: #0f172a !important;
-  color: #64748b !important;
-}
-
-/* ─── Discover & Opportunities Dark Mode ────────────────────────────────── */
-[data-theme="dark"] .opportunity-card {
-  background: #111827 !important;
-  border-color: #1e293b !important;
-}
-
-[data-theme="dark"] .opp-body h4 {
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .opp-body p {
-  color: #94a3b8 !important;
-}
-
-[data-theme="dark"] .opp-tag {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #cbd5e1 !important;
-}
-
-/* ─── Modals Dark Mode ──────────────────────────────────────────────────── */
-[data-theme="dark"] .modal-card,
-[data-theme="dark"] .shift-swap-modal-card {
-  background: #111827 !important;
-  border-color: #334155 !important;
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .modal-header {
-  background: #1e293b !important;
-  border-bottom-color: #334155 !important;
-}
-
-[data-theme="dark"] .shift-swap-body input,
-[data-theme="dark"] .shift-swap-body select,
-[data-theme="dark"] .shift-swap-body textarea {
-  background: #090d16 !important;
-  border-color: #334155 !important;
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .account-menu,
-[data-theme="dark"] .notification-panel {
-  background: #111827 !important;
-  border-color: #1e293b !important;
-  color: #f8fafc !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5) !important;
-}
-
-[data-theme="dark"] .account-menu button,
-[data-theme="dark"] .notification {
-  color: #e2e8f0 !important;
-}
-
-[data-theme="dark"] .account-menu button:hover,
-[data-theme="dark"] .notification:hover {
-  background: #1e293b !important;
-}
-
-/* ─── Form Inputs Dark Mode ─────────────────────────────────────────────── */
-[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
-[data-theme="dark"] textarea,
-[data-theme="dark"] select {
-  background-color: #090d16 !important;
-  border-color: #334155 !important;
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] input:focus,
-[data-theme="dark"] textarea:focus,
-[data-theme="dark"] select:focus {
-  border-color: #10b981 !important;
-  background-color: #0f172a !important;
-}
-
-[data-theme="dark"] .secondary {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #e2e8f0 !important;
-}
-
-[data-theme="dark"] .secondary:hover {
-  background: #334155 !important;
-  border-color: #475569 !important;
-}
-
-/* ─── Stories Bar Dark Mode ─────────────────────────────────────────────── */
-[data-theme="dark"] .story-name {
-  color: #cbd5e1 !important;
-}
-
-[data-theme="dark"] .story-avatar-inner {
-  border-color: #111827 !important;
-}
-
-[data-theme="dark"] .story-plus-ring .story-avatar-ring {
-  background: #1e293b !important;
-  border-color: #475569 !important;
-}
-
-/* ─── Confidentiality Shield Alert Dark Mode ────────────────────────────── */
-[data-theme="dark"] .confidentiality-shield-alert {
-  background: #111827 !important;
-  border-color: #1e293b !important;
-  border-left-color: #10b981 !important;
-}
-
-[data-theme="dark"] .shield-title-row strong {
-  color: #f8fafc !important;
-}
-
-[data-theme="dark"] .shield-copy p {
-  color: #94a3b8 !important;
-}
-
-/* ─── Theme Toggle Button Component ─────────────────────────────────────── */
+  --shadow-dock: 0 -4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* ==========================================================================
+   Base Elements & Layout
+   ========================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background-color: var(--bg-canvas);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Input & Select Defaults mapped to tokens */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  font-family: inherit;
+  font-size: 14px;
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+/* Common Buttons */
+button {
+  font-family: inherit;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.primary {
+  background: var(--brand-primary);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  padding: 10px 18px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+
+button.primary:hover {
+  background: var(--brand-primary-hover);
+}
+
+button.primary:active {
+  transform: scale(0.97);
+}
+
+button.secondary {
+  background: var(--bg-surface-subtle);
+  color: var(--text-main);
+  border: 1px solid var(--border-medium);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+button.secondary:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-focus);
+}
+
+/* Theme Toggle Button Component */
 .theme-toggle-btn {
   display: inline-flex;
   align-items: center;
@@ -416,19 +238,17 @@ body[data-theme="dark"] {
   width: 40px;
   height: 40px;
   min-width: 40px;
-  border-radius: 10px;
-  border: 1px solid var(--border-subtle, #e2e8f0);
-  background: var(--bg-surface, #ffffff);
-  color: var(--text-main, #0f172a);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-main);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  -webkit-tap-highlight-color: transparent;
 }
 
 .theme-toggle-btn:hover {
-  border-color: #0d524d;
+  border-color: var(--border-focus);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 82, 77, 0.15);
 }
 
 .theme-toggle-btn:active {
@@ -439,16 +259,136 @@ body[data-theme="dark"] {
   width: 20px;
   height: 20px;
   stroke: currentColor;
-  transition: transform 0.3s ease;
 }
 
 [data-theme="dark"] .theme-toggle-btn {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #fde047 !important; /* Sun golden yellow */
+  background: var(--bg-surface-subtle);
+  border-color: var(--border-medium);
+  color: #fde047; /* Golden yellow sun in dark mode */
 }
 
-[data-theme="dark"] .theme-toggle-btn:hover {
-  border-color: #fde047 !important;
-  box-shadow: 0 4px 14px rgba(253, 224, 71, 0.2) !important;
+/* ─── Detailed Component Dark Mode Polish ────────────────────────────────── */
+[data-theme="dark"] .access-panel,
+[data-theme="dark"] .access-form {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .login-intro h1 {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .login-intro p,
+[data-theme="dark"] .muted,
+[data-theme="dark"] .landing-subtitle {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .eyebrow {
+  color: var(--brand-accent) !important;
+}
+
+[data-theme="dark"] details.demo-access {
+  background: var(--bg-surface-subtle) !important;
+  border-color: var(--border-medium) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] details.demo-access summary {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .role-card {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .role-card strong {
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .role-card small {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .role-card:hover {
+  background: var(--bg-surface-subtle) !important;
+  border-color: var(--border-focus) !important;
+}
+
+[data-theme="dark"] .heritage-badge {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  color: #6ee7b7 !important;
+}
+
+[data-theme="dark"] .tour-landing-btn {
+  border-color: #10b981 !important;
+  color: #34d399 !important;
+  background: transparent !important;
+}
+
+[data-theme="dark"] .tour-landing-btn:hover {
+  background: rgba(16, 185, 129, 0.1) !important;
+}
+
+[data-theme="dark"] .feed-audio-card {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+[data-theme="dark"] .audio-label {
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .audio-timer {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .pull-refresh-indicator {
+  background: var(--bg-surface) !important;
+  border-bottom-color: var(--border-subtle) !important;
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .modal-close,
+[data-theme="dark"] .dialog-close,
+[data-theme="dark"] .shield-dismiss-btn {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .modal-close:hover,
+[data-theme="dark"] .dialog-close:hover,
+[data-theme="dark"] .shield-dismiss-btn:hover {
+  background: var(--bg-surface-subtle) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .badge {
+  background: var(--bg-surface-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .status-radio-option {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-medium) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .status-radio-option:hover {
+  border-color: var(--border-focus) !important;
+}
+
+[data-theme="dark"] .streak-pill {
+  background-color: #2b1807 !important;
+  border-color: #7c2d12 !important;
+  color: #fed7aa !important;
+}
+
+[data-theme="dark"] .streak-pill.checked-in {
+  background-color: #062b28 !important;
+  border-color: #065f46 !important;
+  color: #86efac !important;
 }

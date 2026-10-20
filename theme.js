@@ -66,7 +66,7 @@
     applyTheme(next, true);
   }
 
-  // Early initialization
+  // Early initialization before DOM paint
   const initialTheme = getStoredTheme();
   document.documentElement.dataset.theme = initialTheme;
 
@@ -82,6 +82,13 @@
         toggleTheme();
       }
     });
+
+    // Auto-update buttons on any dynamic view re-render
+    const observer = new MutationObserver(() => {
+      const current = document.documentElement.dataset.theme || 'light';
+      updateThemeButtons(current);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
 
     // Watch OS color scheme changes if user hasn't explicitly set a preference
     if (window.matchMedia) {
