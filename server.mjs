@@ -1498,10 +1498,12 @@ async function serveStatic(request, response, url) {
       return;
     }
 
+    const isCode = ['.html', '.js', '.css', '.json'].includes(ext);
     response.writeHead(200, {
       'Content-Type': isBinary ? contentType : `${contentType}; charset=utf-8`,
       'Accept-Ranges': 'bytes',
       'Content-Length': totalSize,
+      ...(isCode ? { 'Cache-Control': 'no-cache, must-revalidate' } : {}),
       ...SECURITY_HEADERS,
     });
     response.end(content);
