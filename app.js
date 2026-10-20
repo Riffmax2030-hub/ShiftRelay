@@ -6,12 +6,231 @@ function toast(message){const box=$('#toast');box.textContent=message;box.classL
 async function api(path,options={}){const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);try{const headers={'X-ShiftRelay-User':state.user?.id||'',...(options.headers||{})};const response=await fetch(path,{...options,headers,signal:controller.signal});const payload=await response.json();if(!response.ok)throw new Error(payload.error||'Something went wrong.');return payload}catch(error){if(error.name==='AbortError')throw new Error('This request took too long. Please try again.');throw error}finally{clearTimeout(timeout)}}
 function roleIcon(role){return role==='supervisor'?'✓':role==='incoming'?'→':'+'}function roleCopy(role){return role==='supervisor'?'Review and approve handovers':role==='incoming'?'Receive and acknowledge handovers':'Capture your outgoing shift update'}
 const countryOptions=()=>{const codes='AF AL DZ AS AD AO AI AQ AG AR AM AW AU AT AZ BS BH BD BB BY BE BZ BJ BM BT BO BQ BA BW BR IO BN BG BF BI CV KH CM CA KY CF TD CL CN CX CC CO KM CG CD CK CR CI HR CU CW CY CZ DK DJ DM DO EC EG SV GQ ER EE SZ ET FK FO FJ FI FR GF PF TF GA GM GE DE GH GI GR GL GD GP GU GT GG GN GW GY HT HM VA HN HK HU IS IN ID IR IQ IE IM IL IT JM JP JE JO KZ KE KI KP KR KW KG LA LV LB LS LR LY LI LT LU MO MG MW MY MV ML MT MH MQ MR MU YT MX FM MD MC MN ME MS MA MZ MM NA NR NP NL NC NZ NI NE NG NU NF MK MP NO OM PK PW PS PA PG PY PE PH PN PL PT PR QA RE RO RU RW BL SH KN LC MF PM VC WS SM ST SA SN RS SC SL SG SX SK SI SB SO ZA GS SS ES LK SD SR SJ SE CH SY TW TJ TZ TH TL TG TK TO TT TN TR TM TC TV UG UA AE GB US UM UY UZ VU VE VN VG VI WF EH YE ZM ZW'.split(' ');try{const names=new Intl.DisplayNames(['en'],{type:'region'});return codes.map((code)=>`<option value="${code}">${escape(names.of(code))}</option>`).join('')}catch{return '<option value="">Select country</option>'}};const timeZoneOptions=()=>{try{return Intl.supportedValuesOf('timeZone').map((zone)=>`<option value="${zone}" ${zone===Intl.DateTimeFormat().resolvedOptions().timeZone?'selected':''}>${zone}</option>`).join('')}catch{return '<option value="UTC">UTC</option>'}};
-async function setup(){const [users,config,session]=await Promise.all([fetch('/api/users').then((response)=>response.json()),fetch('/api/config').then((response)=>response.json()),fetch('/api/auth/session').then(async(response)=>response.ok?response.json():null)]);state.users=users.users;state.config=config;renderLogin();if(session?.user)login(session.user)}
-function bindAccessActions(){document.querySelectorAll('[data-access]').forEach((button)=>button.addEventListener('click',()=>button.dataset.access==='register'?renderOrganisationForm():button.dataset.access==='join'?renderJoinForm():renderLogin()))}
-function renderLogin(){const panel=$('#access-panel');const isDemo=state.config?.demoMode!==false&&Array.isArray(state.users)&&state.users.length>0;const demoDrawer=isDemo?`<details class="demo-access"><summary>Preview workspace roles</summary><div class="role-cards" id="role-cards">${state.users.map((user)=>`<button class="role-card" data-login="${user.id}"><span class="role-icon">${roleIcon(user.role)}</span><span><strong>${escape(user.name)}</strong><small>${escape(user.title)}</small></span></button>`).join('')}</div></details>`:'';const modeBadge=`<div class="mode-badge-strip" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;font-size:12px;"><span style="color:var(--text-secondary);font-weight:600;">${isDemo?'● Demo Mode':'🔒 Production Mode'}</span><button type="button" class="secondary" id="btn-toggle-demo-mode" style="min-height:30px;padding:2px 10px;font-size:11px;">${isDemo?'Switch to Clean Prod':'Enable Demo Roles'}</button></div>`;panel.innerHTML=`<p class="eyebrow">SECURE WORKPLACE ACCESS</p><h2>Sign in to your portal.</h2><p class="muted">Use your verified work account to see only the work assigned to you.</p><form class="access-form" id="sign-in-form"><label>Work email<input name="email" type="email" required autocomplete="email" /></label><label>Password<input name="password" type="password" required autocomplete="current-password" /></label><div class="button-row"><button class="primary" type="submit">Sign in</button><button class="secondary" type="button" data-access="register">Register organisation</button><button class="secondary" type="button" data-access="join">Join workplace</button></div></form><p class="form-message" id="form-message"></p>${demoDrawer}${modeBadge}`;$('#sign-in-form').addEventListener('submit',signIn);if(isDemo){document.querySelectorAll('[data-login]').forEach((button)=>button.addEventListener('click',()=>login(state.users.find((user)=>user.id===button.dataset.login))))}$('#btn-toggle-demo-mode')?.addEventListener('click',async()=>{try{const res=await api('/api/config/demo-mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({demoMode:!isDemo})});state.config.demoMode=res.demoMode;const uRes=await api('/api/users');state.users=uRes.users;renderLogin();toast(res.demoMode?'Investor Demo Mode active (roles enabled).':'Clean Production Mode active (all test logins removed).')}catch(err){toast(err.message)}});bindAccessActions()}
+async function setup(){const [users,config,session]=await Promise.all([fetch('/api/users').then((response)=>response.json()),fetch('/api/config').then((response)=>response.json()),fetch('/api/auth/session').then(async(response)=>response.ok?response.json():null)]);state.users=users.users;state.config=config;renderLogin();bindLandingActions();if(session?.user)login(session.user)}
+
+function renderPortalTabs(activeTab) {
+  return `
+    <div class="portal-tab-strip" role="tablist" aria-label="Workplace access modes">
+      <button type="button" role="tab" aria-selected="${activeTab==='signin'}" class="portal-tab-btn ${activeTab==='signin'?'active':''}" data-access="signin">Sign In</button>
+      <button type="button" role="tab" aria-selected="${activeTab==='register'}" class="portal-tab-btn ${activeTab==='register'?'active':''}" data-access="register">Create Workplace</button>
+      <button type="button" role="tab" aria-selected="${activeTab==='join'}" class="portal-tab-btn ${activeTab==='join'?'active':''}" data-access="join">Join with Code</button>
+    </div>
+  `;
+}
+
+function bindLandingActions() {
+  const getStartedBtn = document.getElementById('btn-hero-get-started');
+  const demoBtn = document.getElementById('btn-hero-try-demo');
+  const navStartBtn = document.getElementById('nav-btn-start');
+  const navSignInBtn = document.getElementById('nav-btn-signin');
+
+  const scrollToPortal = (focusSelector) => {
+    const anchor = document.getElementById('landing-portal-anchor');
+    if (anchor) {
+      anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (focusSelector) {
+        setTimeout(() => {
+          const el = document.querySelector(focusSelector);
+          if (el) {
+            el.focus();
+            if (el.classList.contains('role-card')) {
+              el.style.outline = '2px solid var(--brand-primary)';
+              setTimeout(() => { el.style.outline = ''; }, 1600);
+            }
+          }
+        }, 400);
+      }
+    }
+  };
+
+  getStartedBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    scrollToPortal('input[name="email"]');
+  });
+
+  navSignInBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    renderLogin();
+    scrollToPortal('input[name="email"]');
+  });
+
+  navStartBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    scrollToPortal('input[name="email"]');
+  });
+
+  demoBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    renderLogin();
+    scrollToPortal('.role-card');
+  });
+}
+
+function bindAccessActions(){
+  document.querySelectorAll('[data-access]').forEach((button) => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      const access = button.dataset.access;
+      if (access === 'register') {
+        renderOrganisationForm();
+      } else if (access === 'join') {
+        renderJoinForm();
+      } else {
+        renderLogin();
+      }
+      const anchor = document.getElementById('landing-portal-anchor');
+      if (anchor && window.innerWidth <= 900) {
+        anchor.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+}
+
+function renderLogin(){
+  const panel = $('#access-panel');
+  if (!panel) return;
+  const isDemo = state.config?.demoMode !== false && Array.isArray(state.users) && state.users.length > 0;
+  
+  const demoSection = isDemo ? `
+    <div class="demo-drive-section" id="demo-drive-section" style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border-subtle);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div>
+          <strong style="display:block;font-size:13.5px;color:var(--text-main);font-weight:700;">Instant Demo Drive</strong>
+          <small style="color:var(--text-muted);font-size:12px;">Test drive the full ShiftRelay experience instantly as any specialist role</small>
+        </div>
+        <span class="badge" style="background:var(--brand-accent-subtle, rgba(16,185,129,0.1));color:var(--status-green-text, #065f46);border:1px solid var(--status-green-border, #a7f3d0);font-size:11px;font-weight:700;">Zero Password Needed</span>
+      </div>
+      <div class="role-cards" id="role-cards">
+        ${state.users.map((user)=>`
+          <button class="role-card" data-login="${user.id}" type="button" title="Sign in as ${escape(user.name)}">
+            <span class="role-icon">${roleIcon(user.role)}</span>
+            <span>
+              <strong>${escape(user.name)}</strong>
+              <small>${escape(user.title || user.role)}</small>
+            </span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  const modeBadge = `
+    <div class="mode-badge-strip" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;font-size:12px;">
+      <span style="color:var(--text-secondary);font-weight:600;">${isDemo ? '● Demo Roles Active' : 'Production Mode'}</span>
+      <button type="button" class="secondary" id="btn-toggle-demo-mode" style="min-height:30px;padding:2px 10px;font-size:11px;">${isDemo ? 'Switch to Clean Prod' : 'Enable Demo Roles'}</button>
+    </div>
+  `;
+
+  panel.innerHTML = `
+    ${renderPortalTabs('signin')}
+    <p class="eyebrow">SECURE WORKPLACE ACCESS</p>
+    <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Sign in to your portal.</h2>
+    <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">Use your verified work account to see only the work assigned to you.</p>
+    <form class="access-form" id="sign-in-form">
+      <label>Work email
+        <input name="email" type="email" required autocomplete="email" placeholder="name@workplace.com" />
+      </label>
+      <label>Password
+        <input name="password" type="password" required autocomplete="current-password" placeholder="••••••••" />
+      </label>
+      <div class="button-row" style="margin-top:10px;">
+        <button class="primary" type="submit" style="width:100%;justify-content:center;font-weight:700;">Sign in</button>
+      </div>
+    </form>
+    <p class="form-message" id="form-message"></p>
+    ${demoSection}
+    ${modeBadge}
+  `;
+
+  $('#sign-in-form')?.addEventListener('submit', signIn);
+
+  if (isDemo) {
+    document.querySelectorAll('[data-login]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const u = state.users.find((user) => user.id === button.dataset.login);
+        if (u) login(u);
+      });
+    });
+  }
+
+  $('#btn-toggle-demo-mode')?.addEventListener('click', async () => {
+    try {
+      const res = await api('/api/config/demo-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ demoMode: !isDemo })
+      });
+      state.config.demoMode = res.demoMode;
+      const uRes = await api('/api/users');
+      state.users = uRes.users;
+      renderLogin();
+      toast(res.demoMode ? 'Investor Demo Mode active (roles enabled).' : 'Clean Production Mode active (all test logins removed).');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  bindAccessActions();
+}
+
 async function signIn(event){event.preventDefault();const button=event.submitter;button.disabled=true;button.textContent='Signing in…';try{const result=await api('/api/auth/sign-in',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(event.currentTarget)))});login(result.user)}catch(error){$('#form-message').textContent=error.message}finally{button.disabled=false;button.textContent='Sign in'}}
-function renderOrganisationForm(){const panel=$('#access-panel');panel.innerHTML=`<p class="eyebrow">CREATE A WORKPLACE</p><h2>Set up your ShiftRelay portal.</h2><p class="muted">Your organisation gets a unique ID to share with approved workers.</p><form class="access-form" id="organisation-form"><label>Organisation legal name<input name="legalName" required /></label><label>Industry<select name="industry"><option>Healthcare</option><option>Logistics</option><option>Retail</option><option>Hospitality</option><option>Manufacturing</option><option>Other</option></select></label><label>Country or region<select name="countryCode" required><option value="">Select country</option>${countryOptions()}</select></label><label>Time zone<select name="timeZone" required>${timeZoneOptions()}</select></label><label>Your full name<input name="ownerName" required /></label><label>Work email<input name="workEmail" type="email" required /></label><label>Create password<input name="password" type="password" minlength="10" required autocomplete="new-password" /></label><label>Confirm password<input name="confirmPassword" type="password" minlength="10" required autocomplete="new-password" /></label><label class="checkbox"><input name="termsAccepted" type="checkbox" required /> I agree to the <a href="#" class="terms-link-trigger" style="text-decoration: underline; color: inherit; font-weight: 700;">Terms of Service &amp; Workplace Confidentiality Agreement</a> (strict prohibition against sharing employer or client data publicly).</label><label class="checkbox"><input name="marketingOptIn" type="checkbox" /> I would like to receive product updates and helpful ShiftRelay emails.</label><div class="button-row"><button class="primary" type="submit">Create organisation</button><button class="secondary" type="button" data-access="home">Back</button></div></form><p class="form-message" id="form-message"></p>`;$('#organisation-form').addEventListener('submit',submitOrganisation);bindAccessActions()}
-function renderJoinForm(){const panel=$('#access-panel');panel.innerHTML=`<p class="eyebrow">JOIN A WORKPLACE</p><h2>Use your organisation ID.</h2><p class="muted">Your request is sent to the owner or supervisor for approval before you can access work.</p><form class="access-form" id="join-form"><label>Organisation ID<input name="organisationCode" required /></label><label>Full name<input name="fullName" required /></label><label>Work email<input name="email" type="email" required /></label><label>Employee or staff number<input name="employeeReference" required /></label><label>Position at work<input name="position" required /></label><label>Create password<input name="password" type="password" minlength="10" required autocomplete="new-password" /></label><label>Confirm password<input name="confirmPassword" type="password" minlength="10" required autocomplete="new-password" /></label><label class="checkbox"><input name="termsAccepted" type="checkbox" required /> I agree to the <a href="#" class="terms-link-trigger" style="text-decoration: underline; color: inherit; font-weight: 700;">Terms of Service &amp; Workplace Confidentiality Agreement</a> (strict prohibition against sharing employer or client data publicly).</label><label class="checkbox"><input name="marketingOptIn" type="checkbox" /> I would like to receive product updates and helpful ShiftRelay emails.</label><div class="button-row"><button class="primary" type="submit">Request access</button><button class="secondary" type="button" data-access="home">Back</button></div></form><p class="form-message" id="form-message"></p>`;$('#join-form').addEventListener('submit',submitJoin);bindAccessActions()}
+
+function renderOrganisationForm(){
+  const panel = $('#access-panel');
+  if (!panel) return;
+  panel.innerHTML = `
+    ${renderPortalTabs('register')}
+    <p class="eyebrow">CREATE A WORKPLACE</p>
+    <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Set up your ShiftRelay portal.</h2>
+    <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">Your organisation gets a unique 6-digit ID to share with approved workers.</p>
+    <form class="access-form" id="organisation-form">
+      <label>Organisation legal name<input name="legalName" required placeholder="e.g. Metro General Hospital" /></label>
+      <label>Industry<select name="industry"><option>Healthcare</option><option>Logistics</option><option>Retail</option><option>Hospitality</option><option>Manufacturing</option><option>Other</option></select></label>
+      <label>Country or region<select name="countryCode" required><option value="">Select country</option>${countryOptions()}</select></label>
+      <label>Time zone<select name="timeZone" required>${timeZoneOptions()}</select></label>
+      <label>Your full name<input name="ownerName" required placeholder="e.g. Dr. Sarah Jenkins" /></label>
+      <label>Work email<input name="workEmail" type="email" required placeholder="s.jenkins@hospital.org" /></label>
+      <label>Create password<input name="password" type="password" minlength="10" required autocomplete="new-password" placeholder="At least 10 characters" /></label>
+      <label>Confirm password<input name="confirmPassword" type="password" minlength="10" required autocomplete="new-password" placeholder="Re-enter password" /></label>
+      <label class="checkbox"><input name="termsAccepted" type="checkbox" required /> I agree to the <a href="terms.html" class="terms-link-trigger" style="text-decoration: underline; color: inherit; font-weight: 700;">Terms of Service &amp; Workplace Confidentiality Agreement</a> (strict prohibition against sharing employer or client data publicly).</label>
+      <label class="checkbox"><input name="marketingOptIn" type="checkbox" /> I would like to receive product updates and helpful ShiftRelay emails.</label>
+      <div class="button-row" style="margin-top:10px;">
+        <button class="primary" type="submit" style="width:100%;justify-content:center;font-weight:700;">Create organisation</button>
+      </div>
+    </form>
+    <p class="form-message" id="form-message"></p>
+  `;
+  $('#organisation-form')?.addEventListener('submit', submitOrganisation);
+  bindAccessActions();
+}
+
+function renderJoinForm(){
+  const panel = $('#access-panel');
+  if (!panel) return;
+  panel.innerHTML = `
+    ${renderPortalTabs('join')}
+    <p class="eyebrow">JOIN A WORKPLACE</p>
+    <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Use your organisation ID.</h2>
+    <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">Your request is sent to the owner or supervisor for approval before you can access work.</p>
+    <form class="access-form" id="join-form">
+      <label>Organisation ID<input name="organisationCode" required placeholder="e.g. 246701" /></label>
+      <label>Full name<input name="fullName" required placeholder="e.g. Alex Morgan" /></label>
+      <label>Work email<input name="email" type="email" required placeholder="alex@company.com" /></label>
+      <label>Employee or staff number<input name="employeeReference" required placeholder="e.g. EMP-9921" /></label>
+      <label>Position at work<input name="position" required placeholder="e.g. ICU Night Nurse" /></label>
+      <label>Create password<input name="password" type="password" minlength="10" required autocomplete="new-password" placeholder="At least 10 characters" /></label>
+      <label>Confirm password<input name="confirmPassword" type="password" minlength="10" required autocomplete="new-password" placeholder="Re-enter password" /></label>
+      <label class="checkbox"><input name="termsAccepted" type="checkbox" required /> I agree to the <a href="terms.html" class="terms-link-trigger" style="text-decoration: underline; color: inherit; font-weight: 700;">Terms of Service &amp; Workplace Confidentiality Agreement</a> (strict prohibition against sharing employer or client data publicly).</label>
+      <label class="checkbox"><input name="marketingOptIn" type="checkbox" /> I would like to receive product updates and helpful ShiftRelay emails.</label>
+      <div class="button-row" style="margin-top:10px;">
+        <button class="primary" type="submit" style="width:100%;justify-content:center;font-weight:700;">Request access</button>
+      </div>
+    </form>
+    <p class="form-message" id="form-message"></p>
+  `;
+  $('#join-form')?.addEventListener('submit', submitJoin);
+  bindAccessActions();
+}
 async function submitOrganisation(event){event.preventDefault();const form=Object.fromEntries(new FormData(event.currentTarget));if(form.password!==form.confirmPassword){$('#form-message').textContent='Passwords do not match.';return}delete form.confirmPassword;const button=event.submitter;button.disabled=true;button.textContent='Creating…';try{const result=await api('/api/organisations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});toast(`Organisation created. Your ID is ${result.organisation.organisationCode}.`);login(result.user)}catch(error){$('#form-message').textContent=error.message}finally{button.disabled=false;button.textContent='Create organisation'}}
 async function submitJoin(event){event.preventDefault();const form=Object.fromEntries(new FormData(event.currentTarget));if(form.password!==form.confirmPassword){$('#form-message').textContent='Passwords do not match.';return}delete form.confirmPassword;const button=event.submitter;button.disabled=true;button.textContent='Sending…';try{await api('/api/organisation-memberships',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});$('#form-message').textContent='Access request sent. Your owner or supervisor must approve it before you can enter the workplace.';event.currentTarget.reset()}catch(error){$('#form-message').textContent=error.message}finally{button.disabled=false;button.textContent='Request access'}}
 function login(user){state.user=user;sessionStorage.setItem('shiftrelay-user',user.id);$('#login-view').classList.add('hidden');$('#app-view').classList.remove('hidden');$('#app-view').dataset.role=user.role;$('#app-view').dataset.workerName=user.name;$('#app-view').dataset.workerTitle=user.title||'Workplace member';const initials=user.name.split(' ').map((n)=>n[0]).join('');$('#sidebar-avatar').textContent=initials;$('#sidebar-name').textContent=user.name;$('#sidebar-role').textContent=user.title;const ha=$('#header-avatar');if(ha){if(user.avatar_data_url){ha.textContent='';ha.style.backgroundImage=`url('${user.avatar_data_url}')`;ha.style.backgroundSize='cover';ha.style.backgroundPosition='center';ha.style.color='transparent';}else{ha.textContent=initials;ha.style.backgroundImage='';ha.style.color='';}}const hn=$('#header-name');if(hn){hn.textContent=user.name}const hr=$('#header-role');if(hr){hr.textContent=user.title||user.role}setApiStatus();renderDashboard();refreshNotifications();window.connectTeamRealtime?.()}
