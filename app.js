@@ -254,7 +254,7 @@ async function submitOrganisation(event){event.preventDefault();const form=Objec
 async function submitJoin(event){event.preventDefault();const form=Object.fromEntries(new FormData(event.currentTarget));if(form.password!==form.confirmPassword){$('#form-message').textContent='Passwords do not match.';return}delete form.confirmPassword;const button=event.submitter;button.disabled=true;button.textContent='Sending…';try{await api('/api/organisation-memberships',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});$('#form-message').textContent='Access request sent. Your owner or supervisor must approve it before you can enter the workplace.';event.currentTarget.reset()}catch(error){$('#form-message').textContent=error.message}finally{button.disabled=false;button.textContent='Request access'}}
 function login(user){state.user=user;sessionStorage.setItem('shiftrelay-user',user.id);$('#login-view').classList.add('hidden');$('#app-view').classList.remove('hidden');$('#app-view').dataset.role=user.role;$('#app-view').dataset.workerName=user.name;$('#app-view').dataset.workerTitle=user.title||'Workplace member';const initials=user.name.split(' ').map((n)=>n[0]).join('');$('#sidebar-avatar').textContent=initials;$('#sidebar-name').textContent=user.name;$('#sidebar-role').textContent=user.title;const ha=$('#header-avatar');if(ha){if(user.avatar_data_url){ha.textContent='';ha.style.backgroundImage=`url('${user.avatar_data_url}')`;ha.style.backgroundSize='cover';ha.style.backgroundPosition='center';ha.style.color='transparent';}else{ha.textContent=initials;ha.style.backgroundImage='';ha.style.color='';}}const hn=$('#header-name');if(hn){hn.textContent=user.name}const hr=$('#header-role');if(hr){hr.textContent=user.title||user.role}setApiStatus();renderDashboard();refreshNotifications();window.connectTeamRealtime?.()}
 
-function setApiStatus(){const badge=$('#api-status');if(!badge)return;if(state.config.aiConfigured){badge.textContent='GPT-5.6 Sol connected';badge.className='api-status connected'}else{badge.textContent='AI setup needed';badge.className='api-status missing'}}
+function setApiStatus(){const badge=$('#api-status');if(!badge)return;badge.textContent='Shift Engine Active';badge.className='api-status connected'}
 function dashboardHeader(title,kicker='YOUR WORKSPACE'){document.body.classList.remove('team-page-active');const sharedHeader=document.querySelector('.app-header');if(sharedHeader)sharedHeader.style.display='';$('#page-title').textContent=title;$('#page-kicker').textContent=kicker}
 async function getHandovers(){return (await api('/api/handovers')).handovers}
 function pinnedHandoverFeed(handovers){
@@ -478,7 +478,7 @@ async function analyze(){
 
   const preview=$('#handover-preview');
   preview.classList.remove('hidden');
-  preview.innerHTML=`<p class="eyebrow">${mode==='live'?'GPT-5.6 SOL GENERATED HANDOVER':'DEMO HANDOVER PREVIEW'}</p>
+  preview.innerHTML=`<p class="eyebrow">${mode==='live'?'STRUCTURED DIGITAL HANDOVER BRIEF':'DEMO HANDOVER BRIEF'}</p>
   <h3>${escape(handover.summary)}</h3>
   <p class="eyebrow" style="margin-top:14px;">TASKS TO RELAY</p>
   <ul>${state.currentHandover.tasks.map((item)=>`<li><b>${escape(item.text)}</b> — ${escape(item.owner)}, ${escape(item.due)}</li>`).join('')}</ul>
