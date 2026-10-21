@@ -860,6 +860,18 @@ async function handleApi(request, response, url) {
       store.incidents.unshift(incident);
       await saveStore(store);
       broadcastEvent('incident-reported', incident);
+      if (body.severity === 'critical') {
+        broadcastEvent('emergency-broadcast', {
+          id,
+          title: `CRITICAL ${body.category.toUpperCase()} ALERT`,
+          type: body.category.toLowerCase(),
+          location: `Zone: ${body.zone || 'Facility Wide'}`,
+          instructions: body.description,
+          timestamp: new Date().toLocaleTimeString(),
+          safeCount: 0,
+          totalCount: demoMembers.length
+        });
+      }
       return sendJson(response, 201, { id });
     }
     await query('insert into incidents (id, organisation_id, reported_by_membership_id, category, severity, description) values ($1,$2,$3,$4,$5,$6)', [id, user.organisation_id, user.id, body.category, body.severity, body.description]);

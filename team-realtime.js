@@ -43,6 +43,15 @@ function connectTeamRealtime() {
     }
   });
 
+  stream.addEventListener('emergency-broadcast', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (typeof window.triggerEmergencyBroadcast === 'function') {
+        window.triggerEmergencyBroadcast(data);
+      }
+    } catch {}
+  });
+
   stream.onerror = () => {
     stream.close();
     teamEventStream = null;
