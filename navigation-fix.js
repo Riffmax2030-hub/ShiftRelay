@@ -250,7 +250,8 @@ renderDashboard = async function() {
         }, 2500);
       });
 
-      bindNavigation();
+      window.renderSwapReviewPanel?.();
+    bindNavigation();
       return;
     } catch (err) {
       console.warn('Owner dashboard error:', err);
@@ -447,6 +448,7 @@ renderDashboard = async function() {
       });
     });
 
+    window.renderSwapReviewPanel?.();
     bindNavigation();
   } catch (err) {
     $('#dashboard').innerHTML = `<p class="empty">${escape(err.message)}</p>`;

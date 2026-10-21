@@ -1,0 +1,172 @@
+/* ==========================================================================
+   SHIFT SWAP REVIEW PANEL -- Supervisor/owner dashboard widget
+   ========================================================================== */
+
+.swap-review-panel {
+  margin-bottom: 16px;
+  animation: fadeSlideUp 0.3s ease;
+}
+
+.swap-review-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.swap-review-header svg {
+  color: #0d524d;
+  flex-shrink: 0;
+}
+
+.swap-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  margin-left: auto;
+}
+
+.swap-review-card {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 0.15s ease;
+}
+
+.swap-review-card:hover {
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.swap-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.swap-card-avatar {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0d524d, #10b981);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.swap-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.swap-card-info strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 1px;
+}
+
+.swap-card-info span {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.swap-urgent-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 800;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  flex-shrink: 0;
+}
+
+.swap-card-shift {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0 0 6px;
+  font-weight: 500;
+}
+
+.swap-card-shift svg {
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
+.swap-card-reason {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0 0 12px;
+  line-height: 1.5;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 8px 10px;
+  border: 1px solid #f1f5f9;
+}
+
+.swap-card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.swap-card-actions button {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.swap-approve-btn {
+  background: #0d524d !important;
+  border-color: #0d524d !important;
+}
+
+.swap-reject-btn {
+  color: #ef4444 !important;
+  border-color: #fecaca !important;
+}
+
+/* Dark mode */
+[data-theme="dark"] .swap-review-header {
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .swap-card-info strong {
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .swap-card-reason {
+  background: #0c1117;
+  border-color: rgba(255,255,255,0.07);
+  color: #8b949e;
+}
