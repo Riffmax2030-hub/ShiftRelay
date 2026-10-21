@@ -1,0 +1,262 @@
+/* ==========================================================================
+   EMERGENCY BROADCAST & RED ALERT STYLES
+   ========================================================================== */
+
+.emergency-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.25s ease;
+  transition: opacity 0.25s ease;
+}
+
+.emergency-modal-card {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 24px;
+  border: 2px solid #ef4444;
+  box-shadow: 0 25px 60px rgba(239, 68, 68, 0.35);
+  overflow: hidden;
+  animation: modal-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.emergency-alarm-bar {
+  background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%);
+  color: #ffffff;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.emergency-pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.emergency-pulse-badge svg {
+  animation: pulse 1s infinite;
+}
+
+.emergency-time {
+  font-size: 11.5px;
+  opacity: 0.85;
+  font-family: var(--font-mono, monospace);
+}
+
+.emergency-content {
+  padding: 20px 20px 14px;
+}
+
+.emergency-headline {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  line-height: 1.25;
+}
+
+.emergency-location-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.emergency-instructions {
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.55;
+  margin: 0;
+  background: #f8fafc;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+}
+
+.emergency-checkin-box {
+  margin: 0 20px 16px;
+  background: #f0fdf4;
+  border: 1.5px solid #a7f3d0;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.checkin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.checkin-head strong {
+  font-size: 12px;
+  color: #065f46;
+}
+
+.checkin-stat {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #065f46;
+  font-family: var(--font-mono, monospace);
+}
+
+.checkin-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #bbf7d0;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.checkin-progress-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.emergency-safe-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transition: all 0.15s ease;
+}
+
+.emergency-safe-btn:active {
+  transform: scale(0.98);
+}
+
+.emergency-safe-btn.confirmed {
+  background: #065f46;
+  cursor: default;
+}
+
+.emergency-actions {
+  padding: 0 20px 20px;
+}
+
+.emergency-dismiss-btn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.emergency-dismiss-btn:hover {
+  background: #f8fafc;
+}
+
+/* ── Top Pinned Banner ── */
+.emergency-top-banner {
+  background: #dc2626;
+  color: #ffffff;
+  padding: 8px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 9998;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+}
+
+.top-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.top-banner-text {
+  flex: 1;
+  font-size: 12px;
+}
+
+.top-banner-reopen-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── Dark Mode ── */
+[data-theme="dark"] .emergency-modal-card {
+  background: #1e2736;
+  border-color: #ef4444;
+}
+
+[data-theme="dark"] .emergency-headline {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .emergency-location-tag {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .emergency-instructions {
+  background: #0c1117;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #c9d1d9;
+}
+
+[data-theme="dark"] .emergency-checkin-box {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="dark"] .checkin-head strong,
+[data-theme="dark"] .checkin-stat {
+  color: #34d399;
+}
+
+[data-theme="dark"] .checkin-progress-bar {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .emergency-dismiss-btn {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #8b949e;
+}
