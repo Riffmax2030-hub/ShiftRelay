@@ -205,7 +205,7 @@ async function getUser(request) {
       if (!UUID_REGEX.test(token)) return null;
       try {
         const result = await query(
-          `select m.id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id where s.id = $1 and s.expires_at > now()`,
+          `select m.id, u.id as user_id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id where s.id = $1 and s.expires_at > now()`,
           [token]
         );
         if (result.rows[0]?.status === 'active') return result.rows[0];
@@ -253,7 +253,7 @@ async function databaseHandovers(user) {
 async function createDatabaseHandover(user, body) {
   const runId = crypto.randomUUID();
   const workItemId = crypto.randomUUID();
-  const supervisor = (await query("select id from memberships where organisation_id = $1 and role = 'supervisor' and status = 'active' order by created_at limit 1", [user.organisation_id])).rows[0];
+  const supervisor = (await query("select id from memberships where organisation_id = $1 and role in ('supervisor', 'owner') and status = 'active' order by case when role = 'supervisor' then 1 else 2 end, created_at limit 1", [user.organisation_id])).rows[0];
   const incomingWorker = (await query("select id from memberships where organisation_id = $1 and role = 'incoming' and status = 'active' order by created_at limit 1", [user.organisation_id])).rows[0];
   if (!supervisor || !incomingWorker) throw new Error('Your organisation needs an active supervisor and incoming worker before sending handovers.');
   const requested = body.assignedTo ? (await query('select id from memberships where id = $1 and organisation_id = $2 and role = \'incoming\' and status = \'active\'', [body.assignedTo, user.organisation_id])).rows[0] : null;
@@ -269,12 +269,14 @@ async function updateDatabaseHandover(user, id, action) {
   const item = (await query('select * from work_items where id = $1 and organisation_id = $2', [id, user.organisation_id])).rows[0];
   if (!item) throw new Error('Handover not found.');
   if (action === 'relay') {
-    if (user.role !== 'supervisor') throw new Error('Only a supervisor can approve and relay this handover.');
-    await query('update work_items set status = $1, updated_at = now() where id = $2', ['relayed', id]);
+    if (!['supervisor', 'owner'].includes(user.role)) throw new Error('Only a supervisor can approve and relay this handover.');
+    if (item.status !== 'awaiting_review') throw new Error('This handover cannot be relayed in its current state.');
+    await query('update work_items set status = $1, updated_at = now() where id = $2 and organisation_id = $3', ['relayed', id, user.organisation_id]);
     await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, item.assigned_to_membership_id, id, 'A supervisor approved a handover for your shift.']);
   } else {
-    if (user.id !== item.assigned_to_membership_id) throw new Error('This handover is assigned to another worker.');
-    await query('update work_items set status = $1, acknowledged_at = now(), updated_at = now() where id = $2', ['acknowledged', id]);
+    if (item.status !== 'relayed') throw new Error('This handover cannot be acknowledged in its current state.');
+    if (user.id !== item.assigned_to_membership_id && user.role !== 'owner') throw new Error('This handover is assigned to another worker.');
+    await query('update work_items set status = $1, acknowledged_at = now(), updated_at = now() where id = $2 and organisation_id = $3', ['acknowledged', id, user.organisation_id]);
     await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, item.created_by_membership_id, id, `${user.name} acknowledged the handover.`]);
   }
   return (await databaseHandovers(user)).find((handover) => handover.id === id);
@@ -338,51 +340,107 @@ async function enrolWorker(body) {
 
   if (!orgId) throw new Error('Invalid Organisation Code. Please check the 6-digit code provided by your company.');
 
-  const userId = crypto.randomUUID();
-  const hashedPassword = await hashPassword(body.password);
+  const email = String(body.email || '').trim().toLowerCase();
+  const membershipId = crypto.randomUUID();
 
   if (databaseReady) {
-    await query('insert into portal_users (id, full_name, email, phone, password_hash, country_code, time_zone, employee_reference) values ($1,$2,$3,$4,$5,$6,$7,$8)', [userId, body.fullName, body.email.toLowerCase(), body.phone || null, hashedPassword, body.countryCode || null, body.timeZone || 'UTC', body.employeeReference || null]);
-    await query('insert into memberships (id, organisation_id, user_id, role, title, department, status) values ($1,$2,$1,$3,$4,$5,$6)', [userId, orgId, body.role || 'worker', body.position, body.department || null, 'active']);
-    const owners = await query('select id from memberships where organisation_id = $1 and role in ($2,$3)', [orgId, 'owner', 'supervisor']);
-    for (const owner of owners.rows) await query('insert into notifications (id, organisation_id, recipient_membership_id, message) values ($1,$2,$3,$4)', [crypto.randomUUID(), orgId, owner.id, `${body.fullName} joined your workplace as ${body.position}.`]);
+    let userId;
+    const existingUser = (await query('select id, password_hash from portal_users where lower(email) = lower($1)', [email])).rows[0];
+
+    if (existingUser) {
+      if (!body.password || !(await passwordMatches(body.password, existingUser.password_hash))) {
+        throw new Error('An account with this email already exists. You must provide the correct password to enrol.');
+      }
+      userId = existingUser.id;
+      const existingMembership = (await query('select id from memberships where organisation_id = $1 and user_id = $2', [orgId, userId])).rows[0];
+      if (existingMembership) {
+        throw new Error('You already have an active or pending membership with this organisation.');
+      }
+    } else {
+      userId = crypto.randomUUID();
+      const hashedPassword = await hashPassword(body.password);
+      await query(
+        'insert into portal_users (id, full_name, email, phone, password_hash, country_code, time_zone, employee_reference) values ($1,$2,$3,$4,$5,$6,$7,$8)',
+        [userId, body.fullName, email, body.phone || null, hashedPassword, body.countryCode || null, body.timeZone || 'UTC', body.employeeReference || null]
+      );
+    }
+
+    // Role is strictly forced to non-privileged worker role 'incoming', status strictly 'pending_approval'
+    await query(
+      'insert into memberships (id, organisation_id, user_id, role, title, department, status) values ($1,$2,$3,$4,$5,$6,$7)',
+      [membershipId, orgId, userId, 'incoming', body.position || 'Staff Nurse', body.department || null, 'pending_approval']
+    );
+
+    return { organisationName: orgName, membershipId, status: 'pending_approval' };
   } else {
     const store = await getStore();
     if (!Array.isArray(store.portalUsers)) store.portalUsers = [];
     if (!Array.isArray(store.memberships)) store.memberships = [];
-    store.portalUsers.push({ id: userId, full_name: body.fullName, email: body.email.toLowerCase(), password_hash: hashedPassword, employee_reference: body.employeeReference || null });
-    store.memberships.push({ id: userId, organisation_id: orgId, user_id: userId, role: body.role || 'incoming', title: body.position, department: body.department || 'Operations', status: 'active' });
-    const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []);
-    notifications.unshift({ id: crypto.randomUUID(), recipientId: 'david', message: `${body.fullName} joined your organisation as ${body.position}.`, createdAt: new Date().toISOString(), read: false });
+    const existingUser = store.portalUsers.find((u) => u.email.toLowerCase() === email);
+    let userId;
+    if (existingUser) {
+      if (!body.password || !(await passwordMatches(body.password, existingUser.password_hash))) {
+        throw new Error('An account with this email already exists. You must provide the correct password to enrol.');
+      }
+      userId = existingUser.id;
+      const existingMembership = store.memberships.find((m) => m.organisation_id === orgId && m.user_id === userId);
+      if (existingMembership) {
+        throw new Error('You already have an active or pending membership with this organisation.');
+      }
+    } else {
+      userId = crypto.randomUUID();
+      const hashedPassword = await hashPassword(body.password);
+      store.portalUsers.push({ id: userId, full_name: body.fullName, email, password_hash: hashedPassword, employee_reference: body.employeeReference || null });
+    }
+    store.memberships.push({ id: membershipId, organisation_id: orgId, user_id: userId, role: 'incoming', title: body.position || 'Staff Nurse', department: body.department || 'Operations', status: 'pending_approval' });
     await saveStore(store);
+    return { organisationName: orgName, membershipId, status: 'pending_approval' };
   }
-
-  return { organisationName: orgName, membershipId: userId, status: 'active' };
 }
 
-async function pendingMemberships(owner) {
-  const result = await query(`select m.id, u.full_name, u.email, m.title, m.department, m.created_at from memberships m join portal_users u on u.id = m.user_id where m.organisation_id = $1 and m.status = 'pending_approval' order by m.created_at asc`, [owner.organisation_id]);
-  const workflows = await query('select id, name, description from workflow_templates where organisation_id = $1 order by created_at asc', [owner.organisation_id]);
+async function pendingMemberships(reviewer) {
+  const result = await query(
+    `select m.id, u.full_name, u.email, m.title, m.department, m.role, m.status, m.created_at
+     from memberships m
+     join portal_users u on u.id = m.user_id
+     where m.organisation_id = $1 and m.status = 'pending_approval'
+     order by m.created_at asc`,
+    [reviewer.organisation_id]
+  );
+  const workflows = await query('select id, name, description from workflow_templates where organisation_id = $1 order by created_at asc', [reviewer.organisation_id]);
   return { requests: result.rows.map((row) => ({ id: row.id, name: row.full_name, email: row.email, title: row.title, department: row.department, createdAt: row.created_at })), workflows: workflows.rows };
 }
 
-async function reviewMembership(owner, membershipId, body) {
-  const membership = (await query('select id, user_id, organisation_id from memberships where id = $1 and organisation_id = $2 and status = $3', [membershipId, owner.organisation_id, 'pending_approval'])).rows[0];
-  if (!membership) throw new Error('Pending access request not found.');
+async function reviewMembership(reviewer, membershipId, body) {
+  const membership = (await query('select id, user_id, organisation_id from memberships where id = $1 and organisation_id = $2 and status = $3', [membershipId, reviewer.organisation_id, 'pending_approval'])).rows[0];
+  if (!membership) throw new Error('Pending access request not found in your organisation.');
+
   if (body.decision === 'reject') {
-    await query('update memberships set status = $1 where id = $2', ['rejected', membershipId]);
-    await query('insert into notifications (id, organisation_id, recipient_membership_id, message) values ($1,$2,$3,$4)', [crypto.randomUUID(), owner.organisation_id, membershipId, 'Your ShiftRelay access request was not approved. Contact your organisation administrator for details.']);
+    await query('update memberships set status = $1 where id = $2 and organisation_id = $3', ['rejected', membershipId, reviewer.organisation_id]);
     return { status: 'rejected' };
   }
-  const allowedRoles = ['outgoing', 'incoming', 'supervisor', 'workforce_admin'];
-  if (!allowedRoles.includes(body.role)) throw new Error('Select an approved workplace role.');
-  if (body.workflowTemplateId) {
-    const workflow = (await query('select id from workflow_templates where id = $1 and organisation_id = $2', [body.workflowTemplateId, owner.organisation_id])).rows[0];
-    if (!workflow) throw new Error('Selected workflow does not belong to this organisation.');
+
+  if (body.decision === 'approve') {
+    const allowedWorkerRoles = ['incoming', 'outgoing', 'worker'];
+    if (body.role && !allowedWorkerRoles.includes(body.role)) {
+      throw new Error('Approval cannot grant privileged roles (e.g. owner or supervisor). Only frontline worker roles are permitted.');
+    }
+    const assignedRole = (body.role && allowedWorkerRoles.includes(body.role)) ? body.role : 'incoming';
+
+    if (body.workflowTemplateId) {
+      const workflow = (await query('select id from workflow_templates where id = $1 and organisation_id = $2', [body.workflowTemplateId, reviewer.organisation_id])).rows[0];
+      if (!workflow) throw new Error('Selected workflow does not belong to this organisation.');
+    }
+
+    await query(
+      'update memberships set status = $1, role = $2, workflow_template_id = $3, shift_start = $4, shift_end = $5, shift_days = $6::jsonb where id = $7 and organisation_id = $8',
+      ['active', assignedRole, body.workflowTemplateId || null, body.shiftStart || null, body.shiftEnd || null, JSON.stringify(Array.isArray(body.shiftDays) ? body.shiftDays : []), membershipId, reviewer.organisation_id]
+    );
+
+    return { status: 'active', role: assignedRole };
   }
-  await query('update memberships set status = $1, role = $2, workflow_template_id = $3, shift_start = $4, shift_end = $5, shift_days = $6::jsonb where id = $7', ['active', body.role, body.workflowTemplateId || null, body.shiftStart || null, body.shiftEnd || null, JSON.stringify(Array.isArray(body.shiftDays) ? body.shiftDays : []), membershipId]);
-  await query('insert into notifications (id, organisation_id, recipient_membership_id, message) values ($1,$2,$3,$4)', [crypto.randomUUID(), owner.organisation_id, membershipId, `Your access is approved. You are assigned as ${body.role}.`]);
-  return { status: 'active', role: body.role };
+
+  throw new Error('Invalid decision. Must be approve or reject.');
 }
 
 const wellbeingQuotes = [
@@ -593,6 +651,75 @@ async function handleApi(request, response, url) {
     }
   }
   if (!user || user.status !== 'active') return sendJson(response, 401, { error: 'Authentication required. Please sign in.' });
+
+  // ── Disabled Unsafe Pilot Endpoints ─────────────────────────────────────────
+  if (url.pathname === '/api/shift-swaps' || url.pathname === '/api/shift-swaps/review') {
+    return sendJson(response, 501, { error: 'Shift swap functionality is disabled for this pilot.' });
+  }
+  if (url.pathname.startsWith('/api/feed/') || url.pathname === '/api/feed/posts') {
+    return sendJson(response, 501, { error: 'Social feed is disabled for this pilot.' });
+  }
+  if (url.pathname === '/api/upload') {
+    return sendJson(response, 501, { error: 'File uploads are disabled for this pilot.' });
+  }
+  if (url.pathname === '/api/verified-badge-request' || url.pathname === '/api/discover/workers') {
+    return sendJson(response, 501, { error: 'External worker discovery and badge requests are disabled for this pilot.' });
+  }
+
+  // ── Multi-Company Context Management ─────────────────────────────────────────
+  if (url.pathname === '/api/user/memberships' && request.method === 'GET') {
+    if (!databaseReady) return sendJson(response, 200, { memberships: [] });
+    const res = await query(
+      `select m.id, m.organisation_id, o.legal_name as organisation_name, m.role, m.title, m.department, m.status
+       from memberships m
+       join organisations o on o.id = m.organisation_id
+       where m.user_id = $1 and m.status = 'active'
+       order by o.legal_name asc`,
+      [user.user_id]
+    );
+    return sendJson(response, 200, { memberships: res.rows });
+  }
+
+  if (url.pathname === '/api/user/active-membership' && request.method === 'POST') {
+    if (!databaseReady) return sendJson(response, 400, { error: 'Database mode required for multi-company context switching.' });
+    const body = await readJson(request);
+    const targetMembershipId = body.membershipId;
+    if (!targetMembershipId) return sendJson(response, 400, { error: 'membershipId is required.' });
+
+    const target = (await query(
+      `select m.id, m.organisation_id, m.status, m.role, m.title, o.legal_name as organisation_name
+       from memberships m
+       join organisations o on o.id = m.organisation_id
+       where m.id = $1 and m.user_id = $2`,
+      [targetMembershipId, user.user_id]
+    )).rows[0];
+
+    if (!target) {
+      return sendJson(response, 403, { error: 'Membership not found or not owned by your account.' });
+    }
+
+    if (target.status !== 'active') {
+      return sendJson(response, 403, { error: 'Cannot activate a membership that is pending approval or inactive.' });
+    }
+
+    const newSessionId = await createSession(user.user_id, target.id);
+    const currentToken = sessionId(request);
+    if (currentToken) {
+      await query('delete from user_sessions where id = $1', [currentToken]);
+    }
+
+    response.setHeader('Set-Cookie', sessionCookie(newSessionId));
+    return sendJson(response, 200, {
+      ok: true,
+      membership: {
+        id: target.id,
+        organisationId: target.organisation_id,
+        organisationName: target.organisation_name,
+        role: target.role,
+        title: target.title
+      }
+    });
+  }
 
   if (url.pathname === '/api/profile' && request.method === 'PUT') {
     const body = await readJson(request);
@@ -992,13 +1119,13 @@ async function handleApi(request, response, url) {
   }
 
   if (url.pathname === '/api/memberships/pending' && request.method === 'GET') {
-    if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can review access requests.' });
+    if (!['owner', 'supervisor'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation managers can review access requests.' });
     return sendJson(response, 200, await pendingMemberships(user));
   }
 
   const membershipReviewMatch = url.pathname.match(/^\/api\/memberships\/([^/]+)\/review$/);
   if (membershipReviewMatch && request.method === 'POST') {
-    if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can review access requests.' });
+    if (!['owner', 'supervisor'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation managers can review access requests.' });
     try { return sendJson(response, 200, { membership: await reviewMembership(user, membershipReviewMatch[1], await readJson(request)) }); }
     catch (error) { return sendJson(response, 400, { error: error.message }); }
   }
@@ -1077,7 +1204,7 @@ async function handleApi(request, response, url) {
   }
 
   if (url.pathname === '/api/handovers' && request.method === 'POST') {
-    if (!['outgoing', 'supervisor'].includes(user.role)) return sendJson(response, 403, { error: 'Only outgoing workers or supervisors can create handovers.' });
+    if (!['outgoing', 'supervisor', 'owner'].includes(user.role)) return sendJson(response, 403, { error: 'Only outgoing workers, supervisors, or owners can create handovers.' });
     const { notes, handover, assignedTo = 'faith', shiftStatus = 'green', tasks = [] } = await readJson(request);
     if (!handover?.summary) return sendJson(response, 400, { error: 'Generate a handover before saving.' });
     handover.shiftStatus = shiftStatus;
