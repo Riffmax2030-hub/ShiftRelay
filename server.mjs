@@ -489,7 +489,11 @@ async function handleApi(request, response, url) {
       if (!/^\S+@\S+\.\S+$/.test(email)) return sendJson(response, 400, { error: 'Enter the email address used for your ShiftRelay account.' });
       if (databaseReady) await query('insert into account_deletion_requests (id, email, reason) values ($1,$2,$3)', [crypto.randomUUID(), email, String(body.reason || '').slice(0, 1000) || null]);
       return sendJson(response, 201, { ok: true });
-    } catch (error) { return sendJson(response, 400, { error: error.message || 'Unable to submit your request.' }); }
+    } catch (error) {
+      if (isDatabaseConnectionError(error)) return sendDatabaseError(response, error);
+      if (error.code && (error.code.startsWith('42') || error.code.startsWith('XX') || error.code.startsWith('08'))) return sendDatabaseError(response, error);
+      return sendJson(response, 400, { error: error.message || 'Unable to submit your request.' });
+    }
   }
   if (url.pathname === '/api/auth/sign-in' && request.method === 'POST') {
     try { const session = await signIn(await readJson(request)); response.setHeader('Set-Cookie', sessionCookie(session.sessionId)); return sendJson(response, 200, { user: session.user }); }
