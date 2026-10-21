@@ -65,7 +65,20 @@
     const now = ctx.currentTime;
     const isLoud = pref === 'loud';
 
-    if (type === 'like' || type === 'pop') {
+    if (type === 'click' || type === 'tap') {
+      triggerHaptic('light');
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.exponentialRampToValueAtTime(320, now + 0.04);
+      gain.gain.setValueAtTime(0.04, now);
+      gain.gain.linearRampToValueAtTime(0.001, now + 0.04);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.04);
+    } else if (type === 'like' || type === 'pop') {
       // Soft gentle bubble pop
       triggerHaptic('light');
       const osc = ctx.createOscillator();

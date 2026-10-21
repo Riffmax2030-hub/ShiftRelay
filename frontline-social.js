@@ -588,9 +588,239 @@ async function loadFeedPosts(silent = false) {
 
     stream.innerHTML = posts.map((post) => renderPostCard(post)).join('');
     bindSocialInteractions();
+    if (socialState.activeLoungeTab !== 'saved') {
+      initInfiniteScroll();
+    }
   } catch (err) {
     stream.innerHTML = `<p class="muted">${escape(err.message)}</p>`;
   }
+}
+
+// ─── Endless Infinite Feed Procedural Engine ─────────────────────────────────
+
+const FRONTLINE_SPECIALISTS = [
+  { name: 'Amina Bello', role: 'ICU Clinical Nurse Lead', org: 'Metro Health Central', avatar: '/uploads/avatars/avatar-amina.jpg', verified: true },
+  { name: 'Carlos Mendez', role: 'Warehouse Logistics Supervisor', org: 'Apex Global Logistics', avatar: '/uploads/avatars/avatar-carlos.jpg', verified: true },
+  { name: 'Elena Rostova', role: 'Precision CNC Specialist', org: 'AeroTech Turbine Works', avatar: '/uploads/avatars/avatar-elena.jpg', verified: true },
+  { name: 'Kwame Osei', role: 'Executive Sous Chef', org: 'Harborview Culinary Hub', avatar: '/uploads/avatars/avatar-kwame.jpg', verified: true },
+  { name: 'David Chen', role: 'Emergency Triage Paramedic', org: 'St. Jude Emergency Services', avatar: '/uploads/avatars/avatar-david.jpg', verified: true },
+  { name: 'Jordan Vance', role: 'Industrial Automation Tech', org: 'Robotics Plant 4', avatar: '/uploads/avatars/avatar-jordan.jpg', verified: true },
+  { name: 'Faith Mwangi', role: 'Fleet Dispatch Operations', org: 'TransLog Express Dispatch', avatar: '/uploads/avatars/avatar-faith.jpg', verified: true },
+  { name: 'Marcus Thorne', role: 'Safety Compliance Officer', org: 'PetroChem Bay Facilities', avatar: '/uploads/avatars/avatar-marcus.jpg', verified: true },
+  { name: 'Maria Santos', role: 'Facilities Operations Engineer', org: 'Metro Transit System', avatar: '/uploads/avatars/avatar-maria.jpg', verified: true },
+  { name: 'Zainab Al-Hassan', role: 'Night Charge Nurse', org: 'City Trauma Emergency', avatar: '/uploads/avatars/avatar-zainab.jpg', verified: true }
+];
+
+const PROCEDURAL_SHIFT_POSTS = [
+  {
+    content: "Night shift turnover complete in Ward 4. Handed over 14 post-op telemetry charts with zero medication flags. All IV pumps checked and calibrated. Safe rest to the night crew!",
+    category: 'daily',
+    image_url: '/uploads/feed/feed-triage-handover.jpg',
+    likes: 24,
+    reposts: 5,
+    comments: [
+      { author_name: 'David Chen', author_avatar: '/uploads/avatars/avatar-david.jpg', content: 'Clean handoff Amina, morning team has picked up bed 6 with no delay.' },
+      { author_name: 'Zainab Al-Hassan', author_avatar: '/uploads/avatars/avatar-zainab.jpg', content: 'Great work keeping telemetry logs synchronized!' }
+    ]
+  },
+  {
+    content: "10,400 pallets cleared in Zone C during the 14:00–22:00 window. Completed pre-shift forklift safety checklists 100% on time. Zero near-misses. Outstanding hustle tonight team!",
+    category: 'milestone',
+    image_url: '/uploads/feed/feed-warehouse-safety.jpg',
+    likes: 42,
+    reposts: 11,
+    comments: [
+      { author_name: 'Marcus Thorne', author_avatar: '/uploads/avatars/avatar-marcus.jpg', content: 'Audited aisle 12 safety barriers—impeccable staging.' }
+    ]
+  },
+  {
+    content: "Frontline prep tip for pastry and breakfast line: Mise en place chilled at 4°C overnight saves 45 minutes on the morning rush turnover. Never skip your walk-in thermometer log.",
+    category: 'tip',
+    image_url: '/uploads/feed/feed-kitchen-prep.jpg',
+    likes: 38,
+    reposts: 8,
+    comments: [
+      { author_name: 'Carlos Mendez', author_avatar: '/uploads/avatars/avatar-carlos.jpg', content: 'Same principle applies to order staging in fulfillment!' }
+    ]
+  },
+  {
+    content: "Hydraulic pressure line on Assembly Unit 2 recalibrated before shift turnover. Sensor variance was +1.2 bar, re-torqued and tested within tolerance. Logging in ShiftRelay so incoming lead is aware.",
+    category: 'craft',
+    image_url: '/uploads/feed/feed-plant-machinery.jpg',
+    likes: 29,
+    reposts: 6,
+    comments: [
+      { author_name: 'Jordan Vance', author_avatar: '/uploads/avatars/avatar-jordan.jpg', content: 'Logged in predictive maintenance schedule. Good catch.' }
+    ]
+  },
+  {
+    content: "Shift swap request accepted! Big shoutout to Marcus for taking the Sunday overnight coverage. Mutual coverage keeps the department moving without burnout.",
+    category: 'milestone',
+    image_url: null,
+    likes: 51,
+    reposts: 4,
+    comments: [
+      { author_name: 'Marcus Thorne', author_avatar: '/uploads/avatars/avatar-marcus.jpg', content: 'Always got your back! Have a well-deserved rest.' }
+    ]
+  },
+  {
+    content: "Safety reminder for cold storage teams: inspect emergency escape release latches on walk-in freezers during hourly perimeter rounds. Logged and verified on today's handover.",
+    category: 'tip',
+    image_url: '/uploads/covers/cover-logistics.jpg',
+    likes: 33,
+    reposts: 9,
+    comments: []
+  },
+  {
+    content: "Shift Relay milestone: 365 consecutive days with zero lost-time incidents across our fabrication floor. Culture of accountability and clear handoffs makes all the difference.",
+    category: 'milestone',
+    image_url: '/uploads/covers/cover-engineering.jpg',
+    likes: 88,
+    reposts: 26,
+    comments: [
+      { author_name: 'Elena Rostova', author_avatar: '/uploads/avatars/avatar-elena.jpg', content: 'Proud of our machining team. Zero shortcuts on turnover checks.' }
+    ]
+  },
+  {
+    content: "Morning triage shift briefing: Flu surge protocols active. Rapid isolation bays prepped and oxygen manifold levels checked at 98%. Let's keep patient transfers clean and communicative.",
+    category: 'daily',
+    image_url: '/uploads/covers/cover-healthcare.jpg',
+    likes: 47,
+    reposts: 12,
+    comments: []
+  },
+  {
+    content: "Culinary turnover note: Walk-in stock rotated FIFO. HACCP temperature logs fully signed off for the health inspector visit tomorrow morning. Station 3 is prepped and sanitized.",
+    category: 'craft',
+    image_url: '/uploads/covers/cover-culinary.jpg',
+    likes: 36,
+    reposts: 7,
+    comments: []
+  },
+  {
+    content: "Power telemetry across cleanroom HVAC lines holding steady at 99.98% uptime. Evening shift maintenance schedule uploaded to ShiftRelay. Ready for tomorrow's run.",
+    category: 'craft',
+    image_url: '/uploads/covers/cover-operations.jpg',
+    likes: 31,
+    reposts: 3,
+    comments: []
+  },
+  {
+    content: "Clean turnover on Berth 7. Unloaded 44 freight containers with 12 minutes to spare on the berth window. Relayed vessel logs and crane maintenance cards to incoming night shift.",
+    category: 'milestone',
+    image_url: '/uploads/hero-workplace.jpg',
+    likes: 64,
+    reposts: 15,
+    comments: []
+  },
+  {
+    content: "Night-to-day transition tip: Always do a 2-minute walking turnover instead of just leaving paper notes. Pointing out the actual equipment state prevents 90% of handover blindspots.",
+    category: 'tip',
+    image_url: null,
+    likes: 72,
+    reposts: 22,
+    comments: [
+      { author_name: 'Amina Bello', author_avatar: '/uploads/avatars/avatar-amina.jpg', content: 'Bedside walking rounds saved two patients in our ward this month. Essential.' }
+    ]
+  }
+];
+
+function generateProceduralShiftPosts(count = 5, offset = 0) {
+  const posts = [];
+  const now = Date.now();
+  for (let i = 0; i < count; i++) {
+    const globalIdx = offset + i;
+    const author = FRONTLINE_SPECIALISTS[globalIdx % FRONTLINE_SPECIALISTS.length];
+    const template = PROCEDURAL_SHIFT_POSTS[globalIdx % PROCEDURAL_SHIFT_POSTS.length];
+    const minutesAgo = 18 + globalIdx * 28;
+    const createdAt = new Date(now - minutesAgo * 60 * 1000).toISOString();
+    const id = `infinite-post-${globalIdx + 1000}`;
+    posts.push({
+      id,
+      author_id: `user-gen-${author.name.toLowerCase().replace(/[^a-z]/g, '')}`,
+      author_name: author.name,
+      author_role: author.role,
+      author_avatar: author.avatar,
+      author_verified: author.verified,
+      organisation_name: author.org,
+      created_at: createdAt,
+      category: template.category,
+      content: template.content,
+      image_url: template.image_url,
+      media_type: template.image_url ? 'image' : null,
+      likes_count: template.likes + ((globalIdx * 4) % 19),
+      reposts_count: template.reposts + ((globalIdx * 2) % 7),
+      saves_count: Math.floor(template.likes / 3),
+      comments_count: template.comments.length,
+      comments: template.comments,
+      userLiked: false,
+      userSaved: false
+    });
+  }
+  return posts;
+}
+
+function initInfiniteScroll() {
+  const stream = document.getElementById('lounge-feed-stream');
+  if (!stream || socialState.activeLoungeTab === 'saved') return;
+
+  document.getElementById('lounge-infinite-sentinel')?.remove();
+
+  const sentinel = document.createElement('div');
+  sentinel.id = 'lounge-infinite-sentinel';
+  sentinel.className = 'infinite-scroll-sentinel';
+  sentinel.innerHTML = `
+    <div class="infinite-scroll-loader">
+      <div class="infinite-dot"></div>
+      <div class="infinite-dot"></div>
+      <div class="infinite-dot"></div>
+    </div>
+    <span>Relaying live frontline updates…</span>
+  `;
+  stream.appendChild(sentinel);
+
+  if (window._feedObserver) {
+    window._feedObserver.disconnect();
+  }
+
+  window._feedObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting && !socialState.isLoadingMore) {
+        loadMoreInfinitePosts();
+      }
+    });
+  }, { rootMargin: '350px' });
+
+  window._feedObserver.observe(sentinel);
+}
+
+async function loadMoreInfinitePosts() {
+  if (socialState.isLoadingMore) return;
+  socialState.isLoadingMore = true;
+
+  const stream = document.getElementById('lounge-feed-stream');
+  const sentinel = document.getElementById('lounge-infinite-sentinel');
+  if (!stream || !sentinel) {
+    socialState.isLoadingMore = false;
+    return;
+  }
+
+  await new Promise((r) => setTimeout(r, 280));
+
+  socialState.infiniteBatchCount = (socialState.infiniteBatchCount || 0) + 1;
+  const newPosts = generateProceduralShiftPosts(5, socialState.infiniteBatchCount * 5);
+
+  const fragment = document.createDocumentFragment();
+  newPosts.forEach((post) => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = renderPostCard(post);
+    const postEl = tempDiv.firstElementChild;
+    if (postEl) fragment.appendChild(postEl);
+  });
+
+  stream.insertBefore(fragment, sentinel);
+  bindSocialInteractions();
+  socialState.isLoadingMore = false;
 }
 
 function renderPostCard(post) {
@@ -994,8 +1224,49 @@ function openStoryViewer(teammate) {
 
   // Look for any cached post from this teammate
   const userPost = (socialState.postsCache || []).find(p => p.author_id === teammate.id);
-  const storyHeadline = userPost ? escape(userPost.content) : `Active on shift. Working safely and keeping team relays accurate!`;
-  const storyImage = userPost?.image_url;
+  const headline = userPost ? escape(userPost.content) : `Active on shift. Working safely and keeping team turnover relays accurate!`;
+  
+  // Choose workplace photo
+  const roleLower = (teammate.role || teammate.title || '').toLowerCase();
+  let defaultPhoto = '/uploads/hero-workplace.jpg';
+  if (roleLower.includes('nurse') || roleLower.includes('health') || roleLower.includes('medic') || roleLower.includes('doctor')) {
+    defaultPhoto = '/uploads/covers/cover-healthcare.jpg';
+  } else if (roleLower.includes('logistics') || roleLower.includes('warehouse') || roleLower.includes('forklift')) {
+    defaultPhoto = '/uploads/covers/cover-logistics.jpg';
+  } else if (roleLower.includes('chef') || roleLower.includes('cook') || roleLower.includes('culinary')) {
+    defaultPhoto = '/uploads/covers/cover-culinary.jpg';
+  } else if (roleLower.includes('machin') || roleLower.includes('engineer') || roleLower.includes('tech')) {
+    defaultPhoto = '/uploads/covers/cover-engineering.jpg';
+  }
+  const storyImage = userPost?.image_url || defaultPhoto;
+
+  const slides = [
+    {
+      badge: 'LIVE ON DUTY',
+      title: `${escape(teammate.title || teammate.role || 'Frontline Specialist')}`,
+      desc: `Station verified at ${escape(teammate.organisation_name || 'ShiftRelay Facility')}. Turnover checklist 100% compliant. Active and available for mutual shift relay.`,
+      image: null
+    },
+    {
+      badge: userPost ? 'SHIFT BRIEFING' : 'TURNOVER LOG',
+      title: 'Handoff Highlight',
+      desc: `"${headline}"`,
+      image: null
+    },
+    {
+      badge: 'STATION SNAPSHOT',
+      title: 'Workplace Verification',
+      desc: 'Physical perimeter, calibrated equipment, and turnover safety confirmed with zero incident flags.',
+      image: storyImage
+    }
+  ];
+
+  let currentSlide = 0;
+  let slideProgress = 0;
+  let isPaused = false;
+  let timerInterval = null;
+  const SLIDE_DURATION_MS = 4500;
+  const TICK_MS = 50;
 
   modal = document.createElement('div');
   modal.id = 'story-viewer-modal';
@@ -1003,9 +1274,16 @@ function openStoryViewer(teammate) {
   modal.innerHTML = `
     <div class="story-modal-backdrop"></div>
     <div class="story-modal-card">
-      <div class="story-progress-bar">
-        <div class="story-progress-fill"></div>
+      <!-- 3-Segment Progress Bar -->
+      <div class="story-progress-segments">
+        ${slides.map((_, i) => `
+          <div class="story-progress-seg" id="story-seg-${i}">
+            <div class="story-progress-seg-fill" id="story-seg-fill-${i}"></div>
+          </div>
+        `).join('')}
       </div>
+
+      <!-- Story Header -->
       <div class="story-header-row">
         <div class="story-viewer-avatar" style="${avatarStyle}">${teammate.avatar_data_url ? '' : initial}</div>
         <div class="story-viewer-info">
@@ -1014,38 +1292,175 @@ function openStoryViewer(teammate) {
         </div>
         <button class="story-close-btn" id="story-close-btn" aria-label="Close story">${Icons.close(18)}</button>
       </div>
-      <div class="story-card-body">
-        ${storyImage ? `<div class="story-image-wrap"><img src="${escape(storyImage)}" alt="Shift story photo" /></div>` : ''}
-        <div class="story-quote-box">
-          <p class="story-text">"${storyHeadline}"</p>
-          <small class="story-tag">${userPost ? 'Latest Shift Update' : 'Live Frontline Status'}</small>
+
+      <!-- Slide Viewport with Touch Navigation Zones -->
+      <div class="story-slide-viewport" id="story-viewport">
+        <div class="story-touch-nav">
+          <div class="story-touch-left" id="story-touch-prev" title="Previous update"></div>
+          <div class="story-touch-right" id="story-touch-next" title="Next update"></div>
         </div>
+
+        ${slides.map((s, idx) => `
+          <div class="story-slide ${idx === 0 ? 'active-slide' : ''}" id="story-slide-${idx}">
+            ${s.image ? `
+              <div class="story-slide-image-box">
+                <img src="${escape(s.image)}" alt="Shift story snapshot" />
+              </div>
+            ` : ''}
+            <div class="story-slide-glass-card">
+              <span class="story-slide-badge">${Icons.check(12)} ${s.badge}</span>
+              <h3 class="story-slide-title">${s.title}</h3>
+              <p class="story-slide-desc">${s.desc}</p>
+            </div>
+          </div>
+        `).join('')}
       </div>
-      <div class="story-actions-footer">
-        <button class="primary btn-story-kudos" id="btn-story-kudos">${Icons.like(true)} Send Kudos</button>
+
+      <!-- Bottom Interactive Reaction & Engagement Bar -->
+      <div class="story-reactions-bar">
+        <button class="story-reaction-pill kudos-active" data-story-action="like">
+          ${Icons.like(true)} <span>High-Five</span>
+        </button>
+        <button class="story-reaction-pill" data-story-action="safe">
+          ${Icons.shield(14)} <span>Safe Shift</span>
+        </button>
+        <button class="story-reaction-pill" data-story-action="relay">
+          ${Icons.repost(14)} <span>Relay</span>
+        </button>
+        <button class="story-reaction-pill" data-story-action="ack">
+          ${Icons.check(14)} <span>Ack</span>
+        </button>
       </div>
     </div>
   `;
+
   document.body.appendChild(modal);
   requestAnimationFrame(() => modal.classList.add('active'));
 
-  const close = () => {
+  function showSlide(index) {
+    if (index < 0) index = 0;
+    if (index >= slides.length) {
+      closeStory();
+      return;
+    }
+    currentSlide = index;
+    slideProgress = 0;
+
+    slides.forEach((_, i) => {
+      const slideEl = document.getElementById(`story-slide-${i}`);
+      const segEl = document.getElementById(`story-seg-${i}`);
+      const fillEl = document.getElementById(`story-seg-fill-${i}`);
+      if (slideEl) slideEl.classList.toggle('active-slide', i === currentSlide);
+      if (segEl) segEl.classList.toggle('done', i < currentSlide);
+      if (fillEl) {
+        if (i < currentSlide) fillEl.style.width = '100%';
+        else if (i > currentSlide) fillEl.style.width = '0%';
+        else fillEl.style.width = '0%';
+      }
+    });
+  }
+
+  function startTimer() {
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      if (isPaused) return;
+      slideProgress += TICK_MS;
+      const pct = Math.min(100, (slideProgress / SLIDE_DURATION_MS) * 100);
+      const activeFill = document.getElementById(`story-seg-fill-${currentSlide}`);
+      if (activeFill) activeFill.style.width = `${pct}%`;
+
+      if (slideProgress >= SLIDE_DURATION_MS) {
+        if (currentSlide < slides.length - 1) {
+          showSlide(currentSlide + 1);
+        } else {
+          closeStory();
+        }
+      }
+    }, TICK_MS);
+  }
+
+  function closeStory() {
+    clearInterval(timerInterval);
     modal.classList.remove('active');
-    setTimeout(() => modal.remove(), 250);
-  };
-  modal.querySelector('.story-modal-backdrop')?.addEventListener('click', close);
-  modal.querySelector('#story-close-btn')?.addEventListener('click', close);
-  modal.querySelector('#btn-story-kudos')?.addEventListener('click', () => {
-    toast(`Kudos sent to ${firstName}!`);
-    close();
+    setTimeout(() => modal.remove(), 240);
+  }
+
+  // Tap-through navigation
+  document.getElementById('story-touch-prev')?.addEventListener('click', () => {
+    window.SoundEngine?.play('click');
+    if (currentSlide > 0) {
+      showSlide(currentSlide - 1);
+    } else {
+      slideProgress = 0;
+      const fill = document.getElementById(`story-seg-fill-0`);
+      if (fill) fill.style.width = '0%';
+    }
   });
+
+  document.getElementById('story-touch-next')?.addEventListener('click', () => {
+    window.SoundEngine?.play('click');
+    if (currentSlide < slides.length - 1) {
+      showSlide(currentSlide + 1);
+    } else {
+      closeStory();
+    }
+  });
+
+  // Hold to pause
+  const viewport = document.getElementById('story-viewport');
+  if (viewport) {
+    viewport.addEventListener('mousedown', () => { isPaused = true; });
+    viewport.addEventListener('mouseup', () => { isPaused = false; });
+    viewport.addEventListener('mouseleave', () => { isPaused = false; });
+    viewport.addEventListener('touchstart', () => { isPaused = true; }, { passive: true });
+    viewport.addEventListener('touchend', () => { isPaused = false; });
+  }
+
+  // Reactions
+  modal.querySelectorAll('[data-story-action]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = btn.dataset.storyAction;
+      const actionsMap = {
+        like: { sound: 'like', label: `High-five sent to ${firstName}!`, icon: Icons.like(true) },
+        safe: { sound: 'confirm', label: `Safe shift cheer sent to ${firstName}!`, icon: Icons.shield(16) },
+        relay: { sound: 'pop', label: `Story relayed to shift network!`, icon: Icons.repost(16) },
+        ack: { sound: 'click', label: `Shift status acknowledged!`, icon: Icons.check(16) }
+      };
+      const cfg = actionsMap[action] || actionsMap.like;
+      window.SoundEngine?.play(cfg.sound);
+
+      // Trigger floating burst
+      const burst = document.createElement('div');
+      burst.className = 'story-reaction-burst';
+      burst.innerHTML = cfg.icon;
+      burst.style.left = `${btn.offsetLeft + btn.offsetWidth / 2 - 12}px`;
+      burst.style.bottom = '64px';
+      modal.querySelector('.story-modal-card')?.appendChild(burst);
+      setTimeout(() => burst.remove(), 950);
+
+      toast(cfg.label);
+    });
+  });
+
+  modal.querySelector('.story-modal-backdrop')?.addEventListener('click', closeStory);
+  modal.querySelector('#story-close-btn')?.addEventListener('click', closeStory);
+
   const onKey = (e) => {
     if (e.key === 'Escape') {
-      close();
+      closeStory();
       window.removeEventListener('keydown', onKey);
+    } else if (e.key === 'ArrowRight') {
+      if (currentSlide < slides.length - 1) showSlide(currentSlide + 1);
+      else closeStory();
+    } else if (e.key === 'ArrowLeft') {
+      if (currentSlide > 0) showSlide(currentSlide - 1);
     }
   };
   window.addEventListener('keydown', onKey);
+
+  showSlide(0);
+  startTimer();
 }
 window.openStoryViewer = openStoryViewer;
 

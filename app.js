@@ -314,49 +314,88 @@ async function renderDashboard(){
   const waiting=handovers.filter((item)=>item.status==='awaiting_review').length;
   const relayed=handovers.filter((item)=>item.status==='relayed').length;
   const acknowledged=handovers.filter((item)=>item.status==='acknowledged').length;
-  const hour=new Date().getHours();
+  const now=new Date();
+  const hour=now.getHours();
   const greeting=hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
-  const welcome=`<section class="welcome-card">
-    <div>
-      <p class="eyebrow">YOUR WORKDAY</p>
-      <h2>${greeting}, ${escape(state.user.name.split(' ')[0])}</h2>
-      <p>Stay clear, stay accountable, and keep the team handover relay smooth.</p>
-    </div>
-    <div class="welcome-activity">
-      <span>ORGANIZATION STATUS</span>
-      <strong>${waiting} pending review · ${relayed} incoming</strong>
-    </div>
-  </section>`;
+
+  // ── Real-Time Shift Progress Calculation ──
+  const shiftStart = state.user.shift_start ? String(state.user.shift_start).slice(0, 5) : '07:00';
+  const shiftEnd = state.user.shift_end ? String(state.user.shift_end).slice(0, 5) : '19:00';
+  const [sH, sM] = shiftStart.split(':').map(Number);
+  const [eH, eM] = shiftEnd.split(':').map(Number);
+  const startMins = sH * 60 + (sM || 0);
+  let endMins = eH * 60 + (eM || 0);
+  if (endMins <= startMins) endMins += 24 * 60;
+  let curMins = hour * 60 + now.getMinutes();
+  if (curMins < startMins && endMins > 24 * 60) curMins += 24 * 60;
+  const totalShiftMins = Math.max(60, endMins - startMins);
+  const elapsedMins = Math.max(0, Math.min(totalShiftMins, curMins - startMins));
+  const progressPct = Math.round((elapsedMins / totalShiftMins) * 100);
+  const remMins = Math.max(0, endMins - curMins);
+  const remHours = Math.floor(remMins / 60);
+  const remMinutes = remMins % 60;
+  const remainingText = remHours > 0 ? `${remHours}h ${remMinutes}m` : `${remMinutes}m`;
+
+  const commandDeck = `
+    <section class="today-command-glass">
+      <div class="today-live-status-row">
+        <div class="live-pill">
+          <span class="live-dot-pulse"></span>
+          <span class="live-pill-text">LIVE ROTATION</span>
+        </div>
+        <div class="today-shift-countdown">
+          ${Icons.clock(13)}
+          <span>Turnover in ${remainingText} (${shiftEnd})</span>
+        </div>
+      </div>
+
+      <div class="today-hero-title-row">
+        <div class="today-hero-meta">
+          <span class="today-eyebrow">YOUR WORKDAY · ${greeting.toUpperCase()}, ${escape(state.user.name.split(' ')[0])}</span>
+          <h2 class="today-hero-title">${escape(state.user.title || 'Frontline Specialist')} · ${shiftStart}–${shiftEnd}</h2>
+        </div>
+        <div class="today-progress-percent-box">
+          <span class="today-progress-percent-val">${progressPct}%</span>
+          <span class="today-progress-sublabel">Shift Done</span>
+        </div>
+      </div>
+
+      <div class="today-shift-progress-track">
+        <div class="today-shift-progress-fill" style="width: ${progressPct}%"></div>
+      </div>
+
+      <div class="today-quick-actions">
+        <button class="today-glass-action-btn primary-glow" data-go="handover">
+          ${Icons.check(14)}
+          <span>Draft Turnover</span>
+        </button>
+        <button class="today-glass-action-btn" data-action="quick-swap" id="btn-today-quick-swap">
+          ${Icons.repost(14)}
+          <span>Shift Swap</span>
+        </button>
+        <button class="today-glass-action-btn" data-go="lounge">
+          ${Icons.messageSquare(14)}
+          <span>Shift Lounge</span>
+        </button>
+      </div>
+    </section>
+  `;
+
   const pinnedFeed=pinnedHandoverFeed(handovers);
   let focus='';
   if(state.user.role==='supervisor')focus=reviewPanel(handovers);
   if(state.user.role==='incoming')focus=incomingPanel(handovers);
   if(state.user.role==='owner')focus=await ownerPanel(handovers);
-  // ── Real-Time Shift Active Bar ──
-  const shiftStart = state.user.shift_start ? String(state.user.shift_start).slice(0, 5) : '07:00';
-  const shiftEnd = state.user.shift_end ? String(state.user.shift_end).slice(0, 5) : '19:00';
-  const activeShiftBanner = `
-    <div class="active-shift-timer-card" style="background:linear-gradient(135deg,var(--bg-surface) 0%,var(--bg-surface-subtle) 100%);border:1.5px solid var(--border-subtle);border-radius:16px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:var(--shadow-sm);">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:12px;height:12px;border-radius:50%;background:#10b981;box-shadow:0 0 10px #10b981;animation:pulse 2s infinite;"></div>
-        <div>
-          <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:var(--brand-primary);text-transform:uppercase;">Active Shift Rotation</span>
-          <h3 style="margin:2px 0 0;font-size:16px;font-weight:800;color:var(--text-main);">${escape(state.user.title || 'Frontline Specialist')} · ${shiftStart}–${shiftEnd}</h3>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span class="badge" style="font-size:12px;padding:6px 10px;background:var(--brand-accent-subtle);color:var(--status-green-text);font-weight:700;display:inline-flex;align-items:center;gap:5px;">
-          ${Icons.clock(13)} Turnover at ${shiftEnd}
-        </span>
-        <button class="primary" data-go="handover" style="min-height:36px;padding:0 12px;font-size:12.5px;font-weight:700;">
-          Draft Brief
-        </button>
-      </div>
-    </div>
-  `;
 
-  $('#dashboard').innerHTML=`${welcome}${activeShiftBanner}${pinnedFeed}<div class="metric-grid metric-grid-compact"><article class="metric"><span>Awaiting Review</span><strong>${waiting}</strong></article><article class="metric"><span>Incoming Shift</span><strong>${relayed}</strong></article><article class="metric"><span>Acknowledged</span><strong>${acknowledged}</strong></article></div>${focus}`;
+  $('#dashboard').innerHTML=`${commandDeck}${pinnedFeed}<div class="metric-grid metric-grid-compact"><article class="metric"><span>Awaiting Review</span><strong>${waiting}</strong></article><article class="metric"><span>Incoming Shift</span><strong>${relayed}</strong></article><article class="metric"><span>Acknowledged</span><strong>${acknowledged}</strong></article></div>${focus}`;
   bindNavigation();
+
+  // Quick swap from command deck
+  document.getElementById('btn-today-quick-swap')?.addEventListener('click', () => {
+    if (typeof window.openShiftSwapModal === 'function') {
+      window.openShiftSwapModal('', 'General shift coverage request');
+    }
+  });
   document.querySelectorAll('[data-toggle-handover]').forEach((box)=>{
     box.addEventListener('change',async()=>{
       const parent=box.closest('.handover-task-item');
@@ -676,7 +715,7 @@ async function renderAnalytics(){if(state.user.role!=='owner'){toast('Analytics 
 async function renderWorkflows(){if(state.user.role!=='owner'){toast('Workflow setup is available to the organisation owner.');return renderDashboard()}dashboardHeader('Workflows');const data=await api('/api/workflow-templates');$('#dashboard').innerHTML=`<section class="workspace-card"><p class="eyebrow">WORKFLOW BUILDER</p><h2>Create a repeatable work route.</h2><form class="access-form" id="workflow-form"><label>Workflow name<input name="name" required placeholder="Morning stock handover" /></label><label>Description<input name="description" placeholder="What this workflow is for" /></label><label>Step 1 role<select name="role"><option value="outgoing">Outgoing worker</option><option value="supervisor">Supervisor</option><option value="incoming">Incoming worker</option></select></label><label>Step 1 action<input name="action" required placeholder="Submit handover" /></label><label>Due in minutes<input name="dueMinutes" type="number" min="1" value="30" /></label><label>Escalate after minutes<input name="escalationMinutes" type="number" min="1" value="60" /></label><button class="primary" type="submit">Create workflow</button></form><h3 class="section-title">Current workflows</h3><div class="action-list">${data.templates.map((workflow)=>`<article class="handover-item"><div><h3>${escape(workflow.name)}</h3><p>${escape(workflow.description||'No description')}</p></div></article>`).join('')||'<p class="empty">No workflows yet.</p>'}</div></section>`;$('#workflow-form').addEventListener('submit',async(event)=>{event.preventDefault();const form=Object.fromEntries(new FormData(event.currentTarget));try{await api('/api/workflow-templates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:form.name,description:form.description,steps:[{role:form.role,action:form.action,dueMinutes:form.dueMinutes,escalationMinutes:form.escalationMinutes}]})});toast('Workflow created.');renderWorkflows()}catch(error){toast(error.message)}});bindNavigation()}
 async function renderIncidents(){dashboardHeader('Incidents');const data=await api('/api/incidents');$('#dashboard').innerHTML=`<section class="workspace-card"><p class="eyebrow">INCIDENT REPORTING</p><h2>Raise an issue early.</h2><form class="access-form" id="incident-form"><label>Category<select name="category"><option>Safety</option><option>Equipment</option><option>Service</option><option>Customer</option><option>Security</option><option>Other</option></select></label><label>Severity<select name="severity"><option>low</option><option>medium</option><option>high</option><option>critical</option></select></label><label>What happened?<textarea name="description" required></textarea></label><button class="primary" type="submit">Report incident</button></form><div class="action-list">${data.incidents.map((incident)=>`<article class="handover-item"><div><span class="badge awaiting_review">${escape(incident.severity)}</span><h3>${escape(incident.category)}</h3><p>${escape(incident.description)}</p></div></article>`).join('')||'<p class="empty">No incidents reported.</p>'}</div></section>`;$('#incident-form').addEventListener('submit',async(event)=>{event.preventDefault();try{await api('/api/incidents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(event.currentTarget)))});toast('Incident reported.');renderIncidents()}catch(error){toast(error.message)}});bindNavigation()}
 async function renderSettings(){if(state.user.role!=='owner'){toast('Organisation settings are available to the owner.');return renderDashboard()}dashboardHeader('Settings');const [settings,auditLog]=await Promise.all([api('/api/organisation/settings'),api('/api/audit-events')]);const org=settings.organisation;$('#dashboard').innerHTML=`<section class="workspace-card"><p class="eyebrow">ORGANISATION SETTINGS</p><h2>${escape(org.legal_name)}</h2><form class="access-form" id="settings-form"><label>Display name<input name="tradingName" value="${escape(org.trading_name||'')}" /></label><label>Industry<input name="industry" value="${escape(org.industry||'')}" /></label><label>Country<input name="country" value="${escape(org.country||'')}" /></label><label>Default time zone<input name="timeZone" value="${escape(org.time_zone||'UTC')}" /></label><label>Language<input name="language" value="${escape(org.preferred_language||'en')}" /></label><button class="primary" type="submit">Save settings</button></form><h3 class="section-title">Recent audit history</h3><div class="action-list">${auditLog.events.map((event)=>`<article class="handover-item"><div><h3>${escape(event.event_type.replaceAll('_',' '))}</h3><p>${escape(event.actor_name||'System')} · ${new Date(event.created_at).toLocaleString()}</p></div></article>`).join('')||'<p class="empty">No audit events yet.</p>'}</div></section>`;$('#settings-form').addEventListener('submit',async(event)=>{event.preventDefault();try{await api('/api/organisation/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(event.currentTarget)))});toast('Settings saved.');renderSettings()}catch(error){toast(error.message)}});bindNavigation()}
-async function go(view){const buttons=document.querySelectorAll('.side-nav button');if(state.navigating)return;state.navigating=true;buttons.forEach((button)=>{button.disabled=true;button.classList.toggle('active',button.dataset.view===view)});// Stop feed refresh when leaving lounge
+async function go(view){window.SoundEngine?.play('click');const buttons=document.querySelectorAll('.side-nav button');document.querySelectorAll('.dock-tab').forEach((tab)=>{tab.classList.toggle('active',tab.dataset.go===view||(view==='dashboard'&&tab.dataset.go==='dashboard'))});if(state.navigating)return;state.navigating=true;buttons.forEach((button)=>{button.disabled=true;button.classList.toggle('active',button.dataset.view===view)});// Stop feed refresh when leaving lounge
 window.stopFeedRefresh?.();dashboardHeader('Loading…');$('#dashboard').innerHTML='<p class="empty">Loading your workspace…</p>';try{if(view==='handover')await renderHandoverForm();else if(view==='activity')await renderSocialActivity();else if(view==='notifications')await renderNotificationCentre();else if(view==='calendar')await renderCalendar();else if(view==='people')await renderPeople();else if(view==='workflows')await renderWorkflows();else if(view==='analytics')await renderAnalytics();else if(view==='incidents')await renderIncidents();else if(view==='settings')await renderSettings();else if(view==='lounge')await renderShiftLounge();else if(view==='passport')await renderWorkerPassport();else if(view==='discover')await renderDiscover();else if(view==='community')await renderShiftLounge();else await renderDashboard()}catch(error){$('#dashboard').innerHTML=`<p class="empty">${escape(error.message||'Unable to load this page.')}</p>`}finally{state.navigating=false;buttons.forEach((button)=>button.disabled=false)}}
 async function refreshNotifications(){try{const {notifications}=await api('/api/notifications');const unread=notifications.filter((item)=>!item.read).length;$('#notification-count').textContent=unread;$('#notification-count').classList.toggle('hidden',!unread);$('#notification-list').innerHTML=notifications.length?notifications.map((item)=>`<button class="notification ${item.read?'':'unread'}" data-notification-id="${item.id}"><span class="notification-message">${escape(item.message)}</span><time datetime="${escape(item.createdAt)}">${new Date(item.createdAt).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'medium'})}</time><span class="notification-detail hidden">Opened at ${new Date().toLocaleTimeString(undefined,{timeStyle:'medium'})}. This item is now marked as read.</span></button>`).join(''):'<p class="empty">You are all caught up.</p>';document.querySelectorAll('[data-notification-id]').forEach((button)=>button.addEventListener('click',async()=>{const detail=button.querySelector('.notification-detail');detail.classList.toggle('hidden');if(button.classList.contains('unread')){try{await api(`/api/notifications/${button.dataset.notificationId}/read`,{method:'POST'});button.classList.remove('unread');const count=$('#notification-count');const remaining=Math.max(0,Number(count.textContent)-1);count.textContent=remaining;count.classList.toggle('hidden',!remaining)}catch(error){toast(error.message)}}}))}catch{}}
 async function recordVoice(){const button=$('#record-button'),status=$('#voice-status');if(state.mediaRecorder?.state==='recording'){state.mediaRecorder.stop();return}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});state.recordedChunks=[];state.mediaRecorder=new MediaRecorder(stream);state.mediaRecorder.addEventListener('dataavailable',(event)=>state.recordedChunks.push(event.data));state.mediaRecorder.addEventListener('stop',async()=>{stream.getTracks().forEach((track)=>track.stop());button.innerHTML=`${Icons.mic()} Record voice update`;status.textContent='Transcribing…';try{const blob=new Blob(state.recordedChunks,{type:state.mediaRecorder.mimeType});const result=await api('/api/transcribe',{method:'POST',headers:{'Content-Type':blob.type},body:blob});$('#shift-notes').value=`${$('#shift-notes').value}\n\n${result.transcript}`.trim();status.textContent='Voice note added to the update.'}catch(error){status.textContent=error.message==='TRANSCRIPTION_NOT_CONFIGURED'?'Transcription is not configured locally yet.':'Voice transcription failed. Please try again.'}});state.mediaRecorder.start();button.innerHTML=`${Icons.micStop()} Stop recording`;status.textContent='Recording…'}catch{status.textContent='Microphone access was not granted.'}}
