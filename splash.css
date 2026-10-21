@@ -1,0 +1,498 @@
+/* ==========================================================================
+   SHIFTRELAY SPLASH + ONBOARDING ENTRY SCREEN
+   ========================================================================== */
+
+/* SPLASH SCREEN — covers the whole viewport on launch */
+#sr-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: linear-gradient(160deg, #0a3d39 0%, #0d6b63 60%, #0a4a44 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#sr-splash.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: splashPop 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: scale(0.88) translateY(12px);
+}
+
+@keyframes splashPop {
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.splash-icon {
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+.splash-wordmark {
+  font-size: 30px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.04em;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.splash-wordmark span {
+  color: #d4f576;
+}
+
+.splash-tagline {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: -6px;
+}
+
+.splash-loader {
+  width: 36px;
+  height: 3px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.splash-loader-bar {
+  height: 100%;
+  width: 0%;
+  background: #d4f576;
+  border-radius: 99px;
+  animation: loaderFill 1.6s ease forwards;
+}
+
+@keyframes loaderFill {
+  0%   { width: 0%; }
+  40%  { width: 60%; }
+  80%  { width: 88%; }
+  100% { width: 100%; }
+}
+
+/* ==========================================================================
+   ENTRY SCREEN — Shown to new / logged-out users (replaces old landing page)
+   ========================================================================== */
+#sr-entry {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  overflow-y: auto;
+}
+
+[data-theme="dark"] #sr-entry {
+  background: #0c1117;
+}
+
+#sr-entry.visible {
+  opacity: 1;
+}
+
+#sr-entry.hidden-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.entry-top {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 28px 32px;
+  text-align: center;
+  gap: 0;
+}
+
+.entry-icon-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 22px;
+  margin-bottom: 24px;
+  box-shadow: 0 12px 32px rgba(13,82,77,0.22);
+}
+
+.entry-headline {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.035em;
+  margin: 0 0 10px;
+  line-height: 1.15;
+}
+
+[data-theme="dark"] .entry-headline { color: #f1f5f9; }
+
+.entry-headline em {
+  font-style: normal;
+  color: #0d6b63;
+}
+
+.entry-sub {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.55;
+  max-width: 280px;
+  margin: 0 auto 32px;
+}
+
+/* Feature pills — 3 horizontal icons row */
+.entry-pills {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+.entry-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 99px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+[data-theme="dark"] .entry-pill {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.entry-pill svg {
+  flex-shrink: 0;
+  color: #0d6b63;
+}
+
+/* Bottom action area */
+.entry-bottom {
+  padding: 20px 24px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.entry-btn-primary {
+  width: 100%;
+  padding: 15px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0a3d39 0%, #0d6b63 100%);
+  color: #ffffff;
+  font-size: 15.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(13,82,77,0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.entry-btn-primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 4px 12px rgba(13,82,77,0.2);
+}
+
+.entry-btn-secondary {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  background: transparent;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1.5px solid #e2e8f0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease;
+}
+
+.entry-btn-secondary:active {
+  background: #f8fafc;
+}
+
+[data-theme="dark"] .entry-btn-secondary {
+  color: #94a3b8;
+  border-color: #334155;
+}
+
+.entry-legal {
+  text-align: center;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.entry-legal a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   COMPACT LOGIN MODAL — replaces the portal/form on the old landing page
+   Slides up from the bottom when user taps "Sign In" on entry screen
+   ========================================================================== */
+#sr-login-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: rgba(15,23,42,0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+
+#sr-login-modal.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.sr-login-sheet {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 24px 24px 0 0;
+  padding: 8px 20px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+[data-theme="dark"] .sr-login-sheet {
+  background: #1e293b;
+}
+
+#sr-login-modal.open .sr-login-sheet {
+  transform: translateY(0);
+}
+
+.sr-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 99px;
+  margin: 10px auto 20px;
+}
+
+.sr-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.sr-sheet-header h3 {
+  font-size: 19px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+[data-theme="dark"] .sr-sheet-header h3 { color: #f1f5f9; }
+
+.sr-sheet-tabs {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+  margin-bottom: 20px;
+}
+
+[data-theme="dark"] .sr-sheet-tabs { background: #0f172a; }
+
+.sr-sheet-tab {
+  flex: 1;
+  padding: 8px 6px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.sr-sheet-tab.active {
+  background: #ffffff;
+  color: #0d6b63;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+[data-theme="dark"] .sr-sheet-tab.active {
+  background: #1e293b;
+  color: #34d399;
+}
+
+.sr-sheet-form label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 5px;
+  margin-top: 14px;
+}
+
+.sr-sheet-form input,
+.sr-sheet-form select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 15px;
+  color: #0f172a;
+  background: #f8fafc;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  -webkit-appearance: none;
+}
+
+.sr-sheet-form input:focus,
+.sr-sheet-form select:focus {
+  outline: none;
+  border-color: #0d6b63;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(13,107,99,0.1);
+}
+
+[data-theme="dark"] .sr-sheet-form input,
+[data-theme="dark"] .sr-sheet-form select {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+.sr-sheet-submit {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0a3d39 0%, #0d6b63 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  margin-top: 18px;
+  margin-bottom: 4px;
+  box-shadow: 0 6px 18px rgba(13,82,77,0.25);
+  transition: transform 0.15s ease;
+}
+
+.sr-sheet-submit:active { transform: scale(0.97); }
+.sr-sheet-submit:disabled { opacity: 0.6; }
+
+.sr-sheet-msg {
+  font-size: 13px;
+  color: #ef4444;
+  text-align: center;
+  min-height: 20px;
+  margin-top: 6px;
+}
+
+/* Demo role cards in the sheet */
+.sr-demo-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.sr-demo-role-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  width: 100%;
+}
+
+[data-theme="dark"] .sr-demo-role-btn {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.sr-demo-role-btn:active {
+  border-color: #0d6b63;
+  background: #f0fdf4;
+}
+
+.sr-demo-avatar {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0a3d39, #0d6b63);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.sr-demo-role-btn strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+[data-theme="dark"] .sr-demo-role-btn strong { color: #f1f5f9; }
+
+.sr-demo-role-btn small {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 500;
+}

@@ -38,12 +38,135 @@
     <link rel="stylesheet" href="frontline-social.css" />
     <link rel="stylesheet" href="me-profile.css" />
     <link rel="stylesheet" href="shiftrelay-v3.css" />
+    <link rel="stylesheet" href="splash.css" />
     <script src="icons.js"></script>
     <script src="theme.js"></script>
     <script src="alarm-engine.js"></script>
   </head>
   <body>
-    <main class="landing-experience" id="login-view">
+    <!-- ======================================================
+         SPLASH SCREEN — auto-removed after session check
+         ====================================================== -->
+    <div id="sr-splash" role="status" aria-live="polite" aria-label="ShiftRelay loading">
+      <div class="splash-logo-wrap">
+        <img src="icon.svg" class="splash-icon" alt="ShiftRelay" width="88" height="88" />
+        <span class="splash-wordmark">Shift<span>Relay</span></span>
+        <span class="splash-tagline">Frontline OS</span>
+        <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         ENTRY SCREEN — shown to new / logged-out users
+         (replaces the old scrolling landing page for mobile)
+         ====================================================== -->
+    <div id="sr-entry" class="hidden-out" aria-label="Welcome to ShiftRelay">
+      <div class="entry-top">
+        <img src="icon.svg" class="entry-icon-ring" alt="ShiftRelay" width="80" height="80" />
+        <h1 class="entry-headline">Every shift.<br><em>Accounted for.</em></h1>
+        <p class="entry-sub">Digital handovers, shift swaps, and your frontline career — all in one place.</p>
+        <div class="entry-pills">
+          <span class="entry-pill">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Handovers
+          </span>
+          <span class="entry-pill">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            Shift Swaps
+          </span>
+          <span class="entry-pill">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+            Careers
+          </span>
+        </div>
+      </div>
+
+      <div class="entry-bottom">
+        <button class="entry-btn-primary" id="entry-btn-start" type="button">
+          Get Started Free
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+        <button class="entry-btn-secondary" id="entry-btn-signin" type="button">
+          Sign in to your account
+        </button>
+        <p class="entry-legal">By continuing you agree to our <a href="terms.html">Terms</a> &amp; <a href="privacy.html">Privacy Policy</a>.</p>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         LOGIN / REGISTER BOTTOM SHEET MODAL
+         ====================================================== -->
+    <div id="sr-login-modal" role="dialog" aria-modal="true" aria-label="Sign in or register">
+      <div class="sr-login-sheet">
+        <div class="sr-sheet-handle"></div>
+        <div class="sr-sheet-header">
+          <h3>Welcome</h3>
+          <button type="button" id="sr-modal-close" aria-label="Close" style="background:transparent;border:none;padding:6px;cursor:pointer;color:#64748b;">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="sr-sheet-tabs">
+          <button class="sr-sheet-tab active" data-tab="signin" type="button">Sign In</button>
+          <button class="sr-sheet-tab" data-tab="register" type="button">Register</button>
+          <button class="sr-sheet-tab" data-tab="demo" type="button">Demo</button>
+        </div>
+
+        <!-- Sign In pane -->
+        <div class="sr-sheet-pane" data-pane="signin">
+          <form class="sr-sheet-form" id="sr-sheet-signin-form" autocomplete="on">
+            <label>Work email
+              <input name="email" type="email" required autocomplete="email" placeholder="you@workplace.com" />
+            </label>
+            <label>Password
+              <input name="password" type="password" required autocomplete="current-password" placeholder="Enter password" />
+            </label>
+            <button class="sr-sheet-submit" type="submit">Sign In</button>
+            <p class="sr-sheet-msg" id="sr-sheet-msg"></p>
+          </form>
+        </div>
+
+        <!-- Register pane -->
+        <div class="sr-sheet-pane" data-pane="register" style="display:none">
+          <form class="sr-sheet-form" id="sr-sheet-register-form" autocomplete="on">
+            <label>Company / Facility name
+              <input name="legalName" required placeholder="e.g. Metro General Hospital" />
+            </label>
+            <label>Industry
+              <select name="industry">
+                <option value="Healthcare">Healthcare</option>
+                <option value="Logistics">Logistics</option>
+                <option value="Manufacturing">Manufacturing</option>
+                <option value="Hospitality">Hospitality</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <label>Your full name
+              <input name="ownerName" required placeholder="Full name" />
+            </label>
+            <label>Work email
+              <input name="workEmail" type="email" required autocomplete="email" placeholder="you@company.com" />
+            </label>
+            <label>Create password
+              <input name="password" type="password" minlength="8" required autocomplete="new-password" placeholder="Min. 8 characters" />
+            </label>
+            <label>Confirm password
+              <input name="confirmPassword" type="password" minlength="8" required autocomplete="new-password" placeholder="Repeat password" />
+            </label>
+            <button class="sr-sheet-submit" type="submit">Create Workplace</button>
+            <p class="sr-sheet-msg" id="sr-sheet-register-msg"></p>
+          </form>
+        </div>
+
+        <!-- Demo pane -->
+        <div class="sr-sheet-pane sr-demo-section" data-pane="demo" style="display:none">
+          <p style="font-size:13px;color:#64748b;margin:0 0 14px;line-height:1.5;">Try ShiftRelay instantly as a demo user. No password needed.</p>
+          <div class="sr-demo-roles" id="sr-demo-role-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <main class="landing-experience" id="login-view" style="display:none">
       <!-- 1. Sticky Glassmorphic Navbar -->
       <nav class="landing-navbar" aria-label="Main Navigation">
         <div class="landing-nav-inner">
@@ -363,6 +486,7 @@
     <script src="language.js"></script>
     <script src="language-pack.js"></script>
     <script src="app.js"></script>
+    <script src="splash.js"></script>
     <script src="notifications.js"></script>
    <script src="profile.js"></script>
    <script src="checklists.js"></script>
@@ -379,6 +503,6 @@
     <script src="me-profile.js"></script>
     <script src="navigation-fix.js"></script>
     <script src="tour-experience.js"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=50',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=57',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>

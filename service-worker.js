@@ -1,4 +1,4 @@
-const CACHE = 'shiftrelay-v56';
+const CACHE = 'shiftrelay-v57';
 const ASSETS = [
   '/',
   '/index.html',
