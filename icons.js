@@ -102,12 +102,6 @@ const Icons = {
     </svg>
   `,
 
-  play: () => `
-    <svg class="sr-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" aria-hidden="true">
-      <polygon points="6 4 20 12 6 20 6 4"/>
-    </svg>
-  `,
-
   calendar: () => `
     <svg class="sr-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
@@ -343,6 +337,98 @@ const Icons = {
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
       <polyline points="7 10 12 15 17 10"/>
       <line x1="12" x2="12" y1="15" y2="3"/>
+    </svg>
+  `,
+
+  sparkle: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+    </svg>
+  `,
+
+  plus: (size = 18) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M5 12h14"/><path d="M12 5v14"/>
+    </svg>
+  `,
+
+  edit: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  `,
+
+  badgeCheck: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/>
+      <path d="m9 12 2 2 4-4"/>
+    </svg>
+  `,
+
+  bolt: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+  `,
+
+  briefcase: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+    </svg>
+  `,
+
+  building: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect width="16" height="20" x="4" y="2" rx="2" ry="2"/>
+      <path d="M9 22v-4h6v4"/>
+      <path d="M8 6h.01"/><path d="M16 6h.01"/>
+      <path d="M12 6h.01"/><path d="M12 10h.01"/>
+      <path d="M12 14h.01"/><path d="M16 10h.01"/>
+      <path d="M16 14h.01"/><path d="M8 10h.01"/>
+      <path d="M8 14h.01"/>
+    </svg>
+  `,
+
+  handshake: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="m11 17 2 2a1 1 0 1 0 3-3"/>
+      <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l1.71 1.15a5.78 5.78 0 0 1 2.31 3.93L20 16"/>
+      <path d="m5 12-2.36-2.36a1 1 0 1 1 3-3L9 10"/>
+      <path d="m11 7 1-1a3.9 3.9 0 0 1 5.6.11 4 4 0 0 1-.11 5.52l-7 7a4 4 0 0 1-5.59-.02 3.9 3.9 0 0 1-.02-5.59"/>
+    </svg>
+  `,
+
+  print: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="6 9 6 2 18 2 18 9"/>
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+      <rect x="6" y="14" width="12" height="8"/>
+    </svg>
+  `,
+
+  calendar2: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+      <line x1="16" x2="16" y1="2" y2="6"/>
+      <line x1="8" x2="8" y1="2" y2="6"/>
+      <line x1="3" x2="21" y1="10" y2="10"/>
+      <path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/>
+      <path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>
+    </svg>
+  `,
+
+  check2: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  `,
+
+  clock2: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
     </svg>
   `
 };

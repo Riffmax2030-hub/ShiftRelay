@@ -1,0 +1,230 @@
+/* ==========================================================================
+   SHIFT CALENDAR & 1-TAP .ICS EXPORT
+   ========================================================================== */
+.shift-calendar-card {
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 20px;
+  padding: 18px 20px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="dark"] .shift-calendar-card {
+  background: #111827;
+  border-color: #1e293b;
+  color: #f8fafc;
+}
+
+.shift-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.shift-calendar-head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-ics-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0d524d;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .btn-ics-export {
+  background: #1e293b;
+  border-color: #334155;
+  color: #34d399;
+}
+
+.btn-ics-export:active {
+  transform: scale(0.95);
+  background: #f0fdf4;
+}
+
+/* Horizontal Week Carousel */
+.week-date-carousel {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 4px 0 10px;
+}
+
+.week-date-carousel::-webkit-scrollbar { display: none; }
+
+.date-card-pill {
+  flex: 1;
+  min-width: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 4px 8px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+[data-theme="dark"] .date-card-pill {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.date-card-pill:active {
+  transform: scale(0.94);
+}
+
+.date-card-pill.active {
+  background: linear-gradient(135deg, #0d524d 0%, #064e3b 100%);
+  border-color: #0d524d;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(13, 82, 77, 0.25);
+}
+
+.date-card-day {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
+
+.date-card-pill.active .date-card-day {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.date-card-num {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 3px 0 4px;
+}
+
+.date-card-pill.active .date-card-num {
+  color: #ffffff;
+}
+
+.date-card-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+
+.date-card-pill.has-shift .date-card-dot {
+  background: #10b981;
+}
+
+.date-card-pill.active .date-card-dot {
+  background: #34d399;
+}
+
+/* Active Day Details Banner */
+.active-day-shift-detail {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+[data-theme="dark"] .active-day-shift-detail {
+  background: rgba(6, 78, 59, 0.3);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.day-shift-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #065f46;
+}
+
+[data-theme="dark"] .day-shift-title {
+  color: #a7f3d0;
+}
+
+.day-shift-subtitle {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: #047857;
+}
+
+[data-theme="dark"] .day-shift-subtitle {
+  color: #6ee7b7;
+}
+
+/* Overtime & Fatigue Meter */
+.overtime-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle, #e2e8f0);
+}
+
+.overtime-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.overtime-label {
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10px;
+}
+
+.overtime-val {
+  color: #0f172a;
+  font-family: var(--font-mono, monospace);
+}
+
+[data-theme="dark"] .overtime-val {
+  color: #f8fafc;
+}
+
+.overtime-progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 99px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .overtime-progress-bar {
+  background: #1e293b;
+}
+
+.overtime-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}

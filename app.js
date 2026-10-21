@@ -377,18 +377,35 @@ async function renderDashboard(){
           ${Icons.messageSquare(14)}
           <span>Shift Lounge</span>
         </button>
+        <button class="today-glass-action-btn" id="btn-today-hazard" style="border-color:rgba(239,68,68,0.35);color:#fca5a5;">
+          ${Icons.shield(14)}
+          <span>Report Hazard</span>
+        </button>
       </div>
     </section>
   `;
 
   const pinnedFeed=pinnedHandoverFeed(handovers);
+  const calendarCard = typeof window.renderShiftCalendarCard === 'function' ? window.renderShiftCalendarCard() : '';
+  const zonesCard = typeof window.renderFacilityZonesCard === 'function' ? window.renderFacilityZonesCard() : '';
   let focus='';
   if(state.user.role==='supervisor')focus=reviewPanel(handovers);
   if(state.user.role==='incoming')focus=incomingPanel(handovers);
   if(state.user.role==='owner')focus=await ownerPanel(handovers);
 
-  $('#dashboard').innerHTML=`${commandDeck}${pinnedFeed}<div class="metric-grid metric-grid-compact"><article class="metric"><span>Awaiting Review</span><strong>${waiting}</strong></article><article class="metric"><span>Incoming Shift</span><strong>${relayed}</strong></article><article class="metric"><span>Acknowledged</span><strong>${acknowledged}</strong></article></div>${focus}`;
+  $('#dashboard').innerHTML=`${commandDeck}${pinnedFeed}<div class="metric-grid metric-grid-compact"><article class="metric"><span>Awaiting Review</span><strong>${waiting}</strong></article><article class="metric"><span>Incoming Shift</span><strong>${relayed}</strong></article><article class="metric"><span>Acknowledged</span><strong>${acknowledged}</strong></article></div>${calendarCard}${zonesCard}${focus}`;
   bindNavigation();
+
+  // Bind calendar and zones
+  window.bindShiftCalendarEvents?.();
+  window.bindFacilityZonesEvents?.();
+
+  // Report hazard trigger
+  document.getElementById('btn-today-hazard')?.addEventListener('click', () => {
+    if (typeof window.openIncidentModal === 'function') {
+      window.openIncidentModal();
+    }
+  });
 
   // Quick swap from command deck
   document.getElementById('btn-today-quick-swap')?.addEventListener('click', () => {

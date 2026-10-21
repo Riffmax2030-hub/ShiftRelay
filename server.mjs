@@ -830,12 +830,42 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/incidents' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Incident reporting is available for authenticated organisation accounts.' });
-    if (!databaseReady) return sendJson(response, 200, { incidents: [] });
-    const incidents = await query('select i.*, u.full_name as reporter_name from incidents i join memberships m on m.id = i.reported_by_membership_id join portal_users u on u.id = m.user_id where i.organisation_id = $1 order by i.created_at desc limit 30', [user.organisation_id]); return sendJson(response, 200, { incidents: incidents.rows });
+    if (!databaseReady) {
+      const store = await getStore();
+      return sendJson(response, 200, { incidents: store.incidents || [] });
+    }
+    const incidents = await query('select i.*, u.full_name as reporter_name from incidents i join memberships m on m.id = i.reported_by_membership_id join portal_users u on u.id = m.user_id where i.organisation_id = $1 order by i.created_at desc limit 30', [user.organisation_id]);
+    return sendJson(response, 200, { incidents: incidents.rows });
   }
   if (url.pathname === '/api/incidents' && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Incident reporting is available for authenticated organisation accounts.' });
-    const body = await readJson(request); if (!body.category || !body.severity || !body.description) return sendJson(response, 400, { error: 'Category, severity, and description are required.' }); const id = crypto.randomUUID(); await query('insert into incidents (id, organisation_id, reported_by_membership_id, category, severity, description) values ($1,$2,$3,$4,$5,$6)', [id, user.organisation_id, user.id, body.category, body.severity, body.description]); await audit(user.organisation_id, user.id, 'incident_reported', 'incident', id, `${body.severity} ${body.category} incident reported.`); await notifyOrganisationOwners(user.organisation_id, `${user.name} reported a ${body.severity} ${body.category} incident.`); return sendJson(response, 201, { id });
+    const body = await readJson(request);
+    if (!body.category || !body.severity || !body.description) return sendJson(response, 400, { error: 'Category, severity, and description are required.' });
+    const id = crypto.randomUUID();
+    if (!databaseReady) {
+      const store = await getStore();
+      if (!Array.isArray(store.incidents)) store.incidents = [];
+      const incident = {
+        id,
+        organisation_id: user.organisation_id,
+        reported_by_membership_id: user.id,
+        reporter_name: user.name,
+        category: body.category,
+        severity: body.severity,
+        description: body.description,
+        zone: body.zone || 'General',
+        image_url: body.imageUrl || null,
+        created_at: new Date().toISOString()
+      };
+      store.incidents.unshift(incident);
+      await saveStore(store);
+      broadcastEvent('incident-reported', incident);
+      return sendJson(response, 201, { id });
+    }
+    await query('insert into incidents (id, organisation_id, reported_by_membership_id, category, severity, description) values ($1,$2,$3,$4,$5,$6)', [id, user.organisation_id, user.id, body.category, body.severity, body.description]);
+    await audit(user.organisation_id, user.id, 'incident_reported', 'incident', id, `${body.severity} ${body.category} incident reported.`);
+    await notifyOrganisationOwners(user.organisation_id, `${user.name} reported a ${body.severity} ${body.category} incident.`);
+    return sendJson(response, 201, { id });
   }
   if (url.pathname === '/api/audit-events' && request.method === 'GET') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can view audit history.' });

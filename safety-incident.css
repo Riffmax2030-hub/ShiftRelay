@@ -1,0 +1,210 @@
+/* ==========================================================================
+   RAPID INCIDENT & NEAR-MISS SAFETY LOGGER
+   ========================================================================== */
+.safety-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99997;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: modalFadeIn 0.2s ease;
+}
+
+.safety-modal-card {
+  width: 100%;
+  max-width: 480px;
+  background: #ffffff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  animation: modalSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+[data-theme="dark"] .safety-modal-card {
+  background: #111827;
+  border-color: #1e293b;
+  color: #f8fafc;
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(20px) scale(0.96); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.safety-modal-header {
+  padding: 18px 20px 14px;
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.safety-modal-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.safety-modal-header p {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: #fecaca;
+}
+
+.safety-modal-body {
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.safety-field-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+[data-theme="dark"] .safety-field-group label {
+  color: #94a3b8;
+}
+
+/* Severity Button Grid */
+.severity-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.severity-pill-btn {
+  padding: 9px 4px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+[data-theme="dark"] .severity-pill-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+.severity-pill-btn.active.sev-low {
+  background: #f0fdf4;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.severity-pill-btn.active.sev-medium {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+.severity-pill-btn.active.sev-high {
+  background: #fff7ed;
+  border-color: #ea580c;
+  color: #9a3412;
+}
+
+.severity-pill-btn.active.sev-critical {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #991b1b;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+}
+
+.safety-field-group select,
+.safety-field-group textarea,
+.safety-field-group input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: #0f172a;
+  background: #f8fafc;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .safety-field-group select,
+[data-theme="dark"] .safety-field-group textarea,
+[data-theme="dark"] .safety-field-group input {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.safety-field-group textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.safety-modal-actions {
+  padding: 0 20px 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.safety-modal-actions button {
+  flex: 1;
+}
+
+/* Critical Incident Alert Banner on Today's View */
+.incident-alert-banner {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  color: #ffffff;
+  padding: 14px 18px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(185, 28, 28, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  animation: alertPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes alertPulse {
+  0%, 100% { box-shadow: 0 8px 24px rgba(185, 28, 28, 0.3); }
+  50%      { box-shadow: 0 8px 32px rgba(239, 68, 68, 0.5); }
+}
+
+.incident-alert-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.incident-alert-desc {
+  font-size: 12px;
+  color: #fecaca;
+  margin: 2px 0 0;
+}

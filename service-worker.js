@@ -1,4 +1,4 @@
-const CACHE = 'shiftrelay-v61';
+const CACHE = 'shiftrelay-v63';
 const ASSETS = [
   '/',
   '/index.html',
@@ -13,6 +13,14 @@ const ASSETS = [
   '/chat-engine.js',
   '/gesture-hints.css',
   '/gesture-hints.js',
+  '/shift-calendar.css',
+  '/shift-calendar.js',
+  '/safety-incident.css',
+  '/safety-incident.js',
+  '/worker-passport.css',
+  '/worker-passport.js',
+  '/facility-zones.css',
+  '/facility-zones.js',
   '/theme.css',
   '/theme.js',
   '/alarm-engine.js',

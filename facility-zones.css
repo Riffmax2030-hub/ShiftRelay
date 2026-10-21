@@ -1,0 +1,135 @@
+/* ==========================================================================
+   INTERACTIVE FACILITY ZONE MAP & STATION CHECKLIST
+   ========================================================================== */
+.facility-zones-card {
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 20px;
+  padding: 18px 20px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="dark"] .facility-zones-card {
+  background: #111827;
+  border-color: #1e293b;
+  color: #f8fafc;
+}
+
+.zones-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.zones-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Zone Map Grid */
+.zones-layout-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.zone-tile {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+[data-theme="dark"] .zone-tile {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.zone-tile:active {
+  transform: scale(0.96);
+}
+
+.zone-tile.active {
+  background: linear-gradient(135deg, #0d524d 0%, #064e3b 100%);
+  border-color: #0d524d;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(13, 82, 77, 0.25);
+}
+
+.zone-tile-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  margin: 0 0 2px;
+  color: #0f172a;
+}
+
+.zone-tile.active .zone-tile-name {
+  color: #ffffff;
+}
+
+.zone-tile-type {
+  font-size: 11px;
+  color: #64748b;
+  margin: 0;
+}
+
+.zone-tile.active .zone-tile-type {
+  color: #99f6e4;
+}
+
+.zone-status-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.zone-tile.has-flag .zone-status-badge {
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+/* Filtered Station Tasks Container */
+.station-tasks-wrap {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 12.5px;
+}
+
+[data-theme="dark"] .station-tasks-wrap {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+.station-task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .station-task-item {
+  border-color: #1e293b;
+}
+
+.station-task-item:last-child {
+  border-bottom: none;
+}

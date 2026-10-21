@@ -1605,6 +1605,11 @@ async function renderWorkerPassport(targetUserId) {
               `).join('')}
             </div>
           </div>
+
+          <!-- Accredited Credentials & Peer Endorsements -->
+          ${typeof window.renderCredentialsSection === 'function' ? window.renderCredentialsSection() : ''}
+          ${typeof window.renderPeerEndorsementsCard === 'function' ? window.renderPeerEndorsementsCard() : ''}
+          ${typeof window.renderQRPassportButton === 'function' ? window.renderQRPassportButton() : ''}
         </div>
       </section>
     `;
@@ -1671,6 +1676,7 @@ async function renderWorkerPassport(targetUserId) {
       });
     });
 
+    window.bindPassportEnhancements?.($('#dashboard'));
     bindNavigation();
   } catch (err) {
     $('#dashboard').innerHTML = `<p class="empty">${escape(err.message)}</p>`;
