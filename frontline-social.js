@@ -1728,11 +1728,11 @@ function renderShiftsPoolGrid(shifts) {
   if (!grid) return;
 
   const shiftPool = [
-    { org: 'City General Hospital', role: 'ICU Night Nurse (Weekend Cover)', shift: 'Fri–Sun · 22:00–06:00', type: 'Cover', pay: '+25% Overtime', tags: ['Healthcare','Night','Critical Care'], urgency: 'urgent', location: 'On-Site · Bay 4' },
-    { org: 'Metro Logistics Hub', role: 'Warehouse Lead (Dock Cover)', shift: 'Mon–Wed · 06:00–14:00', type: 'Swap', pay: 'Standard Rate', tags: ['Logistics','Morning','Forklift'], urgency: 'normal', location: 'On-Site · Dock B' },
-    { org: 'Grand Palace Hotel', role: 'F&B Dinner Supervisor', shift: 'Sat · 18:00–02:00', type: 'Overtime', pay: '+15% Rate', tags: ['Hospitality','Evening'], urgency: 'normal', location: 'On-Site · Floor 1' },
-    { org: 'Riverdale Care Home', role: 'Senior Carer (Day Turnover)', shift: 'Thu–Fri · 14:00–22:00', type: 'Cover', pay: 'Standard Rate', tags: ['Healthcare','Elderly Care'], urgency: 'normal', location: 'On-Site · Ward A' },
-    { org: 'FastPack Fulfilment', role: 'Packing Line Operator', shift: 'Tue · 06:00–18:00 (Surge)', type: 'Overtime', pay: '+30% Overtime', tags: ['Manufacturing','Day'], urgency: 'urgent', location: 'On-Site · Line 3' }
+    { org: 'City General Hospital', role: 'ICU Night Nurse (Weekend Cover)', shift: 'Fri–Sun · 22:00–06:00', type: 'Cover', pay: '+25% Overtime', tags: ['Healthcare','Night','Critical Care'], urgency: 'urgent', location: 'On-Site · Bay 4', image: '/uploads/covers/cover-healthcare.jpg' },
+    { org: 'Metro Logistics Hub', role: 'Warehouse Lead (Dock Cover)', shift: 'Mon–Wed · 06:00–14:00', type: 'Swap', pay: 'Standard Rate', tags: ['Logistics','Morning','Forklift'], urgency: 'normal', location: 'On-Site · Dock B', image: '/uploads/covers/cover-logistics.jpg' },
+    { org: 'Grand Palace Hotel', role: 'F&B Dinner Supervisor', shift: 'Sat · 18:00–02:00', type: 'Overtime', pay: '+15% Rate', tags: ['Hospitality','Evening'], urgency: 'normal', location: 'On-Site · Floor 1', image: '/uploads/covers/cover-culinary.jpg' },
+    { org: 'Riverdale Care Home', role: 'Senior Carer (Day Turnover)', shift: 'Thu–Fri · 14:00–22:00', type: 'Cover', pay: 'Standard Rate', tags: ['Healthcare','Elderly Care'], urgency: 'normal', location: 'On-Site · Ward A', image: '/uploads/covers/cover-healthcare.jpg' },
+    { org: 'FastPack Fulfilment', role: 'Packing Line Operator', shift: 'Tue · 06:00–18:00 (Surge)', type: 'Overtime', pay: '+30% Overtime', tags: ['Manufacturing','Day'], urgency: 'urgent', location: 'On-Site · Line 3', image: '/uploads/covers/cover-engineering.jpg' }
   ];
 
   grid.innerHTML = `
@@ -1745,9 +1745,10 @@ function renderShiftsPoolGrid(shifts) {
         const initials = o.org.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
         const urgencyTag = o.urgency === 'urgent' ? `<span class="opp-tag tag-green">Urgent</span>` : '';
         const payTag = `<span class="opp-tag tag-blue" style="font-weight:800;">${escape(o.pay)}</span>`;
+        const logoStyle = o.image ? `background-image:url('${o.image}');background-size:cover;background-position:center;color:transparent;` : '';
         return `
           <div class="opportunity-card" data-opp-org="${escape(o.org)}" data-opp-role="${escape(o.role)}">
-            <div class="opp-org-logo">${escape(initials)}</div>
+            <div class="opp-org-logo" style="${logoStyle}">${o.image ? '' : escape(initials)}</div>
             <div class="opp-body">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
                 <h4>${escape(o.role)}</h4>
@@ -1781,12 +1782,12 @@ function renderJobsGrid() {
   if (!grid) return;
 
   const jobs = [
-    { org: 'Global AI Health Initiative', role: 'Clinical Triage AI Evaluator', schedule: 'Flexible Hours · 10–20h/week', type: 'Remote AI Job', pay: '$55–$75/hr', tags: ['Remote','AI Training','Healthcare','Clinical'], urgency: 'urgent', location: 'Global Remote', category: 'remote-ai' },
-    { org: 'Anthropic Frontline Partner', role: 'Industrial Logistics Data Annotator', schedule: 'Project-based · Self-paced', type: 'Remote AI Job', pay: '$40–$58/hr', tags: ['Remote','AI Training','Logistics','English'], urgency: 'urgent', location: 'Global Remote', category: 'remote-ai' },
-    { org: 'DeepMind Safety Research', role: 'Engineering SOP & LOTO Multimodal Rater', schedule: 'Weekend/Evening · 8–15h/wk', type: 'Remote AI Job', pay: '$50–$70/hr', tags: ['Remote','AI Safety','Manufacturing'], urgency: 'normal', location: 'Global Remote', category: 'remote-ai' },
-    { org: 'Open Frontier AI', role: 'Culinary & Recipe Workflow Reviewer', schedule: 'Flexible · 5–10h/week', type: 'Remote AI Job', pay: '$32–$45/hr', tags: ['Remote','AI Training','Hospitality'], urgency: 'normal', location: 'Global Remote', category: 'remote-ai' },
-    { org: 'Regional Health Network', role: 'Permanent Ward Operations Lead', schedule: 'Full-time · 40h/week', type: 'General Job', pay: '$85,000/yr', tags: ['Permanent','Operations','Management'], urgency: 'normal', location: 'Regional HQ', category: 'general' },
-    { org: 'Apex Industrial Logistics', role: 'Fleet & Safety Compliance Officer', schedule: 'Full-time · Rotating Shift', type: 'General Job', pay: '$68,000/yr', tags: ['Safety','Logistics','Inspection'], urgency: 'normal', location: 'Main Terminal', category: 'general' }
+    { org: 'Global AI Health Initiative', role: 'Clinical Triage AI Evaluator', schedule: 'Flexible Hours · 10–20h/week', type: 'Remote AI Job', pay: '$55–$75/hr', tags: ['Remote','AI Training','Healthcare','Clinical'], urgency: 'urgent', location: 'Global Remote', category: 'remote-ai', image: '/uploads/covers/cover-healthcare.jpg' },
+    { org: 'Anthropic Frontline Partner', role: 'Industrial Logistics Data Annotator', schedule: 'Project-based · Self-paced', type: 'Remote AI Job', pay: '$40–$58/hr', tags: ['Remote','AI Training','Logistics','English'], urgency: 'urgent', location: 'Global Remote', category: 'remote-ai', image: '/uploads/covers/cover-logistics.jpg' },
+    { org: 'DeepMind Safety Research', role: 'Engineering SOP & LOTO Multimodal Rater', schedule: 'Weekend/Evening · 8–15h/wk', type: 'Remote AI Job', pay: '$50–$70/hr', tags: ['Remote','AI Safety','Manufacturing'], urgency: 'normal', location: 'Global Remote', category: 'remote-ai', image: '/uploads/covers/cover-engineering.jpg' },
+    { org: 'Open Frontier AI', role: 'Culinary & Recipe Workflow Reviewer', schedule: 'Flexible · 5–10h/week', type: 'Remote AI Job', pay: '$32–$45/hr', tags: ['Remote','AI Training','Hospitality'], urgency: 'normal', location: 'Global Remote', category: 'remote-ai', image: '/uploads/covers/cover-culinary.jpg' },
+    { org: 'Regional Health Network', role: 'Permanent Ward Operations Lead', schedule: 'Full-time · 40h/week', type: 'General Job', pay: '$85,000/yr', tags: ['Permanent','Operations','Management'], urgency: 'normal', location: 'Regional HQ', category: 'general', image: '/uploads/covers/cover-healthcare.jpg' },
+    { org: 'Apex Industrial Logistics', role: 'Fleet & Safety Compliance Officer', schedule: 'Full-time · Rotating Shift', type: 'General Job', pay: '$68,000/yr', tags: ['Safety','Logistics','Inspection'], urgency: 'normal', location: 'Main Terminal', category: 'general', image: '/uploads/covers/cover-logistics.jpg' }
   ];
 
   grid.innerHTML = `
@@ -1805,9 +1806,10 @@ function renderJobsGrid() {
         const urgencyTag = o.urgency === 'urgent' ? `<span class="opp-tag tag-green">Urgent</span>` : '';
         const payTag = `<span class="opp-tag tag-blue" style="font-weight:800;">${escape(o.pay)}</span>`;
         const locTag = `<span class="opp-tag ${isRemoteAI ? 'tag-green' : ''}">${escape(o.location)}</span>`;
+        const logoStyle = o.image ? `background-image:url('${o.image}');background-size:cover;background-position:center;color:transparent;` : (isRemoteAI ? 'background:linear-gradient(135deg,#2563eb,#06b6d4);' : '');
         return `
           <div class="opportunity-card" data-opp-org="${escape(o.org)}" data-opp-role="${escape(o.role)}" data-job-category="${o.category}">
-            <div class="opp-org-logo" style="${isRemoteAI ? 'background:linear-gradient(135deg,#2563eb,#06b6d4);' : ''}">${escape(initials)}</div>
+            <div class="opp-org-logo" style="${logoStyle}">${o.image ? '' : escape(initials)}</div>
             <div class="opp-body">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
                 <h4>${escape(o.role)}</h4>

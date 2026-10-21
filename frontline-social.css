@@ -2605,16 +2605,22 @@
 }
 
 .opp-org-logo {
-  width: 46px;
-  height: 46px;
-  min-width: 46px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
   border-radius: 12px;
   background: linear-gradient(135deg, #0d524d, #10b981);
+  background-size: cover;
+  background-position: center;
   color: #fff;
   display: grid;
   place-items: center;
   font-size: 16px;
   font-weight: 800;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .opp-body {

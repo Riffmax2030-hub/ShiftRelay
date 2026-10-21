@@ -28,7 +28,6 @@ const excludedDirs = new Set([
   'android',
   'ios',
   'data',
-  'uploads',
   'scratch',
   '.git',
   '.gemini',
