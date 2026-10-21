@@ -3,24 +3,37 @@
  * Automatically buffers handovers, comments, shift swaps and reactions
  * when frontline workers enter offline areas (walk-in freezers, elevators, basements)
  * and safely synchronizes all records once connectivity returns.
+ *
+ * Hardened for Shared Devices (Batch 3):
+ * - Binds all queued records strictly to the active user ID and organisation ID.
+ * - Prevents cross-identity replay (never replays an item under another account).
+ * - Safe warning/resolution flow upon logout without silently discarding unsent work.
  */
 
 (function () {
-  const QUEUE_STORAGE_KEY = 'shiftrelay_offline_queue';
+  const QUEUE_STORAGE_PREFIX = 'shiftrelay_offline_queue';
   let isOnline = navigator.onLine;
-  let queue = loadQueue();
+
+  function getActiveUserScope() {
+    const user = window.state?.user;
+    const userId = user?.id || user?.user_id || 'anon';
+    const orgId = user?.organisation_id || user?.organisationId || 'anon';
+    return { userId, orgId, key: `${QUEUE_STORAGE_PREFIX}_${userId}_${orgId}` };
+  }
 
   function loadQueue() {
+    const { key } = getActiveUserScope();
     try {
-      return JSON.parse(localStorage.getItem(QUEUE_STORAGE_KEY) || '[]');
+      return JSON.parse(localStorage.getItem(key) || '[]');
     } catch {
       return [];
     }
   }
 
-  function saveQueue() {
+  function saveQueue(items) {
+    const { key } = getActiveUserScope();
     try {
-      localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queue));
+      localStorage.setItem(key, JSON.stringify(items));
     } catch (err) {
       console.warn('Could not persist offline queue:', err);
     }
@@ -50,7 +63,8 @@
       ? (window.Icons?.wifiOff ? window.Icons.wifiOff(14) : '') 
       : (window.Icons?.check ? window.Icons.check(14) : '');
 
-    const countBadge = queue.length > 0 ? `<span class="pill-queue-count">${queue.length}</span>` : '';
+    const currentQueue = loadQueue();
+    const countBadge = currentQueue.length > 0 ? `<span class="pill-queue-count">${currentQueue.length}</span>` : '';
 
     indicator.innerHTML = `
       <div class="pill-inner">
@@ -64,29 +78,47 @@
 
   // ── Queue Management ──────────────────────────────────────────────────────────
   function enqueue(url, options = {}) {
+    const { userId, orgId } = getActiveUserScope();
+    const currentQueue = loadQueue();
     const item = {
       id: 'queue_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       url,
       method: options.method || 'GET',
       headers: options.headers || {},
       body: options.body || null,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userId,
+      organisationId: orgId
     };
-    queue.push(item);
-    saveQueue();
-    updatePill(`Offline Mode · ${queue.length} update${queue.length > 1 ? 's' : ''} queued`, 'offline');
-    window.SoundEngine?.play('pop');
+    currentQueue.push(item);
+    saveQueue(currentQueue);
+    updatePill(`Offline Mode · ${currentQueue.length} update${currentQueue.length > 1 ? 's' : ''} queued`, 'offline');
+    window.SoundEngine?.play?.('pop');
     return item;
   }
 
   async function flushQueue() {
-    if (!queue.length || !isOnline) return;
-    updatePill(`Reconnected · Syncing ${queue.length} update${queue.length > 1 ? 's' : ''}…`, 'syncing');
+    const { userId, orgId } = getActiveUserScope();
+    if (userId === 'anon') return; // Cannot flush unauthenticated queue
 
-    const itemsToProcess = [...queue];
+    let currentQueue = loadQueue();
+    if (!currentQueue.length || !isOnline) return;
+
+    // Filter items to ensure strict identity binding: never replay under another user or org!
+    const eligibleItems = currentQueue.filter(item => item.userId === userId && item.organisationId === orgId);
+    if (!eligibleItems.length) return;
+
+    updatePill(`Reconnected · Syncing ${eligibleItems.length} update${eligibleItems.length > 1 ? 's' : ''}…`, 'syncing');
+
     let successfulCount = 0;
+    for (const item of eligibleItems) {
+      // Re-verify active user did not change mid-flight
+      const currentScope = getActiveUserScope();
+      if (currentScope.userId !== userId || currentScope.orgId !== orgId) {
+        console.warn('User or company context switched during queue flush, aborting replay.');
+        break;
+      }
 
-    for (const item of itemsToProcess) {
       try {
         const response = await fetch(item.url, {
           method: item.method,
@@ -95,8 +127,8 @@
         });
 
         if (response.ok || response.status === 409) {
-          queue = queue.filter(q => q.id !== item.id);
-          saveQueue();
+          currentQueue = currentQueue.filter(q => q.id !== item.id);
+          saveQueue(currentQueue);
           successfulCount++;
         }
       } catch (err) {
@@ -106,14 +138,73 @@
     }
 
     if (successfulCount > 0) {
-      window.SoundEngine?.play('success');
+      window.SoundEngine?.play?.('success');
       updatePill(`Sync complete · ${successfulCount} record${successfulCount > 1 ? 's' : ''} synchronized`, 'success');
       setTimeout(() => {
-        if (queue.length === 0) updatePill(null);
+        if (loadQueue().length === 0) updatePill(null);
       }, 3000);
-    } else if (queue.length === 0) {
+    } else if (loadQueue().length === 0) {
       updatePill(null);
     }
+  }
+
+  // ── Shared Device Safe Warning & Resolution Dialog on Logout ──────────────────
+  function promptLogoutWarning(onProceedLogout) {
+    const { userId, orgId } = getActiveUserScope();
+    const currentQueue = loadQueue();
+    const pendingCount = currentQueue.filter(item => item.userId === userId && item.organisationId === orgId).length;
+
+    if (pendingCount === 0) {
+      onProceedLogout();
+      return;
+    }
+
+    document.getElementById('sr-unsent-work-dialog')?.remove();
+
+    const dialog = document.createElement('div');
+    dialog.id = 'sr-unsent-work-dialog';
+    dialog.className = 'modal-backdrop';
+    dialog.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.7);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;';
+    dialog.innerHTML = `
+      <div style="background:#ffffff;border-radius:18px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,0.3);text-align:left;font-family:sans-serif;" role="alertdialog" aria-modal="true" aria-labelledby="unsent-title">
+        <h3 id="unsent-title" style="margin:0 0 10px;font-size:18px;font-weight:800;color:#0f172a;">Unsent Offline Updates</h3>
+        <p style="margin:0 0 16px;font-size:13.5px;color:#475569;line-height:1.5;">
+          You have <strong>${pendingCount} unsent update(s)</strong> saved locally while offline.
+        </p>
+        <p style="margin:0 0 20px;font-size:12.5px;color:#64748b;line-height:1.45;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0;">
+          <strong>Shared Device Safety:</strong> These updates remain isolated to your account. They will <strong>not</strong> be sent under another worker's identity and cannot be viewed by other users. They will automatically sync when you sign back in.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button id="sr-btn-keep-logout" style="padding:12px;border-radius:10px;background:#0d524d;color:#fff;border:none;font-weight:700;font-size:14px;cursor:pointer;">
+            Keep Unsent Work &amp; Sign Out
+          </button>
+          <button id="sr-btn-cancel-logout" style="padding:12px;border-radius:10px;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;font-weight:600;font-size:13.5px;cursor:pointer;">
+            Cancel (Stay Signed In)
+          </button>
+          <button id="sr-btn-discard-logout" style="padding:10px;border-radius:10px;background:transparent;color:#ef4444;border:none;font-size:12px;cursor:pointer;font-weight:600;">
+            Discard Unsent Work &amp; Sign Out
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(dialog);
+
+    document.getElementById('sr-btn-keep-logout')?.addEventListener('click', () => {
+      dialog.remove();
+      onProceedLogout();
+    });
+
+    document.getElementById('sr-btn-cancel-logout')?.addEventListener('click', () => {
+      dialog.remove();
+    });
+
+    document.getElementById('sr-btn-discard-logout')?.addEventListener('click', () => {
+      const remaining = currentQueue.filter(item => item.userId !== userId || item.organisationId !== orgId);
+      saveQueue(remaining);
+      dialog.remove();
+      onProceedLogout();
+    });
   }
 
   // ── Network Listeners ─────────────────────────────────────────────────────────
@@ -141,8 +232,9 @@
     } catch {
       if (isOnline) {
         isOnline = false;
-        if (queue.length > 0) {
-          updatePill(`Offline Mode · ${queue.length} queued`, 'offline');
+        const currentQueue = loadQueue();
+        if (currentQueue.length > 0) {
+          updatePill(`Offline Mode · ${currentQueue.length} queued`, 'offline');
         }
       }
     }
@@ -199,11 +291,22 @@
     isOnline: () => isOnline,
     enqueue,
     flushQueue,
-    getPendingCount: () => queue.length
+    getPendingCount: () => {
+      const { userId, orgId } = getActiveUserScope();
+      const currentQueue = loadQueue();
+      return currentQueue.filter(item => item.userId === userId && item.organisationId === orgId).length;
+    },
+    clearCurrentQueue: () => {
+      const { userId, orgId } = getActiveUserScope();
+      const currentQueue = loadQueue();
+      const remaining = currentQueue.filter(item => item.userId !== userId || item.organisationId !== orgId);
+      saveQueue(remaining);
+    },
+    promptLogoutWarning
   };
 
   // If there are leftover queued items on boot, attempt sync
-  if (queue.length > 0 && navigator.onLine) {
+  if (navigator.onLine) {
     setTimeout(flushQueue, 2000);
   }
 })();

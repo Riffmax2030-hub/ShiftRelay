@@ -170,9 +170,20 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 9. File Attachments & Upload Ownership
+CREATE TABLE IF NOT EXISTS file_attachments ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organisation_id UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  uploader_membership_id UUID REFERENCES memberships(id) ON DELETE SET NULL,
+  filename TEXT NOT NULL UNIQUE,
+  mime_type TEXT,
+  file_size INTEGER,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Indices for sub-millisecond query performance
 CREATE INDEX IF NOT EXISTS idx_memberships_org ON memberships(organisation_id);
 CREATE INDEX IF NOT EXISTS idx_work_items_org_status ON work_items(organisation_id, status);
 CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_membership_id, read_at);
 CREATE INDEX IF NOT EXISTS idx_direct_messages_recipient ON direct_messages(recipient_membership_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_feed_posts_created ON feed_posts(created_at DESC);
+

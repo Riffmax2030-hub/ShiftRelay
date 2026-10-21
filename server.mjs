@@ -3,7 +3,7 @@ import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:cry
 import { promisify } from 'node:util';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
-import { extname, join, normalize, resolve } from 'node:path';
+import { basename, extname, join, normalize, resolve } from 'node:path';
 import { databaseConfigured, demoMembers, demoOrganisation, initializeDatabase, isDatabaseConnectionError, sanitizeDatabaseError, query, seedDemoOrganisation } from './database.mjs';
 
 function loadEnvironment() {
@@ -101,6 +101,8 @@ function demoTimeSummary(user, store, month) {
 function sendJson(response, status, payload) {
   response.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+    'Pragma': 'no-cache',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -328,6 +330,17 @@ async function createDatabaseHandover(user, body) {
   await query('insert into work_items (id, workflow_run_id, organisation_id, assigned_to_membership_id, created_by_membership_id, item_type, title, status, priority, payload) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)', [workItemId, runId, user.organisation_id, assignedTo, user.id, 'handover', body.handover.summary, 'awaiting_review', 'normal', JSON.stringify(body.handover)]);
   await query('insert into work_events (id, organisation_id, workflow_run_id, work_item_id, actor_membership_id, event_type, message) values ($1, $2, $3, $4, $5, $6, $7)', [crypto.randomUUID(), user.organisation_id, runId, workItemId, user.id, 'submitted', `${user.name} submitted a handover for review.`]);
   await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, supervisor.id, workItemId, `${user.name} created a handover for review.`]);
+  if (body.handover) {
+    const rawPayload = JSON.stringify(body.handover);
+    for (const match of rawPayload.matchAll(/\/uploads\/([a-zA-Z0-9._-]+)/g)) {
+      const fn = match[1];
+      if (fn) {
+        try {
+          await query('insert into file_attachments (id, organisation_id, uploader_membership_id, filename) values ($1, $2, $3, $4) on conflict (filename) do nothing', [crypto.randomUUID(), user.organisation_id, user.id, fn]);
+        } catch (_) {}
+      }
+    }
+  }
   const created = (await databaseHandovers(user)).find((item) => item.id === workItemId);
   broadcastEvent('handover-submitted', { organisationId: user.organisation_id, handover: created }, { organisationId: user.organisation_id });
   return created;
@@ -657,7 +670,8 @@ async function handleApi(request, response, url) {
     const token = sessionId(request);
     response.writeHead(200, {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
+      'Cache-Control': 'no-store, no-cache, no-transform, private',
+      'Pragma': 'no-cache',
       Connection: 'keep-alive',
       'X-Accel-Buffering': 'no'
     });
@@ -2021,9 +2035,218 @@ const SECURITY_HEADERS = {
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
 };
 
+const PUBLIC_DEMO_UPLOAD_PREFIXES = [
+  '/uploads/covers/',
+  '/uploads/avatars/',
+  '/uploads/feed/'
+];
+const PUBLIC_DEMO_UPLOAD_EXACT = new Set([
+  '/uploads/hero-workplace.jpg'
+]);
+
+async function handleUploadFileRequest(request, response, url) {
+  // Decode and normalize path to prevent bypasses and traversal
+  let decodedPath;
+  try {
+    decodedPath = decodeURIComponent(url.pathname);
+  } catch {
+    response.writeHead(400, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      ...SECURITY_HEADERS
+    });
+    response.end(JSON.stringify({ error: 'Bad request.' }));
+    return;
+  }
+
+  // Prevent null bytes, backslashes, and path traversal
+  if (decodedPath.includes('\0') || decodedPath.includes('\\') || decodedPath.includes('..')) {
+    response.writeHead(403, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      ...SECURITY_HEADERS
+    });
+    response.end(JSON.stringify({ error: 'Forbidden: path traversal blocked.' }));
+    return;
+  }
+
+  const cleanPath = normalize(decodedPath).replace(/\\/g, '/');
+  if (!cleanPath.startsWith('/uploads/')) {
+    response.writeHead(403, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      ...SECURITY_HEADERS
+    });
+    response.end(JSON.stringify({ error: 'Forbidden.' }));
+    return;
+  }
+
+  // 1. Check for Public Marketing/Demo Assets Whitelist
+  const isPublicDemoAsset = PUBLIC_DEMO_UPLOAD_EXACT.has(cleanPath) ||
+    PUBLIC_DEMO_UPLOAD_PREFIXES.some(prefix => cleanPath.startsWith(prefix));
+
+  const relPath = cleanPath.slice('/uploads/'.length);
+  const targetFilePath = resolve(uploadsDirectory, relPath);
+  const uploadsDirResolved = resolve(uploadsDirectory);
+
+  // Strict boundary check: target file must reside strictly inside uploadsDirectory
+  if (!targetFilePath.startsWith(uploadsDirResolved + '\\') && !targetFilePath.startsWith(uploadsDirResolved + '/') && targetFilePath !== uploadsDirResolved) {
+    response.writeHead(403, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      ...SECURITY_HEADERS
+    });
+    response.end(JSON.stringify({ error: 'Forbidden: path traversal blocked.' }));
+    return;
+  }
+
+  if (isPublicDemoAsset) {
+    // Serve public asset
+    try {
+      const content = await readFile(targetFilePath);
+      const ext = extname(targetFilePath).toLowerCase();
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+      response.writeHead(200, {
+        'Content-Type': contentType,
+        'Content-Length': content.length,
+        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
+        ...SECURITY_HEADERS
+      });
+      response.end(content);
+      return;
+    } catch {
+      response.writeHead(404, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        'Pragma': 'no-cache',
+        ...SECURITY_HEADERS
+      });
+      response.end(JSON.stringify({ error: 'Asset not found.' }));
+      return;
+    }
+  }
+
+  // 2. Private Uploads: Require Authentication & Verified Company/Resource Permission
+  let user;
+  try {
+    user = await getUser(request);
+  } catch (err) {
+    if (isDatabaseConnectionError(err)) return sendDatabaseError(response, err);
+    user = null;
+  }
+
+  if (!user || !user.organisation_id) {
+    response.writeHead(401, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      ...SECURITY_HEADERS
+    });
+    response.end(JSON.stringify({ error: 'Authentication required to access private files.' }));
+    return;
+  }
+
+  // Check file exists on disk
+  let content;
+  try {
+    content = await readFile(targetFilePath);
+  } catch {
+    response.writeHead(404, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      ...SECURITY_HEADERS
+    });
+    response.end(JSON.stringify({ error: 'File not found.' }));
+    return;
+  }
+
+  const filename = basename(targetFilePath);
+
+  // Verify company / resource ownership:
+  let isOwned = false;
+  if (databaseReady) {
+    try {
+      // Check 1: Explicit file_attachments table
+      const attRes = await query('select 1 from file_attachments where filename = $1 and organisation_id = $2', [filename, user.organisation_id]);
+      if (attRes.rows.length > 0) isOwned = true;
+
+      // Check 2: Work items (handovers payload referencing this filename)
+      if (!isOwned) {
+        const wiRes = await query("select 1 from work_items where organisation_id = $1 and payload::text like '%' || $2 || '%'", [user.organisation_id, filename]);
+        if (wiRes.rows.length > 0) isOwned = true;
+      }
+
+      // Check 3: Incidents (image_url referencing this filename)
+      if (!isOwned) {
+        const incRes = await query("select 1 from incidents where organisation_id = $1 and (image_url like '%' || $2 || '%' or description like '%' || $2 || '%')", [user.organisation_id, filename]);
+        if (incRes.rows.length > 0) isOwned = true;
+      }
+    } catch (err) {
+      if (isDatabaseConnectionError(err)) return sendDatabaseError(response, err);
+      isOwned = false;
+    }
+  } else {
+    // Fallback mode store check
+    const store = await getStore();
+    if (Array.isArray(store.fileAttachments)) {
+      if (store.fileAttachments.some(f => f.filename === filename && f.organisationId === user.organisation_id)) {
+        isOwned = true;
+      }
+    }
+    if (!isOwned && Array.isArray(store.handovers)) {
+      if (store.handovers.some(h => JSON.stringify(h).includes(filename))) {
+        isOwned = true;
+      }
+    }
+  }
+
+  if (!isOwned) {
+    // Ownership cannot be established, or belongs to another company -> 403 Forbidden
+    response.writeHead(403, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      ...SECURITY_HEADERS
+    });
+    response.end(JSON.stringify({ error: 'Access denied: file ownership could not be verified for your organisation.' }));
+    return;
+  }
+
+  // Ownership verified: Serve file bytes with strict no-store headers
+  const ext = extname(targetFilePath).toLowerCase();
+  const contentType = mimeTypes[ext] || 'application/octet-stream';
+  response.writeHead(200, {
+    'Content-Type': contentType,
+    'Content-Length': content.length,
+    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+    'Pragma': 'no-cache',
+    'Accept-Ranges': 'none',
+    ...SECURITY_HEADERS
+  });
+  response.end(content);
+}
+
 async function serveStatic(request, response, url) {
   const requestedPath = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
   const safePath = normalize(requestedPath).replace(/^([.]{2}[/\\])+/, '');
+
+  // ── Block direct static access to uploads (must use handleUploadFileRequest) ──
+  const normalizedLower = safePath.replace(/\\/g, '/').toLowerCase();
+  if (normalizedLower === 'uploads' || normalizedLower.startsWith('uploads/')) {
+    response.writeHead(403, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      ...SECURITY_HEADERS
+    });
+    response.end('Forbidden: direct static serving of uploads directory is disabled.');
+    return;
+  }
 
   // ── Path traversal + sensitive-file guard ──────────────────────────────
   const filePath = resolve(publicDirectory, safePath);
@@ -2095,6 +2318,10 @@ const server = createServer((request, response) => {
       return handleApi(request, response, url);
     }
 
+    if (url.pathname.startsWith('/uploads/') || url.pathname === '/uploads') {
+      return handleUploadFileRequest(request, response, url);
+    }
+
     return serveStatic(request, response, url);
   }).catch((error) => {
     if (isDatabaseConnectionError(error)) {
@@ -2118,7 +2345,19 @@ const server = createServer((request, response) => {
 initializeDatabase()
   .then(async (connected) => {
     databaseReady = connected;
-    if (databaseReady) await seedDemoOrganisation();
+    if (databaseReady) {
+      await query(`
+        CREATE TABLE IF NOT EXISTS file_attachments ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          organisation_id UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+          uploader_membership_id UUID REFERENCES memberships(id) ON DELETE SET NULL,
+          filename TEXT NOT NULL UNIQUE,
+          mime_type TEXT,
+          file_size INTEGER,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `);
+      await seedDemoOrganisation();
+    }
     server.listen(port, () => console.log(`ShiftRelay is running at http://localhost:${port} | database=${connected && databaseConfigured() ? 'connected' : 'local-demo'} | env=${NODE_ENV}`));
   })
   .catch((error) => {
@@ -2145,3 +2384,4 @@ initializeDatabase()
     console.warn('[WARN] This mode MUST NOT be used in production. Data is not persistent across restarts.');
     server.listen(port, () => console.log(`ShiftRelay is running at http://localhost:${port} | database=FALLBACK(dev-only) | env=${NODE_ENV}`));
   });
+

@@ -1,4 +1,4 @@
-const CACHE = 'shiftrelay-v68';
+const CACHE = 'shiftrelay-v69';
 const ASSETS = [
   '/',
   '/index.html',
@@ -70,11 +70,29 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) return;
+  if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+
+  // 1. Strictly bypass API calls from Service Worker cache
+  if (url.pathname.startsWith('/api/')) return;
+
+  // 2. Private uploads protection: NEVER cache user uploads in Service Worker
+  const isUpload = url.pathname.startsWith('/uploads/');
+  const isPublicDemoAsset = url.pathname.startsWith('/uploads/covers/') ||
+                            url.pathname.startsWith('/uploads/avatars/') ||
+                            url.pathname.startsWith('/uploads/feed/') ||
+                            url.pathname === '/uploads/hero-workplace.jpg';
+  if (isUpload && !isPublicDemoAsset) {
+    // Private file: pass directly to network; never cache
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        if (response.ok) {
+        // 3. Cache-Control check: NEVER cache if response is marked no-store or private
+        const cc = (response.headers.get('cache-control') || '').toLowerCase();
+        if (response.ok && !cc.includes('no-store') && !cc.includes('private')) {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(event.request, copy));
         }
