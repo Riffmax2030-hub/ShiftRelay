@@ -7,28 +7,19 @@
            android:scaleY="0.14"
            android:translateX="18.2"
            android:translateY="18.2">
-        <!-- Top arc: left to right -->
+        <!-- Outgoing Chevron (Ghost Silver) -->
         <path
-            android:pathData="M148,188 Q148,148 188,148 L318,148 Q368,148 368,198 Q368,248 318,248 L228,248"
-            android:strokeColor="#d4f576"
+            android:pathData="M 152,176 L 272,256 L 152,336"
+            android:strokeColor="#70FFFFFF"
             android:strokeWidth="44"
-            android:strokeLineCap="round" />
-        <!-- Bottom arc: right to left -->
-        <path
-            android:pathData="M364,264 Q364,364 264,364 L192,364"
-            android:strokeColor="#ffffff"
-            android:strokeWidth="36"
-            android:strokeLineCap="round" />
-        <!-- Arrowhead -->
-        <path
-            android:pathData="M222,334 L192,364 L222,394"
-            android:strokeColor="#ffffff"
-            android:strokeWidth="36"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
-        <!-- Dot accent -->
+        <!-- Incoming Chevron (Electric Lime/Emerald Relay) -->
         <path
-            android:pathData="M390,122m-24,0a24,24 0,1,1 48,0a24,24 0,1,1 -48,0"
-            android:fillColor="#d4f576" />
+            android:pathData="M 248,176 L 368,256 L 248,336"
+            android:strokeColor="#d4f576"
+            android:strokeWidth="44"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
     </group>
 </vector>
