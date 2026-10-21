@@ -21,9 +21,15 @@ loadEnvironment();
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PRODUCTION = NODE_ENV === 'production';
 const ALLOW_DEV_FALLBACK = process.env.ALLOW_DEV_FALLBACK === 'true';
+const ALLOW_DEV_DEMO_AUTH = process.env.ALLOW_DEV_DEMO_AUTH === 'true';
 
 if (IS_PRODUCTION && ALLOW_DEV_FALLBACK) {
   console.error('[FATAL] ALLOW_DEV_FALLBACK must not be set in NODE_ENV=production. This setting is only permitted in development. Exiting.');
+  process.exit(1);
+}
+
+if (IS_PRODUCTION && ALLOW_DEV_DEMO_AUTH) {
+  console.error('[FATAL] ALLOW_DEV_DEMO_AUTH must not be set in NODE_ENV=production. Demo authentication is only permitted in development. Exiting.');
   process.exit(1);
 }
 
@@ -190,28 +196,49 @@ async function createSession(userId, membershipId) {
   return id;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function getUser(request) {
   const token = sessionId(request);
   if (token) {
     if (databaseReady) {
-      // DB is expected to be available; if it throws a connection error
-      // the error propagates — the global catch returns 503.
-      const result = await query(`select m.id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id where s.id = $1 and s.expires_at > now()`, [token]);
-      if (result.rows[0]?.status === 'active') return result.rows[0];
+      if (!UUID_REGEX.test(token)) return null;
+      try {
+        const result = await query(
+          `select m.id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id where s.id = $1 and s.expires_at > now()`,
+          [token]
+        );
+        if (result.rows[0]?.status === 'active') return result.rows[0];
+        // Invalid, expired, or non-active membership must never fall through to demo auth
+        return null;
+      } catch (err) {
+        if (isDatabaseConnectionError(err)) throw err;
+        return null;
+      }
     } else {
       const store = await getStore();
       const session = (store.userSessions || []).find((s) => s.id === token && new Date(s.expiresAt) > new Date());
       if (session) {
-        const member = (store.memberships || []).find((m) => m.id === session.membershipId);
+        const member = (store.memberships || []).find((m) => m.id === session.membershipId && m.status === 'active');
         const user = (store.portalUsers || []).find((u) => u.id === session.userId);
         if (member && user) {
           return { id: member.id, name: user.full_name, email: user.email, role: member.role, title: member.title, department: member.department, organisation_id: member.organisation_id, status: member.status };
         }
       }
+      return null;
     }
   }
-  const demoUser = users.find((user) => user.id === request.headers['x-shiftrelay-user']);
-  return demoUser ? { ...demoUser, organisation_id: demoOrganisation.id } : null;
+
+  // Token is absent: ONLY allow header-based demo user if explicitly permitted in development.
+  // Production strictly rejects demo identity.
+  if (!IS_PRODUCTION && ALLOW_DEV_DEMO_AUTH) {
+    const demoHeader = request.headers['x-shiftrelay-user'];
+    if (demoHeader) {
+      const demoUser = users.find((user) => user.id === demoHeader);
+      return demoUser ? { ...demoUser, organisation_id: demoOrganisation.id, status: 'active' } : null;
+    }
+  }
+  return null;
 }
 
 function notify(store, recipientId, handoverId, message) {
@@ -465,7 +492,8 @@ async function handleApi(request, response, url) {
   const user = await getUser(request);
   const demoMode = process.env.DEMO_MODE !== 'false';
   if (url.pathname === '/api/users' && request.method === 'GET') {
-    return sendJson(response, 200, { users: demoMode ? users.map((demoUser) => ({ ...demoUser, organisation_id: demoOrganisation.id })) : [] });
+    const showDemoUsers = !IS_PRODUCTION && ALLOW_DEV_DEMO_AUTH && (process.env.DEMO_MODE !== 'false');
+    return sendJson(response, 200, { users: showDemoUsers ? users.map((demoUser) => ({ ...demoUser, organisation_id: demoOrganisation.id })) : [] });
   }
   if (url.pathname === '/api/config' && request.method === 'GET') {
     return sendJson(response, 200, {
@@ -473,15 +501,37 @@ async function handleApi(request, response, url) {
       assistantConfigured: Boolean((process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL) || process.env.GEMINI_API_KEY),
       transcriptionConfigured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_TRANSCRIPTION_MODEL),
       databaseReady,
-      demoMode
+      demoMode: !IS_PRODUCTION && ALLOW_DEV_DEMO_AUTH && (process.env.DEMO_MODE !== 'false')
     });
   }
   if (url.pathname === '/api/config/demo-mode' && request.method === 'POST') {
+    if (IS_PRODUCTION) {
+      return sendJson(response, 403, { error: 'Demo mode cannot be changed in production.' });
+    }
     const body = await readJson(request);
     process.env.DEMO_MODE = String(Boolean(body.demoMode));
     return sendJson(response, 200, { demoMode: process.env.DEMO_MODE !== 'false' });
   }
-  if (url.pathname === '/api/events' && request.method === 'GET') { const eventUser = user || (url.searchParams.get('user') ? { ...users.find((demoUser) => demoUser.id === url.searchParams.get('user')), organisation_id: demoOrganisation.id } : null); if (!eventUser?.id) return sendJson(response, 401, { error: 'Select a ShiftRelay role to continue.' }); response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' }); response.write(`event: ready\ndata: ${JSON.stringify({ connectedAt: new Date().toISOString() })}\n\n`); const client = { response, userId: eventUser.id, organisationId: eventUser.organisation_id }; eventClients.add(client); const heartbeat = setInterval(() => { try { response.write(': heartbeat\n\n'); } catch { clearInterval(heartbeat); eventClients.delete(client); } }, 25000); request.on('close', () => { clearInterval(heartbeat); eventClients.delete(client); }); return; }
+  if (url.pathname === '/api/events' && request.method === 'GET') {
+    let eventUser = user;
+    if (!eventUser && !IS_PRODUCTION && ALLOW_DEV_DEMO_AUTH) {
+      const demoParam = url.searchParams.get('user');
+      if (demoParam) {
+        const demo = users.find((demoUser) => demoUser.id === demoParam);
+        if (demo) eventUser = { ...demo, organisation_id: demoOrganisation.id, status: 'active' };
+      }
+    }
+    if (!eventUser || eventUser.status !== 'active') {
+      return sendJson(response, 401, { error: 'Authentication required. Please sign in.' });
+    }
+    response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+    response.write(`event: ready\ndata: ${JSON.stringify({ connectedAt: new Date().toISOString() })}\n\n`);
+    const client = { response, userId: eventUser.id, organisationId: eventUser.organisation_id };
+    eventClients.add(client);
+    const heartbeat = setInterval(() => { try { response.write(': heartbeat\n\n'); } catch { clearInterval(heartbeat); eventClients.delete(client); } }, 25000);
+    request.on('close', () => { clearInterval(heartbeat); eventClients.delete(client); });
+    return;
+  }
   if (url.pathname === '/api/auth/session' && request.method === 'GET') return user ? sendJson(response, 200, { user }) : sendJson(response, 401, { error: 'Sign in to continue.' });
   if (url.pathname === '/api/account-deletion-requests' && request.method === 'POST') {
     try {
@@ -542,7 +592,7 @@ async function handleApi(request, response, url) {
       return sendJson(response, 400, { error: error.message });
     }
   }
-  if (!user) return sendJson(response, 401, { error: 'Select a ShiftRelay role to continue.' });
+  if (!user || user.status !== 'active') return sendJson(response, 401, { error: 'Authentication required. Please sign in.' });
 
   if (url.pathname === '/api/profile' && request.method === 'PUT') {
     const body = await readJson(request);
@@ -953,7 +1003,13 @@ async function handleApi(request, response, url) {
     catch (error) { return sendJson(response, 400, { error: error.message }); }
   }
 
-  if (url.pathname === '/api/time-entries' && request.method === 'GET') return sendJson(response, 200, await timeSummary(user, url.searchParams.get('month') ? `${url.searchParams.get('month')}-01` : null));
+  if (url.pathname === '/api/time-entries' && request.method === 'GET') {
+    const monthParam = url.searchParams.get('month');
+    if (monthParam && !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(monthParam)) {
+      return sendJson(response, 400, { error: 'Invalid month format. Expected YYYY-MM.' });
+    }
+    return sendJson(response, 200, await timeSummary(user, monthParam ? `${monthParam}-01` : null));
+  }
   if (url.pathname === '/api/time-entries/clock-in' && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Clocking in is available for authenticated organisation accounts.' });
     if (!databaseReady) {
