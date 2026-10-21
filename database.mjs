@@ -14,7 +14,29 @@ function loadEnvironment() {
 
 loadEnvironment();
 const databaseUrl = process.env.DATABASE_URL;
-const pool = databaseUrl ? new Pool({ connectionString: databaseUrl, ssl: databaseUrl.includes('render.com') ? { rejectUnauthorized: false } : undefined }) : null;
+
+function createPool(url) {
+  if (!url) return null;
+  const p = new Pool({
+    connectionString: url,
+    ssl: url.includes('render.com') ? { rejectUnauthorized: false } : undefined,
+    connectionTimeoutMillis: 5000
+  });
+  p.on('error', (err) => {
+    console.error('[DB POOL ERROR]', err.code || err.message);
+  });
+  return p;
+}
+
+let pool = createPool(databaseUrl);
+
+export function getPool() {
+  return pool;
+}
+
+export function setPool(customPool) {
+  pool = customPool;
+}
 
 const schema = `
   create table if not exists organisations (
@@ -307,10 +329,92 @@ export function databaseConfigured() {
   return Boolean(pool);
 }
 
+export async function verifyDatabaseConnection() {
+  if (!pool) return false;
+  await pool.query('SELECT 1');
+  return true;
+}
+
 export async function initializeDatabase() {
   if (!pool) return false;
+  await verifyDatabaseConnection();
   await pool.query(schema);
   return true;
+}
+
+export function isDatabaseConnectionError(error) {
+  if (!error) return false;
+  if (error.message === 'DATABASE_NOT_CONFIGURED') return true;
+
+  const connCodes = new Set([
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'ETIMEDOUT',
+    'EHOSTUNREACH',
+    'ENOTFOUND',
+    'EPIPE',
+    'ENETUNREACH',
+    '57P01',
+    '57P02',
+    '57P03'
+  ]);
+  if (connCodes.has(error.code)) return true;
+
+  const pgCode = String(error.code || '');
+  if (pgCode.startsWith('08')) return true;
+
+  const msg = String(error.message || '').toLowerCase();
+  if (
+    msg.includes('connection terminated') ||
+    msg.includes('connection refused') ||
+    msg.includes('failed to connect') ||
+    msg.includes('could not connect to server') ||
+    msg.includes('timeout exceeded when connecting') ||
+    msg.includes('client has already been released') ||
+    msg.includes('remaining connection slots are reserved') ||
+    msg.includes('database_not_configured')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export function isDatabaseConflictError(error) {
+  if (!error) return false;
+  const pgCode = String(error.code || '');
+  return pgCode === '23505' || pgCode === '23503';
+}
+
+export function isDatabaseValidationError(error) {
+  if (!error) return false;
+  const pgCode = String(error.code || '');
+  return pgCode === '23514' || pgCode.startsWith('22');
+}
+
+export function sanitizeDatabaseError(error) {
+  if (isDatabaseConnectionError(error)) {
+    return {
+      status: 503,
+      message: 'Service Unavailable: Database connection error. Please try again shortly.'
+    };
+  }
+  if (isDatabaseConflictError(error)) {
+    return {
+      status: 409,
+      message: 'A conflicting record already exists with these details.'
+    };
+  }
+  if (isDatabaseValidationError(error)) {
+    return {
+      status: 400,
+      message: 'The submitted data is invalid.'
+    };
+  }
+  return {
+    status: 500,
+    message: 'An internal server error occurred. Please try again.'
+  };
 }
 
 export const demoOrganisation = {

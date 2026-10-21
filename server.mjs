@@ -4,7 +4,7 @@ import { promisify } from 'node:util';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { extname, join, normalize, resolve } from 'node:path';
-import { databaseConfigured, demoMembers, demoOrganisation, initializeDatabase, query, seedDemoOrganisation } from './database.mjs';
+import { databaseConfigured, demoMembers, demoOrganisation, initializeDatabase, isDatabaseConnectionError, sanitizeDatabaseError, query, seedDemoOrganisation } from './database.mjs';
 
 function loadEnvironment() {
   try {
@@ -16,6 +16,17 @@ function loadEnvironment() {
 }
 
 loadEnvironment();
+
+// ── Environment / startup safety flags ───────────────────────────────────────
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const IS_PRODUCTION = NODE_ENV === 'production';
+const ALLOW_DEV_FALLBACK = process.env.ALLOW_DEV_FALLBACK === 'true';
+
+if (IS_PRODUCTION && ALLOW_DEV_FALLBACK) {
+  console.error('[FATAL] ALLOW_DEV_FALLBACK must not be set in NODE_ENV=production. This setting is only permitted in development. Exiting.');
+  process.exit(1);
+}
+
 const port = Number(process.env.PORT || 4000);
 const publicDirectory = process.cwd();
 const dataDirectory = join(publicDirectory, 'data');
@@ -93,6 +104,21 @@ function sendJson(response, status, payload) {
   });
   response.end(JSON.stringify(payload));
 }
+
+/**
+ * Translates a database error into an appropriate HTTP response.
+ * Never leaks raw SQL, connection strings, or stack traces to the client.
+ * Call this from any route catch-block that received an error from query().
+ */
+function sendDatabaseError(response, error) {
+  const { status, message } = sanitizeDatabaseError(error);
+  if (isDatabaseConnectionError(error)) {
+    console.error('[DB CONN ERROR]', error.code || error.message);
+  } else {
+    console.error('[DB ERROR]', error.code || 'NO_CODE', '-', error.message?.slice(0, 120));
+  }
+  return sendJson(response, status, { error: message });
+}
 function broadcastEvent(event, payload) { const message = `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`; for (const client of eventClients) { if (payload.organisationId && client.organisationId !== payload.organisationId) continue; try { client.response.write(message); } catch { eventClients.delete(client); } } }
 
 /* ── IP Rate Limiter (sliding window, in-memory) ────────────────────────────
@@ -151,8 +177,11 @@ async function passwordMatches(password, stored) { if (!stored) return false; co
 async function createSession(userId, membershipId) {
   const id = crypto.randomUUID();
   if (databaseReady) {
+    // In database mode, a session MUST be persisted in the DB.
+    // If this fails, the error will propagate to the caller and return 503.
     await query('insert into user_sessions (id, user_id, membership_id, expires_at) values ($1,$2,$3,now() + interval \'7 days\')', [id, userId, membershipId]);
   } else {
+    // Only permitted when ALLOW_DEV_FALLBACK is active (enforced at startup).
     const store = await getStore();
     if (!Array.isArray(store.userSessions)) store.userSessions = [];
     store.userSessions.push({ id, userId, membershipId, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString() });
@@ -165,6 +194,8 @@ async function getUser(request) {
   const token = sessionId(request);
   if (token) {
     if (databaseReady) {
+      // DB is expected to be available; if it throws a connection error
+      // the error propagates — the global catch returns 503.
       const result = await query(`select m.id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id where s.id = $1 and s.expires_at > now()`, [token]);
       if (result.rows[0]?.status === 'active') return result.rows[0];
     } else {
@@ -462,7 +493,10 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/auth/sign-in' && request.method === 'POST') {
     try { const session = await signIn(await readJson(request)); response.setHeader('Set-Cookie', sessionCookie(session.sessionId)); return sendJson(response, 200, { user: session.user }); }
-    catch (error) { return sendJson(response, 401, { error: error.message }); }
+    catch (error) {
+      if (isDatabaseConnectionError(error)) return sendDatabaseError(response, error);
+      return sendJson(response, 401, { error: error.message });
+    }
   }
   if (url.pathname === '/api/auth/sign-out' && request.method === 'POST') {
     const token = sessionId(request); if (token && databaseReady) await query('delete from user_sessions where id = $1', [token]); response.setHeader('Set-Cookie', sessionCookie('', 0)); return sendJson(response, 200, { ok: true });
@@ -476,15 +510,33 @@ async function handleApi(request, response, url) {
       if (!account || !(await passwordMatches(body.currentPassword, account.password_hash))) throw new Error('Your current password is not correct.');
       await query('update portal_users set password_hash = $1 where id = $2', [await hashPassword(body.newPassword), account.id]);
       return sendJson(response, 200, { ok: true });
-    } catch (error) { return sendJson(response, 400, { error: error.message }); }
+    } catch (error) {
+      if (isDatabaseConnectionError(error)) return sendDatabaseError(response, error);
+      return sendJson(response, 400, { error: error.message });
+    }
   }
   if (url.pathname === '/api/organisations' && request.method === 'POST') {
-    try { const body = await readJson(request); if (!body.legalName || !body.workEmail || !body.ownerName || typeof body.password !== 'string' || body.password.length < 10) return sendJson(response, 400, { error: 'Organisation name, owner name, work email, and a password of at least 10 characters are required.' }); const organisation = await registerOrganisation(body); const session = await createSession(organisation.ownerMembershipId, organisation.ownerMembershipId); response.setHeader('Set-Cookie', sessionCookie(session)); return sendJson(response, 201, { organisation, user: { id: organisation.ownerMembershipId, name: body.ownerName, email: body.workEmail, role: 'owner', title: 'Organisation owner', department: 'Leadership', organisationId: organisation.organisationId } }); }
-    catch (error) { return sendJson(response, 500, { error: error.message }); }
+    try {
+      const body = await readJson(request);
+      if (!body.legalName || !body.workEmail || !body.ownerName || typeof body.password !== 'string' || body.password.length < 10) return sendJson(response, 400, { error: 'Organisation name, owner name, work email, and a password of at least 10 characters are required.' });
+      const organisation = await registerOrganisation(body);
+      const session = await createSession(organisation.ownerMembershipId, organisation.ownerMembershipId);
+      response.setHeader('Set-Cookie', sessionCookie(session));
+      return sendJson(response, 201, { organisation, user: { id: organisation.ownerMembershipId, name: body.ownerName, email: body.workEmail, role: 'owner', title: 'Organisation owner', department: 'Leadership', organisationId: organisation.organisationId } });
+    } catch (error) {
+      if (isDatabaseConnectionError(error)) return sendDatabaseError(response, error);
+      return sendJson(response, 500, { error: 'Registration failed. Please try again.' });
+    }
   }
   if (url.pathname === '/api/organisation-memberships' && request.method === 'POST') {
-    try { const body = await readJson(request); if (!body.organisationCode || !body.fullName || !body.email || !body.position || typeof body.password !== 'string' || body.password.length < 10) return sendJson(response, 400, { error: 'Organisation code, name, position, and a password of at least 10 characters are required.' }); return sendJson(response, 201, { membership: await enrolWorker(body) }); }
-    catch (error) { return sendJson(response, 400, { error: error.message }); }
+    try {
+      const body = await readJson(request);
+      if (!body.organisationCode || !body.fullName || !body.email || !body.position || typeof body.password !== 'string' || body.password.length < 10) return sendJson(response, 400, { error: 'Organisation code, name, position, and a password of at least 10 characters are required.' });
+      return sendJson(response, 201, { membership: await enrolWorker(body) });
+    } catch (error) {
+      if (isDatabaseConnectionError(error)) return sendDatabaseError(response, error);
+      return sendJson(response, 400, { error: error.message });
+    }
   }
   if (!user) return sendJson(response, 401, { error: 'Select a ShiftRelay role to continue.' });
 
@@ -1727,10 +1779,21 @@ const server = createServer((request, response) => {
 
     return serveStatic(request, response, url);
   }).catch((error) => {
-    console.error('Request failed:', error.message);
-    if (databaseReady && /DATABASE|relation .* does not exist|connection|timeout|ECONN/i.test(error.message || '')) databaseReady = false;
-    if (!response.headersSent) sendJson(response, 500, { error: 'The request could not be completed. Please try again.' });
-    else response.destroy();
+    if (isDatabaseConnectionError(error)) {
+      console.error('[DB CONN ERROR] Request failed due to database connection issue:', error.code || error.message);
+      if (!response.headersSent) {
+        sendJson(response, 503, { error: 'Service Unavailable: Database connection error. Please try again shortly.' });
+      } else {
+        response.destroy();
+      }
+    } else {
+      console.error('Request failed:', error.message);
+      if (!response.headersSent) {
+        sendJson(response, 500, { error: 'The request could not be completed. Please try again.' });
+      } else {
+        response.destroy();
+      }
+    }
   });
 });
 
@@ -1738,9 +1801,29 @@ initializeDatabase()
   .then(async (connected) => {
     databaseReady = connected;
     if (databaseReady) await seedDemoOrganisation();
-    server.listen(port, () => console.log(`ShiftRelay is running at http://localhost:${port} | database=${connected && databaseConfigured() ? 'connected' : 'local-demo'}`));
+    server.listen(port, () => console.log(`ShiftRelay is running at http://localhost:${port} | database=${connected && databaseConfigured() ? 'connected' : 'local-demo'} | env=${NODE_ENV}`));
   })
   .catch((error) => {
-    console.error('ShiftRelay could not initialise the database. Running without database.', error.message);
-    server.listen(port, () => console.log(`ShiftRelay is running at http://localhost:${port} | database=unavailable`));
+    if (IS_PRODUCTION) {
+      // In production, a missing or unreachable database is fatal.
+      console.error('[FATAL] Database connection required in production mode.');
+      if (isDatabaseConnectionError(error)) {
+        console.error('[FATAL] Could not connect to the database. Service cannot start without it. Exiting.');
+      } else {
+        console.error('[FATAL] Database initialisation failed:', error.code || 'UNKNOWN');
+      }
+      process.exit(1);
+    }
+
+    // Development / staging — require explicit opt-in for file fallback.
+    if (!ALLOW_DEV_FALLBACK) {
+      console.error('[FATAL] Database unavailable and ALLOW_DEV_FALLBACK is not enabled.');
+      console.error('[FATAL] Set ALLOW_DEV_FALLBACK=true to run without a database in development. Exiting.');
+      process.exit(1);
+    }
+
+    // Explicitly opted-in dev fallback: warn loudly and continue.
+    console.warn('[WARN] Running WITHOUT database. Local JSON fallback is active (ALLOW_DEV_FALLBACK=true).');
+    console.warn('[WARN] This mode MUST NOT be used in production. Data is not persistent across restarts.');
+    server.listen(port, () => console.log(`ShiftRelay is running at http://localhost:${port} | database=FALLBACK(dev-only) | env=${NODE_ENV}`));
   });
