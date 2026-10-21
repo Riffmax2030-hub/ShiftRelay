@@ -290,6 +290,60 @@ const Icons = {
     <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
     </svg>
+  `,
+
+  signature: (size = 18) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="m21 17-2.156-1.868A2 2 0 0 0 17.5 14.5H16a2 2 0 0 0-2 2v0a2 2 0 0 1-2 2H9.5a2.5 2.5 0 0 1-2.5-2.5v0A2.5 2.5 0 0 1 9.5 13.5h2a2 2 0 0 0 2-2v0a2 2 0 0 0-2-2h-3A3.5 3.5 0 0 0 5 13v0a3.5 3.5 0 0 0 3.5 3.5h9.5"/>
+      <path d="M19 21h2"/>
+    </svg>
+  `,
+
+  wifiOff: (size = 18) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="2" x2="22" y1="2" y2="22"/>
+      <path d="M8.5 16.5a5 5 0 0 1 7 0"/>
+      <path d="M2 8.82a15 15 0 0 1 4.17-2.65"/>
+      <path d="M10.66 5c4.01-.36 8.14.9 11.34 3.82"/>
+      <path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/>
+      <path d="M5 13a10 10 0 0 1 5.24-2.76"/>
+      <line x1="12" x2="12.01" y1="20" y2="20"/>
+    </svg>
+  `,
+
+  checkCheck: (size = 16) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 6 7 17l-5-5"/>
+      <path d="m22 10-7.5 7.5L13 16"/>
+    </svg>
+  `,
+
+  fingerprint: (size = 18) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/>
+      <path d="M14 13.12c0 2.38 0 6.38-1 8.88"/>
+      <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/>
+      <path d="M2 12a10 10 0 0 1 18-6"/>
+      <path d="M2 16h.01"/>
+      <path d="M21.8 16c.2-2 .131-5.354 0-6"/>
+      <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/>
+      <path d="M8.65 22c.21-.66.45-1.32.57-2"/>
+      <path d="M9 6.8a6 6 0 0 1 9 5.2v2"/>
+    </svg>
+  `,
+
+  paperclip: (size = 18) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+    </svg>
+  `,
+
+  download: (size = 18) => `
+    <svg class="sr-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" x2="12" y1="15" y2="3"/>
+    </svg>
   `
 };
 

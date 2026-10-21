@@ -1,0 +1,240 @@
+/* ==========================================================================
+   DIGITAL SIGNATURE PAD & HANDOVER VERIFICATION MODAL
+   ========================================================================== */
+.signature-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99997;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: sigFadeIn 0.2s ease;
+}
+
+@keyframes sigFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.signature-modal-card {
+  width: 100%;
+  max-width: 460px;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  animation: sigCardSlide 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+[data-theme="dark"] .signature-modal-card {
+  background: #111827;
+  border-color: #1e293b;
+  color: #f8fafc;
+}
+
+@keyframes sigCardSlide {
+  from { transform: translateY(18px) scale(0.96); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.signature-header {
+  padding: 18px 20px 14px;
+  background: linear-gradient(135deg, #0d524d 0%, #064e3b 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.signature-header h3 {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.signature-header p {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: #99f6e4;
+}
+
+.signature-body {
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.signature-handover-summary {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  font-size: 12.5px;
+  color: #166534;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .signature-handover-summary {
+  background: rgba(6, 78, 59, 0.3);
+  border-color: rgba(52, 211, 153, 0.3);
+  color: #a7f3d0;
+}
+
+/* Canvas Box */
+.signature-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 14px;
+  overflow: hidden;
+  touch-action: none;
+}
+
+[data-theme="dark"] .signature-canvas-wrap {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.signature-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+
+.signature-baseline {
+  position: absolute;
+  bottom: 30px;
+  left: 20px;
+  right: 20px;
+  border-bottom: 1px dashed #94a3b8;
+  pointer-events: none;
+}
+
+.signature-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10.5px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+
+.signature-tools-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.btn-sig-clear,
+.btn-sig-bio {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .btn-sig-clear,
+[data-theme="dark"] .btn-sig-bio {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+.btn-sig-bio {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+[data-theme="dark"] .btn-sig-bio {
+  background: rgba(30, 58, 138, 0.4);
+  border-color: rgba(96, 165, 250, 0.3);
+  color: #93c5fd;
+}
+
+.signature-footer {
+  padding: 0 20px 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.signature-footer button {
+  flex: 1;
+}
+
+/* Verified Signature Display Card on Handovers */
+.handover-signature-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.sig-preview-img {
+  max-width: 90px;
+  max-height: 42px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 2px 4px;
+  border: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .sig-preview-img {
+  background: #1e293b;
+  border-color: #334155;
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.sig-meta {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+}
+
+.sig-meta strong {
+  display: block;
+  color: #065f46;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme="dark"] .sig-meta strong {
+  color: #34d399;
+}
+
+.sig-meta span {
+  font-size: 10.5px;
+  color: #64748b;
+}

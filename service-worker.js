@@ -1,10 +1,18 @@
-const CACHE = 'shiftrelay-v60';
+const CACHE = 'shiftrelay-v61';
 const ASSETS = [
   '/',
   '/index.html',
   '/styles.css',
   '/splash.css',
   '/splash.js',
+  '/offline-queue.css',
+  '/offline-queue.js',
+  '/signature-pad.css',
+  '/signature-pad.js',
+  '/chat-engine.css',
+  '/chat-engine.js',
+  '/gesture-hints.css',
+  '/gesture-hints.js',
   '/theme.css',
   '/theme.js',
   '/alarm-engine.js',
