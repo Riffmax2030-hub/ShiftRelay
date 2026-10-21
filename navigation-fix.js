@@ -251,6 +251,9 @@ renderDashboard = async function() {
       });
 
       window.renderSwapReviewPanel?.();
+    window.renderPushBanner?.();
+    window.initFacilitySwitcher?.();
+    window.checkFirstShiftOnboarding?.();
     bindNavigation();
       return;
     } catch (err) {
@@ -449,6 +452,9 @@ renderDashboard = async function() {
     });
 
     window.renderSwapReviewPanel?.();
+    window.renderPushBanner?.();
+    window.initFacilitySwitcher?.();
+    window.checkFirstShiftOnboarding?.();
     bindNavigation();
   } catch (err) {
     $('#dashboard').innerHTML = `<p class="empty">${escape(err.message)}</p>`;

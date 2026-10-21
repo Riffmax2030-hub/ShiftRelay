@@ -50,6 +50,10 @@
     <link rel="stylesheet" href="safety-incident.css" />
     <link rel="stylesheet" href="worker-passport.css" />
     <link rel="stylesheet" href="facility-zones.css" />
+    <link rel="stylesheet" href="analytics-dashboard.css" />
+    <link rel="stylesheet" href="first-shift-onboarding.css" />
+    <link rel="stylesheet" href="push-notifications.css" />
+    <link rel="stylesheet" href="facility-switcher.css" />
     <script src="icons.js"></script>
     <script src="theme.js"></script>
     <script src="alarm-engine.js"></script>
@@ -455,7 +459,9 @@
             </span>
             <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--text-main);">Terms of Service &amp; Workplace Confidentiality</h3>
           </div>
-          <button class="modal-close" id="btn-close-terms" aria-label="Close modal">✕</button>
+          <button class="modal-close" id="btn-close-terms" aria-label="Close modal">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <div class="modal-body">
           <div class="confidentiality-critical-alert">
@@ -518,6 +524,10 @@
     <script src="dock-badges.js"></script>
     <script src="swap-review.js"></script>
     <script src="facility-zones.js"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=64',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script src="analytics-dashboard.js"></script>
+    <script src="first-shift-onboarding.js"></script>
+    <script src="push-notifications.js"></script>
+    <script src="facility-switcher.js"></script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=65',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>

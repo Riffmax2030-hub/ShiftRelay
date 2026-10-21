@@ -1,0 +1,105 @@
+/* ==========================================================================
+   PUSH NOTIFICATIONS OPT-IN CARD
+   ========================================================================== */
+
+.push-optin-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  animation: fadeIn 0.3s ease;
+  transition: opacity 0.2s ease;
+}
+
+.push-optin-icon {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 10px;
+  background: rgba(13, 82, 77, 0.1);
+  color: #0d524d;
+  display: grid;
+  place-items: center;
+}
+
+.push-optin-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.push-optin-content strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.push-optin-content p {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.push-optin-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.push-btn-enable {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.push-btn-dismiss {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.push-btn-dismiss:hover {
+  color: #0f172a;
+}
+
+/* ── Dark Mode ── */
+[data-theme="dark"] .push-optin-card {
+  background: #1e2736;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .push-optin-icon {
+  background: rgba(63, 185, 176, 0.15);
+  color: #3fb9b0;
+}
+
+[data-theme="dark"] .push-optin-content strong {
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .push-optin-content p {
+  color: #8b949e;
+}
+
+[data-theme="dark"] .push-btn-dismiss {
+  color: #6e7681;
+}
+
+[data-theme="dark"] .push-btn-dismiss:hover {
+  color: #e6edf3;
+}
