@@ -125,7 +125,73 @@ function sendDatabaseError(response, error) {
   }
   return sendJson(response, status, { error: message });
 }
-function broadcastEvent(event, payload) { const message = `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`; for (const client of eventClients) { if (payload.organisationId && client.organisationId !== payload.organisationId) continue; try { client.response.write(message); } catch { eventClients.delete(client); } } }
+function broadcastEvent(event, payload, options = {}) {
+  // Derive organisationId strictly from options or payload
+  const organisationId = options.organisationId || payload?.organisationId;
+  if (!organisationId || typeof organisationId !== 'string') {
+    console.warn(`[SECURITY WARN] Blocked unscoped SSE broadcast for event '${event}'. Every private event must have an explicit organisationId.`);
+    return false;
+  }
+
+  const recipientMembershipId = options.recipientMembershipId || payload?.recipientMembershipId;
+  const recipientUserId = options.recipientUserId || payload?.recipientUserId;
+  const allowedRoles = Array.isArray(options.allowedRoles) ? options.allowedRoles : null;
+
+  const data = JSON.stringify(payload);
+  const message = `event: ${event}\ndata: ${data}\n\n`;
+
+  let deliveredCount = 0;
+  for (const client of eventClients) {
+    // 1. Company scope check: must strictly match client's active organisation
+    if (client.organisationId !== organisationId) continue;
+
+    // 2. Individual recipient check: if targeted to specific membership/user, skip others
+    if (recipientMembershipId && client.membershipId !== recipientMembershipId && client.membershipId !== options.senderMembershipId) {
+      continue;
+    }
+    if (recipientUserId && client.userId !== recipientUserId && client.userId !== options.senderUserId) {
+      continue;
+    }
+
+    // 3. Role restriction check (if any)
+    if (allowedRoles && !allowedRoles.includes(client.role)) {
+      continue;
+    }
+
+    try {
+      client.response.write(message);
+      deliveredCount++;
+    } catch {
+      eventClients.delete(client);
+    }
+  }
+
+  return deliveredCount > 0;
+}
+
+function evictSessionClients(sessionId, reason = 'session_terminated') {
+  for (const client of eventClients) {
+    if (client.sessionId === sessionId) {
+      eventClients.delete(client);
+      try {
+        client.response.write(`event: session-invalidated\ndata: ${JSON.stringify({ reason })}\n\n`);
+        client.response.end();
+      } catch {}
+    }
+  }
+}
+
+function evictMembershipClients(membershipId, reason = 'membership_deactivated') {
+  for (const client of eventClients) {
+    if (client.membershipId === membershipId) {
+      eventClients.delete(client);
+      try {
+        client.response.write(`event: session-invalidated\ndata: ${JSON.stringify({ reason })}\n\n`);
+        client.response.end();
+      } catch {}
+    }
+  }
+}
 
 /* ── IP Rate Limiter (sliding window, in-memory) ────────────────────────────
    Protects all /api/ routes from brute-force and DDoS. Up to 120 requests
@@ -262,7 +328,9 @@ async function createDatabaseHandover(user, body) {
   await query('insert into work_items (id, workflow_run_id, organisation_id, assigned_to_membership_id, created_by_membership_id, item_type, title, status, priority, payload) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)', [workItemId, runId, user.organisation_id, assignedTo, user.id, 'handover', body.handover.summary, 'awaiting_review', 'normal', JSON.stringify(body.handover)]);
   await query('insert into work_events (id, organisation_id, workflow_run_id, work_item_id, actor_membership_id, event_type, message) values ($1, $2, $3, $4, $5, $6, $7)', [crypto.randomUUID(), user.organisation_id, runId, workItemId, user.id, 'submitted', `${user.name} submitted a handover for review.`]);
   await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, supervisor.id, workItemId, `${user.name} created a handover for review.`]);
-  return (await databaseHandovers(user)).find((item) => item.id === workItemId);
+  const created = (await databaseHandovers(user)).find((item) => item.id === workItemId);
+  broadcastEvent('handover-submitted', { organisationId: user.organisation_id, handover: created }, { organisationId: user.organisation_id });
+  return created;
 }
 
 async function updateDatabaseHandover(user, id, action) {
@@ -279,7 +347,9 @@ async function updateDatabaseHandover(user, id, action) {
     await query('update work_items set status = $1, acknowledged_at = now(), updated_at = now() where id = $2 and organisation_id = $3', ['acknowledged', id, user.organisation_id]);
     await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, item.created_by_membership_id, id, `${user.name} acknowledged the handover.`]);
   }
-  return (await databaseHandovers(user)).find((handover) => handover.id === id);
+  const updated = (await databaseHandovers(user)).find((handover) => handover.id === id);
+  broadcastEvent(action === 'relay' ? 'handover-relayed' : 'handover-acknowledged', { organisationId: user.organisation_id, handover: updated }, { organisationId: user.organisation_id });
+  return updated;
 }
 
 function organisationCode() {
@@ -465,10 +535,12 @@ async function audit(organisationId, actorId, eventType, entityType, entityId, d
 }
 async function notifyOrganisationOwners(organisationId, message) {
   const owners = await query("select id from memberships where organisation_id = $1 and role = 'owner' and status = 'active'", [organisationId]);
-  for (const owner of owners.rows) await query('insert into notifications (id, organisation_id, recipient_membership_id, message) values ($1,$2,$3,$4)', [crypto.randomUUID(), organisationId, owner.id, message]);
+  for (const owner of owners.rows) await notifyMembership(organisationId, owner.id, message);
 }
 async function notifyMembership(organisationId, membershipId, message) {
-  await query('insert into notifications (id, organisation_id, recipient_membership_id, message) values ($1,$2,$3,$4)', [crypto.randomUUID(), organisationId, membershipId, message]);
+  const notifId = crypto.randomUUID();
+  await query('insert into notifications (id, organisation_id, recipient_membership_id, message) values ($1,$2,$3,$4)', [notifId, organisationId, membershipId, message]);
+  broadcastEvent('notification-added', { id: notifId, message, recipientMembershipId: membershipId }, { organisationId, recipientMembershipId: membershipId });
 }
 async function notifyOrganisationMembers(organisationId, senderId, message) {
   const members = await query("select id from memberships where organisation_id = $1 and status = 'active' and id <> $2", [organisationId, senderId]);
@@ -582,12 +654,56 @@ async function handleApi(request, response, url) {
     if (!eventUser || eventUser.status !== 'active') {
       return sendJson(response, 401, { error: 'Authentication required. Please sign in.' });
     }
-    response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
-    response.write(`event: ready\ndata: ${JSON.stringify({ connectedAt: new Date().toISOString() })}\n\n`);
-    const client = { response, userId: eventUser.id, organisationId: eventUser.organisation_id };
+    const token = sessionId(request);
+    response.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no'
+    });
+    response.write(`event: ready\ndata: ${JSON.stringify({ connectedAt: new Date().toISOString(), organisationId: eventUser.organisation_id })}\n\n`);
+
+    const client = {
+      response,
+      sessionId: token,
+      userId: eventUser.user_id || eventUser.id,
+      membershipId: eventUser.id,
+      organisationId: eventUser.organisation_id,
+      role: eventUser.role
+    };
     eventClients.add(client);
-    const heartbeat = setInterval(() => { try { response.write(': heartbeat\n\n'); } catch { clearInterval(heartbeat); eventClients.delete(client); } }, 25000);
-    request.on('close', () => { clearInterval(heartbeat); eventClients.delete(client); });
+
+    const heartbeat = setInterval(async () => {
+      try {
+        if (databaseReady && client.sessionId) {
+          const sessionCheck = await query(
+            `select s.id, m.status, m.organisation_id
+             from user_sessions s
+             join memberships m on m.id = s.membership_id
+             where s.id = $1 and s.expires_at > now() and m.status = 'active'`,
+            [client.sessionId]
+          );
+          if (!sessionCheck.rows[0] || sessionCheck.rows[0].organisation_id !== client.organisationId) {
+            clearInterval(heartbeat);
+            eventClients.delete(client);
+            try {
+              client.response.write(`event: session-invalidated\ndata: ${JSON.stringify({ reason: 'revoked_or_switched' })}\n\n`);
+              client.response.end();
+            } catch {}
+            return;
+          }
+        }
+        response.write(': heartbeat\n\n');
+      } catch {
+        clearInterval(heartbeat);
+        eventClients.delete(client);
+      }
+    }, 5000);
+
+    request.on('close', () => {
+      clearInterval(heartbeat);
+      eventClients.delete(client);
+    });
     return;
   }
   if (url.pathname === '/api/auth/session' && request.method === 'GET') return user ? sendJson(response, 200, { user }) : sendJson(response, 401, { error: 'Sign in to continue.' });
@@ -611,7 +727,21 @@ async function handleApi(request, response, url) {
     }
   }
   if (url.pathname === '/api/auth/sign-out' && request.method === 'POST') {
-    const token = sessionId(request); if (token && databaseReady) await query('delete from user_sessions where id = $1', [token]); response.setHeader('Set-Cookie', sessionCookie('', 0)); return sendJson(response, 200, { ok: true });
+    const token = sessionId(request);
+    if (token) {
+      if (databaseReady) {
+        await query('delete from user_sessions where id = $1', [token]);
+      } else {
+        const store = await getStore();
+        if (Array.isArray(store.userSessions)) {
+          store.userSessions = store.userSessions.filter((s) => s.id !== token);
+          await saveStore(store);
+        }
+      }
+      evictSessionClients(token, 'sign_out');
+    }
+    response.setHeader('Set-Cookie', sessionCookie('', 0));
+    return sendJson(response, 200, { ok: true });
   }
   if (url.pathname === '/api/auth/password' && request.method === 'PUT') {
     try {
@@ -706,6 +836,7 @@ async function handleApi(request, response, url) {
     const currentToken = sessionId(request);
     if (currentToken) {
       await query('delete from user_sessions where id = $1', [currentToken]);
+      evictSessionClients(currentToken, 'context_switched');
     }
 
     response.setHeader('Set-Cookie', sessionCookie(newSessionId));
