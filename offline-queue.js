@@ -33,7 +33,11 @@
   function saveQueue(items) {
     const { key } = getActiveUserScope();
     try {
-      localStorage.setItem(key, JSON.stringify(items));
+      if (!items || items.length === 0) {
+        localStorage.removeItem(key);
+      } else {
+        localStorage.setItem(key, JSON.stringify(items));
+      }
     } catch (err) {
       console.warn('Could not persist offline queue:', err);
     }
@@ -152,7 +156,8 @@
   function promptLogoutWarning(onProceedLogout) {
     const { userId, orgId } = getActiveUserScope();
     const currentQueue = loadQueue();
-    const pendingCount = currentQueue.filter(item => item.userId === userId && item.organisationId === orgId).length;
+    const pendingItems = currentQueue.filter(item => item.userId === userId && item.organisationId === orgId);
+    const pendingCount = pendingItems.length;
 
     if (pendingCount === 0) {
       onProceedLogout();
@@ -165,18 +170,16 @@
     dialog.id = 'sr-unsent-work-dialog';
     dialog.className = 'modal-backdrop';
     dialog.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.7);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;';
-    dialog.innerHTML = `
-      <div style="background:#ffffff;border-radius:18px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,0.3);text-align:left;font-family:sans-serif;" role="alertdialog" aria-modal="true" aria-labelledby="unsent-title">
+    dialog.innerHTML = `<div style="background:#ffffff;border-radius:18px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,0.3);text-align:left;font-family:sans-serif;" role="alertdialog" aria-modal="true" aria-labelledby="unsent-title">
         <h3 id="unsent-title" style="margin:0 0 10px;font-size:18px;font-weight:800;color:#0f172a;">Unsent Offline Updates</h3>
         <p style="margin:0 0 16px;font-size:13.5px;color:#475569;line-height:1.5;">
-          You have <strong>${pendingCount} unsent update(s)</strong> saved locally while offline.
-        </p>
+          You have <strong> ${pendingCount} unsent update(s)</strong> saved locally while offline.</p>
         <p style="margin:0 0 20px;font-size:12.5px;color:#64748b;line-height:1.45;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0;">
-          <strong>Shared Device Safety:</strong> These updates remain isolated to your account. They will <strong>not</strong> be sent under another worker's identity and cannot be viewed by other users. They will automatically sync when you sign back in.
+          <strong>Shared Device Protection:</strong> To prevent data exposure to subsequent workers on this shared device, offline updates cannot remain stored locally in browser storage across sign-out. Choose to sync now, cancel to stay signed in, or discard unsent work before signing out.
         </p>
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button id="sr-btn-keep-logout" style="padding:12px;border-radius:10px;background:#0d524d;color:#fff;border:none;font-weight:700;font-size:14px;cursor:pointer;">
-            Keep Unsent Work &amp; Sign Out
+          <button id="sr-btn-sync-logout" style="padding:12px;border-radius:10px;background:#0d524d;color:#fff;border:none;font-weight:700;font-size:14px;cursor:pointer;">
+            Sync Now &amp; Sign Out
           </button>
           <button id="sr-btn-cancel-logout" style="padding:12px;border-radius:10px;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;font-weight:600;font-size:13.5px;cursor:pointer;">
             Cancel (Stay Signed In)
@@ -185,14 +188,20 @@
             Discard Unsent Work &amp; Sign Out
           </button>
         </div>
-      </div>
-    `;
+      </div>`; document.body.appendChild(dialog);
 
-    document.body.appendChild(dialog);
-
-    document.getElementById('sr-btn-keep-logout')?.addEventListener('click', () => {
-      dialog.remove();
-      onProceedLogout();
+    document.getElementById('sr-btn-sync-logout')?.addEventListener('click', async () => {
+      const btn = document.getElementById('sr-btn-sync-logout');
+      if (btn) { btn.disabled = true; btn.textContent = 'Syncing...'; }
+      await flushQueue();
+      const remainingCount = loadQueue().filter(item => item.userId === userId && item.organisationId === orgId).length;
+      if (remainingCount === 0) {
+        dialog.remove();
+        onProceedLogout();
+      } else {
+        if (btn) { btn.disabled = false; btn.textContent = 'Sync Now & Sign Out'; }
+        alert('Could not synchronize all updates (network unavailable or request failed). Please stay signed in or discard before logging out.');
+      }
     });
 
     document.getElementById('sr-btn-cancel-logout')?.addEventListener('click', () => {
@@ -207,7 +216,6 @@
     });
   }
 
-  // ── Network Listeners ─────────────────────────────────────────────────────────
   window.addEventListener('online', () => {
     isOnline = true;
     flushQueue();
@@ -310,3 +318,5 @@
     setTimeout(flushQueue, 2000);
   }
 })();
+
+

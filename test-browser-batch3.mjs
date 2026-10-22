@@ -142,7 +142,7 @@ async function run() {
   // Test 1: User A logs in
   console.log('\n--- 2. User A Signs In ---');
   await page.goto(`http://127.0.0.1:${APP_PORT}/`);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
   // Perform sign-in for Alice
   await page.evaluate(async () => {
@@ -173,8 +173,8 @@ async function run() {
   const alicePendingCount = await page.evaluate(() => window.OfflineQueue.getPendingCount());
   assert(alicePendingCount === 1, 'User A has 1 pending offline action in queue');
 
-  // Test 3: User A initiates logout with "keep"
-  console.log('\n--- 4. User A Logs Out Choosing "Keep Unsent Work" ---');
+  // Test 3: User A initiates logout - verify explicit choices & shared-device protection
+  console.log('\n--- 4. Shared Device Logout Flow (Explicit Choices) ---');
   // Trigger logout modal
   await page.evaluate(() => {
     window.OfflineQueue.promptLogoutWarning(() => {
@@ -196,11 +196,27 @@ async function run() {
     });
   });
 
-  // Click "Keep Unsent Work & Sign Out"
-  const keepBtn = await page.$('#sr-btn-keep-logout');
-  assert(keepBtn !== null, 'Logout warning dialog presented with Keep/Discard options');
-  if (keepBtn) await keepBtn.click();
+  // Verify explicit choices exist (Sync / Cancel / Discard)
+  const syncBtn = await page.$('#sr-btn-sync-logout');
+  const cancelBtn = await page.$('#sr-btn-cancel-logout');
+  const discardBtn = await page.$('#sr-btn-discard-logout');
+  assert(syncBtn !== null && cancelBtn !== null && discardBtn !== null,
+    'Logout warning dialog presents explicit Sync Now, Cancel, and Discard options');
+
+  // Verify retaining plaintext queues across logout is disabled (user chooses Discard to sign out safely)
+  if (discardBtn) await discardBtn.click();
   await page.waitForTimeout(500);
+
+  // Targeted regression: verify offline queue for User A is purged on logout
+  const queueAfterDiscard = await page.evaluate(() => {
+    let keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('shiftrelay_offline_queue')) keys.push(k);
+    }
+    return keys;
+  });
+  assert(queueAfterDiscard.length === 0, 'Targeted regression: offline queue purged on logout, leaving no exposed data for next user');
 
   // Verify User A state cleared
   const activeUserPostLogout = await page.evaluate(() => window.state?.user);
@@ -214,7 +230,7 @@ async function run() {
 
   // Return to base URL for User B sign-in
   await page.goto(`http://127.0.0.1:${APP_PORT}/`);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
   // Test 5: User B signs in on the same browser
   console.log('\n--- 6. User B Signs In on Same Device ---');
@@ -251,7 +267,7 @@ async function run() {
   // Test 7: Page reload test
   console.log('\n--- 8. Reload Test ---');
   await page.reload();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   const sessionAfterReload = await page.evaluate(async () => {
     const res = await fetch('/api/auth/session');
     return res.ok ? await res.json() : null;
@@ -303,3 +319,4 @@ run().catch((err) => {
   console.error('[FATAL]', err);
   process.exit(1);
 });
+

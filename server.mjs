@@ -202,9 +202,9 @@ function evictMembershipClients(membershipId, reason = 'membership_deactivated')
 const rateLimitBuckets = new Map();
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT_GENERAL = 120;
-const RATE_LIMIT_AUTH = 10;
+const RATE_LIMIT_AUTH = 25;
 
-function isRateLimited(ip, isAuth = false) {
+const authBuckets = new Map(); function isRateLimited(ip, isAuth = false) { const bucket = isAuth ? authBuckets : rateLimitBuckets; const now = Date.now(); const limit = isAuth ? RATE_LIMIT_AUTH : RATE_LIMIT_GENERAL; if (!bucket.has(ip)) bucket.set(ip, []); const timestamps = bucket.get(ip).filter((t) => now - t < RATE_WINDOW_MS); timestamps.push(now); bucket.set(ip, timestamps); return timestamps.length > limit; } function _old_isRateLimited(ip, isAuth) {
   const now = Date.now();
   const limit = isAuth ? RATE_LIMIT_AUTH : RATE_LIMIT_GENERAL;
   if (!rateLimitBuckets.has(ip)) rateLimitBuckets.set(ip, []);
@@ -2400,6 +2400,8 @@ initializeDatabase()
     console.warn('[WARN] This mode MUST NOT be used in production. Data is not persistent across restarts.');
     server.listen(port, () => console.log(`ShiftRelay is running at http://localhost:${port} | database=FALLBACK(dev-only) | env=${NODE_ENV}`));
   });
+
+
 
 
 
