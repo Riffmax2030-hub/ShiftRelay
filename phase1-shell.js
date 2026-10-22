@@ -25,7 +25,12 @@
   }
 
   function getUser() {
-    return window.state?.user || null;
+    if (window._srState?.user) return window._srState.user;
+    try {
+      const stored = localStorage.getItem('shiftrelay-user-data');
+      if (stored) return JSON.parse(stored);
+    } catch (_) {}
+    return null;
   }
 
   function isManagerRole(role) {
@@ -1824,7 +1829,6 @@
               throw new Error(err.error || 'Approval failed');
             }
 
-            delete confirmBtn.dataset.idempotencyKey;
             modalEl.remove();
             showApprovalFeedback(`Worker access granted for ${name}.`, 'success');
             await renderApprovalsScreen();
@@ -1866,7 +1870,6 @@
               throw new Error(err.error || 'Rejection failed');
             }
 
-            delete confirmBtn.dataset.idempotencyKey;
             modalEl.remove();
             showApprovalFeedback(`Access request for ${name} rejected.`, 'success');
             await renderApprovalsScreen();
@@ -1957,7 +1960,6 @@
               throw new Error(err.error || 'Leave approval failed');
             }
 
-            delete confirmBtn.dataset.idempotencyKey;
             modalEl.remove();
             showApprovalFeedback(`Leave approved for ${name}.`, 'success');
             await renderApprovalsScreen();
@@ -1999,7 +2001,6 @@
               throw new Error(err.error || 'Leave rejection failed');
             }
 
-            delete confirmBtn.dataset.idempotencyKey;
             modalEl.remove();
             showApprovalFeedback(`Leave request for ${name} rejected.`, 'success');
             await renderApprovalsScreen();
@@ -2085,5 +2086,10 @@
     openContextModal,
     navigate
   };
+
+  // If an active session is already established on script execution, mount the shell
+  if (getUser()) {
+    mountShell();
+  }
 
 })();

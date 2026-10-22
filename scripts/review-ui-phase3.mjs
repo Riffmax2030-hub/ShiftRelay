@@ -268,7 +268,7 @@ async function runPhase3Review() {
     const pageAdam = await adamContext.newPage();
     await pageAdam.goto(`http://127.0.0.1:${APP_PORT}/`);
 
-    // Sign in as Adam (Supervisor)
+    // Sign in as Adam (Supervisor) — use supported login callback; no direct state injection.
     const adamLoginResult = await pageAdam.evaluate(async () => {
       const res = await fetch('/api/auth/sign-in', {
         method: 'POST',
@@ -277,17 +277,14 @@ async function runPhase3Review() {
       });
       const data = await res.json();
       if (!res.ok) return { ok: false, data };
-      window.state = window.state || {};
-      window.state.user = data.user;
       if (typeof window._srLoginCallback === 'function') window._srLoginCallback(data.user);
-      if (window.Phase1Shell?.mount) await window.Phase1Shell.mount();
+      else if (window.Phase1Shell?.mount) await window.Phase1Shell.mount();
       return { ok: true, user: data.user };
     });
 
     assertCheck(adamLoginResult.ok, 'Supervisor Adam logged in successfully via API session', JSON.stringify(adamLoginResult));
 
     await pageAdam.waitForSelector('#sr-app-shell', { timeout: 10000 });
-    await pageAdam.waitForTimeout(300);
 
     // Navigate to Team
     await pageAdam.evaluate(async () => {
@@ -310,7 +307,7 @@ async function runPhase3Review() {
 
     // Test Real-time Search Input
     await pageAdam.fill('#sr-team-search', 'Bob');
-    await pageAdam.waitForTimeout(200);
+    await pageAdam.waitForFunction(() => document.querySelectorAll('.sr-team-name').length <= 2);
     const filteredMembers = await pageAdam.$$eval('.sr-team-name', els => els.map(e => e.textContent.trim()));
     const countText = await pageAdam.$eval('#sr-team-count', el => el.textContent.trim());
 
@@ -325,7 +322,7 @@ async function runPhase3Review() {
 
     // Reset search
     await pageAdam.fill('#sr-team-search', '');
-    await pageAdam.waitForTimeout(200);
+    await pageAdam.waitForFunction(() => document.querySelectorAll('.sr-team-name').length >= 3);
 
     // Capture Desktop Team Screenshot
     await pageAdam.screenshot({ path: 'docs/screenshots/team-desktop.png' });
@@ -360,10 +357,8 @@ async function runPhase3Review() {
         body: JSON.stringify({ email: 'adam@apex.test', password: 'Password12345!' })
       });
       const data = await res.json();
-      window.state = window.state || {};
-      window.state.user = data.user;
       if (typeof window._srLoginCallback === 'function') window._srLoginCallback(data.user);
-      if (window.Phase1Shell?.mount) await window.Phase1Shell.mount();
+      else if (window.Phase1Shell?.mount) await window.Phase1Shell.mount();
     });
     await pageMobile.waitForSelector('#sr-app-shell', { timeout: 10000 });
     await pageMobile.evaluate(async () => {
@@ -407,7 +402,8 @@ async function runPhase3Review() {
 
     // Confirm approval
     await pageAdam.click('#sr-btn-confirm-ok');
-    await pageAdam.waitForTimeout(500);
+    await pageAdam.waitForSelector('#sr-consequential-modal-root', { state: 'detached', timeout: 5000 });
+    await pageAdam.waitForFunction(() => document.querySelectorAll('.sr-approval-card').length === 0);
 
     const postApprovalRequests = await pageAdam.$$eval('.sr-approval-card', els => els.length);
     assertCheck(
@@ -444,10 +440,8 @@ async function runPhase3Review() {
         body: JSON.stringify({ email: 'alice@apex.test', password: 'Password12345!' })
       });
       const data = await res.json();
-      window.state = window.state || {};
-      window.state.user = data.user;
       if (typeof window._srLoginCallback === 'function') window._srLoginCallback(data.user);
-      if (window.Phase1Shell?.mount) await window.Phase1Shell.mount();
+      else if (window.Phase1Shell?.mount) await window.Phase1Shell.mount();
     });
 
     await pageAlice.waitForSelector('#sr-app-shell', { timeout: 10000 });
@@ -506,10 +500,8 @@ async function runPhase3Review() {
         body: JSON.stringify({ email: 'alice@apex.test', password: 'Password12345!' })
       });
       const data = await res.json();
-      window.state = window.state || {};
-      window.state.user = data.user;
       if (typeof window._srLoginCallback === 'function') window._srLoginCallback(data.user);
-      if (window.Phase1Shell?.mount) await window.Phase1Shell.mount();
+      else if (window.Phase1Shell?.mount) await window.Phase1Shell.mount();
     });
     await pageAliceMobile.waitForSelector('#sr-app-shell', { timeout: 10000 });
     await pageAliceMobile.evaluate(async () => {
@@ -526,7 +518,8 @@ async function runPhase3Review() {
     await pageAlice.click('[data-action="open-approve-leave"]');
     await pageAlice.waitForSelector('#sr-consequential-modal-root');
     await pageAlice.click('#sr-btn-confirm-ok');
-    await pageAlice.waitForTimeout(500);
+    await pageAlice.waitForSelector('#sr-consequential-modal-root', { state: 'detached', timeout: 5000 });
+    await pageAlice.waitForFunction(() => document.querySelectorAll('.sr-approval-card').length === 0);
 
     const postLeaveRequests = await pageAlice.$$eval('.sr-approval-card', els => els.length);
     assertCheck(
@@ -563,10 +556,8 @@ async function runPhase3Review() {
         body: JSON.stringify({ email: 'carol@beacon.test', password: 'Password12345!' })
       });
       const data = await res.json();
-      window.state = window.state || {};
-      window.state.user = data.user;
       if (typeof window._srLoginCallback === 'function') window._srLoginCallback(data.user);
-      if (window.Phase1Shell?.mount) await window.Phase1Shell.mount();
+      else if (window.Phase1Shell?.mount) await window.Phase1Shell.mount();
     });
 
     await pageCarol.waitForSelector('#sr-app-shell', { timeout: 10000 });
@@ -583,28 +574,91 @@ async function runPhase3Review() {
 
     // ── 6. Persistence After Reload ──
     console.log('\n--- 6. Testing Persistence After Reload ---');
-    // Chloe was approved in Company A by Adam. Check that reload displays Chloe in Company A Team directory!
+    // Reload the page; verified via normal session restoration — no state injection.
     await pageAdam.reload({ waitUntil: 'networkidle' });
-    await pageAdam.evaluate(async () => {
-      const res = await fetch('/api/auth/session');
-      const data = await res.json();
-      if (data?.user) {
-        window.state = window.state || {};
-        window.state.user = data.user;
-        if (window.Phase1Shell?.mount) await window.Phase1Shell.mount();
-      }
-    });
-    await pageAdam.waitForSelector('#sr-app-shell', { state: 'visible', timeout: 10000 });
-    await pageAdam.evaluate(async () => {
-      await window.Phase1Shell.navigate('team');
-    });
-    await pageAdam.waitForSelector('.sr-team-card', { state: 'visible', timeout: 10000 });
+    // Wait for deterministic session/splash readiness
+    await pageAdam.waitForFunction(() => window._srReady === true || document.querySelector('#sr-app-shell') !== null, { timeout: 10000 });
+    // Ensure shell is mounted
+    await pageAdam.waitForSelector('#sr-app-shell', { timeout: 12000 });
+    await pageAdam.waitForSelector('[data-sr-view]', { timeout: 8000 });
+    await pageAdam.evaluate(async () => { await window.Phase1Shell.navigate('team'); });
+    await pageAdam.waitForSelector('.sr-team-card', { timeout: 10000 });
 
     const reloadedTeam = await pageAdam.$$eval('.sr-team-name', els => els.map(e => e.textContent.trim()));
     assertCheck(
       reloadedTeam.some(n => n.includes('Chloe Nurse')),
       'Approved member Chloe Nurse persists in Team Directory after browser reload'
     );
+
+    // ── 7. Security: Forbidden Role Escalation ──
+    console.log('\n--- 7. Security: Role Escalation via Approval ---');
+    await makeJsonRequest(APP_PORT, '/api/organisation-memberships', 'POST', {
+      organisationCode: orgCodeA, fullName: 'Eve Applicant', email: 'eve@apex.test',
+      position: 'Support Staff', password: 'Password12345!'
+    });
+    const eveMembership = (await pgPool.query("SELECT id FROM memberships WHERE user_id = (SELECT id FROM portal_users WHERE email = 'eve@apex.test')")).rows[0];
+    const eveId = eveMembership?.id;
+
+    const escalateOwner = await makeJsonRequest(APP_PORT, '/api/memberships/' + eveId + '/review', 'POST',
+      { decision: 'approve', role: 'owner' }, aliceCookie);
+    assertCheck(escalateOwner.status === 400,
+      'Backend rejects role escalation to "owner" via membership approval',
+      JSON.stringify(escalateOwner.body));
+
+    const escalateSupervisor = await makeJsonRequest(APP_PORT, '/api/memberships/' + eveId + '/review', 'POST',
+      { decision: 'approve', role: 'supervisor' }, aliceCookie);
+    assertCheck(escalateSupervisor.status === 400,
+      'Backend rejects role escalation to "supervisor" via membership approval',
+      JSON.stringify(escalateSupervisor.body));
+
+    // ── 8. Security: Worker Cannot Execute Manager Endpoints ──
+    console.log('\n--- 8. Security: Worker Requests to Manager Endpoints ---');
+    const workerApprove = await makeJsonRequest(APP_PORT, '/api/memberships/' + eveId + '/review', 'POST',
+      { decision: 'approve', role: 'incoming' }, bobCookie);
+    assertCheck(workerApprove.status === 403,
+      'Worker (incoming role) cannot approve memberships — 403 returned',
+      JSON.stringify(workerApprove.body));
+
+    const workerLeaveReview = await makeJsonRequest(APP_PORT, '/api/leave-requests/review', 'POST',
+      { leaveId: 'any-id', decision: 'approve' }, bobCookie);
+    assertCheck(workerLeaveReview.status === 403,
+      'Worker cannot call leave-request review endpoint — 403 returned',
+      JSON.stringify(workerLeaveReview.body));
+
+    // ── 9. Idempotency Key Stability — Repeated Approval Clicks ──
+    console.log('\n--- 9. Idempotency: Repeated Approval Clicks ---');
+    await makeJsonRequest(APP_PORT, '/api/organisation-memberships', 'POST', {
+      organisationCode: orgCodeA, fullName: 'Frank Repeat', email: 'frank@apex.test',
+      position: 'Orderly', password: 'Password12345!'
+    });
+    const frankMembership = (await pgPool.query("SELECT id FROM memberships WHERE user_id = (SELECT id FROM portal_users WHERE email = 'frank@apex.test')")).rows[0];
+    const frankId = frankMembership?.id;
+    const idemKey = 'idem_mem_appr_' + frankId + '_stable';
+
+    const makeIdemRequest = (cookie, key, membershipId) => new Promise((resolve) => {
+      const payload = JSON.stringify({ decision: 'approve', role: 'incoming' });
+      const headers = { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload),
+        'Idempotency-Key': key, 'Cookie': cookie };
+      const req = http.request({ hostname: '127.0.0.1', port: APP_PORT,
+        path: '/api/memberships/' + membershipId + '/review', method: 'POST', headers }, (res) => {
+        let data = ''; res.on('data', c => { data += c; }); res.on('end', () => {
+          try { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
+          catch { resolve({ status: res.statusCode, body: data }); }
+        });
+      });
+      req.on('error', err => resolve({ status: 0, error: err.message }));
+      req.write(payload); req.end();
+    });
+
+    const rep1 = await makeIdemRequest(aliceCookie, idemKey, frankId);
+    const rep2 = await makeIdemRequest(aliceCookie, idemKey, frankId);
+    const rep3 = await makeIdemRequest(aliceCookie, idemKey, frankId);
+    assertCheck((rep1.status === 200 || rep1.status === 409),
+      'Idempotency: first replay with same key returns 200 or 409',
+      JSON.stringify(rep1.body));
+    assertCheck(rep2.status === rep1.status && rep3.status === rep1.status,
+      'Idempotency: all repeated requests with same key return identical status',
+      `rep1=${rep1.status} rep2=${rep2.status} rep3=${rep3.status}`);
 
     // Sync all screenshots to Brain Artifact Directory
     copyFileSync('docs/screenshots/team-desktop.png', join(ARTIFACT_DIR, 'team-desktop.png'));

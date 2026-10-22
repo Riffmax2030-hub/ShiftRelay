@@ -197,10 +197,12 @@
     bindDemoRoles();
   }
 
-  // -- Main init ---------------------------------------------------------------
+  // ── Main init ────────────────────────────────────────────────────────────────
   async function initSplash() {
-    // After loader animation completes (~1.8s), check session
-    await new Promise(resolve => setTimeout(resolve, 1800));
+    // Deterministic readiness: resolve immediately if splash element is dismissed or absent
+    if (document.getElementById('sr-splash')) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
 
     try {
       const [sessionRes, usersRes, configRes] = await Promise.all([
@@ -225,7 +227,7 @@
       if (currentUser) {
         // Returning user — auto-login directly into app
         hideSplash();
-        if (typeof window._srLoginCallback === 'function' && !window.state?.user) {
+        if (typeof window._srLoginCallback === 'function' && !window._srState?.user) {
           window._srLoginCallback(currentUser);
         }
       } else {
@@ -243,7 +245,11 @@
       // Network error — still show entry
       hideSplash();
       showEntry();
+    } finally {
+      window._srReady = true;
+      window.dispatchEvent(new CustomEvent('sr:ready'));
     }
+  }
   }
 
   // Start
