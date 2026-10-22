@@ -39,7 +39,7 @@
 
   function isAuthorizedView(viewName, isManager) {
     const allowedWorker = ['today', 'handovers', 'me', 'schedule'];
-    const allowedManager = ['overview', 'handovers', 'team', 'approvals', 'me'];
+    const allowedManager = ['overview', 'schedule', 'handovers', 'team', 'approvals', 'me'];
     return isManager ? allowedManager.includes(viewName) : allowedWorker.includes(viewName);
   }
 
@@ -618,8 +618,12 @@
       await renderApprovalsScreen();
     } else if (view === 'me') {
       await renderWorkerMe();
-    } else if (view === 'schedule' && !isManager) {
-      await renderWorkerSchedule();
+    } else if (view === 'schedule') {
+      if (isManager) {
+        await renderManagerSchedule();
+      } else {
+        await renderWorkerSchedule();
+      }
     } else if (view === 'notifications') {
       await (isManager ? renderManagerOverview() : renderWorkerToday());
       toggleNotificationPanel(true);
@@ -2109,6 +2113,418 @@
     });
   }
 
+  // ── 6b. Manager Schedule Screen ───────────────────────────────────────────
+  let managerScheduleMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  let managerStaffFilter = 'all';
+  let managerScheduleTab = 'shifts'; // 'shifts' | 'leave'
+  let assignShiftSubmitting = false;
+  let assignShiftIdempotencyKey = null;
+
+  async function renderManagerSchedule() {
+    const user = getUser();
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+    if (!user) {
+      container.innerHTML = `<div class="sr-card"><p style="color:#b91c1c;">Session expired. Please sign in again.</p></div>`;
+      return;
+    }
+
+    const isOwner = user.role === 'owner';
+    const tz = user.time_zone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+    const [year, mon] = managerScheduleMonth.split('-').map(Number);
+    const monthLabel = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(year, mon - 1, 1));
+
+    // Render chrome immediately with loading skeleton
+    container.innerHTML = `
+      <div class="sr-card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 16px 0;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+                <h2 style="margin:0;font-size:18px;font-weight:800;color:var(--sr-text,#0f172a);">Team Schedule</h2>
+                ${isOwner
+                  ? '<span class="sr-status-pill active" style="font-size:11px;">Owner Scheduling Active</span>'
+                  : '<span class="sr-status-pill pending" style="font-size:11px;background:#f1f5f9;color:#475569;border-color:#cbd5e1;">Read-Only &bull; Owner scheduling required</span>'}
+              </div>
+              <div style="font-size:12px;color:var(--sr-text-muted,#64748b);">Company-wide duty roster and leave &bull; Timezone: <strong>${escapeHtml(tz)}</strong></div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              ${isOwner ? `
+                <button id="sr-btn-open-assign-modal" class="sr-btn sr-btn-primary" style="padding:7px 14px;font-size:13px;display:inline-flex;align-items:center;gap:6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Assign Shift</span>
+                </button>
+              ` : ''}
+
+              <div style="display:flex;align-items:center;gap:4px;" aria-label="Month navigation">
+                <button id="sr-mgr-sched-prev" aria-label="Previous month" style="padding:6px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;background:var(--sr-bg-surface,#fff);cursor:pointer;font-size:14px;color:var(--sr-text,#0f172a);">&#8249;</button>
+                <span style="font-size:13px;font-weight:600;color:var(--sr-text,#0f172a);min-width:110px;text-align:center;">${escapeHtml(monthLabel)}</span>
+                <button id="sr-mgr-sched-next" aria-label="Next month" style="padding:6px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;background:var(--sr-bg-surface,#fff);cursor:pointer;font-size:14px;color:var(--sr-text,#0f172a);">&#8250;</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--sr-border,#e2e8f0);flex-wrap:wrap;gap:8px;">
+            <div role="tablist" style="display:flex;gap:0;">
+              <button role="tab" aria-selected="${managerScheduleTab === 'shifts'}" id="sr-mgr-tab-shifts" data-mgr-sched-tab="shifts"
+                style="padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13.5px;font-weight:700;
+                color:${managerScheduleTab === 'shifts' ? 'var(--sr-primary,#0d524d)' : 'var(--sr-text-muted,#64748b)'};
+                border-bottom:${managerScheduleTab === 'shifts' ? '2px solid var(--sr-primary,#0d524d)' : '2px solid transparent'};
+                margin-bottom:-2px;transition:color .15s ease;">Assigned Shifts</button>
+              <button role="tab" aria-selected="${managerScheduleTab === 'leave'}" id="sr-mgr-tab-leave" data-mgr-sched-tab="leave"
+                style="padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13.5px;font-weight:700;
+                color:${managerScheduleTab === 'leave' ? 'var(--sr-primary,#0d524d)' : 'var(--sr-text-muted,#64748b)'};
+                border-bottom:${managerScheduleTab === 'leave' ? '2px solid var(--sr-primary,#0d524d)' : '2px solid transparent'};
+                margin-bottom:-2px;transition:color .15s ease;">Company Leave</button>
+            </div>
+
+            <div style="padding-bottom:6px;display:flex;align-items:center;gap:6px;">
+              <label for="sr-mgr-staff-filter" style="font-size:12px;font-weight:600;color:var(--sr-text-muted,#64748b);">Staff:</label>
+              <select id="sr-mgr-staff-filter" style="padding:5px 8px;font-size:12.5px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;background:var(--sr-bg-surface,#fff);color:var(--sr-text,#0f172a);">
+                <option value="all">All Staff</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="sr-mgr-sched-panel" role="tabpanel" aria-live="polite" style="min-height:200px;padding-bottom:12px;">
+          <div style="padding:36px;text-align:center;color:var(--sr-text-muted,#64748b);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:sr-spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-bottom:8px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            <p style="margin:4px 0 0;font-size:13px;display:inline;"> Loading team roster...</p>
+          </div>
+        </div>
+      </div>
+      <div id="sr-assign-shift-modal-container"></div>
+    `;
+
+    // Month Navigation listeners
+    document.getElementById('sr-mgr-sched-prev')?.addEventListener('click', () => {
+      const [y, m] = managerScheduleMonth.split('-').map(Number);
+      const d = new Date(y, m - 2, 1);
+      managerScheduleMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      renderManagerSchedule();
+    });
+    document.getElementById('sr-mgr-sched-next')?.addEventListener('click', () => {
+      const [y, m] = managerScheduleMonth.split('-').map(Number);
+      const d = new Date(y, m, 1);
+      managerScheduleMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      renderManagerSchedule();
+    });
+
+    // Tab buttons
+    document.querySelectorAll('[data-mgr-sched-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        managerScheduleTab = btn.dataset.mgrSchedTab;
+        renderManagerSchedule();
+      });
+    });
+
+    // Open Assign Shift Modal (Owner only)
+    if (isOwner) {
+      document.getElementById('sr-btn-open-assign-modal')?.addEventListener('click', () => {
+        openAssignShiftModal(tz);
+      });
+    }
+
+    const panel = document.getElementById('sr-mgr-sched-panel');
+    if (!panel) return;
+
+    try {
+      // Parallel fetch of calendar and company directory
+      const [calRes, dirRes] = await Promise.all([
+        fetch(`/api/calendar?month=${encodeURIComponent(managerScheduleMonth)}`),
+        fetch('/api/directory')
+      ]);
+
+      if (!calRes.ok) {
+        const err = await calRes.json().catch(() => ({}));
+        throw new Error(err.error || `Calendar error (${calRes.status})`);
+      }
+
+      const calData = await calRes.json();
+      const dirData = dirRes.ok ? await dirRes.json().catch(() => ({ members: [] })) : { members: [] };
+      const directoryMembers = Array.isArray(dirData.members) ? dirData.members : [];
+
+      // Populate staff filter dropdown
+      const staffFilterSelect = document.getElementById('sr-mgr-staff-filter');
+      if (staffFilterSelect) {
+        const optionsHtml = [
+          `<option value="all"${managerStaffFilter === 'all' ? ' selected' : ''}>All Staff (${directoryMembers.length})</option>`,
+          ...directoryMembers.map(m =>
+            `<option value="${escapeHtml(m.id)}"${managerStaffFilter === m.id ? ' selected' : ''}>${escapeHtml(m.name || m.full_name || 'Worker')} (${escapeHtml(m.title || m.role || 'Staff')})</option>`
+          )
+        ].join('');
+        staffFilterSelect.innerHTML = optionsHtml;
+        staffFilterSelect.addEventListener('change', (e) => {
+          managerStaffFilter = e.target.value;
+          renderManagerSchedule();
+        });
+      }
+
+      const allShifts = Array.isArray(calData.shifts) ? calData.shifts : [];
+      const allLeave = Array.isArray(calData.leave) ? calData.leave : [];
+
+      if (managerScheduleTab === 'shifts') {
+        const filteredShifts = managerStaffFilter === 'all'
+          ? allShifts
+          : allShifts.filter(s => s.membership_id === managerStaffFilter || s.membershipId === managerStaffFilter);
+
+        if (filteredShifts.length === 0) {
+          panel.innerHTML = `
+            <div style="text-align:center;padding:48px 24px;">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+              <p style="color:var(--sr-text,#0f172a);margin:0;font-size:14px;font-weight:600;">No shifts scheduled</p>
+              <p style="color:var(--sr-text-muted,#64748b);margin:6px 0 0;font-size:12.5px;">${managerStaffFilter === 'all' ? 'No company shifts found for ' + escapeHtml(monthLabel) + '.' : 'No shifts assigned to the selected staff member in ' + escapeHtml(monthLabel) + '.'}</p>
+              ${isOwner ? '<button class="sr-btn sr-btn-primary" style="margin-top:16px;" onclick="document.getElementById(\'sr-btn-open-assign-modal\')?.click()">+ Assign First Shift</button>' : ''}
+            </div>
+          `;
+        } else {
+          panel.innerHTML = `
+            <div style="padding:10px 16px 4px;font-size:12px;color:var(--sr-text-muted,#64748b);display:flex;justify-content:space-between;align-items:center;">
+              <span>Showing <strong>${filteredShifts.length}</strong> assigned shift${filteredShifts.length === 1 ? '' : 's'}</span>
+              <span>All times in <strong>${escapeHtml(tz)}</strong></span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0;">
+              ${filteredShifts.map(s => {
+                const duration = formatDuration(s.starts_at, s.ends_at);
+                const start = formatScheduleDate(s.starts_at, tz);
+                const end = formatScheduleDate(s.ends_at, tz);
+                const startDay = s.starts_at ? new Date(s.starts_at).toDateString() : '';
+                const endDay = s.ends_at ? new Date(s.ends_at).toDateString() : '';
+                const overnight = startDay && endDay && startDay !== endDay;
+                const workerName = s.worker_name || 'Assigned Staff';
+
+                return `
+                  <div class="sr-review-item" style="align-items:flex-start;gap:12px;padding:14px 16px;">
+                    <div style="width:40px;height:40px;border-radius:10px;background:var(--sr-primary,#0d524d);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0;">
+                      ${escapeHtml(workerName.slice(0, 2).toUpperCase())}
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
+                        <span style="font-size:14px;font-weight:700;color:var(--sr-text,#0f172a);">${escapeHtml(workerName)}</span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                          ${shiftStatusPill(s.status)}
+                          ${overnight ? '<span style="font-size:11px;font-weight:600;color:#b45309;background:#fef3c7;padding:2px 7px;border-radius:4px;border:1px solid #fde68a;">Overnight</span>' : ''}
+                        </div>
+                      </div>
+                      <div style="font-size:13px;color:var(--sr-text,#0f172a);font-weight:600;">${start} &ndash; ${end}</div>
+                      ${duration ? `<div style="font-size:12px;color:var(--sr-text-muted,#64748b);margin-top:2px;">Scheduled duration: ${duration}</div>` : ''}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
+        }
+      } else if (managerScheduleTab === 'leave') {
+        const filteredLeave = managerStaffFilter === 'all'
+          ? allLeave
+          : allLeave.filter(l => l.membership_id === managerStaffFilter || l.membershipId === managerStaffFilter);
+
+        if (filteredLeave.length === 0) {
+          panel.innerHTML = `
+            <div style="text-align:center;padding:48px 24px;">
+              <p style="color:var(--sr-text-muted,#64748b);margin:0;font-size:14px;">No company leave requests recorded for ${escapeHtml(monthLabel)}.</p>
+            </div>
+          `;
+        } else {
+          panel.innerHTML = `
+            <div style="padding:10px 16px 4px;font-size:12px;color:var(--sr-text-muted,#64748b);">
+              Showing <strong>${filteredLeave.length}</strong> leave request${filteredLeave.length === 1 ? '' : 's'}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0;">
+              ${filteredLeave.map(l => `
+                <div class="sr-review-item" style="align-items:flex-start;padding:14px 16px;">
+                  <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
+                      <span style="font-size:14px;font-weight:700;color:var(--sr-text,#0f172a);">${escapeHtml(l.worker_name || 'Staff Member')}</span>
+                      ${leaveStatusPill(l.status)}
+                    </div>
+                    <div style="font-size:12.5px;color:var(--sr-text-muted,#64748b);margin-bottom:2px;">
+                      ${formatDateOnly(l.starts_on, tz)} &ndash; ${formatDateOnly(l.ends_on, tz)}
+                    </div>
+                    ${l.reason ? `<div style="font-size:13px;color:var(--sr-text,#0f172a);">${escapeHtml(l.reason)}</div>` : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+      }
+    } catch (err) {
+      const isOffline = !navigator.onLine;
+      panel.innerHTML = `
+        <div style="padding:28px 16px;text-align:center;">
+          <p style="color:var(--sr-text,#0f172a);font-weight:600;font-size:14px;margin:0 0 4px;">${isOffline ? 'You are offline' : 'Could not load team schedule'}</p>
+          <p style="color:var(--sr-text-muted,#64748b);font-size:13px;margin:0 0 16px;">${isOffline ? 'Roster will reload when connection is restored.' : escapeHtml(err.message)}</p>
+          <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.renderManagerSchedule()">Retry</button>
+        </div>
+      `;
+    }
+  }
+
+  // Owner Assign Shift Modal Controller
+  async function openAssignShiftModal(tz) {
+    const modalContainer = document.getElementById('sr-assign-shift-modal-container');
+    if (!modalContainer) return;
+
+    let directory = [];
+    try {
+      const res = await fetch('/api/directory');
+      if (res.ok) {
+        const data = await res.json();
+        directory = Array.isArray(data.members) ? data.members : [];
+      }
+    } catch (_) {}
+
+    // Default shift: tomorrow 08:00 to 16:00 in local inputs
+    const tomorrow = new Date(Date.now() + 86400000);
+    const startStr = `${tomorrow.toISOString().slice(0, 10)}T08:00`;
+    const endStr = `${tomorrow.toISOString().slice(0, 10)}T16:00`;
+
+    modalContainer.innerHTML = `
+      <div class="sr-modal-backdrop" id="sr-assign-shift-backdrop" role="dialog" aria-modal="true" aria-labelledby="sr-assign-shift-title">
+        <div class="sr-modal-card" style="padding:22px;max-width:440px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h3 id="sr-assign-shift-title" style="margin:0;font-size:17px;font-weight:800;color:var(--sr-text,#0f172a);">Assign Shift</h3>
+            <button id="sr-btn-close-assign-modal" aria-label="Close" style="background:transparent;border:none;cursor:pointer;color:var(--sr-text-muted,#64748b);font-size:20px;line-height:1;">&times;</button>
+          </div>
+
+          <form id="sr-assign-shift-form" novalidate>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:var(--sr-text,#0f172a);margin-bottom:12px;">
+              Worker (Active Company Staff)
+              <select id="sr-assign-worker-id" name="membershipId" required style="padding:9px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;font-size:13px;background:var(--sr-bg-surface,#fff);color:var(--sr-text,#0f172a);">
+                <option value="">Select a worker...</option>
+                ${directory.map(m => `
+                  <option value="${escapeHtml(m.id)}">${escapeHtml(m.name || m.full_name || 'Staff')} &ndash; ${escapeHtml(m.title || m.role || 'Worker')}</option>
+                `).join('')}
+              </select>
+            </label>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:var(--sr-text,#0f172a);">
+                Starts At
+                <input type="datetime-local" id="sr-assign-starts-at" name="startsAt" value="${startStr}" required
+                  style="padding:9px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;font-size:12.5px;background:var(--sr-bg-surface,#fff);color:var(--sr-text,#0f172a);"
+                />
+              </label>
+
+              <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:var(--sr-text,#0f172a);">
+                Ends At
+                <input type="datetime-local" id="sr-assign-ends-at" name="endsAt" value="${endStr}" required
+                  style="padding:9px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;font-size:12.5px;background:var(--sr-bg-surface,#fff);color:var(--sr-text,#0f172a);"
+                />
+              </label>
+            </div>
+
+            <div style="font-size:11.5px;color:var(--sr-text-muted,#64748b);margin-bottom:14px;">
+              Timezone: <strong>${escapeHtml(tz)}</strong>. Shifts spanning midnight will automatically be flagged as Overnight.
+            </div>
+
+            <div id="sr-assign-error" role="alert" aria-live="polite" style="display:none;font-size:12.5px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;border-radius:6px;padding:8px 10px;margin-bottom:12px;"></div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button type="button" id="sr-btn-cancel-assign" class="sr-btn sr-btn-secondary" style="flex:1;">Cancel</button>
+              <button type="submit" id="sr-btn-submit-assign" class="sr-btn sr-btn-primary" style="flex:2;">Confirm Shift</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    const closeModal = () => {
+      modalContainer.innerHTML = '';
+      assignShiftIdempotencyKey = null;
+    };
+
+    document.getElementById('sr-btn-close-assign-modal')?.addEventListener('click', closeModal);
+    document.getElementById('sr-btn-cancel-assign')?.addEventListener('click', closeModal);
+    document.getElementById('sr-assign-shift-backdrop')?.addEventListener('click', (e) => {
+      if (e.target.id === 'sr-assign-shift-backdrop') closeModal();
+    });
+
+    const form = document.getElementById('sr-assign-shift-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (assignShiftSubmitting) return; // Prevent duplicate clicks
+
+      const workerId = form.querySelector('#sr-assign-worker-id')?.value;
+      const startsAtVal = form.querySelector('#sr-assign-starts-at')?.value;
+      const endsAtVal = form.querySelector('#sr-assign-ends-at')?.value;
+      const errBox = document.getElementById('sr-assign-error');
+      const submitBtn = document.getElementById('sr-btn-submit-assign');
+
+      const showErr = (msg) => { if (errBox) { errBox.textContent = msg; errBox.style.display = 'block'; } };
+      const clearErr = () => { if (errBox) errBox.style.display = 'none'; };
+      clearErr();
+
+      if (!workerId) { showErr('Please choose an active worker to assign.'); return; }
+      if (!startsAtVal) { showErr('Please specify shift start time.'); return; }
+      if (!endsAtVal) { showErr('Please specify shift end time.'); return; }
+
+      const startDate = new Date(startsAtVal);
+      const endDate = new Date(endsAtVal);
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        showErr('Invalid date or time provided.');
+        return;
+      }
+      if (endDate <= startDate) {
+        showErr('Shift end time must be strictly after shift start time.');
+        return;
+      }
+
+      // Convert to UTC ISO string
+      const startsAtIso = startDate.toISOString();
+      const endsAtIso = endDate.toISOString();
+
+      if (!assignShiftIdempotencyKey) {
+        assignShiftIdempotencyKey = `create-shift-${workerId}-${startsAtIso}-${endsAtIso}-${Date.now()}`;
+      }
+
+      assignShiftSubmitting = true;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Assigning...';
+      }
+
+      try {
+        const res = await fetch('/api/calendar/shifts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': assignShiftIdempotencyKey
+          },
+          body: JSON.stringify({
+            membershipId: workerId,
+            startsAt: startsAtIso,
+            endsAt: endsAtIso
+          })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || `Server error ${res.status}`);
+        }
+
+        // Successfully created: close modal and refresh team schedule
+        closeModal();
+        assignShiftSubmitting = false;
+        await renderManagerSchedule();
+      } catch (err) {
+        assignShiftSubmitting = false;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Confirm Shift';
+        }
+        showErr(err.message || 'Could not assign shift. Please try again.');
+      }
+    });
+  }
+
   // ── 7. Bridge to Existing Screens (Preserves working routes behind shell) ───
   async function bridgeExistingView(viewName) {
     const container = document.getElementById('sr-content-area');
@@ -3050,6 +3466,7 @@
     renderApprovalsScreen,
     renderWorkerMe,
     renderWorkerSchedule,
+    renderManagerSchedule,
     openContextModal,
     toggleNotificationPanel,
     openNotificationPanel,

@@ -1098,7 +1098,78 @@ async function handleApi(request, response, url) {
     return sendJson(response, 200, { shifts: shifts.rows, leave: leave.rows });
   }
   if (url.pathname === '/api/calendar/shifts' && request.method === 'POST') {
-    if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can schedule shifts.' }); const body = await readJson(request); if (!body.membershipId || !body.startsAt || !body.endsAt) return sendJson(response, 400, { error: 'Worker, shift start, and shift end are required.' }); const id = crypto.randomUUID(); await query('insert into scheduled_shifts (id, organisation_id, membership_id, starts_at, ends_at) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, body.membershipId, body.startsAt, body.endsAt]); await audit(user.organisation_id, user.id, 'shift_scheduled', 'scheduled_shift', id, 'Shift added to calendar.'); return sendJson(response, 201, { id });
+    if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can schedule shifts.' });
+    const body = await readJson(request);
+    if (!body.membershipId || !body.startsAt || !body.endsAt) {
+      return sendJson(response, 400, { error: 'Worker, shift start, and shift end are required.' });
+    }
+    const startD = new Date(body.startsAt);
+    const endD = new Date(body.endsAt);
+    if (isNaN(startD.getTime()) || isNaN(endD.getTime()) || endD <= startD) {
+      return sendJson(response, 400, { error: 'Invalid shift times. Shift end must be after shift start.' });
+    }
+
+    // Validate server-side that the assigned worker has active membership in the same company
+    if (databaseReady) {
+      const member = (await query('select id, role from memberships where id = $1 and organisation_id = $2 and status = $3', [body.membershipId, user.organisation_id, 'active'])).rows[0];
+      if (!member) return sendJson(response, 400, { error: 'Assigned worker must be an active member of this company.' });
+    } else {
+      const store = await getStore();
+      const activeMembers = Array.isArray(store.memberships) && store.memberships.length
+        ? store.memberships.filter(m => m.organisation_id === user.organisation_id && m.status === 'active')
+        : demoMembers;
+      const member = activeMembers.find(m => m.id === body.membershipId);
+      if (!member) return sendJson(response, 400, { error: 'Assigned worker must be an active member of this company.' });
+    }
+
+    const clientKey = request.headers['idempotency-key'] || null;
+    try {
+      const { statusCode, result, replay } = await withIdempotency(user, 'create-shift', clientKey, body, async (client) => {
+        if (!databaseReady) {
+          const store = await getStore();
+          if (!Array.isArray(store.scheduledShifts)) store.scheduledShifts = [];
+          const existing = store.scheduledShifts.find(s => (s.organisationId === user.organisation_id || s.organisation_id === user.organisation_id) && (s.membershipId === body.membershipId || s.membership_id === body.membershipId) && s.starts_at === body.startsAt && s.ends_at === body.endsAt);
+          if (existing) {
+            const err = new Error('A shift for this worker at this date and time already exists.');
+            err.statusCode = 409;
+            throw err;
+          }
+          const id = crypto.randomUUID();
+          const targetName = demoMembers.find(m => m.id === body.membershipId)?.name || 'Worker';
+          store.scheduledShifts.push({
+            id,
+            organisationId: user.organisation_id,
+            organisation_id: user.organisation_id,
+            membershipId: body.membershipId,
+            membership_id: body.membershipId,
+            worker_name: targetName,
+            starts_at: body.startsAt,
+            ends_at: body.endsAt,
+            status: 'scheduled'
+          });
+          await saveStore(store);
+          return { statusCode: 201, result: { id } };
+        }
+
+        const q = client || { query: (sql, vals) => query(sql, vals) };
+        const existing = (await q.query('select id from scheduled_shifts where organisation_id = $1 and membership_id = $2 and starts_at = $3 and ends_at = $4', [user.organisation_id, body.membershipId, body.startsAt, body.endsAt])).rows[0];
+        if (existing) {
+          const err = new Error('A shift for this worker at this date and time already exists.');
+          err.statusCode = 409;
+          throw err;
+        }
+
+        const id = crypto.randomUUID();
+        await q.query('insert into scheduled_shifts (id, organisation_id, membership_id, starts_at, ends_at) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, body.membershipId, body.startsAt, body.endsAt]);
+        await audit(user.organisation_id, user.id, 'shift_scheduled', 'scheduled_shift', id, 'Shift added to calendar.');
+        return { statusCode: 201, result: { id } };
+      });
+      if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
+      return sendJson(response, statusCode, result);
+    } catch (err) {
+      const code = err.statusCode || 500;
+      return sendJson(response, code, { error: err.message });
+    }
   }
   if (url.pathname === '/api/schedule-import' && request.method === 'POST') {
     if (!['owner', 'workforce_admin'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only workforce managers can import schedules.' });
@@ -1257,30 +1328,62 @@ async function handleApi(request, response, url) {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Leave requests require an organisation account.' });
     const body = await readJson(request);
     if (!body.startsOn || !body.endsOn) return sendJson(response, 400, { error: 'Leave dates are required.' });
-    const id = crypto.randomUUID();
-    if (!databaseReady) {
-      const store = await getStore();
-      if (!Array.isArray(store.leaveRequests)) store.leaveRequests = [];
-      const newLeave = {
-        id,
-        organisation_id: user.organisation_id,
-        membership_id: user.id,
-        worker_name: user.name,
-        applicant_name: user.name,
-        starts_on: body.startsOn,
-        ends_on: body.endsOn,
-        reason: body.reason || null,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
-      store.leaveRequests.unshift(newLeave);
-      await saveStore(store);
-      return sendJson(response, 201, { id });
+    if (new Date(body.endsOn) < new Date(body.startsOn)) {
+      return sendJson(response, 400, { error: 'Leave end date must be on or after start date.' });
     }
-    await query('insert into leave_requests (id, organisation_id, membership_id, starts_on, ends_on, reason) values ($1,$2,$3,$4,$5,$6)', [id, user.organisation_id, user.id, body.startsOn, body.endsOn, body.reason || null]);
-    await audit(user.organisation_id, user.id, 'leave_requested', 'leave_request', id, 'Leave request submitted.');
-    await notifyOrganisationOwners(user.organisation_id, `${user.name} requested leave from ${body.startsOn} to ${body.endsOn}.`);
-    return sendJson(response, 201, { id });
+
+    const clientKey = request.headers['idempotency-key'] || null;
+    try {
+      const { statusCode, result, replay } = await withIdempotency(user, 'submit-leave', clientKey, body, async (client) => {
+        if (!databaseReady) {
+          const store = await getStore();
+          if (!Array.isArray(store.leaveRequests)) store.leaveRequests = [];
+          const existing = store.leaveRequests.find(r => (r.organisation_id === user.organisation_id || r.organisationId === user.organisation_id) && (r.membership_id === user.id || r.membershipId === user.id) && r.starts_on === body.startsOn && r.ends_on === body.endsOn && r.status !== 'rejected');
+          if (existing) {
+            const err = new Error('A leave request for these dates already exists.');
+            err.statusCode = 409;
+            throw err;
+          }
+          const id = crypto.randomUUID();
+          const newLeave = {
+            id,
+            organisation_id: user.organisation_id,
+            organisationId: user.organisation_id,
+            membership_id: user.id,
+            membershipId: user.id,
+            worker_name: user.name,
+            applicant_name: user.name,
+            starts_on: body.startsOn,
+            ends_on: body.endsOn,
+            reason: body.reason || null,
+            status: 'pending',
+            created_at: new Date().toISOString()
+          };
+          store.leaveRequests.unshift(newLeave);
+          await saveStore(store);
+          return { statusCode: 201, result: { id } };
+        }
+
+        const q = client || { query: (sql, vals) => query(sql, vals) };
+        const existing = (await q.query('select id from leave_requests where organisation_id = $1 and membership_id = $2 and starts_on = $3 and ends_on = $4 and status != \'rejected\'', [user.organisation_id, user.id, body.startsOn, body.endsOn])).rows[0];
+        if (existing) {
+          const err = new Error('A leave request for these dates already exists.');
+          err.statusCode = 409;
+          throw err;
+        }
+
+        const id = crypto.randomUUID();
+        await q.query('insert into leave_requests (id, organisation_id, membership_id, starts_on, ends_on, reason) values ($1,$2,$3,$4,$5,$6)', [id, user.organisation_id, user.id, body.startsOn, body.endsOn, body.reason || null]);
+        await audit(user.organisation_id, user.id, 'leave_requested', 'leave_request', id, 'Leave request submitted.');
+        await notifyOrganisationOwners(user.organisation_id, `${user.name} requested leave from ${body.startsOn} to ${body.endsOn}.`);
+        return { statusCode: 201, result: { id } };
+      });
+      if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
+      return sendJson(response, statusCode, result);
+    } catch (err) {
+      const code = err.statusCode || 500;
+      return sendJson(response, code, { error: err.message });
+    }
   }
   if (url.pathname === '/api/leave-requests/review' && request.method === 'POST') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can review leave.' });
