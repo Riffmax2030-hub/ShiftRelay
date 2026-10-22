@@ -273,7 +273,7 @@ async function getUser(request) {
       if (!UUID_REGEX.test(token)) return null;
       try {
         const result = await query(
-          `select m.id, u.id as user_id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id where s.id = $1 and s.expires_at > now()`,
+          `select m.id, u.id as user_id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id, coalesce(o.trading_name, o.legal_name) as organisation_name from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id join organisations o on o.id = m.organisation_id where s.id = $1 and s.expires_at > now()`,
           [token]
         );
         if (result.rows[0]?.status === 'active') return result.rows[0];
@@ -702,11 +702,11 @@ async function dailyAttendance(organisationId) {
 
 async function signIn(body) {
   if (databaseReady) {
-    const result = await query(`select u.id as user_id, u.password_hash, u.time_zone, u.country_code, u.avatar_data_url, m.id, u.full_name as name, u.email, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id from portal_users u join memberships m on m.user_id = u.id where lower(u.email) = lower($1) order by m.created_at desc limit 1`, [body.email]);
+    const result = await query(`select u.id as user_id, u.password_hash, u.time_zone, u.country_code, u.avatar_data_url, m.id, u.full_name as name, u.email, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id, coalesce(o.trading_name, o.legal_name) as organisation_name from portal_users u join memberships m on m.user_id = u.id join organisations o on o.id = m.organisation_id where lower(u.email) = lower($1) order by m.created_at desc limit 1`, [body.email]);
     const member = result.rows[0];
     if (!member || !(await passwordMatches(body.password, member.password_hash))) throw new Error('Invalid email or password.');
     if (member.status !== 'active') throw new Error('Your workplace access is waiting for approval.');
-    return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id } };
+    return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name } };
   } else {
     const store = await getStore();
     const user = (store.portalUsers || []).find((u) => u.email.toLowerCase() === body.email.toLowerCase());
