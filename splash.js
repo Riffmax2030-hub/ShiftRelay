@@ -218,18 +218,9 @@
       window._srState.users = usersData.users || [];
       window._srState.config = config;
 
-      let currentUser = session?.user;
-      if (!currentUser) {
-        try {
-          const cached = localStorage.getItem('shiftrelay-user-data');
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            if (parsed && parsed.id) {
-              currentUser = (usersData.users || []).find(u => u.id === parsed.id) || parsed;
-            }
-          }
-        } catch (e) {}
-      }
+      // Security: Only accept genuine server-validated session.
+      // Never fall back to unverified localStorage cached identity!
+      const currentUser = session?.user || null;
 
       if (currentUser) {
         // Returning user — auto-login directly into app

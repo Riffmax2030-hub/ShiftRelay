@@ -2035,13 +2035,30 @@ const SECURITY_HEADERS = {
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
 };
 
-const PUBLIC_DEMO_UPLOAD_PREFIXES = [
-  '/uploads/covers/',
-  '/uploads/avatars/',
-  '/uploads/feed/'
-];
-const PUBLIC_DEMO_UPLOAD_EXACT = new Set([
-  '/uploads/hero-workplace.jpg'
+// Strict whitelist of deliberate, non-sensitive public demo marketing assets.
+// User uploads are NEVER classified as public by folder name. Uncertain files are protected by default.
+const PUBLIC_DEMO_EXACT_FILES = new Set([
+  '/uploads/hero-workplace.jpg',
+  '/uploads/avatars/avatar-amina.jpg',
+  '/uploads/avatars/avatar-carlos.jpg',
+  '/uploads/avatars/avatar-david.jpg',
+  '/uploads/avatars/avatar-elena.jpg',
+  '/uploads/avatars/avatar-faith.jpg',
+  '/uploads/avatars/avatar-jordan.jpg',
+  '/uploads/avatars/avatar-kwame.jpg',
+  '/uploads/avatars/avatar-marcus.jpg',
+  '/uploads/avatars/avatar-maria.jpg',
+  '/uploads/avatars/avatar-zainab.jpg',
+  '/uploads/covers/cover-culinary.jpg',
+  '/uploads/covers/cover-engineering.jpg',
+  '/uploads/covers/cover-healthcare.jpg',
+  '/uploads/covers/cover-logistics.jpg',
+  '/uploads/covers/cover-operations.jpg',
+  '/uploads/covers/cover-supervisor.jpg',
+  '/uploads/feed/feed-kitchen-prep.jpg',
+  '/uploads/feed/feed-plant-machinery.jpg',
+  '/uploads/feed/feed-triage-handover.jpg',
+  '/uploads/feed/feed-warehouse-safety.jpg'
 ]);
 
 async function handleUploadFileRequest(request, response, url) {
@@ -2085,8 +2102,7 @@ async function handleUploadFileRequest(request, response, url) {
   }
 
   // 1. Check for Public Marketing/Demo Assets Whitelist
-  const isPublicDemoAsset = PUBLIC_DEMO_UPLOAD_EXACT.has(cleanPath) ||
-    PUBLIC_DEMO_UPLOAD_PREFIXES.some(prefix => cleanPath.startsWith(prefix));
+  const isPublicDemoAsset = PUBLIC_DEMO_EXACT_FILES.has(cleanPath);
 
   const relPath = cleanPath.slice('/uploads/'.length);
   const targetFilePath = resolve(uploadsDirectory, relPath);
@@ -2311,7 +2327,7 @@ const server = createServer((request, response) => {
     // ── IP Rate Limiting ─────────────────────────────────────────────────
     if (url.pathname.startsWith('/api/')) {
       const ip = (request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown').split(',')[0].trim();
-      const isAuth = /^\/api\/auth\/|^\/api\/organisations$|^\/api\/organisation-memberships$/.test(url.pathname);
+      const isAuth = (/^\/api\/auth\/(sign-in|register|verify)$/.test(url.pathname) || /^\/api\/organisations$/.test(url.pathname) || /^\/api\/organisation-memberships$/.test(url.pathname)) && request.method === 'POST';
       if (isRateLimited(ip, isAuth)) {
         return sendJson(response, 429, { error: 'Too many requests. Please slow down and try again shortly.' });
       }
@@ -2384,4 +2400,7 @@ initializeDatabase()
     console.warn('[WARN] This mode MUST NOT be used in production. Data is not persistent across restarts.');
     server.listen(port, () => console.log(`ShiftRelay is running at http://localhost:${port} | database=FALLBACK(dev-only) | env=${NODE_ENV}`));
   });
+
+
+
 

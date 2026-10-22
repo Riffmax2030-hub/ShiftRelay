@@ -78,10 +78,7 @@ self.addEventListener('fetch', (event) => {
 
   // 2. Private uploads protection: NEVER cache user uploads in Service Worker
   const isUpload = url.pathname.startsWith('/uploads/');
-  const isPublicDemoAsset = url.pathname.startsWith('/uploads/covers/') ||
-                            url.pathname.startsWith('/uploads/avatars/') ||
-                            url.pathname.startsWith('/uploads/feed/') ||
-                            url.pathname === '/uploads/hero-workplace.jpg';
+  const PUBLIC_DEMO_EXACT = new Set(['/uploads/hero-workplace.jpg','/uploads/avatars/avatar-amina.jpg','/uploads/avatars/avatar-carlos.jpg','/uploads/avatars/avatar-david.jpg','/uploads/avatars/avatar-elena.jpg','/uploads/avatars/avatar-faith.jpg','/uploads/avatars/avatar-jordan.jpg','/uploads/avatars/avatar-kwame.jpg','/uploads/avatars/avatar-marcus.jpg','/uploads/avatars/avatar-maria.jpg','/uploads/avatars/avatar-zainab.jpg','/uploads/covers/cover-culinary.jpg','/uploads/covers/cover-engineering.jpg','/uploads/covers/cover-healthcare.jpg','/uploads/covers/cover-logistics.jpg','/uploads/covers/cover-operations.jpg','/uploads/covers/cover-supervisor.jpg','/uploads/feed/feed-kitchen-prep.jpg','/uploads/feed/feed-plant-machinery.jpg','/uploads/feed/feed-triage-handover.jpg','/uploads/feed/feed-warehouse-safety.jpg']); const isPublicDemoAsset = PUBLIC_DEMO_EXACT.has(url.pathname);
   if (isUpload && !isPublicDemoAsset) {
     // Private file: pass directly to network; never cache
     return;
@@ -101,3 +98,4 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(event.request))
   );
 });
+
