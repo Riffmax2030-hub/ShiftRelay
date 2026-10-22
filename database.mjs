@@ -323,6 +323,21 @@ const schema = `
   create index if not exists idx_announcements_org on announcements(organisation_id, created_at desc);
   create index if not exists idx_community_messages_channel on community_messages(channel_id, created_at desc);
   create index if not exists idx_direct_messages_recipient on direct_messages(recipient_membership_id, created_at desc);
+  create table if not exists idempotency_keys (
+    id uuid primary key default gen_random_uuid(),
+    membership_id uuid not null references memberships(id) on delete cascade,
+    organisation_id uuid not null references organisations(id) on delete cascade,
+    operation varchar(128) not null,
+    client_key varchar(256) not null,
+    request_fingerprint text not null,
+    status_code integer not null,
+    response_body text not null,
+    created_at timestamptz not null default now(),
+    expires_at timestamptz not null default (now() + interval '24 hours'),
+    unique(membership_id, organisation_id, operation, client_key)
+  );
+  create index if not exists idx_idempotency_keys_lookup on idempotency_keys(membership_id, organisation_id, operation, client_key);
+  create index if not exists idx_idempotency_keys_expiry on idempotency_keys(expires_at);
 `;
 
 export function databaseConfigured() {

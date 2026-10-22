@@ -318,13 +318,139 @@ async function databaseHandovers(user) {
   return result.rows.map((row) => ({ id: row.id, createdBy: row.created_by_membership_id, assignedTo: row.assigned_to_membership_id, handover: row.payload, status: row.status, acknowledgement: row.acknowledged_at ? { by: row.assigned_to_membership_id, at: row.acknowledged_at } : null, createdAt: row.created_at, updatedAt: row.updated_at, reviewedBy: row.reviewer_name }));
 }
 
+// ── Batch 4: Idempotency Key Helpers ─────────────────────────────────────────
+
+const IDEMPOTENCY_TTL_HOURS = 24;
+
+/**
+ * Compute a deterministic fingerprint of request body for mismatch detection.
+ * Uses a canonical JSON string so key order doesn't matter.
+ */
+function requestFingerprint(body) {
+  if (!body || typeof body !== 'object') return String(body ?? '');
+  const canonical = JSON.stringify(Object.fromEntries(Object.entries(body).sort(([a], [b]) => a.localeCompare(b))));
+  return canonical;
+}
+
+/**
+ * Check for an existing valid idempotency record. Returns:
+ *   { hit: true, statusCode, responseBody } — replay this cached response
+ *   { hit: false, conflict: true }           — same key, different content (reject)
+ *   { hit: false, conflict: false }          — new key, proceed
+ *
+ * Auth+authz MUST be verified before calling this.
+ */
+async function checkIdempotencyKey(user, operation, clientKey, fingerprint) {
+  if (!databaseReady) return { hit: false, conflict: false };
+  // Purge expired keys lazily
+  await query('delete from idempotency_keys where expires_at < now()').catch(() => {});
+  const existing = (await query(
+    'select status_code, response_body, request_fingerprint from idempotency_keys where membership_id = $1 and organisation_id = $2 and operation = $3 and client_key = $4',
+    [user.id, user.organisation_id, operation, clientKey]
+  )).rows[0];
+  if (!existing) return { hit: false, conflict: false };
+  if (existing.request_fingerprint !== fingerprint) return { hit: false, conflict: true };
+  return { hit: true, statusCode: existing.status_code, responseBody: JSON.parse(existing.response_body) };
+}
+
+/**
+ * Save an idempotency record atomically. Call AFTER the business transaction commits.
+ * Uses INSERT ... ON CONFLICT DO NOTHING to safely handle concurrent duplicate first-saves.
+ */
+async function saveIdempotencyKey(user, operation, clientKey, fingerprint, statusCode, responseBody) {
+  if (!databaseReady) return;
+  try {
+    await query(
+      `insert into idempotency_keys (membership_id, organisation_id, operation, client_key, request_fingerprint, status_code, response_body, expires_at)
+       values ($1, $2, $3, $4, $5, $6, $7, now() + interval '${IDEMPOTENCY_TTL_HOURS} hours')
+       on conflict (membership_id, organisation_id, operation, client_key) do nothing`,
+      [user.id, user.organisation_id, operation, clientKey, fingerprint, statusCode, JSON.stringify(responseBody)]
+    );
+  } catch (err) {
+    console.warn('[idempotency] save failed (non-fatal):', err.message);
+  }
+}
+
+/**
+ * Wrap an idempotent database operation in a transaction so that the business
+ * mutation and the idempotency record are committed together. If the business
+ * function throws, both are rolled back. If the process crashes after commit,
+ * the key record exists and the next request gets the cached response.
+ *
+ * @param {object}   user       - authenticated user object
+ * @param {string}   operation  - operation name slug (e.g. 'clock-in')
+ * @param {string|null} clientKey - Idempotency-Key header value, or null (no dedup)
+ * @param {object}   body       - parsed request body (for fingerprinting)
+ * @param {Function} businessFn - async fn(client) => { statusCode, result }
+ * @returns {{ statusCode, result, replay: boolean }}
+ */
+async function withIdempotency(user, operation, clientKey, body, businessFn) {
+  const fingerprint = requestFingerprint(body);
+
+  // 1. If client sent a key, check for existing record
+  if (clientKey && databaseReady) {
+    const check = await checkIdempotencyKey(user, operation, clientKey, fingerprint);
+    if (check.conflict) {
+      const err = new Error('Idempotency key reused with different request content.');
+      err.statusCode = 422;
+      throw err;
+    }
+    if (check.hit) {
+      return { statusCode: check.statusCode, result: check.responseBody, replay: true };
+    }
+  }
+
+  if (!databaseReady) {
+    // No DB: just run the business function directly without idempotency records
+    const { statusCode, result } = await businessFn(null);
+    return { statusCode, result, replay: false };
+  }
+
+  // 2. Run business mutation inside a serializable transaction
+  const client = await (await import('./database.mjs')).getPool().connect();
+  try {
+    await client.query('begin isolation level serializable');
+    const { statusCode, result } = await businessFn(client);
+    // 3. Save idempotency record atomically in the same transaction
+    if (clientKey) {
+      await client.query(
+        `insert into idempotency_keys (membership_id, organisation_id, operation, client_key, request_fingerprint, status_code, response_body, expires_at)
+         values ($1, $2, $3, $4, $5, $6, $7, now() + interval '${IDEMPOTENCY_TTL_HOURS} hours')
+         on conflict (membership_id, organisation_id, operation, client_key) do nothing`,
+        [user.id, user.organisation_id, operation, clientKey, fingerprint, statusCode, JSON.stringify(result)]
+      );
+    }
+    await client.query('commit');
+    return { statusCode, result, replay: false };
+  } catch (err) {
+    await client.query('rollback').catch(() => {});
+    // Map Postgres serialization failure and deadlock to 409 Conflict so
+    // concurrent burst requests are classified correctly (not 500).
+    if (err.code === '40001' || err.code === '40P01') {
+      const mapped = new Error('Request conflicts with a concurrent operation. Please retry.');
+      mapped.statusCode = 409;
+      throw mapped;
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function createDatabaseHandover(user, body) {
   const runId = crypto.randomUUID();
   const workItemId = crypto.randomUUID();
   const supervisor = (await query("select id from memberships where organisation_id = $1 and role in ('supervisor', 'owner') and status = 'active' order by case when role = 'supervisor' then 1 else 2 end, created_at limit 1", [user.organisation_id])).rows[0];
   const incomingWorker = (await query("select id from memberships where organisation_id = $1 and role = 'incoming' and status = 'active' order by created_at limit 1", [user.organisation_id])).rows[0];
-  if (!supervisor || !incomingWorker) throw new Error('Your organisation needs an active supervisor and incoming worker before sending handovers.');
-  const requested = body.assignedTo ? (await query('select id from memberships where id = $1 and organisation_id = $2 and role = \'incoming\' and status = \'active\'', [body.assignedTo, user.organisation_id])).rows[0] : null;
+  if (!supervisor || !incomingWorker) {
+    const err = new Error('Your organisation needs an active supervisor and incoming worker before sending handovers.');
+    err.statusCode = 422;
+    throw err;
+  }
+  const isUuid = (str) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+  const requested = (body.assignedTo && isUuid(body.assignedTo)) ? (await query('select id from memberships where id = $1 and organisation_id = $2 and role = \'incoming\' and status = \'active\'', [body.assignedTo, user.organisation_id])).rows[0] : null;
   const assignedTo = requested?.id || incomingWorker.id;
   await query('insert into workflow_runs (id, organisation_id, created_by_membership_id, status, priority) values ($1, $2, $3, $4, $5)', [runId, user.organisation_id, user.id, 'in_progress', 'normal']);
   await query('insert into work_items (id, workflow_run_id, organisation_id, assigned_to_membership_id, created_by_membership_id, item_type, title, status, priority, payload) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)', [workItemId, runId, user.organisation_id, assignedTo, user.id, 'handover', body.handover.summary, 'awaiting_review', 'normal', JSON.stringify(body.handover)]);
@@ -1110,7 +1236,28 @@ async function handleApi(request, response, url) {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Leave requests require an organisation account.' }); const body = await readJson(request); if (!body.startsOn || !body.endsOn) return sendJson(response, 400, { error: 'Leave dates are required.' }); const id = crypto.randomUUID(); await query('insert into leave_requests (id, organisation_id, membership_id, starts_on, ends_on, reason) values ($1,$2,$3,$4,$5,$6)', [id, user.organisation_id, user.id, body.startsOn, body.endsOn, body.reason || null]); await audit(user.organisation_id, user.id, 'leave_requested', 'leave_request', id, 'Leave request submitted.'); await notifyOrganisationOwners(user.organisation_id, `${user.name} requested leave from ${body.startsOn} to ${body.endsOn}.`); return sendJson(response, 201, { id });
   }
   if (url.pathname === '/api/leave-requests/review' && request.method === 'POST') {
-    if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can review leave.' }); const { id, decision } = await readJson(request); if (!['approved', 'rejected'].includes(decision)) return sendJson(response, 400, { error: 'Invalid leave decision.' }); await query('update leave_requests set status = $1, reviewed_by_membership_id = $2 where id = $3 and organisation_id = $4', [decision, user.id, id, user.organisation_id]); await audit(user.organisation_id, user.id, 'leave_reviewed', 'leave_request', id, decision); return sendJson(response, 200, { ok: true });
+    if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can review leave.' });
+    const leaveBody = await readJson(request);
+    const { id: leaveId, decision } = leaveBody;
+    if (!['approved', 'rejected'].includes(decision)) return sendJson(response, 400, { error: 'Invalid leave decision.' });
+    const clientKey = request.headers['idempotency-key'] || null;
+    try {
+      const { statusCode, result, replay } = await withIdempotency(user, 'leave-review', clientKey, leaveBody, async (client) => {
+        if (!databaseReady) return { statusCode: 200, result: { ok: true } };
+        const q = client || { query: (sql, vals) => query(sql, vals) };
+        const existing = (await q.query('select id, status from leave_requests where id = $1 and organisation_id = $2 for update', [leaveId, user.organisation_id])).rows[0];
+        if (!existing) { const err = new Error('Leave request not found.'); err.statusCode = 404; throw err; }
+        if (existing.status !== 'pending') { const err = new Error('This leave request has already been reviewed.'); err.statusCode = 409; throw err; }
+        await q.query('update leave_requests set status = $1, reviewed_by_membership_id = $2 where id = $3 and organisation_id = $4', [decision, user.id, leaveId, user.organisation_id]);
+        await audit(user.organisation_id, user.id, 'leave_reviewed', 'leave_request', leaveId, decision);
+        return { statusCode: 200, result: { ok: true } };
+      });
+      if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
+      return sendJson(response, statusCode, result);
+    } catch (err) {
+      const code = err.statusCode || 400;
+      return sendJson(response, code, { error: err.message });
+    }
   }
   if (url.pathname === '/api/shift-swaps' && request.method === 'POST') {
     const { shiftId, targetMembershipId, reason, swapType } = await readJson(request);
@@ -1271,8 +1418,20 @@ async function handleApi(request, response, url) {
   const membershipReviewMatch = url.pathname.match(/^\/api\/memberships\/([^/]+)\/review$/);
   if (membershipReviewMatch && request.method === 'POST') {
     if (!['owner', 'supervisor'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation managers can review access requests.' });
-    try { return sendJson(response, 200, { membership: await reviewMembership(user, membershipReviewMatch[1], await readJson(request)) }); }
-    catch (error) { return sendJson(response, 400, { error: error.message }); }
+    const reviewBody = await readJson(request);
+    const clientKey = request.headers['idempotency-key'] || null;
+    const opBody = { membershipId: membershipReviewMatch[1], ...reviewBody };
+    try {
+      const { statusCode, result, replay } = await withIdempotency(user, 'membership-review', clientKey, opBody, async (client) => {
+        const membership = await reviewMembership(user, membershipReviewMatch[1], reviewBody);
+        return { statusCode: 200, result: { membership } };
+      });
+      if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
+      return sendJson(response, statusCode, result);
+    } catch (err) {
+      const code = err.statusCode || 400;
+      return sendJson(response, code, { error: err.message });
+    }
   }
 
   if (url.pathname === '/api/time-entries' && request.method === 'GET') {
@@ -1284,33 +1443,62 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/time-entries/clock-in' && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Clocking in is available for authenticated organisation accounts.' });
-    if (!databaseReady) {
-      const store = await getStore();
-      if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
-      if (store.timeEntries.some((entry) => entry.membershipId === user.id && !entry.clockedOutAt)) return sendJson(response, 409, { error: 'You are already clocked in.' });
-      store.timeEntries.unshift({ id: crypto.randomUUID(), organisationId: user.organisation_id, membershipId: user.id, clockedInAt: new Date().toISOString(), clockedOutAt: null, note: null });
-      await saveStore(store);
-      return sendJson(response, 201, demoTimeSummary(user, store));
+    const clientKey = request.headers['idempotency-key'] || null;
+    // Read body for fingerprinting; clock-in itself ignores body content
+    let body = {};
+    try { body = await readJson(request); } catch { body = {}; }
+    try {
+      const { statusCode, result, replay } = await withIdempotency(user, 'clock-in', clientKey, body, async (client) => {
+        if (!databaseReady) {
+          const store = await getStore();
+          if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
+          if (store.timeEntries.some((entry) => entry.membershipId === user.id && !entry.clockedOutAt)) {
+            const err = new Error('You are already clocked in.'); err.statusCode = 409; throw err;
+          }
+          store.timeEntries.unshift({ id: crypto.randomUUID(), organisationId: user.organisation_id, membershipId: user.id, clockedInAt: new Date().toISOString(), clockedOutAt: null, note: null });
+          await saveStore(store);
+          return { statusCode: 201, result: demoTimeSummary(user, store) };
+        }
+        // Use SELECT FOR UPDATE to prevent concurrent double clock-in
+        const q = client || { query: (sql, vals) => query(sql, vals) };
+        const existing = (await q.query('select id from time_entries where membership_id = $1 and clocked_out_at is null for update', [user.id])).rows[0];
+        if (existing) { const err = new Error('You are already clocked in.'); err.statusCode = 409; throw err; }
+        await q.query('insert into time_entries (id, organisation_id, membership_id, clocked_in_at) values ($1,$2,$3,now())', [crypto.randomUUID(), user.organisation_id, user.id]);
+        return { statusCode: 201, result: await timeSummary(user) };
+      });
+      if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
+      return sendJson(response, statusCode, result);
+    } catch (err) {
+      const code = err.statusCode || 500;
+      return sendJson(response, code, { error: err.message });
     }
-    const existing = (await query('select id from time_entries where membership_id = $1 and clocked_out_at is null', [user.id])).rows[0];
-    if (existing) return sendJson(response, 409, { error: 'You are already clocked in.' });
-    await query('insert into time_entries (id, organisation_id, membership_id, clocked_in_at) values ($1,$2,$3,now())', [crypto.randomUUID(), user.organisation_id, user.id]);
-    return sendJson(response, 201, await timeSummary(user));
   }
   if (url.pathname === '/api/time-entries/clock-out' && request.method === 'POST') {
-    if (!databaseReady) {
-      const store = await getStore();
-      if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
-      const active = store.timeEntries.find((entry) => entry.membershipId === user.id && !entry.clockedOutAt);
-      if (!active) return sendJson(response, 409, { error: 'You are not clocked in.' });
-      active.clockedOutAt = new Date().toISOString();
-      await saveStore(store);
-      return sendJson(response, 200, demoTimeSummary(user, store));
+    const clientKey = request.headers['idempotency-key'] || null;
+    const body = {};
+    try {
+      const { statusCode, result, replay } = await withIdempotency(user, 'clock-out', clientKey, body, async (client) => {
+        if (!databaseReady) {
+          const store = await getStore();
+          if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
+          const active = store.timeEntries.find((entry) => entry.membershipId === user.id && !entry.clockedOutAt);
+          if (!active) { const err = new Error('You are not clocked in.'); err.statusCode = 409; throw err; }
+          active.clockedOutAt = new Date().toISOString();
+          await saveStore(store);
+          return { statusCode: 200, result: demoTimeSummary(user, store) };
+        }
+        const q = client || { query: (sql, vals) => query(sql, vals) };
+        const activeEntry = (await q.query('select id from time_entries where membership_id = $1 and clocked_out_at is null for update', [user.id])).rows[0];
+        if (!activeEntry) { const err = new Error('You are not clocked in.'); err.statusCode = 409; throw err; }
+        await q.query('update time_entries set clocked_out_at = now() where id = $1', [activeEntry.id]);
+        return { statusCode: 200, result: await timeSummary(user) };
+      });
+      if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
+      return sendJson(response, statusCode, result);
+    } catch (err) {
+      const code = err.statusCode || 500;
+      return sendJson(response, code, { error: err.message });
     }
-    const active = (await query('select id from time_entries where membership_id = $1 and clocked_out_at is null', [user.id])).rows[0];
-    if (!active) return sendJson(response, 409, { error: 'You are not clocked in.' });
-    await query('update time_entries set clocked_out_at = now() where id = $1', [active.id]);
-    return sendJson(response, 200, await timeSummary(user));
   }
   if (url.pathname === '/api/wellbeing-quote' && request.method === 'GET') {
     const key = wellbeingQuotes[Math.floor(Date.now() / 1800000) % wellbeingQuotes.length];
@@ -1350,7 +1538,8 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/handovers' && request.method === 'POST') {
     if (!['outgoing', 'supervisor', 'owner'].includes(user.role)) return sendJson(response, 403, { error: 'Only outgoing workers, supervisors, or owners can create handovers.' });
-    const { notes, handover, assignedTo = 'faith', shiftStatus = 'green', tasks = [] } = await readJson(request);
+    const body = await readJson(request);
+    const { notes, handover, assignedTo = 'faith', shiftStatus = 'green', tasks = [] } = body;
     if (!handover?.summary) return sendJson(response, 400, { error: 'Generate a handover before saving.' });
     handover.shiftStatus = shiftStatus;
     handover.notes = notes;
@@ -1364,15 +1553,28 @@ async function handleApi(request, response, url) {
         done: false
       }));
     }
-    if (databaseReady) return sendJson(response, 201, { handover: await createDatabaseHandover(user, { notes, handover, assignedTo }) });
-    const store = await getStore();
-    const record = { id: crypto.randomUUID(), createdBy: user.id, assignedTo, notes, handover, status: user.role === 'supervisor' ? 'relayed' : 'awaiting_review', acknowledgement: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-    store.handovers.unshift(record);
-    notify(store, 'david', record.id, `${user.name} created a handover for review.`);
-    if (record.status === 'relayed') notify(store, assignedTo, record.id, 'A reviewed handover is ready for your shift.');
-    await saveStore(store);
-    broadcastEvent('handover-submitted', { organisationId: user.organisation_id, handover: record });
-    return sendJson(response, 201, { handover: record });
+    const clientKey = request.headers['idempotency-key'] || null;
+    try {
+      const { statusCode, result, replay } = await withIdempotency(user, 'create-handover', clientKey, body, async (client) => {
+        if (databaseReady) {
+          const created = await createDatabaseHandover(user, { notes, handover, assignedTo });
+          return { statusCode: 201, result: { handover: created } };
+        }
+        const store = await getStore();
+        const record = { id: crypto.randomUUID(), createdBy: user.id, assignedTo, notes, handover, status: user.role === 'supervisor' ? 'relayed' : 'awaiting_review', acknowledgement: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        store.handovers.unshift(record);
+        notify(store, 'david', record.id, `${user.name} created a handover for review.`);
+        if (record.status === 'relayed') notify(store, assignedTo, record.id, 'A reviewed handover is ready for your shift.');
+        await saveStore(store);
+        broadcastEvent('handover-submitted', { organisationId: user.organisation_id, handover: record });
+        return { statusCode: 201, result: { handover: record } };
+      });
+      if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
+      return sendJson(response, statusCode, result);
+    } catch (err) {
+      const code = err.statusCode || 500;
+      return sendJson(response, code, { error: err.message });
+    }
   }
 
   const taskToggleMatch = url.pathname.match(/^\/api\/handovers\/([^/]+)\/tasks\/([^/]+)\/toggle$/);
@@ -1404,25 +1606,39 @@ async function handleApi(request, response, url) {
 
   const handoverMatch = url.pathname.match(/^\/api\/handovers\/([^/]+)\/(relay|acknowledge)$/);
   if (handoverMatch && request.method === 'POST') {
-    if (databaseReady) {
-      try { return sendJson(response, 200, { handover: await updateDatabaseHandover(user, handoverMatch[1], handoverMatch[2]) }); }
-      catch (error) { return sendJson(response, 403, { error: error.message }); }
+    const [, handoverId, handoverAction] = handoverMatch;
+    const clientKey = request.headers['idempotency-key'] || null;
+    const opBody = { handoverId, handoverAction };
+    try {
+      const { statusCode, result, replay } = await withIdempotency(user, `handover-${handoverAction}`, clientKey, opBody, async (client) => {
+        if (databaseReady) {
+          const updated = await updateDatabaseHandover(user, handoverId, handoverAction);
+          return { statusCode: 200, result: { handover: updated } };
+        }
+        const store = await getStore();
+        const handover = store.handovers.find((item) => item.id === handoverId);
+        if (!handover) { const err = new Error('Handover not found.'); err.statusCode = 404; throw err; }
+        if (handoverAction === 'relay') {
+          if (user.role !== 'supervisor') { const err = new Error('Only the supervisor can relay a handover.'); err.statusCode = 403; throw err; }
+          if (handover.status !== 'awaiting_review') { const err = new Error('This handover cannot be relayed in its current state.'); err.statusCode = 409; throw err; }
+          handover.status = 'relayed'; handover.reviewedBy = user.id; handover.updatedAt = new Date().toISOString();
+          notify(store, handover.assignedTo, handover.id, 'A reviewed handover is ready for you to acknowledge.');
+        } else {
+          if (handover.status !== 'relayed') { const err = new Error('This handover cannot be acknowledged in its current state.'); err.statusCode = 409; throw err; }
+          if (user.id !== handover.assignedTo) { const err = new Error('This handover is assigned to another incoming worker.'); err.statusCode = 403; throw err; }
+          handover.status = 'acknowledged'; handover.acknowledgement = { by: user.id, at: new Date().toISOString() }; handover.updatedAt = new Date().toISOString();
+          notify(store, handover.createdBy, handover.id, `${user.name} acknowledged the handover.`);
+          notify(store, 'david', handover.id, `${user.name} acknowledged the handover.`);
+        }
+        await saveStore(store);
+        return { statusCode: 200, result: { handover } };
+      });
+      if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
+      return sendJson(response, statusCode, result);
+    } catch (err) {
+      const code = err.statusCode || 403;
+      return sendJson(response, code, { error: err.message });
     }
-    const store = await getStore();
-    const handover = store.handovers.find((item) => item.id === handoverMatch[1]);
-    if (!handover) return sendJson(response, 404, { error: 'Handover not found.' });
-    if (handoverMatch[2] === 'relay') {
-      if (user.role !== 'supervisor') return sendJson(response, 403, { error: 'Only the supervisor can relay a handover.' });
-      handover.status = 'relayed'; handover.reviewedBy = user.id; handover.updatedAt = new Date().toISOString();
-      notify(store, handover.assignedTo, handover.id, 'A reviewed handover is ready for you to acknowledge.');
-    } else {
-      if (user.id !== handover.assignedTo) return sendJson(response, 403, { error: 'This handover is assigned to another incoming worker.' });
-      handover.status = 'acknowledged'; handover.acknowledgement = { by: user.id, at: new Date().toISOString() }; handover.updatedAt = new Date().toISOString();
-      notify(store, handover.createdBy, handover.id, `${user.name} acknowledged the handover.`);
-      notify(store, 'david', handover.id, `${user.name} acknowledged the handover.`);
-    }
-    await saveStore(store);
-    return sendJson(response, 200, { handover });
   }
 
   if (url.pathname === '/api/notifications' && request.method === 'GET') {
