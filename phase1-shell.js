@@ -260,14 +260,20 @@
       await renderWorkerToday();
     } else if (view === 'overview') {
       await renderManagerOverview();
+    } else if (view === 'handovers') {
+      if (isManager) {
+        await renderManagerHandovers();
+      } else {
+        await renderWorkerHandovers();
+      }
     } else {
-      // Bridge smoothly to existing sub-views for Schedule, Team, Handovers, Me, Settings
+      // Bridge smoothly to existing sub-views for Schedule, Team, Me, Settings
       await bridgeExistingView(view);
     }
   }
 
-  function navigate(viewName) {
-    mountShell(viewName);
+  async function navigate(viewName) {
+    return await mountShell(viewName);
   }
 
   // ── 2. Polished Worker Today Screen ─────────────────────────────────────────
@@ -864,7 +870,478 @@
     }
   }
 
-  // ── 5. Bridge to Existing Screens (Preserves working routes behind shell) ───
+  // ── 5. Polished Worker Handovers Screen (UI Phase 2) ──────────────────────
+  let workerHandoversTab = 'actions'; // 'actions' | 'history' | 'create'
+
+  async function renderWorkerHandovers() {
+    const user = getUser();
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="sr-skeleton" style="height: 48px; margin-bottom: 16px;"></div>
+      <div class="sr-skeleton" style="height: 160px; margin-bottom: 16px;"></div>
+      <div class="sr-skeleton" style="height: 160px;"></div>
+    `;
+
+    try {
+      const res = await fetch('/api/handovers');
+      const data = res.ok ? await res.json() : { handovers: [] };
+      const handovers = data.handovers || [];
+      console.log('GET /api/handovers data:', JSON.stringify(data));
+
+      // Determine canCreate according to verified backend permissions
+      const canCreate = ['outgoing', 'supervisor', 'owner'].includes(user.role);
+
+      // "Needs my action" items:
+      // For incoming worker: items with status === 'relayed' assigned to this worker (requiring acknowledgement)
+      const needsAction = handovers.filter(h => {
+        if (user.role === 'incoming') {
+          return h.status === 'relayed' && (h.assignedTo === user.id || user.role === 'owner');
+        }
+        return false;
+      });
+
+      // Handover history:
+      // For outgoing workers: show all their submitted shift handovers with their current lifecycle state
+      // For incoming workers: show handovers that are not pending action
+      const historyItems = user.role === 'outgoing'
+        ? handovers
+        : handovers.filter(h => !needsAction.some(na => na.id === h.id));
+
+      const html = `
+        <div class="sr-context-banner">
+          <div class="sr-context-banner-text">
+            <span class="sr-context-banner-company">Facility: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-site">Handover Management Scope: <strong>${escapeHtml(user.department || 'Operations')}</strong></span>
+          </div>
+          <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
+        </div>
+
+        <div class="sr-tabs-header">
+          <button class="sr-tab-btn ${workerHandoversTab === 'actions' ? 'active' : ''}" data-sr-tab="actions">
+            <span>Needs My Action</span>
+            ${needsAction.length > 0 ? `<span class="sr-tab-badge">${needsAction.length}</span>` : ''}
+          </button>
+          <button class="sr-tab-btn ${workerHandoversTab === 'history' ? 'active' : ''}" data-sr-tab="history">
+            <span>Handover History</span>
+          </button>
+          ${canCreate ? `
+            <button class="sr-tab-btn ${workerHandoversTab === 'create' ? 'active' : ''}" data-sr-tab="create">
+              <span>+ Create Handover</span>
+            </button>
+          ` : ''}
+        </div>
+
+        <div id="sr-worker-handovers-panel"></div>
+      `;
+
+      container.innerHTML = html;
+
+      // Tab switcher bindings
+      document.querySelectorAll('[data-sr-tab]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          workerHandoversTab = btn.dataset.srTab;
+          await renderWorkerHandovers();
+        });
+      });
+
+      const panel = document.getElementById('sr-worker-handovers-panel');
+
+      if (workerHandoversTab === 'create' && canCreate) {
+        renderWorkerHandoverCreateForm(panel, user);
+      } else if (workerHandoversTab === 'history') {
+        renderHandoverList(panel, historyItems, false, user);
+      } else {
+        renderHandoverList(panel, needsAction, true, user);
+      }
+
+    } catch (err) {
+      container.innerHTML = `
+        <div class="sr-card" style="border-color:#fecaca;background:#fff5f5;">
+          <h3 style="color:#b91c1c;margin:0 0 6px;">Could not load handovers</h3>
+          <p style="color:#7f1d1d;font-size:13.5px;margin:0 0 14px;">${escapeHtml(err.message)}</p>
+          <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.renderWorkerHandovers()">Retry</button>
+        </div>
+      `;
+    }
+  }
+
+  // Helper: Render Handover List (Shared for Worker & Manager)
+  function renderHandoverList(container, items, isActionTab, user) {
+    if (!items || items.length === 0) {
+      container.innerHTML = `
+        <div class="sr-empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <p>${isActionTab ? 'All caught up! No handovers require your action right now.' : 'No handover records found in history.'}</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = items.map(item => {
+      const h = item.handover || {};
+      const tasks = h.tasks || h.actions || [];
+      const status = item.status || 'awaiting_review';
+      const statusLabels = {
+        awaiting_review: 'Awaiting Review',
+        relayed: 'Relayed / Ready for Inflow',
+        acknowledged: 'Acknowledged'
+      };
+
+      const canAcknowledge = status === 'relayed' && (user.role === 'incoming' || user.role === 'owner');
+      const canRelay = status === 'awaiting_review' && ['supervisor', 'owner'].includes(user.role);
+
+      return `
+        <article class="sr-handover-card status-${status}" data-handover-id="${item.id}">
+          <div class="sr-handover-header">
+            <div class="sr-handover-meta">
+              <h4 class="sr-handover-summary">${escapeHtml(h.summary || 'Shift Handover')}</h4>
+              <span class="sr-handover-submeta">
+                Created by <strong>${escapeHtml(item.reviewedBy || item.createdBy || 'Staff')}</strong>
+                · ${item.createdAt ? new Date(item.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : ''}
+              </span>
+            </div>
+            <span class="sr-badge-status ${status}">${escapeHtml(statusLabels[status] || status)}</span>
+          </div>
+
+          ${h.notes ? `
+            <div class="sr-handover-body">
+              <strong>Notes:</strong> ${escapeHtml(h.notes)}
+            </div>
+          ` : ''}
+
+          ${tasks.length > 0 ? `
+            <div class="sr-handover-tasks-section">
+              <div class="sr-handover-tasks-title">Assigned Shift Tasks (${tasks.filter(t => t.done).length}/${tasks.length} Completed)</div>
+              <div class="sr-task-list">
+                ${tasks.map(t => `
+                  <label class="sr-task-item ${t.done ? 'done' : ''}">
+                    <input type="checkbox" class="sr-task-checkbox" ${t.done ? 'checked' : ''} data-task-id="${t.id}" data-handover-id="${item.id}" />
+                    <span style="flex:1;font-size:13px;font-weight:600;color:var(--sr-text-main);">${escapeHtml(t.text || t.title)}</span>
+                    ${t.priority === 'urgent' ? '<span style="font-size:10px;font-weight:800;color:#dc2626;background:#fee2e2;padding:2px 6px;border-radius:4px;">URGENT</span>' : ''}
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;flex-wrap:wrap;">
+            <div style="font-size:12px;color:var(--sr-text-muted);">
+              ${item.acknowledgement ? `Acknowledged at ${new Date(item.acknowledgement.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+            </div>
+            <div style="display:flex;gap:8px;">
+              ${canAcknowledge ? `
+                <button class="sr-btn sr-btn-primary" style="min-height:44px;padding:0 16px;font-size:13px;" data-action="ack-handover" data-id="${item.id}">
+                  Acknowledge Shift Brief
+                </button>
+              ` : ''}
+              ${canRelay ? `
+                <button class="sr-btn sr-btn-primary" style="min-height:44px;padding:0 16px;font-size:13px;" data-action="relay-handover" data-id="${item.id}">
+                  Approve &amp; Relay Handover
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    // Bind task toggling
+    container.querySelectorAll('.sr-task-checkbox').forEach(box => {
+      box.addEventListener('change', async () => {
+        const hId = box.dataset.handoverId;
+        const tId = box.dataset.taskId;
+        box.disabled = true;
+        try {
+          const res = await fetch(`/api/handovers/${hId}/tasks/${tId}/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          if (!res.ok) throw new Error('Task toggle failed');
+          const row = box.closest('.sr-task-item');
+          if (row) row.classList.toggle('done', box.checked);
+        } catch (err) {
+          box.checked = !box.checked;
+          alert(err.message);
+        } finally {
+          box.disabled = false;
+        }
+      });
+    });
+
+    // Bind Acknowledge
+    container.querySelectorAll('[data-action="ack-handover"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Acknowledging...';
+        try {
+          const res = await fetch(`/api/handovers/${btn.dataset.id}/acknowledge`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Idempotency-Key': 'idem_ack_' + Date.now()
+            }
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Acknowledgement failed');
+          }
+          if (user.role === 'supervisor' || user.role === 'owner') {
+            await renderManagerHandovers();
+          } else {
+            await renderWorkerHandovers();
+          }
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false;
+          btn.textContent = 'Acknowledge Shift Brief';
+        }
+      });
+    });
+
+    // Bind Relay
+    container.querySelectorAll('[data-action="relay-handover"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Relaying...';
+        try {
+          const res = await fetch(`/api/handovers/${btn.dataset.id}/relay`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Idempotency-Key': 'idem_relay_' + Date.now()
+            }
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Relay failed');
+          }
+          if (user.role === 'supervisor' || user.role === 'owner') {
+            await renderManagerHandovers();
+          } else {
+            await renderWorkerHandovers();
+          }
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false;
+          btn.textContent = 'Approve & Relay Handover';
+        }
+      });
+    });
+  }
+
+  // Helper: Create Handover Form for Worker / Outgoing
+  function renderWorkerHandoverCreateForm(container, user) {
+    let selectedTone = 'green';
+
+    container.innerHTML = `
+      <section class="sr-card" aria-label="Create Shift Handover Form">
+        <h3 style="margin:0 0 16px;">Log Outgoing Shift Handover</h3>
+
+        <div id="sr-handover-form-feedback"></div>
+
+        <div class="sr-form-group">
+          <label class="sr-form-label">Shift Status Tone</label>
+          <div class="sr-tone-selector">
+            <button type="button" class="sr-tone-option selected-green" data-tone="green">
+              <strong>Green</strong>
+              <small>Normal Ops</small>
+            </button>
+            <button type="button" class="sr-tone-option" data-tone="yellow">
+              <strong>Yellow</strong>
+              <small>Needs Attention</small>
+            </button>
+            <button type="button" class="sr-tone-option" data-tone="red">
+              <strong>Red</strong>
+              <small>Critical Issues</small>
+            </button>
+          </div>
+        </div>
+
+        <div class="sr-form-group">
+          <label class="sr-form-label" for="sr-handover-summary">Shift Summary *</label>
+          <input type="text" id="sr-handover-summary" class="sr-form-input" placeholder="e.g. Day Shift Handover - Emergency Triage Bay 1-4" required />
+        </div>
+
+        <div class="sr-form-group">
+          <label class="sr-form-label" for="sr-handover-notes">Shift Operational Notes *</label>
+          <textarea id="sr-handover-notes" class="sr-form-textarea" placeholder="Detail ongoing patient status, critical tasks, machine downtime, or handover points..." required></textarea>
+        </div>
+
+        <div class="sr-form-group">
+          <label class="sr-form-label" for="sr-handover-tasks">Priority Shift Tasks (one per line)</label>
+          <textarea id="sr-handover-tasks" class="sr-form-textarea" style="min-height:70px;" placeholder="Confirm blood bank cross-match for Bay 4&#10;Restock trauma airway cart in Resus 2"></textarea>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:20px;">
+          <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-create" style="flex:1;">Cancel</button>
+          <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-submit-handover" style="flex:2;">Submit Handover for Review</button>
+        </div>
+      </section>
+    `;
+
+    // Tone selector
+    container.querySelectorAll('.sr-tone-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedTone = btn.dataset.tone;
+        container.querySelectorAll('.sr-tone-option').forEach(b => {
+          b.className = 'sr-tone-option' + (b.dataset.tone === selectedTone ? ` selected-${selectedTone}` : '');
+        });
+      });
+    });
+
+    // Cancel
+    container.querySelector('#sr-btn-cancel-create')?.addEventListener('click', () => {
+      workerHandoversTab = 'actions';
+      renderWorkerHandovers();
+    });
+
+    // Submit with Idempotency
+    container.querySelector('#sr-btn-submit-handover')?.addEventListener('click', async () => {
+      console.log('SUBMIT HANDOVER BUTTON CLICKED');
+      const submitBtn = document.getElementById('sr-btn-submit-handover');
+      const feedback = document.getElementById('sr-handover-form-feedback');
+      const summary = document.getElementById('sr-handover-summary')?.value.trim();
+      const notes = document.getElementById('sr-handover-notes')?.value.trim();
+      const rawTasks = document.getElementById('sr-handover-tasks')?.value.trim();
+
+      console.log('SUBMIT HANDOVER VALUES:', { summary, notes, rawTasks });
+
+      if (!summary || !notes) {
+        feedback.innerHTML = `<div class="sr-state-feedback error">Please provide both a summary and shift notes.</div>`;
+        return;
+      }
+
+      const tasks = rawTasks ? rawTasks.split('\n').filter(t => t.trim().length > 0).map((t, i) => ({
+        id: `task-${i + 1}-${Date.now().toString(36)}`,
+        text: t.trim(),
+        done: false,
+        priority: selectedTone === 'red' ? 'urgent' : 'normal'
+      })) : [];
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting Handover...';
+      feedback.innerHTML = '';
+
+      const idempotencyKey = 'idem_create_h_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+
+      try {
+        const res = await fetch('/api/handovers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey
+          },
+          body: JSON.stringify({
+            notes,
+            shiftStatus: selectedTone,
+            handover: {
+              summary,
+              notes,
+              shiftStatus: selectedTone,
+              tasks
+            },
+            tasks
+          })
+        });
+
+        const data = await res.json();
+        console.log('POST /api/handovers status:', res.status, 'data:', JSON.stringify(data));
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to submit handover');
+        }
+
+        feedback.innerHTML = `<div class="sr-state-feedback success">Handover submitted successfully! Awaiting supervisor review.</div>`;
+        setTimeout(async () => {
+          workerHandoversTab = 'history';
+          await renderWorkerHandovers();
+        }, 400);
+      } catch (err) {
+        console.error('SUBMIT HANDOVER CATCH ERROR:', err);
+        feedback.innerHTML = `<div class="sr-state-feedback error">${escapeHtml(err.message)}</div>`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Handover for Review';
+      }
+    });
+  }
+
+  // ── 6. Polished Manager Handovers Screen (UI Phase 2) ──────────────────────
+  let managerHandoversTab = 'pending'; // 'pending' | 'completed'
+
+  async function renderManagerHandovers() {
+    const user = getUser();
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="sr-skeleton" style="height: 48px; margin-bottom: 16px;"></div>
+      <div class="sr-skeleton" style="height: 160px; margin-bottom: 16px;"></div>
+      <div class="sr-skeleton" style="height: 160px;"></div>
+    `;
+
+    try {
+      const res = await fetch('/api/handovers');
+      const data = res.ok ? await res.json() : { handovers: [] };
+      const handovers = data.handovers || [];
+      console.log('GET /api/handovers data:', JSON.stringify(data));
+
+      // Separate pending (awaiting_review) from completed (relayed or acknowledged)
+      const pendingItems = handovers.filter(h => h.status === 'awaiting_review');
+      const completedItems = handovers.filter(h => h.status !== 'awaiting_review');
+
+      const html = `
+        <div class="sr-context-banner">
+          <div class="sr-context-banner-text">
+            <span class="sr-context-banner-company">Facility: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-site">Handover Relay Oversight: <strong>${escapeHtml(user.department || 'Operations Leadership')}</strong></span>
+          </div>
+          <span class="sr-context-banner-badge" style="background:#0a3d39;">${escapeHtml(user.role.toUpperCase())}</span>
+        </div>
+
+        <div class="sr-tabs-header">
+          <button class="sr-tab-btn ${managerHandoversTab === 'pending' ? 'active' : ''}" data-sr-mgr-tab="pending">
+            <span>Awaiting Supervisor Relay</span>
+            ${pendingItems.length > 0 ? `<span class="sr-tab-badge">${pendingItems.length}</span>` : ''}
+          </button>
+          <button class="sr-tab-btn ${managerHandoversTab === 'completed' ? 'active' : ''}" data-sr-mgr-tab="completed">
+            <span>Relayed &amp; Completed (${completedItems.length})</span>
+          </button>
+        </div>
+
+        <div id="sr-mgr-handovers-panel"></div>
+      `;
+
+      container.innerHTML = html;
+
+      document.querySelectorAll('[data-sr-mgr-tab]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          managerHandoversTab = btn.dataset.srMgrTab;
+          await renderManagerHandovers();
+        });
+      });
+
+      const panel = document.getElementById('sr-mgr-handovers-panel');
+      if (managerHandoversTab === 'pending') {
+        renderHandoverList(panel, pendingItems, true, user);
+      } else {
+        renderHandoverList(panel, completedItems, false, user);
+      }
+
+    } catch (err) {
+      container.innerHTML = `
+        <div class="sr-card" style="border-color:#fecaca;background:#fff5f5;">
+          <h3 style="color:#b91c1c;margin:0 0 6px;">Could not load handovers oversight</h3>
+          <p style="color:#7f1d1d;font-size:13.5px;margin:0 0 14px;">${escapeHtml(err.message)}</p>
+          <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.renderManagerHandovers()">Retry</button>
+        </div>
+      `;
+    }
+  }
+
+  // ── 7. Bridge to Existing Screens (Preserves working routes behind shell) ───
   async function bridgeExistingView(viewName) {
     const container = document.getElementById('sr-content-area');
     if (!container) return;
@@ -992,6 +1469,8 @@
     mount: mountShell,
     renderWorkerToday,
     renderManagerOverview,
+    renderWorkerHandovers,
+    renderManagerHandovers,
     openContextModal,
     navigate
   };

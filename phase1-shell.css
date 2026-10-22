@@ -942,3 +942,289 @@ body:has(#sr-app-shell) .app-header,
   max-height: 70vh;
   overflow-y: auto;
 }
+
+/* ==========================================================================
+   UI Phase 2: Handovers Screen Styles
+   Accessible, WCAG 2.1 AA/AAA, Touch Targets >= 44px
+   ========================================================================== */
+
+.sr-tabs-header {
+  display: flex;
+  background: var(--sr-bg-subtle);
+  border-radius: var(--sr-radius-btn);
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.sr-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: calc(var(--sr-radius-btn) - 2px);
+  border: none;
+  background: transparent;
+  color: var(--sr-text-secondary);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: var(--sr-touch-min);
+  transition: all 0.15s ease;
+}
+
+.sr-tab-btn:hover {
+  color: var(--sr-text-main);
+}
+
+.sr-tab-btn.active {
+  background: var(--sr-bg-card);
+  color: var(--sr-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .sr-tab-btn.active {
+  background: var(--sr-bg-elevated);
+  color: var(--sr-accent);
+}
+
+.sr-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--sr-radius-pill);
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--sr-primary);
+  color: #fff;
+}
+
+[data-theme="dark"] .sr-tab-badge {
+  background: var(--sr-accent);
+  color: #0c1117;
+}
+
+.sr-handover-card {
+  background: var(--sr-bg-card);
+  border: 1px solid var(--sr-border-subtle);
+  border-radius: var(--sr-radius-card);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.sr-handover-card.highlight {
+  border-left: 4px solid var(--sr-primary);
+}
+
+[data-theme="dark"] .sr-handover-card.highlight {
+  border-left-color: var(--sr-accent);
+}
+
+.sr-handover-card.status-awaiting_review {
+  border-left: 4px solid #f59e0b;
+}
+
+.sr-handover-card.status-relayed {
+  border-left: 4px solid #10b981;
+}
+
+.sr-handover-card.status-acknowledged {
+  border-left: 4px solid #64748b;
+}
+
+.sr-handover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.sr-handover-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sr-handover-summary {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--sr-text-main);
+  margin: 0 0 4px;
+}
+
+.sr-handover-submeta {
+  font-size: 12.5px;
+  color: var(--sr-text-muted);
+}
+
+.sr-badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--sr-radius-pill);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.sr-badge-status.awaiting_review {
+  background: var(--sr-status-yellow-bg);
+  color: var(--sr-status-yellow-text);
+  border: 1px solid var(--sr-status-yellow-border);
+}
+
+.sr-badge-status.relayed {
+  background: var(--sr-status-green-bg);
+  color: var(--sr-status-green-text);
+  border: 1px solid var(--sr-status-green-border);
+}
+
+.sr-badge-status.acknowledged {
+  background: var(--sr-bg-subtle);
+  color: var(--sr-text-muted);
+  border: 1px solid var(--sr-border-subtle);
+}
+
+.sr-handover-body {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--sr-text-secondary);
+  margin-bottom: 14px;
+}
+
+.sr-handover-tasks-section {
+  background: var(--sr-bg-subtle);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.sr-handover-tasks-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sr-text-muted);
+  margin-bottom: 8px;
+}
+
+.sr-form-group {
+  margin-bottom: 16px;
+}
+
+.sr-form-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--sr-text-main);
+  margin-bottom: 6px;
+}
+
+.sr-form-input,
+.sr-form-textarea,
+.sr-form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--sr-radius-btn);
+  border: 1.5px solid var(--sr-border-medium);
+  background: var(--sr-bg-card);
+  color: var(--sr-text-main);
+  font-family: inherit;
+  font-size: 14px;
+  box-sizing: border-box;
+  min-height: var(--sr-touch-min);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sr-form-input:focus,
+.sr-form-textarea:focus,
+.sr-form-select:focus {
+  outline: none;
+  border-color: var(--sr-primary);
+  box-shadow: 0 0 0 3px rgba(13, 82, 77, 0.12);
+}
+
+[data-theme="dark"] .sr-form-input:focus,
+[data-theme="dark"] .sr-form-textarea:focus,
+[data-theme="dark"] .sr-form-select:focus {
+  border-color: var(--sr-accent);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.sr-form-textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.sr-tone-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.sr-tone-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 1.5px solid var(--sr-border-subtle);
+  background: var(--sr-bg-card);
+  cursor: pointer;
+  min-height: var(--sr-touch-min);
+  transition: all 0.15s ease;
+}
+
+.sr-tone-option.selected-green {
+  border-color: #10b981;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.sr-tone-option.selected-yellow {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.sr-tone-option.selected-red {
+  border-color: #ef4444;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.sr-state-feedback {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sr-state-feedback.success {
+  background: var(--sr-status-green-bg);
+  color: var(--sr-status-green-text);
+  border: 1px solid var(--sr-status-green-border);
+}
+
+.sr-state-feedback.error {
+  background: var(--sr-status-red-bg);
+  color: var(--sr-status-red-text);
+  border: 1px solid var(--sr-status-red-border);
+}
+

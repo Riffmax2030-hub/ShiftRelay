@@ -225,7 +225,7 @@
       if (currentUser) {
         // Returning user — auto-login directly into app
         hideSplash();
-        if (typeof window._srLoginCallback === 'function') {
+        if (typeof window._srLoginCallback === 'function' && !window.state?.user) {
           window._srLoginCallback(currentUser);
         }
       } else {
