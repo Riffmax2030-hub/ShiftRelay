@@ -37,6 +37,298 @@
     return role === 'supervisor' || role === 'owner';
   }
 
+  function isAuthorizedView(viewName, isManager) {
+    const allowedWorker = ['today', 'handovers', 'me'];
+    const allowedManager = ['overview', 'handovers', 'team', 'approvals', 'me'];
+    return isManager ? allowedManager.includes(viewName) : allowedWorker.includes(viewName);
+  }
+
+  // ── Notifications State & Accessible Panel Manager (UI Phase 4) ────────────
+  let cachedNotifications = [];
+
+  function updateBellBadge(count) {
+    const badge = document.getElementById('sr-shell-bell-badge');
+    const panelBadge = document.getElementById('sr-notif-panel-badge');
+    const markAllBtn = document.getElementById('sr-notif-mark-all-btn');
+
+    if (badge) {
+      if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.style.display = 'inline-flex';
+      } else {
+        badge.textContent = '0';
+        badge.style.display = 'none';
+      }
+    }
+
+    if (panelBadge) {
+      if (count > 0) {
+        panelBadge.textContent = String(count);
+        panelBadge.style.display = 'inline-flex';
+      } else {
+        panelBadge.style.display = 'none';
+      }
+    }
+
+    if (markAllBtn) {
+      markAllBtn.disabled = count === 0;
+    }
+  }
+
+  function clearNotificationState() {
+    cachedNotifications = [];
+    updateBellBadge(0);
+    const listEl = document.getElementById('sr-notif-list');
+    if (listEl) {
+      listEl.innerHTML = `
+        <div class="sr-notif-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <h4>All caught up</h4>
+          <p>No notifications for this organisation.</p>
+        </div>
+      `;
+    }
+  }
+
+  function formatRelativeTimestamp(ts) {
+    if (!ts) return '';
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) return '';
+    const now = Date.now();
+    const diffSec = Math.floor((now - date.getTime()) / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDays = Math.floor(diffHr / 24);
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function resolveNotificationDestination(msg, isManager) {
+    const lower = (msg || '').toLowerCase();
+    if (lower.includes('handover') || lower.includes('brief') || lower.includes('task') || lower.includes('relay')) {
+      return 'handovers';
+    }
+    if (lower.includes('leave') || lower.includes('access') || lower.includes('applicant') || lower.includes('approval') || lower.includes('membership')) {
+      return isManager ? 'approvals' : 'today';
+    }
+    if (lower.includes('team') || lower.includes('channel') || lower.includes('staff')) {
+      return isManager ? 'team' : 'today';
+    }
+    if (lower.includes('shift') || lower.includes('schedule') || lower.includes('clock') || lower.includes('attendance')) {
+      return isManager ? 'overview' : 'today';
+    }
+    return isManager ? 'overview' : 'today';
+  }
+
+  function renderNotificationItems(notifications) {
+    const listEl = document.getElementById('sr-notif-list');
+    if (!listEl) return;
+
+    if (notifications.length === 0) {
+      listEl.innerHTML = `
+        <div class="sr-notif-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <h4>All caught up</h4>
+          <p>No new notifications at this time.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const user = getUser();
+    const isManager = isManagerRole(user ? user.role : '');
+
+    listEl.innerHTML = notifications.map(n => {
+      const isUnread = !n.read && !n.read_at;
+      const rawDest = resolveNotificationDestination(n.message, isManager);
+      const dest = isAuthorizedView(rawDest, isManager) ? rawDest : (isManager ? 'overview' : 'today');
+      return `
+        <div class="sr-notif-item ${isUnread ? 'unread' : 'read'}" data-notif-id="${escapeHtml(n.id)}" data-dest="${dest}" role="button" tabindex="0" aria-label="${escapeHtml(n.message)} (${isUnread ? 'Unread' : 'Read'})">
+          <div class="sr-notif-item-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="sr-notif-item-content">
+            <p class="sr-notif-item-msg">${escapeHtml(n.message)}</p>
+            <span class="sr-notif-item-time">${formatRelativeTimestamp(n.createdAt)}</span>
+          </div>
+          ${isUnread ? `
+            <button type="button" class="sr-notif-mark-single" data-mark-id="${escapeHtml(n.id)}" title="Mark as read" aria-label="Mark as read">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+
+    // Single item mark read
+    listEl.querySelectorAll('[data-mark-id]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const notifId = btn.dataset.markId;
+        btn.disabled = true;
+        try {
+          await fetch(`/api/notifications/${encodeURIComponent(notifId)}/read`, { method: 'POST' });
+          const item = cachedNotifications.find(n => n.id === notifId);
+          if (item) {
+            item.read = true;
+            item.read_at = new Date().toISOString();
+          }
+          const unreadCount = cachedNotifications.filter(n => !n.read && !n.read_at).length;
+          updateBellBadge(unreadCount);
+          renderNotificationItems(cachedNotifications);
+        } catch (_) {
+          btn.disabled = false;
+        }
+      });
+    });
+
+    // Item click navigation
+    listEl.querySelectorAll('.sr-notif-item').forEach(itemEl => {
+      const handleActivate = async () => {
+        const notifId = itemEl.dataset.notifId;
+        const dest = itemEl.dataset.dest;
+
+        if (itemEl.classList.contains('unread')) {
+          fetch(`/api/notifications/${encodeURIComponent(notifId)}/read`, { method: 'POST' }).catch(() => {});
+          const item = cachedNotifications.find(n => n.id === notifId);
+          if (item) {
+            item.read = true;
+            item.read_at = new Date().toISOString();
+          }
+          const unreadCount = cachedNotifications.filter(n => !n.read && !n.read_at).length;
+          updateBellBadge(unreadCount);
+        }
+
+        closeNotificationPanel(false);
+
+        const targetView = isAuthorizedView(dest, isManager) ? dest : (isManager ? 'overview' : 'today');
+        navigate(targetView);
+      };
+
+      itemEl.addEventListener('click', handleActivate);
+      itemEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleActivate();
+        }
+      });
+    });
+  }
+
+  async function loadAndRenderNotifications() {
+    const listEl = document.getElementById('sr-notif-list');
+    if (!listEl) return;
+
+    listEl.innerHTML = `
+      <div class="sr-skeleton" style="height: 52px; margin-bottom: 8px; border-radius: 10px;"></div>
+      <div class="sr-skeleton" style="height: 52px; margin-bottom: 8px; border-radius: 10px;"></div>
+      <div class="sr-skeleton" style="height: 52px; border-radius: 10px;"></div>
+    `;
+
+    try {
+      const res = await fetch('/api/notifications');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to load notifications');
+      }
+      const data = await res.json();
+      cachedNotifications = data.notifications || [];
+      const unreadCount = cachedNotifications.filter(n => !n.read && !n.read_at).length;
+      updateBellBadge(unreadCount);
+      renderNotificationItems(cachedNotifications);
+    } catch (err) {
+      listEl.innerHTML = `
+        <div class="sr-notif-error">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <p>${escapeHtml(err.message)}</p>
+          <button type="button" class="sr-btn sr-btn-secondary" id="sr-notif-retry-btn" style="min-height:32px;font-size:12px;padding:0 12px;">Retry</button>
+        </div>
+      `;
+      document.getElementById('sr-notif-retry-btn')?.addEventListener('click', () => {
+        loadAndRenderNotifications();
+      });
+    }
+  }
+
+  function openNotificationPanel() {
+    const wrap = document.getElementById('sr-notif-panel-wrap');
+    const bell = document.getElementById('sr-shell-bell');
+    if (!wrap) return;
+
+    wrap.classList.remove('hidden');
+    wrap.removeAttribute('aria-hidden');
+    requestAnimationFrame(() => {
+      wrap.classList.add('open');
+    });
+    if (bell) bell.setAttribute('aria-expanded', 'true');
+
+    loadAndRenderNotifications();
+    setTimeout(() => {
+      document.getElementById('sr-notif-close-btn')?.focus();
+    }, 100);
+  }
+
+  function closeNotificationPanel(restoreFocus = true) {
+    const wrap = document.getElementById('sr-notif-panel-wrap');
+    const bell = document.getElementById('sr-shell-bell');
+    if (!wrap) return;
+
+    wrap.classList.remove('open');
+    wrap.setAttribute('aria-hidden', 'true');
+    if (bell) bell.setAttribute('aria-expanded', 'false');
+
+    setTimeout(() => {
+      wrap.classList.add('hidden');
+    }, 220);
+
+    if (restoreFocus && bell) {
+      bell.focus();
+    }
+  }
+
+  function toggleNotificationPanel(forceOpen = null) {
+    const wrap = document.getElementById('sr-notif-panel-wrap');
+    if (!wrap) return;
+    const isOpen = wrap.classList.contains('open');
+    const shouldOpen = forceOpen !== null ? forceOpen : !isOpen;
+    if (shouldOpen) {
+      openNotificationPanel();
+    } else {
+      closeNotificationPanel(true);
+    }
+  }
+
+  window.refreshShellNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications');
+      if (res.ok) {
+        const data = await res.json();
+        cachedNotifications = data.notifications || [];
+        const unreadCount = cachedNotifications.filter(n => !n.read && !n.read_at).length;
+        updateBellBadge(unreadCount);
+        const wrap = document.getElementById('sr-notif-panel-wrap');
+        if (wrap && wrap.classList.contains('open')) {
+          renderNotificationItems(cachedNotifications);
+        }
+      }
+    } catch (_) {}
+  };
+
+  // Keyboard accessibility: Escape closes panel and restores focus
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const wrap = document.getElementById('sr-notif-panel-wrap');
+      if (wrap && wrap.classList.contains('open')) {
+        e.preventDefault();
+        closeNotificationPanel(true);
+      }
+    }
+  });
+
   // ── 1. Mount Application Shell ──────────────────────────────────────────────
   async function mountShell(activeView = null) {
     const user = getUser();
@@ -71,7 +363,8 @@
       const notifRes = await fetch('/api/notifications');
       if (notifRes.ok) {
         const notifData = await notifRes.json();
-        unreadCount = (notifData.notifications || []).filter(n => !n.read_at && !n.read).length;
+        cachedNotifications = notifData.notifications || [];
+        unreadCount = cachedNotifications.filter(n => !n.read_at && !n.read).length;
       }
     } catch (_) {}
 
@@ -104,9 +397,9 @@
             </div>
 
             <!-- Notifications Bell -->
-            <button class="sr-icon-btn" id="sr-shell-bell" aria-label="Notifications" title="Notifications">
+            <button class="sr-icon-btn" id="sr-shell-bell" aria-label="Notifications" title="Notifications" aria-haspopup="dialog" aria-expanded="false" aria-controls="sr-notif-panel">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              ${unreadCount > 0 ? `<span class="sr-badge-counter">${unreadCount}</span>` : ''}
+              <span class="sr-badge-counter" id="sr-shell-bell-badge" style="${unreadCount > 0 ? '' : 'display:none;'}">${unreadCount > 99 ? '99+' : unreadCount}</span>
             </button>
 
             <!-- User Avatar & Profile Trigger -->
@@ -115,6 +408,29 @@
             </button>
           </div>
         </header>
+
+        <!-- Notifications Panel (Desktop Flyout & Mobile Sheet) -->
+        <div id="sr-notif-panel-wrap" class="sr-notif-panel-wrap hidden" aria-hidden="true">
+          <div id="sr-notif-backdrop" class="sr-notif-backdrop" aria-hidden="true"></div>
+          <div id="sr-notif-panel" class="sr-notif-panel" role="dialog" aria-modal="true" aria-label="Notifications" tabindex="-1">
+            <div class="sr-sheet-handle-bar"><div class="sr-sheet-handle"></div></div>
+            <div class="sr-notif-header">
+              <div class="sr-notif-header-title">
+                <h3>Notifications</h3>
+                <span class="sr-notif-count-badge" id="sr-notif-panel-badge" style="${unreadCount > 0 ? '' : 'display:none;'}">${unreadCount}</span>
+              </div>
+              <div class="sr-notif-header-actions">
+                <button type="button" class="sr-notif-mark-all" id="sr-notif-mark-all-btn" ${unreadCount === 0 ? 'disabled' : ''}>Mark all read</button>
+                <button type="button" class="sr-icon-btn" id="sr-notif-close-btn" aria-label="Close notifications panel">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="sr-notif-body" id="sr-notif-list" role="region" aria-live="polite">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
 
         <!-- Body Shell (Desktop Sidebar + Main Area + Mobile Dock) -->
         <div class="sr-body-wrap">
@@ -245,9 +561,32 @@
 
     document.getElementById('sr-btn-context')?.addEventListener('click', openContextModal);
 
+    // Notifications panel triggers
     document.getElementById('sr-shell-bell')?.addEventListener('click', (e) => {
       e.preventDefault();
-      navigate('notifications');
+      toggleNotificationPanel();
+    });
+
+    document.getElementById('sr-notif-close-btn')?.addEventListener('click', () => {
+      closeNotificationPanel(true);
+    });
+
+    document.getElementById('sr-notif-backdrop')?.addEventListener('click', () => {
+      closeNotificationPanel(true);
+    });
+
+    document.getElementById('sr-notif-mark-all-btn')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('sr-notif-mark-all-btn');
+      if (btn) btn.disabled = true;
+      try {
+        await fetch('/api/notifications/read', { method: 'POST' });
+        cachedNotifications.forEach(n => { n.read = true; n.read_at = new Date().toISOString(); });
+        updateBellBadge(0);
+        renderNotificationItems(cachedNotifications);
+      } catch (_) {
+        if (btn) btn.disabled = false;
+      }
     });
 
     document.getElementById('sr-shell-avatar')?.addEventListener('click', (e) => {
@@ -277,8 +616,13 @@
       await renderTeamScreen();
     } else if (view === 'approvals') {
       await renderApprovalsScreen();
+    } else if (view === 'me') {
+      await renderWorkerMe();
+    } else if (view === 'notifications') {
+      await (isManager ? renderManagerOverview() : renderWorkerToday());
+      toggleNotificationPanel(true);
     } else {
-      // Bridge smoothly to existing sub-views for Schedule, Me, Settings
+      // Bridge smoothly to existing sub-views for Schedule, Settings
       await bridgeExistingView(view);
     }
   }
@@ -861,6 +1205,10 @@
         btn.addEventListener('click', async () => {
           btn.disabled = true;
           try {
+            // Clear previous-company notifications immediately during company switching
+            clearNotificationState();
+            closeNotificationPanel(false);
+
             const switchRes = await fetch('/api/user/active-membership', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1414,28 +1762,7 @@
         container.innerHTML = `<div class="sr-card"><p>${escapeHtml(err.message)}</p></div>`;
       }
     } else if (viewName === 'me') {
-      const user = getUser();
-      container.innerHTML = `
-        <div class="sr-card">
-          <h3 style="margin:0 0 14px;">Worker Account Profile</h3>
-          <p><strong>Name:</strong> ${escapeHtml(user.name)}</p>
-          <p><strong>Email:</strong> ${escapeHtml(user.email)}</p>
-          <p><strong>Role:</strong> ${escapeHtml(user.role)}</p>
-          <p><strong>Facility:</strong> ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</p>
-          <div style="margin-top:20px;display:flex;gap:10px;">
-            <button class="sr-btn sr-btn-danger" id="sr-btn-me-logout">Sign Out</button>
-          </div>
-        </div>
-      `;
-      document.getElementById('sr-btn-me-logout')?.addEventListener('click', () => {
-        if (window.OfflineQueue) {
-          window.OfflineQueue.promptLogoutWarning(() => {
-            fetch('/api/auth/sign-out', { method: 'POST' }).then(() => window.location.reload());
-          });
-        } else {
-          fetch('/api/auth/sign-out', { method: 'POST' }).then(() => window.location.reload());
-        }
-      });
+      await renderWorkerMe();
     } else if (viewName === 'settings') {
       container.innerHTML = `
         <div class="sr-card">
@@ -1448,45 +1775,7 @@
     } else if (viewName === 'team') {
       await renderTeamScreen();
     } else if (viewName === 'notifications') {
-      try {
-        const res = await fetch('/api/notifications');
-        const data = res.ok ? await res.json() : { notifications: [] };
-        const notifs = data.notifications || [];
-        container.innerHTML = `
-          <div class="sr-card">
-            <div class="sr-card-title-row">
-              <h3>Notifications (${notifs.length})</h3>
-              ${notifs.length > 0 ? `
-                <button class="sr-btn sr-btn-secondary" id="sr-btn-read-all-notifs" style="font-size:12px;min-height:36px;padding:0 12px;">Mark All Read</button>
-              ` : ''}
-            </div>
-            ${notifs.length > 0 ? `
-              <div style="display:flex;flex-direction:column;gap:8px;">
-                ${notifs.map(n => `
-                  <div class="sr-review-item">
-                    <div class="sr-review-info">
-                      <strong>${escapeHtml(n.title || n.message || 'Notification')}</strong>
-                      <small>${escapeHtml(n.body || n.content || '')} · ${n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</small>
-                    </div>
-                    ${!n.read_at && !n.read ? '<span class="sr-status-pill active">NEW</span>' : ''}
-                  </div>
-                `).join('')}
-              </div>
-            ` : `
-              <div class="sr-empty-state">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                <p>No new notifications at this time.</p>
-              </div>
-            `}
-          </div>
-        `;
-        document.getElementById('sr-btn-read-all-notifs')?.addEventListener('click', async () => {
-          await fetch('/api/notifications/read', { method: 'POST' });
-          navigate('notifications');
-        });
-      } catch (err) {
-        container.innerHTML = `<div class="sr-card"><p>${escapeHtml(err.message)}</p></div>`;
-      }
+      toggleNotificationPanel(true);
     }
   }
 
@@ -2070,6 +2359,290 @@
     }
   }
 
+  // ── 9. Polished Worker Me (Profile) Screen (UI Phase 4) ───────────────────
+  async function renderWorkerMe() {
+    const user = getUser();
+    const container = document.getElementById('sr-content-area');
+    if (!container || !user) return;
+
+    const currentTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+    const isDark = currentTheme === 'dark';
+    const initials = user.name ? user.name.slice(0, 2).toUpperCase() : 'U';
+    const roleDisplay = user.title || user.role || 'Frontline Specialist';
+    const orgName = user.organisation_name || 'Workplace';
+    const deptName = user.department || 'Operations';
+
+    container.innerHTML = `
+      <div class="sr-me-container">
+        <!-- Profile Hero Card -->
+        <div class="sr-me-hero-card">
+          <div class="sr-me-avatar" aria-hidden="true">${escapeHtml(initials)}</div>
+          <div class="sr-me-hero-info">
+            <h2 class="sr-me-hero-name">${escapeHtml(user.name)}</h2>
+            <div class="sr-me-hero-meta">
+              <span class="sr-me-role-badge">${escapeHtml(roleDisplay)}</span>
+              <span class="sr-status-pill active">Active Member</span>
+            </div>
+            <p class="sr-me-hero-sub">${escapeHtml(user.email)} · ${escapeHtml(orgName)} (${escapeHtml(deptName)})</p>
+          </div>
+        </div>
+
+        <div class="sr-me-grid">
+          <!-- Membership & Facility Details -->
+          <div class="sr-me-card">
+            <div class="sr-me-card-header">
+              <h4>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
+                Workplace Membership
+              </h4>
+            </div>
+            <div class="sr-me-info-list">
+              <div class="sr-me-info-row">
+                <span class="sr-me-info-label">Facility / Organisation</span>
+                <span class="sr-me-info-val">${escapeHtml(orgName)}</span>
+              </div>
+              <div class="sr-me-info-row">
+                <span class="sr-me-info-label">Assigned Unit</span>
+                <span class="sr-me-info-val">${escapeHtml(deptName)}</span>
+              </div>
+              <div class="sr-me-info-row">
+                <span class="sr-me-info-label">System Role</span>
+                <span class="sr-me-info-val" style="text-transform:capitalize;">${escapeHtml(user.role)}</span>
+              </div>
+              <div class="sr-me-info-row">
+                <span class="sr-me-info-label">Account Email</span>
+                <span class="sr-me-info-val">${escapeHtml(user.email)}</span>
+              </div>
+              <div class="sr-me-info-row">
+                <span class="sr-me-info-label">Membership Status</span>
+                <span class="sr-me-info-val" style="color:var(--sr-primary);">Active</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preferences & Session Actions -->
+          <div class="sr-me-card">
+            <div class="sr-me-card-header">
+              <h4>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                Preferences
+              </h4>
+            </div>
+            <div class="sr-me-toggle-row">
+              <div>
+                <strong style="font-size:13.5px;color:var(--sr-text-main);">Dark Mode Theme</strong>
+                <p class="sr-me-toggle-desc" id="sr-theme-status-desc">${isDark ? 'Dark theme is active' : 'Light theme is active'}</p>
+              </div>
+              <label class="sr-switch">
+                <input type="checkbox" id="sr-theme-switch" ${isDark ? 'checked' : ''} aria-label="Toggle dark mode theme" />
+                <span class="sr-slider"></span>
+              </label>
+            </div>
+            <div style="margin-top:auto;padding-top:14px;border-top:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <strong style="font-size:13px;color:var(--sr-text-main);">Account Session</strong>
+                <p style="margin:2px 0 0;font-size:11.5px;color:var(--sr-text-muted);">Shared-device safe sign-out</p>
+              </div>
+              <button type="button" class="sr-btn sr-btn-danger" id="sr-btn-me-signout" style="min-height:36px;padding:0 14px;font-size:12.5px;">
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Change Section (Verified PUT /api/auth/password) -->
+        <div class="sr-me-card">
+          <div class="sr-me-card-header">
+            <h4>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Security &amp; Password
+            </h4>
+          </div>
+          <p style="margin:0 0 8px;font-size:13px;color:var(--sr-text-muted);">
+            Update your account login password. Passwords must be at least 10 characters in length.
+          </p>
+
+          <form id="sr-me-password-form" class="sr-me-form" autocomplete="off">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
+              <div class="sr-form-group">
+                <label for="sr-me-current-pw" class="sr-form-label">Current Password</label>
+                <input type="password" id="sr-me-current-pw" class="sr-form-input" required placeholder="Enter current password" autocomplete="current-password" />
+              </div>
+              <div class="sr-form-group">
+                <label for="sr-me-new-pw" class="sr-form-label">New Password</label>
+                <input type="password" id="sr-me-new-pw" class="sr-form-input" minlength="10" required placeholder="Min. 10 characters" autocomplete="new-password" />
+              </div>
+              <div class="sr-form-group">
+                <label for="sr-me-confirm-pw" class="sr-form-label">Confirm New Password</label>
+                <input type="password" id="sr-me-confirm-pw" class="sr-form-input" minlength="10" required placeholder="Re-type new password" autocomplete="new-password" />
+              </div>
+            </div>
+            <div class="sr-form-feedback" id="sr-pw-feedback" role="alert"></div>
+            <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+              <button type="submit" class="sr-btn sr-btn-primary" id="sr-btn-pw-submit" style="min-height:38px;padding:0 18px;font-size:13px;">
+                Update Password
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Frontline Assistance & Guidance -->
+        <div class="sr-me-card">
+          <div class="sr-me-card-header">
+            <h4>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Frontline Help &amp; Guidance
+            </h4>
+          </div>
+          <div class="sr-accordion">
+            <div class="sr-accordion-item">
+              <button type="button" class="sr-accordion-header" aria-expanded="false">
+                <span>Offline Mode &amp; Local Queuing</span>
+                <svg class="sr-accordion-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="sr-accordion-body">
+                ShiftRelay is built for unreliable connectivity. Clock-ins, handovers, and checklist items are safely saved locally when disconnected. When back online, tap the connection pill in the header or perform a sync before logging out.
+              </div>
+            </div>
+            <div class="sr-accordion-item">
+              <button type="button" class="sr-accordion-header" aria-expanded="false">
+                <span>Shift Handover Protocol</span>
+                <svg class="sr-accordion-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="sr-accordion-body">
+                End each shift by filling out the handover brief under the Handovers tab. Complete all critical safety checklist items and verify equipment condition before marking the handover as submitted.
+              </div>
+            </div>
+            <div class="sr-accordion-item">
+              <button type="button" class="sr-accordion-header" aria-expanded="false">
+                <span>Urgent Facility Escalation</span>
+                <svg class="sr-accordion-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="sr-accordion-body">
+                For immediate clinical or operational safety emergencies, contact your on-duty supervisor or unit coordinator directly. Never rely solely on digital notes for critical life-safety hazards.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Bind Theme Switch
+    const themeSwitch = document.getElementById('sr-theme-switch');
+    const themeStatusDesc = document.getElementById('sr-theme-status-desc');
+    themeSwitch?.addEventListener('change', () => {
+      const nextTheme = themeSwitch.checked ? 'dark' : 'light';
+      document.documentElement.dataset.theme = nextTheme;
+      document.documentElement.setAttribute('data-theme', nextTheme);
+      if (typeof window.applyTheme === 'function') {
+        window.applyTheme(nextTheme, false);
+      } else {
+        try { localStorage.setItem('shiftrelay-theme', nextTheme); } catch (_) {}
+      }
+      if (themeStatusDesc) {
+        themeStatusDesc.textContent = nextTheme === 'dark' ? 'Dark theme is active' : 'Light theme is active';
+      }
+    });
+
+    // Bind Accordion Toggles
+    container.querySelectorAll('.sr-accordion-header').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.sr-accordion-item');
+        const isOpen = item.classList.contains('open');
+        item.classList.toggle('open', !isOpen);
+        btn.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
+      });
+    });
+
+    // Bind Password Change Form
+    const pwForm = document.getElementById('sr-me-password-form');
+    const feedbackEl = document.getElementById('sr-pw-feedback');
+    const pwSubmitBtn = document.getElementById('sr-btn-pw-submit');
+
+    pwForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (feedbackEl) {
+        feedbackEl.className = 'sr-form-feedback';
+        feedbackEl.style.display = 'none';
+        feedbackEl.textContent = '';
+      }
+
+      const cur = document.getElementById('sr-me-current-pw')?.value || '';
+      const nxt = document.getElementById('sr-me-new-pw')?.value || '';
+      const conf = document.getElementById('sr-me-confirm-pw')?.value || '';
+
+      if (!cur) {
+        showPwFeedback('Please enter your current password.', false);
+        return;
+      }
+      if (nxt.length < 10) {
+        showPwFeedback('New password must be at least 10 characters long.', false);
+        return;
+      }
+      if (nxt !== conf) {
+        showPwFeedback('New passwords do not match. Please verify.', false);
+        return;
+      }
+
+      if (pwSubmitBtn) {
+        pwSubmitBtn.disabled = true;
+        pwSubmitBtn.textContent = 'Updating Password...';
+      }
+
+      try {
+        const res = await fetch('/api/auth/password', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword: cur, newPassword: nxt })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Password update failed.');
+        }
+        showPwFeedback('Password updated successfully.', true);
+        pwForm.reset();
+      } catch (err) {
+        showPwFeedback(err.message, false);
+      } finally {
+        if (pwSubmitBtn) {
+          pwSubmitBtn.disabled = false;
+          pwSubmitBtn.textContent = 'Update Password';
+        }
+      }
+    });
+
+    function showPwFeedback(msg, isSuccess) {
+      if (!feedbackEl) return;
+      feedbackEl.textContent = msg;
+      feedbackEl.className = `sr-form-feedback ${isSuccess ? 'success' : 'error'}`;
+      feedbackEl.style.display = 'block';
+    }
+
+    // Bind Safe Logout
+    document.getElementById('sr-btn-me-signout')?.addEventListener('click', () => {
+      handleSafeSignOut();
+    });
+  }
+
+  async function handleSafeSignOut() {
+    const proceedSignOut = async () => {
+      try {
+        await fetch('/api/auth/sign-out', { method: 'POST' });
+      } catch (_) {}
+      try {
+        localStorage.removeItem('shiftrelay-user-data');
+      } catch (_) {}
+      if (window._srState) window._srState.user = null;
+      window.location.reload();
+    };
+
+    if (window.OfflineQueue?.promptLogoutWarning) {
+      window.OfflineQueue.promptLogoutWarning(proceedSignOut);
+    } else {
+      await proceedSignOut();
+    }
+  }
+
   // Export to global scope
   window.renderDashboard = function() {
     return mountShell();
@@ -2083,7 +2656,12 @@
     renderManagerHandovers,
     renderTeamScreen,
     renderApprovalsScreen,
+    renderWorkerMe,
     openContextModal,
+    toggleNotificationPanel,
+    openNotificationPanel,
+    closeNotificationPanel,
+    clearNotificationState,
     navigate
   };
 

@@ -1,8 +1,10 @@
-const CACHE = 'shiftrelay-v69';
+const CACHE = 'shiftrelay-v70';
 const ASSETS = [
   '/',
   '/index.html',
   '/styles.css',
+  '/phase1-shell.css',
+  '/phase1-shell.js',
   '/splash.css',
   '/splash.js',
   '/offline-queue.css',

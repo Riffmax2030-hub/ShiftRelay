@@ -15,7 +15,9 @@
   let isOnline = navigator.onLine;
 
   function getActiveUserScope() {
-    const user = window.state?.user;
+    const user = window._srState?.user || window.state?.user || (function() {
+      try { return JSON.parse(localStorage.getItem('shiftrelay-user-data') || '{}'); } catch (_) { return null; }
+    })();
     const userId = user?.id || user?.user_id || 'anon';
     const orgId = user?.organisation_id || user?.organisationId || 'anon';
     return { userId, orgId, key: `${QUEUE_STORAGE_PREFIX}_${userId}_${orgId}` };

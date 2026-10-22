@@ -5,6 +5,15 @@ function connectTeamRealtime() {
   const stream = new EventSource(`/api/events?user=${encodeURIComponent(state.user.id)}`);
   teamEventStream = stream;
 
+  stream.onopen = () => {
+    window.refreshShellNotifications?.();
+  };
+
+  stream.addEventListener('notification-added', () => {
+    if (typeof refreshNotifications === 'function') refreshNotifications();
+    window.refreshShellNotifications?.();
+  });
+
   stream.addEventListener('team-message', () => {
     if ($('#page-title')?.textContent === 'Team') renderCommunity();
     refreshNotifications();
