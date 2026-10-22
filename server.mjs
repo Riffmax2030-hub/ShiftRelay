@@ -1230,7 +1230,19 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/leave-requests' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Leave requests require an organisation account.' });
-    if (!databaseReady) return sendJson(response, 200, { requests: [] }); const where = user.role === 'owner' ? 'organisation_id = $1' : 'organisation_id = $1 and membership_id = $2'; const values = user.role === 'owner' ? [user.organisation_id] : [user.organisation_id, user.id]; const requests = await query(`select * from leave_requests where ${where} order by created_at desc`, values); return sendJson(response, 200, { requests: requests.rows });
+    if (!databaseReady) return sendJson(response, 200, { requests: [] });
+    const where = user.role === 'owner' ? 'lr.organisation_id = $1' : 'lr.organisation_id = $1 and (lr.membership_id = $2 or m.user_id = $2)';
+    const values = user.role === 'owner' ? [user.organisation_id] : [user.organisation_id, user.id];
+    const requests = await query(
+      `select lr.*, coalesce(u.full_name, 'Staff Member') as applicant_name, coalesce(u.full_name, 'Staff Member') as worker_name, u.email as applicant_email, m.title as applicant_title, m.department as applicant_department, m.role as applicant_role
+       from leave_requests lr
+       left join memberships m on (m.id = lr.membership_id or m.user_id = lr.membership_id)
+       left join portal_users u on (u.id = m.user_id or u.id = lr.membership_id)
+       where ${where}
+       order by lr.created_at desc`,
+      values
+    );
+    return sendJson(response, 200, { requests: requests.rows });
   }
   if (url.pathname === '/api/leave-requests' && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Leave requests require an organisation account.' }); const body = await readJson(request); if (!body.startsOn || !body.endsOn) return sendJson(response, 400, { error: 'Leave dates are required.' }); const id = crypto.randomUUID(); await query('insert into leave_requests (id, organisation_id, membership_id, starts_on, ends_on, reason) values ($1,$2,$3,$4,$5,$6)', [id, user.organisation_id, user.id, body.startsOn, body.endsOn, body.reason || null]); await audit(user.organisation_id, user.id, 'leave_requested', 'leave_request', id, 'Leave request submitted.'); await notifyOrganisationOwners(user.organisation_id, `${user.name} requested leave from ${body.startsOn} to ${body.endsOn}.`); return sendJson(response, 201, { id });
@@ -1580,13 +1592,21 @@ async function handleApi(request, response, url) {
   const taskToggleMatch = url.pathname.match(/^\/api\/handovers\/([^/]+)\/tasks\/([^/]+)\/toggle$/);
   if (taskToggleMatch && request.method === 'POST') {
     const [_, handoverId, taskId] = taskToggleMatch;
+    let body = {};
+    try { body = await readJson(request); } catch {}
     if (databaseReady) {
       const item = (await query('select * from work_items where id = $1 and organisation_id = $2', [handoverId, user.organisation_id])).rows[0];
       if (!item) return sendJson(response, 404, { error: 'Handover not found.' });
       const payload = item.payload;
       if (!Array.isArray(payload.tasks)) payload.tasks = [];
       const task = payload.tasks.find((t) => t.id === taskId);
-      if (task) task.done = !task.done;
+      if (task) {
+        if (body && typeof body.done === 'boolean') {
+          task.done = body.done;
+        } else {
+          task.done = !task.done;
+        }
+      }
       await query('update work_items set payload = $1::jsonb, updated_at = now() where id = $2', [JSON.stringify(payload), handoverId]);
       broadcastEvent('handover-updated', { organisationId: user.organisation_id, handoverId, task });
       return sendJson(response, 200, { ok: true, task, handover: payload });
@@ -1597,7 +1617,13 @@ async function handleApi(request, response, url) {
     if (!item.handover) item.handover = {};
     if (!Array.isArray(item.handover.tasks)) item.handover.tasks = [];
     const task = item.handover.tasks.find((t) => t.id === taskId);
-    if (task) task.done = !task.done;
+    if (task) {
+      if (body && typeof body.done === 'boolean') {
+        task.done = body.done;
+      } else {
+        task.done = !task.done;
+      }
+    }
     item.updatedAt = new Date().toISOString();
     await saveStore(store);
     broadcastEvent('handover-updated', { organisationId: user.organisation_id, handoverId, task });

@@ -1228,3 +1228,304 @@ body:has(#sr-app-shell) .app-header,
   border: 1px solid var(--sr-status-red-border);
 }
 
+/* ==========================================================================
+   UI PHASE 3: TEAM DIRECTORY & APPROVALS
+   ========================================================================== */
+
+/* ── Search Bar ── */
+.sr-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sr-search-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.sr-search-input-wrap svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--sr-text-muted);
+  pointer-events: none;
+}
+
+.sr-search-input {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 14px 0 38px;
+  border: 1.5px solid var(--sr-border-subtle);
+  border-radius: 10px;
+  background: var(--sr-bg-card);
+  color: var(--sr-text-main);
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.sr-search-input:focus {
+  outline: none;
+  border-color: var(--sr-primary);
+  box-shadow: 0 0 0 3px rgba(13, 82, 77, 0.1);
+}
+
+.sr-search-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sr-text-muted);
+  white-space: nowrap;
+}
+
+/* ── Team Directory Grid & Cards ── */
+.sr-team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
+}
+
+.sr-team-card {
+  background: var(--sr-bg-card);
+  border: 1px solid var(--sr-border-subtle);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sr-team-card:hover {
+  border-color: rgba(13, 82, 77, 0.3);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.sr-team-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sr-team-avatar {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sr-primary), #0a3d39);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 700;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 6px rgba(13, 82, 77, 0.15);
+}
+
+.sr-team-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sr-team-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--sr-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 0 2px;
+}
+
+.sr-team-title {
+  font-size: 12.5px;
+  color: var(--sr-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.sr-team-details {
+  border-top: 1px solid var(--sr-border-subtle);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.sr-team-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.sr-team-row-label {
+  color: var(--sr-text-muted);
+  font-size: 12px;
+}
+
+.sr-team-row-val {
+  color: var(--sr-text-main);
+  font-weight: 600;
+}
+
+/* ── Approvals Cards ── */
+.sr-approval-card {
+  background: var(--sr-bg-card);
+  border: 1px solid var(--sr-border-subtle);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.sr-approval-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sr-approval-applicant {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sr-approval-avatar {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0d524d, #14b8a6);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.sr-approval-applicant-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--sr-text-main);
+  margin: 0 0 2px;
+}
+
+.sr-approval-applicant-meta {
+  font-size: 12.5px;
+  color: var(--sr-text-muted);
+  margin: 0;
+}
+
+.sr-approval-body {
+  background: rgba(15, 23, 42, 0.02);
+  border: 1px solid var(--sr-border-subtle);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--sr-text-main);
+}
+
+.sr-approval-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sr-btn-approve {
+  background: #059669;
+  color: #ffffff;
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1px solid #047857;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.sr-btn-approve:hover:not(:disabled) {
+  background: #047857;
+}
+
+.sr-btn-reject {
+  background: #ffffff;
+  color: #dc2626;
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1.5px solid #fecaca;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.sr-btn-reject:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #dc2626;
+}
+
+.sr-btn-approve:disabled,
+.sr-btn-reject:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Consequential Confirmation Modal ── */
+.sr-confirm-dialog {
+  width: 100%;
+  max-width: 440px;
+  background: var(--sr-bg-card);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--sr-border-subtle);
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sr-confirm-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--sr-text-main);
+  letter-spacing: -0.01em;
+}
+
+.sr-confirm-text {
+  margin: 0 0 20px;
+  font-size: 13.5px;
+  color: var(--sr-text-muted);
+  line-height: 1.5;
+}
+
+.sr-confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+

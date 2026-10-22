@@ -43,6 +43,8 @@
 
     const appContainer = document.getElementById('dashboard');
     if (!appContainer) return;
+    document.getElementById('app-view')?.classList.remove('hidden');
+    document.getElementById('login-view')?.classList.add('hidden');
 
     // Suppress legacy onboarding overlay that intercepts pointer events
     try {
@@ -266,8 +268,12 @@
       } else {
         await renderWorkerHandovers();
       }
+    } else if (view === 'team') {
+      await renderTeamScreen();
+    } else if (view === 'approvals') {
+      await renderApprovalsScreen();
     } else {
-      // Bridge smoothly to existing sub-views for Schedule, Team, Me, Settings
+      // Bridge smoothly to existing sub-views for Schedule, Me, Settings
       await bridgeExistingView(view);
     }
   }
@@ -679,20 +685,22 @@
 
       container.innerHTML = html;
 
-      // Bind Access Request Approve / Reject
+      // Bind Access Request Approve / Reject (reuses idempotency key on retry)
       document.querySelectorAll('[data-action="approve-member"]').forEach(btn => {
         btn.addEventListener('click', async () => {
           btn.disabled = true;
+          btn.dataset.idempotencyKey = btn.dataset.idempotencyKey || ('idem_mem_appr_' + btn.dataset.id + '_' + Date.now());
           try {
             const res = await fetch(`/api/memberships/${btn.dataset.id}/review`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Idempotency-Key': 'idem_mem_appr_' + Date.now()
+                'Idempotency-Key': btn.dataset.idempotencyKey
               },
               body: JSON.stringify({ decision: 'approve', role: 'incoming' })
             });
             if (!res.ok) throw new Error('Approval failed');
+            delete btn.dataset.idempotencyKey;
             await renderManagerOverview();
           } catch (err) {
             alert(err.message);
@@ -704,16 +712,18 @@
       document.querySelectorAll('[data-action="reject-member"]').forEach(btn => {
         btn.addEventListener('click', async () => {
           btn.disabled = true;
+          btn.dataset.idempotencyKey = btn.dataset.idempotencyKey || ('idem_mem_rej_' + btn.dataset.id + '_' + Date.now());
           try {
             const res = await fetch(`/api/memberships/${btn.dataset.id}/review`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Idempotency-Key': 'idem_mem_rej_' + Date.now()
+                'Idempotency-Key': btn.dataset.idempotencyKey
               },
               body: JSON.stringify({ decision: 'reject' })
             });
             if (!res.ok) throw new Error('Rejection failed');
+            delete btn.dataset.idempotencyKey;
             await renderManagerOverview();
           } catch (err) {
             alert(err.message);
@@ -722,19 +732,21 @@
         });
       });
 
-      // Bind Handover Relay
+      // Bind Handover Relay (reuses idempotency key on retry)
       document.querySelectorAll('[data-action="relay-handover"]').forEach(btn => {
         btn.addEventListener('click', async () => {
           btn.disabled = true;
+          btn.dataset.idempotencyKey = btn.dataset.idempotencyKey || ('idem_relay_' + btn.dataset.id + '_' + Date.now());
           try {
             const res = await fetch(`/api/handovers/${btn.dataset.id}/relay`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Idempotency-Key': 'idem_relay_' + Date.now()
+                'Idempotency-Key': btn.dataset.idempotencyKey
               }
             });
             if (!res.ok) throw new Error('Relay action failed');
+            delete btn.dataset.idempotencyKey;
             await renderManagerOverview();
           } catch (err) {
             alert(err.message);
@@ -743,20 +755,22 @@
         });
       });
 
-      // Bind Leave Review
+      // Bind Leave Review (reuses idempotency key on retry)
       document.querySelectorAll('[data-action="review-leave"]').forEach(btn => {
         btn.addEventListener('click', async () => {
           btn.disabled = true;
+          btn.dataset.idempotencyKey = btn.dataset.idempotencyKey || ('idem_leave_' + btn.dataset.id + '_' + btn.dataset.decision + '_' + Date.now());
           try {
             const res = await fetch('/api/leave-requests/review', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Idempotency-Key': 'idem_leave_' + Date.now()
+                'Idempotency-Key': btn.dataset.idempotencyKey
               },
               body: JSON.stringify({ id: btn.dataset.id, decision: btn.dataset.decision })
             });
             if (!res.ok) throw new Error('Leave review failed');
+            delete btn.dataset.idempotencyKey;
             await renderManagerOverview();
           } catch (err) {
             alert(err.message);
@@ -1048,16 +1062,18 @@
       `;
     }).join('');
 
-    // Bind task toggling
+    // Bind task toggling (explicit desired state prevents accidental inversion on retries)
     container.querySelectorAll('.sr-task-checkbox').forEach(box => {
       box.addEventListener('change', async () => {
         const hId = box.dataset.handoverId;
         const tId = box.dataset.taskId;
+        const desiredState = box.checked;
         box.disabled = true;
         try {
           const res = await fetch(`/api/handovers/${hId}/tasks/${tId}/toggle`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ done: desiredState })
           });
           if (!res.ok) throw new Error('Task toggle failed');
           const row = box.closest('.sr-task-item');
@@ -1071,23 +1087,25 @@
       });
     });
 
-    // Bind Acknowledge
+    // Bind Acknowledge (reuses idempotency key on retries)
     container.querySelectorAll('[data-action="ack-handover"]').forEach(btn => {
       btn.addEventListener('click', async () => {
         btn.disabled = true;
         btn.textContent = 'Acknowledging...';
+        btn.dataset.idempotencyKey = btn.dataset.idempotencyKey || ('idem_ack_' + btn.dataset.id + '_' + Date.now());
         try {
           const res = await fetch(`/api/handovers/${btn.dataset.id}/acknowledge`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Idempotency-Key': 'idem_ack_' + Date.now()
+              'Idempotency-Key': btn.dataset.idempotencyKey
             }
           });
           if (!res.ok) {
             const err = await res.json();
             throw new Error(err.error || 'Acknowledgement failed');
           }
+          delete btn.dataset.idempotencyKey;
           if (user.role === 'supervisor' || user.role === 'owner') {
             await renderManagerHandovers();
           } else {
@@ -1101,23 +1119,25 @@
       });
     });
 
-    // Bind Relay
+    // Bind Relay (reuses idempotency key on retries)
     container.querySelectorAll('[data-action="relay-handover"]').forEach(btn => {
       btn.addEventListener('click', async () => {
         btn.disabled = true;
         btn.textContent = 'Relaying...';
+        btn.dataset.idempotencyKey = btn.dataset.idempotencyKey || ('idem_relay_' + btn.dataset.id + '_' + Date.now());
         try {
           const res = await fetch(`/api/handovers/${btn.dataset.id}/relay`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Idempotency-Key': 'idem_relay_' + Date.now()
+              'Idempotency-Key': btn.dataset.idempotencyKey
             }
           });
           if (!res.ok) {
             const err = await res.json();
             throw new Error(err.error || 'Relay failed');
           }
+          delete btn.dataset.idempotencyKey;
           if (user.role === 'supervisor' || user.role === 'owner') {
             await renderManagerHandovers();
           } else {
@@ -1225,7 +1245,9 @@
       submitBtn.textContent = 'Submitting Handover...';
       feedback.innerHTML = '';
 
-      const idempotencyKey = 'idem_create_h_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+      // Reuse original action's idempotency key across retries
+      submitBtn.dataset.idempotencyKey = submitBtn.dataset.idempotencyKey || ('idem_create_h_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
+      const idempotencyKey = submitBtn.dataset.idempotencyKey;
 
       try {
         const res = await fetch('/api/handovers', {
@@ -1253,6 +1275,7 @@
           throw new Error(data.error || 'Failed to submit handover');
         }
 
+        delete submitBtn.dataset.idempotencyKey;
         feedback.innerHTML = `<div class="sr-state-feedback success">Handover submitted successfully! Awaiting supervisor review.</div>`;
         setTimeout(async () => {
           workerHandoversTab = 'history';
@@ -1416,7 +1439,9 @@
         </div>
       `;
     } else if (viewName === 'approvals') {
-      await renderManagerOverview();
+      await renderApprovalsScreen();
+    } else if (viewName === 'team') {
+      await renderTeamScreen();
     } else if (viewName === 'notifications') {
       try {
         const res = await fetch('/api/notifications');
@@ -1460,6 +1485,590 @@
     }
   }
 
+  // ── 7. Polished Team Directory Screen (UI Phase 3) ────────────────────────
+  let teamSearchQuery = '';
+
+  async function renderTeamScreen() {
+    const user = getUser();
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="sr-skeleton" style="height: 48px; margin-bottom: 16px;"></div>
+      <div class="sr-skeleton" style="height: 120px; margin-bottom: 16px;"></div>
+      <div class="sr-skeleton" style="height: 200px;"></div>
+    `;
+
+    try {
+      const res = await fetch('/api/directory');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Could not load team directory');
+      }
+      const data = await res.json();
+      const allMembers = data.members || [];
+
+      function filterAndRender(query) {
+        const q = (query || '').toLowerCase().trim();
+        const filtered = allMembers.filter(m => {
+          if (!q) return true;
+          return (m.name && m.name.toLowerCase().includes(q)) ||
+                 (m.title && m.title.toLowerCase().includes(q)) ||
+                 (m.department && m.department.toLowerCase().includes(q)) ||
+                 (m.role && m.role.toLowerCase().includes(q)) ||
+                 (m.email && m.email.toLowerCase().includes(q));
+        });
+
+        const listContainer = document.getElementById('sr-team-list-container');
+        const countEl = document.getElementById('sr-team-count');
+        if (countEl) countEl.textContent = `${filtered.length} of ${allMembers.length} staff`;
+
+        if (!listContainer) return;
+
+        if (filtered.length === 0) {
+          listContainer.innerHTML = `
+            <div class="sr-empty-state" style="grid-column: 1 / -1;">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/></svg>
+              <p>${q ? `No staff members found matching "${escapeHtml(q)}".` : 'No team members found for this organisation.'}</p>
+            </div>
+          `;
+          return;
+        }
+
+        listContainer.innerHTML = filtered.map(m => {
+          const initials = (m.name || 'U').split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+          const roleLabel = {
+            owner: 'Organisation Owner',
+            supervisor: 'Shift Supervisor',
+            outgoing: 'Outgoing Specialist',
+            incoming: 'Incoming Specialist',
+            worker: 'Frontline Worker'
+          }[m.role] || (m.role ? m.role.toUpperCase() : 'Staff');
+
+          const statusClass = (m.status || 'active').toLowerCase();
+          const statusText = m.status === 'pending_approval' ? 'Pending Approval' : (m.status || 'Active');
+
+          const shiftTime = (m.shift_start && m.shift_end)
+            ? `${m.shift_start} – ${m.shift_end}`
+            : 'Standard Shift';
+
+          return `
+            <article class="sr-team-card" data-member-id="${m.id}">
+              <div class="sr-team-card-header">
+                <div class="sr-team-avatar" aria-hidden="true">${escapeHtml(initials)}</div>
+                <div class="sr-team-info">
+                  <h4 class="sr-team-name">${escapeHtml(m.name || 'Team Member')}</h4>
+                  <p class="sr-team-title">${escapeHtml(m.title || roleLabel)}</p>
+                </div>
+              </div>
+              <div class="sr-team-details">
+                <div class="sr-team-row">
+                  <span class="sr-team-row-label">Role</span>
+                  <span class="sr-team-row-val">${escapeHtml(roleLabel)}</span>
+                </div>
+                <div class="sr-team-row">
+                  <span class="sr-team-row-label">Department / Unit</span>
+                  <span class="sr-team-row-val">${escapeHtml(m.department || user.department || 'Operations')}</span>
+                </div>
+                <div class="sr-team-row">
+                  <span class="sr-team-row-label">Shift Hours</span>
+                  <span class="sr-team-row-val">${escapeHtml(shiftTime)}</span>
+                </div>
+                <div class="sr-team-row">
+                  <span class="sr-team-row-label">Membership Status</span>
+                  <span class="sr-status-pill ${statusClass}">${escapeHtml(statusText)}</span>
+                </div>
+              </div>
+            </article>
+          `;
+        }).join('');
+      }
+
+      container.innerHTML = `
+        <div class="sr-context-banner">
+          <div class="sr-context-banner-text">
+            <span class="sr-context-banner-company">Facility: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-site">Team Directory: <strong>${escapeHtml(user.department || 'Operations')}</strong></span>
+          </div>
+          <span class="sr-context-banner-badge">${allMembers.length} Members</span>
+        </div>
+
+        <section class="sr-card" aria-label="Team Directory">
+          <div class="sr-search-bar">
+            <div class="sr-search-input-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" id="sr-team-search" class="sr-search-input" placeholder="Search by name, role, title, or department..." value="${escapeHtml(teamSearchQuery)}" aria-label="Search team members" />
+            </div>
+            <span class="sr-search-count" id="sr-team-count">${allMembers.length} staff</span>
+          </div>
+
+          <div class="sr-team-grid" id="sr-team-list-container"></div>
+        </section>
+      `;
+
+      filterAndRender(teamSearchQuery);
+
+      const searchInput = document.getElementById('sr-team-search');
+      searchInput?.addEventListener('input', (e) => {
+        teamSearchQuery = e.target.value;
+        filterAndRender(teamSearchQuery);
+      });
+
+    } catch (err) {
+      container.innerHTML = `
+        <div class="sr-card" style="border-color:#fecaca;background:#fff5f5;">
+          <h3 style="color:#b91c1c;margin:0 0 6px;">Could not load team directory</h3>
+          <p style="color:#7f1d1d;font-size:13.5px;margin:0 0 14px;">${escapeHtml(err.message)}</p>
+          <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.navigate('team')">Retry</button>
+        </div>
+      `;
+    }
+  }
+
+  // ── 8. Polished Approvals Screen (UI Phase 3) ─────────────────────────────
+  let approvalsTab = 'access'; // 'access' | 'leave'
+
+  async function renderApprovalsScreen() {
+    const user = getUser();
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+
+    // Check manager authority: must be supervisor or owner
+    const isManager = isManagerRole(user.role);
+    if (!isManager) {
+      container.innerHTML = `
+        <div class="sr-card" style="border-color:#fecaca;background:#fff5f5;">
+          <h3 style="color:#b91c1c;margin:0 0 6px;">Access Restricted</h3>
+          <p style="color:#7f1d1d;font-size:13.5px;margin:0 0 14px;">Approvals require a shift supervisor or organisation owner role.</p>
+          <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.navigate('today')">Return to Today</button>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="sr-skeleton" style="height: 48px; margin-bottom: 16px;"></div>
+      <div class="sr-skeleton" style="height: 140px; margin-bottom: 16px;"></div>
+      <div class="sr-skeleton" style="height: 200px;"></div>
+    `;
+
+    try {
+      // Supervisors MUST NOT see or execute owner-only actions (leave reviews)
+      const isOwner = user.role === 'owner';
+
+      const [pendingRes, leaveRes] = await Promise.all([
+        fetch('/api/memberships/pending'),
+        isOwner ? fetch('/api/leave-requests') : Promise.resolve(null)
+      ]);
+
+      if (!pendingRes.ok) {
+        const err = await pendingRes.json().catch(() => ({}));
+        throw new Error(err.error || 'Could not load pending access requests');
+      }
+
+      const pendingData = await pendingRes.json();
+      const accessRequests = pendingData.requests || [];
+
+      let leaveRequests = [];
+      if (isOwner && leaveRes && leaveRes.ok) {
+        const leaveData = await leaveRes.json();
+        leaveRequests = (leaveData.requests || []).filter(r => r.status === 'pending');
+      }
+
+      // If supervisor, strictly clamp tab to 'access'
+      if (!isOwner) {
+        approvalsTab = 'access';
+      }
+
+      container.innerHTML = `
+        <div class="sr-context-banner">
+          <div class="sr-context-banner-text">
+            <span class="sr-context-banner-company">Facility: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-site">Authorisations Queue: <strong>${escapeHtml(user.department || 'Operations')}</strong></span>
+          </div>
+          <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
+        </div>
+
+        <div class="sr-tabs-header">
+          <button class="sr-tab-btn ${approvalsTab === 'access' ? 'active' : ''}" data-sr-approval-tab="access">
+            <span>Worker Access Requests</span>
+            ${accessRequests.length > 0 ? `<span class="sr-tab-badge">${accessRequests.length}</span>` : ''}
+          </button>
+          ${isOwner ? `
+            <button class="sr-tab-btn ${approvalsTab === 'leave' ? 'active' : ''}" data-sr-approval-tab="leave">
+              <span>Leave Reviews (Owner)</span>
+              ${leaveRequests.length > 0 ? `<span class="sr-tab-badge">${leaveRequests.length}</span>` : ''}
+            </button>
+          ` : ''}
+        </div>
+
+        <div id="sr-approval-feedback"></div>
+        <div id="sr-approvals-panel"></div>
+      `;
+
+      // Tab switcher
+      container.querySelectorAll('[data-sr-approval-tab]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          approvalsTab = btn.dataset.srApprovalTab;
+          renderApprovalsScreen();
+        });
+      });
+
+      const panel = document.getElementById('sr-approvals-panel');
+
+      if (approvalsTab === 'leave' && isOwner) {
+        renderLeaveApprovalsList(panel, leaveRequests, user);
+      } else {
+        renderWorkerAccessList(panel, accessRequests, user);
+      }
+
+    } catch (err) {
+      container.innerHTML = `
+        <div class="sr-card" style="border-color:#fecaca;background:#fff5f5;">
+          <h3 style="color:#b91c1c;margin:0 0 6px;">Could not load approvals queue</h3>
+          <p style="color:#7f1d1d;font-size:13.5px;margin:0 0 14px;">${escapeHtml(err.message)}</p>
+          <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.navigate('approvals')">Retry</button>
+        </div>
+      `;
+    }
+  }
+
+  // Helper: Render Worker Access List
+  function renderWorkerAccessList(container, requests, user) {
+    if (!requests || requests.length === 0) {
+      container.innerHTML = `
+        <div class="sr-empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+          <p>All caught up! No pending worker access requests awaiting authorisation.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = requests.map(r => {
+      const initials = (r.name || 'W').split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+      const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Recently';
+
+      return `
+        <article class="sr-approval-card" data-request-id="${r.id}">
+          <div class="sr-approval-header">
+            <div class="sr-approval-applicant">
+              <div class="sr-approval-avatar">${escapeHtml(initials)}</div>
+              <div>
+                <h4 class="sr-approval-applicant-name">${escapeHtml(r.name || 'Worker Applicant')}</h4>
+                <p class="sr-approval-applicant-meta">${escapeHtml(r.email || '')} · Applied: ${escapeHtml(dateStr)}</p>
+              </div>
+            </div>
+            <span class="sr-status-pill pending_approval">PENDING APPROVAL</span>
+          </div>
+
+          <div class="sr-approval-body">
+            <strong>Requested Unit:</strong> ${escapeHtml(r.department || 'Operations')}<br>
+            <strong>Position Title:</strong> ${escapeHtml(r.title || 'Frontline Specialist')}
+          </div>
+
+          <div class="sr-approval-actions">
+            <button class="sr-btn-reject" data-action="open-reject-access" data-id="${r.id}" data-name="${escapeHtml(r.name || 'Applicant')}">
+              Reject Access
+            </button>
+            <button class="sr-btn-approve" data-action="open-approve-access" data-id="${r.id}" data-name="${escapeHtml(r.name || 'Applicant')}">
+              Approve Access
+            </button>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    // Bind Consequential Action Triggers
+    container.querySelectorAll('[data-action="open-approve-access"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const name = btn.dataset.name;
+        openConsequentialModal({
+          title: 'Authorise Worker Access',
+          bodyHtml: `
+            <p style="margin:0 0 12px;font-size:14px;color:var(--sr-text-main);">
+              Are you sure you want to approve <strong>${escapeHtml(name)}</strong> into this facility workspace?
+            </p>
+            <div class="sr-form-group" style="margin-bottom:14px;">
+              <label class="sr-form-label" for="sr-access-role-select">Assign Worker Role</label>
+              <select id="sr-access-role-select" class="sr-form-input">
+                <option value="incoming" selected>Incoming Shift Specialist</option>
+                <option value="outgoing">Outgoing Shift Specialist</option>
+                <option value="worker">Frontline General Worker</option>
+              </select>
+            </div>
+            <small style="color:var(--sr-text-muted);display:block;margin-top:4px;">
+              Consequential action: Grants access to shift handovers, attendance reporting, and internal team directory.
+            </small>
+          `,
+          confirmLabel: 'Approve & Grant Access',
+          confirmBtnClass: 'sr-btn-approve',
+          onConfirm: async (modalEl, confirmBtn) => {
+            const roleSelect = modalEl.querySelector('#sr-access-role-select');
+            const role = roleSelect ? roleSelect.value : 'incoming';
+            confirmBtn.dataset.idempotencyKey = confirmBtn.dataset.idempotencyKey || ('idem_mem_appr_' + id + '_' + Date.now());
+
+            const res = await fetch(`/api/memberships/${id}/review`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Idempotency-Key': confirmBtn.dataset.idempotencyKey
+              },
+              body: JSON.stringify({ decision: 'approve', role })
+            });
+
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.error || 'Approval failed');
+            }
+
+            delete confirmBtn.dataset.idempotencyKey;
+            modalEl.remove();
+            showApprovalFeedback(`Worker access granted for ${name}.`, 'success');
+            await renderApprovalsScreen();
+          }
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="open-reject-access"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const name = btn.dataset.name;
+        openConsequentialModal({
+          title: 'Reject Access Request',
+          bodyHtml: `
+            <p style="margin:0 0 12px;font-size:14px;color:var(--sr-text-main);">
+              Are you sure you want to reject the access request for <strong>${escapeHtml(name)}</strong>?
+            </p>
+            <small style="color:var(--sr-text-muted);display:block;">
+              Consequential action: The applicant will be blocked from accessing facility data.
+            </small>
+          `,
+          confirmLabel: 'Confirm Rejection',
+          confirmBtnClass: 'sr-btn-reject',
+          onConfirm: async (modalEl, confirmBtn) => {
+            confirmBtn.dataset.idempotencyKey = confirmBtn.dataset.idempotencyKey || ('idem_mem_rej_' + id + '_' + Date.now());
+
+            const res = await fetch(`/api/memberships/${id}/review`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Idempotency-Key': confirmBtn.dataset.idempotencyKey
+              },
+              body: JSON.stringify({ decision: 'reject' })
+            });
+
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.error || 'Rejection failed');
+            }
+
+            delete confirmBtn.dataset.idempotencyKey;
+            modalEl.remove();
+            showApprovalFeedback(`Access request for ${name} rejected.`, 'success');
+            await renderApprovalsScreen();
+          }
+        });
+      });
+    });
+  }
+
+  // Helper: Render Leave Approvals List (Owner Only)
+  function renderLeaveApprovalsList(container, requests, user) {
+    if (!requests || requests.length === 0) {
+      container.innerHTML = `
+        <div class="sr-empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+          <p>No pending employee leave requests requiring owner review.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = requests.map(lr => {
+      const applicantName = lr.applicant_name || 'Staff Member';
+      const initials = applicantName.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+      const dateStr = lr.created_at ? new Date(lr.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '';
+
+      return `
+        <article class="sr-approval-card" data-leave-id="${lr.id}">
+          <div class="sr-approval-header">
+            <div class="sr-approval-applicant">
+              <div class="sr-approval-avatar">${escapeHtml(initials)}</div>
+              <div>
+                <h4 class="sr-approval-applicant-name">${escapeHtml(applicantName)}</h4>
+                <p class="sr-approval-applicant-meta">${escapeHtml(lr.applicant_department || 'Operations')} · Submitted: ${escapeHtml(dateStr)}</p>
+              </div>
+            </div>
+            <span class="sr-status-pill pending">PENDING REVIEW</span>
+          </div>
+
+          <div class="sr-approval-body">
+            <strong>Requested Leave Duration:</strong> ${escapeHtml(lr.starts_on)} to ${escapeHtml(lr.ends_on)}<br>
+            <strong>Reason:</strong> ${escapeHtml(lr.reason || 'Personal / General Leave')}
+          </div>
+
+          <div class="sr-approval-actions">
+            <button class="sr-btn-reject" data-action="open-reject-leave" data-id="${lr.id}" data-name="${escapeHtml(applicantName)}">
+              Reject Leave
+            </button>
+            <button class="sr-btn-approve" data-action="open-approve-leave" data-id="${lr.id}" data-name="${escapeHtml(applicantName)}">
+              Approve Leave
+            </button>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    // Bind Leave Consequential Action Modals
+    container.querySelectorAll('[data-action="open-approve-leave"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const name = btn.dataset.name;
+        openConsequentialModal({
+          title: 'Authorise Leave Request',
+          bodyHtml: `
+            <p style="margin:0 0 12px;font-size:14px;color:var(--sr-text-main);">
+              Are you sure you want to approve leave for <strong>${escapeHtml(name)}</strong>?
+            </p>
+            <small style="color:var(--sr-text-muted);display:block;">
+              Consequential action: Notifies the employee and updates facility scheduling coverage.
+            </small>
+          `,
+          confirmLabel: 'Confirm & Approve Leave',
+          confirmBtnClass: 'sr-btn-approve',
+          onConfirm: async (modalEl, confirmBtn) => {
+            confirmBtn.dataset.idempotencyKey = confirmBtn.dataset.idempotencyKey || ('idem_leave_' + id + '_appr_' + Date.now());
+
+            const res = await fetch('/api/leave-requests/review', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Idempotency-Key': confirmBtn.dataset.idempotencyKey
+              },
+              body: JSON.stringify({ id, decision: 'approved' })
+            });
+
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.error || 'Leave approval failed');
+            }
+
+            delete confirmBtn.dataset.idempotencyKey;
+            modalEl.remove();
+            showApprovalFeedback(`Leave approved for ${name}.`, 'success');
+            await renderApprovalsScreen();
+          }
+        });
+      });
+    });
+
+    container.querySelectorAll('[data-action="open-reject-leave"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const name = btn.dataset.name;
+        openConsequentialModal({
+          title: 'Reject Leave Request',
+          bodyHtml: `
+            <p style="margin:0 0 12px;font-size:14px;color:var(--sr-text-main);">
+              Are you sure you want to reject the leave request for <strong>${escapeHtml(name)}</strong>?
+            </p>
+            <small style="color:var(--sr-text-muted);display:block;">
+              Consequential action: The employee will be notified that leave was not approved.
+            </small>
+          `,
+          confirmLabel: 'Confirm Rejection',
+          confirmBtnClass: 'sr-btn-reject',
+          onConfirm: async (modalEl, confirmBtn) => {
+            confirmBtn.dataset.idempotencyKey = confirmBtn.dataset.idempotencyKey || ('idem_leave_' + id + '_rej_' + Date.now());
+
+            const res = await fetch('/api/leave-requests/review', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Idempotency-Key': confirmBtn.dataset.idempotencyKey
+              },
+              body: JSON.stringify({ id, decision: 'rejected' })
+            });
+
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.error || 'Leave rejection failed');
+            }
+
+            delete confirmBtn.dataset.idempotencyKey;
+            modalEl.remove();
+            showApprovalFeedback(`Leave request for ${name} rejected.`, 'success');
+            await renderApprovalsScreen();
+          }
+        });
+      });
+    });
+  }
+
+  // Reusable Consequential Action Modal with Duplicate Submission Prevention
+  function openConsequentialModal({ title, bodyHtml, confirmLabel, confirmBtnClass, onConfirm }) {
+    document.getElementById('sr-consequential-modal-root')?.remove();
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'sr-consequential-modal-root';
+    backdrop.className = 'sr-modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="sr-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="sr-confirm-modal-title">
+        <h3 id="sr-confirm-modal-title" class="sr-confirm-title">${escapeHtml(title)}</h3>
+        <div class="sr-confirm-text">${bodyHtml}</div>
+        <div id="sr-confirm-modal-error"></div>
+        <div class="sr-confirm-actions">
+          <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-confirm-cancel">Cancel</button>
+          <button type="button" class="${confirmBtnClass || 'sr-btn-approve'}" id="sr-btn-confirm-ok">${escapeHtml(confirmLabel)}</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(backdrop);
+
+    const closeModal = () => backdrop.remove();
+    backdrop.querySelector('#sr-btn-confirm-cancel')?.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+
+    const confirmBtn = backdrop.querySelector('#sr-btn-confirm-ok');
+    const cancelBtn = backdrop.querySelector('#sr-btn-confirm-cancel');
+    const errorEl = backdrop.querySelector('#sr-confirm-modal-error');
+
+    confirmBtn?.addEventListener('click', async () => {
+      confirmBtn.disabled = true;
+      cancelBtn.disabled = true;
+      const origText = confirmBtn.textContent;
+      confirmBtn.textContent = 'Processing...';
+      if (errorEl) errorEl.innerHTML = '';
+
+      try {
+        await onConfirm(backdrop, confirmBtn);
+      } catch (err) {
+        if (errorEl) {
+          errorEl.innerHTML = `<div class="sr-state-feedback error" style="margin-bottom:12px;">${escapeHtml(err.message)}</div>`;
+        }
+        confirmBtn.disabled = false;
+        cancelBtn.disabled = false;
+        confirmBtn.textContent = origText;
+      }
+    });
+
+    // Focus confirm button
+    setTimeout(() => confirmBtn?.focus(), 50);
+  }
+
+  function showApprovalFeedback(message, type = 'success') {
+    const feedbackEl = document.getElementById('sr-approval-feedback');
+    if (feedbackEl) {
+      feedbackEl.innerHTML = `<div class="sr-state-feedback ${type}">${escapeHtml(message)}</div>`;
+      setTimeout(() => { if (feedbackEl) feedbackEl.innerHTML = ''; }, 4000);
+    }
+  }
+
   // Export to global scope
   window.renderDashboard = function() {
     return mountShell();
@@ -1471,6 +2080,8 @@
     renderManagerOverview,
     renderWorkerHandovers,
     renderManagerHandovers,
+    renderTeamScreen,
+    renderApprovalsScreen,
     openContextModal,
     navigate
   };
