@@ -38,7 +38,7 @@
   }
 
   function isAuthorizedView(viewName, isManager) {
-    const allowedWorker = ['today', 'handovers', 'me'];
+    const allowedWorker = ['today', 'handovers', 'me', 'schedule'];
     const allowedManager = ['overview', 'handovers', 'team', 'approvals', 'me'];
     return isManager ? allowedManager.includes(viewName) : allowedWorker.includes(viewName);
   }
@@ -618,6 +618,8 @@
       await renderApprovalsScreen();
     } else if (view === 'me') {
       await renderWorkerMe();
+    } else if (view === 'schedule' && !isManager) {
+      await renderWorkerSchedule();
     } else if (view === 'notifications') {
       await (isManager ? renderManagerOverview() : renderWorkerToday());
       toggleNotificationPanel(true);
@@ -1717,6 +1719,396 @@
     }
   }
 
+  // ── 6a. Worker Schedule Screen ────────────────────────────────────────────
+  let scheduleTab = 'shifts'; // 'shifts' | 'leave' | 'attendance'
+  let scheduleMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  let leaveSubmitting = false;
+  let leaveIdempotencyKey = null;
+
+  function formatScheduleDate(isoStr, tz) {
+    if (!isoStr) return '\u2014';
+    try {
+      return new Intl.DateTimeFormat('en-GB', {
+        weekday: 'short', day: 'numeric', month: 'short',
+        hour: '2-digit', minute: '2-digit', timeZone: tz || 'UTC',
+        hour12: false
+      }).format(new Date(isoStr));
+    } catch (_) {
+      return isoStr;
+    }
+  }
+
+  function formatDateOnly(isoStr, tz) {
+    if (!isoStr) return '\u2014';
+    try {
+      return new Intl.DateTimeFormat('en-GB', {
+        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+        timeZone: tz || 'UTC'
+      }).format(new Date(isoStr));
+    } catch (_) {
+      return isoStr;
+    }
+  }
+
+  function formatDuration(startIso, endIso) {
+    if (!startIso || !endIso) return '';
+    const diff = (new Date(endIso) - new Date(startIso)) / 3600000;
+    if (diff <= 0) return '';
+    const h = Math.floor(diff);
+    const m = Math.round((diff - h) * 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+
+  function formatHours(h) {
+    if (h === null || h === undefined) return '0h';
+    const hrs = Math.floor(h);
+    const mins = Math.round((h - hrs) * 60);
+    return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+  }
+
+  function shiftStatusPill(status) {
+    const map = {
+      scheduled: { label: 'Scheduled', cls: 'sr-status-pill active' },
+      in_progress: { label: 'In Progress', cls: 'sr-status-pill active' },
+      claimed: { label: 'Claimed', cls: 'sr-status-pill pending' },
+      completed: { label: 'Completed', cls: 'sr-status-pill inactive' }
+    };
+    const s = map[status] || { label: escapeHtml(status || 'Unknown'), cls: 'sr-status-pill inactive' };
+    return `<span class="${s.cls}">${s.label}</span>`;
+  }
+
+  function leaveStatusPill(status) {
+    const map = {
+      pending: { label: 'Pending', cls: 'sr-status-pill pending' },
+      approved: { label: 'Approved', cls: 'sr-status-pill active' },
+      rejected: { label: 'Rejected', cls: 'sr-status-pill inactive' }
+    };
+    const s = map[status] || { label: escapeHtml(status || 'Pending'), cls: 'sr-status-pill pending' };
+    return `<span class="${s.cls}">${s.label}</span>`;
+  }
+
+  function renderShiftsTab(shifts, myId, tz) {
+    // Filter to only this worker's assignments — server returns company-wide data
+    const mine = shifts.filter(s =>
+      s.membership_id === myId || s.membershipId === myId
+    );
+    if (mine.length === 0) {
+      return `
+        <div style="text-align:center;padding:48px 24px;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+          <p style="color:var(--sr-text-muted,#64748b);margin:0;font-size:14px;font-weight:600;">No shifts scheduled this month</p>
+          <p style="color:var(--sr-text-muted,#64748b);margin:6px 0 0;font-size:12px;">Your company roster updates when your supervisor assigns you a shift.</p>
+        </div>`;
+    }
+    return mine.map(s => {
+      const duration = formatDuration(s.starts_at, s.ends_at);
+      const start = formatScheduleDate(s.starts_at, tz);
+      const end = formatScheduleDate(s.ends_at, tz);
+      // Detect overnight: start and end on different calendar days
+      const startDay = s.starts_at ? new Date(s.starts_at).toDateString() : '';
+      const endDay = s.ends_at ? new Date(s.ends_at).toDateString() : '';
+      const overnight = startDay && endDay && startDay !== endDay;
+      return `
+        <div class="sr-review-item" style="align-items:flex-start;gap:12px;padding:14px 16px;">
+          <div style="width:42px;height:42px;border-radius:10px;background:var(--sr-primary,#0d524d);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+              ${shiftStatusPill(s.status)}
+              ${overnight ? '<span style="font-size:11px;font-weight:600;color:#b45309;background:#fef3c7;padding:2px 7px;border-radius:4px;border:1px solid #fde68a;">Overnight</span>' : ''}
+            </div>
+            <div style="font-size:13.5px;color:var(--sr-text,#0f172a);font-weight:600;margin-bottom:3px;">${start}</div>
+            <div style="font-size:12.5px;color:var(--sr-text-muted,#64748b);">until ${end}${duration ? ` &bull; ${duration}` : ''}</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderLeaveTab(requests, tz) {
+    const listHtml = requests.length === 0
+      ? `<div style="text-align:center;padding:32px 24px 16px;">
+          <p style="color:var(--sr-text-muted,#64748b);margin:0;font-size:14px;">No leave requests on record.</p>
+         </div>`
+      : requests.map(r => `
+        <div class="sr-review-item" style="align-items:flex-start;padding:14px 16px;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+              ${leaveStatusPill(r.status)}
+              <span style="font-size:12px;color:var(--sr-text-muted,#64748b);">${formatDateOnly(r.starts_on, tz)} &ndash; ${formatDateOnly(r.ends_on, tz)}</span>
+            </div>
+            ${r.reason ? `<div style="font-size:13px;color:var(--sr-text,#0f172a);">${escapeHtml(r.reason)}</div>` : ''}
+          </div>
+        </div>`).join('');
+
+    return `
+      ${listHtml}
+      <div style="padding:16px;border-top:1px solid var(--sr-border,#e2e8f0);margin-top:4px;">
+        <div style="font-size:13px;font-weight:700;color:var(--sr-text,#0f172a);margin-bottom:12px;">Request Leave</div>
+        <form id="sr-leave-form" novalidate>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--sr-text-muted,#64748b);">
+              From
+              <input type="date" id="sr-leave-start" name="startsOn" required
+                style="padding:9px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;font-size:13px;background:var(--sr-bg-surface,#fff);color:var(--sr-text,#0f172a);"
+              />
+            </label>
+            <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--sr-text-muted,#64748b);">
+              To
+              <input type="date" id="sr-leave-end" name="endsOn" required
+                style="padding:9px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;font-size:13px;background:var(--sr-bg-surface,#fff);color:var(--sr-text,#0f172a);"
+              />
+            </label>
+          </div>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--sr-text-muted,#64748b);margin-bottom:10px;">
+            Reason (optional)
+            <textarea id="sr-leave-reason" name="reason" rows="2" placeholder="e.g. Medical appointment"
+              style="padding:9px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;font-size:13px;resize:vertical;background:var(--sr-bg-surface,#fff);color:var(--sr-text,#0f172a);font-family:inherit;"
+            ></textarea>
+          </label>
+          <div id="sr-leave-error" role="alert" aria-live="polite" style="display:none;font-size:12.5px;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;border-radius:6px;padding:8px 10px;margin-bottom:8px;"></div>
+          <button type="submit" id="sr-leave-submit" class="sr-btn sr-btn-primary" style="width:100%;">
+            Submit Leave Request
+          </button>
+        </form>
+      </div>`;
+  }
+
+  function renderAttendanceTab(summary, tz) {
+    const { active, totalHours, weekHours, entries } = summary || {};
+    const entryList = Array.isArray(entries) && entries.length > 0
+      ? entries.map(e => {
+          const clockIn = formatScheduleDate(e.clocked_in_at, tz);
+          const clockOut = e.clocked_out_at ? formatScheduleDate(e.clocked_out_at, tz) : null;
+          const hrs = e.hours != null ? formatHours(Number(e.hours)) : null;
+          return `
+            <div class="sr-review-item" style="align-items:flex-start;padding:14px 16px;">
+              <div style="width:36px;height:36px;border-radius:8px;background:#f0fdf4;border:1px solid #a7f3d0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13.5px;color:var(--sr-text,#0f172a);font-weight:600;margin-bottom:2px;">Clocked in: ${clockIn}</div>
+                ${clockOut
+                  ? `<div style="font-size:12.5px;color:var(--sr-text-muted,#64748b);">Clocked out: ${clockOut}${hrs ? ` &bull; ${hrs}` : ''}</div>`
+                  : `<div style="font-size:12.5px;color:#059669;font-weight:600;">Currently clocked in</div>`}
+                ${e.note ? `<div style="font-size:12px;color:var(--sr-text-muted,#64748b);margin-top:3px;font-style:italic;">${escapeHtml(e.note)}</div>` : ''}
+              </div>
+            </div>`;
+        }).join('')
+      : `<div style="text-align:center;padding:32px 24px;">
+          <p style="color:var(--sr-text-muted,#64748b);margin:0;font-size:14px;font-weight:600;">No recorded clock-in/out history this month</p>
+          <p style="color:var(--sr-text-muted,#64748b);margin:6px 0 0;font-size:12px;">Attendance records appear here after clocking in from the Today screen.</p>
+         </div>`;
+
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px 6px;">
+        <div style="background:#f8fafc;border:1px solid var(--sr-border,#e2e8f0);border-radius:10px;padding:12px 14px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--sr-text-muted,#64748b);margin-bottom:4px;">This Week</div>
+          <div style="font-size:22px;font-weight:800;color:var(--sr-primary,#0d524d);font-variant-numeric:tabular-nums;">${formatHours(weekHours)}</div>
+          <div style="font-size:11px;color:var(--sr-text-muted,#64748b);margin-top:2px;">recorded hours</div>
+        </div>
+        <div style="background:#f8fafc;border:1px solid var(--sr-border,#e2e8f0);border-radius:10px;padding:12px 14px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--sr-text-muted,#64748b);margin-bottom:4px;">This Month</div>
+          <div style="font-size:22px;font-weight:800;color:var(--sr-text,#0f172a);font-variant-numeric:tabular-nums;">${formatHours(totalHours)}</div>
+          <div style="font-size:11px;color:var(--sr-text-muted,#64748b);margin-top:2px;">recorded hours</div>
+        </div>
+      </div>
+      <div style="padding:4px 16px 10px;">
+        <div style="font-size:11.5px;color:var(--sr-text-muted,#64748b);padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;">
+          <strong style="color:#92400e;">Note:</strong> Attendance records reflect actual clock-in/out times, not scheduled shift hours.
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0;">${entryList}</div>`;
+  }
+
+  async function renderWorkerSchedule() {
+    const user = getUser();
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+    if (!user) {
+      container.innerHTML = `<div class="sr-card"><p style="color:#b91c1c;">Session expired. Please sign in again.</p></div>`;
+      return;
+    }
+
+    // Resolve timezone: prefer session-stored value, fall back to browser locale, then UTC
+    const tz = user.time_zone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+    const [year, mon] = scheduleMonth.split('-').map(Number);
+    const monthLabel = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(year, mon - 1, 1));
+
+    // Render chrome immediately (tabs + month nav); panel shows loading skeleton
+    container.innerHTML = `
+      <div class="sr-card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 16px 0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+            <div>
+              <h2 style="margin:0 0 3px;font-size:18px;font-weight:800;color:var(--sr-text,#0f172a);">My Schedule</h2>
+              <div style="font-size:12px;color:var(--sr-text-muted,#64748b);">Your assignments from the company roster &bull; Timezone: <strong>${escapeHtml(tz)}</strong></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;" aria-label="Month navigation">
+              <button id="sr-sched-prev" aria-label="Previous month" style="padding:6px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;background:var(--sr-bg-surface,#fff);cursor:pointer;font-size:14px;color:var(--sr-text,#0f172a);">&#8249;</button>
+              <span style="font-size:13px;font-weight:600;color:var(--sr-text,#0f172a);min-width:110px;text-align:center;">${escapeHtml(monthLabel)}</span>
+              <button id="sr-sched-next" aria-label="Next month" style="padding:6px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;background:var(--sr-bg-surface,#fff);cursor:pointer;font-size:14px;color:var(--sr-text,#0f172a);">&#8250;</button>
+            </div>
+          </div>
+
+          <div role="tablist" style="display:flex;gap:0;border-bottom:2px solid var(--sr-border,#e2e8f0);margin-bottom:0;">
+            ${['shifts', 'leave', 'attendance'].map(t => {
+              const labels = { shifts: 'My Shifts', leave: 'Leave', attendance: 'Attendance' };
+              const isActive = scheduleTab === t;
+              return `<button role="tab" aria-selected="${isActive}" id="sr-sched-tab-${t}" data-sched-tab="${t}"
+                style="padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13.5px;font-weight:700;
+                color:${isActive ? 'var(--sr-primary,#0d524d)' : 'var(--sr-text-muted,#64748b)'};
+                border-bottom:${isActive ? '2px solid var(--sr-primary,#0d524d)' : '2px solid transparent'};
+                margin-bottom:-2px;transition:color .15s ease;">${escapeHtml(labels[t])}</button>`;
+            }).join('')}
+          </div>
+        </div>
+
+        <div id="sr-sched-panel" role="tabpanel" aria-live="polite" style="min-height:180px;padding-bottom:8px;">
+          <div style="padding:32px;text-align:center;color:var(--sr-text-muted,#64748b);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:sr-spin 1s linear infinite;display:inline-block;margin-bottom:8px;vertical-align:middle;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            <p style="margin:4px 0 0;font-size:13px;display:inline;"> Loading...</p>
+          </div>
+        </div>
+      </div>`;
+
+    // Bind month navigation
+    document.getElementById('sr-sched-prev')?.addEventListener('click', () => {
+      const [y, m] = scheduleMonth.split('-').map(Number);
+      const d = new Date(y, m - 2, 1);
+      scheduleMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      renderWorkerSchedule();
+    });
+    document.getElementById('sr-sched-next')?.addEventListener('click', () => {
+      const [y, m] = scheduleMonth.split('-').map(Number);
+      const d = new Date(y, m, 1);
+      scheduleMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      renderWorkerSchedule();
+    });
+
+    // Bind tab switcher
+    document.querySelectorAll('[data-sched-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        scheduleTab = btn.dataset.schedTab;
+        renderWorkerSchedule();
+      });
+    });
+
+    const panel = document.getElementById('sr-sched-panel');
+    if (!panel) return;
+
+    try {
+      if (scheduleTab === 'shifts') {
+        const res = await fetch(`/api/calendar?month=${encodeURIComponent(scheduleMonth)}`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Server error ${res.status}`);
+        }
+        const data = await res.json();
+        const shifts = Array.isArray(data.shifts) ? data.shifts : [];
+        // Flag demo-generated shifts so developer can tell they are not real assignments
+        const hasDemo = shifts.some(s => s.id?.startsWith('shift-demo'));
+        panel.innerHTML = `
+          ${hasDemo ? `<div style="padding:8px 16px;background:#fefce8;border-bottom:1px solid #fde68a;font-size:12px;color:#854d0e;">
+            <strong>Dev mode:</strong> Showing demo shifts. In production, only supervisor-assigned shifts appear.
+          </div>` : ''}
+          <div style="display:flex;flex-direction:column;gap:0;">
+            ${renderShiftsTab(shifts, user.id, tz)}
+          </div>`;
+
+      } else if (scheduleTab === 'leave') {
+        const res = await fetch('/api/leave-requests');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Server error ${res.status}`);
+        }
+        const data = await res.json();
+        panel.innerHTML = renderLeaveTab(Array.isArray(data.requests) ? data.requests : [], tz);
+        bindLeaveForm(panel);
+
+      } else if (scheduleTab === 'attendance') {
+        const res = await fetch(`/api/time-entries?month=${encodeURIComponent(scheduleMonth)}`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Server error ${res.status}`);
+        }
+        const summary = await res.json();
+        panel.innerHTML = renderAttendanceTab(summary, tz);
+      }
+    } catch (err) {
+      const isOffline = !navigator.onLine;
+      panel.innerHTML = `
+        <div style="padding:20px 16px;text-align:center;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;">
+            ${isOffline
+              ? '<path d="m1 1 22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/>'
+              : '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>'}
+          </svg>
+          <p style="color:var(--sr-text,#0f172a);font-weight:600;font-size:14px;margin:0 0 4px;">${isOffline ? 'You are offline' : 'Could not load data'}</p>
+          <p style="color:var(--sr-text-muted,#64748b);font-size:13px;margin:0 0 16px;">${isOffline ? 'Schedule data will reload when your connection is restored.' : escapeHtml(err.message)}</p>
+          <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.renderWorkerSchedule()">Retry</button>
+        </div>`;
+    }
+  }
+
+  function bindLeaveForm(panel) {
+    const form = panel.querySelector('#sr-leave-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (leaveSubmitting) return; // duplicate-submission protection
+
+      const startVal = form.querySelector('#sr-leave-start')?.value?.trim();
+      const endVal = form.querySelector('#sr-leave-end')?.value?.trim();
+      const reason = form.querySelector('#sr-leave-reason')?.value?.trim() || '';
+      const errBox = form.querySelector('#sr-leave-error');
+      const submitBtn = form.querySelector('#sr-leave-submit');
+
+      const showErr = (msg) => { if (errBox) { errBox.textContent = msg; errBox.style.display = 'block'; } };
+      const clearErr = () => { if (errBox) errBox.style.display = 'none'; };
+      clearErr();
+
+      if (!startVal) { showErr('Please select a start date.'); return; }
+      if (!endVal) { showErr('Please select an end date.'); return; }
+      if (new Date(endVal) < new Date(startVal)) { showErr('End date must be on or after the start date.'); return; }
+
+      // Generate idempotency key once per unique submission; stable on retry
+      if (!leaveIdempotencyKey) {
+        leaveIdempotencyKey = `leave-${startVal}-${endVal}-${Date.now()}`;
+      }
+
+      leaveSubmitting = true;
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
+
+      try {
+        const res = await fetch('/api/leave-requests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': leaveIdempotencyKey
+          },
+          body: JSON.stringify({ startsOn: startVal, endsOn: endVal, reason: reason || undefined })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || `Server error ${res.status}`);
+        }
+        // On success, reset state and reload leave tab to show the new request
+        leaveIdempotencyKey = null;
+        leaveSubmitting = false;
+        scheduleTab = 'leave';
+        await renderWorkerSchedule();
+      } catch (err) {
+        leaveSubmitting = false;
+        leaveIdempotencyKey = null; // allow fresh retry
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Leave Request'; }
+        showErr(err.message || 'Could not submit leave request. Please try again.');
+      }
+    });
+  }
+
   // ── 7. Bridge to Existing Screens (Preserves working routes behind shell) ───
   async function bridgeExistingView(viewName) {
     const container = document.getElementById('sr-content-area');
@@ -2657,6 +3049,7 @@
     renderTeamScreen,
     renderApprovalsScreen,
     renderWorkerMe,
+    renderWorkerSchedule,
     openContextModal,
     toggleNotificationPanel,
     openNotificationPanel,

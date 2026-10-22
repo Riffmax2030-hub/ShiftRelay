@@ -935,6 +935,11 @@ async function handleApi(request, response, url) {
   if (url.pathname === '/api/verified-badge-request' || url.pathname === '/api/discover/workers') {
     return sendJson(response, 501, { error: 'External worker discovery and badge requests are disabled for this pilot.' });
   }
+  // Instant open-shift claiming is disabled: supervisor review is required before assignment.
+  // The /apply route remains available for workers to register interest via the supervised path.
+  if (/^\/api\/open-shifts\/[^/]+\/claim$/.test(url.pathname) && request.method === 'POST') {
+    return sendJson(response, 501, { error: 'Instant shift claiming is disabled. Speak to your supervisor to be assigned to open shifts.' });
+  }
 
   // ── Multi-Company Context Management ─────────────────────────────────────────
   if (url.pathname === '/api/user/memberships' && request.method === 'GET') {
@@ -1230,7 +1235,11 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/leave-requests' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Leave requests require an organisation account.' });
-    if (!databaseReady) return sendJson(response, 200, { requests: [] });
+    if (!databaseReady) {
+      const store = await getStore();
+      const list = (store.leaveRequests || []).filter(r => r.organisation_id === user.organisation_id && (user.role === 'owner' || r.membership_id === user.id));
+      return sendJson(response, 200, { requests: list });
+    }
     const where = user.role === 'owner' ? 'lr.organisation_id = $1' : 'lr.organisation_id = $1 and (lr.membership_id = $2 or m.user_id = $2)';
     const values = user.role === 'owner' ? [user.organisation_id] : [user.organisation_id, user.id];
     const requests = await query(
@@ -1245,7 +1254,33 @@ async function handleApi(request, response, url) {
     return sendJson(response, 200, { requests: requests.rows });
   }
   if (url.pathname === '/api/leave-requests' && request.method === 'POST') {
-    if (!user.organisation_id) return sendJson(response, 400, { error: 'Leave requests require an organisation account.' }); const body = await readJson(request); if (!body.startsOn || !body.endsOn) return sendJson(response, 400, { error: 'Leave dates are required.' }); const id = crypto.randomUUID(); await query('insert into leave_requests (id, organisation_id, membership_id, starts_on, ends_on, reason) values ($1,$2,$3,$4,$5,$6)', [id, user.organisation_id, user.id, body.startsOn, body.endsOn, body.reason || null]); await audit(user.organisation_id, user.id, 'leave_requested', 'leave_request', id, 'Leave request submitted.'); await notifyOrganisationOwners(user.organisation_id, `${user.name} requested leave from ${body.startsOn} to ${body.endsOn}.`); return sendJson(response, 201, { id });
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Leave requests require an organisation account.' });
+    const body = await readJson(request);
+    if (!body.startsOn || !body.endsOn) return sendJson(response, 400, { error: 'Leave dates are required.' });
+    const id = crypto.randomUUID();
+    if (!databaseReady) {
+      const store = await getStore();
+      if (!Array.isArray(store.leaveRequests)) store.leaveRequests = [];
+      const newLeave = {
+        id,
+        organisation_id: user.organisation_id,
+        membership_id: user.id,
+        worker_name: user.name,
+        applicant_name: user.name,
+        starts_on: body.startsOn,
+        ends_on: body.endsOn,
+        reason: body.reason || null,
+        status: 'pending',
+        created_at: new Date().toISOString()
+      };
+      store.leaveRequests.unshift(newLeave);
+      await saveStore(store);
+      return sendJson(response, 201, { id });
+    }
+    await query('insert into leave_requests (id, organisation_id, membership_id, starts_on, ends_on, reason) values ($1,$2,$3,$4,$5,$6)', [id, user.organisation_id, user.id, body.startsOn, body.endsOn, body.reason || null]);
+    await audit(user.organisation_id, user.id, 'leave_requested', 'leave_request', id, 'Leave request submitted.');
+    await notifyOrganisationOwners(user.organisation_id, `${user.name} requested leave from ${body.startsOn} to ${body.endsOn}.`);
+    return sendJson(response, 201, { id });
   }
   if (url.pathname === '/api/leave-requests/review' && request.method === 'POST') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can review leave.' });
