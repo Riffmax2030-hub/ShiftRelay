@@ -44,6 +44,12 @@
     const appContainer = document.getElementById('dashboard');
     if (!appContainer) return;
 
+    // Suppress legacy onboarding overlay that intercepts pointer events
+    try {
+      localStorage.setItem('sr_first_shift_onboarding_done', '1');
+      document.getElementById('sr-onboarding-modal-root')?.remove();
+    } catch (_) {}
+
     // Check offline status
     const isOffline = !navigator.onLine || (window.OfflineQueue?.getPendingCount?.() > 0);
 
@@ -224,8 +230,30 @@
       });
     });
 
-    // Context switcher trigger
+    // Header tool triggers
+    document.getElementById('sr-brand-home')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigate(isManager ? 'overview' : 'today');
+    });
+
     document.getElementById('sr-btn-context')?.addEventListener('click', openContextModal);
+
+    document.getElementById('sr-shell-bell')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigate('notifications');
+    });
+
+    document.getElementById('sr-shell-avatar')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigate('me');
+    });
+
+    document.getElementById('sr-shell-sync')?.addEventListener('click', async () => {
+      if (window.OfflineQueue?.syncQueue) {
+        await window.OfflineQueue.syncQueue();
+      }
+      mountShell(view);
+    });
 
     // Render requested screen
     if (view === 'today') {
@@ -564,10 +592,10 @@
                     <small>${escapeHtml(req.email)} · Requested Position: ${escapeHtml(req.title || 'Frontline Worker')}</small>
                   </div>
                   <div class="sr-review-actions">
-                    <button class="sr-btn sr-btn-primary" style="min-height:36px;padding:0 14px;font-size:13px;" data-action="approve-member" data-id="${req.id}">
+                    <button class="sr-btn sr-btn-primary" style="min-height:44px;padding:0 14px;font-size:13px;" data-action="approve-member" data-id="${req.id}">
                       Approve as Worker
                     </button>
-                    <button class="sr-btn sr-btn-secondary" style="min-height:36px;padding:0 14px;font-size:13px;" data-action="reject-member" data-id="${req.id}">
+                    <button class="sr-btn sr-btn-secondary" style="min-height:44px;padding:0 14px;font-size:13px;" data-action="reject-member" data-id="${req.id}">
                       Reject
                     </button>
                   </div>
@@ -597,7 +625,7 @@
                     <small>Logged ${new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · Priority: ${escapeHtml(item.handover?.shiftStatus || 'normal').toUpperCase()}</small>
                   </div>
                   <div class="sr-review-actions">
-                    <button class="sr-btn sr-btn-primary" style="min-height:36px;padding:0 14px;font-size:13px;" data-action="relay-handover" data-id="${item.id}">
+                    <button class="sr-btn sr-btn-primary" style="min-height:44px;padding:0 14px;font-size:13px;" data-action="relay-handover" data-id="${item.id}">
                       Approve &amp; Relay
                     </button>
                   </div>
@@ -627,8 +655,8 @@
                       <small>Reason: ${escapeHtml(lr.reason || 'Personal / Annual leave')}</small>
                     </div>
                     <div class="sr-review-actions">
-                      <button class="sr-btn sr-btn-primary" style="min-height:36px;padding:0 14px;font-size:13px;" data-action="review-leave" data-id="${lr.id}" data-decision="approved">Approve</button>
-                      <button class="sr-btn sr-btn-secondary" style="min-height:36px;padding:0 14px;font-size:13px;" data-action="review-leave" data-id="${lr.id}" data-decision="rejected">Reject</button>
+                      <button class="sr-btn sr-btn-primary" style="min-height:44px;padding:0 14px;font-size:13px;" data-action="review-leave" data-id="${lr.id}" data-decision="approved">Approve</button>
+                      <button class="sr-btn sr-btn-secondary" style="min-height:44px;padding:0 14px;font-size:13px;" data-action="review-leave" data-id="${lr.id}" data-decision="rejected">Reject</button>
                     </div>
                   </div>
                 `).join('')}
@@ -910,6 +938,48 @@
           <p>Facility settings, workflow configurations, and compliance audit logs are active.</p>
         </div>
       `;
+    } else if (viewName === 'approvals') {
+      await renderManagerOverview();
+    } else if (viewName === 'notifications') {
+      try {
+        const res = await fetch('/api/notifications');
+        const data = res.ok ? await res.json() : { notifications: [] };
+        const notifs = data.notifications || [];
+        container.innerHTML = `
+          <div class="sr-card">
+            <div class="sr-card-title-row">
+              <h3>Notifications (${notifs.length})</h3>
+              ${notifs.length > 0 ? `
+                <button class="sr-btn sr-btn-secondary" id="sr-btn-read-all-notifs" style="font-size:12px;min-height:36px;padding:0 12px;">Mark All Read</button>
+              ` : ''}
+            </div>
+            ${notifs.length > 0 ? `
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                ${notifs.map(n => `
+                  <div class="sr-review-item">
+                    <div class="sr-review-info">
+                      <strong>${escapeHtml(n.title || n.message || 'Notification')}</strong>
+                      <small>${escapeHtml(n.body || n.content || '')} · ${n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</small>
+                    </div>
+                    ${!n.read_at && !n.read ? '<span class="sr-status-pill active">NEW</span>' : ''}
+                  </div>
+                `).join('')}
+              </div>
+            ` : `
+              <div class="sr-empty-state">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <p>No new notifications at this time.</p>
+              </div>
+            `}
+          </div>
+        `;
+        document.getElementById('sr-btn-read-all-notifs')?.addEventListener('click', async () => {
+          await fetch('/api/notifications/read', { method: 'POST' });
+          navigate('notifications');
+        });
+      } catch (err) {
+        container.innerHTML = `<div class="sr-card"><p>${escapeHtml(err.message)}</p></div>`;
+      }
     }
   }
 

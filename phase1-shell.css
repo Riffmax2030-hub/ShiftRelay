@@ -168,12 +168,15 @@ body:has(#sr-app-shell) .app-header,
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  padding: 6px 10px;
   background: var(--sr-bg-subtle);
   border: 1px solid var(--sr-border-medium);
   border-radius: var(--sr-radius-pill);
   cursor: pointer;
-  min-height: 38px;
+  min-height: var(--sr-touch-min);
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 160px;
   transition: all 0.15s ease;
   font-family: inherit;
   color: var(--sr-text-main);
@@ -228,20 +231,22 @@ body:has(#sr-app-shell) .app-header,
 .sr-header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .sr-sync-pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
+  padding: 5px 10px;
   border-radius: var(--sr-radius-pill);
   font-size: 11px;
   font-weight: 700;
   background: var(--sr-status-green-bg);
   color: var(--sr-status-green-text);
   border: 1px solid var(--sr-status-green-border);
+  flex-shrink: 0;
 }
 
 .sr-sync-pill.offline {
@@ -250,12 +255,26 @@ body:has(#sr-app-shell) .app-header,
   border-color: var(--sr-status-yellow-border);
 }
 
+@media (max-width: 420px) {
+  .sr-sync-pill span {
+    display: none;
+  }
+  .sr-sync-pill {
+    padding: 8px;
+    border-radius: 50%;
+  }
+}
+
 .sr-icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: var(--sr-touch-min);
   height: var(--sr-touch-min);
+  min-width: var(--sr-touch-min);
+  min-height: var(--sr-touch-min);
+  box-sizing: border-box;
+  flex-shrink: 0;
   border-radius: 50%;
   border: 1px solid var(--sr-border-subtle);
   background: transparent;
@@ -294,17 +313,70 @@ body:has(#sr-app-shell) .app-header,
 }
 
 .sr-user-avatar {
-  width: 36px;
-  height: 36px;
+  width: var(--sr-touch-min);
+  height: var(--sr-touch-min);
+  min-width: var(--sr-touch-min);
+  min-height: var(--sr-touch-min);
+  box-sizing: border-box;
+  flex-shrink: 0;
   border-radius: 50%;
   background: linear-gradient(135deg, #0d524d, #10b981);
   color: #fff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   display: grid;
   place-items: center;
   cursor: pointer;
   border: 2px solid var(--sr-bg-card);
+  transition: transform 0.15s ease;
+}
+
+.sr-user-avatar:hover {
+  transform: scale(1.05);
+}
+
+/* ── Accessible Keyboard Focus Visibility across All Controls ── */
+.sr-btn:focus,
+.sr-btn:focus-visible,
+.sr-nav-btn:focus,
+.sr-nav-btn:focus-visible,
+.sr-dock-item:focus,
+.sr-dock-item:focus-visible,
+.sr-brand-link:focus,
+.sr-brand-link:focus-visible,
+.sr-user-avatar:focus,
+.sr-user-avatar:focus-visible,
+.sr-task-checkbox:focus,
+.sr-task-checkbox:focus-visible,
+.sr-context-pill:focus,
+.sr-context-pill:focus-visible,
+.sr-icon-btn:focus,
+.sr-icon-btn:focus-visible,
+.sr-context-org-item:focus,
+.sr-context-org-item:focus-visible {
+  outline: 2px solid var(--sr-primary) !important;
+  outline-offset: 2px !important;
+}
+
+[data-theme="dark"] .sr-btn:focus,
+[data-theme="dark"] .sr-btn:focus-visible,
+[data-theme="dark"] .sr-nav-btn:focus,
+[data-theme="dark"] .sr-nav-btn:focus-visible,
+[data-theme="dark"] .sr-dock-item:focus,
+[data-theme="dark"] .sr-dock-item:focus-visible,
+[data-theme="dark"] .sr-brand-link:focus,
+[data-theme="dark"] .sr-brand-link:focus-visible,
+[data-theme="dark"] .sr-user-avatar:focus,
+[data-theme="dark"] .sr-user-avatar:focus-visible,
+[data-theme="dark"] .sr-task-checkbox:focus,
+[data-theme="dark"] .sr-task-checkbox:focus-visible,
+[data-theme="dark"] .sr-context-pill:focus,
+[data-theme="dark"] .sr-context-pill:focus-visible,
+[data-theme="dark"] .sr-icon-btn:focus,
+[data-theme="dark"] .sr-icon-btn:focus-visible,
+[data-theme="dark"] .sr-context-org-item:focus,
+[data-theme="dark"] .sr-context-org-item:focus-visible {
+  outline-color: var(--sr-accent) !important;
 }
 
 /* ==========================================================================
@@ -315,6 +387,15 @@ body:has(#sr-app-shell) .app-header,
   display: flex;
   flex: 1;
   width: 100%;
+  /* Collapse stacking context so fixed dock always wins */
+  position: relative;
+  z-index: 0;
+}
+
+/* Prevent content children from creating stacking contexts above the dock */
+.sr-main-content > * {
+  position: relative;
+  z-index: 0;
 }
 
 /* ── Desktop Sidebar (Hidden on mobile < 768px) ── */
@@ -397,7 +478,8 @@ body:has(#sr-app-shell) .app-header,
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--sr-border-subtle);
-  z-index: 900;
+  z-index: 99999 !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -837,6 +919,8 @@ body:has(#sr-app-shell) .app-header,
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  z-index: 1;
 }
 
 .sr-modal-header h3 {
@@ -844,6 +928,13 @@ body:has(#sr-app-shell) .app-header,
   font-size: 17px;
   font-weight: 800;
   color: var(--sr-text-main);
+}
+
+.sr-modal-header button,
+#sr-btn-close-modal {
+  position: relative !important;
+  z-index: 100 !important;
+  pointer-events: auto !important;
 }
 
 .sr-modal-body {
