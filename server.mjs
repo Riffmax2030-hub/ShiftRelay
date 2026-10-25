@@ -1490,13 +1490,86 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/organisation/settings' && request.method === 'GET') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can view settings.' });
-    if (!databaseReady) return sendJson(response, 200, { organisation: { legal_name: 'ShiftRelay Global Demo Organisation', trading_name: 'ShiftRelay Global', industry: 'Operations', country: 'Global', time_zone: 'UTC', preferred_language: 'en' } });
+    if (!databaseReady) {
+      const store = await getStore();
+      if (!store.organisationSettings) {
+        store.organisationSettings = {
+          legal_name: 'ShiftRelay Global Demo Organisation',
+          trading_name: 'ShiftRelay Global',
+          industry: 'Operations',
+          country: 'Global',
+          time_zone: 'UTC',
+          preferred_language: 'en',
+          settings: { handoverReminderMinutes: 30 }
+        };
+        await saveStore(store);
+      }
+      return sendJson(response, 200, { organisation: store.organisationSettings });
+    }
     const organisation = (await query('select legal_name, trading_name, industry, country, time_zone, preferred_language, settings from organisations where id = $1', [user.organisation_id])).rows[0];
+    if (!organisation) return sendJson(response, 404, { error: 'Organisation not found.' });
     return sendJson(response, 200, { organisation });
   }
   if (url.pathname === '/api/organisation/settings' && request.method === 'PUT') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can update settings.' });
-    const body = await readJson(request); await query('update organisations set trading_name = $1, industry = $2, country = $3, time_zone = $4, preferred_language = $5, settings = $6::jsonb where id = $7', [body.tradingName || null, body.industry || 'Other', body.country || 'Global', body.timeZone || 'UTC', body.language || 'en', JSON.stringify({ handoverReminderMinutes: Number(body.handoverReminderMinutes) || 30 }), user.organisation_id]); await audit(user.organisation_id, user.id, 'settings_updated', 'organisation', user.organisation_id, 'Organisation settings updated.'); return sendJson(response, 200, { ok: true });
+    const body = await readJson(request);
+
+    // Validate industry
+    const supportedIndustries = ['Healthcare', 'Logistics', 'Manufacturing', 'Hospitality', 'Retail', 'Security', 'Operations', 'Other'];
+    const industry = String(body.industry || 'Other').trim();
+    if (!supportedIndustries.includes(industry)) {
+      return sendJson(response, 400, { error: `Invalid industry. Supported options: ${supportedIndustries.join(', ')}` });
+    }
+
+    // Validate timeZone
+    const timeZone = String(body.timeZone || '').trim();
+    if (!timeZone) {
+      return sendJson(response, 400, { error: 'A valid time-zone identifier is required.' });
+    }
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone });
+    } catch (_) {
+      return sendJson(response, 400, { error: 'Invalid or unsupported IANA time-zone identifier (e.g. UTC, Africa/Nairobi, Europe/London, America/New_York).' });
+    }
+
+    // Validate reminder bounds (5 to 240 minutes)
+    const reminderMinutes = Number(body.handoverReminderMinutes);
+    if (!Number.isInteger(reminderMinutes) || reminderMinutes < 5 || reminderMinutes > 240) {
+      return sendJson(response, 400, { error: 'Handover reminder minutes must be an integer between 5 and 240.' });
+    }
+
+    // Validate language
+    const supportedLanguages = ['en', 'es', 'fr', 'de', 'sw'];
+    const language = String(body.language || 'en').trim().toLowerCase();
+    if (!supportedLanguages.includes(language)) {
+      return sendJson(response, 400, { error: `Unsupported language. Supported options: ${supportedLanguages.join(', ')}` });
+    }
+
+    const tradingName = body.tradingName ? String(body.tradingName).trim().slice(0, 100) : null;
+    const country = body.country ? String(body.country).trim().slice(0, 60) : 'Global';
+
+    if (!databaseReady) {
+      const store = await getStore();
+      if (!store.organisationSettings) store.organisationSettings = {};
+      store.organisationSettings = {
+        legal_name: store.organisationSettings.legal_name || 'ShiftRelay Global Demo Organisation',
+        trading_name: tradingName,
+        industry,
+        country,
+        time_zone: timeZone,
+        preferred_language: language,
+        settings: { handoverReminderMinutes: reminderMinutes }
+      };
+      await saveStore(store);
+      return sendJson(response, 200, { ok: true, organisation: store.organisationSettings });
+    }
+
+    await query(
+      'update organisations set trading_name = $1, industry = $2, country = $3, time_zone = $4, preferred_language = $5, settings = $6::jsonb where id = $7',
+      [tradingName, industry, country, timeZone, language, JSON.stringify({ handoverReminderMinutes: reminderMinutes }), user.organisation_id]
+    );
+    await audit(user.organisation_id, user.id, 'settings_updated', 'organisation', user.organisation_id, 'Organisation settings updated.');
+    return sendJson(response, 200, { ok: true });
   }
   if (url.pathname === '/api/directory' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Directory is available for authenticated organisation accounts.' });

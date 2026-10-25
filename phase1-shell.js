@@ -37,9 +37,11 @@
     return role === 'supervisor' || role === 'owner';
   }
 
-  function isAuthorizedView(viewName, isManager) {
+  function isAuthorizedView(viewName, isManager, role) {
+    const userRole = role || getUser()?.role;
     const allowedWorker = ['today', 'handovers', 'me', 'schedule'];
     const allowedManager = ['overview', 'schedule', 'handovers', 'team', 'approvals', 'me'];
+    if (userRole === 'owner') allowedManager.push('settings');
     return isManager ? allowedManager.includes(viewName) : allowedWorker.includes(viewName);
   }
 
@@ -624,6 +626,8 @@
       } else {
         await renderWorkerSchedule();
       }
+    } else if (view === 'settings') {
+      await renderOwnerSettings();
     } else if (view === 'notifications') {
       await (isManager ? renderManagerOverview() : renderWorkerToday());
       toggleNotificationPanel(true);
@@ -2572,12 +2576,7 @@
     } else if (viewName === 'me') {
       await renderWorkerMe();
     } else if (viewName === 'settings') {
-      container.innerHTML = `
-        <div class="sr-card">
-          <h3 style="margin:0 0 12px;">Organisation Settings</h3>
-          <p>Facility settings, workflow configurations, and compliance audit logs are active.</p>
-        </div>
-      `;
+      await renderOwnerSettings();
     } else if (viewName === 'approvals') {
       await renderApprovalsScreen();
     } else if (viewName === 'team') {
@@ -3432,6 +3431,254 @@
     });
   }
 
+  // ── Owner Settings Screen ──────────────────────────────────────────────────────
+  async function renderOwnerSettings() {
+    const user = getUser();
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+
+    // Access guard — owner only; supervisors and workers receive a 403 card
+    if (!user || user.role !== 'owner') {
+      container.innerHTML = `
+        <div class="sr-card" style="border-color:#fecaca;background:#fff5f5;max-width:520px;margin:24px auto;">
+          <h3 style="color:#b91c1c;margin:0 0 8px;font-size:16px;">Access Denied</h3>
+          <p style="color:#7f1d1d;font-size:13.5px;margin:0;line-height:1.5;">
+            Only company owners can view or modify company settings.
+          </p>
+        </div>`;
+      return;
+    }
+
+    // Loading skeleton
+    container.innerHTML = `
+      <div style="max-width:620px;margin:0 auto;padding:20px 16px 48px;">
+        <h2 style="font-size:20px;font-weight:700;color:var(--sr-text);margin:0 0 4px;">Company Settings</h2>
+        <p style="font-size:13px;color:var(--sr-text-muted);margin:0 0 24px;">
+          Configure your organisation profile. Changes apply immediately to all staff.
+        </p>
+        <div id="sr-settings-banner" style="display:none;padding:10px 14px;border-radius:8px;font-size:13.5px;margin-bottom:16px;"></div>
+        <div id="sr-settings-dirty-warn" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;background:#fffbeb;border:1px solid #fcd34d;color:#78350f;margin-bottom:16px;">
+          You have unsaved changes.
+        </div>
+        <div id="sr-settings-form-wrap">
+          <div style="text-align:center;padding:40px 0;color:var(--sr-text-muted);font-size:14px;">
+            <div style="width:28px;height:28px;border:3px solid var(--sr-primary-light);border-top-color:transparent;border-radius:50%;animation:sr-spin 0.8s linear infinite;margin:0 auto 12px;"></div>
+            Loading settings...
+          </div>
+        </div>
+      </div>`;
+
+    let loadedSettings = null;
+
+    async function loadSettings() {
+      const wrap = document.getElementById('sr-settings-form-wrap');
+      if (!wrap) return;
+      try {
+        const res = await fetch('/api/organisation/settings');
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Server error ${res.status}`);
+        }
+        const data = await res.json();
+        loadedSettings = data.organisation;
+        renderForm(loadedSettings);
+      } catch (err) {
+        wrap.innerHTML = `
+          <div class="sr-card" style="border-color:#fecaca;background:#fff5f5;">
+            <p style="color:#b91c1c;font-size:14px;margin:0 0 12px;">${escapeHtml(err.message)}</p>
+            <button class="sr-btn sr-btn-secondary" id="sr-settings-retry">Retry</button>
+          </div>`;
+        document.getElementById('sr-settings-retry')?.addEventListener('click', loadSettings);
+      }
+    }
+
+    function renderForm(org) {
+      const wrap = document.getElementById('sr-settings-form-wrap');
+      if (!wrap) return;
+
+      const tz = org.time_zone || 'UTC';
+      const reminder = org.settings?.handoverReminderMinutes ?? 30;
+
+      wrap.innerHTML = `
+        <form id="sr-settings-form" novalidate>
+          <div class="sr-card" style="padding:20px 20px 4px;margin-bottom:16px;">
+            <h3 style="font-size:14px;font-weight:700;color:var(--sr-text);margin:0 0 16px;text-transform:uppercase;letter-spacing:.04em;opacity:.65;">Organisation Profile</h3>
+
+            <div style="margin-bottom:16px;">
+              <label for="sr-set-trading-name" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text);margin-bottom:5px;">Trading Name</label>
+              <input id="sr-set-trading-name" class="sr-input" type="text" maxlength="100"
+                value="${escapeHtml(org.trading_name || '')}"
+                placeholder="e.g. ShiftRelay Global"
+                style="width:100%;box-sizing:border-box;" />
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <label for="sr-set-industry" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text);margin-bottom:5px;">Industry</label>
+              <select id="sr-set-industry" class="sr-input" style="width:100%;box-sizing:border-box;">
+                ${['Healthcare','Logistics','Manufacturing','Hospitality','Retail','Security','Operations','Other']
+                  .map(i => `<option value="${i}"${org.industry === i ? ' selected' : ''}>${i}</option>`).join('')}
+              </select>
+              <p style="font-size:12px;color:var(--sr-text-muted);margin:4px 0 0;line-height:1.4;">
+                Affects how your roster is labelled. Does not change workflow rules.
+              </p>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <label for="sr-set-country" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text);margin-bottom:5px;">Country</label>
+              <input id="sr-set-country" class="sr-input" type="text" maxlength="60"
+                value="${escapeHtml(org.country || '')}"
+                placeholder="e.g. Kenya"
+                style="width:100%;box-sizing:border-box;" />
+            </div>
+          </div>
+
+          <div class="sr-card" style="padding:20px 20px 4px;margin-bottom:16px;">
+            <h3 style="font-size:14px;font-weight:700;color:var(--sr-text);margin:0 0 16px;text-transform:uppercase;letter-spacing:.04em;opacity:.65;">Time and Language</h3>
+
+            <div style="margin-bottom:16px;">
+              <label for="sr-set-timezone" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text);margin-bottom:5px;">Time Zone</label>
+              <input id="sr-set-timezone" class="sr-input" type="text"
+                value="${escapeHtml(tz)}"
+                placeholder="e.g. UTC, Africa/Nairobi, Europe/London"
+                style="width:100%;box-sizing:border-box;" />
+              <p style="font-size:12px;color:var(--sr-text-muted);margin:4px 0 0;line-height:1.4;">
+                IANA timezone identifier. Changing this affects how all scheduled shift times display to staff.
+                Existing shifts remain at the same UTC instant — only the display timezone changes.
+              </p>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <label for="sr-set-language" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text);margin-bottom:5px;">Preferred Language</label>
+              <select id="sr-set-language" class="sr-input" style="width:100%;box-sizing:border-box;">
+                ${[['en','English'],['es','Spanish'],['fr','French'],['de','German'],['sw','Swahili']]
+                  .map(([v,l]) => `<option value="${v}"${org.preferred_language === v ? ' selected' : ''}>${l} (${v})</option>`).join('')}
+              </select>
+              <p style="font-size:12px;color:var(--sr-text-muted);margin:4px 0 0;line-height:1.4;">
+                Stored for future use. The interface currently displays in English only.
+              </p>
+            </div>
+          </div>
+
+          <div class="sr-card" style="padding:20px 20px 4px;margin-bottom:24px;">
+            <h3 style="font-size:14px;font-weight:700;color:var(--sr-text);margin:0 0 16px;text-transform:uppercase;letter-spacing:.04em;opacity:.65;">Handover Settings</h3>
+
+            <div style="margin-bottom:16px;">
+              <label for="sr-set-reminder" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text);margin-bottom:5px;">Reminder Minutes Before Handover</label>
+              <input id="sr-set-reminder" class="sr-input" type="number" min="5" max="240"
+                value="${reminder}"
+                style="width:140px;box-sizing:border-box;" />
+              <p style="font-size:12px;color:var(--sr-text-muted);margin:4px 0 0;line-height:1.4;">
+                Must be between 5 and 240 minutes. Stored preference only — automated reminder delivery is not yet implemented.
+              </p>
+            </div>
+          </div>
+
+          <div id="sr-settings-field-err" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;background:#fff5f5;border:1px solid #fecaca;color:#b91c1c;margin-bottom:16px;"></div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="submit" class="sr-btn sr-btn-primary" id="sr-settings-save">Save Settings</button>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-settings-cancel">Cancel</button>
+          </div>
+        </form>`;
+
+      // Track dirty state
+      let isDirty = false;
+      const dirtyWarn = document.getElementById('sr-settings-dirty-warn');
+      function markDirty() {
+        if (!isDirty) {
+          isDirty = true;
+          if (dirtyWarn) dirtyWarn.style.display = 'block';
+        }
+      }
+      function clearDirty() {
+        isDirty = false;
+        if (dirtyWarn) dirtyWarn.style.display = 'none';
+      }
+
+      ['sr-set-trading-name','sr-set-industry','sr-set-country','sr-set-timezone','sr-set-language','sr-set-reminder']
+        .forEach(id => document.getElementById(id)?.addEventListener('input', markDirty));
+      ['sr-set-industry','sr-set-language']
+        .forEach(id => document.getElementById(id)?.addEventListener('change', markDirty));
+
+      // Cancel — restore loaded values
+      document.getElementById('sr-settings-cancel')?.addEventListener('click', () => {
+        clearDirty();
+        hideBanner();
+        hideFieldErr();
+        renderForm(loadedSettings);
+      });
+
+      // Submit
+      document.getElementById('sr-settings-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        hideFieldErr();
+        hideBanner();
+
+        const saveBtn = document.getElementById('sr-settings-save');
+        const cancelBtn = document.getElementById('sr-settings-cancel');
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+        if (cancelBtn) cancelBtn.disabled = true;
+
+        const payload = {
+          tradingName: (document.getElementById('sr-set-trading-name')?.value || '').trim(),
+          industry: document.getElementById('sr-set-industry')?.value || 'Other',
+          country: (document.getElementById('sr-set-country')?.value || '').trim(),
+          timeZone: (document.getElementById('sr-set-timezone')?.value || '').trim(),
+          language: document.getElementById('sr-set-language')?.value || 'en',
+          handoverReminderMinutes: parseInt(document.getElementById('sr-set-reminder')?.value || '30', 10)
+        };
+
+        try {
+          const res = await fetch('/api/organisation/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            showFieldErr(data.error || `Save failed (${res.status})`);
+            return;
+          }
+          loadedSettings = data.organisation || loadedSettings;
+          clearDirty();
+          showBanner('Settings saved successfully.', true);
+          setTimeout(hideBanner, 3500);
+        } catch (err) {
+          showFieldErr(err.message || 'Network error. Please try again.');
+        } finally {
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Settings'; }
+          if (cancelBtn) cancelBtn.disabled = false;
+        }
+      });
+    }
+
+    function showBanner(msg, isSuccess) {
+      const el = document.getElementById('sr-settings-banner');
+      if (!el) return;
+      el.textContent = msg;
+      el.style.display = 'block';
+      el.style.background = isSuccess ? '#f0fdf4' : '#fff5f5';
+      el.style.border = `1px solid ${isSuccess ? '#bbf7d0' : '#fecaca'}`;
+      el.style.color = isSuccess ? '#15803d' : '#b91c1c';
+    }
+    function hideBanner() {
+      const el = document.getElementById('sr-settings-banner');
+      if (el) el.style.display = 'none';
+    }
+    function showFieldErr(msg) {
+      const el = document.getElementById('sr-settings-field-err');
+      if (!el) return;
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+    function hideFieldErr() {
+      const el = document.getElementById('sr-settings-field-err');
+      if (el) el.style.display = 'none';
+    }
+
+    await loadSettings();
+  }
+
   async function handleSafeSignOut() {
     const proceedSignOut = async () => {
       try {
@@ -3467,6 +3714,7 @@
     renderWorkerMe,
     renderWorkerSchedule,
     renderManagerSchedule,
+    renderOwnerSettings,
     openContextModal,
     toggleNotificationPanel,
     openNotificationPanel,
