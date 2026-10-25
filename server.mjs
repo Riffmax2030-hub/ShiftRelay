@@ -608,6 +608,17 @@ async function enrolWorker(body) {
 }
 
 async function pendingMemberships(reviewer) {
+  if (!databaseReady) {
+    const store = await getStore();
+    const pending = (store.memberships || []).filter(m => m.organisation_id === reviewer.organisation_id && m.status === 'pending_approval');
+    return {
+      requests: pending.map(m => {
+        const u = (store.portalUsers || []).find(user => user.id === m.user_id) || {};
+        return { id: m.id, name: u.full_name || 'Worker Applicant', email: u.email || '', title: m.title || 'Shift Specialist', department: m.department || 'Operations', createdAt: m.created_at || new Date().toISOString() };
+      }),
+      workflows: []
+    };
+  }
   const result = await query(
     `select m.id, u.full_name, u.email, m.title, m.department, m.role, m.status, m.created_at
      from memberships m

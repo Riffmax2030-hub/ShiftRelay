@@ -1,37 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="sr-app-bg" x1="0" y1="0" x2="1" y2="1">
       <stop stop-color="#0a3d39"/>
-      <stop offset="1" stop-color="#072724"/>
+      <stop offset="1" stop-color="#05201d"/>
     </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="sr-loop-outgoing" x1="100" y1="120" x2="380" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0d524d"/>
+      <stop offset="0.6" stop-color="#0f766e"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="sr-loop-incoming" x1="180" y1="140" x2="420" y2="340" gradientUnits="userSpaceOnUse">
       <stop stop-color="#34d399"/>
       <stop offset="1" stop-color="#10b981"/>
     </linearGradient>
-    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="1">
-      <stop stop-color="#d4f576"/>
-      <stop offset="1" stop-color="#34d399"/>
-    </linearGradient>
+    <filter id="sr-loop-shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
   </defs>
+
   <!-- Squircle App Container -->
-  <rect width="512" height="512" rx="124" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="124" fill="url(#sr-app-bg)"/>
   
   <!-- Subtle Internal Highlight Ring -->
-  <rect x="8" y="8" width="496" height="496" rx="118" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="4"/>
+  <rect x="10" y="10" width="492" height="492" rx="118" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="4"/>
 
-  <!-- Left Chevron: Outgoing Shift in Transition (Ghost White/Silver) -->
-  <path d="M 152 176 L 272 256 L 152 336"
-        fill="none"
-        stroke="rgba(255, 255, 255, 0.45)"
-        stroke-width="44"
-        stroke-linecap="round"
-        stroke-linejoin="round"/>
-
-  <!-- Right Chevron: Incoming Shift in Motion (Electric Emerald/Lime Relay) -->
-  <path d="M 248 176 L 368 256 L 248 336"
-        fill="none"
-        stroke="url(#neon)"
-        stroke-width="44"
-        stroke-linecap="round"
-        stroke-linejoin="round"/>
+  <!-- Centered Baton Relay Loop -->
+  <g transform="translate(4, -2) scale(3.5)" filter="url(#sr-loop-shadow)">
+    <!-- Base track arc (outgoing shift) -->
+    <path d="M36 78 C24 54 40 28 66 28 C88 28 104 42 104 64 C104 86 86 100 64 100 C48 100 36 90 32 78" 
+          stroke="url(#sr-loop-outgoing)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Overlapping interlock arc (incoming shift handover) -->
+    <path d="M48 42 C62 24 94 22 106 48 C116 70 102 94 78 94 C62 94 52 84 48 72" 
+          stroke="url(#sr-loop-incoming)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" opacity="0.96"/>
+    <!-- Relay Nodes -->
+    <circle cx="78" cy="94" r="6" fill="#34d399" stroke="#ffffff" stroke-width="2.5"/>
+    <circle cx="66" cy="28" r="5" fill="#14b8a6" stroke="#ffffff" stroke-width="2"/>
+  </g>
 </svg>

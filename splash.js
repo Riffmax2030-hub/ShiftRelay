@@ -128,7 +128,7 @@
     btn.textContent = 'Creating...';
     if (msg) msg.textContent = '';
     try {
-      const result = await fetch('/api/auth/register', {
+      const result = await fetch('/api/organisations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -144,6 +144,47 @@
       if (msg) msg.textContent = err.message;
       btn.disabled = false;
       btn.textContent = 'Create Workplace';
+    }
+  });
+
+  // -- Join Workplace form in sheet ---------------------------------------------
+  document.getElementById('sr-sheet-join-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.currentTarget.querySelector('.sr-sheet-submit');
+    const msg = document.getElementById('sr-sheet-join-msg');
+    const data = Object.fromEntries(new FormData(e.currentTarget));
+    if (data.password !== data.confirmPassword) {
+      if (msg) {
+        msg.style.color = '#ef4444';
+        msg.textContent = 'Passwords do not match.';
+      }
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+    if (msg) { msg.textContent = ''; msg.style.color = ''; }
+    try {
+      const result = await fetch('/api/organisation-memberships', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const payload = await result.json();
+      if (!result.ok) throw new Error(payload.error || 'Request failed');
+      e.currentTarget.reset();
+      if (msg) {
+        msg.style.color = '#10b981';
+        msg.textContent = 'Access request submitted! An owner or supervisor must approve your membership before you can sign in.';
+      }
+      btn.disabled = false;
+      btn.textContent = 'Request Submitted';
+    } catch (err) {
+      if (msg) {
+        msg.style.color = '#ef4444';
+        msg.textContent = err.message;
+      }
+      btn.disabled = false;
+      btn.textContent = 'Request Access to Workplace';
     }
   });
 
@@ -249,7 +290,6 @@
       window._srReady = true;
       window.dispatchEvent(new CustomEvent('sr:ready'));
     }
-  }
   }
 
   // Start

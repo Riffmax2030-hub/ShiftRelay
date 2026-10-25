@@ -691,7 +691,7 @@
         <!-- Distinct Company vs Site Context Banner -->
         <div class="sr-context-banner">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Facility: ${escapeHtml(companyName)}</span>
+            <span class="sr-context-banner-company">Company: ${escapeHtml(companyName)}</span>
             <span class="sr-context-banner-site">Assigned Site / Unit: <strong>${escapeHtml(siteName)}</strong></span>
           </div>
           <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
@@ -911,7 +911,7 @@
         <!-- Distinct Company vs Site Context Banner -->
         <div class="sr-context-banner">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Facility: ${escapeHtml(companyName)}</span>
+            <span class="sr-context-banner-company">Company: ${escapeHtml(companyName)}</span>
             <span class="sr-context-banner-site">Supervisory Scope: <strong>${escapeHtml(siteName)}</strong></span>
           </div>
           <span class="sr-context-banner-badge" style="background:#0a3d39;">
@@ -1289,7 +1289,7 @@
       const html = `
         <div class="sr-context-banner">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Facility: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
             <span class="sr-context-banner-site">Handover Management Scope: <strong>${escapeHtml(user.department || 'Operations')}</strong></span>
           </div>
           <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
@@ -1680,7 +1680,7 @@
       const html = `
         <div class="sr-context-banner">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Facility: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
             <span class="sr-context-banner-site">Handover Relay Oversight: <strong>${escapeHtml(user.department || 'Operations Leadership')}</strong></span>
           </div>
           <span class="sr-context-banner-badge" style="background:#0a3d39;">${escapeHtml(user.role.toUpperCase())}</span>
@@ -2688,7 +2688,7 @@
       container.innerHTML = `
         <div class="sr-context-banner">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Facility: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
             <span class="sr-context-banner-site">Team Directory: <strong>${escapeHtml(user.department || 'Operations')}</strong></span>
           </div>
           <span class="sr-context-banner-badge">${allMembers.length} Members</span>
@@ -2784,7 +2784,7 @@
       container.innerHTML = `
         <div class="sr-context-banner">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Facility: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
             <span class="sr-context-banner-site">Authorisations Queue: <strong>${escapeHtml(user.department || 'Operations')}</strong></span>
           </div>
           <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
