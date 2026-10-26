@@ -1,39 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="sr-app-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop stop-color="#0a3d39"/>
-      <stop offset="1" stop-color="#05201d"/>
+    <linearGradient id="sr-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#102033"/>
+      <stop offset="1" stop-color="#0b1827"/>
     </linearGradient>
-    <linearGradient id="sr-loop-outgoing" x1="100" y1="120" x2="380" y2="400" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0d524d"/>
-      <stop offset="0.6" stop-color="#0f766e"/>
-      <stop offset="1" stop-color="#14b8a6"/>
+    <linearGradient id="sr-arc1" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#087F78"/>
+      <stop offset="1" stop-color="#4FC3BC"/>
     </linearGradient>
-    <linearGradient id="sr-loop-incoming" x1="180" y1="140" x2="420" y2="340" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#34d399"/>
-      <stop offset="1" stop-color="#10b981"/>
+    <linearGradient id="sr-arc2" x1="1" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#4FC3BC"/>
+      <stop offset="1" stop-color="#087F78"/>
     </linearGradient>
-    <filter id="sr-loop-shadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.35"/>
+    <filter id="sr-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
   </defs>
 
-  <!-- Squircle App Container -->
-  <rect width="512" height="512" rx="124" fill="url(#sr-app-bg)"/>
-  
-  <!-- Subtle Internal Highlight Ring -->
-  <rect x="10" y="10" width="492" height="492" rx="118" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="4"/>
+  <!-- App background squircle -->
+  <rect width="512" height="512" rx="116" fill="url(#sr-bg)"/>
+  <!-- Subtle inner border -->
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="3"/>
 
-  <!-- Centered Baton Relay Loop -->
-  <g transform="translate(4, -2) scale(3.5)" filter="url(#sr-loop-shadow)">
-    <!-- Base track arc (outgoing shift) -->
-    <path d="M36 78 C24 54 40 28 66 28 C88 28 104 42 104 64 C104 86 86 100 64 100 C48 100 36 90 32 78" 
-          stroke="url(#sr-loop-outgoing)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- Overlapping interlock arc (incoming shift handover) -->
-    <path d="M48 42 C62 24 94 22 106 48 C116 70 102 94 78 94 C62 94 52 84 48 72" 
-          stroke="url(#sr-loop-incoming)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" opacity="0.96"/>
-    <!-- Relay Nodes -->
-    <circle cx="78" cy="94" r="6" fill="#34d399" stroke="#ffffff" stroke-width="2.5"/>
-    <circle cx="66" cy="28" r="5" fill="#14b8a6" stroke="#ffffff" stroke-width="2"/>
-  </g>
+  <!-- Relay Loop symbol — outgoing arc (bottom-left sweep) -->
+  <path d="M 148 330
+             C 120 270 140 188 196 156
+             C 248 128 310 138 346 178
+             C 382 218 378 278 342 312
+             C 310 342 268 348 236 338"
+        fill="none"
+        stroke="url(#sr-arc1)"
+        stroke-width="38"
+        stroke-linecap="round"
+        opacity="1"/>
+
+  <!-- Relay Loop symbol — incoming arc (top-right sweep) -->
+  <path d="M 276 174
+             C 318 144 388 158 414 206
+             C 438 248 424 304 384 328
+             C 348 350 302 342 274 310
+             C 250 284 248 248 264 226"
+        fill="none"
+        stroke="url(#sr-arc2)"
+        stroke-width="34"
+        stroke-linecap="round"
+        opacity="0.92"/>
+
+  <!-- Relay node dots — handover connection points -->
+  <circle cx="236" cy="338" r="18" fill="#4FC3BC" stroke="#ffffff" stroke-width="5"/>
+  <circle cx="196" cy="156" r="14" fill="#087F78" stroke="#ffffff" stroke-width="4" opacity="0.9"/>
 </svg>

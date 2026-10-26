@@ -1,4 +1,4 @@
-const CACHE = 'shiftrelay-v74';
+const CACHE = 'shiftrelay-v76';
 const ASSETS = [
   '/',
   '/index.html',
@@ -32,7 +32,7 @@ const ASSETS = [
   '/worker.css',
   '/assistant.css',
   '/frontline-social.css',
-  '/shiftrelay-v3.css',
+  '/shiftrelay-v76.css',
   '/app.js',
   '/icons.js',
   '/frontline-social.js',
@@ -100,4 +100,6 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(event.request))
   );
 });
+
+
 

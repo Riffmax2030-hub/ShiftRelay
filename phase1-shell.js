@@ -33,6 +33,31 @@
     return null;
   }
 
+  // Intercept fetch to automatically supply the active user demo header for all /api calls
+  const _origFetch = window.fetch;
+  window.fetch = function (input, init) {
+    const user = getUser();
+    if (user?.id) {
+      const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+      if (url.startsWith('/api/') || url.includes('/api/')) {
+        init = init ? { ...init } : {};
+        if (init.headers instanceof Headers) {
+          if (!init.headers.has('x-shiftrelay-user')) init.headers.set('x-shiftrelay-user', user.id);
+        } else if (Array.isArray(init.headers)) {
+          if (!init.headers.some(([k]) => k.toLowerCase() === 'x-shiftrelay-user')) {
+            init.headers = [...init.headers, ['x-shiftrelay-user', user.id]];
+          }
+        } else {
+          init.headers = {
+            'x-shiftrelay-user': user.id,
+            ...(init.headers || {})
+          };
+        }
+      }
+    }
+    return _origFetch.call(this, input, init);
+  };
+
   function isManagerRole(role) {
     return role === 'supervisor' || role === 'owner';
   }
