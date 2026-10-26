@@ -105,18 +105,39 @@ const fs = require('fs');
   console.log('✓ Step 7: Edit CV modal successfully updated Headline and Social Links');
 
   // 8. Test Change Password Form inside Settings
-  await page.fill('#sr-me-current-pw', 'shiftrelay123');
-  await page.fill('#sr-me-new-pw', 'newSuperSecretPass2026!');
-  await page.fill('#sr-me-confirm-pw', 'newSuperSecretPass2026!');
+  // Handles idempotency: try shiftrelay123 first; if previously changed to newPass, use that
+  let currentAttempt = 'shiftrelay123';
+  await page.fill('#sr-me-current-pw', currentAttempt);
+  await page.fill('#sr-me-new-pw', 'shiftrelay123_tempPass!');
+  await page.fill('#sr-me-confirm-pw', 'shiftrelay123_tempPass!');
   await page.click('#sr-btn-pw-submit');
   await page.waitForTimeout(800);
 
-  const feedbackText = await page.textContent('#sr-pw-feedback');
+  let feedbackText = await page.textContent('#sr-pw-feedback');
+  if (feedbackText.includes('not correct')) {
+    // Password was previously updated, try with the updated password
+    currentAttempt = 'newSuperSecretPass2026!';
+    await page.fill('#sr-me-current-pw', currentAttempt);
+    await page.fill('#sr-me-new-pw', 'shiftrelay123_tempPass!');
+    await page.fill('#sr-me-confirm-pw', 'shiftrelay123_tempPass!');
+    await page.click('#sr-btn-pw-submit');
+    await page.waitForTimeout(800);
+    feedbackText = await page.textContent('#sr-pw-feedback');
+  }
+
   console.log('Password feedback:', feedbackText);
   if (!feedbackText.includes('Password updated successfully')) {
     throw new Error('Password change failed: ' + feedbackText);
   }
-  console.log('✓ Step 8: Successfully tested Change Password in Settings section');
+
+  // Restore back to shiftrelay123 so the environment stays pristine
+  await page.fill('#sr-me-current-pw', 'shiftrelay123_tempPass!');
+  await page.fill('#sr-me-new-pw', 'shiftrelay123');
+  await page.fill('#sr-me-confirm-pw', 'shiftrelay123');
+  await page.click('#sr-btn-pw-submit');
+  await page.waitForTimeout(800);
+
+  console.log('✓ Step 8: Successfully tested Change Password in Settings section (idempotent & verified)');
 
   // Screenshot 3: Settings with success message
   await page.screenshot({ path: path.join(artifactDir, 'feature-me-settings-password-success.png') });

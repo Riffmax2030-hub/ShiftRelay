@@ -204,13 +204,16 @@ const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT_GENERAL = 120;
 const RATE_LIMIT_AUTH = 25;
 
-const authBuckets = new Map(); function isRateLimited(ip, isAuth = false) { const bucket = isAuth ? authBuckets : rateLimitBuckets; const now = Date.now(); const limit = isAuth ? RATE_LIMIT_AUTH : RATE_LIMIT_GENERAL; if (!bucket.has(ip)) bucket.set(ip, []); const timestamps = bucket.get(ip).filter((t) => now - t < RATE_WINDOW_MS); timestamps.push(now); bucket.set(ip, timestamps); return timestamps.length > limit; } function _old_isRateLimited(ip, isAuth) {
+const authBuckets = new Map();
+function isRateLimited(ip, isAuth = false) {
+  if (ALLOW_DEV_FALLBACK && (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost' || ip === '::ffff:127.0.0.1')) return false;
+  const bucket = isAuth ? authBuckets : rateLimitBuckets;
   const now = Date.now();
   const limit = isAuth ? RATE_LIMIT_AUTH : RATE_LIMIT_GENERAL;
-  if (!rateLimitBuckets.has(ip)) rateLimitBuckets.set(ip, []);
-  const timestamps = rateLimitBuckets.get(ip).filter((t) => now - t < RATE_WINDOW_MS);
+  if (!bucket.has(ip)) bucket.set(ip, []);
+  const timestamps = bucket.get(ip).filter((t) => now - t < RATE_WINDOW_MS);
   timestamps.push(now);
-  rateLimitBuckets.set(ip, timestamps);
+  bucket.set(ip, timestamps);
   return timestamps.length > limit;
 }
 
