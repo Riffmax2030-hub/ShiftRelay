@@ -1551,21 +1551,10 @@
           </div>
           <div class="sr-modal-body" style="display: flex; flex-direction: column; gap: 12px;">
             <p style="margin: 0; font-size: 13px; color: var(--p-text-2);">
-              Distribute <strong>${escapeHtml(summary)}</strong> across local devices, work email, or native Office applications.
+              Distribute <strong>${escapeHtml(summary)}</strong> across work email or native Microsoft Office / WPS applications.
             </p>
 
-            <!-- 1. Native Bluetooth / Nearby Share -->
-            <button type="button" class="sr-share-option-btn" id="sr-share-btn-bluetooth" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
-              <div style="width: 38px; height: 38px; border-radius: 8px; background: var(--p-teal-light); color: var(--p-teal); display: grid; place-items: center; flex-shrink: 0;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg>
-              </div>
-              <div>
-                <strong style="font-size: 13.5px; color: var(--p-text); display: block;">Beam via Bluetooth / Nearby Share</strong>
-                <span style="font-size: 11.5px; color: var(--p-text-3);">Wireless direct transfer to colleague devices with zero Wi-Fi required</span>
-              </div>
-            </button>
-
-            <!-- 2. Work Email -->
+            <!-- 1. Work Email -->
             <button type="button" class="sr-share-option-btn" id="sr-share-btn-email" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
               <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: grid; place-items: center; flex-shrink: 0;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
@@ -1576,7 +1565,7 @@
               </div>
             </button>
 
-            <!-- 3. Excel Spreadsheet -->
+            <!-- 2. Excel Spreadsheet -->
             <button type="button" class="sr-share-option-btn" id="sr-share-btn-excel" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
               <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: grid; place-items: center; flex-shrink: 0;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
@@ -1587,7 +1576,7 @@
               </div>
             </button>
 
-            <!-- 4. Word Document -->
+            <!-- 3. Word Document -->
             <button type="button" class="sr-share-option-btn" id="sr-share-btn-word" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
               <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(99, 102, 241, 0.1); color: #6366f1; display: grid; place-items: center; flex-shrink: 0;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -1598,7 +1587,7 @@
               </div>
             </button>
 
-            <!-- 5. Print / PDF -->
+            <!-- 4. Print / PDF -->
             <button type="button" class="sr-share-option-btn" id="sr-share-btn-print" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
               <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(100, 116, 139, 0.1); color: #64748b; display: grid; place-items: center; flex-shrink: 0;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
@@ -1624,38 +1613,7 @@
     document.getElementById('sr-share-close-btn')?.addEventListener('click', closeModal);
     document.getElementById('sr-share-cancel-btn')?.addEventListener('click', closeModal);
 
-    // 1. Bluetooth / Nearby Share handler
-    document.getElementById('sr-share-btn-bluetooth')?.addEventListener('click', async () => {
-      const csvData = generateHandoverCSV(item, orgName, siteName);
-      const csvFile = new File([csvData], `${baseFilename}.csv`, { type: 'text/csv' });
-
-      if (navigator.share) {
-        try {
-          if (navigator.canShare && navigator.canShare({ files: [csvFile] })) {
-            await navigator.share({
-              title: `ShiftRelay Brief: ${summary}`,
-              text: `Shift handover document for ${siteName}`,
-              files: [csvFile]
-            });
-          } else {
-            await navigator.share({
-              title: `ShiftRelay Brief: ${summary}`,
-              text: `Shift handover dossier for ${siteName}: ${summary}\nNotes: ${h.notes || 'None'}`
-            });
-          }
-          if (typeof window.toast === 'function') window.toast('Shared successfully');
-        } catch (err) {
-          if (err.name !== 'AbortError') {
-            downloadFile(csvData, `${baseFilename}.csv`, 'text/csv;charset=utf-8');
-          }
-        }
-      } else {
-        downloadFile(csvData, `${baseFilename}.csv`, 'text/csv;charset=utf-8');
-        alert('File downloaded to your workspace. You can now transfer this file via Bluetooth, Nearby Sharing, or your email client.');
-      }
-    });
-
-    // 2. Work Email handler
+    // 1. Work Email handler
     document.getElementById('sr-share-btn-email')?.addEventListener('click', () => {
       const subject = encodeURIComponent(`[Shift Handover] ${siteName} - ${safeDate}`);
       const bodyText = `SHIFTRELAY OFFICIAL SHIFT HANDOVER BRIEF\n\n` +

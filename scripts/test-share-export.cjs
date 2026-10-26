@@ -89,17 +89,16 @@ const fs = require('fs');
   if (!shareModal) throw new Error('Share Hub Modal failed to open');
   console.log('✓ Step 3: Share Hub Modal opened successfully');
 
-  // Verify all 5 channels are present in modal
-  const bluetoothBtn = await page.$('#sr-share-btn-bluetooth');
+  // Verify all 4 channels are present in modal
   const emailBtn = await page.$('#sr-share-btn-email');
   const excelBtn = await page.$('#sr-share-btn-excel');
   const wordBtn = await page.$('#sr-share-btn-word');
   const printBtn = await page.$('#sr-share-btn-print');
 
-  if (!bluetoothBtn || !emailBtn || !excelBtn || !wordBtn || !printBtn) {
-    throw new Error('One or more of the 5 share channels is missing from the modal');
+  if (!emailBtn || !excelBtn || !wordBtn || !printBtn) {
+    throw new Error('One or more of the 4 share channels is missing from the modal');
   }
-  console.log('✓ Step 4: All 5 zero-cost channels (Bluetooth, Email, Excel, Word, Print) confirmed in UI');
+  console.log('✓ Step 4: All 4 zero-cost channels (Email, Excel, Word, Print) confirmed in UI');
 
   await page.screenshot({ path: path.join(artifactDir, 'feature-share-hub-modal.png') });
 
