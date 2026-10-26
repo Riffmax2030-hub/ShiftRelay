@@ -632,11 +632,36 @@ async function pendingMemberships(reviewer) {
 }
 
 async function reviewMembership(reviewer, membershipId, body) {
+  if (!databaseReady) {
+    const store = await getStore();
+    if (!Array.isArray(store.memberships)) store.memberships = [];
+    const membership = store.memberships.find(m => m.id === membershipId && m.organisation_id === reviewer.organisation_id && m.status === 'pending_approval');
+    if (!membership) throw new Error('Pending access request not found in your organisation.');
+
+    if (body.decision === 'reject') {
+      membership.status = 'rejected';
+      await saveStore(store);
+      return { status: 'rejected' };
+    }
+
+    if (body.decision === 'approve') {
+      const allowedWorkerRoles = ['incoming', 'outgoing', 'worker'];
+      const assignedRole = (body.role && allowedWorkerRoles.includes(body.role)) ? body.role : 'incoming';
+      membership.status = 'active';
+      membership.role = assignedRole;
+      if (body.department) membership.department = body.department;
+      await saveStore(store);
+      return { status: 'active', role: assignedRole };
+    }
+    throw new Error('Invalid decision. Must be approve or reject.');
+  }
+
   const membership = (await query('select id, user_id, organisation_id from memberships where id = $1 and organisation_id = $2 and status = $3', [membershipId, reviewer.organisation_id, 'pending_approval'])).rows[0];
   if (!membership) throw new Error('Pending access request not found in your organisation.');
 
   if (body.decision === 'reject') {
     await query('update memberships set status = $1 where id = $2 and organisation_id = $3', ['rejected', membershipId, reviewer.organisation_id]);
+    await audit(reviewer.organisation_id, reviewer.id, 'membership_rejected', 'membership', membershipId, 'Pending access request rejected.');
     return { status: 'rejected' };
   }
 
@@ -657,10 +682,119 @@ async function reviewMembership(reviewer, membershipId, body) {
       ['active', assignedRole, body.workflowTemplateId || null, body.shiftStart || null, body.shiftEnd || null, JSON.stringify(Array.isArray(body.shiftDays) ? body.shiftDays : []), membershipId, reviewer.organisation_id]
     );
 
+    await audit(reviewer.organisation_id, reviewer.id, 'membership_approved', 'membership', membershipId, `Approved access as ${assignedRole}`);
     return { status: 'active', role: assignedRole };
   }
 
   throw new Error('Invalid decision. Must be approve or reject.');
+}
+
+async function revokeMembership(actor, membershipId) {
+  if (actor.role !== 'owner' || !actor.organisation_id) {
+    const err = new Error('Only organisation owners can revoke worker memberships.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  if (membershipId === actor.id) {
+    const err = new Error('You cannot revoke your own active owner membership.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!databaseReady) {
+    const store = await getStore();
+    if (!Array.isArray(store.memberships)) {
+      store.memberships = demoMembers.map(m => ({
+        id: m.id,
+        organisation_id: actor.organisation_id,
+        user_id: m.id,
+        name: m.name,
+        role: m.role,
+        title: m.title,
+        department: m.department || 'Operations',
+        status: 'active'
+      }));
+    }
+    let target = store.memberships.find(m => m.id === membershipId && m.organisation_id === actor.organisation_id);
+    if (!target) {
+      const dm = demoMembers.find(m => m.id === membershipId);
+      if (dm) {
+        target = {
+          id: dm.id,
+          organisation_id: actor.organisation_id,
+          user_id: dm.id,
+          name: dm.name,
+          role: dm.role,
+          title: dm.title,
+          department: dm.department || 'Operations',
+          status: 'revoked'
+        };
+        store.memberships.push(target);
+      } else {
+        const err = new Error('Member not found in your organisation.');
+        err.statusCode = 404;
+        throw err;
+      }
+    } else {
+      if (target.role === 'owner') {
+        const owners = store.memberships.filter(m => m.organisation_id === actor.organisation_id && m.role === 'owner' && m.status === 'active');
+        if (owners.length <= 1) {
+          const err = new Error('Cannot revoke the sole organisation owner account.');
+          err.statusCode = 400;
+          throw err;
+        }
+      }
+      target.status = 'revoked';
+    }
+
+    // Auto clock-out open time entry
+    if (Array.isArray(store.timeEntries)) {
+      const openEntry = store.timeEntries.find(e => e.membershipId === membershipId && !e.clockedOutAt);
+      if (openEntry) openEntry.clockedOutAt = new Date().toISOString();
+    }
+    await saveStore(store);
+
+    evictMembershipClients(membershipId, 'membership_revoked');
+    return { status: 'revoked', id: membershipId };
+  }
+
+  const target = (await query(
+    'select m.id, m.role, m.status, u.full_name as name, m.title from memberships m join portal_users u on u.id = m.user_id where m.id = $1 and m.organisation_id = $2',
+    [membershipId, actor.organisation_id]
+  )).rows[0];
+
+  if (!target) {
+    const err = new Error('Member not found in your organisation.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (target.role === 'owner') {
+    const ownerCount = (await query("select count(*)::int as count from memberships where organisation_id = $1 and role = 'owner' and status = 'active'", [actor.organisation_id])).rows[0].count;
+    if (ownerCount <= 1) {
+      const err = new Error('Cannot revoke the sole organisation owner account.');
+      err.statusCode = 400;
+      throw err;
+    }
+  }
+
+  // Auto clock out
+  await query('update time_entries set clocked_out_at = now() where membership_id = $1 and clocked_out_at is null', [membershipId]);
+
+  // Terminate active sessions
+  await query('delete from user_sessions where membership_id = $1', [membershipId]);
+
+  // Update status to 'revoked'
+  await query("update memberships set status = 'revoked' where id = $1 and organisation_id = $2", [membershipId, actor.organisation_id]);
+
+  // Evict active SSE clients
+  evictMembershipClients(membershipId, 'membership_revoked');
+
+  // Audit event
+  await audit(actor.organisation_id, actor.id, 'membership_revoked', 'membership', membershipId, `Revoked access for ${target.name || target.title}`);
+
+  return { status: 'revoked', id: membershipId };
 }
 
 const wellbeingQuotes = [
@@ -1420,6 +1554,7 @@ async function handleApi(request, response, url) {
       return sendJson(response, code, { error: err.message });
     }
   }
+
   if (url.pathname === '/api/shift-swaps' && request.method === 'POST') {
     const { shiftId, targetMembershipId, reason, swapType } = await readJson(request);
     const store = await getStore();
@@ -1584,7 +1719,41 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/directory' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Directory is available for authenticated organisation accounts.' });
-    if (!databaseReady) return sendJson(response, 200, { members: demoMembers.map((member) => ({ ...member, time_zone: 'UTC', status: 'active', shift_start: member.role === 'incoming' ? '14:00' : '06:00', shift_end: member.role === 'incoming' ? '22:00' : '14:00' })) });
+    if (!databaseReady) {
+      const store = await getStore();
+      const statusMap = new Map();
+      const extraMembers = [];
+      if (Array.isArray(store.memberships)) {
+        store.memberships.forEach(m => {
+          if (m.organisation_id === user.organisation_id) {
+            statusMap.set(m.id, m.status);
+            if (!demoMembers.some(dm => dm.id === m.id) && m.status === 'active') {
+              const u = (store.portalUsers || []).find(user => user.id === m.user_id) || {};
+              extraMembers.push({
+                id: m.id,
+                name: u.full_name || m.name || 'Staff Member',
+                email: u.email || '',
+                role: m.role || 'worker',
+                title: m.title || 'Staff Specialist',
+                department: m.department || 'Operations',
+                status: 'active',
+                time_zone: 'UTC',
+                shift_start: '08:00',
+                shift_end: '16:00'
+              });
+            }
+          }
+        });
+      }
+      const baseMembers = demoMembers.map((member) => ({
+        ...member,
+        time_zone: 'UTC',
+        status: statusMap.get(member.id) || 'active',
+        shift_start: member.role === 'incoming' ? '14:00' : '06:00',
+        shift_end: member.role === 'incoming' ? '22:00' : '14:00'
+      }));
+      return sendJson(response, 200, { members: [...baseMembers, ...extraMembers] });
+    }
     const members = await query(`select m.id, u.full_name as name, u.email, u.time_zone, m.role, m.title, m.department, m.status, m.shift_start, m.shift_end from memberships m join portal_users u on u.id = m.user_id where m.organisation_id = $1 order by u.full_name`, [user.organisation_id]); return sendJson(response, 200, { members: members.rows });
   }
   if (url.pathname === '/api/incidents' && request.method === 'GET') {
@@ -1659,6 +1828,24 @@ async function handleApi(request, response, url) {
       const { statusCode, result, replay } = await withIdempotency(user, 'membership-review', clientKey, opBody, async (client) => {
         const membership = await reviewMembership(user, membershipReviewMatch[1], reviewBody);
         return { statusCode: 200, result: { membership } };
+      });
+      if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
+      return sendJson(response, statusCode, result);
+    } catch (err) {
+      const code = err.statusCode || 400;
+      return sendJson(response, code, { error: err.message });
+    }
+  }
+
+  const membershipRevokeMatch = url.pathname.match(/^\/api\/memberships\/([^/]+)\/revoke$/);
+  if (membershipRevokeMatch && request.method === 'POST') {
+    if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can revoke worker memberships.' });
+    const clientKey = request.headers['idempotency-key'] || null;
+    const targetId = membershipRevokeMatch[1];
+    try {
+      const { statusCode, result, replay } = await withIdempotency(user, 'membership-revoke', clientKey, { targetId }, async () => {
+        const res = await revokeMembership(user, targetId);
+        return { statusCode: 200, result: res };
       });
       if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
       return sendJson(response, statusCode, result);

@@ -1759,3 +1759,23 @@ body:has(#sr-app-shell) .app-header,
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ── 22. Team Directory & Worker Lifecycle Polish ─────────────────────────── */
+#sr-app-shell .sr-team-card-revoked {
+  opacity: 0.72;
+  border-style: dashed;
+  background: var(--p-surface-alt);
+}
+
+#sr-app-shell .sr-btn-revoke-member:hover {
+  background: var(--p-red-bg) !important;
+  border-color: var(--p-red) !important;
+}
+
+#sr-app-shell .sr-pending-item {
+  transition: border-color var(--p-dur) var(--p-ease), box-shadow var(--p-dur) var(--p-ease);
+}
+
+#sr-app-shell .sr-pending-item:hover {
+  border-color: var(--p-border-strong);
+}

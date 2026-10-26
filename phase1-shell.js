@@ -2685,6 +2685,92 @@
   // ── 7. Polished Team Directory Screen (UI Phase 3) ────────────────────────
   let teamSearchQuery = '';
 
+  function openRevokeModal(memberId, memberName, memberTitle, onCompleted) {
+    const existingModal = document.getElementById('sr-revoke-modal-wrap');
+    if (existingModal) existingModal.remove();
+
+    const modalRoot = document.createElement('div');
+    modalRoot.id = 'sr-revoke-modal-wrap';
+    modalRoot.innerHTML = `
+      <div class="sr-modal-backdrop" id="sr-revoke-backdrop">
+        <div class="sr-modal" role="dialog" aria-modal="true" aria-labelledby="sr-revoke-modal-title">
+          <div class="sr-modal-header">
+            <h2 id="sr-revoke-modal-title" style="color: var(--p-red); display: flex; align-items: center; gap: 8px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+              Revoke Worker Access
+            </h2>
+            <button type="button" class="sr-icon-btn" id="sr-revoke-modal-close" aria-label="Close dialog">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="sr-modal-body">
+            <p style="margin: 0 0 12px; font-size: 14px; color: var(--p-text); line-height: 1.5;">
+              Are you sure you want to deactivate and revoke ShiftRelay access for <strong>${escapeHtml(memberName)}</strong> (${escapeHtml(memberTitle)})?
+            </p>
+            <div style="background: var(--p-red-bg); border: 1px solid var(--p-red-border); border-radius: var(--p-radius-md); padding: 12px 14px; font-size: 12.5px; color: var(--p-text); line-height: 1.5;">
+              <strong style="color: var(--p-red);">Operational Security Safeguards:</strong>
+              <ul style="margin: 6px 0 0; padding-left: 18px;">
+                <li>Terminates all active login sessions immediately.</li>
+                <li>Automatically clocks out any active shift currently in progress.</li>
+                <li>Cuts active live alert streams to prevent internal data leakage.</li>
+                <li>Preserves historical handovers, checklist items, and timesheets for compliance audits.</li>
+              </ul>
+            </div>
+            <div id="sr-revoke-modal-error" style="display:none; color: var(--p-red); font-size: 12.5px; margin-top: 10px;" role="alert"></div>
+          </div>
+          <div class="sr-modal-footer">
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-revoke-modal-cancel">Cancel</button>
+            <button type="button" class="sr-btn sr-btn-danger" id="sr-revoke-modal-confirm">Confirm Deactivation</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modalRoot);
+
+    const closeModal = () => modalRoot.remove();
+    document.getElementById('sr-revoke-backdrop')?.addEventListener('click', (e) => {
+      if (e.target.id === 'sr-revoke-backdrop') closeModal();
+    });
+    document.getElementById('sr-revoke-modal-close')?.addEventListener('click', closeModal);
+    document.getElementById('sr-revoke-modal-cancel')?.addEventListener('click', closeModal);
+
+    const confirmBtn = document.getElementById('sr-revoke-modal-confirm');
+    const errBox = document.getElementById('sr-revoke-modal-error');
+
+    confirmBtn?.addEventListener('click', async () => {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Revoking...';
+      if (errBox) errBox.style.display = 'none';
+
+      try {
+        const res = await fetch(`/api/memberships/${memberId}/revoke`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 'idem_revoke_' + memberId + '_' + Date.now()
+          }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to revoke worker membership');
+        }
+
+        closeModal();
+        if (typeof window.toast === 'function') {
+          window.toast(`Access revoked for ${memberName}`);
+        }
+        if (typeof onCompleted === 'function') onCompleted();
+      } catch (err) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm Deactivation';
+        if (errBox) {
+          errBox.textContent = err.message;
+          errBox.style.display = 'block';
+        }
+      }
+    });
+  }
+
   async function renderTeamScreen() {
     const user = getUser();
     const container = document.getElementById('sr-content-area');
@@ -2697,13 +2783,26 @@
     `;
 
     try {
-      const res = await fetch('/api/directory');
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
+      const isOwner = user.role === 'owner';
+      const isManager = isManagerRole(user.role);
+
+      const [dirRes, pendingRes] = await Promise.all([
+        fetch('/api/directory'),
+        isManager ? fetch('/api/memberships/pending').catch(() => null) : Promise.resolve(null)
+      ]);
+
+      if (!dirRes.ok) {
+        const err = await dirRes.json().catch(() => ({}));
         throw new Error(err.error || 'Could not load team directory');
       }
-      const data = await res.json();
+      const data = await dirRes.json();
       const allMembers = data.members || [];
+
+      let pendingRequests = [];
+      if (pendingRes && pendingRes.ok) {
+        const pData = await pendingRes.json();
+        pendingRequests = pData.requests || [];
+      }
 
       function filterAndRender(query) {
         const q = (query || '').toLowerCase().trim();
@@ -2742,17 +2841,18 @@
             worker: 'Frontline Worker'
           }[m.role] || (m.role ? m.role.toUpperCase() : 'Staff');
 
+          const isRevoked = m.status === 'revoked';
           const statusClass = (m.status || 'active').toLowerCase();
-          const statusText = m.status === 'pending_approval' ? 'Pending Approval' : (m.status || 'Active');
+          const statusText = m.status === 'pending_approval' ? 'Pending Approval' : (isRevoked ? 'Revoked' : (m.status || 'Active'));
 
           const shiftTime = (m.shift_start && m.shift_end)
             ? `${m.shift_start} – ${m.shift_end}`
             : 'Standard Shift';
 
           return `
-            <article class="sr-team-card" data-member-id="${m.id}">
+            <article class="sr-team-card ${isRevoked ? 'sr-team-card-revoked' : ''}" data-member-id="${m.id}" style="${isRevoked ? 'opacity: 0.7; filter: grayscale(0.5);' : ''}">
               <div class="sr-team-card-header">
-                <div class="sr-team-avatar" aria-hidden="true">${escapeHtml(initials)}</div>
+                <div class="sr-team-avatar" aria-hidden="true" style="${isRevoked ? 'background: #64748b;' : ''}">${escapeHtml(initials)}</div>
                 <div class="sr-team-info">
                   <h4 class="sr-team-name">${escapeHtml(m.name || 'Team Member')}</h4>
                   <p class="sr-team-title">${escapeHtml(m.title || roleLabel)}</p>
@@ -2776,9 +2876,38 @@
                   <span class="sr-status-pill ${statusClass}">${escapeHtml(statusText)}</span>
                 </div>
               </div>
+
+              ${isOwner ? `
+                <div class="sr-team-card-footer" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--p-border); display: flex; justify-content: space-between; align-items: center;">
+                  ${m.id === user.id ? `
+                    <span style="font-size: 11.5px; color: var(--p-teal); font-weight: 600;">Active Account (You)</span>
+                    <span class="sr-badge sr-badge-info" style="font-size: 11px;">Sole Primary Owner</span>
+                  ` : isRevoked ? `
+                    <span style="font-size: 11.5px; color: var(--p-text-3);">Access Revoked</span>
+                    <span class="sr-badge sr-badge-neutral" style="font-size: 11px;">Deactivated</span>
+                  ` : `
+                    <span style="font-size: 11.5px; color: var(--p-text-3);">Frontline Access</span>
+                    <button type="button" class="sr-btn sr-btn-danger sr-btn-revoke-member" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-title="${escapeHtml(m.title || roleLabel)}" style="min-height: 28px; padding: 0 10px; font-size: 11.5px; background: transparent; color: var(--p-red); border: 1px solid var(--p-red-border);">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                      Revoke Access
+                    </button>
+                  `}
+                </div>
+              ` : ''}
             </article>
           `;
         }).join('');
+
+        // Bind revoke buttons
+        listContainer.querySelectorAll('.sr-btn-revoke-member').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const memberId = btn.dataset.id;
+            const memberName = btn.dataset.name;
+            const memberTitle = btn.dataset.title;
+            openRevokeModal(memberId, memberName, memberTitle, () => renderTeamScreen());
+          });
+        });
       }
 
       container.innerHTML = `
@@ -2789,6 +2918,36 @@
           </div>
           <span class="sr-context-banner-badge">${allMembers.length} Members</span>
         </div>
+
+        ${pendingRequests.length > 0 ? `
+          <section class="sr-card" style="border-left: 4px solid var(--p-amber); margin-bottom: 20px;" aria-label="Pending Worker Access Requests">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="sr-badge sr-badge-warning" style="font-weight: 700;">${pendingRequests.length} Pending Approval</span>
+                <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--sr-text-main);">Worker Join Requests</h3>
+              </div>
+              <span style="font-size: 12px; color: var(--sr-text-muted);">Awaiting company onboarding review</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              ${pendingRequests.map(req => `
+                <div class="sr-pending-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--p-surface-alt); border-radius: var(--p-radius-md); border: 1px solid var(--p-border); flex-wrap: wrap; gap: 10px;">
+                  <div>
+                    <div style="font-weight: 600; color: var(--p-text); font-size: 13.5px;">${escapeHtml(req.name)} <span style="font-weight: normal; font-size: 12px; color: var(--p-text-3);">&lt;${escapeHtml(req.email)}&gt;</span></div>
+                    <div style="font-size: 12px; color: var(--p-text-2); margin-top: 2px;">Applied as <strong>${escapeHtml(req.title || 'Shift Specialist')}</strong> · Unit: ${escapeHtml(req.department || 'Operations')}</div>
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" class="sr-btn sr-btn-primary sr-btn-approve-request" data-id="${req.id}" data-name="${escapeHtml(req.name)}" style="min-height: 32px; padding: 0 14px; font-size: 12px;">
+                      Approve Worker
+                    </button>
+                    <button type="button" class="sr-btn sr-btn-danger sr-btn-decline-request" data-id="${req.id}" data-name="${escapeHtml(req.name)}" style="min-height: 32px; padding: 0 12px; font-size: 12px; background: transparent; color: var(--p-red); border: 1px solid var(--p-red-border);">
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </section>
+        ` : ''}
 
         <section class="sr-card" aria-label="Team Directory">
           <div class="sr-search-bar">
@@ -2805,10 +2964,73 @@
 
       filterAndRender(teamSearchQuery);
 
+      // Bind search input
       const searchInput = document.getElementById('sr-team-search');
       searchInput?.addEventListener('input', (e) => {
         teamSearchQuery = e.target.value;
         filterAndRender(teamSearchQuery);
+      });
+
+      // Bind pending requests actions
+      container.querySelectorAll('.sr-btn-approve-request').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const reqId = btn.dataset.id;
+          const reqName = btn.dataset.name;
+          btn.disabled = true;
+          btn.textContent = 'Approving...';
+          try {
+            const res = await fetch(`/api/memberships/${reqId}/review`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Idempotency-Key': 'idem_appr_' + reqId + '_' + Date.now()
+              },
+              body: JSON.stringify({ decision: 'approve', role: 'worker' })
+            });
+            const d = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(d.error || 'Failed to approve request');
+            if (typeof window.toast === 'function') {
+              window.toast(`Approved ${reqName} for frontline duty`);
+            }
+            await renderTeamScreen();
+          } catch (err) {
+            alert(err.message);
+            btn.disabled = false;
+            btn.textContent = 'Approve Worker';
+          }
+        });
+      });
+
+      container.querySelectorAll('.sr-btn-decline-request').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const reqId = btn.dataset.id;
+          const reqName = btn.dataset.name;
+          if (!confirm(`Decline access request from ${reqName}?`)) return;
+          btn.disabled = true;
+          btn.textContent = 'Declining...';
+          try {
+            const res = await fetch(`/api/memberships/${reqId}/review`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Idempotency-Key': 'idem_decl_' + reqId + '_' + Date.now()
+              },
+              body: JSON.stringify({ decision: 'reject' })
+            });
+            const d = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(d.error || 'Failed to decline request');
+            if (typeof window.toast === 'function') {
+              window.toast(`Declined request from ${reqName}`);
+            }
+            await renderTeamScreen();
+          } catch (err) {
+            alert(err.message);
+            btn.disabled = false;
+            btn.textContent = 'Decline';
+          }
+        });
       });
 
     } catch (err) {
