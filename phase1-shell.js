@@ -1703,6 +1703,145 @@
     setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 150);
   }
 
+  // ── Calendar Sync Engine (.ics RFC 5545 & Google Calendar Web) ──────────────
+  function formatICSDate(isoString) {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  }
+
+  function generateCalendarICS(shifts, orgName, siteName, userName) {
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//ShiftRelay Frontline Workplace//Shift Schedule//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      `X-WR-CALNAME:ShiftRelay - ${orgName || 'Workplace'}`,
+      'X-WR-TIMEZONE:UTC'
+    ];
+
+    shifts.forEach((s, idx) => {
+      const start = formatICSDate(s.starts_at);
+      const end = formatICSDate(s.ends_at);
+      if (!start || !end) return;
+
+      const uid = s.id ? `${s.id}@shiftrelay.com` : `shift-${idx}-${Date.now()}@shiftrelay.com`;
+      const title = s.worker_name ? `Shift Duty: ${s.worker_name}` : `Shift Duty - ${siteName || 'Workplace'}`;
+      const desc = `ShiftRelay Scheduled Duty Shift\\nOrganisation: ${orgName || 'ShiftRelay'}\\nAssigned Unit: ${siteName || 'Operations'}\\nStatus: ${(s.status || 'Scheduled').toUpperCase()}`;
+      const location = `${siteName || 'Duty Station'}, ${orgName || 'Workplace'}`;
+
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${formatICSDate(new Date().toISOString())}`,
+        `DTSTART:${start}`,
+        `DTEND:${end}`,
+        `SUMMARY:${title}`,
+        `DESCRIPTION:${desc}`,
+        `LOCATION:${location}`,
+        'STATUS:CONFIRMED',
+        'END:VEVENT'
+      );
+    });
+
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n');
+  }
+
+  function openCalendarSyncModal(shifts, orgName, siteName, userName) {
+    const validShifts = Array.isArray(shifts) ? shifts : [];
+    const safeMonth = new Date().toISOString().slice(0, 7);
+
+    const modalRoot = document.createElement('div');
+    modalRoot.id = 'sr-calendar-modal-root';
+    modalRoot.innerHTML = `
+      <div class="sr-modal-backdrop" id="sr-calendar-backdrop">
+        <div class="sr-modal" style="max-width: 500px;" role="dialog" aria-modal="true" aria-labelledby="sr-calendar-modal-title">
+          <div class="sr-modal-header">
+            <h2 id="sr-calendar-modal-title" style="display: flex; align-items: center; gap: 8px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+              Sync Shifts to Calendar (.ics)
+            </h2>
+            <button type="button" class="sr-icon-btn" id="sr-calendar-close-btn" aria-label="Close dialog">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="sr-modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+            <p style="margin: 0; font-size: 13px; color: var(--p-text-2);">
+              Export <strong>${validShifts.length} shift${validShifts.length === 1 ? '' : 's'}</strong> directly to <strong>Google Calendar</strong>, <strong>Microsoft Outlook</strong>, or <strong>Apple Calendar</strong> with zero third-party software required.
+            </p>
+
+            <!-- Action 1: Download Standard .ics -->
+            <button type="button" class="sr-share-option-btn" id="sr-btn-download-ics" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
+              <div style="width: 38px; height: 38px; border-radius: 8px; background: var(--p-teal-light); color: var(--p-teal); display: grid; place-items: center; flex-shrink: 0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </div>
+              <div>
+                <strong style="font-size: 13.5px; color: var(--p-text); display: block;">Download Standard iCalendar File (.ics)</strong>
+                <span style="font-size: 11.5px; color: var(--p-text-3);">Universal calendar file for Apple Calendar, Outlook, and Google Calendar import</span>
+              </div>
+            </button>
+
+            <!-- Action 2: Direct Google Calendar Link (for next upcoming shift) -->
+            ${validShifts.length > 0 ? `
+              <button type="button" class="sr-share-option-btn" id="sr-btn-google-calendar" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
+                <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: grid; place-items: center; flex-shrink: 0;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                </div>
+                <div>
+                  <strong style="font-size: 13.5px; color: var(--p-text); display: block;">Add Next Shift to Google Calendar Online</strong>
+                  <span style="font-size: 11.5px; color: var(--p-text-3);">Opens Google Calendar in a new tab with your upcoming shift pre-filled</span>
+                </div>
+              </button>
+            ` : ''}
+
+            <!-- Instructions Guide -->
+            <div style="padding: 12px 14px; background: var(--p-surface-alt); border-radius: var(--p-radius-md); border: 1px solid var(--p-border); font-size: 12px; color: var(--p-text-2); line-height: 1.5;">
+              <strong style="display: block; color: var(--p-text); margin-bottom: 4px;">Quick Import Guide:</strong>
+              • <strong>iPhone / Mac:</strong> Open the downloaded <code>.ics</code> file &rarr; tap "Add All to Calendar".<br>
+              • <strong>Microsoft Outlook:</strong> Double-click the <code>.ics</code> file to add directly to Outlook Calendar.<br>
+              • <strong>Google Calendar:</strong> Open Google Calendar &rarr; Settings &rarr; Import & Export &rarr; Select file.
+            </div>
+          </div>
+          <div class="sr-modal-footer">
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-calendar-cancel-btn">Close</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modalRoot);
+
+    const closeModal = () => modalRoot.remove();
+    document.getElementById('sr-calendar-backdrop')?.addEventListener('click', (e) => {
+      if (e.target.id === 'sr-calendar-backdrop') closeModal();
+    });
+    document.getElementById('sr-calendar-close-btn')?.addEventListener('click', closeModal);
+    document.getElementById('sr-calendar-cancel-btn')?.addEventListener('click', closeModal);
+
+    // Download ICS Handler
+    document.getElementById('sr-btn-download-ics')?.addEventListener('click', () => {
+      const icsData = generateCalendarICS(validShifts, orgName, siteName, userName);
+      const filename = `ShiftRelay_Schedule_${safeMonth}.ics`;
+      downloadFile(icsData, filename, 'text/calendar;charset=utf-8');
+      if (typeof window.toast === 'function') window.toast('Calendar file downloaded');
+    });
+
+    // Google Calendar Web Handler
+    document.getElementById('sr-btn-google-calendar')?.addEventListener('click', () => {
+      if (validShifts.length === 0) return;
+      const s = validShifts[0];
+      const start = formatICSDate(s.starts_at);
+      const end = formatICSDate(s.ends_at);
+      const title = encodeURIComponent(`ShiftRelay Shift: ${s.worker_name || siteName || 'Frontline Duty'}`);
+      const details = encodeURIComponent(`Scheduled duty shift at ${orgName || 'ShiftRelay'}. Site: ${siteName || 'Unit'}`);
+      const loc = encodeURIComponent(`${siteName || 'Operations'}, ${orgName || 'ShiftRelay'}`);
+      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${loc}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
+  }
+
   function generateHandoverCSV(item, orgName, siteName) {
     const h = item.handover || {};
     const tasks = h.tasks || h.actions || [];
@@ -2888,7 +3027,11 @@
               <h2 style="margin:0 0 3px;font-size:18px;font-weight:800;color:var(--sr-text,#0f172a);">My Schedule</h2>
               <div style="font-size:12px;color:var(--sr-text-muted,#64748b);">Your assignments from the company roster &bull; Timezone: <strong>${escapeHtml(tz)}</strong></div>
             </div>
-            <div style="display:flex;align-items:center;gap:6px;" aria-label="Month navigation">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;" aria-label="Month navigation">
+              <button id="sr-btn-sync-calendar-worker" class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;" title="Export shifts to Outlook, Google Calendar, or Apple Calendar">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+                Sync Calendar (.ics)
+              </button>
               <button id="sr-sched-prev" aria-label="Previous month" style="padding:6px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;background:var(--sr-bg-surface,#fff);cursor:pointer;font-size:14px;color:var(--sr-text,#0f172a);">&#8249;</button>
               <span style="font-size:13px;font-weight:600;color:var(--sr-text,#0f172a);min-width:110px;text-align:center;">${escapeHtml(monthLabel)}</span>
               <button id="sr-sched-next" aria-label="Next month" style="padding:6px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;background:var(--sr-bg-surface,#fff);cursor:pointer;font-size:14px;color:var(--sr-text,#0f172a);">&#8250;</button>
@@ -2959,6 +3102,17 @@
           <div style="display:flex;flex-direction:column;gap:0;">
             ${renderShiftsTab(shifts, user.id, tz)}
           </div>`;
+
+        // Bind Calendar Sync for Worker
+        document.getElementById('sr-btn-sync-calendar-worker')?.addEventListener('click', () => {
+          const mine = shifts.filter(s => s.membership_id === user.id || s.membershipId === user.id);
+          openCalendarSyncModal(
+            mine.length > 0 ? mine : shifts,
+            user.organisation_name || 'ShiftRelay Workplace',
+            user.department || 'Operations Unit',
+            user.name || 'Frontline Staff'
+          );
+        });
 
       } else if (scheduleTab === 'leave') {
         const res = await fetch('/api/leave-requests');
@@ -3097,6 +3251,11 @@
                 </button>
               ` : ''}
 
+              <button id="sr-btn-sync-calendar-mgr" class="sr-btn sr-btn-secondary" style="padding:7px 12px;font-size:13px;display:inline-flex;align-items:center;gap:6px;" title="Export roster to Outlook, Google Calendar, or Apple Calendar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+                <span>Export Roster (.ics)</span>
+              </button>
+
               <div style="display:flex;align-items:center;gap:4px;" aria-label="Month navigation">
                 <button id="sr-mgr-sched-prev" aria-label="Previous month" style="padding:6px 10px;border:1.5px solid var(--sr-border,#e2e8f0);border-radius:8px;background:var(--sr-bg-surface,#fff);cursor:pointer;font-size:14px;color:var(--sr-text,#0f172a);">&#8249;</button>
                 <span style="font-size:13px;font-weight:600;color:var(--sr-text,#0f172a);min-width:110px;text-align:center;">${escapeHtml(monthLabel)}</span>
@@ -3204,6 +3363,16 @@
 
       const allShifts = Array.isArray(calData.shifts) ? calData.shifts : [];
       const allLeave = Array.isArray(calData.leave) ? calData.leave : [];
+
+      // Bind Calendar Sync for Manager
+      document.getElementById('sr-btn-sync-calendar-mgr')?.addEventListener('click', () => {
+        openCalendarSyncModal(
+          allShifts,
+          user.organisation_name || 'ShiftRelay Workplace',
+          user.department || 'Operations Leadership Team',
+          user.name || 'Management Lead'
+        );
+      });
 
       if (managerScheduleTab === 'shifts') {
         const filteredShifts = managerStaffFilter === 'all'
@@ -4869,6 +5038,8 @@
     clearNotificationState,
     checkAndRenderActiveBroadcastBanner,
     openBroadcastAnnouncementModal,
+    openCalendarSyncModal,
+    generateCalendarICS,
     navigate
   };
 
