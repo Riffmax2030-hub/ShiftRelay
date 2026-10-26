@@ -132,10 +132,18 @@
           body: item.body
         });
 
-        if (response.ok || response.status === 409) {
+        if (response.ok) {
           currentQueue = currentQueue.filter(q => q.id !== item.id);
           saveQueue(currentQueue);
           successfulCount++;
+        } else if (response.status === 409) {
+          // Record conflict for transparent user resolution
+          item.conflict = {
+            status: 409,
+            message: 'Server record was already modified or acknowledged by another colleague.',
+            detectedAt: new Date().toISOString()
+          };
+          saveQueue(currentQueue);
         }
       } catch (err) {
         console.warn('Queue flush retry failed for item', item.id, err);
@@ -295,22 +303,55 @@
     };
   }
 
+  function getItems() {
+    const { userId, orgId } = getActiveUserScope();
+    const currentQueue = loadQueue();
+    return currentQueue.filter(item => item.userId === userId && item.organisationId === orgId);
+  }
+
+  function removeItem(itemId) {
+    const currentQueue = loadQueue();
+    const filtered = currentQueue.filter(item => item.id !== itemId);
+    saveQueue(filtered);
+    const count = getItems().length;
+    if (count === 0) updatePill(null);
+    else updatePill(`Offline Mode · ${count} update${count > 1 ? 's' : ''} queued`, 'offline');
+  }
+
+  function resolveConflict(itemId, resolution) {
+    // resolution: 'keep_server' | 'force_overwrite'
+    const currentQueue = loadQueue();
+    const item = currentQueue.find(i => i.id === itemId);
+    if (!item) return;
+
+    if (resolution === 'keep_server') {
+      removeItem(itemId);
+    } else if (resolution === 'force_overwrite') {
+      if (item.headers && item.headers['Idempotency-Key']) {
+        item.headers['Idempotency-Key'] = 'idem_force_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      }
+      delete item.conflict;
+      saveQueue(currentQueue);
+      flushQueue();
+    }
+  }
+
   installOfflineInterceptor();
 
   window.OfflineQueue = {
     isOnline: () => isOnline,
     enqueue,
     flushQueue,
-    getPendingCount: () => {
-      const { userId, orgId } = getActiveUserScope();
-      const currentQueue = loadQueue();
-      return currentQueue.filter(item => item.userId === userId && item.organisationId === orgId).length;
-    },
+    getItems,
+    removeItem,
+    resolveConflict,
+    getPendingCount: () => getItems().length,
     clearCurrentQueue: () => {
       const { userId, orgId } = getActiveUserScope();
       const currentQueue = loadQueue();
       const remaining = currentQueue.filter(item => item.userId !== userId || item.organisationId !== orgId);
       saveQueue(remaining);
+      updatePill(null);
     },
     promptLogoutWarning
   };

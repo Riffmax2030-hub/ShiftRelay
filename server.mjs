@@ -1953,7 +1953,7 @@ async function handleApi(request, response, url) {
   if (url.pathname === '/api/handovers' && request.method === 'GET') {
     if (databaseReady) return sendJson(response, 200, { handovers: await databaseHandovers(user), user });
     const store = await getStore();
-    const handovers = user.role === 'supervisor' ? store.handovers : store.handovers.filter((handover) => handover.createdBy === user.id || handover.assignedTo === user.id);
+    const handovers = ['supervisor', 'owner'].includes(user.role) ? store.handovers : store.handovers.filter((handover) => handover.createdBy === user.id || handover.assignedTo === user.id);
     return sendJson(response, 200, { handovers, user });
   }
 

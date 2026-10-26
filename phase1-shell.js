@@ -683,10 +683,8 @@
     });
 
     document.getElementById('sr-shell-sync')?.addEventListener('click', async () => {
-      if (window.OfflineQueue?.syncQueue) {
-        await window.OfflineQueue.syncQueue();
-      }
-      mountShell(view);
+      // Open the full Conflict Resolution / Offline Sync modal
+      openOfflineSyncModal();
     });
 
     // Render requested screen
@@ -1343,6 +1341,509 @@
     }
   }
 
+  // ── Document Export & Multi-Channel Share Engine (Excel, Word, Bluetooth, Email) ──
+  function escapeCSV(val) {
+    if (val === null || val === undefined) return '""';
+    const str = String(val).replace(/"/g, '""');
+    return `"${str}"`;
+  }
+
+  function downloadFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 150);
+  }
+
+  function generateHandoverCSV(item, orgName, siteName) {
+    const h = item.handover || {};
+    const tasks = h.tasks || h.actions || [];
+    const dateStr = item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString();
+
+    let csv = '\uFEFF'; // UTF-8 BOM for Microsoft Excel & WPS Office
+    csv += 'ShiftRelay Official Shift Handover Report\r\n';
+    csv += `Organisation,${escapeCSV(orgName || 'ShiftRelay Workplace')}\r\n`;
+    csv += `Department / Unit,${escapeCSV(siteName || 'Operations')}\r\n`;
+    csv += `Generated Timestamp,${escapeCSV(new Date().toISOString())}\r\n`;
+    csv += `Handover Record ID,${escapeCSV(item.id || 'N/A')}\r\n`;
+    csv += `Status,${escapeCSV(item.status || 'Active')}\r\n\r\n`;
+
+    csv += '--- SHIFT BRIEF SUMMARY ---\r\n';
+    csv += `Shift Title / Summary,${escapeCSV(h.summary || 'Shift Handover')}\r\n`;
+    csv += `Safety Status Flag,${escapeCSV((h.shiftStatus || 'green').toUpperCase())}\r\n`;
+    csv += `Clinical & Operational Notes,${escapeCSV(h.notes || 'None recorded')}\r\n\r\n`;
+
+    csv += '--- ASSIGNED TASKS & CHECKLIST ---\r\n';
+    csv += 'Task ID,Task Description,Priority,Owner,Due Time,Status\r\n';
+    if (tasks.length === 0) {
+      csv += 'N/A,No specific checklist tasks assigned,N/A,N/A,N/A,Completed\r\n';
+    } else {
+      tasks.forEach(t => {
+        csv += `${escapeCSV(t.id || '')},${escapeCSV(t.text || t.title || '')},${escapeCSV(t.priority || 'medium')},${escapeCSV(t.owner || 'Frontline Team')},${escapeCSV(t.due || 'Shift End')},${escapeCSV(t.done ? 'COMPLETED' : 'PENDING')}\r\n`;
+      });
+    }
+    csv += '\r\n';
+
+    csv += '--- DIGITAL LIFECYCLE & SIGN-OFF ---\r\n';
+    csv += `Outgoing Specialist Author,${escapeCSV(item.reviewedBy || item.createdBy || 'Staff')}\r\n`;
+    csv += `Incoming Specialist Assignee,${escapeCSV(item.assignedTo || 'Unassigned')}\r\n`;
+    csv += `Supervisor Reviewer,${escapeCSV(item.reviewedBy || 'Pending Review')}\r\n`;
+    if (item.acknowledgement) {
+      csv += `Incoming Acknowledgement,${escapeCSV(`Signed at ${new Date(item.acknowledgement.at).toISOString()}`)}\r\n`;
+    } else {
+      csv += 'Incoming Acknowledgement,"Pending incoming specialist sign-off"\r\n';
+    }
+
+    return csv;
+  }
+
+  function generateRosterCSV(handoversList, orgName) {
+    let csv = '\uFEFF';
+    csv += 'ShiftRelay Master Shift Handovers Roster\r\n';
+    csv += `Organisation,${escapeCSV(orgName || 'ShiftRelay Workplace')}\r\n`;
+    csv += `Exported Timestamp,${escapeCSV(new Date().toISOString())}\r\n\r\n`;
+    csv += 'Record ID,Date,Status,Author,Incoming Specialist,Safety Level,Tasks Total,Tasks Done,Summary,Acknowledged At\r\n';
+
+    handoversList.forEach(item => {
+      const h = item.handover || {};
+      const tasks = h.tasks || h.actions || [];
+      const totalTasks = tasks.length;
+      const doneTasks = tasks.filter(t => t.done).length;
+      const ackDate = item.acknowledgement ? new Date(item.acknowledgement.at).toISOString() : 'Pending';
+
+      csv += `${escapeCSV(item.id)},${escapeCSV(item.createdAt ? new Date(item.createdAt).toISOString().slice(0, 10) : 'N/A')},${escapeCSV(item.status || 'Active')},${escapeCSV(item.reviewedBy || item.createdBy || 'Staff')},${escapeCSV(item.assignedTo || 'Unassigned')},${escapeCSV((h.shiftStatus || 'green').toUpperCase())},${totalTasks},${doneTasks},${escapeCSV(h.summary || 'Shift Handover')},${escapeCSV(ackDate)}\r\n`;
+    });
+
+    return csv;
+  }
+
+  function generateHandoverWordDoc(item, orgName, siteName) {
+    const h = item.handover || {};
+    const tasks = h.tasks || h.actions || [];
+    const dateDisplay = item.createdAt ? new Date(item.createdAt).toLocaleString([], { dateStyle: 'full', timeStyle: 'short' }) : new Date().toLocaleString();
+    const statusColor = h.shiftStatus === 'red' ? '#ef4444' : (h.shiftStatus === 'amber' ? '#f59e0b' : '#10b981');
+
+    return `
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <meta charset='utf-8'>
+  <title>ShiftRelay Handover Dossier</title>
+  <!--[if gte mso 9]>
+  <xml>
+    <w:WordDocument>
+      <w:View>Print</w:View>
+      <w:Zoom>100</w:Zoom>
+      <w:DoNotOptimizeForBrowser/>
+    </w:WordDocument>
+  </xml>
+  <![endif]-->
+  <style>
+    @page { size: 8.5in 11.0in; margin: 1in; mso-header-margin:.5in; mso-footer-margin:.5in; }
+    body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; color: #102033; line-height: 1.45; font-size: 11pt; }
+    .header-table { width: 100%; border-bottom: 3px solid #087F78; margin-bottom: 20px; }
+    .header-logo { font-size: 20pt; font-weight: bold; color: #102033; }
+    .header-logo span { color: #087F78; }
+    .doc-title { font-size: 16pt; font-weight: bold; color: #102033; margin: 0 0 10px 0; }
+    table.data-table { width: 100%; border-collapse: collapse; margin: 12px 0 18px 0; }
+    table.data-table th, table.data-table td { border: 1px solid #d1d5db; padding: 7px 10px; font-size: 10pt; text-align: left; }
+    table.data-table th { background-color: #f8fafc; font-weight: bold; color: #0f172a; }
+    .callout { background: #f0fdfa; border-left: 4px solid #087F78; padding: 10px 14px; margin: 12px 0; font-size: 10.5pt; }
+    .status-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: white; background: ${statusColor}; font-size: 9pt; }
+    .sig-table { width: 100%; margin-top: 30px; border-collapse: collapse; }
+    .sig-table td { width: 50%; padding: 15px 10px; vertical-align: top; border-top: 1px dashed #94a3b8; font-size: 9.5pt; }
+  </style>
+</head>
+<body>
+  <table class="header-table">
+    <tr>
+      <td class="header-logo">Shift<span>Relay</span></td>
+      <td style="text-align: right; color: #64748b; font-size: 9pt;">
+        <strong>OFFICIAL SHIFT HANDOVER REPORT</strong><br/>
+        Record Ref: ${escapeHtml(item.id || 'N/A')}
+      </td>
+    </tr>
+  </table>
+
+  <h1 class="doc-title">${escapeHtml(h.summary || 'Shift Handover Dossier')}</h1>
+  <p style="margin: 0 0 14px 0; font-size: 9.5pt; color: #64748b;">
+    <strong>Organisation:</strong> ${escapeHtml(orgName || 'ShiftRelay Workplace')} · 
+    <strong>Facility / Unit:</strong> ${escapeHtml(siteName || 'Operations')} · 
+    <strong>Date:</strong> ${escapeHtml(dateDisplay)} · 
+    <span class="status-badge">${(h.shiftStatus || 'green').toUpperCase()}</span>
+  </p>
+
+  <div class="callout">
+    <strong>Operational Notes &amp; Handover Brief:</strong><br/>
+    ${escapeHtml(h.notes || 'No supplementary incident notes reported.')}
+  </div>
+
+  <h2 style="font-size: 12pt; color: #087F78; margin-top: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Assigned Shift Tasks &amp; Checklist</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 15%;">Priority</th>
+        <th style="width: 45%;">Description</th>
+        <th style="width: 20%;">Assigned To</th>
+        <th style="width: 20%;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${tasks.length === 0 ? '<tr><td colspan="4" style="text-align:center; color:#64748b;">No individual checklist tasks assigned.</td></tr>' : tasks.map(t => `
+        <tr>
+          <td><span style="font-weight:bold; color:${t.priority === 'urgent' ? '#dc2626' : '#2563eb'};">${escapeHtml((t.priority || 'NORMAL').toUpperCase())}</span></td>
+          <td>${escapeHtml(t.text || t.title || 'Checklist Item')}</td>
+          <td>${escapeHtml(t.owner || 'Frontline Specialist')}</td>
+          <td><strong>${t.done ? '✓ COMPLETED' : '○ PENDING'}</strong></td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+
+  <table class="sig-table">
+    <tr>
+      <td>
+        <strong>Outgoing Specialist Signature:</strong><br/>
+        <span style="font-size: 11pt; font-style: italic; color: #087F78;">${escapeHtml(item.reviewedBy || item.createdBy || 'Staff Specialist')}</span><br/>
+        Signed Date: ${escapeHtml(dateDisplay)}
+      </td>
+      <td>
+        <strong>Incoming Specialist Acknowledgement:</strong><br/>
+        <span style="font-size: 11pt; font-style: italic; color: #087F78;">${item.acknowledgement ? escapeHtml(`Acknowledged at ${new Date(item.acknowledgement.at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`) : 'Pending Shift Takeover'}</span><br/>
+        Status: ${escapeHtml(item.status || 'Active')}
+      </td>
+    </tr>
+  </table>
+
+  <div style="margin-top: 30px; text-align: center; font-size: 8pt; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+    ShiftRelay Frontline Resilience Engine · Generated for Microsoft Office &amp; WPS Office · Confidential Workplace Record
+  </div>
+</body>
+</html>
+    `;
+  }
+
+  function openShareHubModal(item) {
+    const user = getUser();
+    const orgName = user.organisation_name || 'ShiftRelay Workplace';
+    const siteName = user.department || 'Operations';
+    const h = item.handover || {};
+    const summary = h.summary || 'Shift Handover';
+    const safeDate = item.createdAt ? new Date(item.createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+    const baseFilename = `ShiftRelay_Handover_${safeDate}_${(siteName || 'Unit').replace(/[^A-Za-z0-9]/g, '_')}`;
+
+    const modalRoot = document.createElement('div');
+    modalRoot.id = 'sr-share-modal-root';
+    modalRoot.innerHTML = `
+      <div class="sr-modal-backdrop" id="sr-share-backdrop">
+        <div class="sr-modal" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="sr-share-title">
+          <div class="sr-modal-header">
+            <h2 id="sr-share-title" style="display: flex; align-items: center; gap: 8px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              Share &amp; Export Shift Brief
+            </h2>
+            <button type="button" class="sr-icon-btn" id="sr-share-close-btn" aria-label="Close dialog">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="sr-modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+            <p style="margin: 0; font-size: 13px; color: var(--p-text-2);">
+              Distribute <strong>${escapeHtml(summary)}</strong> across local devices, work email, or native Office applications.
+            </p>
+
+            <!-- 1. Native Bluetooth / Nearby Share -->
+            <button type="button" class="sr-share-option-btn" id="sr-share-btn-bluetooth" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
+              <div style="width: 38px; height: 38px; border-radius: 8px; background: var(--p-teal-light); color: var(--p-teal); display: grid; place-items: center; flex-shrink: 0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg>
+              </div>
+              <div>
+                <strong style="font-size: 13.5px; color: var(--p-text); display: block;">Beam via Bluetooth / Nearby Share</strong>
+                <span style="font-size: 11.5px; color: var(--p-text-3);">Wireless direct transfer to colleague devices with zero Wi-Fi required</span>
+              </div>
+            </button>
+
+            <!-- 2. Work Email -->
+            <button type="button" class="sr-share-option-btn" id="sr-share-btn-email" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
+              <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: grid; place-items: center; flex-shrink: 0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </div>
+              <div>
+                <strong style="font-size: 13.5px; color: var(--p-text); display: block;">Send to Work Email</strong>
+                <span style="font-size: 11.5px; color: var(--p-text-3);">Pre-formatted handover summary opened in Outlook or default mail client</span>
+              </div>
+            </button>
+
+            <!-- 3. Excel Spreadsheet -->
+            <button type="button" class="sr-share-option-btn" id="sr-share-btn-excel" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
+              <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: grid; place-items: center; flex-shrink: 0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+              </div>
+              <div>
+                <strong style="font-size: 13.5px; color: var(--p-text); display: block;">Export to Excel / WPS (.csv)</strong>
+                <span style="font-size: 11.5px; color: var(--p-text-3);">Tabular spreadsheet with checklist metrics ready to open in Microsoft Excel</span>
+              </div>
+            </button>
+
+            <!-- 4. Word Document -->
+            <button type="button" class="sr-share-option-btn" id="sr-share-btn-word" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
+              <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(99, 102, 241, 0.1); color: #6366f1; display: grid; place-items: center; flex-shrink: 0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <div>
+                <strong style="font-size: 13.5px; color: var(--p-text); display: block;">Export to Word / WPS (.doc)</strong>
+                <span style="font-size: 11.5px; color: var(--p-text-3);">Formatted official document with digital signatures ready for Microsoft Word</span>
+              </div>
+            </button>
+
+            <!-- 5. Print / PDF -->
+            <button type="button" class="sr-share-option-btn" id="sr-share-btn-print" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--p-surface-alt); border: 1px solid var(--p-border); border-radius: var(--p-radius-md); text-align: left; cursor: pointer; transition: all 0.15s ease;">
+              <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(100, 116, 139, 0.1); color: #64748b; display: grid; place-items: center; flex-shrink: 0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+              </div>
+              <div>
+                <strong style="font-size: 13.5px; color: var(--p-text); display: block;">Print / Save as PDF</strong>
+                <span style="font-size: 11.5px; color: var(--p-text-3);">Clean printable page layout with sign-off blocks</span>
+              </div>
+            </button>
+          </div>
+          <div class="sr-modal-footer">
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-share-cancel-btn">Close</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modalRoot);
+
+    const closeModal = () => modalRoot.remove();
+    document.getElementById('sr-share-backdrop')?.addEventListener('click', (e) => {
+      if (e.target.id === 'sr-share-backdrop') closeModal();
+    });
+    document.getElementById('sr-share-close-btn')?.addEventListener('click', closeModal);
+    document.getElementById('sr-share-cancel-btn')?.addEventListener('click', closeModal);
+
+    // 1. Bluetooth / Nearby Share handler
+    document.getElementById('sr-share-btn-bluetooth')?.addEventListener('click', async () => {
+      const csvData = generateHandoverCSV(item, orgName, siteName);
+      const csvFile = new File([csvData], `${baseFilename}.csv`, { type: 'text/csv' });
+
+      if (navigator.share) {
+        try {
+          if (navigator.canShare && navigator.canShare({ files: [csvFile] })) {
+            await navigator.share({
+              title: `ShiftRelay Brief: ${summary}`,
+              text: `Shift handover document for ${siteName}`,
+              files: [csvFile]
+            });
+          } else {
+            await navigator.share({
+              title: `ShiftRelay Brief: ${summary}`,
+              text: `Shift handover dossier for ${siteName}: ${summary}\nNotes: ${h.notes || 'None'}`
+            });
+          }
+          if (typeof window.toast === 'function') window.toast('Shared successfully');
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            downloadFile(csvData, `${baseFilename}.csv`, 'text/csv;charset=utf-8');
+          }
+        }
+      } else {
+        downloadFile(csvData, `${baseFilename}.csv`, 'text/csv;charset=utf-8');
+        alert('File downloaded to your workspace. You can now transfer this file via Bluetooth, Nearby Sharing, or your email client.');
+      }
+    });
+
+    // 2. Work Email handler
+    document.getElementById('sr-share-btn-email')?.addEventListener('click', () => {
+      const subject = encodeURIComponent(`[Shift Handover] ${siteName} - ${safeDate}`);
+      const bodyText = `SHIFTRELAY OFFICIAL SHIFT HANDOVER BRIEF\n\n` +
+        `Organisation: ${orgName}\n` +
+        `Unit / Facility: ${siteName}\n` +
+        `Date: ${safeDate}\n` +
+        `Safety Status: ${(h.shiftStatus || 'green').toUpperCase()}\n` +
+        `Summary: ${summary}\n\n` +
+        `Operational Notes:\n${h.notes || 'None'}\n\n` +
+        `Assigned Tasks:\n` +
+        ((h.tasks || []).map(t => `- [${t.done ? 'X' : ' '}] ${t.text || t.title} (${t.priority || 'medium'})`).join('\n') || 'None') +
+        `\n\nAuthor: ${item.reviewedBy || item.createdBy || 'Staff'}\n` +
+        `Generated via ShiftRelay Frontline Resilience Platform`;
+
+      window.location.href = `mailto:?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
+    });
+
+    // 3. Excel Download handler
+    document.getElementById('sr-share-btn-excel')?.addEventListener('click', () => {
+      const csvData = generateHandoverCSV(item, orgName, siteName);
+      downloadFile(csvData, `${baseFilename}.csv`, 'text/csv;charset=utf-8');
+      if (typeof window.toast === 'function') window.toast('Excel spreadsheet downloaded');
+    });
+
+    // 4. Word Document handler
+    document.getElementById('sr-share-btn-word')?.addEventListener('click', () => {
+      const wordData = generateHandoverWordDoc(item, orgName, siteName);
+      downloadFile(wordData, `${baseFilename}.doc`, 'application/msword;charset=utf-8');
+      if (typeof window.toast === 'function') window.toast('Word document downloaded');
+    });
+
+    // 5. Print / PDF handler
+    document.getElementById('sr-share-btn-print')?.addEventListener('click', () => {
+      const wordHtml = generateHandoverWordDoc(item, orgName, siteName);
+      const printWin = window.open('', '_blank', 'width=800,height=900');
+      if (printWin) {
+        printWin.document.write(wordHtml);
+        printWin.document.close();
+        printWin.focus();
+        setTimeout(() => {
+          printWin.print();
+        }, 300);
+      }
+    });
+  }
+
+  function openOfflineSyncModal() {
+    const user = getUser();
+    const orgName = user.organisation_name || 'ShiftRelay Workplace';
+    const siteName = user.department || 'Operations';
+    const isOnline = navigator.onLine;
+
+    const queuedItems = window.OfflineQueue?.getItems ? window.OfflineQueue.getItems() : [];
+
+    const modalRoot = document.createElement('div');
+    modalRoot.id = 'sr-offline-modal-root';
+    modalRoot.innerHTML = `
+      <div class="sr-modal-backdrop" id="sr-offline-backdrop">
+        <div class="sr-modal" style="max-width: 520px;" role="dialog" aria-modal="true" aria-labelledby="sr-offline-modal-title">
+          <div class="sr-modal-header">
+            <h2 id="sr-offline-modal-title" style="display: flex; align-items: center; gap: 8px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/></svg>
+              Offline Sync &amp; Conflict Resolution
+            </h2>
+            <button type="button" class="sr-icon-btn" id="sr-offline-close-btn" aria-label="Close dialog">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="sr-modal-body">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding: 10px 12px; background: var(--p-surface-alt); border-radius: var(--p-radius-md); border: 1px solid var(--p-border);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="sr-pulse-dot" style="background: ${isOnline ? 'var(--p-green)' : 'var(--p-red)'};"></span>
+                <span style="font-size: 13px; font-weight: 600; color: var(--p-text);">Status: ${isOnline ? 'Connected (Live Server)' : 'Offline (Local Safe Store)'}</span>
+              </div>
+              <span class="sr-badge ${queuedItems.length > 0 ? 'sr-badge-warning' : 'sr-badge-success'}" style="font-size: 11px;">
+                ${queuedItems.length} Unsynced Action${queuedItems.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            ${queuedItems.length === 0 ? `
+              <div class="sr-empty-state" style="padding: 24px 16px;">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 6 9 17l-5-5"/></svg>
+                <p style="margin: 8px 0 0; font-size: 13.5px; font-weight: 600; color: var(--p-text);">All records fully synchronized</p>
+                <span style="font-size: 12px; color: var(--p-text-3);">Your local shift entries, handovers, and checklist items match the central server.</span>
+              </div>
+            ` : `
+              <p style="margin: 0 0 10px; font-size: 12.5px; color: var(--p-text-2);">
+                The following shift records were safely captured locally in disconnected zones:
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 10px; max-height: 240px; overflow-y: auto;">
+                ${queuedItems.map(item => {
+                  const isConflict = Boolean(item.conflict);
+                  const timeFormatted = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Local';
+                  let actionLabel = 'Queued Update';
+                  if (item.url?.includes('clock-in')) actionLabel = 'Clock In Action';
+                  else if (item.url?.includes('clock-out')) actionLabel = 'Clock Out Action';
+                  else if (item.url?.includes('handovers')) actionLabel = 'Shift Handover Brief';
+
+                  return `
+                    <div style="padding: 10px 12px; background: var(--p-surface-alt); border-radius: var(--p-radius-md); border: 1px solid ${isConflict ? 'var(--p-amber)' : 'var(--p-border)'};">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong style="font-size: 13px; color: var(--p-text);">${escapeHtml(actionLabel)}</strong>
+                        <span style="font-size: 11px; color: var(--p-text-3);">${escapeHtml(timeFormatted)}</span>
+                      </div>
+                      <div style="font-size: 11.5px; color: var(--p-text-2); font-family: monospace;">${escapeHtml(item.method || 'POST')} ${escapeHtml(item.url || '')}</div>
+                      ${isConflict ? `
+                        <div style="margin-top: 8px; padding: 6px 8px; background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--p-amber); font-size: 11.5px; color: var(--p-amber);">
+                          ⚠️ ${escapeHtml(item.conflict.message || 'Server conflict detected.')}
+                        </div>
+                        <div style="display: flex; gap: 6px; margin-top: 8px;">
+                          <button type="button" class="sr-btn sr-btn-secondary sr-btn-resolve-keep" data-id="${item.id}" style="min-height: 26px; padding: 0 8px; font-size: 11px;">Keep Server Version</button>
+                          <button type="button" class="sr-btn sr-btn-primary sr-btn-resolve-force" data-id="${item.id}" style="min-height: 26px; padding: 0 8px; font-size: 11px;">Force Overwrite</button>
+                        </div>
+                      ` : ''}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `}
+          </div>
+          <div class="sr-modal-footer" style="justify-content: space-between;">
+            ${queuedItems.length > 0 ? `
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-export-offline-queue" style="font-size: 12px;">
+                Export Queue to Excel
+              </button>
+            ` : `<span></span>`}
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-offline-cancel-btn">Close</button>
+              ${queuedItems.length > 0 && isOnline ? `
+                <button type="button" class="sr-btn sr-btn-primary" id="sr-offline-sync-now-btn">Sync All Records Now</button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modalRoot);
+
+    const closeModal = () => modalRoot.remove();
+    document.getElementById('sr-offline-backdrop')?.addEventListener('click', (e) => {
+      if (e.target.id === 'sr-offline-backdrop') closeModal();
+    });
+    document.getElementById('sr-offline-close-btn')?.addEventListener('click', closeModal);
+    document.getElementById('sr-offline-cancel-btn')?.addEventListener('click', closeModal);
+
+    // Sync Now handler
+    document.getElementById('sr-offline-sync-now-btn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('sr-offline-sync-now-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Syncing...'; }
+      if (window.OfflineQueue?.flushQueue) {
+        await window.OfflineQueue.flushQueue();
+      }
+      closeModal();
+      openOfflineSyncModal();
+    });
+
+    // Export Offline Queue to Excel
+    document.getElementById('sr-btn-export-offline-queue')?.addEventListener('click', () => {
+      let csv = '\uFEFF';
+      csv += 'ShiftRelay Offline Unsent Work Queue\r\n';
+      csv += `Organisation,${escapeCSV(orgName)}\r\n`;
+      csv += `Department,${escapeCSV(siteName)}\r\n`;
+      csv += `Export Timestamp,${escapeCSV(new Date().toISOString())}\r\n\r\n`;
+      csv += 'Queue ID,Method,Endpoint,Local Timestamp,Status,Payload Details\r\n';
+      queuedItems.forEach(item => {
+        csv += `${escapeCSV(item.id)},${escapeCSV(item.method)},${escapeCSV(item.url)},${escapeCSV(item.timestamp)},${escapeCSV(item.conflict ? 'CONFLICT' : 'QUEUED')},${escapeCSV(item.body || 'No Body')}\r\n`;
+      });
+      downloadFile(csv, `ShiftRelay_Offline_Queue_${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv;charset=utf-8');
+      if (typeof window.toast === 'function') window.toast('Offline queue exported to Excel');
+    });
+
+    // Conflict resolution handlers
+    modalRoot.querySelectorAll('.sr-btn-resolve-keep').forEach(btn => {
+      btn.addEventListener('click', () => {
+        window.OfflineQueue?.resolveConflict?.(btn.dataset.id, 'keep_server');
+        closeModal();
+        openOfflineSyncModal();
+      });
+    });
+    modalRoot.querySelectorAll('.sr-btn-resolve-force').forEach(btn => {
+      btn.addEventListener('click', () => {
+        window.OfflineQueue?.resolveConflict?.(btn.dataset.id, 'force_overwrite');
+        closeModal();
+        openOfflineSyncModal();
+      });
+    });
+  }
+
   // ── 5. Polished Worker Handovers Screen (UI Phase 2) ──────────────────────
   let workerHandoversTab = 'actions'; // 'actions' | 'history' | 'create'
 
@@ -1391,7 +1892,7 @@
           <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
         </div>
 
-        <div class="sr-tabs-header">
+        <div class="sr-tabs-header" style="position:relative;">
           <button class="sr-tab-btn ${workerHandoversTab === 'actions' ? 'active' : ''}" data-sr-tab="actions">
             <span>Needs My Action</span>
             ${needsAction.length > 0 ? `<span class="sr-tab-badge">${needsAction.length}</span>` : ''}
@@ -1404,12 +1905,23 @@
               <span>+ Create Handover</span>
             </button>
           ` : ''}
+          <button id="sr-btn-export-all-worker" class="sr-btn sr-btn-secondary" title="Export all handovers to Excel" style="margin-left:auto;min-height:32px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;align-self:center;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export All
+          </button>
         </div>
 
         <div id="sr-worker-handovers-panel"></div>
       `;
 
       container.innerHTML = html;
+
+      // Bind Export All (worker handovers → Excel roster)
+      document.getElementById('sr-btn-export-all-worker')?.addEventListener('click', () => {
+        const orgName = user.organisation_name || 'ShiftRelay';
+        const csv = generateRosterCSV(handovers, orgName);
+        downloadFile(csv, `ShiftRelay_Handovers_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8;');
+      });
 
       // Tab switcher bindings
       document.querySelectorAll('[data-sr-tab]').forEach(btn => {
@@ -1504,7 +2016,11 @@
             <div style="font-size:12px;color:var(--sr-text-muted);">
               ${item.acknowledgement ? `Acknowledged at ${new Date(item.acknowledgement.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
             </div>
-            <div style="display:flex;gap:8px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <button class="sr-btn sr-btn-secondary sr-btn-share-handover" data-id="${item.id}" title="Share or export this handover brief" style="min-height:36px;padding:0 12px;font-size:12.5px;display:flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                Share
+              </button>
               ${canAcknowledge ? `
                 <button class="sr-btn sr-btn-primary" style="min-height:44px;padding:0 16px;font-size:13px;" data-action="ack-handover" data-id="${item.id}">
                   Acknowledge Shift Brief
@@ -1520,6 +2036,16 @@
         </article>
       `;
     }).join('');
+
+    // Bind Share & Export modal
+    container.querySelectorAll('.sr-btn-share-handover').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const hId = btn.dataset.id;
+        const handoverItem = items.find(i => i.id === hId);
+        if (handoverItem) openShareHubModal(handoverItem);
+      });
+    });
 
     // Bind task toggling (explicit desired state prevents accidental inversion on retries)
     container.querySelectorAll('.sr-task-checkbox').forEach(box => {
@@ -1782,7 +2308,7 @@
           <span class="sr-context-banner-badge" style="background:#0a3d39;">${escapeHtml(user.role.toUpperCase())}</span>
         </div>
 
-        <div class="sr-tabs-header">
+        <div class="sr-tabs-header" style="position:relative;">
           <button class="sr-tab-btn ${managerHandoversTab === 'pending' ? 'active' : ''}" data-sr-mgr-tab="pending">
             <span>Awaiting Supervisor Relay</span>
             ${pendingItems.length > 0 ? `<span class="sr-tab-badge">${pendingItems.length}</span>` : ''}
@@ -1790,12 +2316,23 @@
           <button class="sr-tab-btn ${managerHandoversTab === 'completed' ? 'active' : ''}" data-sr-mgr-tab="completed">
             <span>Relayed &amp; Completed (${completedItems.length})</span>
           </button>
+          <button id="sr-btn-export-all-mgr" class="sr-btn sr-btn-secondary" title="Export all handovers to Excel" style="margin-left:auto;min-height:32px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;align-self:center;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export All
+          </button>
         </div>
 
         <div id="sr-mgr-handovers-panel"></div>
       `;
 
       container.innerHTML = html;
+
+      // Bind Export All (manager handovers → Excel roster)
+      document.getElementById('sr-btn-export-all-mgr')?.addEventListener('click', () => {
+        const orgName = user.organisation_name || 'ShiftRelay';
+        const csv = generateRosterCSV(handovers, orgName);
+        downloadFile(csv, `ShiftRelay_ManagerHandovers_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8;');
+      });
 
       document.querySelectorAll('[data-sr-mgr-tab]').forEach(btn => {
         btn.addEventListener('click', async (e) => {

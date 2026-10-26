@@ -1779,3 +1779,32 @@ body:has(#sr-app-shell) .app-header,
 #sr-app-shell .sr-pending-item:hover {
   border-color: var(--p-border-strong);
 }
+
+/* ── 23. Handover Share Hub & Offline Conflict Resolution ───────────────────── */
+#sr-app-shell .sr-share-option-btn,
+.sr-share-option-btn {
+  transition: border-color var(--p-dur) var(--p-ease), background var(--p-dur) var(--p-ease), transform var(--p-dur) var(--p-ease);
+}
+
+#sr-app-shell .sr-share-option-btn:hover,
+.sr-share-option-btn:hover {
+  border-color: var(--p-teal) !important;
+  background: var(--p-teal-light) !important;
+  transform: translateY(-1px);
+}
+
+#sr-app-shell .sr-share-option-btn:active,
+.sr-share-option-btn:active {
+  transform: translateY(0);
+}
+
+#sr-app-shell .sr-btn-share-handover {
+  transition: all var(--p-dur) var(--p-ease);
+}
+
+#sr-app-shell .sr-btn-share-handover:hover {
+  border-color: var(--p-teal);
+  color: var(--p-teal);
+  background: var(--p-teal-light);
+}
+
