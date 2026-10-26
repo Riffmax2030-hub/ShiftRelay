@@ -2109,6 +2109,137 @@ async function handleApi(request, response, url) {
   }
 
   // ==========================================================================
+  // Shift Broadcast Announcements Endpoints
+  // ==========================================================================
+
+  if (url.pathname === '/api/announcements' && request.method === 'GET') {
+    if (databaseReady) {
+      const result = await query(
+        `SELECT id, organisation_id, author_membership_id, author_name, author_role, severity, title, message, scope, department, acknowledgements, created_at
+         FROM shift_announcements
+         WHERE organisation_id = $1
+         ORDER BY created_at DESC LIMIT 20`,
+        [user.organisation_id]
+      );
+      return sendJson(response, 200, {
+        announcements: result.rows.map(row => ({
+          id: row.id,
+          organisationId: row.organisation_id,
+          authorId: row.author_membership_id,
+          authorName: row.author_name,
+          authorRole: row.author_role,
+          severity: row.severity,
+          title: row.title,
+          message: row.message,
+          scope: row.scope,
+          department: row.department,
+          acknowledgements: Array.isArray(row.acknowledgements) ? row.acknowledgements : [],
+          createdAt: row.created_at
+        }))
+      });
+    }
+    const store = await getStore();
+    if (!Array.isArray(store.announcements)) store.announcements = [];
+    const announcements = store.announcements
+      .filter(a => !a.organisationId || a.organisationId === user.organisation_id)
+      .slice(0, 20);
+    return sendJson(response, 200, { announcements });
+  }
+
+  if (url.pathname === '/api/announcements' && request.method === 'POST') {
+    if (!['supervisor', 'owner'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Only shift supervisors and organisation owners can broadcast announcements.' });
+    }
+    const body = await readJson(request);
+    const title = (body.title || '').trim();
+    const message = (body.message || '').trim();
+    const severity = ['critical', 'warning', 'info'].includes(body.severity) ? body.severity : 'info';
+    const scope = ['all', 'unit'].includes(body.scope) ? body.scope : 'all';
+    const department = body.department || user.department || null;
+
+    if (!title || !message) {
+      return sendJson(response, 400, { error: 'Announcement title and message are required.' });
+    }
+
+    const newId = crypto.randomUUID();
+    const announcementRecord = {
+      id: newId,
+      organisationId: user.organisation_id,
+      authorId: user.id,
+      authorName: user.name || 'Shift Supervisor',
+      authorRole: user.role,
+      severity,
+      title,
+      message,
+      scope,
+      department,
+      acknowledgements: [],
+      createdAt: new Date().toISOString()
+    };
+
+    if (databaseReady) {
+      await query(
+        `INSERT INTO shift_announcements (id, organisation_id, author_membership_id, author_name, author_role, severity, title, message, scope, department, acknowledgements, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [newId, user.organisation_id, user.id, announcementRecord.authorName, announcementRecord.authorRole, severity, title, message, scope, department, JSON.stringify([]), announcementRecord.createdAt]
+      );
+      await notifyOrganisationMembers(user.organisation_id, user.id, `[${severity.toUpperCase()} ALERT] ${title}`);
+    } else {
+      const store = await getStore();
+      if (!Array.isArray(store.announcements)) store.announcements = [];
+      store.announcements.unshift(announcementRecord);
+      const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []);
+      for (const m of demoMembers.filter(dm => dm.id !== user.id)) {
+        notifications.unshift({
+          id: crypto.randomUUID(),
+          recipientId: m.id,
+          message: `[${severity.toUpperCase()} ALERT] ${title}: ${message.slice(0, 60)}...`,
+          createdAt: new Date().toISOString(),
+          read: false
+        });
+      }
+      await saveStore(store);
+    }
+
+    broadcastEvent('announcement-published', { organisationId: user.organisation_id, announcement: announcementRecord });
+    return sendJson(response, 201, { announcement: announcementRecord });
+  }
+
+  if (/^\/api\/announcements\/[^/]+\/acknowledge$/.test(url.pathname) && request.method === 'POST') {
+    const announcementId = url.pathname.split('/')[3];
+    const ackEntry = {
+      userId: user.id,
+      userName: user.name || 'Staff Member',
+      role: user.role,
+      acknowledgedAt: new Date().toISOString()
+    };
+
+    if (databaseReady) {
+      const existing = await query(`SELECT acknowledgements FROM shift_announcements WHERE id = $1 AND organisation_id = $2`, [announcementId, user.organisation_id]);
+      if (existing.rows.length === 0) return sendJson(response, 404, { error: 'Announcement not found.' });
+      let acks = Array.isArray(existing.rows[0].acknowledgements) ? existing.rows[0].acknowledgements : [];
+      if (!acks.some(a => a.userId === user.id)) {
+        acks.push(ackEntry);
+        await query(`UPDATE shift_announcements SET acknowledgements = $1 WHERE id = $2`, [JSON.stringify(acks), announcementId]);
+      }
+      broadcastEvent('announcement-acknowledged', { organisationId: user.organisation_id, announcementId, ack: ackEntry });
+      return sendJson(response, 200, { ok: true, acknowledgements: acks });
+    }
+
+    const store = await getStore();
+    if (!Array.isArray(store.announcements)) store.announcements = [];
+    const item = store.announcements.find(a => a.id === announcementId);
+    if (!item) return sendJson(response, 404, { error: 'Announcement not found.' });
+    if (!Array.isArray(item.acknowledgements)) item.acknowledgements = [];
+    if (!item.acknowledgements.some(a => a.userId === user.id)) {
+      item.acknowledgements.push(ackEntry);
+      await saveStore(store);
+    }
+    broadcastEvent('announcement-acknowledged', { organisationId: user.organisation_id, announcementId, ack: ackEntry });
+    return sendJson(response, 200, { ok: true, acknowledgements: item.acknowledgements });
+  }
+
+  // ==========================================================================
   // Frontline Career Network Endpoints (Social Feed, Worker Passport, Rewards)
   // ==========================================================================
 
@@ -3020,6 +3151,21 @@ initializeDatabase()
           filename TEXT NOT NULL UNIQUE,
           mime_type TEXT,
           file_size INTEGER,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS shift_announcements (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          organisation_id UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+          author_membership_id UUID REFERENCES memberships(id) ON DELETE SET NULL,
+          author_name TEXT NOT NULL,
+          author_role TEXT NOT NULL,
+          severity TEXT NOT NULL DEFAULT 'info',
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          scope TEXT NOT NULL DEFAULT 'all',
+          department TEXT,
+          acknowledgements JSONB NOT NULL DEFAULT '[]'::jsonb,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
       `);

@@ -568,9 +568,12 @@
           </nav>
 
           <!-- Main Scrollable Area -->
-          <main class="sr-main-content" id="sr-content-area" role="main">
-            <!-- Screen content injected here -->
-          </main>
+          <div class="sr-main-scroll-wrap" style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto;">
+            <div id="sr-broadcast-banner-slot"></div>
+            <main class="sr-main-content" id="sr-content-area" role="main" style="flex: 1; overflow-y: visible;">
+              <!-- Screen content injected here -->
+            </main>
+          </div>
         </div>
 
         <!-- Mobile Bottom Dock (Hidden on >= 768px) -->
@@ -686,6 +689,9 @@
       // Open the full Conflict Resolution / Offline Sync modal
       openOfflineSyncModal();
     });
+
+    // Check & Render Pinned Shift Announcement Banner
+    await checkAndRenderActiveBroadcastBanner();
 
     // Render requested screen
     if (view === 'today') {
@@ -981,36 +987,45 @@
 
     try {
       // Parallel fetch of actionable manager metrics
-      const [pendingRes, handoversRes, timeRes, leaveRes] = await Promise.all([
+      const [pendingRes, handoversRes, timeRes, leaveRes, announcementsRes] = await Promise.all([
         fetch('/api/memberships/pending').catch(() => null),
         fetch('/api/handovers').catch(() => null),
         fetch('/api/time-entries').catch(() => null),
-        user.role === 'owner' ? fetch('/api/leave-requests').catch(() => null) : Promise.resolve(null)
+        user.role === 'owner' ? fetch('/api/leave-requests').catch(() => null) : Promise.resolve(null),
+        fetch('/api/announcements').catch(() => null)
       ]);
 
       const pendingData = pendingRes && pendingRes.ok ? await pendingRes.json() : { requests: [], workflows: [] };
       const handoversData = handoversRes && handoversRes.ok ? await handoversRes.json() : { handovers: [] };
       const timeData = timeRes && timeRes.ok ? await timeRes.json() : { entries: [] };
       const leaveData = leaveRes && leaveRes.ok ? await leaveRes.json() : { requests: [] };
+      const announcementsData = announcementsRes && announcementsRes.ok ? await announcementsRes.json() : { announcements: [] };
 
       const accessRequests = pendingData.requests || [];
       const handoversAwaitingRelay = (handoversData.handovers || []).filter(h => h.status === 'awaiting_review');
       const activeHeadcount = (timeData.entries || []).filter(e => !e.clocked_out_at).length;
       const pendingLeave = (leaveData.requests || []).filter(r => r.status === 'pending');
+      const activeAnnouncements = announcementsData.announcements || [];
 
       const companyName = user.organisation_name || 'Apex Healthcare';
       const siteName = user.department || 'Operations Management Unit';
 
       const html = `
-        <!-- Distinct Company vs Site Context Banner -->
-        <div class="sr-context-banner">
+        <!-- Distinct Company vs Site Context Banner with Broadcast Action -->
+        <div class="sr-context-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <div class="sr-context-banner-text">
             <span class="sr-context-banner-company">Company: ${escapeHtml(companyName)}</span>
             <span class="sr-context-banner-site">Supervisory Scope: <strong>${escapeHtml(siteName)}</strong></span>
           </div>
-          <span class="sr-context-banner-badge" style="background:#0a3d39;">
-            ${user.role === 'owner' ? 'ORGANISATION OWNER' : 'SHIFT SUPERVISOR'}
-          </span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="sr-btn sr-btn-primary" id="sr-btn-open-broadcast" style="min-height:36px;padding:0 14px;font-size:12.5px;display:flex;align-items:center;gap:6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+              Broadcast Notice
+            </button>
+            <span class="sr-context-banner-badge" style="background:#0a3d39;">
+              ${user.role === 'owner' ? 'ORGANISATION OWNER' : 'SHIFT SUPERVISOR'}
+            </span>
+          </div>
         </div>
 
         <!-- Metric Action Tiles (Real Data Only — No Mock Counters) -->
@@ -1041,6 +1056,53 @@
             </div>
           ` : ''}
         </div>
+
+        <!-- Actionable Section: Active Shift Broadcasts & Real-Time Sign-Offs -->
+        <section class="sr-card" aria-label="Shift Broadcasts and Acknowledgements">
+          <div class="sr-card-title-row" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Active Shift Broadcasts (${activeAnnouncements.length})</h3>
+            <button class="sr-btn sr-btn-secondary" id="sr-btn-card-broadcast" style="min-height:32px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Announcement
+            </button>
+          </div>
+
+          ${activeAnnouncements.length > 0 ? `
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              ${activeAnnouncements.map(a => {
+                const acks = Array.isArray(a.acknowledgements) ? a.acknowledgements : [];
+                const sev = a.severity || 'info';
+                const sevBadge = {
+                  critical: '<span class="sr-badge sr-badge-danger" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;font-weight:700;">CRITICAL ALERT</span>',
+                  warning: '<span class="sr-badge sr-badge-warning" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-weight:700;">WARNING</span>',
+                  info: '<span class="sr-badge" style="background:#ccfbf1;color:#0f766e;border:1px solid #99f6e4;font-weight:700;">TEAM MEMO</span>'
+                }[sev] || '';
+                return `
+                  <div class="sr-review-item" style="border-left: 4px solid ${sev === 'critical' ? '#dc2626' : sev === 'warning' ? '#d97706' : 'var(--p-teal)'};">
+                    <div class="sr-review-info" style="flex:1;">
+                      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+                        ${sevBadge}
+                        <strong style="font-size:14px;color:var(--p-text);">${escapeHtml(a.title)}</strong>
+                        <small style="color:var(--p-text-3);">Issued by ${escapeHtml(a.authorName)} · ${a.createdAt ? new Date(a.createdAt).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : ''}</small>
+                      </div>
+                      <p style="margin:4px 0 8px;font-size:13px;color:var(--p-text-2);line-height:1.4;">${escapeHtml(a.message)}</p>
+                      <div style="font-size:12px;color:var(--p-text-3);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>${acks.length} Staff Acknowledged:</strong>
+                        <span>${acks.length > 0 ? acks.map(ack => escapeHtml(ack.userName)).join(', ') : 'None yet (waiting for clocked-in workers)'}</span>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          ` : `
+            <div class="sr-empty-state">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+              <p>No active shift announcements. Broadcast a critical memo or safety notice to all active shifts at any time.</p>
+            </div>
+          `}
+        </section>
 
         <!-- Actionable Section 1: Membership Access Requests -->
         <section class="sr-card" aria-label="Worker Access Requests Queue">
@@ -1232,6 +1294,14 @@
         });
       });
 
+      // Bind Broadcast Notice modals
+      document.getElementById('sr-btn-open-broadcast')?.addEventListener('click', () => {
+        openBroadcastAnnouncementModal(() => renderManagerOverview());
+      });
+      document.getElementById('sr-btn-card-broadcast')?.addEventListener('click', () => {
+        openBroadcastAnnouncementModal(() => renderManagerOverview());
+      });
+
     } catch (err) {
       container.innerHTML = `
         <div class="sr-card" style="border-color:#fecaca;background:#fff5f5;">
@@ -1339,6 +1409,280 @@
     } catch (err) {
       listEl.innerHTML = `<p style="color:#dc2626;font-size:13px;">${escapeHtml(err.message)}</p>`;
     }
+  }
+
+  // ── 24. Pinned Shift Broadcast Banner & Announcement Engine ─────────────────
+  async function checkAndRenderActiveBroadcastBanner() {
+    const slot = document.getElementById('sr-broadcast-banner-slot');
+    if (!slot) return;
+    const user = getUser();
+    if (!user) return;
+
+    try {
+      const res = await fetch('/api/announcements');
+      if (!res.ok) return;
+      const data = await res.json();
+      const announcements = Array.isArray(data.announcements) ? data.announcements : [];
+      if (announcements.length === 0) {
+        slot.innerHTML = '';
+        return;
+      }
+
+      // Find the most recent active announcement not yet acknowledged by this user
+      const unacked = announcements.filter(a => {
+        const acks = Array.isArray(a.acknowledgements) ? a.acknowledgements : [];
+        if (acks.some(ack => ack.userId === user.id)) return false;
+        if (a.scope === 'unit' && a.department && user.department && a.department !== user.department) return false;
+        return true;
+      });
+
+      if (unacked.length === 0) {
+        slot.innerHTML = '';
+        return;
+      }
+
+      const active = unacked[0];
+      const severity = active.severity || 'info';
+      const severityLabels = {
+        critical: 'CRITICAL SAFETY MEMO',
+        warning: 'OPERATIONAL ALERT',
+        info: 'SHIFT NOTICE'
+      };
+      const severityIcons = {
+        critical: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+        warning: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+        info: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>`
+      };
+
+      const timeFormatted = active.createdAt ? new Date(active.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent';
+
+      slot.innerHTML = `
+        <div class="sr-broadcast-banner severity-${severity}" role="alert" aria-live="assertive" data-announcement-id="${active.id}">
+          <div class="sr-broadcast-header">
+            <div class="sr-broadcast-badge">
+              ${severityIcons[severity] || severityIcons.info}
+              <span>${severityLabels[severity] || 'SHIFT MEMO'}</span>
+            </div>
+            <span class="sr-broadcast-meta">Issued by <strong>${escapeHtml(active.authorName)}</strong> · ${timeFormatted}</span>
+          </div>
+          <div class="sr-broadcast-content">
+            <h4 class="sr-broadcast-title">${escapeHtml(active.title)}</h4>
+            <p class="sr-broadcast-message">${escapeHtml(active.message)}</p>
+          </div>
+          <div class="sr-broadcast-actions">
+            <button type="button" class="sr-btn sr-btn-ack-broadcast" data-id="${active.id}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Acknowledge Notice
+            </button>
+            <button type="button" class="sr-broadcast-dismiss-btn" aria-label="Dismiss banner">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Bind acknowledge action
+      slot.querySelector('.sr-btn-ack-broadcast')?.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        btn.innerHTML = `<span>Recording...</span>`;
+        try {
+          const ackRes = await fetch(`/api/announcements/${active.id}/acknowledge`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          if (!ackRes.ok) throw new Error('Could not record acknowledgement');
+          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Acknowledged`;
+          btn.style.background = 'var(--p-green)';
+          btn.style.borderColor = 'var(--p-green)';
+          btn.style.color = '#fff';
+          setTimeout(() => {
+            slot.innerHTML = '';
+          }, 800);
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false;
+          btn.textContent = 'Acknowledge Notice';
+        }
+      });
+
+      // Bind dismiss
+      slot.querySelector('.sr-broadcast-dismiss-btn')?.addEventListener('click', () => {
+        slot.innerHTML = '';
+      });
+
+    } catch (err) {
+      console.warn('Could not check broadcast banner:', err);
+    }
+  }
+
+  function openBroadcastAnnouncementModal(onPublished) {
+    const user = getUser();
+    const defaultDept = user.department || 'Operations';
+
+    const modalRoot = document.createElement('div');
+    modalRoot.id = 'sr-broadcast-modal-root';
+    modalRoot.innerHTML = `
+      <div class="sr-modal-backdrop" id="sr-broadcast-backdrop">
+        <div class="sr-modal" style="max-width: 500px;" role="dialog" aria-modal="true" aria-labelledby="sr-broadcast-modal-title">
+          <div class="sr-modal-header">
+            <h2 id="sr-broadcast-modal-title" style="display: flex; align-items: center; gap: 8px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+              Broadcast Shift Announcement
+            </h2>
+            <button type="button" class="sr-icon-btn" id="sr-broadcast-close-btn" aria-label="Close dialog">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <form id="sr-broadcast-form" class="sr-modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+            <p style="margin: 0; font-size: 13px; color: var(--p-text-2);">
+              Dispatch an urgent memo or safety bulletin across active shifts. Clocked-in personnel will receive an immediate pinned banner and audit notice.
+            </p>
+
+            <!-- Alert Severity -->
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 700; color: var(--p-text-2); text-transform: uppercase; margin-bottom: 6px;">
+                Alert Priority Level
+              </label>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                <label class="sr-severity-choice active" data-severity="critical" style="display: flex; flex-direction: column; align-items: center; padding: 10px 8px; border: 1.5px solid #dc2626; background: #fef2f2; border-radius: var(--p-radius-md); cursor: pointer; text-align: center;">
+                  <input type="radio" name="severity" value="critical" checked style="position: absolute; opacity: 0;" />
+                  <span style="font-size: 12px; font-weight: 800; color: #dc2626;">🔴 CRITICAL</span>
+                  <small style="font-size: 10.5px; color: #991b1b; margin-top: 2px;">Safety / Urgent</small>
+                </label>
+                <label class="sr-severity-choice" data-severity="warning" style="display: flex; flex-direction: column; align-items: center; padding: 10px 8px; border: 1.5px solid var(--p-border); background: var(--p-surface-alt); border-radius: var(--p-radius-md); cursor: pointer; text-align: center;">
+                  <input type="radio" name="severity" value="warning" style="position: absolute; opacity: 0;" />
+                  <span style="font-size: 12px; font-weight: 800; color: #d97706;">🟡 WARNING</span>
+                  <small style="font-size: 10.5px; color: #92400e; margin-top: 2px;">Operations Notice</small>
+                </label>
+                <label class="sr-severity-choice" data-severity="info" style="display: flex; flex-direction: column; align-items: center; padding: 10px 8px; border: 1.5px solid var(--p-border); background: var(--p-surface-alt); border-radius: var(--p-radius-md); cursor: pointer; text-align: center;">
+                  <input type="radio" name="severity" value="info" style="position: absolute; opacity: 0;" />
+                  <span style="font-size: 12px; font-weight: 800; color: var(--p-teal);">🟢 TEAM MEMO</span>
+                  <small style="font-size: 10.5px; color: var(--p-text-3); margin-top: 2px;">General Brief</small>
+                </label>
+              </div>
+            </div>
+
+            <!-- Title -->
+            <div>
+              <label for="sr-broadcast-input-title" style="display: block; font-size: 12px; font-weight: 700; color: var(--p-text-2); text-transform: uppercase; margin-bottom: 6px;">
+                Announcement Subject / Headline
+              </label>
+              <input type="text" id="sr-broadcast-input-title" required class="sr-input" placeholder="e.g. Critical Cold Storage Temperature Warning" style="width: 100%; box-sizing: border-box;" />
+            </div>
+
+            <!-- Message -->
+            <div>
+              <label for="sr-broadcast-input-msg" style="display: block; font-size: 12px; font-weight: 700; color: var(--p-text-2); text-transform: uppercase; margin-bottom: 6px;">
+                Notice Details &amp; Required Personnel Action
+              </label>
+              <textarea id="sr-broadcast-input-msg" required class="sr-input" rows="4" placeholder="Detail the situation, affected bays/stations, and exact actions expected from incoming/current staff..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+            </div>
+
+            <!-- Target Scope -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div>
+                <label for="sr-broadcast-scope" style="display: block; font-size: 12px; font-weight: 700; color: var(--p-text-2); text-transform: uppercase; margin-bottom: 6px;">
+                  Broadcast Scope
+                </label>
+                <select id="sr-broadcast-scope" class="sr-input" style="width: 100%; box-sizing: border-box;">
+                  <option value="all">Entire Workplace (All Shifts)</option>
+                  <option value="unit">Assigned Unit Only (${escapeHtml(defaultDept)})</option>
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 12px; font-weight: 700; color: var(--p-text-2); text-transform: uppercase; margin-bottom: 6px;">
+                  Audit Tracking
+                </label>
+                <div style="font-size: 12px; color: var(--p-text-3); padding-top: 8px;">
+                  ✓ Digital signatures collected in real time
+                </div>
+              </div>
+            </div>
+
+            <div class="sr-modal-footer" style="padding: 12px 0 0; margin-top: 6px; display: flex; justify-content: flex-end; gap: 8px;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-broadcast-cancel-btn">Cancel</button>
+              <button type="submit" class="sr-btn sr-btn-primary" id="sr-broadcast-submit-btn" style="min-height: 40px; padding: 0 18px;">
+                Publish Shift Broadcast
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modalRoot);
+
+    const closeModal = () => modalRoot.remove();
+    document.getElementById('sr-broadcast-backdrop')?.addEventListener('click', (e) => {
+      if (e.target.id === 'sr-broadcast-backdrop') closeModal();
+    });
+    document.getElementById('sr-broadcast-close-btn')?.addEventListener('click', closeModal);
+    document.getElementById('sr-broadcast-cancel-btn')?.addEventListener('click', closeModal);
+
+    // Severity tile selection styling
+    const choices = modalRoot.querySelectorAll('.sr-severity-choice');
+    choices.forEach(ch => {
+      ch.addEventListener('click', () => {
+        choices.forEach(c => {
+          c.classList.remove('active');
+          c.style.borderColor = 'var(--p-border)';
+          c.style.background = 'var(--p-surface-alt)';
+        });
+        ch.classList.add('active');
+        const sev = ch.dataset.severity;
+        if (sev === 'critical') {
+          ch.style.borderColor = '#dc2626';
+          ch.style.background = '#fef2f2';
+        } else if (sev === 'warning') {
+          ch.style.borderColor = '#d97706';
+          ch.style.background = '#fffbeb';
+        } else {
+          ch.style.borderColor = 'var(--p-teal)';
+          ch.style.background = 'var(--p-teal-light)';
+        }
+      });
+    });
+
+    // Form submit
+    const form = document.getElementById('sr-broadcast-form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('sr-broadcast-submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Publishing...';
+
+      const selectedSeverity = form.querySelector('input[name="severity"]:checked')?.value || 'critical';
+      const title = document.getElementById('sr-broadcast-input-title').value.trim();
+      const message = document.getElementById('sr-broadcast-input-msg').value.trim();
+      const scope = document.getElementById('sr-broadcast-scope').value;
+
+      try {
+        const res = await fetch('/api/announcements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            message,
+            severity: selectedSeverity,
+            scope,
+            department: scope === 'unit' ? defaultDept : null
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to dispatch broadcast');
+        }
+
+        closeModal();
+        if (typeof window.toast === 'function') window.toast('Shift announcement broadcasted successfully');
+        if (typeof onPublished === 'function') await onPublished();
+      } catch (err) {
+        alert(err.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Publish Shift Broadcast';
+      }
+    });
   }
 
   // ── Document Export & Multi-Channel Share Engine (Excel, Word, Bluetooth, Email) ──
@@ -4523,6 +4867,8 @@
     openNotificationPanel,
     closeNotificationPanel,
     clearNotificationState,
+    checkAndRenderActiveBroadcastBanner,
+    openBroadcastAnnouncementModal,
     navigate
   };
 
