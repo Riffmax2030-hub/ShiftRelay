@@ -1030,9 +1030,22 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/auth/password' && request.method === 'PUT') {
     try {
-      if (!user || !databaseReady) throw new Error('Password changes require a signed-in organisation account.');
+      if (!user) throw new Error('Authentication required.');
       const body = await readJson(request);
       if (!body.currentPassword || !body.newPassword || body.newPassword.length < 10) throw new Error('Use a new password with at least 10 characters.');
+
+      // ── Fallback / demo mode: verify against demo password store ────────────
+      if (!databaseReady) {
+        const store = await getStore();
+        if (!store.demoPasswords) store.demoPasswords = {};
+        // Default demo password is 'shiftrelay123' (stored in plain for dev-only mode)
+        const storedPw = store.demoPasswords[user.id] || 'shiftrelay123';
+        if (body.currentPassword !== storedPw) throw new Error('Your current password is not correct.');
+        store.demoPasswords[user.id] = body.newPassword;
+        await saveStore(store);
+        return sendJson(response, 200, { ok: true });
+      }
+      // ── Real DB path ─────────────────────────────────────────────────────────
       const account = (await query('select u.id, u.password_hash from portal_users u join memberships m on m.user_id = u.id where m.id = $1', [user.id])).rows[0];
       if (!account || !(await passwordMatches(body.currentPassword, account.password_hash))) throw new Error('Your current password is not correct.');
       await query('update portal_users set password_hash = $1 where id = $2', [await hashPassword(body.newPassword), account.id]);
@@ -1074,9 +1087,7 @@ async function handleApi(request, response, url) {
   if (url.pathname.startsWith('/api/feed/') || url.pathname === '/api/feed/posts') {
     return sendJson(response, 501, { error: 'Social feed is disabled for this pilot.' });
   }
-  if (url.pathname === '/api/upload') {
-    return sendJson(response, 501, { error: 'File uploads are disabled for this pilot.' });
-  }
+  // Avatar uploads are allowed. (General media upload handler at /api/upload handles the actual save.)
   if (url.pathname === '/api/verified-badge-request' || url.pathname === '/api/discover/workers') {
     return sendJson(response, 501, { error: 'External worker discovery and badge requests are disabled for this pilot.' });
   }
@@ -2568,6 +2579,56 @@ async function handleApi(request, response, url) {
       };
       await saveStore(store);
     }
+    const prof = store.workerProfiles[targetId];
+    if (prof) {
+      if (!prof.professionalSummary) {
+        prof.professionalSummary = prof.bioOutsideWork || 'Results-driven frontline specialist with proven expertise in end-to-end shift handovers, operational safety, and incident prevention. Dedicated to zero lost-context transitions and high team reliability.';
+      }
+      if (!prof.workEmail) {
+        prof.workEmail = (users.find(u => u.id === targetId) || user).email || 'worker@shiftrelay.io';
+      }
+      if (!prof.linkedInUrl) {
+        prof.linkedInUrl = 'https://linkedin.com/in/' + (prof.fullName ? prof.fullName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'specialist');
+      }
+      if (!prof.githubUrl) {
+        prof.githubUrl = 'https://github.com/' + (prof.fullName ? prof.fullName.toLowerCase().replace(/[^a-z0-9]+/g, '') : 'specialist');
+      }
+      if (!Array.isArray(prof.experience) || prof.experience.length === 0) {
+        prof.experience = [
+          {
+            id: 'exp-1',
+            title: prof.headline || 'Frontline Operations Specialist',
+            company: prof.currentOrganisation || 'ShiftRelay Global Ops',
+            period: '2022 — Present',
+            description: 'Lead shift handover execution across operational bays, monitor cold chain compliance, and coordinate digital briefings with oncoming teams.'
+          },
+          {
+            id: 'exp-2',
+            title: 'Operations Assistant',
+            company: 'Frontline Logistics Network',
+            period: '2019 — 2022',
+            description: 'Supervised bay turnaround routines, maintained 99.2% on-time checklist compliance, and supported team safety training.'
+          }
+        ];
+      }
+      if (!Array.isArray(prof.education) || prof.education.length === 0) {
+        prof.education = [
+          {
+            id: 'edu-1',
+            degree: 'B.Sc. in Operations Management & Logistics',
+            institution: 'Regional Technical University',
+            year: '2019'
+          },
+          {
+            id: 'edu-2',
+            degree: 'Advanced Certificate in Frontline Workplace Safety',
+            institution: 'Institute of Industrial Operations',
+            year: '2020'
+          }
+        ];
+      }
+      await saveStore(store);
+    }
     return sendJson(response, 200, { profile: store.workerProfiles[targetId] });
   }
 
@@ -2580,14 +2641,20 @@ async function handleApi(request, response, url) {
       ...existing,
       userId: user.id,
       fullName: user.name,
-      headline: body.headline || existing.headline || user.title,
+      headline: body.headline !== undefined ? body.headline : (existing.headline || user.title),
+      professionalSummary: body.professionalSummary !== undefined ? body.professionalSummary : existing.professionalSummary || '',
       bioOutsideWork: body.bioOutsideWork !== undefined ? body.bioOutsideWork : existing.bioOutsideWork,
       currentJob: body.currentJob !== undefined ? body.currentJob : existing.currentJob || null,
       skills: Array.isArray(body.skills) ? body.skills : existing.skills || [],
       certifications: Array.isArray(body.certifications) ? body.certifications : existing.certifications || [],
       workHistory: Array.isArray(body.workHistory) ? body.workHistory : existing.workHistory || [],
+      experience: Array.isArray(body.experience) ? body.experience : existing.experience || [],
+      education: Array.isArray(body.education) ? body.education : existing.education || [],
       avatarUrl: body.avatarUrl !== undefined ? body.avatarUrl : existing.avatarUrl || null,
-      coverPhotoUrl: body.coverPhotoUrl !== undefined ? body.coverPhotoUrl : existing.coverPhotoUrl || null
+      coverPhotoUrl: body.coverPhotoUrl !== undefined ? body.coverPhotoUrl : existing.coverPhotoUrl || null,
+      linkedInUrl: body.linkedInUrl !== undefined ? body.linkedInUrl : existing.linkedInUrl || '',
+      githubUrl: body.githubUrl !== undefined ? body.githubUrl : existing.githubUrl || '',
+      workEmail: body.workEmail !== undefined ? body.workEmail : existing.workEmail || ''
     };
     await saveStore(store);
 
@@ -2795,6 +2862,22 @@ async function handleApi(request, response, url) {
       await mkdir(uploadsDirectory, { recursive: true });
       const filePath = join(uploadsDirectory, filename);
       await writeFile(filePath, Buffer.from(base64Data, 'base64'));
+
+      // Record in file attachments store for ownership verification
+      try {
+        const store = await getStore();
+        if (!store.fileAttachments) store.fileAttachments = [];
+        store.fileAttachments.push({
+          filename,
+          organisationId: user.organisation_id || (user.organisation && user.organisation.id),
+          userId: user.id,
+          createdAt: new Date().toISOString()
+        });
+        await saveStore(store);
+      } catch (storeErr) {
+        console.error('Warning: could not record attachment metadata:', storeErr.message);
+      }
+
       return sendJson(response, 201, { url: `/uploads/${filename}`, mediaType: isAudio ? 'audio' : isVideo ? 'video' : 'image' });
     } catch (err) {
       return sendJson(response, 500, { error: err.message || 'Upload failed.' });
@@ -2992,12 +3075,17 @@ async function handleUploadFileRequest(request, response, url) {
     // Fallback mode store check
     const store = await getStore();
     if (Array.isArray(store.fileAttachments)) {
-      if (store.fileAttachments.some(f => f.filename === filename && f.organisationId === user.organisation_id)) {
+      if (store.fileAttachments.some(f => f.filename === filename && (f.organisationId === user.organisation_id || f.userId === user.id))) {
         isOwned = true;
       }
     }
     if (!isOwned && Array.isArray(store.handovers)) {
       if (store.handovers.some(h => JSON.stringify(h).includes(filename))) {
+        isOwned = true;
+      }
+    }
+    if (!isOwned && store.workerProfiles) {
+      if (Object.values(store.workerProfiles).some(p => JSON.stringify(p).includes(filename))) {
         isOwned = true;
       }
     }

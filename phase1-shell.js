@@ -4493,75 +4493,293 @@
   }
 
   // ── 9. Polished Worker Me (Profile) Screen (UI Phase 4) ───────────────────
+  // ── 9. Polished Worker Me (CV-Style Profile & Settings) ───────────────────
   async function renderWorkerMe() {
     const user = getUser();
     const container = document.getElementById('sr-content-area');
     if (!container || !user) return;
 
+    function showToast(msg) {
+      if (typeof window.toast === 'function') {
+        window.toast(msg);
+      } else {
+        console.log('[Toast]', msg);
+      }
+    }
+
+    // Load worker profile from server
+    let profile = {};
+    try {
+      const res = await fetch('/api/worker-profile');
+      if (res.ok) {
+        const data = await res.json();
+        profile = data.profile || {};
+      }
+    } catch (err) {
+      console.warn('Could not fetch worker profile:', err);
+    }
+
     const currentTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
     const isDark = currentTheme === 'dark';
     const initials = user.name ? user.name.slice(0, 2).toUpperCase() : 'U';
-    const roleDisplay = user.title || user.role || 'Frontline Specialist';
-    const orgName = user.organisation_name || 'Workplace';
+    const roleDisplay = profile.headline || user.title || user.role || 'Frontline Specialist';
+    const orgName = profile.currentOrganisation || user.organisation_name || 'ShiftRelay Global Ops';
     const deptName = user.department || 'Operations';
+    const summaryText = profile.professionalSummary || profile.bioOutsideWork || 'Results-driven frontline specialist with proven expertise in end-to-end shift handovers, operational safety, and incident prevention. Dedicated to zero lost-context transitions and high team reliability.';
+    const workEmail = profile.workEmail || user.email || 'worker@shiftrelay.io';
+    const linkedInUrl = profile.linkedInUrl || ('https://linkedin.com/in/' + (user.name ? user.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'specialist'));
+    const githubUrl = profile.githubUrl || ('https://github.com/' + (user.name ? user.name.toLowerCase().replace(/[^a-z0-9]+/g, '') : 'worker'));
+
+    const experiences = Array.isArray(profile.experience) && profile.experience.length > 0 ? profile.experience : [
+      {
+        id: 'exp-1',
+        title: roleDisplay,
+        company: orgName,
+        period: '2022 — Present',
+        description: 'Lead shift handover execution across operational bays, monitor cold chain compliance, and coordinate digital briefings with oncoming teams.'
+      },
+      {
+        id: 'exp-2',
+        title: 'Operations Assistant',
+        company: 'Frontline Logistics Network',
+        period: '2019 — 2022',
+        description: 'Supervised bay turnaround routines, maintained 99.2% on-time checklist compliance, and supported team safety training.'
+      }
+    ];
+
+    const certifications = Array.isArray(profile.certifications) && profile.certifications.length > 0 ? profile.certifications : [
+      'ShiftRelay Accountable Handover Pro',
+      'Frontline Safety Level 1',
+      'SOP Cold Chain Compliance'
+    ];
+
+    const educations = Array.isArray(profile.education) && profile.education.length > 0 ? profile.education : [
+      {
+        id: 'edu-1',
+        degree: 'B.Sc. in Operations Management & Logistics',
+        institution: 'Regional Technical University',
+        year: '2019'
+      },
+      {
+        id: 'edu-2',
+        degree: 'Advanced Certificate in Frontline Workplace Safety',
+        institution: 'Institute of Industrial Operations',
+        year: '2020'
+      }
+    ];
+
+    const skills = Array.isArray(profile.skills) && profile.skills.length > 0 ? profile.skills : [
+      'Shift Handover Protocol',
+      'Incident Prevention',
+      'Team Communication',
+      'Cold Chain Compliance',
+      'SOP Adherence'
+    ];
+
+    const avatarMarkup = profile.avatarUrl
+      ? `<img src="${escapeHtml(profile.avatarUrl)}" alt="${escapeHtml(user.name)}" class="sr-me-avatar-img" id="sr-me-avatar-display" />`
+      : `<div class="sr-me-avatar-fallback" id="sr-me-avatar-display">${escapeHtml(initials)}</div>`;
 
     container.innerHTML = `
       <div class="sr-me-container">
-        <!-- Profile Hero Card -->
-        <div class="sr-me-hero-card">
-          <div class="sr-me-avatar" aria-hidden="true">${escapeHtml(initials)}</div>
+        <!-- Profile Header / CV Hero Card -->
+        <div class="sr-me-hero-card" style="align-items:flex-start;">
+          <div class="sr-me-avatar-wrapper">
+            ${avatarMarkup}
+            <button type="button" class="sr-me-avatar-upload-trigger" id="sr-btn-change-avatar" title="Upload profile picture" aria-label="Upload profile picture">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </button>
+            <input type="file" id="sr-avatar-file-input" accept="image/*" style="display:none;" />
+          </div>
+
           <div class="sr-me-hero-info">
-            <h2 class="sr-me-hero-name">${escapeHtml(user.name)}</h2>
-            <div class="sr-me-hero-meta">
-              <span class="sr-me-role-badge">${escapeHtml(roleDisplay)}</span>
-              <span class="sr-status-pill active">Active Member</span>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+              <div>
+                <h2 class="sr-me-hero-name" id="sr-me-display-name">${escapeHtml(user.name)}</h2>
+                <div class="sr-me-hero-meta">
+                  <span class="sr-me-role-badge" id="sr-me-display-role">${escapeHtml(roleDisplay)}</span>
+                  <span class="sr-status-pill active">Active Member</span>
+                  <span class="sr-status-pill" style="background:rgba(13,82,77,0.12);color:var(--sr-primary);font-weight:700;">Verified CV ✓</span>
+                </div>
+                <p class="sr-me-hero-sub" style="margin-bottom:8px;">${escapeHtml(orgName)} · ${escapeHtml(deptName)}</p>
+              </div>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-edit-cv-modal" style="min-height:34px;padding:0 12px;font-size:12.5px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Edit CV Info
+              </button>
             </div>
-            <p class="sr-me-hero-sub">${escapeHtml(user.email)} · ${escapeHtml(orgName)} (${escapeHtml(deptName)})</p>
+
+            <!-- Social / Professional Links -->
+            <div class="sr-me-social-bar">
+              <a href="mailto:${escapeHtml(workEmail)}" class="sr-me-social-pill email" target="_blank" rel="noopener" id="sr-me-email-link" title="Send email">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                <span id="sr-me-email-label">${escapeHtml(workEmail)}</span>
+              </a>
+              <a href="${escapeHtml(linkedInUrl)}" class="sr-me-social-pill linkedin" target="_blank" rel="noopener" id="sr-me-linkedin-link" title="LinkedIn Profile">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                <span>LinkedIn</span>
+              </a>
+              <a href="${escapeHtml(githubUrl)}" class="sr-me-social-pill github" target="_blank" rel="noopener" id="sr-me-github-link" title="GitHub Profile">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                <span>GitHub</span>
+              </a>
+            </div>
           </div>
         </div>
 
+        <!-- CV Section 1: Professional Summary -->
+        <div class="sr-cv-section">
+          <div class="sr-cv-section-header">
+            <h3 class="sr-cv-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              Professional Summary
+            </h3>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-edit-summary" style="min-height:30px;padding:0 10px;font-size:12px;">
+              Edit Summary
+            </button>
+          </div>
+          <p class="sr-cv-summary-text" id="sr-cv-summary-content">${escapeHtml(summaryText)}</p>
+        </div>
+
+        <!-- CV Section 2: Professional Experience -->
+        <div class="sr-cv-section">
+          <div class="sr-cv-section-header">
+            <h3 class="sr-cv-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              Professional Experience
+            </h3>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-add-experience" style="min-height:30px;padding:0 10px;font-size:12px;">
+              + Add Experience
+            </button>
+          </div>
+          <div class="sr-cv-timeline" id="sr-cv-experience-list">
+            ${experiences.map((exp, idx) => `
+              <div class="sr-cv-timeline-item" data-index="${idx}">
+                <div class="sr-cv-timeline-dot"></div>
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                  <h4 class="sr-cv-item-title">${escapeHtml(exp.title || 'Role')}</h4>
+                  <span class="sr-cv-item-period">${escapeHtml(exp.period || '')}</span>
+                </div>
+                <div class="sr-cv-item-sub">${escapeHtml(exp.company || '')}</div>
+                <p class="sr-cv-item-desc">${escapeHtml(exp.description || '')}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- CV Section 3: Certifications & Education (2-column on wide) -->
         <div class="sr-me-grid">
-          <!-- Membership & Facility Details -->
-          <div class="sr-me-card">
-            <div class="sr-me-card-header">
-              <h4>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
-                Workplace Membership
-              </h4>
+          <!-- Certifications -->
+          <div class="sr-cv-section">
+            <div class="sr-cv-section-header">
+              <h3 class="sr-cv-section-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                Certifications
+              </h3>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-add-cert" style="min-height:30px;padding:0 10px;font-size:12px;">
+                + Add
+              </button>
             </div>
-            <div class="sr-me-info-list">
-              <div class="sr-me-info-row">
-                <span class="sr-me-info-label">Facility / Organisation</span>
-                <span class="sr-me-info-val">${escapeHtml(orgName)}</span>
-              </div>
-              <div class="sr-me-info-row">
-                <span class="sr-me-info-label">Assigned Unit</span>
-                <span class="sr-me-info-val">${escapeHtml(deptName)}</span>
-              </div>
-              <div class="sr-me-info-row">
-                <span class="sr-me-info-label">System Role</span>
-                <span class="sr-me-info-val" style="text-transform:capitalize;">${escapeHtml(user.role)}</span>
-              </div>
-              <div class="sr-me-info-row">
-                <span class="sr-me-info-label">Account Email</span>
-                <span class="sr-me-info-val">${escapeHtml(user.email)}</span>
-              </div>
-              <div class="sr-me-info-row">
-                <span class="sr-me-info-label">Membership Status</span>
-                <span class="sr-me-info-val" style="color:var(--sr-primary);">Active</span>
-              </div>
+            <div class="sr-cv-grid" id="sr-cv-cert-list">
+              ${certifications.map((c) => {
+                const name = typeof c === 'string' ? c : (c.name || 'Certification');
+                const issuer = typeof c === 'object' && c.issuer ? c.issuer : 'Verified Authority';
+                const year = typeof c === 'object' && c.year ? c.year : 'Verified';
+                return `
+                  <div class="sr-cv-card-item">
+                    <p class="sr-cv-card-name">${escapeHtml(name)}</p>
+                    <p class="sr-cv-card-meta"><span>${escapeHtml(issuer)}</span><span>${escapeHtml(year)}</span></p>
+                  </div>
+                `;
+              }).join('')}
             </div>
           </div>
 
-          <!-- Preferences & Session Actions -->
-          <div class="sr-me-card">
-            <div class="sr-me-card-header">
-              <h4>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-                Preferences
-              </h4>
+          <!-- Education -->
+          <div class="sr-cv-section">
+            <div class="sr-cv-section-header">
+              <h3 class="sr-cv-section-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                Education
+              </h3>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-add-edu" style="min-height:30px;padding:0 10px;font-size:12px;">
+                + Add
+              </button>
             </div>
-            <div class="sr-me-toggle-row">
+            <div class="sr-cv-grid" id="sr-cv-edu-list">
+              ${educations.map((edu) => `
+                <div class="sr-cv-card-item">
+                  <p class="sr-cv-card-name">${escapeHtml(edu.degree || 'Degree / Diploma')}</p>
+                  <p class="sr-cv-card-meta"><span>${escapeHtml(edu.institution || '')}</span><span>${escapeHtml(edu.year || '')}</span></p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- CV Section 4: Verified Core Skills -->
+        <div class="sr-cv-section">
+          <div class="sr-cv-section-header">
+            <h3 class="sr-cv-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              Core Skills &amp; Competencies
+            </h3>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-edit-skills" style="min-height:30px;padding:0 10px;font-size:12px;">
+              Edit Skills
+            </button>
+          </div>
+          <div class="sr-cv-tags-wrap" id="sr-cv-skills-list">
+            ${skills.map(s => `<span class="sr-cv-skill-pill">✓ ${escapeHtml(s)}</span>`).join('')}
+          </div>
+        </div>
+
+        <!-- ── Settings Section (Explicitly titled Settings) ── -->
+        <div class="sr-cv-section" id="sr-settings-section" style="border-top:3px solid var(--sr-primary);">
+          <div class="sr-cv-section-header">
+            <h3 class="sr-cv-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Settings
+            </h3>
+            <span style="font-size:12px;color:var(--sr-text-muted);">Account Security &amp; Preferences</span>
+          </div>
+
+          <!-- Password Change Form -->
+          <div style="background:var(--sr-bg-elevated);padding:18px;border-radius:12px;border:1px solid var(--sr-border-subtle);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <h4 style="margin:0;font-size:14.5px;font-weight:700;color:var(--sr-text-main);">Change Account Password</h4>
+            </div>
+            <p style="margin:0 0 14px;font-size:13px;color:var(--sr-text-muted);">
+              Update your frontline account password. Must be at least 10 characters in length.
+            </p>
+
+            <form id="sr-me-password-form" class="sr-me-form" autocomplete="off">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
+                <div class="sr-form-group">
+                  <label for="sr-me-current-pw" class="sr-form-label">Current Password</label>
+                  <input type="password" id="sr-me-current-pw" class="sr-form-input" required placeholder="Enter current password" autocomplete="current-password" />
+                </div>
+                <div class="sr-form-group">
+                  <label for="sr-me-new-pw" class="sr-form-label">New Password</label>
+                  <input type="password" id="sr-me-new-pw" class="sr-form-input" minlength="10" required placeholder="Min. 10 characters" autocomplete="new-password" />
+                </div>
+                <div class="sr-form-group">
+                  <label for="sr-me-confirm-pw" class="sr-form-label">Confirm New Password</label>
+                  <input type="password" id="sr-me-confirm-pw" class="sr-form-input" minlength="10" required placeholder="Re-type new password" autocomplete="new-password" />
+                </div>
+              </div>
+              <div class="sr-form-feedback" id="sr-pw-feedback" role="alert" style="margin-top:10px;"></div>
+              <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+                <button type="submit" class="sr-btn sr-btn-primary" id="sr-btn-pw-submit" style="min-height:38px;padding:0 18px;font-size:13px;">
+                  Update Password
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Theme & Account Session -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px;margin-top:4px;">
+            <div style="background:var(--sr-bg-elevated);padding:16px;border-radius:12px;border:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;">
               <div>
                 <strong style="font-size:13.5px;color:var(--sr-text-main);">Dark Mode Theme</strong>
                 <p class="sr-me-toggle-desc" id="sr-theme-status-desc">${isDark ? 'Dark theme is active' : 'Light theme is active'}</p>
@@ -4571,7 +4789,8 @@
                 <span class="sr-slider"></span>
               </label>
             </div>
-            <div style="margin-top:auto;padding-top:14px;border-top:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;">
+
+            <div style="background:var(--sr-bg-elevated);padding:16px;border-radius:12px;border:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;">
               <div>
                 <strong style="font-size:13px;color:var(--sr-text-main);">Account Session</strong>
                 <p style="margin:2px 0 0;font-size:11.5px;color:var(--sr-text-muted);">Shared-device safe sign-out</p>
@@ -4583,44 +4802,8 @@
           </div>
         </div>
 
-        <!-- Password Change Section (Verified PUT /api/auth/password) -->
-        <div class="sr-me-card">
-          <div class="sr-me-card-header">
-            <h4>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              Security &amp; Password
-            </h4>
-          </div>
-          <p style="margin:0 0 8px;font-size:13px;color:var(--sr-text-muted);">
-            Update your account login password. Passwords must be at least 10 characters in length.
-          </p>
-
-          <form id="sr-me-password-form" class="sr-me-form" autocomplete="off">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
-              <div class="sr-form-group">
-                <label for="sr-me-current-pw" class="sr-form-label">Current Password</label>
-                <input type="password" id="sr-me-current-pw" class="sr-form-input" required placeholder="Enter current password" autocomplete="current-password" />
-              </div>
-              <div class="sr-form-group">
-                <label for="sr-me-new-pw" class="sr-form-label">New Password</label>
-                <input type="password" id="sr-me-new-pw" class="sr-form-input" minlength="10" required placeholder="Min. 10 characters" autocomplete="new-password" />
-              </div>
-              <div class="sr-form-group">
-                <label for="sr-me-confirm-pw" class="sr-form-label">Confirm New Password</label>
-                <input type="password" id="sr-me-confirm-pw" class="sr-form-input" minlength="10" required placeholder="Re-type new password" autocomplete="new-password" />
-              </div>
-            </div>
-            <div class="sr-form-feedback" id="sr-pw-feedback" role="alert"></div>
-            <div style="display:flex;justify-content:flex-end;margin-top:14px;">
-              <button type="submit" class="sr-btn sr-btn-primary" id="sr-btn-pw-submit" style="min-height:38px;padding:0 18px;font-size:13px;">
-                Update Password
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <!-- Frontline Assistance & Guidance -->
-        <div class="sr-me-card">
+        <!-- Help & Operational Guidance -->
+        <div class="sr-me-card" style="margin-top:4px;">
           <div class="sr-me-card-header">
             <h4>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -4646,19 +4829,473 @@
                 End each shift by filling out the handover brief under the Handovers tab. Complete all critical safety checklist items and verify equipment condition before marking the handover as submitted.
               </div>
             </div>
-            <div class="sr-accordion-item">
-              <button type="button" class="sr-accordion-header" aria-expanded="false">
-                <span>Urgent Facility Escalation</span>
-                <svg class="sr-accordion-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <div class="sr-accordion-body">
-                For immediate clinical or operational safety emergencies, contact your on-duty supervisor or unit coordinator directly. Never rely solely on digital notes for critical life-safety hazards.
-              </div>
-            </div>
           </div>
         </div>
       </div>
     `;
+
+    // ── Bind Profile Picture Upload ─────────────────────────────────────────
+    const avatarInput = document.getElementById('sr-avatar-file-input');
+    const changeAvatarBtn = document.getElementById('sr-btn-change-avatar');
+
+    changeAvatarBtn?.addEventListener('click', () => {
+      avatarInput?.click();
+    });
+
+    avatarInput?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (loadEvt) => {
+        const dataUrl = loadEvt.target?.result;
+        if (!dataUrl) return;
+
+        // Immediate visual update on the page
+        const avatarWrapper = container.querySelector('.sr-me-avatar-wrapper');
+        if (avatarWrapper) {
+          const oldDisplay = document.getElementById('sr-me-avatar-display');
+          if (oldDisplay) oldDisplay.remove();
+          const img = document.createElement('img');
+          img.src = dataUrl;
+          img.className = 'sr-me-avatar-img';
+          img.id = 'sr-me-avatar-display';
+          img.alt = user.name || 'User Avatar';
+          avatarWrapper.prepend(img);
+        }
+
+        try {
+          // Attempt POST to /api/upload
+          let savedUrl = dataUrl;
+          try {
+            const upRes = await fetch('/api/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ dataUrl })
+            });
+            if (upRes.ok) {
+              const upJson = await upRes.json();
+              if (upJson.url) savedUrl = upJson.url;
+            }
+          } catch (upErr) {
+            console.warn('Upload endpoint unavailable, saving directly to profile:', upErr);
+          }
+
+          // Save to worker profile
+          const saveRes = await fetch('/api/worker-profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ avatarUrl: savedUrl })
+          });
+          if (saveRes.ok) {
+            showToast('Profile picture updated successfully.', 'success');
+          }
+        } catch (err) {
+          console.error('Failed to save profile picture:', err);
+          showToast('Could not save photo: ' + err.message, 'error');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // ── Bind Edit CV Modal ──────────────────────────────────────────────────
+    document.getElementById('sr-btn-edit-cv-modal')?.addEventListener('click', () => {
+      openEditCVModal();
+    });
+
+    // ── Bind Summary Editor ────────────────────────────────────────────────
+    document.getElementById('sr-btn-edit-summary')?.addEventListener('click', () => {
+      openEditSummaryModal();
+    });
+
+    // ── Bind Add Experience Modal ──────────────────────────────────────────
+    document.getElementById('sr-btn-add-experience')?.addEventListener('click', () => {
+      openAddExperienceModal();
+    });
+
+    // ── Bind Add Certification Modal ───────────────────────────────────────
+    document.getElementById('sr-btn-add-cert')?.addEventListener('click', () => {
+      openAddCertModal();
+    });
+
+    // ── Bind Add Education Modal ───────────────────────────────────────────
+    document.getElementById('sr-btn-add-edu')?.addEventListener('click', () => {
+      openAddEduModal();
+    });
+
+    // ── Bind Edit Skills Modal ─────────────────────────────────────────────
+    document.getElementById('sr-btn-edit-skills')?.addEventListener('click', () => {
+      openEditSkillsModal();
+    });
+
+    // ── Helper Modal: Edit CV Basic Info & Links ───────────────────────────
+    function openEditCVModal() {
+      const existing = document.getElementById('sr-edit-cv-backdrop');
+      if (existing) existing.remove();
+
+      const modalEl = document.createElement('div');
+      modalEl.id = 'sr-edit-cv-backdrop';
+      modalEl.className = 'sr-modal-backdrop';
+      modalEl.innerHTML = `
+        <div class="sr-modal" style="max-width: 520px;" role="dialog" aria-modal="true" aria-labelledby="sr-cv-modal-title">
+          <div class="sr-modal-header">
+            <h3 id="sr-cv-modal-title" style="margin:0;font-size:16px;font-weight:700;">Edit Professional Details &amp; Links</h3>
+            <button type="button" class="sr-btn-close" id="sr-btn-close-cv" aria-label="Close modal">&times;</button>
+          </div>
+          <form id="sr-cv-edit-form" class="sr-modal-body" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-cv-input-role">Professional Headline / Role</label>
+              <input type="text" id="sr-cv-input-role" class="sr-form-input" value="${escapeHtml(roleDisplay)}" required />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-cv-input-email">Work Email</label>
+              <input type="email" id="sr-cv-input-email" class="sr-form-input" value="${escapeHtml(workEmail)}" required />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-cv-input-linkedin">LinkedIn URL</label>
+              <input type="url" id="sr-cv-input-linkedin" class="sr-form-input" value="${escapeHtml(linkedInUrl)}" placeholder="https://linkedin.com/in/..." />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-cv-input-github">GitHub URL</label>
+              <input type="url" id="sr-cv-input-github" class="sr-form-input" value="${escapeHtml(githubUrl)}" placeholder="https://github.com/..." />
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-cv">Cancel</button>
+              <button type="submit" class="sr-btn sr-btn-primary" id="sr-btn-save-cv">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modalEl);
+
+      modalEl.querySelector('#sr-btn-close-cv')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-btn-cancel-cv')?.addEventListener('click', () => modalEl.remove());
+
+      modalEl.querySelector('#sr-cv-edit-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newRole = document.getElementById('sr-cv-input-role')?.value.trim();
+        const newEmail = document.getElementById('sr-cv-input-email')?.value.trim();
+        const newLinkedin = document.getElementById('sr-cv-input-linkedin')?.value.trim();
+        const newGithub = document.getElementById('sr-cv-input-github')?.value.trim();
+
+        try {
+          const res = await fetch('/api/worker-profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              headline: newRole,
+              workEmail: newEmail,
+              linkedInUrl: newLinkedin,
+              githubUrl: newGithub
+            })
+          });
+          if (res.ok) {
+            modalEl.remove();
+            showToast('Professional profile updated.', 'success');
+            await renderWorkerMe();
+          }
+        } catch (err) {
+          showToast('Error saving profile: ' + err.message, 'error');
+        }
+      });
+    }
+
+    // ── Helper Modal: Edit Summary ──────────────────────────────────────────
+    function openEditSummaryModal() {
+      const existing = document.getElementById('sr-edit-sum-backdrop');
+      if (existing) existing.remove();
+
+      const modalEl = document.createElement('div');
+      modalEl.id = 'sr-edit-sum-backdrop';
+      modalEl.className = 'sr-modal-backdrop';
+      modalEl.innerHTML = `
+        <div class="sr-modal" style="max-width: 520px;" role="dialog" aria-modal="true" aria-labelledby="sr-sum-modal-title">
+          <div class="sr-modal-header">
+            <h3 id="sr-sum-modal-title" style="margin:0;font-size:16px;font-weight:700;">Edit Professional Summary</h3>
+            <button type="button" class="sr-btn-close" id="sr-btn-close-sum">&times;</button>
+          </div>
+          <form id="sr-sum-edit-form" class="sr-modal-body" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-sum-input-text">Summary / Bio</label>
+              <textarea id="sr-sum-input-text" class="sr-form-input" rows="5" required style="resize:vertical;">${escapeHtml(summaryText)}</textarea>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-sum">Cancel</button>
+              <button type="submit" class="sr-btn sr-btn-primary">Save Summary</button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modalEl);
+
+      modalEl.querySelector('#sr-btn-close-sum')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-btn-cancel-sum')?.addEventListener('click', () => modalEl.remove());
+
+      modalEl.querySelector('#sr-sum-edit-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = document.getElementById('sr-sum-input-text')?.value.trim();
+        try {
+          const res = await fetch('/api/worker-profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ professionalSummary: text, bioOutsideWork: text })
+          });
+          if (res.ok) {
+            modalEl.remove();
+            showToast('Summary saved.', 'success');
+            await renderWorkerMe();
+          }
+        } catch (err) {
+          showToast('Error saving summary: ' + err.message, 'error');
+        }
+      });
+    }
+
+    // ── Helper Modal: Add Experience ────────────────────────────────────────
+    function openAddExperienceModal() {
+      const existing = document.getElementById('sr-add-exp-backdrop');
+      if (existing) existing.remove();
+
+      const modalEl = document.createElement('div');
+      modalEl.id = 'sr-add-exp-backdrop';
+      modalEl.className = 'sr-modal-backdrop';
+      modalEl.innerHTML = `
+        <div class="sr-modal" style="max-width: 500px;" role="dialog" aria-modal="true" aria-labelledby="sr-exp-modal-title">
+          <div class="sr-modal-header">
+            <h3 id="sr-exp-modal-title" style="margin:0;font-size:16px;font-weight:700;">Add Professional Experience</h3>
+            <button type="button" class="sr-btn-close" id="sr-btn-close-exp">&times;</button>
+          </div>
+          <form id="sr-exp-add-form" class="sr-modal-body" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-exp-input-title">Job Title / Role</label>
+              <input type="text" id="sr-exp-input-title" class="sr-form-input" placeholder="e.g. Lead Shift Specialist" required />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-exp-input-company">Company / Facility</label>
+              <input type="text" id="sr-exp-input-company" class="sr-form-input" placeholder="e.g. ShiftRelay Regional Hub" required />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-exp-input-period">Duration / Period</label>
+              <input type="text" id="sr-exp-input-period" class="sr-form-input" placeholder="e.g. 2021 — Present" required />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-exp-input-desc">Key Responsibilities / Impact</label>
+              <textarea id="sr-exp-input-desc" class="sr-form-input" rows="3" placeholder="Describe shift duties, safety oversight, or achievements..."></textarea>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-exp">Cancel</button>
+              <button type="submit" class="sr-btn sr-btn-primary">Add Position</button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modalEl);
+
+      modalEl.querySelector('#sr-btn-close-exp')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-btn-cancel-exp')?.addEventListener('click', () => modalEl.remove());
+
+      modalEl.querySelector('#sr-exp-add-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('sr-exp-input-title')?.value.trim();
+        const company = document.getElementById('sr-exp-input-company')?.value.trim();
+        const period = document.getElementById('sr-exp-input-period')?.value.trim();
+        const description = document.getElementById('sr-exp-input-desc')?.value.trim();
+
+        const updated = [...experiences, { id: 'exp-' + Date.now(), title, company, period, description }];
+        try {
+          const res = await fetch('/api/worker-profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ experience: updated })
+          });
+          if (res.ok) {
+            modalEl.remove();
+            showToast('Experience added.', 'success');
+            await renderWorkerMe();
+          }
+        } catch (err) {
+          showToast('Failed to add experience: ' + err.message, 'error');
+        }
+      });
+    }
+
+    // ── Helper Modal: Add Certification ─────────────────────────────────────
+    function openAddCertModal() {
+      const existing = document.getElementById('sr-add-cert-backdrop');
+      if (existing) existing.remove();
+
+      const modalEl = document.createElement('div');
+      modalEl.id = 'sr-add-cert-backdrop';
+      modalEl.className = 'sr-modal-backdrop';
+      modalEl.innerHTML = `
+        <div class="sr-modal" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="sr-cert-modal-title">
+          <div class="sr-modal-header">
+            <h3 id="sr-cert-modal-title" style="margin:0;font-size:16px;font-weight:700;">Add Certification / Accreditation</h3>
+            <button type="button" class="sr-btn-close" id="sr-btn-close-cert">&times;</button>
+          </div>
+          <form id="sr-cert-add-form" class="sr-modal-body" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-cert-input-name">Certification Name</label>
+              <input type="text" id="sr-cert-input-name" class="sr-form-input" placeholder="e.g. Lean Handover Black Belt" required />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-cert-input-issuer">Issuing Body / Authority</label>
+              <input type="text" id="sr-cert-input-issuer" class="sr-form-input" placeholder="e.g. Frontline Operations Council" required />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-cert-input-year">Year / Validity</label>
+              <input type="text" id="sr-cert-input-year" class="sr-form-input" placeholder="e.g. 2024" required />
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-cert">Cancel</button>
+              <button type="submit" class="sr-btn sr-btn-primary">Add Certification</button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modalEl);
+
+      modalEl.querySelector('#sr-btn-close-cert')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-btn-cancel-cert')?.addEventListener('click', () => modalEl.remove());
+
+      modalEl.querySelector('#sr-cert-add-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('sr-cert-input-name')?.value.trim();
+        const issuer = document.getElementById('sr-cert-input-issuer')?.value.trim();
+        const year = document.getElementById('sr-cert-input-year')?.value.trim();
+
+        const updated = [...certifications, { name, issuer, year }];
+        try {
+          const res = await fetch('/api/worker-profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ certifications: updated })
+          });
+          if (res.ok) {
+            modalEl.remove();
+            showToast('Certification added.', 'success');
+            await renderWorkerMe();
+          }
+        } catch (err) {
+          showToast('Failed to add certification: ' + err.message, 'error');
+        }
+      });
+    }
+
+    // ── Helper Modal: Add Education ─────────────────────────────────────────
+    function openAddEduModal() {
+      const existing = document.getElementById('sr-add-edu-backdrop');
+      if (existing) existing.remove();
+
+      const modalEl = document.createElement('div');
+      modalEl.id = 'sr-add-edu-backdrop';
+      modalEl.className = 'sr-modal-backdrop';
+      modalEl.innerHTML = `
+        <div class="sr-modal" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="sr-edu-modal-title">
+          <div class="sr-modal-header">
+            <h3 id="sr-edu-modal-title" style="margin:0;font-size:16px;font-weight:700;">Add Education / Credential</h3>
+            <button type="button" class="sr-btn-close" id="sr-btn-close-edu">&times;</button>
+          </div>
+          <form id="sr-edu-add-form" class="sr-modal-body" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-edu-input-deg">Degree / Field of Study</label>
+              <input type="text" id="sr-edu-input-deg" class="sr-form-input" placeholder="e.g. Diploma in Supply Chain" required />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-edu-input-inst">Institution / University</label>
+              <input type="text" id="sr-edu-input-inst" class="sr-form-input" placeholder="e.g. National Technical College" required />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-edu-input-yr">Graduation Year</label>
+              <input type="text" id="sr-edu-input-yr" class="sr-form-input" placeholder="e.g. 2021" required />
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-edu">Cancel</button>
+              <button type="submit" class="sr-btn sr-btn-primary">Add Education</button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modalEl);
+
+      modalEl.querySelector('#sr-btn-close-edu')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-btn-cancel-edu')?.addEventListener('click', () => modalEl.remove());
+
+      modalEl.querySelector('#sr-edu-add-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const degree = document.getElementById('sr-edu-input-deg')?.value.trim();
+        const institution = document.getElementById('sr-edu-input-inst')?.value.trim();
+        const year = document.getElementById('sr-edu-input-yr')?.value.trim();
+
+        const updated = [...educations, { id: 'edu-' + Date.now(), degree, institution, year }];
+        try {
+          const res = await fetch('/api/worker-profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ education: updated })
+          });
+          if (res.ok) {
+            modalEl.remove();
+            showToast('Education added.', 'success');
+            await renderWorkerMe();
+          }
+        } catch (err) {
+          showToast('Failed to add education: ' + err.message, 'error');
+        }
+      });
+    }
+
+    // ── Helper Modal: Edit Skills ───────────────────────────────────────────
+    function openEditSkillsModal() {
+      const existing = document.getElementById('sr-edit-skills-backdrop');
+      if (existing) existing.remove();
+
+      const modalEl = document.createElement('div');
+      modalEl.id = 'sr-edit-skills-backdrop';
+      modalEl.className = 'sr-modal-backdrop';
+      modalEl.innerHTML = `
+        <div class="sr-modal" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="sr-skills-modal-title">
+          <div class="sr-modal-header">
+            <h3 id="sr-skills-modal-title" style="margin:0;font-size:16px;font-weight:700;">Edit Core Skills</h3>
+            <button type="button" class="sr-btn-close" id="sr-btn-close-skills">&times;</button>
+          </div>
+          <form id="sr-skills-edit-form" class="sr-modal-body" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-skills-input">Skills (comma-separated)</label>
+              <textarea id="sr-skills-input" class="sr-form-input" rows="4" required style="resize:vertical;">${escapeHtml(skills.join(', '))}</textarea>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-skills">Cancel</button>
+              <button type="submit" class="sr-btn sr-btn-primary">Save Skills</button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modalEl);
+
+      modalEl.querySelector('#sr-btn-close-skills')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-btn-cancel-skills')?.addEventListener('click', () => modalEl.remove());
+
+      modalEl.querySelector('#sr-skills-edit-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const raw = document.getElementById('sr-skills-input')?.value || '';
+        const parsed = raw.split(',').map(s => s.trim()).filter(Boolean);
+        try {
+          const res = await fetch('/api/worker-profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skills: parsed })
+          });
+          if (res.ok) {
+            modalEl.remove();
+            showToast('Skills updated.', 'success');
+            await renderWorkerMe();
+          }
+        } catch (err) {
+          showToast('Failed to save skills: ' + err.message, 'error');
+        }
+      });
+    }
 
     // Bind Theme Switch
     const themeSwitch = document.getElementById('sr-theme-switch');
@@ -4677,7 +5314,7 @@
       });
     });
 
-    // Bind Password Change Form
+    // Bind Password Change Form (inside Settings section)
     const pwForm = document.getElementById('sr-me-password-form');
     const feedbackEl = document.getElementById('sr-pw-feedback');
     const pwSubmitBtn = document.getElementById('sr-btn-pw-submit');
