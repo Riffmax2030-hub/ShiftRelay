@@ -356,6 +356,55 @@
     }
   });
 
+  // ── Theme State Management ──────────────────────────────────────────────────
+  function updateThemeUI(theme) {
+    const active = theme || document.documentElement.getAttribute('data-theme') || document.documentElement.dataset.theme || 'light';
+    const isDark = active === 'dark';
+
+    const headerBtn = document.getElementById('sr-shell-theme-toggle');
+    if (headerBtn) {
+      headerBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      headerBtn.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      headerBtn.innerHTML = isDark
+        ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`
+        : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`;
+    }
+
+    const themeSwitch = document.getElementById('sr-theme-switch');
+    const themeStatusDesc = document.getElementById('sr-theme-status-desc');
+    if (themeSwitch) {
+      themeSwitch.checked = isDark;
+    }
+    if (themeStatusDesc) {
+      themeStatusDesc.textContent = isDark ? 'Dark theme is active' : 'Light theme is active';
+    }
+  }
+
+  function setThemeAction(nextTheme) {
+    const active = nextTheme === 'dark' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = active;
+    document.documentElement.setAttribute('data-theme', active);
+    if (document.body) {
+      document.body.dataset.theme = active;
+      document.body.setAttribute('data-theme', active);
+    }
+    try { localStorage.setItem('shiftrelay-theme', active); } catch (_) {}
+    if (typeof window.applyTheme === 'function') {
+      window.applyTheme(active, false);
+    }
+    updateThemeUI(active);
+  }
+
+  function toggleThemeAction() {
+    const current = (document.documentElement.getAttribute('data-theme') || document.documentElement.dataset.theme) === 'dark' ? 'dark' : 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    setThemeAction(next);
+  }
+
+  window.addEventListener('shiftrelay-theme-changed', (e) => {
+    updateThemeUI(e.detail?.theme);
+  });
+
   // ── 1. Mount Application Shell ──────────────────────────────────────────────
   async function mountShell(activeView = null) {
     const user = getUser();
@@ -422,6 +471,11 @@
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
               <span>${isOffline ? 'Offline Mode' : 'Connected'}</span>
             </div>
+
+            <!-- Theme Toggle Button (Light / Dark) -->
+            <button class="sr-icon-btn theme-toggle-btn" id="sr-shell-theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </button>
 
             <!-- Notifications Bell -->
             <button class="sr-icon-btn" id="sr-shell-bell" aria-label="Notifications" title="Notifications" aria-haspopup="dialog" aria-expanded="false" aria-controls="sr-notif-panel">
@@ -588,6 +642,13 @@
 
     document.getElementById('sr-btn-context')?.addEventListener('click', openContextModal);
 
+    // Theme toggle button
+    document.getElementById('sr-shell-theme-toggle')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleThemeAction();
+    });
+    updateThemeUI();
+
     // Notifications panel triggers
     document.getElementById('sr-shell-bell')?.addEventListener('click', (e) => {
       e.preventDefault();
@@ -667,7 +728,7 @@
   }
 
   // ── 2. Polished Worker Today Screen ─────────────────────────────────────────
-  async function renderWorkerToday() {
+  async function renderWorkerToday(skipSkeleton = false) {
     const user = getUser();
     const container = document.getElementById('sr-content-area');
     if (!container) return;
@@ -677,11 +738,13 @@
       elapsedInterval = null;
     }
 
-    container.innerHTML = `
-      <div class="sr-skeleton" style="height: 120px; margin-bottom: 16px;"></div>
-      <div class="sr-skeleton" style="height: 180px; margin-bottom: 16px;"></div>
-      <div class="sr-skeleton" style="height: 200px;"></div>
-    `;
+    if (!skipSkeleton) {
+      container.innerHTML = `
+        <div class="sr-skeleton" style="height: 120px; margin-bottom: 16px;"></div>
+        <div class="sr-skeleton" style="height: 180px; margin-bottom: 16px;"></div>
+        <div class="sr-skeleton" style="height: 200px;"></div>
+      `;
+    }
 
     try {
       // Parallel fetch of real backend state
@@ -695,6 +758,7 @@
 
       const activeEntry = timeData.active;
       const isClockedIn = Boolean(activeEntry);
+      const clockedInTime = activeEntry ? (activeEntry.clocked_in_at || activeEntry.clockedInAt) : null;
       const handovers = handoversData.handovers || [];
 
       // Relevant handover determination
@@ -725,11 +789,11 @@
         <!-- Primary Shift Status & Clocking Card -->
         <section class="sr-clock-card ${isClockedIn ? 'clocked-in' : ''}" id="sr-clock-card" aria-label="Shift Time Tracking">
           <div class="sr-clock-header">
-            <span class="sr-status-pill ${isClockedIn ? 'active' : 'inactive'}">
+            <span class="sr-status-pill ${isClockedIn ? 'active' : 'inactive'}" id="sr-today-shift-status">
               ${isClockedIn ? '<span class="sr-pulse-dot"></span> Active on Shift' : 'Off Shift'}
             </span>
             <small style="font-size:12px;color:var(--sr-text-muted);">
-              ${isClockedIn && activeEntry.clocked_in_at ? `Started ${new Date(activeEntry.clocked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Standard 8h Rotation'}
+              ${isClockedIn && clockedInTime ? `Started ${new Date(clockedInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Standard 8h Rotation'}
             </small>
           </div>
 
@@ -809,8 +873,8 @@
       container.innerHTML = html;
 
       // Start elapsed timer if clocked in
-      if (isClockedIn && activeEntry.clocked_in_at) {
-        const startTime = new Date(activeEntry.clocked_in_at).getTime();
+      if (isClockedIn && clockedInTime) {
+        const startTime = new Date(clockedInTime).getTime();
         const updateTimer = () => {
           const diffSec = Math.max(0, Math.floor((Date.now() - startTime) / 1000));
           const h = String(Math.floor(diffSec / 3600)).padStart(2, '0');
@@ -823,10 +887,14 @@
         elapsedInterval = setInterval(updateTimer, 1000);
       }
 
-      // Bind Clock In / Out button
+      // Bind Clock In / Out button (smooth in-place transition without page reload flash)
       document.getElementById('sr-btn-toggle-clock')?.addEventListener('click', async () => {
         const btn = document.getElementById('sr-btn-toggle-clock');
-        if (btn) btn.disabled = true;
+        if (btn) {
+          btn.disabled = true;
+          btn.style.opacity = '0.7';
+          btn.textContent = isClockedIn ? 'Clocking out...' : 'Clocking in...';
+        }
         const endpoint = isClockedIn ? '/api/time-entries/clock-out' : '/api/time-entries/clock-in';
         try {
           const res = await fetch(endpoint, {
@@ -840,10 +908,13 @@
             const err = await res.json();
             throw new Error(err.error || 'Clock action failed');
           }
-          await renderWorkerToday();
+          await renderWorkerToday(true); // Smooth update without wiping container with skeletons!
         } catch (err) {
           alert(err.message);
-          if (btn) btn.disabled = false;
+          if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+          }
         }
       });
 
@@ -3265,7 +3336,7 @@
                 <strong style="font-size:13.5px;color:var(--sr-text-main);">Dark Mode Theme</strong>
                 <p class="sr-me-toggle-desc" id="sr-theme-status-desc">${isDark ? 'Dark theme is active' : 'Light theme is active'}</p>
               </div>
-              <label class="sr-switch">
+              <label class="sr-switch" for="sr-theme-switch">
                 <input type="checkbox" id="sr-theme-switch" ${isDark ? 'checked' : ''} aria-label="Toggle dark mode theme" />
                 <span class="sr-slider"></span>
               </label>
@@ -3361,20 +3432,10 @@
 
     // Bind Theme Switch
     const themeSwitch = document.getElementById('sr-theme-switch');
-    const themeStatusDesc = document.getElementById('sr-theme-status-desc');
     themeSwitch?.addEventListener('change', () => {
-      const nextTheme = themeSwitch.checked ? 'dark' : 'light';
-      document.documentElement.dataset.theme = nextTheme;
-      document.documentElement.setAttribute('data-theme', nextTheme);
-      if (typeof window.applyTheme === 'function') {
-        window.applyTheme(nextTheme, false);
-      } else {
-        try { localStorage.setItem('shiftrelay-theme', nextTheme); } catch (_) {}
-      }
-      if (themeStatusDesc) {
-        themeStatusDesc.textContent = nextTheme === 'dark' ? 'Dark theme is active' : 'Light theme is active';
-      }
+      setThemeAction(themeSwitch.checked ? 'dark' : 'light');
     });
+    updateThemeUI();
 
     // Bind Accordion Toggles
     container.querySelectorAll('.sr-accordion-header').forEach(btn => {

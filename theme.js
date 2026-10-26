@@ -18,8 +18,10 @@
   function applyTheme(theme, showFeedback = false) {
     const active = theme === 'dark' ? 'dark' : 'light';
     document.documentElement.dataset.theme = active;
+    document.documentElement.setAttribute('data-theme', active);
     if (document.body) {
       document.body.dataset.theme = active;
+      document.body.setAttribute('data-theme', active);
     }
     try {
       localStorage.setItem('shiftrelay-theme', active);
