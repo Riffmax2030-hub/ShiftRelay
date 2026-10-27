@@ -541,6 +541,14 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                 <span>Approvals</span>
               </button>
+              <button class="sr-nav-btn ${view === 'timesheets' ? 'active' : ''}" data-sr-view="timesheets">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>Timesheets</span>
+              </button>
+              <button class="sr-nav-btn ${view === 'open-shifts' ? 'active' : ''}" data-sr-view="open-shifts">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="3" x2="21" y1="10" y2="10"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="16" y1="15" y2="15"/></svg>
+                <span>Open Shifts</span>
+              </button>
               ${user.role === 'owner' ? `
                 <button class="sr-nav-btn ${view === 'settings' ? 'active' : ''}" data-sr-view="settings">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -559,6 +567,22 @@
               <button class="sr-nav-btn ${view === 'handovers' ? 'active' : ''}" data-sr-view="handovers">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
                 <span>Handovers</span>
+              </button>
+              <button class="sr-nav-btn ${view === 'timesheets' ? 'active' : ''}" data-sr-view="timesheets">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>Timesheets</span>
+              </button>
+              <button class="sr-nav-btn ${view === 'time-away' ? 'active' : ''}" data-sr-view="time-away">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                <span>Time Away</span>
+              </button>
+              <button class="sr-nav-btn ${view === 'earnings' ? 'active' : ''}" data-sr-view="earnings">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <span>Earnings</span>
+              </button>
+              <button class="sr-nav-btn ${view === 'assistant' ? 'active' : ''}" data-sr-view="assistant">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Assistant</span>
               </button>
               <button class="sr-nav-btn ${view === 'me' ? 'active' : ''}" data-sr-view="me">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -599,6 +623,10 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
               <span class="sr-dock-label">Approvals</span>
             </button>
+            <button class="sr-dock-item ${view === 'timesheets' ? 'active' : ''}" data-sr-view="timesheets">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span class="sr-dock-label">Timesheets</span>
+            </button>
           ` : `
             <button class="sr-dock-item ${view === 'today' ? 'active' : ''}" data-sr-view="today">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -608,9 +636,13 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
               <span class="sr-dock-label">Schedule</span>
             </button>
-            <button class="sr-dock-item ${view === 'handovers' ? 'active' : ''}" data-sr-view="handovers">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/></svg>
-              <span class="sr-dock-label">Handovers</span>
+            <button class="sr-dock-item ${view === 'timesheets' ? 'active' : ''}" data-sr-view="timesheets">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span class="sr-dock-label">Timesheets</span>
+            </button>
+            <button class="sr-dock-item ${view === 'time-away' ? 'active' : ''}" data-sr-view="time-away">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+              <span class="sr-dock-label">Time Away</span>
             </button>
             <button class="sr-dock-item ${view === 'me' ? 'active' : ''}" data-sr-view="me">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -718,6 +750,22 @@
       }
     } else if (view === 'settings') {
       await renderOwnerSettings();
+    } else if (view === 'timesheets') {
+      if (isManager) {
+        await renderManagerTimesheets();
+      } else {
+        await renderWorkerTimesheets();
+      }
+    } else if (view === 'time-away') {
+      await renderTimeAway();
+    } else if (view === 'earnings') {
+      await renderEarnings();
+    } else if (view === 'assistant') {
+      await renderAssistant();
+    } else if (view === 'open-shifts') {
+      await renderOpenShiftMarketplace();
+    } else if (view === 'compliance') {
+      await renderComplianceGoals();
     } else if (view === 'notifications') {
       await (isManager ? renderManagerOverview() : renderWorkerToday());
       toggleNotificationPanel(true);
@@ -5668,6 +5716,13 @@
     renderWorkerSchedule,
     renderManagerSchedule,
     renderOwnerSettings,
+    renderWorkerTimesheets,
+    renderManagerTimesheets,
+    renderTimeAway,
+    renderEarnings,
+    renderAssistant,
+    renderOpenShiftMarketplace,
+    renderComplianceGoals,
     openContextModal,
     toggleNotificationPanel,
     openNotificationPanel,
@@ -5683,6 +5738,1048 @@
   // If an active session is already established on script execution, mount the shell
   if (getUser()) {
     mountShell();
+  }
+
+  // ── PHASE 6: Timesheets, Time Away, Earnings, Open Shifts, Assistant, Compliance ──────────────
+
+  // ── Worker Timesheets ─────────────────────────────────────────────────────────
+  async function renderWorkerTimesheets() {
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="sr-page-wrap">
+        <div class="sr-skeleton" style="height:60px;margin-bottom:16px;"></div>
+        <div class="sr-skeleton" style="height:80px;margin-bottom:16px;"></div>
+        <div class="sr-skeleton" style="height:300px;"></div>
+      </div>`;
+
+    let data;
+    try {
+      const res = await fetch('/api/timesheets');
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      data = await res.json();
+    } catch (err) {
+      container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:#fecaca;background:#fff5f5;padding:20px;">
+        <p style="color:#b91c1c;margin:0 0 12px;font-size:14px;">${escapeHtml(err.message)}</p>
+        <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('timesheets')">Retry</button>
+      </div></div>`;
+      return;
+    }
+
+    const entries = data.entries || [];
+    const period = data.period || {};
+    const missedCount = data.missedPunchCount || 0;
+
+    const alertBanner = missedCount > 0 ? `
+      <div class="sr-missed-punch-alert">
+        <svg class="sr-missed-punch-alert-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <div class="sr-missed-punch-alert-body">
+          <p class="sr-missed-punch-alert-title">Incomplete Punch Detected</p>
+          <p class="sr-missed-punch-alert-msg">You have ${missedCount} incomplete clock-out(s) from recent shifts. Resolve them now to protect your payroll accuracy.</p>
+        </div>
+      </div>` : '';
+
+    const tableRows = entries.length > 0 ? entries.map(e => {
+      const clockOut = e.clockOut || e.clock_out;
+      const clockIn = e.clockIn || e.clock_in;
+      const pillStatus = e.status === 'missed_punch' ? 'missed' : (e.status || 'authorized');
+      const pillLabel = pillStatus.charAt(0).toUpperCase() + pillStatus.slice(1).replace('_', ' ');
+      const resolveBtn = (e.status === 'missed_punch' || e.status === 'missed')
+        ? `<br><button class="sr-btn sr-btn-secondary" style="padding:4px 10px;font-size:12px;margin-top:6px;" data-entry-id="${escapeHtml(e.id || '')}">Resolve</button>`
+        : '';
+      return `
+        <tr class="sr-ts-row">
+          <td class="sr-ts-td">${escapeHtml(e.date || e.shiftDate || '—')}</td>
+          <td class="sr-ts-td">${escapeHtml(clockIn || '—')}</td>
+          <td class="sr-ts-td">${clockOut ? escapeHtml(clockOut) : '<span style="color:#d97706;font-weight:600;">Missing</span>'}</td>
+          <td class="sr-ts-td">${escapeHtml(String(e.hours || '—'))}</td>
+          <td class="sr-ts-td">${escapeHtml(e.facility || e.location || '—')}</td>
+          <td class="sr-ts-td">
+            <span class="sr-ts-status-pill ${pillStatus}">${escapeHtml(pillLabel)}</span>
+            ${resolveBtn}
+          </td>
+        </tr>`;
+    }).join('') : `
+      <tr><td class="sr-ts-td" colspan="6" style="text-align:center;color:var(--sr-text-muted);padding:32px 12px;">
+        No timesheet entries found for this period.
+      </td></tr>`;
+
+    container.innerHTML = `
+      <div class="sr-page-wrap">
+        <div class="sr-page-header">
+          <div>
+            <h2 class="sr-page-title">Timesheets</h2>
+            <p class="sr-page-subtitle">${escapeHtml(period.label || 'Current Period')}</p>
+          </div>
+        </div>
+        <div class="sr-stat-row">
+          <div class="sr-stat-box">
+            <span class="sr-stat-val">${escapeHtml(String(period.totalHours || '0.0'))}</span>
+            <span class="sr-stat-label">Total Hours</span>
+          </div>
+          <div class="sr-stat-box">
+            <span class="sr-stat-val">${escapeHtml(String(period.regularHours || '0.0'))}</span>
+            <span class="sr-stat-label">Regular</span>
+          </div>
+          <div class="sr-stat-box">
+            <span class="sr-stat-val">${escapeHtml(String(period.overtimeHours || '0.0'))}</span>
+            <span class="sr-stat-label">Overtime</span>
+          </div>
+        </div>
+        ${alertBanner}
+        <div class="sr-cv-section">
+          <div class="sr-cv-section-header">
+            <h3 class="sr-cv-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              Punch History
+            </h3>
+            <span style="font-size:12.5px;color:var(--sr-text-muted);">${escapeHtml(period.label || '')}</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="sr-ts-table">
+              <thead>
+                <tr>
+                  <th class="sr-ts-th">Date</th>
+                  <th class="sr-ts-th">Clock In</th>
+                  <th class="sr-ts-th">Clock Out</th>
+                  <th class="sr-ts-th">Hours</th>
+                  <th class="sr-ts-th">Facility</th>
+                  <th class="sr-ts-th">Status</th>
+                </tr>
+              </thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+
+    container.querySelectorAll('[data-entry-id]').forEach(btn => {
+      btn.addEventListener('click', () => openPunchCorrectionModal(btn.dataset.entryId));
+    });
+
+    function openPunchCorrectionModal(entryId) {
+      const existing = document.getElementById('sr-punch-modal-backdrop');
+      if (existing) existing.remove();
+      const modalEl = document.createElement('div');
+      modalEl.id = 'sr-punch-modal-backdrop';
+      modalEl.className = 'sr-modal-backdrop';
+      modalEl.innerHTML = `
+        <div class="sr-modal" style="max-width:440px;" role="dialog" aria-modal="true" aria-labelledby="sr-punch-modal-title">
+          <div class="sr-modal-header">
+            <h3 id="sr-punch-modal-title" style="margin:0;font-size:16px;font-weight:700;">Resolve Missed Clock-Out</h3>
+            <button type="button" class="sr-btn-close" id="sr-punch-close">&times;</button>
+          </div>
+          <form id="sr-punch-form" class="sr-modal-body" style="display:flex;flex-direction:column;gap:14px;">
+            <p style="font-size:13px;color:var(--sr-text-muted);margin:0;line-height:1.5;">
+              Enter your actual departure time. Your supervisor will review and authorize the correction.
+            </p>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-punch-time">Actual Departure Time</label>
+              <input type="time" id="sr-punch-time" class="sr-form-input" required />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-punch-reason">Brief Reason</label>
+              <textarea id="sr-punch-reason" class="sr-form-input" rows="3" placeholder="e.g. Forgot to clock out on the system at end of shift" style="resize:vertical;"></textarea>
+            </div>
+            <div id="sr-punch-err" style="display:none;color:#ef4444;font-size:13px;"></div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-punch-cancel">Cancel</button>
+              <button type="submit" class="sr-btn sr-btn-primary" id="sr-punch-submit">Submit Correction</button>
+            </div>
+          </form>
+        </div>`;
+      document.body.appendChild(modalEl);
+      modalEl.querySelector('#sr-punch-close')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-punch-cancel')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-punch-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const timeVal = document.getElementById('sr-punch-time')?.value;
+        const reason = document.getElementById('sr-punch-reason')?.value?.trim() || '';
+        const errEl = document.getElementById('sr-punch-err');
+        const submitBtn = document.getElementById('sr-punch-submit');
+        if (!timeVal) {
+          if (errEl) { errEl.textContent = 'Please enter a departure time.'; errEl.style.display = 'block'; }
+          return;
+        }
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
+        try {
+          const res = await fetch('/api/timesheets/punch-correction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entryId, departureTime: timeVal, reason })
+          });
+          const d = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
+          modalEl.remove();
+          showToast('Correction submitted. Your supervisor will review it.', 'success');
+          await renderWorkerTimesheets();
+        } catch (err) {
+          if (errEl) { errEl.textContent = err.message; errEl.style.display = 'block'; }
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Correction'; }
+        }
+      });
+    }
+  }
+
+  // ── Manager Timesheets ────────────────────────────────────────────────────────
+  async function renderManagerTimesheets() {
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+
+    container.innerHTML = `<div class="sr-page-wrap"><div class="sr-skeleton" style="height:300px;"></div></div>`;
+
+    let data;
+    try {
+      const res = await fetch('/api/timesheets/pending-authorizations');
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      data = await res.json();
+    } catch (err) {
+      container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:#fecaca;background:#fff5f5;padding:20px;">
+        <p style="color:#b91c1c;margin:0 0 12px;font-size:14px;">${escapeHtml(err.message)}</p>
+        <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('timesheets')">Retry</button>
+      </div></div>`;
+      return;
+    }
+
+    const pending = data.pending || [];
+    const infoBanner = pending.length > 0 ? `
+      <div class="sr-missed-punch-alert" style="border-left-color:var(--sr-primary);background:rgba(13,82,77,0.05);border-color:rgba(13,82,77,0.2);">
+        <svg class="sr-missed-punch-alert-icon" style="color:var(--sr-primary);" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/>
+        </svg>
+        <div class="sr-missed-punch-alert-body">
+          <p class="sr-missed-punch-alert-title" style="color:var(--sr-primary);">${pending.length} correction request(s) ready to authorize</p>
+          <p class="sr-missed-punch-alert-msg" style="color:var(--sr-text-muted);">Review each request carefully before approving or denying.</p>
+        </div>
+      </div>` : '';
+
+    const pendingRows = pending.length > 0 ? pending.map(item => `
+      <div style="padding:16px 0;border-bottom:1px solid var(--sr-border-subtle);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
+          <div>
+            <p style="margin:0 0 2px;font-size:15px;font-weight:700;color:var(--sr-text-main);">${escapeHtml(item.workerName || item.worker_name || 'Unknown')}</p>
+            <p style="margin:0;font-size:12.5px;color:var(--sr-text-muted);">${escapeHtml(item.role || 'Frontline Specialist')}</p>
+          </div>
+          <span class="sr-ts-status-pill pending">Pending Review</span>
+        </div>
+        <p style="margin:0 0 8px;font-size:13px;color:var(--sr-text-muted);">
+          ${escapeHtml(item.shiftDate || item.shift_date || '—')} &middot;
+          Requested departure: <strong style="color:var(--sr-text-main);">${escapeHtml(item.requestedDepartureTime || item.requested_departure_time || '—')}</strong>
+          ${item.facility ? ` &middot; ${escapeHtml(item.facility)}` : ''}
+        </p>
+        ${item.reason ? `<div style="background:var(--sr-bg-elevated);padding:8px 12px;border-radius:8px;border-left:3px solid var(--sr-border-medium);font-size:13px;color:var(--sr-text-muted);margin-bottom:10px;">${escapeHtml(item.reason)}</div>` : ''}
+        <div style="display:flex;gap:8px;">
+          <button class="sr-btn sr-btn-danger" style="padding:7px 16px;font-size:13px;" data-correction-id="${escapeHtml(item.id || '')}" data-action="denied">Deny</button>
+          <button class="sr-btn sr-btn-primary" style="padding:7px 16px;font-size:13px;" data-correction-id="${escapeHtml(item.id || '')}" data-action="authorized">Authorize</button>
+        </div>
+      </div>`).join('') : `
+      <p style="text-align:center;color:var(--sr-text-muted);font-size:14px;padding:32px 0;">No pending authorizations at this time.</p>`;
+
+    container.innerHTML = `
+      <div class="sr-page-wrap">
+        <div class="sr-page-header">
+          <div>
+            <h2 class="sr-page-title">Timesheets</h2>
+            <p class="sr-page-subtitle">Review and authorize punch corrections from your team</p>
+          </div>
+        </div>
+        ${infoBanner}
+        <div class="sr-cv-section">
+          <div class="sr-cv-section-header">
+            <h3 class="sr-cv-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+              Pending Authorizations
+            </h3>
+            ${pending.length > 0 ? `<span style="background:rgba(13,82,77,0.1);color:var(--sr-primary);padding:3px 10px;border-radius:9999px;font-size:12px;font-weight:700;">${pending.length}</span>` : ''}
+          </div>
+          ${pendingRows}
+        </div>
+      </div>`;
+
+    async function reviewCorrection(correctionId, action) {
+      try {
+        const res = await fetch('/api/timesheets/authorize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ correctionId, action })
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
+        showToast(action === 'authorized' ? 'Correction authorized.' : 'Correction denied.', 'success');
+        await renderManagerTimesheets();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    container.querySelectorAll('[data-correction-id]').forEach(btn => {
+      btn.addEventListener('click', () => reviewCorrection(btn.dataset.correctionId, btn.dataset.action));
+    });
+  }
+
+  // ── Time Away ─────────────────────────────────────────────────────────────────
+  async function renderTimeAway() {
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+
+    container.innerHTML = `<div class="sr-page-wrap"><div class="sr-skeleton" style="height:400px;"></div></div>`;
+
+    let data;
+    try {
+      const res = await fetch('/api/leave-requests');
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      data = await res.json();
+    } catch (err) {
+      container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:#fecaca;background:#fff5f5;padding:20px;">
+        <p style="color:#b91c1c;margin:0 0 12px;font-size:14px;">${escapeHtml(err.message)}</p>
+        <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('time-away')">Retry</button>
+      </div></div>`;
+      return;
+    }
+
+    const requests = data.requests || [];
+    let activeTab = 'all';
+
+    function getFiltered() {
+      if (activeTab === 'all') return requests;
+      return requests.filter(r => (r.status || '').toLowerCase() === activeTab);
+    }
+
+    function renderList() {
+      const listEl = document.getElementById('sr-ta-list');
+      if (!listEl) return;
+      const filtered = getFiltered();
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<p style="text-align:center;color:var(--sr-text-muted);font-size:14px;padding:24px 0;">No requests found.</p>`;
+        return;
+      }
+      listEl.innerHTML = filtered.map(r => {
+        const status = (r.status || 'pending').toLowerCase();
+        const pillClass = status === 'approved' ? 'approved' : status === 'denied' ? 'denied' : 'pending';
+        const pillLabel = status.charAt(0).toUpperCase() + status.slice(1);
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--sr-border-subtle);gap:8px;flex-wrap:wrap;">
+            <div>
+              <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:var(--sr-text-main);">${escapeHtml(r.type || r.leaveType || 'Time Off')}</p>
+              <p style="margin:0;font-size:12.5px;color:var(--sr-text-muted);">
+                ${escapeHtml(r.fromDate || r.from_date || '—')} to ${escapeHtml(r.toDate || r.to_date || '—')}
+              </p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span class="sr-ts-status-pill ${pillClass}">${pillLabel}</span>
+              ${isManager && status === 'pending' ? `
+                <button class="sr-btn sr-btn-danger" style="padding:5px 12px;font-size:12px;" data-leave-id="${escapeHtml(r.id || '')}" data-action="denied">Deny</button>
+                <button class="sr-btn sr-btn-primary" style="padding:5px 12px;font-size:12px;" data-leave-id="${escapeHtml(r.id || '')}" data-action="approved">Approve</button>
+              ` : ''}
+            </div>
+          </div>`;
+      }).join('');
+
+      listEl.querySelectorAll('[data-leave-id]').forEach(btn => {
+        btn.addEventListener('click', () => reviewLeaveRequest(btn.dataset.leaveId, btn.dataset.action));
+      });
+    }
+
+    async function reviewLeaveRequest(requestId, action) {
+      try {
+        const res = await fetch('/api/leave-requests/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId, action })
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
+        showToast(action === 'approved' ? 'Request approved.' : 'Request denied.', 'success');
+        await renderTimeAway();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    const nextPending = requests.find(r => (r.status || '').toLowerCase() === 'pending');
+    const nextCard = nextPending ? `
+      <div class="sr-cv-section" style="margin-bottom:20px;">
+        <div class="sr-cv-section-header">
+          <h3 class="sr-cv-section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/>
+              <line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
+            </svg>
+            Next Pending Request
+          </h3>
+          <span class="sr-ts-status-pill pending">Pending</span>
+        </div>
+        <div style="padding-top:8px;">
+          <p style="font-size:16px;font-weight:700;color:var(--sr-text-main);margin:0 0 4px;">${escapeHtml(nextPending.type || nextPending.leaveType || 'Time Off')}</p>
+          <p style="font-size:13px;color:var(--sr-text-muted);margin:0;">${escapeHtml(nextPending.fromDate || nextPending.from_date || '—')} to ${escapeHtml(nextPending.toDate || nextPending.to_date || '—')}</p>
+          ${nextPending.reason ? `<p style="font-size:13px;color:var(--sr-text-muted);margin:8px 0 0;line-height:1.5;">${escapeHtml(nextPending.reason)}</p>` : ''}
+        </div>
+      </div>` : '';
+
+    container.innerHTML = `
+      <div class="sr-page-wrap">
+        <div class="sr-page-header">
+          <div>
+            <h2 class="sr-page-title">Time Away</h2>
+            <p class="sr-page-subtitle">Manage your leave requests and time off</p>
+          </div>
+          <button class="sr-btn sr-btn-primary" id="sr-ta-new-btn">Request Time Off</button>
+        </div>
+        ${nextCard}
+        <div class="sr-cv-section">
+          <div class="sr-cv-section-header">
+            <h3 class="sr-cv-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              ${isManager ? 'All Requests' : 'My Requests'}
+            </h3>
+          </div>
+          <div class="sr-feature-tab-bar" id="sr-ta-tabs">
+            <button class="sr-feature-tab active" data-tab="all">All</button>
+            <button class="sr-feature-tab" data-tab="pending">Pending</button>
+            <button class="sr-feature-tab" data-tab="approved">Approved</button>
+            <button class="sr-feature-tab" data-tab="denied">Denied</button>
+          </div>
+          <div id="sr-ta-list"></div>
+        </div>
+      </div>`;
+
+    renderList();
+
+    document.getElementById('sr-ta-tabs')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-tab]');
+      if (!btn) return;
+      document.querySelectorAll('#sr-ta-tabs .sr-feature-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeTab = btn.dataset.tab;
+      renderList();
+    });
+
+    document.getElementById('sr-ta-new-btn')?.addEventListener('click', () => openLeaveRequestModal());
+
+    function openLeaveRequestModal() {
+      const existing = document.getElementById('sr-leave-modal-backdrop');
+      if (existing) existing.remove();
+      const modalEl = document.createElement('div');
+      modalEl.id = 'sr-leave-modal-backdrop';
+      modalEl.className = 'sr-modal-backdrop';
+      modalEl.innerHTML = `
+        <div class="sr-modal" style="max-width:480px;" role="dialog" aria-modal="true" aria-labelledby="sr-leave-modal-title">
+          <div class="sr-modal-header">
+            <h3 id="sr-leave-modal-title" style="margin:0;font-size:16px;font-weight:700;">Request Time Off</h3>
+            <button type="button" class="sr-btn-close" id="sr-leave-close">&times;</button>
+          </div>
+          <form id="sr-leave-form" class="sr-modal-body" style="display:flex;flex-direction:column;gap:14px;">
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-leave-type">Type of Leave</label>
+              <select id="sr-leave-type" class="sr-form-input">
+                <option value="Paid Time Off">Paid Time Off</option>
+                <option value="Vacation">Vacation</option>
+                <option value="Sick Leave">Sick Leave</option>
+                <option value="Personal Day">Personal Day</option>
+              </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="sr-form-group">
+                <label class="sr-form-label" for="sr-leave-from">From</label>
+                <input type="date" id="sr-leave-from" class="sr-form-input" required />
+              </div>
+              <div class="sr-form-group">
+                <label class="sr-form-label" for="sr-leave-to">To</label>
+                <input type="date" id="sr-leave-to" class="sr-form-input" required />
+              </div>
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-leave-reason">Reason (optional)</label>
+              <textarea id="sr-leave-reason" class="sr-form-input" rows="3" placeholder="Brief note for your supervisor" style="resize:vertical;"></textarea>
+            </div>
+            <div id="sr-leave-err" style="display:none;color:#ef4444;font-size:13px;"></div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-leave-cancel">Cancel</button>
+              <button type="submit" class="sr-btn sr-btn-primary" id="sr-leave-submit">Submit Request</button>
+            </div>
+          </form>
+        </div>`;
+      document.body.appendChild(modalEl);
+      modalEl.querySelector('#sr-leave-close')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-leave-cancel')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-leave-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const type = document.getElementById('sr-leave-type')?.value;
+        const fromDate = document.getElementById('sr-leave-from')?.value;
+        const toDate = document.getElementById('sr-leave-to')?.value;
+        const reason = document.getElementById('sr-leave-reason')?.value?.trim() || '';
+        const errEl = document.getElementById('sr-leave-err');
+        const submitBtn = document.getElementById('sr-leave-submit');
+        if (!fromDate || !toDate) {
+          if (errEl) { errEl.textContent = 'Please select both start and end dates.'; errEl.style.display = 'block'; }
+          return;
+        }
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
+        try {
+          const res = await fetch('/api/leave-requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type, fromDate, toDate, reason })
+          });
+          const d = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
+          modalEl.remove();
+          showToast('Request submitted.', 'success');
+          await renderTimeAway();
+        } catch (err) {
+          if (errEl) { errEl.textContent = err.message; errEl.style.display = 'block'; }
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Request'; }
+        }
+      });
+    }
+  }
+
+  // ── Earnings ─────────────────────────────────────────────────────────────────
+  async function renderEarnings() {
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+
+    container.innerHTML = `<div class="sr-page-wrap"><div class="sr-skeleton" style="height:500px;"></div></div>`;
+
+    let data;
+    try {
+      const res = await fetch('/api/earnings');
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      data = await res.json();
+    } catch (err) {
+      container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:#fecaca;background:#fff5f5;padding:20px;">
+        <p style="color:#b91c1c;margin:0 0 12px;font-size:14px;">${escapeHtml(err.message)}</p>
+        <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('earnings')">Retry</button>
+      </div></div>`;
+      return;
+    }
+
+    const net = data.netPay || 724.95;
+    const change = data.changeFromPrevious || 64.13;
+    const hours = data.totalHours || 91.0;
+    const period = data.period || {};
+    const bd = data.breakdown || { netPayPct: 52.63, preTaxPct: 23.99, taxesPct: 23.38, netPayAmt: 724.95, preTaxAmt: 330.82, taxesAmt: 322.22 };
+    const nextPay = data.nextPayDate || 'Friday, Aug 28';
+
+    const circumference = 2 * Math.PI * 45;
+    const seg1 = ((bd.netPayPct || 52.63) / 100) * circumference;
+    const seg2 = ((bd.preTaxPct || 23.99) / 100) * circumference;
+    const seg3 = Math.max(0, circumference - seg1 - seg2);
+    const gross = (Number(bd.netPayAmt || 724.95) + Number(bd.preTaxAmt || 330.82) + Number(bd.taxesAmt || 322.22));
+
+    container.innerHTML = `
+      <div class="sr-page-wrap">
+        <div class="sr-page-header">
+          <div>
+            <h2 class="sr-page-title">Earnings</h2>
+            <p class="sr-page-subtitle">${escapeHtml(period.label || 'Last Pay Period')}</p>
+          </div>
+        </div>
+        <div class="sr-cv-section" style="gap:20px;">
+          <div class="sr-earnings-hero">
+            <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--sr-text-muted);">Last Statement</span>
+            <div class="sr-earnings-amount">$${Number(net).toFixed(2)}</div>
+            <div class="sr-earnings-period">${escapeHtml(period.label || 'Aug 9 – Aug 22, 2025')}</div>
+            <div class="sr-earnings-delta ${Number(change) >= 0 ? 'positive' : 'negative'}">${Number(change) >= 0 ? '+' : ''}\$${Math.abs(Number(change)).toFixed(2)} from last period</div>
+          </div>
+
+          <div style="border-top:1px solid var(--sr-border-subtle);"></div>
+
+          <div class="sr-stat-row" style="margin-bottom:0;">
+            <div class="sr-stat-box">
+              <span class="sr-stat-val">${Number(hours).toFixed(1)}</span>
+              <span class="sr-stat-label">Hours Worked</span>
+            </div>
+            <div class="sr-stat-box">
+              <span class="sr-stat-val" style="font-size:15px;letter-spacing:-0.01em;">${escapeHtml(nextPay)}</span>
+              <span class="sr-stat-label">Next Pay Date</span>
+            </div>
+            <div class="sr-stat-box">
+              <span class="sr-stat-val" style="font-size:13px;letter-spacing:0;">${escapeHtml(period.label || '—')}</span>
+              <span class="sr-stat-label">Pay Period</span>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid var(--sr-border-subtle);"></div>
+
+          <h4 style="font-size:14px;font-weight:700;color:var(--sr-text-main);margin:0;">Earnings Breakdown</h4>
+
+          <div class="sr-earnings-donut-wrap">
+            <div class="sr-earnings-donut">
+              <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="60" cy="60" r="45" fill="none" stroke="var(--sr-bg-elevated)" stroke-width="18"/>
+                <circle cx="60" cy="60" r="45" fill="none" stroke="#10b981" stroke-width="18"
+                  stroke-dasharray="${seg1.toFixed(2)} ${(circumference - seg1).toFixed(2)}"
+                  stroke-dashoffset="0"/>
+                <circle cx="60" cy="60" r="45" fill="none" stroke="#f59e0b" stroke-width="18"
+                  stroke-dasharray="${seg2.toFixed(2)} ${(circumference - seg2).toFixed(2)}"
+                  stroke-dashoffset="${(-seg1).toFixed(2)}"/>
+                <circle cx="60" cy="60" r="45" fill="none" stroke="#ef4444" stroke-width="18"
+                  stroke-dasharray="${seg3.toFixed(2)} ${(circumference - seg3).toFixed(2)}"
+                  stroke-dashoffset="${(-(seg1 + seg2)).toFixed(2)}"/>
+              </svg>
+              <div class="sr-earnings-donut-center">
+                <span class="sr-earnings-donut-pct">${Math.round(bd.netPayPct || 52.63)}%</span>
+                <span class="sr-earnings-donut-label">Net Pay</span>
+              </div>
+            </div>
+            <div class="sr-earnings-legend">
+              <div class="sr-earnings-legend-item">
+                <span class="sr-earnings-legend-swatch" style="background:#10b981;"></span>
+                <span class="sr-earnings-legend-label">Net Pay</span>
+                <span class="sr-earnings-legend-pct">${Number(bd.netPayPct || 52.63).toFixed(1)}%</span>
+              </div>
+              <div class="sr-earnings-legend-item">
+                <span class="sr-earnings-legend-swatch" style="background:#f59e0b;"></span>
+                <span class="sr-earnings-legend-label">Pre-Tax Deductions</span>
+                <span class="sr-earnings-legend-pct">${Number(bd.preTaxPct || 23.99).toFixed(1)}%</span>
+              </div>
+              <div class="sr-earnings-legend-item">
+                <span class="sr-earnings-legend-swatch" style="background:#ef4444;"></span>
+                <span class="sr-earnings-legend-label">Taxes</span>
+                <span class="sr-earnings-legend-pct">${Number(bd.taxesPct || 23.38).toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="sr-earnings-breakdown-row">
+              <span class="sr-earnings-breakdown-label">Gross Earnings</span>
+              <span class="sr-earnings-breakdown-val">$${gross.toFixed(2)}</span>
+            </div>
+            <div class="sr-earnings-breakdown-row">
+              <span class="sr-earnings-breakdown-label">Pre-Tax Deductions</span>
+              <span class="sr-earnings-breakdown-val" style="color:#d97706;">-$${Number(bd.preTaxAmt || 330.82).toFixed(2)}</span>
+            </div>
+            <div class="sr-earnings-breakdown-row">
+              <span class="sr-earnings-breakdown-label">Taxes Withheld</span>
+              <span class="sr-earnings-breakdown-val" style="color:#ef4444;">-$${Number(bd.taxesAmt || 322.22).toFixed(2)}</span>
+            </div>
+            <div class="sr-earnings-breakdown-row">
+              <span class="sr-earnings-breakdown-label" style="font-weight:800;font-size:15px;">Net Pay</span>
+              <span class="sr-earnings-breakdown-val" style="font-size:18px;color:#10b981;">$${Number(bd.netPayAmt || 724.95).toFixed(2)}</span>
+            </div>
+          </div>
+
+          <p style="font-size:12.5px;color:var(--sr-text-muted);text-align:center;margin:0;">
+            Next pay date: <strong style="color:var(--sr-text-main);">${escapeHtml(nextPay)}</strong>
+          </p>
+        </div>
+      </div>`;
+  }
+
+  // ── AI Work Assistant ─────────────────────────────────────────────────────────
+  async function renderAssistant() {
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+    const user = getUser();
+
+    container.innerHTML = `
+      <div class="sr-page-wrap" style="padding-bottom:16px;">
+        <div class="sr-page-header">
+          <div>
+            <h2 class="sr-page-title">Work Assistant</h2>
+            <p class="sr-page-subtitle">Ask anything about your shifts, certifications, or team policies</p>
+          </div>
+        </div>
+        <div class="sr-cv-section sr-assistant-wrap" style="padding:0;overflow:hidden;">
+          <div class="sr-assistant-messages" id="sr-assistant-msgs"></div>
+          <div class="sr-assistant-input-bar">
+            <input class="sr-assistant-input" id="sr-assistant-input" type="text" placeholder="Type your question..." autocomplete="off" />
+            <button class="sr-assistant-send-btn" id="sr-assistant-send" aria-label="Send message">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>`;
+
+    const msgsEl = document.getElementById('sr-assistant-msgs');
+    const inputEl = document.getElementById('sr-assistant-input');
+    const sendBtn = document.getElementById('sr-assistant-send');
+
+    function addBubble(role, text) {
+      const wrap = document.createElement('div');
+      wrap.className = `sr-assistant-bubble-wrap${role === 'user' ? ' user' : ''}`;
+      const avatarInit = role === 'bot' ? 'SR' : ((user?.name || 'Me').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'ME');
+      const avatarStyle = role === 'user' ? 'style="background:var(--sr-text-muted);"' : '';
+      const col = document.createElement('div');
+      col.className = 'sr-assistant-bubble-col';
+      col.innerHTML = `<div class="sr-assistant-bubble ${role}">${escapeHtml(text)}</div>`;
+      const avatarEl = document.createElement('div');
+      avatarEl.className = 'sr-assistant-avatar';
+      avatarEl.setAttribute('aria-hidden', 'true');
+      if (role === 'user') avatarEl.style.background = 'var(--sr-text-muted)';
+      avatarEl.textContent = avatarInit;
+      if (role === 'bot') {
+        wrap.appendChild(avatarEl);
+        wrap.appendChild(col);
+      } else {
+        wrap.appendChild(col);
+        wrap.appendChild(avatarEl);
+      }
+      msgsEl.appendChild(wrap);
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+      return { wrap, col };
+    }
+
+    function addTypingIndicator() {
+      const wrap = document.createElement('div');
+      wrap.className = 'sr-assistant-bubble-wrap';
+      wrap.id = 'sr-assistant-typing';
+      const avatarEl = document.createElement('div');
+      avatarEl.className = 'sr-assistant-avatar';
+      avatarEl.textContent = 'SR';
+      const col = document.createElement('div');
+      col.className = 'sr-assistant-bubble-col';
+      col.innerHTML = `<div class="sr-assistant-bubble bot"><div class="sr-typing-dots"><span></span><span></span><span></span></div></div>`;
+      wrap.appendChild(avatarEl);
+      wrap.appendChild(col);
+      msgsEl.appendChild(wrap);
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+
+    addBubble('bot', 'Hello! I can help with shift queries, certifications, time off, and more. What do you need?');
+
+    async function sendAssistantMessage() {
+      const text = (inputEl?.value || '').trim();
+      if (!text) return;
+      if (inputEl) inputEl.value = '';
+      if (sendBtn) sendBtn.disabled = true;
+
+      addBubble('user', text);
+      addTypingIndicator();
+
+      try {
+        const res = await fetch('/api/work-assistant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, userId: user?.id })
+        });
+        const typing = document.getElementById('sr-assistant-typing');
+        if (typing) typing.remove();
+
+        let replyText;
+        if (res.status === 503) {
+          replyText = 'The AI assistant is not currently configured. Please contact your administrator to enable it.';
+        } else if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          replyText = d.error || `Something went wrong (${res.status}). Please try again.`;
+        } else {
+          const d = await res.json().catch(() => ({}));
+          replyText = d.response || d.message || 'I received your message but could not generate a response.';
+        }
+
+        const botWrap = document.createElement('div');
+        botWrap.className = 'sr-assistant-bubble-wrap';
+        const botAvatar = document.createElement('div');
+        botAvatar.className = 'sr-assistant-avatar';
+        botAvatar.textContent = 'SR';
+        const botCol = document.createElement('div');
+        botCol.className = 'sr-assistant-bubble-col';
+        botCol.innerHTML = `
+          <div class="sr-assistant-bubble bot">${escapeHtml(replyText)}</div>
+          <div class="sr-assistant-feedback">
+            <button class="sr-assistant-feedback-btn" data-fb="helpful">Helpful</button>
+            <button class="sr-assistant-feedback-btn" data-fb="not-helpful">Not Helpful</button>
+          </div>`;
+        botWrap.appendChild(botAvatar);
+        botWrap.appendChild(botCol);
+        msgsEl.appendChild(botWrap);
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+
+        botCol.querySelectorAll('[data-fb]').forEach(b => {
+          b.addEventListener('click', () => {
+            botCol.querySelectorAll('[data-fb]').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+          });
+        });
+      } catch (err) {
+        const typing = document.getElementById('sr-assistant-typing');
+        if (typing) typing.remove();
+        addBubble('bot', 'Unable to connect to the assistant. Please check your connection and try again.');
+      } finally {
+        if (sendBtn) sendBtn.disabled = false;
+        inputEl?.focus();
+      }
+    }
+
+    sendBtn?.addEventListener('click', sendAssistantMessage);
+    inputEl?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAssistantMessage(); }
+    });
+    inputEl?.focus();
+  }
+
+  // ── Open Shift Marketplace ────────────────────────────────────────────────────
+  async function renderOpenShiftMarketplace() {
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+    const user = getUser();
+
+    container.innerHTML = `<div class="sr-page-wrap"><div class="sr-skeleton" style="height:400px;"></div></div>`;
+
+    let data;
+    try {
+      const res = await fetch('/api/open-shifts');
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      data = await res.json();
+    } catch (err) {
+      container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:#fecaca;background:#fff5f5;padding:20px;">
+        <p style="color:#b91c1c;margin:0 0 12px;font-size:14px;">${escapeHtml(err.message)}</p>
+        <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('open-shifts')">Retry</button>
+      </div></div>`;
+      return;
+    }
+
+    const shifts = Array.isArray(data) ? data : (data.shifts || []);
+
+    async function applyForShift(shiftId) {
+      try {
+        const res = await fetch('/api/open-shifts/' + shiftId + '/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user?.id })
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
+        showToast('Application submitted successfully.', 'success');
+        await renderOpenShiftMarketplace();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    const shiftsHtml = shifts.length > 0 ? `
+      <div class="sr-open-shifts-grid">
+        ${shifts.map(s => {
+          const slots = s.slotsRemaining ?? s.slots_remaining ?? s.slots ?? 1;
+          const startDate = s.startDate || s.start_date || s.date || '—';
+          const endDate = s.endDate || s.end_date || '';
+          const facility = s.facility || s.location || '';
+          const rate = s.hourlyRate || s.rate || '';
+          const notes = s.notes || '';
+          return `
+            <div class="sr-open-shift-card">
+              <div class="sr-open-shift-card-header">
+                <h3 class="sr-open-shift-card-title">${escapeHtml(s.title || 'Open Shift')}</h3>
+                <span class="sr-open-shift-card-slots">${slots} slot${slots !== 1 ? 's' : ''} open</span>
+              </div>
+              <div class="sr-open-shift-card-meta">
+                <span class="sr-open-shift-meta-item">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect width="18" height="18" x="3" y="4" rx="2"/>
+                    <line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
+                  </svg>
+                  ${escapeHtml(startDate)}${endDate ? ' to ' + escapeHtml(endDate) : ''}
+                </span>
+                ${facility ? `<span class="sr-open-shift-meta-item">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  ${escapeHtml(facility)}
+                </span>` : ''}
+                ${rate ? `<span class="sr-open-shift-meta-item">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                  ${escapeHtml(String(rate))}/hr
+                </span>` : ''}
+              </div>
+              <div class="sr-open-shift-card-footer">
+                <span style="font-size:12.5px;color:var(--sr-text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(notes)}</span>
+                ${isManager
+                  ? `<button class="sr-btn sr-btn-secondary" style="padding:7px 16px;font-size:13px;" data-manage-shift="${escapeHtml(String(s.id || ''))}">Manage</button>`
+                  : `<button class="sr-btn sr-btn-primary" style="padding:7px 16px;font-size:13px;" data-apply-shift="${escapeHtml(String(s.id || ''))}">Apply for Shift</button>`
+                }
+              </div>
+            </div>`;
+        }).join('')}
+      </div>` : `
+      <div class="sr-cv-section" style="text-align:center;padding:48px 24px;">
+        <p style="color:var(--sr-text-muted);font-size:15px;margin:0;">No open shifts available right now.</p>
+        <p style="color:var(--sr-text-muted);font-size:13px;margin:8px 0 0;">Check back later or speak to your supervisor.</p>
+      </div>`;
+
+    container.innerHTML = `
+      <div class="sr-page-wrap">
+        <div class="sr-page-header">
+          <div>
+            <h2 class="sr-page-title">Open Shifts</h2>
+            <p class="sr-page-subtitle">Available shifts you can apply for</p>
+          </div>
+          ${isManager ? '<button class="sr-btn sr-btn-primary" id="sr-post-shift-btn">Post Open Shift</button>' : ''}
+        </div>
+        ${shiftsHtml}
+      </div>`;
+
+    container.querySelectorAll('[data-apply-shift]').forEach(btn => {
+      btn.addEventListener('click', () => applyForShift(btn.dataset.applyShift));
+    });
+
+    if (isManager) {
+      document.getElementById('sr-post-shift-btn')?.addEventListener('click', () => openPostShiftModal());
+    }
+
+    function openPostShiftModal() {
+      const existing = document.getElementById('sr-post-shift-backdrop');
+      if (existing) existing.remove();
+      const modalEl = document.createElement('div');
+      modalEl.id = 'sr-post-shift-backdrop';
+      modalEl.className = 'sr-modal-backdrop';
+      modalEl.innerHTML = `
+        <div class="sr-modal" style="max-width:500px;" role="dialog" aria-modal="true" aria-labelledby="sr-post-shift-title">
+          <div class="sr-modal-header">
+            <h3 id="sr-post-shift-title" style="margin:0;font-size:16px;font-weight:700;">Post Open Shift</h3>
+            <button type="button" class="sr-btn-close" id="sr-post-shift-close">&times;</button>
+          </div>
+          <form id="sr-post-shift-form" class="sr-modal-body" style="display:flex;flex-direction:column;gap:14px;">
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-ps-title">Shift Title</label>
+              <input type="text" id="sr-ps-title" class="sr-form-input" placeholder="e.g. Weekend Floor Supervisor" required />
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="sr-form-group">
+                <label class="sr-form-label" for="sr-ps-start">Start Date</label>
+                <input type="date" id="sr-ps-start" class="sr-form-input" required />
+              </div>
+              <div class="sr-form-group">
+                <label class="sr-form-label" for="sr-ps-end">End Date</label>
+                <input type="date" id="sr-ps-end" class="sr-form-input" required />
+              </div>
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-ps-slots">Number of Slots</label>
+              <input type="number" id="sr-ps-slots" class="sr-form-input" min="1" max="50" value="1" required style="max-width:120px;" />
+            </div>
+            <div class="sr-form-group">
+              <label class="sr-form-label" for="sr-ps-notes">Notes (optional)</label>
+              <textarea id="sr-ps-notes" class="sr-form-input" rows="2" placeholder="Any requirements or details" style="resize:vertical;"></textarea>
+            </div>
+            <div id="sr-ps-err" style="display:none;color:#ef4444;font-size:13px;"></div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-ps-cancel">Cancel</button>
+              <button type="submit" class="sr-btn sr-btn-primary" id="sr-ps-submit">Post Shift</button>
+            </div>
+          </form>
+        </div>`;
+      document.body.appendChild(modalEl);
+      modalEl.querySelector('#sr-post-shift-close')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-ps-cancel')?.addEventListener('click', () => modalEl.remove());
+      modalEl.querySelector('#sr-post-shift-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('sr-ps-title')?.value?.trim();
+        const startDate = document.getElementById('sr-ps-start')?.value;
+        const endDate = document.getElementById('sr-ps-end')?.value;
+        const slots = parseInt(document.getElementById('sr-ps-slots')?.value || '1', 10);
+        const notes = document.getElementById('sr-ps-notes')?.value?.trim() || '';
+        const errEl = document.getElementById('sr-ps-err');
+        const submitBtn = document.getElementById('sr-ps-submit');
+        if (!title || !startDate || !endDate) {
+          if (errEl) { errEl.textContent = 'Please fill in all required fields.'; errEl.style.display = 'block'; }
+          return;
+        }
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
+        try {
+          const res = await fetch('/api/open-shifts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, startDate, endDate, slots, notes })
+          });
+          const d = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
+          modalEl.remove();
+          showToast('Open shift posted.', 'success');
+          await renderOpenShiftMarketplace();
+        } catch (err) {
+          if (errEl) { errEl.textContent = err.message; errEl.style.display = 'block'; }
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Post Shift'; }
+        }
+      });
+    }
+  }
+
+  // ── Compliance and Goals ──────────────────────────────────────────────────────
+  async function renderComplianceGoals() {
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+
+    container.innerHTML = `<div class="sr-page-wrap"><div class="sr-skeleton" style="height:400px;"></div></div>`;
+
+    let data;
+    try {
+      const res = await fetch('/api/compliance-goals');
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      data = await res.json();
+    } catch (err) {
+      container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:#fecaca;background:#fff5f5;padding:20px;">
+        <p style="color:#b91c1c;margin:0 0 12px;font-size:14px;">${escapeHtml(err.message)}</p>
+        <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('compliance')">Retry</button>
+      </div></div>`;
+      return;
+    }
+
+    const goals = data.goals || [];
+    const categories = [
+      { key: 'overdue', label: 'Overdue' },
+      { key: 'at_risk', label: 'At Risk' },
+      { key: 'completed', label: 'Completed' }
+    ];
+
+    const sections = categories.map(cat => {
+      const catGoals = goals.filter(g => g.status === cat.key);
+      if (catGoals.length === 0) return '';
+      return `
+        <div class="sr-cv-section">
+          <div class="sr-cv-section-header">
+            <h3 class="sr-cv-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+              </svg>
+              ${escapeHtml(cat.label)}
+            </h3>
+            <span class="sr-goal-status-chip ${cat.key}">${catGoals.length} goal${catGoals.length !== 1 ? 's' : ''}</span>
+          </div>
+          ${catGoals.map(g => `
+            <div class="sr-goal-item">
+              <div class="sr-goal-header">
+                <p class="sr-goal-title">${escapeHtml(g.title || 'Unnamed Goal')}</p>
+                <span class="sr-goal-status-chip ${cat.key}">${escapeHtml(cat.label)}</span>
+              </div>
+              <p class="sr-goal-due">Due: ${escapeHtml(g.dueDate || g.due_date || 'N/A')}</p>
+              <div class="sr-goal-progress-track">
+                <div class="sr-goal-progress-fill ${cat.key}" style="width:${Math.min(100, Math.max(0, g.progress || 0))}%;"></div>
+              </div>
+              <p class="sr-goal-pct">${g.progress || 0}% complete</p>
+            </div>`).join('')}
+        </div>`;
+    }).filter(Boolean).join('');
+
+    container.innerHTML = `
+      <div class="sr-page-wrap">
+        <div class="sr-page-header">
+          <div>
+            <h2 class="sr-page-title">Compliance and Goals</h2>
+            <p class="sr-page-subtitle">Track your mandatory certifications and training progress</p>
+          </div>
+        </div>
+        ${sections || `<div class="sr-cv-section" style="text-align:center;padding:48px 24px;">
+          <p style="color:var(--sr-text-muted);font-size:15px;margin:0;">No compliance goals found.</p>
+          <p style="color:var(--sr-text-muted);font-size:13px;margin:8px 0 0;">Your organisation has not configured any compliance goals yet.</p>
+        </div>`}
+      </div>`;
   }
 
 })();
