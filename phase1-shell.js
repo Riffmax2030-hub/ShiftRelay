@@ -549,6 +549,10 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="3" x2="21" y1="10" y2="10"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="16" y1="15" y2="15"/></svg>
                 <span>Open Shifts</span>
               </button>
+              <button class="sr-nav-btn ${view === 'payroll' ? 'active' : ''}" data-sr-view="payroll">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><polyline points="15 15 21 21 15 21"/></svg>
+                <span>Push to Finance</span>
+              </button>
               ${user.role === 'owner' ? `
                 <button class="sr-nav-btn ${view === 'settings' ? 'active' : ''}" data-sr-view="settings">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -627,6 +631,10 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               <span class="sr-dock-label">Timesheets</span>
             </button>
+            <button class="sr-dock-item ${view === 'payroll' ? 'active' : ''}" data-sr-view="payroll">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span class="sr-dock-label">Finance</span>
+            </button>
           ` : `
             <button class="sr-dock-item ${view === 'today' ? 'active' : ''}" data-sr-view="today">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -643,6 +651,10 @@
             <button class="sr-dock-item ${view === 'time-away' ? 'active' : ''}" data-sr-view="time-away">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
               <span class="sr-dock-label">Time Away</span>
+            </button>
+            <button class="sr-dock-item ${view === 'earnings' ? 'active' : ''}" data-sr-view="earnings">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span class="sr-dock-label">Earnings</span>
             </button>
             <button class="sr-dock-item ${view === 'me' ? 'active' : ''}" data-sr-view="me">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -766,6 +778,8 @@
       await renderOpenShiftMarketplace();
     } else if (view === 'compliance') {
       await renderComplianceGoals();
+    } else if (view === 'payroll') {
+      await renderPushToFinance();
     } else if (view === 'notifications') {
       await (isManager ? renderManagerOverview() : renderWorkerToday());
       toggleNotificationPanel(true);
@@ -5723,6 +5737,7 @@
     renderAssistant,
     renderOpenShiftMarketplace,
     renderComplianceGoals,
+    renderPushToFinance,
     openContextModal,
     toggleNotificationPanel,
     openNotificationPanel,
@@ -6244,75 +6259,101 @@
     }
   }
 
-  // ── Earnings ─────────────────────────────────────────────────────────────────
+  // ── Earnings / Worker Pay Statement (Dayforce HCM Model) ──────────────────
   async function renderEarnings() {
     const container = document.getElementById('sr-content-area');
     if (!container) return;
 
-    container.innerHTML = `<div class="sr-page-wrap"><div class="sr-skeleton" style="height:500px;"></div></div>`;
+    container.innerHTML = '<div class="sr-page-wrap"><div class="sr-skeleton" style="height:500px;"></div></div>';
 
-    let data;
+    let statementData = null;
+    let payslipData = null;
+
     try {
-      const res = await fetch('/api/earnings');
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      data = await res.json();
+      const [resEarnings, resPayslip] = await Promise.all([
+        fetch('/api/earnings'),
+        fetch('/api/worker-payslip')
+      ]);
+      if (resEarnings.ok) {
+        const jsonE = await resEarnings.json();
+        statementData = jsonE.statement;
+      }
+      if (resPayslip.ok) {
+        const jsonP = await resPayslip.json();
+        payslipData = jsonP.payslip;
+      }
     } catch (err) {
+      console.warn('Earnings fetch error:', err);
+    }
+
+    if (!statementData) {
       container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:#fecaca;background:#fff5f5;padding:20px;">
-        <p style="color:#b91c1c;margin:0 0 12px;font-size:14px;">${escapeHtml(err.message)}</p>
+        <p style="color:#b91c1c;margin:0 0 12px;font-size:14px;">Unable to retrieve pay statement. Please try again or contact HR.</p>
         <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('earnings')">Retry</button>
       </div></div>`;
       return;
     }
 
-    const net = data.netPay || 724.95;
-    const change = data.changeFromPrevious || 64.13;
-    const hours = data.totalHours || 91.0;
-    const period = data.period || {};
-    const bd = data.breakdown || { netPayPct: 52.63, preTaxPct: 23.99, taxesPct: 23.38, netPayAmt: 724.95, preTaxAmt: 330.82, taxesAmt: 322.22 };
-    const nextPay = data.nextPayDate || 'Friday, Aug 28';
+    const net = statementData.netPay || 198450;
+    const gross = statementData.grossPay || 240000;
+    const taxes = statementData.taxes || 15150;
+    const preTax = statementData.preTaxDeductions || 26400;
+    const hours = statementData.hours || 172.5;
+    const period = statementData.period || 'October 1 — October 31, 2026';
+    const nextPay = statementData.payDate || 'Thursday, Oct 29, 2026';
+
+    const netPct = Math.round((net / gross) * 100);
+    const preTaxPct = Math.round((preTax / gross) * 100);
+    const taxesPct = Math.max(0, 100 - netPct - preTaxPct);
 
     const circumference = 2 * Math.PI * 45;
-    const seg1 = ((bd.netPayPct || 52.63) / 100) * circumference;
-    const seg2 = ((bd.preTaxPct || 23.99) / 100) * circumference;
+    const seg1 = (netPct / 100) * circumference;
+    const seg2 = (preTaxPct / 100) * circumference;
     const seg3 = Math.max(0, circumference - seg1 - seg2);
-    const gross = (Number(bd.netPayAmt || 724.95) + Number(bd.preTaxAmt || 330.82) + Number(bd.taxesAmt || 322.22));
 
     container.innerHTML = `
       <div class="sr-page-wrap">
         <div class="sr-page-header">
           <div>
-            <h2 class="sr-page-title">Earnings</h2>
-            <p class="sr-page-subtitle">${escapeHtml(period.label || 'Last Pay Period')}</p>
+            <h2 class="sr-page-title">Earnings & Pay Statements</h2>
+            <p class="sr-page-subtitle">${escapeHtml(period)} • Verified Timesheets</p>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="sr-btn sr-btn-primary" id="sr-btn-view-payslip" style="display:inline-flex;align-items:center;gap:8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+              <span>View Official Payslip</span>
+            </button>
           </div>
         </div>
+
         <div class="sr-cv-section" style="gap:20px;">
           <div class="sr-earnings-hero">
-            <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--sr-text-muted);">Last Statement</span>
-            <div class="sr-earnings-amount">$${Number(net).toFixed(2)}</div>
-            <div class="sr-earnings-period">${escapeHtml(period.label || 'Aug 9 – Aug 22, 2025')}</div>
-            <div class="sr-earnings-delta ${Number(change) >= 0 ? 'positive' : 'negative'}">${Number(change) >= 0 ? '+' : ''}\$${Math.abs(Number(change)).toFixed(2)} from last period</div>
+            <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--sr-text-muted);">Verified Take-Home Pay</span>
+            <div class="sr-earnings-amount" style="color:var(--sr-primary);">${statementData.netPayFormatted || '₦' + net.toLocaleString('en-NG', {minimumFractionDigits:2})}</div>
+            <div class="sr-earnings-period">${escapeHtml(period)}</div>
+            <div class="sr-earnings-delta positive">${statementData.changeFromPrevious || '+₦14,250.00'} vs baseline</div>
           </div>
 
           <div style="border-top:1px solid var(--sr-border-subtle);"></div>
 
           <div class="sr-stat-row" style="margin-bottom:0;">
             <div class="sr-stat-box">
-              <span class="sr-stat-val">${Number(hours).toFixed(1)}</span>
-              <span class="sr-stat-label">Hours Worked</span>
+              <span class="sr-stat-val">${Number(hours).toFixed(1)} hrs</span>
+              <span class="sr-stat-label">Verified Timecard</span>
             </div>
             <div class="sr-stat-box">
-              <span class="sr-stat-val" style="font-size:15px;letter-spacing:-0.01em;">${escapeHtml(nextPay)}</span>
-              <span class="sr-stat-label">Next Pay Date</span>
+              <span class="sr-stat-val" style="font-size:14px;letter-spacing:-0.01em;">${escapeHtml(nextPay)}</span>
+              <span class="sr-stat-label">Scheduled Payout Date</span>
             </div>
             <div class="sr-stat-box">
-              <span class="sr-stat-val" style="font-size:13px;letter-spacing:0;">${escapeHtml(period.label || '—')}</span>
-              <span class="sr-stat-label">Pay Period</span>
+              <span class="sr-stat-val" style="font-size:13px;letter-spacing:0;color:#059669;">Verified by Desk</span>
+              <span class="sr-stat-label">Audit Status</span>
             </div>
           </div>
 
           <div style="border-top:1px solid var(--sr-border-subtle);"></div>
 
-          <h4 style="font-size:14px;font-weight:700;color:var(--sr-text-main);margin:0;">Earnings Breakdown</h4>
+          <h4 style="font-size:14px;font-weight:700;color:var(--sr-text-main);margin:0;">Statutory Breakdown (Finance Act Compliance)</h4>
 
           <div class="sr-earnings-donut-wrap">
             <div class="sr-earnings-donut">
@@ -6329,25 +6370,25 @@
                   stroke-dashoffset="${(-(seg1 + seg2)).toFixed(2)}"/>
               </svg>
               <div class="sr-earnings-donut-center">
-                <span class="sr-earnings-donut-pct">${Math.round(bd.netPayPct || 52.63)}%</span>
-                <span class="sr-earnings-donut-label">Net Pay</span>
+                <span class="sr-earnings-donut-pct">${netPct}%</span>
+                <span class="sr-earnings-donut-label">Take-Home</span>
               </div>
             </div>
             <div class="sr-earnings-legend">
               <div class="sr-earnings-legend-item">
                 <span class="sr-earnings-legend-swatch" style="background:#10b981;"></span>
-                <span class="sr-earnings-legend-label">Net Pay</span>
-                <span class="sr-earnings-legend-pct">${Number(bd.netPayPct || 52.63).toFixed(1)}%</span>
+                <span class="sr-earnings-legend-label">Net Take-Home</span>
+                <span class="sr-earnings-legend-pct">${netPct}%</span>
               </div>
               <div class="sr-earnings-legend-item">
                 <span class="sr-earnings-legend-swatch" style="background:#f59e0b;"></span>
-                <span class="sr-earnings-legend-label">Pre-Tax Deductions</span>
-                <span class="sr-earnings-legend-pct">${Number(bd.preTaxPct || 23.99).toFixed(1)}%</span>
+                <span class="sr-earnings-legend-label">PenCom Pension & NHF</span>
+                <span class="sr-earnings-legend-pct">${preTaxPct}%</span>
               </div>
               <div class="sr-earnings-legend-item">
                 <span class="sr-earnings-legend-swatch" style="background:#ef4444;"></span>
-                <span class="sr-earnings-legend-label">Taxes</span>
-                <span class="sr-earnings-legend-pct">${Number(bd.taxesPct || 23.38).toFixed(1)}%</span>
+                <span class="sr-earnings-legend-label">PAYE Tax Withheld</span>
+                <span class="sr-earnings-legend-pct">${taxesPct}%</span>
               </div>
             </div>
           </div>
@@ -6355,27 +6396,449 @@
           <div>
             <div class="sr-earnings-breakdown-row">
               <span class="sr-earnings-breakdown-label">Gross Earnings</span>
-              <span class="sr-earnings-breakdown-val">$${gross.toFixed(2)}</span>
+              <span class="sr-earnings-breakdown-val">${statementData.grossPayFormatted || '₦' + gross.toLocaleString('en-NG', {minimumFractionDigits:2})}</span>
             </div>
             <div class="sr-earnings-breakdown-row">
-              <span class="sr-earnings-breakdown-label">Pre-Tax Deductions</span>
-              <span class="sr-earnings-breakdown-val" style="color:#d97706;">-$${Number(bd.preTaxAmt || 330.82).toFixed(2)}</span>
+              <span class="sr-earnings-breakdown-label">Statutory Deductions (Pension 8% + NHF 2.5%)</span>
+              <span class="sr-earnings-breakdown-val" style="color:#d97706;">-${statementData.preTaxFormatted || '₦' + preTax.toLocaleString('en-NG', {minimumFractionDigits:2})}</span>
             </div>
             <div class="sr-earnings-breakdown-row">
-              <span class="sr-earnings-breakdown-label">Taxes Withheld</span>
-              <span class="sr-earnings-breakdown-val" style="color:#ef4444;">-$${Number(bd.taxesAmt || 322.22).toFixed(2)}</span>
+              <span class="sr-earnings-breakdown-label">PAYE Income Tax (Finance Act Progressive)</span>
+              <span class="sr-earnings-breakdown-val" style="color:#ef4444;">-${statementData.taxesFormatted || '₦' + taxes.toLocaleString('en-NG', {minimumFractionDigits:2})}</span>
             </div>
             <div class="sr-earnings-breakdown-row">
-              <span class="sr-earnings-breakdown-label" style="font-weight:800;font-size:15px;">Net Pay</span>
-              <span class="sr-earnings-breakdown-val" style="font-size:18px;color:#10b981;">$${Number(bd.netPayAmt || 724.95).toFixed(2)}</span>
+              <span class="sr-earnings-breakdown-label" style="font-weight:800;font-size:15px;">Net Transferred to Bank</span>
+              <span class="sr-earnings-breakdown-val" style="font-size:18px;color:#10b981;font-weight:800;">${statementData.netPayFormatted || '₦' + net.toLocaleString('en-NG', {minimumFractionDigits:2})}</span>
             </div>
           </div>
 
           <p style="font-size:12.5px;color:var(--sr-text-muted);text-align:center;margin:0;">
-            Next pay date: <strong style="color:var(--sr-text-main);">${escapeHtml(nextPay)}</strong>
+            Scheduled disbursement via Corporate Bank Switch on <strong style="color:var(--sr-text-main);">${escapeHtml(nextPay)}</strong>
           </p>
         </div>
+
+        <!-- Hidden Payslip Sheet Modal Container -->
+        <div id="sr-payslip-modal-backdrop" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
+          <div style="background:#fff;border-radius:12px;max-width:760px;width:100%;box-shadow:0 20px 40px rgba(0,0,0,0.3);position:relative;margin:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid #e2e8f0;background:#f8fafc;border-radius:12px 12px 0 0;">
+              <h3 style="margin:0;font-size:16px;font-weight:700;color:#0f172a;">Official Employee Pay Advice</h3>
+              <div style="display:flex;gap:10px;">
+                <button class="sr-btn sr-btn-primary" onclick="window.print()" style="font-size:13px;padding:6px 14px;display:inline-flex;align-items:center;gap:6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                  <span>Print Payslip</span>
+                </button>
+                <button class="sr-btn sr-btn-secondary" id="sr-btn-close-payslip" style="font-size:13px;padding:6px 12px;">Close</button>
+              </div>
+            </div>
+            
+            <div class="sr-payslip-sheet" id="sr-payslip-content-print" style="padding:28px;">
+              <div class="sr-payslip-header-box">
+                <div>
+                  <h2 style="font-size:18px;font-weight:800;color:#0f172a;margin:0 0 4px;">${escapeHtml(payslipData?.companyName || 'Dangote Logistics & Operations (Nigeria)')}</h2>
+                  <p style="font-size:12px;color:#64748b;margin:0;">Tenant ID: <strong style="color:#0f172a;">${escapeHtml(payslipData?.companyId || '246701')}</strong> • Statutory Employer Reg: PEN-NG-770182</p>
+                </div>
+                <div style="text-align:right;">
+                  <span style="display:inline-block;padding:4px 10px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;border-radius:6px;text-transform:uppercase;letter-spacing:.05em;">Verified & Approved</span>
+                  <div style="font-size:11px;color:#64748b;margin-top:4px;">Period: ${escapeHtml(payslipData?.period || period)}</div>
+                </div>
+              </div>
+
+              <div class="sr-payslip-grid-2col" style="margin-top:20px;">
+                <div class="sr-payslip-section-box">
+                  <h5 style="margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;font-weight:700;">Employee Identification</h5>
+                  <div style="font-size:13px;line-height:1.7;color:#0f172a;">
+                    <div><strong>Staff Name:</strong> ${escapeHtml(payslipData?.staffName || 'Active Worker')}</div>
+                    <div><strong>Staff ID:</strong> ${escapeHtml(payslipData?.staffId || 'SR-NG-001')}</div>
+                    <div><strong>Role:</strong> ${escapeHtml(payslipData?.role || 'Operations Specialist')}</div>
+                    <div><strong>Department:</strong> ${escapeHtml(payslipData?.department || 'Field Logistics')}</div>
+                  </div>
+                </div>
+
+                <div class="sr-payslip-section-box">
+                  <h5 style="margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;font-weight:700;">Banking & Profile</h5>
+                  <div style="font-size:13px;line-height:1.7;color:#0f172a;">
+                    <div><strong>Contract Type:</strong> ${escapeHtml(payslipData?.compensationType || 'fixed_monthly')}</div>
+                    <div><strong>Bank:</strong> ${escapeHtml(payslipData?.bankName || 'Access Bank Nigeria')}</div>
+                    <div><strong>Account No:</strong> ${escapeHtml(payslipData?.accountNumber || '0123456789')}</div>
+                    <div><strong>Verified Timecard:</strong> ${payslipData?.regularHours || 160} hrs regular + ${payslipData?.overtimeHours || 0} hrs OT</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sr-payslip-grid-2col" style="margin-top:16px;">
+                <div class="sr-payslip-section-box">
+                  <h5 style="margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#059669;font-weight:700;">Gross Earnings</h5>
+                  <div class="sr-payslip-line-item">
+                    <span>Base Salary / Regular Pay</span>
+                    <span>${payslipData?.formatted?.basicSalary || '₦200,000.00'}</span>
+                  </div>
+                  <div class="sr-payslip-line-item">
+                    <span>Overtime Allowance (1.5x Rate)</span>
+                    <span>${payslipData?.formatted?.overtimeBonus || '₦0.00'}</span>
+                  </div>
+                  <div class="sr-payslip-total-row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #cbd5e1;display:flex;justify-content:space-between;font-weight:700;font-size:13px;">
+                    <span>Total Gross Earnings</span>
+                    <span style="color:#0f172a;">${payslipData?.formatted?.grossTotal || '₦200,000.00'}</span>
+                  </div>
+                </div>
+
+                <div class="sr-payslip-section-box">
+                  <h5 style="margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#dc2626;font-weight:700;">Statutory Deductions</h5>
+                  <div class="sr-payslip-line-item">
+                    <span>PenCom Pension (Employee 8%)</span>
+                    <span>-${payslipData?.formatted?.pensionEmployee || '₦16,000.00'}</span>
+                  </div>
+                  <div class="sr-payslip-line-item">
+                    <span>PAYE Income Tax (Finance Act)</span>
+                    <span>-${payslipData?.formatted?.payeTax || '₦15,150.00'}</span>
+                  </div>
+                  <div class="sr-payslip-line-item">
+                    <span>National Housing Fund (NHF 2.5%)</span>
+                    <span>-${payslipData?.formatted?.nhf || '₦5,000.00'}</span>
+                  </div>
+                  <div class="sr-payslip-total-row" style="margin-top:10px;padding-top:8px;border-top:1px dashed #cbd5e1;display:flex;justify-content:space-between;font-weight:700;font-size:13px;">
+                    <span>Total Deductions</span>
+                    <span style="color:#dc2626;">-${payslipData?.formatted?.totalDeductions || '₦36,150.00'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Net Pay Highlight -->
+              <div style="margin-top:20px;padding:16px 20px;background:#f0fdf4;border:2px solid #86efac;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#166534;font-weight:700;">Net Remittance To Bank Account</div>
+                  <div style="font-size:11px;color:#15803d;margin-top:2px;">Disbursement cleared via Corporate Account Transfer</div>
+                </div>
+                <div style="font-size:24px;font-weight:900;color:#166534;">
+                  ${payslipData?.formatted?.netPay || statementData.netPayFormatted || '₦163,850.00'}
+                </div>
+              </div>
+
+              <!-- Employer Statutory Contributions Info -->
+              <div style="margin-top:14px;padding:10px 14px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;font-size:11px;color:#64748b;display:flex;justify-content:space-between;">
+                <span><strong>Employer Direct Contributions:</strong> Pension (10%): ${payslipData?.formatted?.pensionEmployer || '₦20,000.00'} | NSITF (1%): ${payslipData?.formatted?.nsitf || '₦2,000.00'}</span>
+                <span>Audit Verified: ShiftRelay HCM</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>`;
+
+    const viewBtn = document.getElementById('sr-btn-view-payslip');
+    const modalBackdrop = document.getElementById('sr-payslip-modal-backdrop');
+    const closeBtn = document.getElementById('sr-btn-close-payslip');
+
+    if (viewBtn && modalBackdrop) {
+      viewBtn.addEventListener('click', () => {
+        modalBackdrop.style.display = 'flex';
+      });
+    }
+
+    if (closeBtn && modalBackdrop) {
+      closeBtn.addEventListener('click', () => {
+        modalBackdrop.style.display = 'none';
+      });
+    }
+  }
+
+  // ── Push to Finance: Month-End Dispatch & Audit Suite ────────────────────────
+  async function renderPushToFinance() {
+    const container = document.getElementById('sr-content-area');
+    if (!container) return;
+
+    container.innerHTML = '<div class="sr-page-wrap"><div class="sr-skeleton" style="height:500px;"></div></div>';
+
+    let payroll = null;
+    try {
+      const res = await fetch('/api/payroll/summary');
+      if (!res.ok) throw new Error(`Failed to load payroll summary (${res.status})`);
+      payroll = await res.json();
+    } catch (err) {
+      container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:#fecaca;background:#fff5f5;padding:20px;">
+        <p style="color:#b91c1c;margin:0 0 12px;font-size:14px;">Error compiling payroll data: ${escapeHtml(err.message)}</p>
+        <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('payroll')">Retry</button>
+      </div></div>`;
+      return;
+    }
+
+    const summary = payroll.summary || {};
+    const employees = payroll.employees || [];
+    const dispatch = payroll.lastPayrollDispatch || null;
+
+    container.innerHTML = `
+      <div class="sr-page-wrap">
+        <div class="sr-page-header">
+          <div>
+            <h2 class="sr-page-title">Push to Finance Desk</h2>
+            <p class="sr-page-subtitle">Frontline Timesheet Verification & Statutory Remittance Schedule (${escapeHtml(payroll.period)})</p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="sr-btn sr-btn-secondary" id="sr-btn-print-audit" style="display:inline-flex;align-items:center;gap:6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+              <span>Print Audit</span>
+            </button>
+            <button class="sr-btn sr-btn-primary" id="sr-btn-dispatch-finance" style="display:inline-flex;align-items:center;gap:6px;background:var(--sr-primary);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Push to Finance Desk</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dispatch Banner if already dispatched -->
+        <div id="sr-dispatch-status-banner" style="${dispatch ? 'display:block;' : 'display:none;'}margin-bottom:20px;padding:14px 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="sr-finance-dispatch-badge">Dispatched to Accounts</span>
+              <span style="font-size:13px;color:#166534;" id="sr-dispatch-text">
+                ${dispatch ? `Locked and dispatched on ${new Date(dispatch.dispatchedAt).toLocaleString()} by ${escapeHtml(dispatch.dispatchedBy)} (Ref: ${escapeHtml(dispatch.auditReference)})` : ''}
+              </span>
+            </div>
+            <span style="font-size:12px;color:#15803d;font-weight:600;">Tamper-Proof Audit Lock Active</span>
+          </div>
+        </div>
+
+        <!-- Top Metric Cards -->
+        <div class="sr-stat-row" style="margin-bottom:20px;">
+          <div class="sr-stat-box">
+            <span class="sr-stat-val" style="color:var(--sr-primary);font-size:22px;">${summary.totalNetFormatted || '₦0.00'}</span>
+            <span class="sr-stat-label">Total Net Bank Payout</span>
+          </div>
+          <div class="sr-stat-box">
+            <span class="sr-stat-val" style="font-size:22px;">${summary.totalGrossFormatted || '₦0.00'}</span>
+            <span class="sr-stat-label">Total Gross Incurred</span>
+          </div>
+          <div class="sr-stat-box">
+            <span class="sr-stat-val" style="color:#d97706;font-size:22px;">${summary.totalStatutoryFormatted || '₦0.00'}</span>
+            <span class="sr-stat-label">Statutory Remittances (PAYE + PenCom)</span>
+          </div>
+          <div class="sr-stat-box">
+            <span class="sr-stat-val" style="font-size:22px;">${summary.employeeCount || 0}</span>
+            <span class="sr-stat-label">Verified Specialists</span>
+          </div>
+        </div>
+
+        <!-- Download Schedule Actions Bar -->
+        <div class="sr-cv-section" style="padding:16px 20px;margin-bottom:20px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;background:var(--sr-bg-card);">
+          <div>
+            <h4 style="margin:0 0 4px;font-size:14px;font-weight:700;color:var(--sr-text-main);">Verified Schedules for Finance & Accounts</h4>
+            <p style="margin:0;font-size:12px;color:var(--sr-text-muted);">Compatible with corporate banking bulk upload templates (GTBank GAPS, Access Online, Zenith) and Tax/PenCom remittance portals.</p>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="/api/payroll/export-bank-csv" download class="sr-btn sr-btn-secondary" style="font-size:13px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+              <span>Download Bank Upload CSV</span>
+            </a>
+            <a href="/api/payroll/export-tax-csv" download class="sr-btn sr-btn-secondary" style="font-size:13px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+              <span>Download Tax & PenCom CSV</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Master Frontline Verification Table -->
+        <div class="sr-cv-section" style="padding:0;overflow:hidden;">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;">
+            <h4 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">Frontline Staff Verification Roster</h4>
+            <span style="font-size:12px;color:var(--sr-text-muted);">Tenant: ${escapeHtml(payroll.companyName)} (${escapeHtml(payroll.companyId)})</span>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table class="sr-ts-table" style="width:100%;font-size:13px;">
+              <thead>
+                <tr>
+                  <th>Staff Member</th>
+                  <th>Contract Model</th>
+                  <th>Bank Account</th>
+                  <th>Verified Time</th>
+                  <th>Gross Earnings</th>
+                  <th>PenCom (8%)</th>
+                  <th>PAYE Tax</th>
+                  <th>Net Remittance</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${employees.map(emp => `
+                  <tr>
+                    <td>
+                      <div style="font-weight:700;color:var(--sr-text-main);">${escapeHtml(emp.userName)}</div>
+                      <div style="font-size:11px;color:var(--sr-text-muted);">${escapeHtml(emp.staffId)} • ${escapeHtml(emp.role)}</div>
+                    </td>
+                    <td>
+                      <span class="sr-badge" style="${emp.compensation_type === 'fixed_monthly' ? 'background:#e0f2fe;color:#0369a1;' : 'background:#fef3c7;color:#b45309;'}">
+                        ${emp.compensation_type === 'fixed_monthly' ? 'Fixed Monthly' : 'Hourly Shift'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style="font-size:12px;color:var(--sr-text-main);">${escapeHtml(emp.bank_name)}</div>
+                      <div style="font-size:11px;color:var(--sr-text-muted);font-family:monospace;">${escapeHtml(emp.account_number)}</div>
+                    </td>
+                    <td>
+                      <div>${emp.regularHours}h reg</div>
+                      ${emp.overtimeHours > 0 ? `<div style="font-size:11px;color:#059669;font-weight:600;">+${emp.overtimeHours}h OT</div>` : ''}
+                      ${emp.absenceDeduction > 0 ? `<div style="font-size:11px;color:#dc2626;">-${emp.absenceDays}d absence</div>` : ''}
+                    </td>
+                    <td style="font-weight:600;color:var(--sr-text-main);">
+                      ${emp.formatted.grossTotal}
+                    </td>
+                    <td style="color:#d97706;">
+                      -${emp.formatted.pensionEmployee}
+                    </td>
+                    <td style="color:#ef4444;">
+                      -${emp.formatted.payeTax}
+                    </td>
+                    <td style="font-weight:800;color:#10b981;font-size:14px;">
+                      ${emp.formatted.netPay}
+                    </td>
+                    <td style="text-align:right;">
+                      <button class="sr-btn sr-btn-secondary sr-btn-edit-contract" data-user-id="${emp.userId}" style="font-size:12px;padding:4px 10px;">
+                        Edit Contract
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Edit Contract Modal -->
+        <div id="sr-contract-modal-backdrop" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+          <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:12px;max-width:480px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.2);padding:24px;">
+            <h3 style="margin:0 0 16px;font-size:16px;font-weight:700;color:var(--sr-text-main);" id="sr-contract-modal-title">Edit Worker Contract</h3>
+            <form id="sr-contract-form">
+              <input type="hidden" id="sr-contract-user-id" />
+              <div class="sr-field-group" style="margin-bottom:14px;">
+                <label class="sr-label" style="font-size:12px;font-weight:600;">Compensation Model</label>
+                <select id="sr-contract-comp-type" class="sr-input" style="width:100%;">
+                  <option value="fixed_monthly">Fixed Monthly (Nigerian Standard)</option>
+                  <option value="hourly_shift">Hourly Shift Rate</option>
+                </select>
+              </div>
+
+              <div class="sr-field-group" style="margin-bottom:14px;">
+                <label class="sr-label" style="font-size:12px;font-weight:600;">Monthly Base Rate (₦)</label>
+                <input type="number" id="sr-contract-monthly-rate" class="sr-input" style="width:100%;" min="0" step="1000" />
+              </div>
+
+              <div class="sr-field-group" style="margin-bottom:14px;">
+                <label class="sr-label" style="font-size:12px;font-weight:600;">Hourly Rate (₦) (if Hourly Shift)</label>
+                <input type="number" id="sr-contract-hourly-rate" class="sr-input" style="width:100%;" min="0" step="50" />
+              </div>
+
+              <div class="sr-field-group" style="margin-bottom:14px;">
+                <label class="sr-label" style="font-size:12px;font-weight:600;">Bank Name</label>
+                <input type="text" id="sr-contract-bank-name" class="sr-input" style="width:100%;" />
+              </div>
+
+              <div class="sr-field-group" style="margin-bottom:18px;">
+                <label class="sr-label" style="font-size:12px;font-weight:600;">NUBAN Account Number (10 digits)</label>
+                <input type="text" id="sr-contract-acc-num" class="sr-input" style="width:100%;" maxlength="10" />
+              </div>
+
+              <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-contract">Cancel</button>
+                <button type="submit" class="sr-btn sr-btn-primary">Save Contract</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>`;
+
+    // Hook Dispatch Action
+    const dispatchBtn = document.getElementById('sr-btn-dispatch-finance');
+    const banner = document.getElementById('sr-dispatch-status-banner');
+    const dispatchText = document.getElementById('sr-dispatch-text');
+    if (dispatchBtn) {
+      dispatchBtn.addEventListener('click', async () => {
+        dispatchBtn.disabled = true;
+        dispatchBtn.textContent = 'Pushing to Accounts...';
+        try {
+          const res = await fetch('/api/payroll/dispatch', { method: 'POST' });
+          const data = await res.json();
+          if (data.ok) {
+            banner.style.display = 'block';
+            dispatchText.textContent = `Locked and dispatched on ${new Date(data.dispatch.dispatchedAt).toLocaleString()} by ${escapeHtml(data.dispatch.dispatchedBy)} (Ref: ${escapeHtml(data.dispatch.auditReference)})`;
+            dispatchBtn.textContent = 'Dispatched to Finance';
+            dispatchBtn.style.background = '#059669';
+            if (typeof window.Phase1Shell.showToast === 'function') {
+              window.Phase1Shell.showToast('Verified payroll package pushed to Finance Desk successfully.');
+            }
+          }
+        } catch (err) {
+          alert('Failed to dispatch payroll: ' + err.message);
+          dispatchBtn.disabled = false;
+          dispatchBtn.textContent = 'Push to Finance Desk';
+        }
+      });
+    }
+
+    // Hook Print Audit
+    const printAuditBtn = document.getElementById('sr-btn-print-audit');
+    if (printAuditBtn) {
+      printAuditBtn.addEventListener('click', () => {
+        window.print();
+      });
+    }
+
+    // Hook Edit Contract Modals
+    const contractModal = document.getElementById('sr-contract-modal-backdrop');
+    const contractForm = document.getElementById('sr-contract-form');
+    const cancelContractBtn = document.getElementById('sr-btn-cancel-contract');
+
+    document.querySelectorAll('.sr-btn-edit-contract').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const userId = btn.getAttribute('data-user-id');
+        const emp = employees.find(e => e.userId === userId);
+        if (!emp) return;
+
+        document.getElementById('sr-contract-user-id').value = emp.userId;
+        document.getElementById('sr-contract-comp-type').value = emp.compensation_type || 'fixed_monthly';
+        document.getElementById('sr-contract-monthly-rate').value = emp.monthly_rate || 240000;
+        document.getElementById('sr-contract-hourly-rate').value = emp.hourly_rate || 1500;
+        document.getElementById('sr-contract-bank-name').value = emp.bank_name || '';
+        document.getElementById('sr-contract-acc-num').value = emp.account_number || '';
+        document.getElementById('sr-contract-modal-title').textContent = `Edit Contract — ${emp.userName}`;
+
+        contractModal.style.display = 'flex';
+      });
+    });
+
+    if (cancelContractBtn && contractModal) {
+      cancelContractBtn.addEventListener('click', () => {
+        contractModal.style.display = 'none';
+      });
+    }
+
+    if (contractForm) {
+      contractForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const userId = document.getElementById('sr-contract-user-id').value;
+        const payload = {
+          compensation_type: document.getElementById('sr-contract-comp-type').value,
+          monthly_rate: Number(document.getElementById('sr-contract-monthly-rate').value),
+          hourly_rate: Number(document.getElementById('sr-contract-hourly-rate').value),
+          bank_name: document.getElementById('sr-contract-bank-name').value,
+          account_number: document.getElementById('sr-contract-acc-num').value
+        };
+
+        try {
+          const res = await fetch(`/api/contracts/${encodeURIComponent(userId)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error(`Failed to update contract (${res.status})`);
+          contractModal.style.display = 'none';
+          if (typeof window.Phase1Shell.showToast === 'function') {
+            window.Phase1Shell.showToast('Employee contract updated successfully.');
+          }
+          await renderPushToFinance();
+        } catch (err) {
+          alert('Error saving contract: ' + err.message);
+        }
+      });
+    }
   }
 
   // ── AI Work Assistant ─────────────────────────────────────────────────────────

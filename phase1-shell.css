@@ -3226,3 +3226,127 @@ body:has(#sr-app-shell) .app-header,
   .sr-page-title { font-size: 19px; }
   .sr-assistant-messages { max-height: 320px; }
 }
+
+/* ==========================================================================
+   ShiftRelay Enterprise — Payroll, Payslips & Finance Dispatch (Phase 7)
+   ========================================================================== */
+
+.sr-payslip-sheet {
+  background: var(--sr-bg-card);
+  border: 1px solid var(--sr-border-medium);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sr-payslip-watermark {
+  position: absolute;
+  right: -20px;
+  bottom: -20px;
+  font-size: 110px;
+  font-weight: 900;
+  color: var(--sr-text-muted);
+  opacity: 0.04;
+  pointer-events: none;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.sr-payslip-header-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--sr-border-subtle);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.sr-payslip-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .sr-payslip-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sr-payslip-section-box {
+  background: var(--sr-bg-elevated);
+  border: 1px solid var(--sr-border-subtle);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.sr-payslip-line-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sr-border-subtle);
+  font-size: 13.5px;
+}
+
+.sr-payslip-line-item:last-child {
+  border-bottom: none;
+}
+
+.sr-payslip-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  margin-top: 10px;
+}
+
+.sr-finance-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: var(--sr-bg-card);
+  border: 1px solid var(--sr-border-subtle);
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+
+.sr-finance-dispatch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 9999px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+@media print {
+  .sr-sidebar, .sr-mobile-dock, .sr-header, .landing-navbar, .theme-toggle-btn, .sr-feature-tab-bar, .sr-finance-actions-bar, button {
+    display: none !important;
+  }
+  .sr-body-wrap, .sr-main-scroll-wrap {
+    overflow: visible !important;
+    display: block !important;
+  }
+  .sr-payslip-sheet, .sr-page-wrap {
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+}

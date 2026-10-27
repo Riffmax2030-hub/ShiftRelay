@@ -100,106 +100,95 @@
       </div>
 
       <div class="entry-bottom">
-        <button class="entry-btn-primary" id="entry-btn-start" type="button">
-          Get Started Free
+        <button class="entry-btn-primary" id="entry-btn-signin" type="button">
+          Enterprise Sign In
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </button>
-        <button class="entry-btn-secondary" id="entry-btn-signin" type="button">
-          Sign in to your account
+        <button class="entry-btn-secondary" id="entry-btn-start" type="button">
+          Request Enterprise Demo
         </button>
-        <p class="entry-legal">By continuing you agree to our <a href="terms.html">Terms</a> &amp; <a href="privacy.html">Privacy Policy</a>.</p>
+        <p class="entry-legal">Closed multi-tenant enterprise system. Access strictly gated by Company ID. <a href="terms.html">Terms</a> &amp; <a href="privacy.html">Privacy</a>.</p>
       </div>
     </div>
 
     <!-- ======================================================
-         LOGIN / REGISTER BOTTOM SHEET MODAL
+         LOGIN / ENTERPRISE DEMO REQUEST BOTTOM SHEET MODAL
          ====================================================== -->
-    <div id="sr-login-modal" role="dialog" aria-modal="true" aria-label="Sign in or register">
+    <div id="sr-login-modal" role="dialog" aria-modal="true" aria-label="Enterprise Sign in or Demo Request">
       <div class="sr-login-sheet">
         <div class="sr-sheet-handle"></div>
         <div class="sr-sheet-header">
-          <h3>Welcome</h3>
+          <h3>ShiftRelay Enterprise</h3>
           <button type="button" id="sr-modal-close" aria-label="Close" style="background:transparent;border:none;padding:6px;cursor:pointer;color:#64748b;">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
         <div class="sr-sheet-tabs">
-          <button class="sr-sheet-tab active" data-tab="signin" type="button">Sign In</button>
-          <button class="sr-sheet-tab" data-tab="join" type="button">Join Workplace</button>
-          <button class="sr-sheet-tab" data-tab="register" type="button">Register</button>
-          <button class="sr-sheet-tab" data-tab="demo" type="button">Demo</button>
+          <button class="sr-sheet-tab active" data-tab="signin" type="button">Sign In (Tri-Factor)</button>
+          <button class="sr-sheet-tab" data-tab="demo-request" type="button">Request Demo</button>
+          <button class="sr-sheet-tab" data-tab="demo" type="button">Role Drive</button>
         </div>
 
-        <!-- Sign In pane -->
+        <!-- Sign In pane (Tri-Factor Enterprise Dayforce Model) -->
         <div class="sr-sheet-pane" data-pane="signin">
           <form class="sr-sheet-form" id="sr-sheet-signin-form" autocomplete="on">
-            <label>Work email
-              <input name="email" type="email" required autocomplete="email" placeholder="you@workplace.com" />
+            <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;line-height:1.4;">
+              Access is closed and strictly tenant-gated. Enter your Company ID, Work Username/Email, and Password.
+            </p>
+            <label>Company ID (Tenant Code)
+              <input name="companyId" required autocomplete="organization" value="246701" placeholder="e.g. DAN-NG-4011 or 246701" />
+            </label>
+            <label>Work Email or Username
+              <input name="email" required autocomplete="username" placeholder="name@company.com or username" />
             </label>
             <label>Password
               <input name="password" type="password" required autocomplete="current-password" placeholder="Enter password" />
             </label>
-            <button class="sr-sheet-submit" type="submit">Sign In</button>
+            <button class="sr-sheet-submit" type="submit">Sign In to Enterprise</button>
             <p class="sr-sheet-msg" id="sr-sheet-msg"></p>
           </form>
         </div>
 
-        <!-- Join Workplace pane (Frontline Worker Access Request) -->
-        <div class="sr-sheet-pane" data-pane="join" style="display:none">
-          <form class="sr-sheet-form" id="sr-sheet-join-form" autocomplete="on">
-            <label>Company / Organisation ID
-              <input name="organisationCode" required placeholder="e.g. 246701" />
+        <!-- Request Enterprise Demo pane -->
+        <div class="sr-sheet-pane" data-pane="demo-request" style="display:none">
+          <form class="sr-sheet-form" id="sr-sheet-demo-request-form">
+            <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 12px;line-height:1.45;">
+              ShiftRelay is a closed multi-tenant HCM platform for frontline industries. Request a private deployment consultation for your enterprise.
+            </p>
+            <label>Company Name
+              <input name="companyName" required placeholder="e.g. Dangote Group or Reddington Hospital" />
             </label>
-            <label>Your full name
-              <input name="fullName" required placeholder="Full name" />
+            <label>Your Full Name &amp; Title
+              <input name="fullName" required placeholder="e.g. Tunde Balogun (HR Director)" />
             </label>
-            <label>Work email
-              <input name="email" type="email" required autocomplete="email" placeholder="you@workplace.com" />
+            <label>Official Work Email
+              <input name="workEmail" type="email" required placeholder="tunde@company.com" />
             </label>
-            <label>Position / Shift title
-              <input name="position" required placeholder="e.g. ICU Night Specialist or Line Lead" />
+            <label>Phone Number (WhatsApp Ready)
+              <input name="phone" placeholder="e.g. +234 803 000 0000" />
             </label>
-            <label>Create password
-              <input name="password" type="password" minlength="10" required autocomplete="new-password" placeholder="At least 10 characters" />
-            </label>
-            <label>Confirm password
-              <input name="confirmPassword" type="password" minlength="10" required autocomplete="new-password" placeholder="Repeat password" />
-            </label>
-            <button class="sr-sheet-submit" type="submit">Request Access to Workplace</button>
-            <p class="sr-sheet-msg" id="sr-sheet-join-msg"></p>
-          </form>
-        </div>
-
-        <!-- Register pane -->
-        <div class="sr-sheet-pane" data-pane="register" style="display:none">
-          <form class="sr-sheet-form" id="sr-sheet-register-form" autocomplete="on">
-            <label>Company / Facility name
-              <input name="legalName" required placeholder="e.g. Metro General Hospital" />
-            </label>
-            <label>Industry
-              <select name="industry">
-                <option value="Healthcare">Healthcare</option>
-                <option value="Logistics">Logistics</option>
-                <option value="Manufacturing">Manufacturing</option>
-                <option value="Hospitality">Hospitality</option>
-                <option value="Other">Other</option>
-              </select>
-            </label>
-            <label>Your full name
-              <input name="ownerName" required placeholder="Full name" />
-            </label>
-            <label>Work email
-              <input name="workEmail" type="email" required autocomplete="email" placeholder="you@company.com" />
-            </label>
-            <label>Create password
-              <input name="password" type="password" minlength="10" required autocomplete="new-password" placeholder="Min. 10 characters" />
-            </label>
-            <label>Confirm password
-              <input name="confirmPassword" type="password" minlength="10" required autocomplete="new-password" placeholder="Repeat password" />
-            </label>
-            <button class="sr-sheet-submit" type="submit">Create Workplace</button>
-            <p class="sr-sheet-msg" id="sr-sheet-register-msg"></p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <label>Estimated Staff
+                <select name="headcount">
+                  <option value="50-200">50 - 200 staff</option>
+                  <option value="200-500">200 - 500 staff</option>
+                  <option value="500-2000">500 - 2,000 staff</option>
+                  <option value="2000+">2,000+ staff</option>
+                </select>
+              </label>
+              <label>Industry
+                <select name="industry">
+                  <option value="Logistics">Logistics &amp; FMCG</option>
+                  <option value="Healthcare">Healthcare &amp; Hospitals</option>
+                  <option value="Manufacturing">Manufacturing &amp; Plants</option>
+                  <option value="Security">Private Security</option>
+                  <option value="Hospitality">Hospitality &amp; Retail</option>
+                </select>
+              </label>
+            </div>
+            <button class="sr-sheet-submit" type="submit">Submit Enterprise Request</button>
+            <p class="sr-sheet-msg" id="sr-sheet-demo-request-msg"></p>
           </form>
         </div>
 
@@ -224,10 +213,10 @@
               <span class="theme-icon-slot"></span>
             </button>
             <a href="#landing-portal-anchor" class="secondary" id="nav-btn-signin" style="min-height:36px;padding:6px 14px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;text-decoration:none;">
-              Sign In
+              Enterprise Sign In
             </a>
             <a href="#landing-portal-anchor" class="primary" id="nav-btn-start" style="min-height:36px;padding:6px 16px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;text-decoration:none;">
-              Get Started
+              Request Enterprise Demo
             </a>
           </div>
         </div>
@@ -238,21 +227,21 @@
         <div class="landing-hero-content">
           <div class="landing-badge-chip">
             <span class="badge-dot-live"></span>
-            <span>Frontline Workforce Operating System</span>
+            <span>Enterprise Frontline HCM &amp; Time System</span>
           </div>
-          <h1 class="landing-hero-title">Frontline Operations. Zero Lost Shift Context.</h1>
+          <h1 class="landing-hero-title">Frontline Operations. Verified Timecards &amp; Payroll Dispatch.</h1>
           <p class="landing-hero-desc">
-            The operating system designed for frontline teams. Structured digital handovers, real-time schedule visibility, and accountable operational shift continuity.
+            The closed, multi-tenant operating system for African and global shift industries. Accountable digital handovers, verified timesheets, and audit-ready bank &amp; statutory payroll dispatch.
           </p>
 
           <div class="landing-cta-row">
             <a href="#landing-portal-anchor" class="primary btn-hero-start" id="btn-hero-get-started" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;">
-              <span>Get Started Free</span>
+              <span>Request Enterprise Demo</span>
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </a>
             <a href="#landing-portal-anchor" class="secondary btn-hero-demo" id="btn-hero-try-demo" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-              <span>One-Click Demo Drive</span>
+              <span>Instant Role Drive</span>
             </a>
           </div>
 

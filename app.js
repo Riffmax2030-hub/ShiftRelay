@@ -27,10 +27,9 @@ async function setup(){
 
 function renderPortalTabs(activeTab) {
   return `
-    <div class="portal-tab-strip" role="tablist" aria-label="Workplace access modes">
-      <button type="button" role="tab" aria-selected="${activeTab==='signin'}" class="portal-tab-btn ${activeTab==='signin'?'active':''}" data-access="signin">Sign In</button>
-      <button type="button" role="tab" aria-selected="${activeTab==='register'}" class="portal-tab-btn ${activeTab==='register'?'active':''}" data-access="register">Register Company / Admin</button>
-      <button type="button" role="tab" aria-selected="${activeTab==='join'}" class="portal-tab-btn ${activeTab==='join'?'active':''}" data-access="join">Join with Org ID</button>
+    <div class="portal-tab-strip" role="tablist" aria-label="Enterprise access modes">
+      <button type="button" role="tab" aria-selected="${activeTab==='signin'}" class="portal-tab-btn ${activeTab==='signin'?'active':''}" data-access="signin">Enterprise Sign In</button>
+      <button type="button" role="tab" aria-selected="${activeTab==='demo-request'}" class="portal-tab-btn ${activeTab==='demo-request'?'active':''}" data-access="demo-request">Request Enterprise Demo</button>
     </div>
   `;
 }
@@ -90,7 +89,7 @@ function bindAccessActions(){
     button.addEventListener('click', (e) => {
       e.preventDefault();
       const access = button.dataset.access;
-      if (access === 'register') {
+      if (access === 'register' || access === 'demo-request') {
         renderOrganisationForm();
       } else if (access === 'join') {
         renderJoinForm();
@@ -151,7 +150,10 @@ function renderLogin(){
     <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Sign in to your portal.</h2>
     <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">Use your verified work account to see only the work assigned to you.</p>
     <form class="access-form" id="sign-in-form">
-      <label>Work email
+      <label>Company ID (Tenant Code)
+        <input name="companyId" required autocomplete="organization" value="246701" placeholder="e.g. DAN-NG-4011 or 246701" />
+      </label>
+      <label>Work Email or Username
         <input name="email" type="email" required autocomplete="email" placeholder="name@workplace.com" />
       </label>
       <label>Password
@@ -203,41 +205,52 @@ function renderOrganisationForm(){
   const panel = $('#access-panel');
   if (!panel) return;
   panel.innerHTML = `
-    ${renderPortalTabs('register')}
-    <p class="eyebrow">COMPANY &amp; SHIFT ADMIN REGISTRATION</p>
-    <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Register your organisation.</h2>
-    <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">Set up your workplace as Company Owner, Shift Supervisor, or Operations Manager. You'll receive a unique Company ID for your team.</p>
-    <form class="access-form" id="organisation-form">
-      <div style="margin-bottom:14px;">
-        <label style="display:block;margin-bottom:8px;font-weight:700;">Your Administrative Role</label>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;">
-          <label style="display:flex;align-items:center;gap:6px;padding:10px;border:1px solid var(--border-medium);border-radius:8px;cursor:pointer;background:var(--bg-surface-subtle);font-size:13px;">
-            <input type="radio" name="adminRole" value="owner" checked /> Company Owner
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;padding:10px;border:1px solid var(--border-medium);border-radius:8px;cursor:pointer;background:var(--bg-surface-subtle);font-size:13px;">
-            <input type="radio" name="adminRole" value="supervisor" /> Shift Supervisor
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;padding:10px;border:1px solid var(--border-medium);border-radius:8px;cursor:pointer;background:var(--bg-surface-subtle);font-size:13px;">
-            <input type="radio" name="adminRole" value="manager" /> Operations Lead
-          </label>
-        </div>
-      </div>
-      <label>Company / Hospital / Facility name<input name="legalName" required placeholder="e.g. Metro General Hospital or Peak Logistics Ltd" /></label>
-      <label>Industry sector<select name="industry"><option value="Healthcare">Healthcare &amp; Clinical</option><option value="Logistics">Logistics &amp; Warehousing</option><option value="Manufacturing">Manufacturing &amp; Engineering</option><option value="Hospitality">Hospitality &amp; Culinary</option><option value="Retail">Retail &amp; Customer Ops</option><option value="Other">Other Frontline Service</option></select></label>
-      <label>Country<select name="countryCode" required><option value="">Select country</option>${countryOptions()}</select></label>
-      <label>Local time zone<select name="timeZone" required>${timeZoneOptions()}</select></label>
-      <label>Your full name<input name="ownerName" required placeholder="e.g. Sarah Jenkins" /></label>
-      <label>Your professional work email<input name="workEmail" type="email" required placeholder="s.jenkins@company.com" /></label>
-      <label>Create password<input name="password" type="password" minlength="8" required autocomplete="new-password" placeholder="At least 8 characters" /></label>
-      <label>Confirm password<input name="confirmPassword" type="password" minlength="8" required autocomplete="new-password" placeholder="Re-enter password" /></label>
-      <label class="checkbox"><input name="termsAccepted" type="checkbox" required /> I confirm this organisation and agree to ShiftRelay <a href="terms.html" class="terms-link-trigger" style="text-decoration: underline; color: inherit; font-weight: 700;">Terms &amp; Workplace Security Policy</a>.</label>
+    ${renderPortalTabs('demo-request')}
+    <p class="eyebrow">ENTERPRISE CONCIERGE ONBOARDING</p>
+    <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Request an Enterprise Demo.</h2>
+    <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">ShiftRelay is a closed multi-tenant HCM platform for frontline industries. Request a private deployment consultation for your enterprise.</p>
+    <form class="access-form" id="enterprise-demo-form">
+      <label>Company / Group Legal Name<input name="companyName" required placeholder="e.g. Dangote Group or Reddington Hospital" /></label>
+      <label>Your Full Name &amp; Role<input name="fullName" required placeholder="e.g. Tunde Balogun (HR Director)" /></label>
+      <label>Official Corporate Email<input name="workEmail" type="email" required placeholder="tunde@company.com" /></label>
+      <label>Phone / WhatsApp Direct Line<input name="phone" placeholder="e.g. +234 803 000 0000" /></label>
+      <label>Active Shift Staff Headcount
+        <select name="headcount">
+          <option value="50-200">50 - 200 staff</option>
+          <option value="200-500">200 - 500 staff</option>
+          <option value="500-2000">500 - 2,000 staff</option>
+          <option value="2000+">2,000+ staff</option>
+        </select>
+      </label>
       <div class="button-row" style="margin-top:14px;">
-        <button class="primary" type="submit" style="width:100%;justify-content:center;font-weight:700;font-size:15px;padding:12px;">Create Workplace &amp; Generate ID</button>
+        <button class="primary" type="submit" style="width:100%;justify-content:center;font-weight:700;font-size:15px;padding:12px;">Submit Enterprise Request</button>
       </div>
     </form>
     <p class="form-message" id="form-message"></p>
   `;
-  $('#organisation-form')?.addEventListener('submit', submitOrganisation);
+  $('#enterprise-demo-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.submitter;
+    const msg = $('#form-message');
+    btn.disabled = true;
+    btn.textContent = 'Submitting Request...';
+    try {
+      const res = await api('/api/enterprise/demo-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))
+      });
+      msg.style.color = '#10b981';
+      msg.textContent = res.message || 'Request received! Our concierge team will reach out within 24 hours.';
+      e.currentTarget.reset();
+    } catch (err) {
+      msg.style.color = '#ef4444';
+      msg.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Submit Enterprise Request';
+    }
+  });
   bindAccessActions();
 }
 

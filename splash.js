@@ -76,7 +76,7 @@
 
   // -- Entry buttons -----------------------------------------------------------
   document.getElementById('entry-btn-start')?.addEventListener('click', () => {
-    openModal('register');
+    openModal('demo-request');
   });
 
   document.getElementById('entry-btn-signin')?.addEventListener('click', () => {
@@ -86,14 +86,14 @@
   // -- Close button in modal ---------------------------------------------------
   document.getElementById('sr-modal-close')?.addEventListener('click', closeModal);
 
-  // -- Sign-in form in sheet ---------------------------------------------------
+  // -- Sign-in form in sheet (Tri-Factor) --------------------------------------
   document.getElementById('sr-sheet-signin-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = e.currentTarget.querySelector('.sr-sheet-submit');
     const msg = document.getElementById('sr-sheet-msg');
     btn.disabled = true;
-    btn.textContent = 'Signing in...';
-    if (msg) msg.textContent = '';
+    btn.textContent = 'Verifying Tenant & Signing in...';
+    if (msg) { msg.textContent = ''; msg.style.color = ''; }
     try {
       const result = await fetch('/api/auth/sign-in', {
         method: 'POST',
@@ -108,9 +108,48 @@
         window._srLoginCallback(data.user);
       }
     } catch (err) {
-      if (msg) msg.textContent = err.message;
+      if (msg) {
+        msg.style.color = '#ef4444';
+        msg.textContent = err.message;
+      }
       btn.disabled = false;
-      btn.textContent = 'Sign In';
+      btn.textContent = 'Sign In to Enterprise';
+    }
+  });
+
+  // -- Enterprise Demo Request form in sheet -----------------------------------
+  document.getElementById('sr-sheet-demo-request-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.currentTarget.querySelector('.sr-sheet-submit');
+    const msg = document.getElementById('sr-sheet-demo-request-msg');
+    const data = Object.fromEntries(new FormData(e.currentTarget));
+    btn.disabled = true;
+    btn.textContent = 'Submitting Request...';
+    if (msg) { msg.textContent = ''; msg.style.color = ''; }
+    try {
+      const res = await fetch('/api/enterprise/demo-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to submit demo request.');
+      if (msg) {
+        msg.style.color = '#10b981';
+        msg.textContent = result.message || 'Thank you! Our concierge team will reach out within 24 hours.';
+      }
+      e.currentTarget.reset();
+      setTimeout(() => {
+        closeModal();
+      }, 3500);
+    } catch (err) {
+      if (msg) {
+        msg.style.color = '#ef4444';
+        msg.textContent = err.message;
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Submit Enterprise Request';
     }
   });
 
