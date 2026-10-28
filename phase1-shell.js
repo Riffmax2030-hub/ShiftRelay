@@ -458,7 +458,7 @@
             <button class="sr-context-pill" id="sr-btn-context" aria-label="Switch organization context" title="Click to switch workplace">
               <span class="sr-dot"></span>
               <div class="sr-context-pill-text">
-                <span class="sr-context-pill-org">${escapeHtml(companyName)}</span>
+                <span class="sr-context-pill-org">${escapeHtml(companyName)} <span class="sr-header-tenant-chip">ID: ${escapeHtml(user.company_id || '246701')}</span></span>
                 <span class="sr-context-pill-site">${escapeHtml(siteName)} · ${escapeHtml(roleTitle)}</span>
               </div>
               <svg class="sr-context-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
@@ -7271,4 +7271,167 @@
       </div>`;
   }
 
+})();
+
+/* ==========================================================================
+   SHIFTRELAY WAVE 4 — ENTERPRISE TOAST NOTIFICATION SYSTEM
+   Replaces the primitive #toast div with a rich, typed, stacked notification
+   ========================================================================== */
+
+(function initSrToastSystem() {
+  'use strict';
+
+  // Create the stack container once
+  let stack = document.getElementById('sr-toast-stack');
+  if (!stack) {
+    stack = document.createElement('div');
+    stack.id = 'sr-toast-stack';
+    stack.className = 'sr-toast-stack';
+    document.body.appendChild(stack);
+  }
+
+  const ICONS = {
+    success: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    error:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+    info:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    warning: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  };
+
+  /**
+   * Show a toast notification.
+   * @param {string} message  - Text to display
+   * @param {'success'|'error'|'info'|'warning'} type - Visual variant
+   * @param {number} duration - Auto-dismiss ms (default 4000)
+   */
+  function srToast(message, type = 'info', duration = 4000) {
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const typeClass = `sr-toast-${type}`;
+    const icon = ICONS[type] || ICONS.info;
+
+    const el = document.createElement('div');
+    el.className = `sr-toast ${typeClass}`;
+    el.setAttribute('role', 'alert');
+    el.setAttribute('aria-live', 'assertive');
+    el.innerHTML = `
+      <span class="sr-toast-icon">${icon}</span>
+      <span style="flex:1;min-width:0;">${String(message)}</span>
+      <button onclick="this.parentElement.dispatchEvent(new Event('sr-dismiss'))"
+        style="background:none;border:none;cursor:pointer;color:inherit;opacity:0.6;padding:0;margin-left:6px;line-height:1;flex-shrink:0;"
+        aria-label="Dismiss">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="sr-toast-progress" style="animation-duration:${duration}ms;"></div>
+    `;
+
+    // Ensure stack is in DOM
+    if (!document.getElementById('sr-toast-stack')) {
+      document.body.appendChild(stack);
+    }
+    stack.appendChild(el);
+
+    // Dismiss helpers
+    function dismiss() {
+      el.classList.add('sr-toast-dismiss');
+      el.addEventListener('animationend', () => el.remove(), { once: true });
+      setTimeout(() => el.remove(), 250);
+    }
+
+    el.addEventListener('sr-dismiss', dismiss);
+    el.addEventListener('click', dismiss);
+
+    // Auto dismiss
+    const timer = setTimeout(dismiss, duration);
+    el.addEventListener('mouseenter', () => clearTimeout(timer));
+    el.addEventListener('mouseleave', () => setTimeout(dismiss, 800));
+  }
+
+  // Expose globally — both as srToast and as window.toast (legacy compat)
+  window.srToast = srToast;
+
+  // Override legacy window.toast used in app.js / phase1-shell.js
+  window.toast = function(msg, type) {
+    // Guess type from message content if not passed
+    const t = type || (
+      /error|fail|could not|invalid|denied|reject/i.test(msg) ? 'error' :
+      /success|saved|updated|approved|dispatched|broadcasted|downloaded|exported|relayed|created/i.test(msg) ? 'success' :
+      /warn|caution|attention/i.test(msg) ? 'warning' :
+      'info'
+    );
+    srToast(msg, t);
+  };
+
+  // Also hide the old #toast div permanently
+  const oldToast = document.getElementById('toast');
+  if (oldToast) oldToast.style.display = 'none';
+
+})();
+
+/* ==========================================================================
+   WAVE 4 — DONUT CHART DRAW-IN ANIMATION PATCH
+   Applies CSS custom property --sr-dash-offset to each SVG segment
+   ========================================================================== */
+
+(function patchDonutAnimation() {
+  'use strict';
+  // Run after DOM is ready and earnings chart has rendered
+  function applyDonutAnimation() {
+    document.querySelectorAll('.sr-donut-segment, [class*="donut"] circle[stroke-dasharray]').forEach(function(seg, i) {
+      const dashArray = seg.getAttribute('stroke-dasharray');
+      if (dashArray) {
+        const parts = dashArray.split(/[\s,]+/);
+        const filled = parseFloat(parts[0]) || 0;
+        const total = parseFloat(parts[1]) || 283;
+        const offset = total - filled;
+        seg.style.setProperty('--sr-dash-offset', offset);
+        seg.style.setProperty('--sr-segment-delay', (i * 0.12) + 's');
+        seg.classList.add('sr-donut-segment');
+      }
+    });
+  }
+
+  // Try immediately and also after any dynamic render
+  setTimeout(applyDonutAnimation, 100);
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.addedNodes.length) applyDonutAnimation();
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+})();
+
+/* ==========================================================================
+   WAVE 4 — SCROLL-REVEAL CARDS (Intersection Observer)
+   ========================================================================== */
+
+(function initScrollReveal() {
+  'use strict';
+  if (!('IntersectionObserver' in window)) return;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .sr-reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16,1,0.3,1); }
+    .sr-reveal.sr-revealed { opacity: 1; transform: none; }
+  `;
+  document.head.appendChild(style);
+
+  const io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('sr-revealed');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+
+  function observeCards() {
+    document.querySelectorAll('.sr-card:not(.sr-reveal), .sr-stat-box:not(.sr-reveal), .sr-open-shift-card:not(.sr-reveal)').forEach(function(el) {
+      el.classList.add('sr-reveal');
+      io.observe(el);
+    });
+  }
+
+  // Observe on initial render and any future dynamic content
+  setTimeout(observeCards, 200);
+  const mo = new MutationObserver(function() { setTimeout(observeCards, 100); });
+  mo.observe(document.body, { childList: true, subtree: true });
 })();

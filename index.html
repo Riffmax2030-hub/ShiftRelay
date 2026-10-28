@@ -41,7 +41,7 @@
     <link rel="stylesheet" href="swap-review.css" />
     <link rel="stylesheet" href="me-profile.css" />
     <link rel="stylesheet" href="shiftrelay-v3.css" />
-    <link rel="stylesheet" href="splash.css" />
+    <link rel="stylesheet" href="splash.css?v=82" />
     <link rel="stylesheet" href="offline-queue.css" />
     <link rel="stylesheet" href="signature-pad.css" />
     <link rel="stylesheet" href="chat-engine.css" />
@@ -56,7 +56,7 @@
     <link rel="stylesheet" href="facility-switcher.css" />
     <link rel="stylesheet" href="emergency-broadcast.css" />
     <link rel="stylesheet" href="live-translation.css" />
-    <link rel="stylesheet" href="phase1-shell.css" />
+    <link rel="stylesheet" href="phase1-shell.css?v=82" />
     <link rel="stylesheet" href="sr-premium.css" />
     <script src="theme.js"></script>
     <script src="alarm-engine.js"></script>
@@ -100,6 +100,18 @@
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Attendance
           </span>
+        </div>
+
+        <div class="sr-entry-live-telemetry">
+          <div class="sr-telemetry-badge">
+            <span class="sr-telemetry-live-dot"></span>
+            <span>Live Shift Operational Roster</span>
+          </div>
+          <div class="sr-telemetry-details">
+            <span>Dangote Logistics Pilot: <strong>142 Verified Timecards</strong></span>
+            <span class="sr-telemetry-sep">•</span>
+            <span style="color:#059669;font-weight:700;">₦0.00 Variance</span>
+          </div>
         </div>
       </div>
 
@@ -197,23 +209,38 @@
         <!-- Request Enterprise Demo pane -->
         <div class="sr-sheet-pane" data-pane="demo-request" style="display:none">
           <form class="sr-sheet-form" id="sr-sheet-demo-request-form">
-            <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 12px;line-height:1.45;">
-              ShiftRelay is a closed multi-tenant HCM platform for frontline industries. Request a private deployment consultation for your enterprise.
-            </p>
-            <label>Company Name
+            <div style="background:rgba(13,148,136,0.06);border:1px solid rgba(13,148,136,0.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <div style="font-size:12px;color:var(--text-main);line-height:1.4;">
+                <strong>Enterprise Concierge Intake</strong><br>
+                <span style="color:var(--text-muted);">Dedicated deployment consultation for industrial plant &amp; frontline shift operations.</span>
+              </div>
+            </div>
+
+            <label>
+              <span>Company / Group Legal Name</span>
               <input name="companyName" required placeholder="e.g. Dangote Group or Reddington Hospital" />
             </label>
-            <label>Your Full Name &amp; Title
-              <input name="fullName" required placeholder="e.g. Tunde Balogun (HR Director)" />
-            </label>
-            <label>Official Work Email
-              <input name="workEmail" type="email" required placeholder="tunde@company.com" />
-            </label>
-            <label>Phone Number (WhatsApp Ready)
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
+              <label style="margin:0;">
+                <span>Your Name &amp; Title</span>
+                <input name="fullName" required placeholder="Tunde Balogun (HR Director)" />
+              </label>
+              <label style="margin:0;">
+                <span>Official Work Email</span>
+                <input name="workEmail" type="email" required placeholder="tunde@company.com" />
+              </label>
+            </div>
+
+            <label style="margin-top:12px;">
+              <span>Phone / WhatsApp Direct Line</span>
               <input name="phone" placeholder="e.g. +234 803 000 0000" />
             </label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              <label>Estimated Staff
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
+              <label style="margin:0;">
+                <span>Shift Staff Headcount</span>
                 <select name="headcount">
                   <option value="50-200">50 - 200 staff</option>
                   <option value="200-500">200 - 500 staff</option>
@@ -221,7 +248,8 @@
                   <option value="2000+">2,000+ staff</option>
                 </select>
               </label>
-              <label>Industry
+              <label style="margin:0;">
+                <span>Industry Sector</span>
                 <select name="industry">
                   <option value="Logistics">Logistics &amp; FMCG</option>
                   <option value="Healthcare">Healthcare &amp; Hospitals</option>
@@ -231,7 +259,11 @@
                 </select>
               </label>
             </div>
-            <button class="sr-sheet-submit" type="submit">Submit Enterprise Request</button>
+
+            <button class="sr-sheet-submit" type="submit" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;">
+              <span>Submit Enterprise Request</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
             <p class="sr-sheet-msg" id="sr-sheet-demo-request-msg"></p>
           </form>
         </div>
@@ -593,8 +625,8 @@
     <script src="facility-switcher.js"></script>
     <script src="emergency-broadcast.js"></script>
     <script src="live-translation.js"></script>
-    <script src="phase1-shell.js"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=79',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script src="phase1-shell.js?v=82"></script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=82',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 
