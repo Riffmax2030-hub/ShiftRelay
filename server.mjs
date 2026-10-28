@@ -1913,11 +1913,11 @@ async function handleApi(request, response, url) {
   }
 
   if (url.pathname === '/api/shift-swaps' && request.method === 'POST') {
-    const { shiftId, targetMembershipId, reason, swapType } = await readJson(request);
+    const { shiftId, targetMembershipId, reason, swapType, shiftDate, shiftTime, department } = await readJson(request);
     const store = await getStore();
     if (!Array.isArray(store.shiftSwaps)) store.shiftSwaps = [];
     
-    const targetMember = demoMembers.find(m => m.id === targetMembershipId);
+    const targetMember = (store.memberships || demoMembers || []).find(m => m.id === targetMembershipId);
     const id = crypto.randomUUID();
     const newSwap = {
       id,
@@ -1928,6 +1928,9 @@ async function handleApi(request, response, url) {
       target_membership_id: targetMembershipId || null,
       target_name: targetMember?.name || 'Open Shift Pool',
       swap_type: swapType || 'cover',
+      shift_date: shiftDate || new Date().toISOString().slice(0, 10),
+      shift_time: shiftTime || 'Standard Rotation (08:00 - 16:00)',
+      department: department || user.department || 'Operations',
       reason: reason || 'Shift cover requested',
       status: 'pending',
       created_at: new Date().toISOString()
@@ -1939,13 +1942,14 @@ async function handleApi(request, response, url) {
     notifications.unshift({
       id: crypto.randomUUID(),
       recipientId: 'david', // Shift supervisor
-      message: `${user.name} submitted a shift swap request (${newSwap.swap_type})`,
+      message: `${user.name} submitted a shift swap request for ${newSwap.shift_date} (${newSwap.swap_type})`,
       createdAt: new Date().toISOString(),
       read: false
     });
     await saveStore(store);
     return sendJson(response, 201, { id, swap: newSwap });
   }
+
   if (url.pathname === '/api/shift-swaps' && request.method === 'GET') {
     const store = await getStore();
     if (!Array.isArray(store.shiftSwaps)) {
@@ -1956,18 +1960,79 @@ async function handleApi(request, response, url) {
           requester_membership_id: '00000000-0000-4000-8000-000000000011',
           requester_name: 'Amina Otieno',
           requester_role: 'outgoing',
-          target_membership_id: '00000000-0000-4000-8000-000000000013',
-          target_name: 'Faith Wanjiku',
+          target_membership_id: null,
+          target_name: 'Open Shift Pool',
           swap_type: 'cover',
-          reason: 'Family appointment before evening rotation',
+          shift_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+          shift_time: 'Morning Shift (07:00 - 15:00)',
+          department: 'Grain Milling Unit',
+          reason: 'Medical checkup before evening rotation',
           status: 'pending',
           created_at: new Date(Date.now() - 3600000).toISOString()
+        },
+        {
+          id: 'swap-demo-2',
+          shift_id: 'shift-2',
+          requester_membership_id: '00000000-0000-4000-8000-000000000013',
+          requester_name: 'Faith Wanjiku',
+          requester_role: 'incoming',
+          target_membership_id: '00000000-0000-4000-8000-000000000011',
+          target_name: 'Amina Otieno',
+          swap_type: 'trade',
+          shift_date: new Date(Date.now() + 172800000).toISOString().slice(0, 10),
+          shift_time: 'Night Shift (23:00 - 07:00)',
+          department: 'Quality Inspection',
+          reason: 'Direct swap trade with Amina',
+          status: 'claimed',
+          created_at: new Date(Date.now() - 7200000).toISOString()
         }
       ];
       await saveStore(store);
     }
     return sendJson(response, 200, { swaps: store.shiftSwaps });
   }
+
+  if (url.pathname === '/api/shift-swaps/claim' && request.method === 'POST') {
+    const { id } = await readJson(request);
+    const store = await getStore();
+    const swap = (store.shiftSwaps || []).find(s => s.id === id);
+    if (!swap) return sendJson(response, 404, { error: 'Swap request not found.' });
+    if (swap.status !== 'pending') return sendJson(response, 400, { error: 'This shift swap is no longer open for claiming.' });
+    if (swap.requester_membership_id === user.id) return sendJson(response, 400, { error: 'You cannot claim your own shift offer.' });
+
+    swap.status = 'claimed';
+    swap.target_membership_id = user.id;
+    swap.target_name = user.name;
+    swap.claimed_at = new Date().toISOString();
+
+    const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []);
+    notifications.unshift({
+      id: crypto.randomUUID(),
+      recipientId: swap.requester_membership_id,
+      message: `${user.name} claimed your shift offer for ${swap.shift_date}. Awaiting manager authorization.`,
+      createdAt: new Date().toISOString(),
+      read: false
+    });
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, swap });
+  }
+
+  if (url.pathname === '/api/shift-swaps/cancel' && request.method === 'POST') {
+    const { id } = await readJson(request);
+    const store = await getStore();
+    const swap = (store.shiftSwaps || []).find(s => s.id === id);
+    if (!swap) return sendJson(response, 404, { error: 'Swap request not found.' });
+    if (swap.requester_membership_id !== user.id && user.role !== 'owner' && user.role !== 'manager') {
+      return sendJson(response, 403, { error: 'You are not authorized to cancel this swap.' });
+    }
+    if (swap.status === 'approved') return sendJson(response, 400, { error: 'Approved shift swaps cannot be cancelled.' });
+
+    swap.status = 'cancelled';
+    swap.cancelled_at = new Date().toISOString();
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, swap });
+  }
+
   if (url.pathname === '/api/shift-swaps/review' && request.method === 'POST') {
     const { id, decision } = await readJson(request);
     if (!['approved', 'rejected'].includes(decision)) return sendJson(response, 400, { error: 'Invalid swap decision.' });
@@ -1978,15 +2043,24 @@ async function handleApi(request, response, url) {
     swap.reviewed_by = user.name;
     swap.reviewed_at = new Date().toISOString();
     
-    // Notify requester
+    // Notify requester and claimant
     const notifications = Array.isArray(store.notifications) ? store.notifications : (store.notifications = []);
     notifications.unshift({
       id: crypto.randomUUID(),
       recipientId: swap.requester_membership_id,
-      message: `Your shift swap request was ${decision} by ${user.name}.`,
+      message: `Your shift swap for ${swap.shift_date} was ${decision} by ${user.name}.`,
       createdAt: new Date().toISOString(),
       read: false
     });
+    if (swap.target_membership_id && swap.target_membership_id !== swap.requester_membership_id) {
+      notifications.unshift({
+        id: crypto.randomUUID(),
+        recipientId: swap.target_membership_id,
+        message: `Shift swap for ${swap.shift_date} with ${swap.requester_name} was ${decision} by ${user.name}.`,
+        createdAt: new Date().toISOString(),
+        read: false
+      });
+    }
     await saveStore(store);
     return sendJson(response, 200, { ok: true, swap });
   }

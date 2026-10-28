@@ -3222,6 +3222,14 @@
             <div style="font-size:13.5px;color:var(--sr-text,#0f172a);font-weight:600;margin-bottom:3px;">${start}</div>
             <div style="font-size:12.5px;color:var(--sr-text-muted,#64748b);">until ${end}${duration ? ` &bull; ${duration}` : ''}</div>
           </div>
+          <button type="button" class="sr-btn sr-btn-secondary sr-btn-sm" 
+                  data-swap-shift-btn 
+                  data-shift-date="${escapeHtml(s.starts_at ? new Date(s.starts_at).toISOString().slice(0, 10) : '')}"
+                  data-shift-rotation="${escapeHtml(duration || 'Standard Rotation')}"
+                  style="padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:5px;flex-shrink:0;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+            <span>Offer Swap</span>
+          </button>
         </div>`;
     }).join('');
   }
@@ -3421,6 +3429,12 @@
           <div style="display:flex;flex-direction:column;gap:0;">
             ${renderShiftsTab(shifts, user.id, tz)}
           </div>`;
+
+        panel.querySelectorAll('[data-swap-shift-btn]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            openOfferSwapModal(btn.dataset.shiftDate, btn.dataset.shiftRotation);
+          });
+        });
 
         // Bind Calendar Sync for Worker
         document.getElementById('sr-btn-sync-calendar-worker')?.addEventListener('click', () => {
@@ -7285,19 +7299,142 @@
     inputEl?.focus();
   }
 
-  // ── Open Shift Marketplace ────────────────────────────────────────────────────
+  // ── Open Shift Marketplace & Shift Swap Exchange ───────────────────────────
+  let activeOpenShiftsTab = 'shifts'; // 'shifts' | 'swaps'
+
+  function openOfferSwapModal(prefillDate, prefillRotation) {
+    const existing = document.getElementById('sr-offer-swap-backdrop');
+    if (existing) existing.remove();
+
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const modalEl = document.createElement('div');
+    modalEl.id = 'sr-offer-swap-backdrop';
+    modalEl.className = 'sr-modal-backdrop';
+    modalEl.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:9999;';
+    modalEl.innerHTML = `
+      <div class="sr-modal-card" style="max-width:480px;width:92%;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,0.3);overflow:hidden;" role="dialog" aria-modal="true" aria-labelledby="sr-offer-swap-title">
+        <div class="sr-modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);">
+          <div>
+            <h3 id="sr-offer-swap-title" style="margin:0;font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px;color:var(--sr-text-main);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d524d" stroke-width="2.5"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+              Offer Shift for Peer Swap
+            </h3>
+            <p style="margin:2px 0 0;font-size:12px;color:var(--sr-text-muted);">Request peer cover or mutual trade with unit colleagues</p>
+          </div>
+          <button type="button" class="sr-icon-btn" id="sr-offer-swap-close" aria-label="Close" style="background:transparent;border:none;cursor:pointer;color:var(--sr-text-muted);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <form id="sr-offer-swap-form" style="padding:18px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="sr-field-group">
+              <label class="sr-label" style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;" for="sr-swap-date">Shift Date</label>
+              <input type="date" id="sr-swap-date" class="sr-input" value="${escapeHtml(prefillDate || tomorrow)}" required style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--sr-border);background:var(--sr-bg-card);color:var(--sr-text-main);" />
+            </div>
+            <div class="sr-field-group">
+              <label class="sr-label" style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;" for="sr-swap-rotation">Shift Rotation</label>
+              <select id="sr-swap-rotation" class="sr-input" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--sr-border);background:var(--sr-bg-card);color:var(--sr-text-main);">
+                <option value="Morning Shift (07:00 - 15:00)" ${prefillRotation && prefillRotation.includes('07:00') ? 'selected' : ''}>Morning (07:00 - 15:00)</option>
+                <option value="Afternoon Shift (15:00 - 23:00)" ${prefillRotation && prefillRotation.includes('15:00') ? 'selected' : ''}>Afternoon (15:00 - 23:00)</option>
+                <option value="Night Shift (23:00 - 07:00)" ${prefillRotation && prefillRotation.includes('23:00') ? 'selected' : ''}>Night (23:00 - 07:00)</option>
+                <option value="Day Shift (08:00 - 16:00)" ${!prefillRotation ? 'selected' : ''}>Day (08:00 - 16:00)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sr-field-group">
+            <label class="sr-label" style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;" for="sr-swap-type">Exchange Type</label>
+            <select id="sr-swap-type" class="sr-input" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--sr-border);background:var(--sr-bg-card);color:var(--sr-text-main);">
+              <option value="cover">Peer Cover (A colleague covers my shift)</option>
+              <option value="trade">Shift Trade (Mutual swap with another rostered shift)</option>
+            </select>
+          </div>
+
+          <div class="sr-field-group">
+            <label class="sr-label" style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;" for="sr-swap-target">Target Colleague (Optional)</label>
+            <input type="text" id="sr-swap-target" class="sr-input" placeholder="Leave blank to post to Open Pool (anyone can claim)" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--sr-border);background:var(--sr-bg-card);color:var(--sr-text-main);" />
+          </div>
+
+          <div class="sr-field-group">
+            <label class="sr-label" style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;" for="sr-swap-reason">Reason for Request</label>
+            <textarea id="sr-swap-reason" class="sr-input" rows="2" placeholder="e.g. Doctor's appointment, urgent family commitment" required style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid var(--sr-border);background:var(--sr-bg-card);color:var(--sr-text-main);resize:vertical;"></textarea>
+          </div>
+
+          <div id="sr-offer-swap-err" style="display:none;color:#ef4444;font-size:13px;background:#fef2f2;padding:8px 12px;border-radius:6px;border:1px solid #fecaca;"></div>
+
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-offer-swap-cancel" style="padding:8px 16px;">Cancel</button>
+            <button type="submit" class="sr-btn sr-btn-primary" id="sr-offer-swap-submit" style="padding:8px 20px;">Submit Swap Offer</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    document.body.appendChild(modalEl);
+
+    const closeModal = () => modalEl.remove();
+    modalEl.querySelector('#sr-offer-swap-close')?.addEventListener('click', closeModal);
+    modalEl.querySelector('#sr-offer-swap-cancel')?.addEventListener('click', closeModal);
+    modalEl.addEventListener('click', (e) => { if (e.target === modalEl) closeModal(); });
+
+    modalEl.querySelector('#sr-offer-swap-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const shiftDate = document.getElementById('sr-swap-date')?.value;
+      const shiftTime = document.getElementById('sr-swap-rotation')?.value;
+      const swapType = document.getElementById('sr-swap-type')?.value;
+      const targetName = document.getElementById('sr-swap-target')?.value?.trim();
+      const reason = document.getElementById('sr-swap-reason')?.value?.trim();
+      const errEl = document.getElementById('sr-offer-swap-err');
+      const submitBtn = document.getElementById('sr-offer-swap-submit');
+
+      if (!shiftDate || !reason) {
+        if (errEl) { errEl.textContent = 'Please provide shift date and reason.'; errEl.style.display = 'block'; }
+        return;
+      }
+
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
+      try {
+        const res = await fetch('/api/shift-swaps', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            shiftDate,
+            shiftTime,
+            swapType,
+            reason,
+            targetMembershipId: null
+          })
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || `Server error ${res.status}`);
+        closeModal();
+        showToast('Shift swap offer published to unit exchange!', 'success');
+        activeOpenShiftsTab = 'swaps';
+        await renderOpenShiftMarketplace();
+      } catch (err) {
+        if (errEl) { errEl.textContent = err.message; errEl.style.display = 'block'; }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Swap Offer'; }
+      }
+    });
+  }
+
   async function renderOpenShiftMarketplace() {
     const container = document.getElementById('sr-content-area');
     if (!container) return;
     const user = getUser();
+    const isManager = user?.role === 'manager' || user?.role === 'owner';
 
     container.innerHTML = `<div class="sr-page-wrap"><div class="sr-skeleton" style="height:400px;"></div></div>`;
 
-    let data;
+    let shiftsData = { shifts: [] };
+    let swapsData = { swaps: [] };
     try {
-      const res = await fetch('/api/open-shifts');
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      data = await res.json();
+      const [shiftsRes, swapsRes] = await Promise.all([
+        fetch('/api/open-shifts'),
+        fetch('/api/shift-swaps')
+      ]);
+      if (shiftsRes.ok) shiftsData = await shiftsRes.json();
+      if (swapsRes.ok) swapsData = await swapsRes.json();
     } catch (err) {
       container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:#fecaca;background:#fff5f5;padding:20px;">
         <p style="color:#b91c1c;margin:0 0 12px;font-size:14px;">${escapeHtml(err.message)}</p>
@@ -7306,7 +7443,8 @@
       return;
     }
 
-    const shifts = Array.isArray(data) ? data : (data.shifts || []);
+    const shifts = Array.isArray(shiftsData) ? shiftsData : (shiftsData.shifts || []);
+    const swaps = Array.isArray(swapsData) ? swapsData : (swapsData.swaps || []);
 
     async function applyForShift(shiftId) {
       try {
@@ -7324,6 +7462,56 @@
       }
     }
 
+    async function claimSwap(swapId) {
+      try {
+        const res = await fetch('/api/shift-swaps/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: swapId })
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
+        showToast('Shift swap claimed! Awaiting manager authorization.', 'success');
+        await renderOpenShiftMarketplace();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function cancelSwap(swapId) {
+      if (!confirm('Are you sure you want to cancel this shift swap offer?')) return;
+      try {
+        const res = await fetch('/api/shift-swaps/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: swapId })
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
+        showToast('Shift swap cancelled.', 'info');
+        await renderOpenShiftMarketplace();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function reviewSwap(swapId, decision) {
+      try {
+        const res = await fetch('/api/shift-swaps/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: swapId, decision })
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
+        showToast(`Shift swap ${decision} successfully.`, 'success');
+        await renderOpenShiftMarketplace();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ── Open Shifts HTML ──
     const shiftsHtml = shifts.length > 0 ? `
       <div class="sr-open-shifts-grid">
         ${shifts.map(s => {
@@ -7375,20 +7563,152 @@
         <p style="color:var(--sr-text-muted);font-size:13px;margin:8px 0 0;">Check back later or speak to your supervisor.</p>
       </div>`;
 
+    // ── Swaps HTML ──
+    const swapsHtml = swaps.length > 0 ? `
+      <div class="sr-open-shifts-grid">
+        ${swaps.map(s => {
+          const isMine = s.requester_membership_id === user?.id;
+          const statusColors = {
+            pending: { bg: '#fef3c7', text: '#b45309', border: '#fde68a', label: '⏳ Open for Cover' },
+            claimed: { bg: '#e0f2fe', text: '#0369a1', border: '#bae6fd', label: `🤝 Claimed by ${s.target_name || 'Peer'}` },
+            approved: { bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0', label: `✓ Approved by ${s.reviewed_by || 'Manager'}` },
+            rejected: { bg: '#fee2e2', text: '#b91c1c', border: '#fecaca', label: '✕ Denied' },
+            cancelled: { bg: '#f1f5f9', text: '#64748b', border: '#e2e8f0', label: 'Cancelled' }
+          };
+          const pill = statusColors[s.status] || statusColors.pending;
+
+          return `
+            <div class="sr-open-shift-card" style="border-top: 3px solid ${s.status === 'approved' ? '#10b981' : s.status === 'claimed' ? '#0284c7' : '#f59e0b'};">
+              <div class="sr-open-shift-card-header" style="align-items:flex-start;">
+                <div>
+                  <div style="font-weight:700;font-size:14.5px;color:var(--sr-text-main);">${escapeHtml(s.requester_name)}</div>
+                  <div style="font-size:11.5px;color:var(--sr-text-muted);">${escapeHtml(s.department || 'Operations')} &bull; ${escapeHtml(s.requester_role || 'Staff')}</div>
+                </div>
+                <span style="background:${pill.bg};color:${pill.text};border:1px solid ${pill.border};padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;">
+                  ${escapeHtml(pill.label)}
+                </span>
+              </div>
+
+              <div class="sr-open-shift-card-meta" style="margin-top:10px;">
+                <span class="sr-open-shift-meta-item">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect width="18" height="18" x="3" y="4" rx="2"/>
+                    <line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
+                  </svg>
+                  ${escapeHtml(s.shift_date || 'Upcoming Shift')}
+                </span>
+                <span class="sr-open-shift-meta-item">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  ${escapeHtml(s.shift_time || 'Standard Rotation')}
+                </span>
+                <span class="sr-open-shift-meta-item" style="font-weight:600;color:var(--sr-text-main);">
+                  Type: ${s.swap_type === 'cover' ? 'Peer Cover' : 'Shift Trade'}
+                </span>
+              </div>
+
+              ${s.reason ? `
+                <div style="background:var(--sr-bg-card-subtle,#f8fafc);border-left:3px solid var(--sr-primary,#0d524d);padding:8px 10px;border-radius:6px;font-size:12.5px;color:var(--sr-text-main);margin:10px 0;">
+                  &ldquo;${escapeHtml(s.reason)}&rdquo;
+                </div>
+              ` : ''}
+
+              <div class="sr-open-shift-card-footer" style="padding-top:10px;margin-top:8px;border-top:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:11px;color:var(--sr-text-muted);">
+                  ${s.target_name && s.target_name !== 'Open Shift Pool' ? `Target: ${escapeHtml(s.target_name)}` : 'Open to Unit Pool'}
+                </span>
+
+                <div style="display:flex;gap:6px;">
+                  ${!isMine && s.status === 'pending' && !isManager ? `
+                    <button class="sr-btn sr-btn-primary" style="padding:6px 14px;font-size:12px;display:flex;align-items:center;gap:5px;" data-claim-swap="${escapeHtml(s.id)}">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span>Claim Shift</span>
+                    </button>
+                  ` : ''}
+
+                  ${isMine && s.status === 'pending' ? `
+                    <button class="sr-btn sr-btn-secondary" style="padding:6px 12px;font-size:12px;" data-cancel-swap="${escapeHtml(s.id)}">
+                      Cancel Offer
+                    </button>
+                  ` : ''}
+
+                  ${isManager && (s.status === 'pending' || s.status === 'claimed') ? `
+                    <button class="sr-btn sr-btn-primary" style="padding:6px 12px;font-size:12px;" data-review-swap="${escapeHtml(s.id)}" data-decision="approved">
+                      ✓ Authorize
+                    </button>
+                    <button class="sr-btn sr-btn-danger" style="padding:6px 12px;font-size:12px;" data-review-swap="${escapeHtml(s.id)}" data-decision="rejected">
+                      ✕ Deny
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>` : `
+      <div class="sr-cv-section" style="text-align:center;padding:48px 24px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+        <p style="color:var(--sr-text-muted);font-size:15px;margin:0;">No shift swaps currently pending in your unit.</p>
+        <p style="color:var(--sr-text-muted);font-size:13px;margin:8px 0 0;">Need time off? Tap below to offer one of your shifts to colleagues.</p>
+      </div>`;
+
     container.innerHTML = `
       <div class="sr-page-wrap">
-        <div class="sr-page-header">
+        <div class="sr-page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
           <div>
-            <h2 class="sr-page-title">Open Shifts</h2>
-            <p class="sr-page-subtitle">Available shifts you can apply for</p>
+            <h2 class="sr-page-title">${activeOpenShiftsTab === 'shifts' ? 'Open Shifts' : 'Shift Swap Exchange'}</h2>
+            <p class="sr-page-subtitle">${activeOpenShiftsTab === 'shifts' ? 'Available management shifts you can apply for' : 'Peer-to-peer shift cover and mutual trades across your unit'}</p>
           </div>
-          ${isManager ? '<button class="sr-btn sr-btn-primary" id="sr-post-shift-btn">Post Open Shift</button>' : ''}
+          <div style="display:flex;gap:8px;">
+            ${activeOpenShiftsTab === 'shifts' && isManager ? '<button class="sr-btn sr-btn-primary" id="sr-post-shift-btn">Post Open Shift</button>' : ''}
+            <button class="sr-btn sr-btn-primary" id="sr-offer-swap-btn" style="display:flex;align-items:center;gap:6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+              <span>Offer Shift for Swap</span>
+            </button>
+          </div>
         </div>
-        ${shiftsHtml}
+
+        <!-- Tab bar -->
+        <div role="tablist" style="display:flex;gap:8px;margin-bottom:18px;border-bottom:2px solid var(--sr-border,#e2e8f0);padding-bottom:2px;">
+          <button id="sr-tab-open-shifts" class="sr-btn ${activeOpenShiftsTab === 'shifts' ? 'sr-btn-primary' : 'sr-btn-secondary'}" style="font-size:13.5px;padding:8px 16px;">
+            📋 Company Open Shifts (${shifts.length})
+          </button>
+          <button id="sr-tab-shift-swaps" class="sr-btn ${activeOpenShiftsTab === 'swaps' ? 'sr-btn-primary' : 'sr-btn-secondary'}" style="font-size:13.5px;padding:8px 16px;display:flex;align-items:center;gap:6px;">
+            <span>🔄 Peer Shift Swaps</span>
+            <span style="background:${activeOpenShiftsTab === 'swaps' ? 'rgba(255,255,255,0.25)' : 'var(--sr-primary,#0d524d)'};color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;">${swaps.length}</span>
+          </button>
+        </div>
+
+        ${activeOpenShiftsTab === 'shifts' ? shiftsHtml : swapsHtml}
       </div>`;
+
+    // Tab bindings
+    document.getElementById('sr-tab-open-shifts')?.addEventListener('click', () => {
+      activeOpenShiftsTab = 'shifts';
+      renderOpenShiftMarketplace();
+    });
+    document.getElementById('sr-tab-shift-swaps')?.addEventListener('click', () => {
+      activeOpenShiftsTab = 'swaps';
+      renderOpenShiftMarketplace();
+    });
+
+    // Action button bindings
+    document.getElementById('sr-offer-swap-btn')?.addEventListener('click', () => openOfferSwapModal());
 
     container.querySelectorAll('[data-apply-shift]').forEach(btn => {
       btn.addEventListener('click', () => applyForShift(btn.dataset.applyShift));
+    });
+
+    container.querySelectorAll('[data-claim-swap]').forEach(btn => {
+      btn.addEventListener('click', () => claimSwap(btn.dataset.claimSwap));
+    });
+
+    container.querySelectorAll('[data-cancel-swap]').forEach(btn => {
+      btn.addEventListener('click', () => cancelSwap(btn.dataset.cancelSwap));
+    });
+
+    container.querySelectorAll('[data-review-swap]').forEach(btn => {
+      btn.addEventListener('click', () => reviewSwap(btn.dataset.reviewSwap, btn.dataset.decision));
     });
 
     if (isManager) {
