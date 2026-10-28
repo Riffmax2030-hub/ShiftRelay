@@ -374,7 +374,10 @@ async function readBuffer(request) {
 }
 
 function sessionId(request) { return request.headers.cookie?.match(/(?:^|;\s*)shiftrelay_session=([^;]+)/)?.[1] || null; }
-function sessionCookie(value, maxAge = 60 * 60 * 24 * 7) { return `shiftrelay_session=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}`; }
+function sessionCookie(value, maxAge = 60 * 60 * 24 * 7) { 
+  const secureFlag = IS_PRODUCTION ? '; Secure' : '';
+  return `shiftrelay_session=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${secureFlag}`; 
+}
 async function hashPassword(password) { const salt = randomBytes(16).toString('hex'); const hash = await scrypt(password, salt, 64); return `${salt}:${Buffer.from(hash).toString('hex')}`; }
 async function passwordMatches(password, stored) { if (!stored) return false; const [salt, expected] = stored.split(':'); if (!salt || !expected) return false; const actual = Buffer.from(await scrypt(password, salt, 64)); const expectedBuffer = Buffer.from(expected, 'hex'); return actual.length === expectedBuffer.length && timingSafeEqual(actual, expectedBuffer); }
 
@@ -1403,10 +1406,27 @@ async function handleApi(request, response, url) {
     const body = await readJson(request);
     const store = await getStore();
     const email = (body.email || '').trim().toLowerCase();
+    const companyId = (body.companyId || '').trim().replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     
+    // Strict Verification: Challenge presence and replay prevention
+    const challengeRecord = store.webAuthnChallenges?.[email];
+    if (!challengeRecord || (Date.now() - challengeRecord.timestamp) > 60000) {
+      return sendJson(response, 401, { error: 'Biometric verification challenge expired or invalid. Please re-authenticate.' });
+    }
+    // Invalidate challenge immediately (Anti-Replay Attack Protection)
+    delete store.webAuthnChallenges[email];
+    await saveStore(store);
+
+    // Verify company tenant isolation
+    let targetOrg = (store.organisations || []).find(o => {
+      const c = String(o.organisation_code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      const aliases = (o.aliases || []).map(a => String(a).replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+      return c === companyId || aliases.includes(companyId);
+    });
+
     // Find registered user in portalUsers / demoMembers
     let targetUser = (store.portalUsers || []).find(u => u.email.toLowerCase() === email);
-    let member = targetUser ? (store.memberships || []).find(m => m.user_id === targetUser.id) : null;
+    let member = targetUser ? (store.memberships || []).find(m => m.user_id === targetUser.id && (!targetOrg || m.organisation_id === targetOrg.id)) : null;
 
     if (!targetUser) {
       // Fallback check against demoMembers
@@ -1417,8 +1437,8 @@ async function handleApi(request, response, url) {
       }
     }
 
-    if (!targetUser || !member) {
-      return sendJson(response, 401, { error: 'User account not found for biometric authentication.' });
+    if (!targetUser || !member || member.status !== 'active') {
+      return sendJson(response, 401, { error: 'User account not found, inactive, or barred for biometric authentication.' });
     }
 
     const sessionId = await createSession(targetUser.id, member.id);
@@ -1433,7 +1453,7 @@ async function handleApi(request, response, url) {
         title: member.title,
         department: member.department,
         organisation_id: member.organisation_id,
-        company_id: body.companyId || '246701'
+        company_id: companyId || '246701'
       }
     });
   }
