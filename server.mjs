@@ -3921,7 +3921,7 @@ async function serveStatic(request, response, url) {
       'Content-Type': isBinary ? contentType : `${contentType}; charset=utf-8`,
       'Accept-Ranges': 'bytes',
       'Content-Length': totalSize,
-      ...(isCode ? { 'Cache-Control': 'no-cache, must-revalidate' } : {}),
+      ...(isCode ? { 'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0' } : {}),
       ...SECURITY_HEADERS,
     });
     response.end(content);
