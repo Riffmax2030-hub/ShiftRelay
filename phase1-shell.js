@@ -134,56 +134,114 @@
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
-  function resolveNotificationDestination(msg, isManager) {
+  let currentNotifFilter = 'all';
+
+  function resolveNotificationMeta(msg, explicitCat, isManager) {
     const lower = (msg || '').toLowerCase();
-    if (lower.includes('handover') || lower.includes('brief') || lower.includes('task') || lower.includes('relay')) {
-      return 'handovers';
+    let cat = explicitCat || 'system';
+    let dest = isManager ? 'overview' : 'today';
+    let iconSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
+    let tagColor = '#64748b';
+    let tagBg = '#f1f5f9';
+    let tagLabel = 'SYSTEM';
+
+    if (lower.includes('payroll') || lower.includes('remittance') || lower.includes('payslip') || lower.includes('pension') || lower.includes('paye') || lower.includes('tax')) {
+      cat = 'payroll';
+      dest = 'payroll';
+      tagColor = '#065f46';
+      tagBg = '#ecfdf5';
+      tagLabel = 'PAYROLL & STATUTORY';
+      iconSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><polyline points="15 15 21 21 15 21"/></svg>';
+    } else if (lower.includes('swap') || lower.includes('trade') || lower.includes('cover')) {
+      cat = 'swaps';
+      dest = 'open-shifts';
+      tagColor = '#0369a1';
+      tagBg = '#e0f2fe';
+      tagLabel = 'SHIFT SWAP';
+      iconSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>';
+    } else if (lower.includes('gate') || lower.includes('qr') || lower.includes('gps') || lower.includes('attendance') || lower.includes('clock') || lower.includes('geofence')) {
+      cat = 'attendance';
+      dest = 'timesheets';
+      tagColor = '#6d28d9';
+      tagBg = '#f5f3ff';
+      tagLabel = 'ATTENDANCE & MUSTER';
+      iconSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    } else if (lower.includes('handover') || lower.includes('brief') || lower.includes('checklist') || lower.includes('relay')) {
+      cat = 'handovers';
+      dest = 'handovers';
+      tagColor = '#0f766e';
+      tagBg = '#f0fdfa';
+      tagLabel = 'HANDOVER BRIEF';
+      iconSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    } else if (lower.includes('leave') || lower.includes('applicant') || lower.includes('approval') || lower.includes('membership')) {
+      cat = 'hr';
+      dest = isManager ? 'approvals' : 'schedule';
+      tagColor = '#b45309';
+      tagBg = '#fef3c7';
+      tagLabel = 'WORKFORCE APPROVAL';
+      iconSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>';
     }
-    if (lower.includes('leave') || lower.includes('access') || lower.includes('applicant') || lower.includes('approval') || lower.includes('membership')) {
-      return isManager ? 'approvals' : 'today';
-    }
-    if (lower.includes('team') || lower.includes('channel') || lower.includes('staff')) {
-      return isManager ? 'team' : 'today';
-    }
-    if (lower.includes('shift') || lower.includes('schedule') || lower.includes('clock') || lower.includes('attendance')) {
-      return isManager ? 'overview' : 'today';
-    }
-    return isManager ? 'overview' : 'today';
+
+    return { cat, dest, iconSvg, tagColor, tagBg, tagLabel };
+  }
+
+  function resolveNotificationDestination(msg, isManager) {
+    return resolveNotificationMeta(msg, null, isManager).dest;
   }
 
   function renderNotificationItems(notifications) {
     const listEl = document.getElementById('sr-notif-list');
     if (!listEl) return;
 
-    if (notifications.length === 0) {
+    const user = getUser();
+    const isManager = isManagerRole(user ? user.role : '');
+
+    const filtered = currentNotifFilter === 'all'
+      ? notifications
+      : notifications.filter(n => {
+          const meta = resolveNotificationMeta(n.message, n.category, isManager);
+          return meta.cat === currentNotifFilter;
+        });
+
+    if (filtered.length === 0) {
       listEl.innerHTML = `
-        <div class="sr-notif-empty">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <h4>All caught up</h4>
-          <p>No new notifications at this time.</p>
+        <div class="sr-notif-empty" style="text-align:center;padding:48px 24px;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;color:var(--sr-text-muted);"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <h4 style="margin:0 0 4px;font-size:15px;color:var(--sr-text-main);">No notifications here</h4>
+          <p style="margin:0;font-size:12.5px;color:var(--sr-text-muted);">${currentNotifFilter === 'all' ? 'All caught up! No notifications for this unit.' : 'No active notifications in this category.'}</p>
         </div>
       `;
       return;
     }
 
-    const user = getUser();
-    const isManager = isManagerRole(user ? user.role : '');
-
-    listEl.innerHTML = notifications.map(n => {
+    listEl.innerHTML = filtered.map(n => {
       const isUnread = !n.read && !n.read_at;
-      const rawDest = resolveNotificationDestination(n.message, isManager);
-      const dest = isAuthorizedView(rawDest, isManager) ? rawDest : (isManager ? 'overview' : 'today');
+      const meta = resolveNotificationMeta(n.message, n.category, isManager);
+      const dest = isAuthorizedView(meta.dest, isManager) ? meta.dest : (isManager ? 'overview' : 'today');
+
       return `
-        <div class="sr-notif-item ${isUnread ? 'unread' : 'read'}" data-notif-id="${escapeHtml(n.id)}" data-dest="${dest}" role="button" tabindex="0" aria-label="${escapeHtml(n.message)} (${isUnread ? 'Unread' : 'Read'})">
-          <div class="sr-notif-item-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="sr-notif-item ${isUnread ? 'unread' : 'read'}" data-notif-id="${escapeHtml(n.id)}" data-dest="${dest}" role="button" tabindex="0" aria-label="${escapeHtml(n.message)} (${isUnread ? 'Unread' : 'Read'})" style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--sr-border-subtle);cursor:pointer;background:${isUnread ? 'var(--sr-bg-card-subtle,#f8fafc)' : 'transparent'};">
+          <div style="width:36px;height:36px;border-radius:10px;background:${meta.tagBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${meta.iconSvg}
           </div>
-          <div class="sr-notif-item-content">
-            <p class="sr-notif-item-msg">${escapeHtml(n.message)}</p>
-            <span class="sr-notif-item-time">${formatRelativeTimestamp(n.createdAt)}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px;">
+              <span style="font-size:10px;font-weight:700;color:${meta.tagColor};background:${meta.tagBg};padding:2px 6px;border-radius:4px;letter-spacing:0.02em;">
+                ${meta.tagLabel}
+              </span>
+              <span style="font-size:11px;color:var(--sr-text-muted);white-space:nowrap;">
+                ${formatRelativeTimestamp(n.createdAt)}
+              </span>
+            </div>
+            <p style="margin:0 0 4px;font-size:13px;line-height:1.4;color:var(--sr-text-main);font-weight:${isUnread ? '600' : '400'};">
+              ${escapeHtml(n.message)}
+            </p>
+            <div style="font-size:11px;color:var(--sr-primary);font-weight:600;display:flex;align-items:center;gap:3px;">
+              <span>Open in ${dest.replace('-', ' ').toUpperCase()} &rarr;</span>
+            </div>
           </div>
           ${isUnread ? `
-            <button type="button" class="sr-notif-mark-single" data-mark-id="${escapeHtml(n.id)}" title="Mark as read" aria-label="Mark as read">
+            <button type="button" class="sr-notif-mark-single" data-mark-id="${escapeHtml(n.id)}" title="Mark as read" aria-label="Mark as read" style="background:none;border:none;cursor:pointer;color:var(--sr-text-muted);padding:4px;margin-left:4px;border-radius:4px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
           ` : ''}
@@ -507,6 +565,14 @@
                 </button>
               </div>
             </div>
+            <!-- Category Filter Pills Bar -->
+            <div class="sr-notif-categories" id="sr-notif-cat-bar" role="tablist" style="display:flex;gap:6px;padding:8px 16px;overflow-x:auto;border-bottom:1px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle,#f8fafc);scrollbar-width:none;">
+              <button type="button" class="sr-notif-cat-btn active" data-cat="all" style="padding:4px 10px;font-size:12px;font-weight:700;border-radius:20px;border:1px solid var(--sr-border-medium);background:var(--sr-primary);color:#fff;cursor:pointer;white-space:nowrap;">All</button>
+              <button type="button" class="sr-notif-cat-btn" data-cat="payroll" style="padding:4px 10px;font-size:12px;font-weight:600;border-radius:20px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;white-space:nowrap;">₦ Payroll</button>
+              <button type="button" class="sr-notif-cat-btn" data-cat="attendance" style="padding:4px 10px;font-size:12px;font-weight:600;border-radius:20px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;white-space:nowrap;">📍 Attendance</button>
+              <button type="button" class="sr-notif-cat-btn" data-cat="swaps" style="padding:4px 10px;font-size:12px;font-weight:600;border-radius:20px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;white-space:nowrap;">🔄 Swaps</button>
+              <button type="button" class="sr-notif-cat-btn" data-cat="handovers" style="padding:4px 10px;font-size:12px;font-weight:600;border-radius:20px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;white-space:nowrap;">📋 Handovers</button>
+            </div>
             <div class="sr-notif-body" id="sr-notif-list" role="region" aria-live="polite">
               <!-- Dynamically populated -->
             </div>
@@ -722,6 +788,24 @@
       } catch (_) {
         if (btn) btn.disabled = false;
       }
+    });
+
+    // Notification category filter buttons
+    document.querySelectorAll('.sr-notif-cat-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.sr-notif-cat-btn').forEach(b => {
+          b.classList.remove('active');
+          b.style.background = 'var(--sr-bg-card)';
+          b.style.color = 'var(--sr-text-muted)';
+          b.style.borderColor = 'var(--sr-border-subtle)';
+        });
+        btn.classList.add('active');
+        btn.style.background = 'var(--sr-primary)';
+        btn.style.color = '#fff';
+        btn.style.borderColor = 'var(--sr-primary)';
+        currentNotifFilter = btn.dataset.cat;
+        renderNotificationItems(cachedNotifications);
+      });
     });
 
     document.getElementById('sr-shell-avatar')?.addEventListener('click', (e) => {

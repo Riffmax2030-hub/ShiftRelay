@@ -3406,32 +3406,94 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/notifications' && request.method === 'GET') {
     if (databaseReady) {
-      const result = await query('select id, message, read_at, created_at from notifications where organisation_id = $1 and recipient_membership_id = $2 order by created_at desc limit 8', [user.organisation_id, user.id]);
-      return sendJson(response, 200, { notifications: result.rows.map((row) => ({ id: row.id, message: row.message, read: Boolean(row.read_at), createdAt: row.created_at })) });
+      const result = await query('select id, message, read_at, created_at from notifications where organisation_id = $1 and (recipient_membership_id = $2 or recipient_membership_id is null) order by created_at desc limit 30', [user.organisation_id, user.id]);
+      return sendJson(response, 200, {
+        notifications: result.rows.map((row) => ({
+          id: row.id,
+          message: row.message,
+          read: Boolean(row.read_at),
+          createdAt: row.created_at
+        }))
+      });
     }
     const store = await getStore();
-    return sendJson(response, 200, { notifications: store.notifications.filter((notification) => notification.recipientId === user.id).slice(0, 8) });
+    if (!Array.isArray(store.notifications) || store.notifications.length === 0) {
+      store.notifications = [
+        {
+          id: 'notif-demo-1',
+          recipientId: user.id,
+          category: 'payroll',
+          message: 'October Statutory Payroll & PenCom Remittance Schedule generated (₦13.9M gross volume).',
+          read: false,
+          createdAt: new Date(Date.now() - 1800000).toISOString()
+        },
+        {
+          id: 'notif-demo-2',
+          recipientId: user.id,
+          category: 'swaps',
+          message: 'Amina Otieno submitted a peer shift swap offer for Morning Shift (07:00 - 15:00).',
+          read: false,
+          createdAt: new Date(Date.now() - 3600000).toISOString()
+        },
+        {
+          id: 'notif-demo-3',
+          recipientId: user.id,
+          category: 'attendance',
+          message: 'Gate QR Check-in verified at Apapa Industrial Hub (Gate 01) — 0% battery usage.',
+          read: true,
+          createdAt: new Date(Date.now() - 7200000).toISOString()
+        },
+        {
+          id: 'notif-demo-4',
+          recipientId: user.id,
+          category: 'handovers',
+          message: 'Shift Handover Brief relayed for Grain Milling Unit with 3 priority checklist tasks.',
+          read: false,
+          createdAt: new Date(Date.now() - 10800000).toISOString()
+        },
+        {
+          id: 'notif-demo-5',
+          recipientId: user.id,
+          category: 'payroll',
+          message: 'Digital Payslip ready for download: ₦208,400 net pay via Zenith Bank corporate transfer.',
+          read: true,
+          createdAt: new Date(Date.now() - 86400000).toISOString()
+        }
+      ];
+      await saveStore(store);
+    }
+    const userNotifs = store.notifications.filter((n) => n.recipientId === user.id || n.recipientId === 'david' || !n.recipientId);
+    return sendJson(response, 200, { notifications: userNotifs.slice(0, 30) });
   }
 
   if (/^\/api\/notifications\/[^/]+\/read$/.test(url.pathname) && request.method === 'POST') {
     const notificationId = url.pathname.split('/')[3];
     if (databaseReady) {
-      await query('update notifications set read_at = now() where id = $1 and organisation_id = $2 and recipient_membership_id = $3 and read_at is null', [notificationId, user.organisation_id, user.id]);
+      await query('update notifications set read_at = now() where id = $1 and organisation_id = $2 and read_at is null', [notificationId, user.organisation_id]);
       return sendJson(response, 200, { ok: true });
     }
     const store = await getStore();
-    const notification = store.notifications.find((item) => item.id === notificationId && item.recipientId === user.id);
-    if (notification) notification.read = true;
+    const notification = (store.notifications || []).find((item) => item.id === notificationId);
+    if (notification) {
+      notification.read = true;
+      notification.read_at = new Date().toISOString();
+      await saveStore(store);
+    }
     return sendJson(response, 200, { ok: true });
   }
 
   if (url.pathname === '/api/notifications/read' && request.method === 'POST') {
     if (databaseReady) {
-      await query('update notifications set read_at = now() where organisation_id = $1 and recipient_membership_id = $2 and read_at is null', [user.organisation_id, user.id]);
+      await query('update notifications set read_at = now() where organisation_id = $1 and (recipient_membership_id = $2 or recipient_membership_id is null) and read_at is null', [user.organisation_id, user.id]);
       return sendJson(response, 200, { ok: true });
     }
     const store = await getStore();
-    store.notifications.filter((notification) => notification.recipientId === user.id).forEach((notification) => { notification.read = true; });
+    (store.notifications || []).forEach((notification) => {
+      if (notification.recipientId === user.id || notification.recipientId === 'david' || !notification.recipientId) {
+        notification.read = true;
+        notification.read_at = new Date().toISOString();
+      }
+    });
     await saveStore(store);
     return sendJson(response, 200, { ok: true });
   }

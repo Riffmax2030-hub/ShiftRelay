@@ -5538,3 +5538,55 @@ textarea:focus-visible {
   color: #b45309;
   border: 1px solid #fde68a;
 }
+
+
+/* ==========================================================================
+   19. ENTERPRISE NOTIFICATION CENTRE SLIDE-OUT DRAWER & CATEGORIES
+   ========================================================================== */
+@media (min-width: 641px) {
+  .sr-notif-panel {
+    top: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    width: 420px !important;
+    max-width: 90vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-left: 1px solid var(--sr-border-medium) !important;
+    box-shadow: -14px 0 40px rgba(0, 0, 0, 0.28) !important;
+    transform: translateX(100%) !important;
+    opacity: 1 !important;
+    transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .sr-notif-panel-wrap.open .sr-notif-panel {
+    transform: translateX(0) !important;
+    pointer-events: auto !important;
+  }
+}
+
+.sr-notif-cat-btn {
+  transition: all 0.15s ease;
+}
+
+.sr-notif-cat-btn:hover {
+  border-color: var(--sr-primary) !important;
+}
+
+.sr-notif-cat-btn.active {
+  background: var(--sr-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--sr-primary) !important;
+}
+
+.sr-notif-item {
+  transition: background 0.15s ease, border-left-color 0.15s ease;
+}
+
+.sr-notif-item:hover {
+  background: var(--sr-bg-card-subtle, #f8fafc) !important;
+}
