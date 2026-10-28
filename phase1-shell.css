@@ -5499,3 +5499,42 @@ textarea:focus-visible {
   .sr-clock-timer { font-size: 52px !important; }
   .sr-metric-grid { grid-template-columns: repeat(4, 1fr) !important; }
 }
+
+
+/* ==========================================================================
+   18. DUAL-MODE ATTENDANCE VERIFICATION (GATE QR & GPS SNAPSHOT)
+   ========================================================================== */
+@keyframes srScanLine {
+  0% { top: 0%; opacity: 0.8; }
+  50% { top: 100%; opacity: 1; }
+  100% { top: 0%; opacity: 0.8; }
+}
+
+.sr-attendance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.sr-attendance-badge.qr {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.sr-attendance-badge.gps-valid {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.sr-attendance-badge.gps-flagged {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}

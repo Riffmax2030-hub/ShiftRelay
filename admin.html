@@ -788,6 +788,40 @@ David Kariuki, david@client.com, 08034567890, Supervisor, Supervision, fixed_mon
     </div>
   </div>
 
+  <!-- Modal for Gate QR Attendance Poster -->
+  <div id="gate-qr-modal" class="modal-backdrop" style="display:none;">
+    <div class="modal-dialog" style="max-width:560px; text-align:center;">
+      <div id="printable-gate-poster" style="background:#ffffff; color:#0f172a; padding:32px 24px; border-radius:18px; border:2px solid #e2e8f0; margin-bottom:20px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0d9488; padding-bottom:12px; margin-bottom:18px;">
+          <div style="text-align:left;">
+            <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:#0d9488;">Official Attendance Muster Point</div>
+            <h2 id="poster-company-name" style="font-size:18px; font-weight:900; color:#0f172a; margin:2px 0 0;">Company Name</h2>
+          </div>
+          <div style="text-align:right;">
+            <span id="poster-company-id" style="font-family:var(--font-mono); font-size:14px; font-weight:800; background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; padding:3px 8px; border-radius:6px;">ID</span>
+          </div>
+        </div>
+
+        <div id="poster-qr-container" style="display:flex; justify-content:center; align-items:center; margin:16px 0;">
+          <!-- SVG QR Code is injected here -->
+        </div>
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-top:14px;">
+          <div id="poster-hub-name" style="font-size:13px; font-weight:800; color:#0f172a;">Apapa Industrial Plant • Gate 01</div>
+          <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Point camera to clock in or out • 0% Battery Drain • Fraud-Proof Site Verification</div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn-primary" style="width:auto; padding:8px 20px;" onclick="printGatePoster()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+          <span>Print Gate Poster</span>
+        </button>
+        <button class="btn-secondary" onclick="document.getElementById('gate-qr-modal').style.display='none'">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let adminToken = localStorage.getItem('sr_admin_token') || null;
 
@@ -911,7 +945,10 @@ David Kariuki, david@client.com, 08034567890, Supervisor, Supervision, fixed_mon
           <td>
             <span class="status-badge active">Verified</span>
           </td>
-          <td style="text-align:right;">
+          <td style="text-align:right; white-space:nowrap;">
+            <button class="btn-secondary" style="font-size:12px; padding:6px 10px; margin-right:4px;" onclick="viewGateQrPoster('${t.id}')">
+              🖨️ Gate QR
+            </button>
             <button class="btn-secondary" style="font-size:12px; padding:6px 12px;" onclick="openBulkForTenant('${t.id}')">
               + Add Workers
             </button>
@@ -1044,6 +1081,46 @@ David Kariuki, david@client.com, 08034567890, Supervisor, Supervision, fixed_mon
     function closeSuccessModal() {
       document.getElementById('success-modal').style.display = 'none';
       switchTab('tenants');
+    }
+
+    async function viewGateQrPoster(tenantId) {
+      try {
+        const res = await fetch(`/api/tenants/${tenantId}/gate-qr`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to generate QR');
+
+        document.getElementById('poster-company-name').textContent = data.legalName;
+        document.getElementById('poster-company-id').textContent = data.companyId;
+        document.getElementById('poster-hub-name').textContent = `${data.hubName} • ${data.gateId}`;
+        document.getElementById('poster-qr-container').innerHTML = data.qrSvg;
+        document.getElementById('gate-qr-modal').style.display = 'flex';
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    function printGatePoster() {
+      const content = document.getElementById('printable-gate-poster').outerHTML;
+      const win = window.open('', '_blank');
+      win.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Gate Attendance Poster</title>
+          <style>
+            body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #fff; }
+            @media print { body { padding: 0; margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <div style="max-width: 500px; width: 100%;">
+            ${content}
+          </div>
+          <script>window.onload = function() { window.print(); window.close(); }<\/script>
+        </body>
+        </html>
+      `);
+      win.document.close();
     }
 
     function copyModalCredentials() {

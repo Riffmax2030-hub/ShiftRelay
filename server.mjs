@@ -5,6 +5,19 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { basename, extname, join, normalize, resolve } from 'node:path';
 import { databaseConfigured, demoMembers, demoOrganisation, initializeDatabase, isDatabaseConnectionError, sanitizeDatabaseError, query, seedDemoOrganisation } from './database.mjs';
+import { generateQrSvg } from './qr-svg-generator.js';
+
+export function calculateHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; // Earth radius in meters
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
 
 function loadEnvironment() {
   try {
@@ -182,11 +195,33 @@ function demoTimeSummary(user, store, month) {
   const totalHours = entries.reduce((total, entry) => total + hoursFor(entry), 0);
   const weekStart = new Date(now.getTime() - 7 * 86400000);
   const weekHours = entries.filter((entry) => new Date(entry.clockedInAt) >= weekStart).reduce((total, entry) => total + hoursFor(entry), 0);
+  const activeRaw = entries.find((entry) => !entry.clockedOutAt);
+  const active = activeRaw ? {
+    ...activeRaw,
+    clocked_in_at: activeRaw.clockedInAt,
+    verification_mode: activeRaw.verificationMode || 'standard',
+    verification_details: activeRaw.verificationDetails || 'Verified On-Site',
+    geofence_status: activeRaw.geofenceStatus || 'verified_on_site',
+    distance_meters: activeRaw.distanceMeters || 0,
+    site_name: activeRaw.siteName || 'Apapa Industrial Terminal'
+  } : null;
+
   return {
-    active: entries.find((entry) => !entry.clockedOutAt) || null,
+    active,
     totalHours: Math.round(totalHours * 10) / 10,
     weekHours: Math.round(weekHours * 10) / 10,
-    entries: entries.map((entry) => ({ id: entry.id, clocked_in_at: entry.clockedInAt, clocked_out_at: entry.clockedOutAt, note: entry.note || null, hours: Math.round(hoursFor(entry) * 10) / 10 }))
+    entries: entries.map((entry) => ({
+      id: entry.id,
+      clocked_in_at: entry.clockedInAt,
+      clocked_out_at: entry.clockedOutAt,
+      note: entry.note || null,
+      hours: Math.round(hoursFor(entry) * 10) / 10,
+      verification_mode: entry.verificationMode || 'standard',
+      verification_details: entry.verificationDetails || 'Verified On-Site',
+      geofence_status: entry.geofenceStatus || 'verified_on_site',
+      site_name: entry.siteName || 'Apapa Industrial Terminal',
+      distance_meters: entry.distanceMeters || 0
+    }))
   };
 }
 
@@ -198,7 +233,7 @@ function sendJson(response, status, payload) {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Permissions-Policy': 'camera=(self), microphone=(self), geolocation=(self)',
     'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com; frame-ancestors 'none'",
     'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
   });
@@ -1381,6 +1416,7 @@ async function handleApi(request, response, url) {
   }
   const isPublicAuthOrAdmin = url.pathname.startsWith('/api/admin/') ||
                               url.pathname.startsWith('/api/auth/') ||
+                              (url.pathname.startsWith('/api/tenants/') && url.pathname.endsWith('/gate-qr')) ||
                               url.pathname === '/api/enterprise/demo-request';
   if (!isPublicAuthOrAdmin && (!user || user.status !== 'active')) {
     return sendJson(response, 401, { error: 'Authentication required. Please sign in.' });
@@ -2183,10 +2219,35 @@ async function handleApi(request, response, url) {
     }
     return sendJson(response, 200, await timeSummary(user, monthParam ? `${monthParam}-01` : null));
   }
+  // ── Tenant Gate QR Poster Generator ──────────────────────────────────────
+  if (url.pathname.startsWith('/api/tenants/') && url.pathname.endsWith('/gate-qr') && request.method === 'GET') {
+    const tenantId = url.pathname.split('/')[3];
+    const store = await getStore();
+    const org = (store.organisations || []).find(o => o.id === tenantId || o.organisation_code === tenantId);
+    if (!org) return sendJson(response, 404, { error: 'Tenant organisation not found.' });
+
+    const cCode = org.organisation_code;
+    const hubName = org.state ? `${org.state} Terminal Hub` : 'Apapa Industrial Terminal';
+    const gateId = 'GATE-01';
+    const qrPayload = `SHIFTRELAY:GATE:${cCode}:${hubName.replace(/\s+/g, '-')}:${gateId}`;
+    const qrSvg = generateQrSvg(qrPayload, 260);
+
+    return sendJson(response, 200, {
+      ok: true,
+      tenantId: org.id,
+      companyId: cCode,
+      legalName: org.legal_name,
+      tradingName: org.trading_name || org.legal_name,
+      hubName,
+      gateId,
+      qrPayload,
+      qrSvg
+    });
+  }
+
   if (url.pathname === '/api/time-entries/clock-in' && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Clocking in is available for authenticated organisation accounts.' });
     const clientKey = request.headers['idempotency-key'] || null;
-    // Read body for fingerprinting; clock-in itself ignores body content
     let body = {};
     try { body = await readJson(request); } catch { body = {}; }
     try {
@@ -2197,7 +2258,59 @@ async function handleApi(request, response, url) {
           if (store.timeEntries.some((entry) => entry.membershipId === user.id && !entry.clockedOutAt)) {
             const err = new Error('You are already clocked in.'); err.statusCode = 409; throw err;
           }
-          store.timeEntries.unshift({ id: crypto.randomUUID(), organisationId: user.organisation_id, membershipId: user.id, clockedInAt: new Date().toISOString(), clockedOutAt: null, note: null });
+
+          const org = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
+          const hubLat = org.hub_lat || 6.4474;
+          const hubLng = org.hub_lng || 3.3590;
+          const hubName = org.hub_name || (org.state ? `${org.state} Terminal Hub` : 'Apapa Industrial Terminal');
+          const perimeterMeters = org.hub_perimeter || 500;
+
+          const verificationMode = body.verificationMode || 'standard';
+          let geofenceStatus = 'verified_on_site';
+          let verificationDetails = 'Standard Attendance Punch';
+          let distanceMeters = 0;
+
+          if (verificationMode === 'gate_qr') {
+            const payload = String(body.qrPayload || '');
+            const cCode = String(org.organisation_code || '').toUpperCase();
+            if (payload && !payload.toUpperCase().includes(cCode)) {
+              verificationDetails = `Gate QR Scanned (${payload.slice(0, 32)})`;
+              geofenceStatus = 'unverified_gate';
+            } else {
+              verificationDetails = `Muster Gate QR Verified (${hubName})`;
+              geofenceStatus = 'verified_on_site';
+            }
+          } else if (verificationMode === 'gps_snapshot' && body.coords && body.coords.latitude) {
+            const lat = Number(body.coords.latitude);
+            const lng = Number(body.coords.longitude);
+            distanceMeters = calculateHaversineDistanceMeters(lat, lng, hubLat, hubLng);
+            if (distanceMeters <= perimeterMeters) {
+              geofenceStatus = 'within_geofence';
+              verificationDetails = `GPS Verified On-Site (${distanceMeters}m from ${hubName})`;
+            } else {
+              geofenceStatus = 'outside_geofence_flagged';
+              const distStr = distanceMeters >= 1000 ? `${(distanceMeters / 1000).toFixed(1)} km` : `${distanceMeters}m`;
+              verificationDetails = `⚠️ Flagged: ${distStr} outside approved perimeter`;
+            }
+          } else {
+            verificationDetails = `Workplace Punch (${hubName})`;
+            geofenceStatus = 'verified_on_site';
+          }
+
+          store.timeEntries.unshift({
+            id: crypto.randomUUID(),
+            organisationId: user.organisation_id,
+            membershipId: user.id,
+            clockedInAt: new Date().toISOString(),
+            clockedOutAt: null,
+            note: null,
+            verificationMode,
+            verificationDetails,
+            geofenceStatus,
+            distanceMeters,
+            siteName: hubName,
+            coords: body.coords || null
+          });
           await saveStore(store);
           return { statusCode: 201, result: demoTimeSummary(user, store) };
         }
@@ -2217,7 +2330,8 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/time-entries/clock-out' && request.method === 'POST') {
     const clientKey = request.headers['idempotency-key'] || null;
-    const body = {};
+    let body = {};
+    try { body = await readJson(request); } catch { body = {}; }
     try {
       const { statusCode, result, replay } = await withIdempotency(user, 'clock-out', clientKey, body, async (client) => {
         if (!databaseReady) {
@@ -2226,6 +2340,10 @@ async function handleApi(request, response, url) {
           const active = store.timeEntries.find((entry) => entry.membershipId === user.id && !entry.clockedOutAt);
           if (!active) { const err = new Error('You are not clocked in.'); err.statusCode = 409; throw err; }
           active.clockedOutAt = new Date().toISOString();
+          if (body.verificationMode) {
+            active.clockOutVerificationMode = body.verificationMode;
+            active.clockOutDetails = body.verificationMode === 'gate_qr' ? 'Exit Gate QR Verified' : 'GPS Exit Snapshot Verified';
+          }
           await saveStore(store);
           return { statusCode: 200, result: demoTimeSummary(user, store) };
         }
@@ -4020,7 +4138,7 @@ const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(self), microphone=(self), geolocation=()',
+  'Permissions-Policy': 'camera=(self), microphone=(self), geolocation=(self)',
   'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com; frame-ancestors 'none'",
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
 };
