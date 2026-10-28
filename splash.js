@@ -7,8 +7,8 @@
  *     - Session found  -> fade splash, call login(user) directly (skip landing + entry)
  *     - No session     -> fade splash, show #sr-entry (the minimal Get Started screen)
  *  3. Entry screen:
- *     - "Get Started Free" -> opens the bottom-sheet modal on the Register tab
- *     - "Sign In"          -> opens the bottom-sheet modal on the Sign In tab
+ *     - "Request Enterprise Demo" -> opens the bottom-sheet modal on the Demo Request tab
+ *     - "Enterprise Sign In"     -> opens the bottom-sheet modal on the Tri-Factor Sign In tab
  *     - Demo role cards    -> login directly (if demoMode is on)
  */
 
@@ -150,80 +150,6 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Submit Enterprise Request';
-    }
-  });
-
-  // -- Register form in sheet --------------------------------------------------
-  document.getElementById('sr-sheet-register-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = e.currentTarget.querySelector('.sr-sheet-submit');
-    const msg = document.getElementById('sr-sheet-register-msg');
-    const data = Object.fromEntries(new FormData(e.currentTarget));
-    if (data.password !== data.confirmPassword) {
-      if (msg) msg.textContent = 'Passwords do not match.';
-      return;
-    }
-    btn.disabled = true;
-    btn.textContent = 'Creating...';
-    if (msg) msg.textContent = '';
-    try {
-      const result = await fetch('/api/organisations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      const payload = await result.json();
-      if (!result.ok) throw new Error(payload.error || 'Registration failed');
-      closeModal();
-      hideEntry();
-      if (typeof window._srLoginCallback === 'function') {
-        window._srLoginCallback(payload.user);
-      }
-    } catch (err) {
-      if (msg) msg.textContent = err.message;
-      btn.disabled = false;
-      btn.textContent = 'Create Workplace';
-    }
-  });
-
-  // -- Join Workplace form in sheet ---------------------------------------------
-  document.getElementById('sr-sheet-join-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = e.currentTarget.querySelector('.sr-sheet-submit');
-    const msg = document.getElementById('sr-sheet-join-msg');
-    const data = Object.fromEntries(new FormData(e.currentTarget));
-    if (data.password !== data.confirmPassword) {
-      if (msg) {
-        msg.style.color = '#ef4444';
-        msg.textContent = 'Passwords do not match.';
-      }
-      return;
-    }
-    btn.disabled = true;
-    btn.textContent = 'Submitting...';
-    if (msg) { msg.textContent = ''; msg.style.color = ''; }
-    try {
-      const result = await fetch('/api/organisation-memberships', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      const payload = await result.json();
-      if (!result.ok) throw new Error(payload.error || 'Request failed');
-      e.currentTarget.reset();
-      if (msg) {
-        msg.style.color = '#10b981';
-        msg.textContent = 'Access request submitted! An owner or supervisor must approve your membership before you can sign in.';
-      }
-      btn.disabled = false;
-      btn.textContent = 'Request Submitted';
-    } catch (err) {
-      if (msg) {
-        msg.style.color = '#ef4444';
-        msg.textContent = err.message;
-      }
-      btn.disabled = false;
-      btn.textContent = 'Request Access to Workplace';
     }
   });
 

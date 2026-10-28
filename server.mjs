@@ -1362,27 +1362,14 @@ async function handleApi(request, response, url) {
     }
   }
   if (url.pathname === '/api/organisations' && request.method === 'POST') {
-    try {
-      const body = await readJson(request);
-      if (!body.legalName || !body.workEmail || !body.ownerName || typeof body.password !== 'string' || body.password.length < 10) return sendJson(response, 400, { error: 'Organisation name, owner name, work email, and a password of at least 10 characters are required.' });
-      const organisation = await registerOrganisation(body);
-      const session = await createSession(organisation.ownerMembershipId, organisation.ownerMembershipId);
-      response.setHeader('Set-Cookie', sessionCookie(session));
-      return sendJson(response, 201, { organisation, user: { id: organisation.ownerMembershipId, name: body.ownerName, email: body.workEmail, role: 'owner', title: 'Organisation owner', department: 'Leadership', organisationId: organisation.organisationId } });
-    } catch (error) {
-      if (isDatabaseConnectionError(error)) return sendDatabaseError(response, error);
-      return sendJson(response, 500, { error: 'Registration failed. Please try again.' });
-    }
+    return sendJson(response, 403, {
+      error: 'Public self-registration is disabled. ShiftRelay is an enterprise multi-tenant HCM platform. Client organisations are provisioned exclusively through authorized concierge implementation.'
+    });
   }
   if (url.pathname === '/api/organisation-memberships' && request.method === 'POST') {
-    try {
-      const body = await readJson(request);
-      if (!body.organisationCode || !body.fullName || !body.email || !body.position || typeof body.password !== 'string' || body.password.length < 10) return sendJson(response, 400, { error: 'Organisation code, name, position, and a password of at least 10 characters are required.' });
-      return sendJson(response, 201, { membership: await enrolWorker(body) });
-    } catch (error) {
-      if (isDatabaseConnectionError(error)) return sendDatabaseError(response, error);
-      return sendJson(response, 400, { error: error.message });
-    }
+    return sendJson(response, 403, {
+      error: 'Public self-enrolment is disabled. Frontline specialist accounts are provisioned exclusively via administrative bulk upload or encrypted invitation tokens.'
+    });
   }
   if (!user || user.status !== 'active') return sendJson(response, 401, { error: 'Authentication required. Please sign in.' });
 

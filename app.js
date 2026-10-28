@@ -89,10 +89,8 @@ function bindAccessActions(){
     button.addEventListener('click', (e) => {
       e.preventDefault();
       const access = button.dataset.access;
-      if (access === 'register' || access === 'demo-request') {
+      if (access === 'register' || access === 'demo-request' || access === 'join') {
         renderOrganisationForm();
-      } else if (access === 'join') {
-        renderJoinForm();
       } else {
         renderLogin();
       }
@@ -255,33 +253,8 @@ function renderOrganisationForm(){
 }
 
 function renderJoinForm(){
-  const panel = $('#access-panel');
-  if (!panel) return;
-  panel.innerHTML = `
-    ${renderPortalTabs('join')}
-    <p class="eyebrow">JOIN EXISTING WORKPLACE</p>
-    <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Enter your Company ID.</h2>
-    <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">Provided by your shift supervisor or operations manager.</p>
-    <form class="access-form" id="join-form">
-      <label>Company / Organisation ID<input name="organisationCode" required placeholder="e.g. 246701" /></label>
-      <label>Your full name<input name="fullName" required placeholder="e.g. Alex Morgan" /></label>
-      <label>Work or personal email<input name="email" type="email" required placeholder="alex@workplace.com" /></label>
-      <label>Staff reference or badge ID<input name="employeeReference" required placeholder="e.g. EMP-9921" /></label>
-      <label>Position / Shift title<input name="position" required placeholder="e.g. ICU Night Specialist or Line Lead" /></label>
-      <label>Create password<input name="password" type="password" minlength="8" required autocomplete="new-password" placeholder="At least 8 characters" /></label>
-      <label>Confirm password<input name="confirmPassword" type="password" minlength="8" required autocomplete="new-password" placeholder="Re-enter password" /></label>
-      <label class="checkbox"><input name="termsAccepted" type="checkbox" required /> I agree to ShiftRelay <a href="terms.html" class="terms-link-trigger" style="text-decoration: underline; color: inherit; font-weight: 700;">Terms &amp; Workplace Security Policy</a>.</label>
-      <div class="button-row" style="margin-top:14px;">
-        <button class="primary" type="submit" style="width:100%;justify-content:center;font-weight:700;font-size:15px;padding:12px;">Request Access to Workplace</button>
-      </div>
-    </form>
-    <p class="form-message" id="form-message"></p>
-  `;
-  $('#join-form')?.addEventListener('submit', submitJoin);
-  bindAccessActions();
+  renderOrganisationForm();
 }
-async function submitOrganisation(event){event.preventDefault();const form=Object.fromEntries(new FormData(event.currentTarget));if(form.password!==form.confirmPassword){$('#form-message').textContent='Passwords do not match.';return}delete form.confirmPassword;const button=event.submitter;button.disabled=true;button.textContent='Creating…';try{const result=await api('/api/organisations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});toast(`Organisation created. Your ID is ${result.organisation.organisationCode}.`);login(result.user)}catch(error){$('#form-message').textContent=error.message}finally{button.disabled=false;button.textContent='Create organisation'}}
-async function submitJoin(event){event.preventDefault();const form=Object.fromEntries(new FormData(event.currentTarget));if(form.password!==form.confirmPassword){$('#form-message').textContent='Passwords do not match.';return}delete form.confirmPassword;const button=event.submitter;button.disabled=true;button.textContent='Sending…';try{await api('/api/organisation-memberships',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});$('#form-message').textContent='Access request sent. Your owner or supervisor must approve it before you can enter the workplace.';event.currentTarget.reset()}catch(error){$('#form-message').textContent=error.message}finally{button.disabled=false;button.textContent='Request access'}}
 function login(user){state.user=user;sessionStorage.setItem('shiftrelay-user',user.id);try{localStorage.setItem('shiftrelay-user-data',JSON.stringify(user))}catch(e){}$('#login-view').classList.add('hidden');$('#app-view').classList.remove('hidden');$('#app-view').dataset.role=user.role;$('#app-view').dataset.workerName=user.name;$('#app-view').dataset.workerTitle=user.title||'Workplace member';const entryEl=document.getElementById('sr-entry');if(entryEl){entryEl.style.display='none';}const modalEl=document.getElementById('sr-login-modal');if(modalEl){modalEl.classList.remove('open');}const initials=user.name.split(' ').map((n)=>n[0]).join('');$('#sidebar-avatar').textContent=initials;$('#sidebar-name').textContent=user.name;$('#sidebar-role').textContent=user.title;const ha=$('#header-avatar');if(ha){if(user.avatar_data_url){ha.textContent='';ha.style.backgroundImage=`url('${user.avatar_data_url}')`;ha.style.backgroundSize='cover';ha.style.backgroundPosition='center';ha.style.color='transparent';}else{ha.textContent=initials;ha.style.backgroundImage='';ha.style.color='';}}const hn=$('#header-name');if(hn){hn.textContent=user.name}const hr=$('#header-role');if(hr){hr.textContent=user.title||user.role}setApiStatus();if(window.Phase1Shell?.mount){window.Phase1Shell.mount();}else{renderDashboard();}refreshNotifications();window.connectTeamRealtime?.()}
 window._srLoginCallback = (user) => login(user);
 
