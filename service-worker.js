@@ -1,4 +1,4 @@
-const CACHE = 'shiftrelay-v92-executive-analytics';
+const CACHE = 'shiftrelay-v93-biometrics-offline-payroll';
 const ASSETS = [
   '/',
   '/index.html',

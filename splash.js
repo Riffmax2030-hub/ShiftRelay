@@ -86,8 +86,65 @@
   // -- Close button in modal ---------------------------------------------------
   document.getElementById('sr-modal-close')?.addEventListener('click', closeModal);
 
-  // -- Sign-in form in sheet (Tri-Factor) --------------------------------------
-  document.getElementById('sr-sheet-signin-form')?.addEventListener('submit', async (e) => {
+  // -- Sign-in form in sheet (Tri-Factor + Biometrics) -----------------------
+  const signinForm = document.getElementById('sr-sheet-signin-form');
+
+  // Inject 1-Touch Quick Biometric button if enrolled on device
+  if (signinForm) {
+    const checkBiometricEnrollment = () => {
+      const bioCred = window.ShiftRelayBiometrics?.getCredential?.();
+      let bioBtn = document.getElementById('sr-btn-biometric-signin');
+      if (bioCred && window.ShiftRelayBiometrics?.isSupported?.()) {
+        if (!bioBtn) {
+          bioBtn = document.createElement('button');
+          bioBtn.type = 'button';
+          bioBtn.id = 'sr-btn-biometric-signin';
+          bioBtn.className = 'sr-btn';
+          bioBtn.style.cssText = 'width:100%;margin-bottom:14px;padding:12px;background:#059669;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 2px 8px rgba(5,150,105,0.3);';
+          bioBtn.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04A16.033 16.033 0 0 1 4 12c0-4.418 3.582-8 8-8s8 3.582 8 8a15.96 15.96 0 0 1-.95 5.46M12 7c-2.761 0-5 2.239-5 5 0 2.26 1.48 4.17 3.5 4.8m3.5-4.8c0-.68-.14-1.33-.39-1.92"/></svg>
+            <span>Touch Biometric Sign In (${escapeHtml(bioCred.email.split('@')[0])})</span>
+          `;
+          const divider = document.createElement('div');
+          divider.id = 'sr-bio-divider';
+          divider.style.cssText = 'display:flex;align-items:center;margin:12px 0 16px;color:var(--text-muted);font-size:11px;';
+          divider.innerHTML = '<span style="flex:1;height:1px;background:var(--border,#e2e8f0);"></span><span style="padding:0 8px;text-transform:uppercase;font-weight:600;">or enter credentials</span><span style="flex:1;height:1px;background:var(--border,#e2e8f0);"></span>';
+
+          signinForm.prepend(divider);
+          signinForm.prepend(bioBtn);
+
+          bioBtn.addEventListener('click', async () => {
+            const msg = document.getElementById('sr-sheet-msg');
+            bioBtn.disabled = true;
+            bioBtn.innerHTML = '<span>Verifying Fingerprint / Face ID...</span>';
+            if (msg) { msg.textContent = ''; msg.style.color = ''; }
+            try {
+              const res = await window.ShiftRelayBiometrics.authenticate();
+              closeModal();
+              hideEntry();
+              if (typeof window._srLoginCallback === 'function') {
+                window._srLoginCallback(res.user);
+              }
+            } catch (err) {
+              bioBtn.disabled = false;
+              bioBtn.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04A16.033 16.033 0 0 1 4 12c0-4.418 3.582-8 8-8s8 3.582 8 8a15.96 15.96 0 0 1-.95 5.46M12 7c-2.761 0-5 2.239-5 5 0 2.26 1.48 4.17 3.5 4.8m3.5-4.8c0-.68-.14-1.33-.39-1.92"/></svg>
+                <span>Touch Biometric Sign In</span>
+              `;
+              if (msg) {
+                msg.style.color = '#ef4444';
+                msg.textContent = err.message;
+              }
+            }
+          });
+        }
+      }
+    };
+
+    setTimeout(checkBiometricEnrollment, 200);
+  }
+
+  signinForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = e.currentTarget.querySelector('.sr-sheet-submit');
     const msg = document.getElementById('sr-sheet-msg');
@@ -102,6 +159,19 @@
       });
       const data = await result.json();
       if (!result.ok) throw new Error(data.error || 'Sign in failed');
+
+      // Prompt for biometric enrollment if not yet registered on this hardware
+      if (window.ShiftRelayBiometrics?.isSupported?.() && !window.ShiftRelayBiometrics?.hasEnrolled?.()) {
+        try {
+          const askBio = confirm('ShiftRelay Enterprise: Would you like to enable 1-Touch Fingerprint / Face Unlock for instant access next time?');
+          if (askBio) {
+            await window.ShiftRelayBiometrics.enroll(data.user);
+          }
+        } catch (bioErr) {
+          console.warn('Biometric enrollment skipped or cancelled:', bioErr.message);
+        }
+      }
+
       closeModal();
       hideEntry();
       if (typeof window._srLoginCallback === 'function') {

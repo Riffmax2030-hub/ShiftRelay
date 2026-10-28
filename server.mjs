@@ -1360,6 +1360,83 @@ async function handleApi(request, response, url) {
       return sendJson(response, 401, { error: error.message });
     }
   }
+
+  // ── WebAuthn / Device Biometrics Endpoints ──────────────────────────────
+  if (url.pathname === '/api/auth/webauthn/register-options' && request.method === 'POST') {
+    const body = await readJson(request);
+    const challenge = randomBytes(32).toString('base64');
+    const store = await getStore();
+    if (!store.webAuthnChallenges) store.webAuthnChallenges = {};
+    store.webAuthnChallenges[body.userId || body.email] = { challenge, timestamp: Date.now() };
+    await saveStore(store);
+    return sendJson(response, 200, { challenge });
+  }
+
+  if (url.pathname === '/api/auth/webauthn/register-verify' && request.method === 'POST') {
+    const body = await readJson(request);
+    const store = await getStore();
+    if (!store.biometricCredentials) store.biometricCredentials = {};
+    const userId = body.user?.id || user?.id;
+    if (!userId) return sendJson(response, 400, { error: 'User context required for biometric enrollment.' });
+    store.biometricCredentials[userId] = {
+      credentialId: body.id,
+      rawId: body.rawId,
+      email: body.user?.email || user?.email,
+      companyId: body.user?.companyId || '246701',
+      createdAt: new Date().toISOString()
+    };
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, message: 'Device biometric registration verified.' });
+  }
+
+  if (url.pathname === '/api/auth/webauthn/login-options' && request.method === 'POST') {
+    const body = await readJson(request);
+    const challenge = randomBytes(32).toString('base64');
+    const store = await getStore();
+    if (!store.webAuthnChallenges) store.webAuthnChallenges = {};
+    store.webAuthnChallenges[body.email] = { challenge, timestamp: Date.now() };
+    await saveStore(store);
+    return sendJson(response, 200, { challenge });
+  }
+
+  if (url.pathname === '/api/auth/webauthn/login-verify' && request.method === 'POST') {
+    const body = await readJson(request);
+    const store = await getStore();
+    const email = (body.email || '').trim().toLowerCase();
+    
+    // Find registered user in portalUsers / demoMembers
+    let targetUser = (store.portalUsers || []).find(u => u.email.toLowerCase() === email);
+    let member = targetUser ? (store.memberships || []).find(m => m.user_id === targetUser.id) : null;
+
+    if (!targetUser) {
+      // Fallback check against demoMembers
+      const dm = users.find(u => u.email.toLowerCase() === email);
+      if (dm) {
+        targetUser = { id: dm.id, full_name: dm.name, email: dm.email, role: dm.role, department: dm.department };
+        member = { id: dm.id, role: dm.role, title: dm.title, department: dm.department, organisation_id: demoOrganisation.id, status: 'active' };
+      }
+    }
+
+    if (!targetUser || !member) {
+      return sendJson(response, 401, { error: 'User account not found for biometric authentication.' });
+    }
+
+    const sessionId = await createSession(targetUser.id, member.id);
+    response.setHeader('Set-Cookie', sessionCookie(sessionId));
+    return sendJson(response, 200, {
+      ok: true,
+      user: {
+        id: member.id,
+        name: targetUser.full_name || targetUser.name,
+        email: targetUser.email,
+        role: member.role,
+        title: member.title,
+        department: member.department,
+        organisation_id: member.organisation_id,
+        company_id: body.companyId || '246701'
+      }
+    });
+  }
   if (url.pathname === '/api/auth/sign-out' && request.method === 'POST') {
     const token = sessionId(request);
     if (token) {

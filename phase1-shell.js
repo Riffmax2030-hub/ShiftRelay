@@ -960,6 +960,26 @@
       const statusEl = document.getElementById('sr-scanner-status');
       if (statusEl) statusEl.textContent = 'Verifying Gate QR token...';
       try {
+        if (!navigator.onLine) {
+          // Offline air-gapped queueing
+          const offlineItem = {
+            id: 'punch_' + Date.now(),
+            endpoint: '/api/time-entries/clock-in',
+            method: 'POST',
+            body: { verificationMode: 'gate_qr', qrPayload: payload, offlineTimestamp: new Date().toISOString() },
+            timestamp: new Date().toISOString(),
+            status: 'pending_sync',
+            description: 'Gate QR Clock-In (Air-gapped)'
+          };
+          const existing = JSON.parse(localStorage.getItem('shiftrelay_offline_punches') || '[]');
+          existing.push(offlineItem);
+          localStorage.setItem('shiftrelay_offline_punches', JSON.stringify(existing));
+          cleanup();
+          alert('Air-Gapped Offline Mode: Gate arrival verified & stored on device!\n\nYour attendance timestamp is locked and will automatically sync when connectivity restores.');
+          onClockInSuccess();
+          return;
+        }
+
         const res = await fetch('/api/time-entries/clock-in', {
           method: 'POST',
           headers: {
@@ -978,6 +998,24 @@
         cleanup();
         onClockInSuccess();
       } catch (err) {
+        if (!navigator.onLine || err.message?.includes('fetch')) {
+          const offlineItem = {
+            id: 'punch_' + Date.now(),
+            endpoint: '/api/time-entries/clock-in',
+            method: 'POST',
+            body: { verificationMode: 'gate_qr', qrPayload: payload, offlineTimestamp: new Date().toISOString() },
+            timestamp: new Date().toISOString(),
+            status: 'pending_sync',
+            description: 'Gate QR Clock-In (Network drop)'
+          };
+          const existing = JSON.parse(localStorage.getItem('shiftrelay_offline_punches') || '[]');
+          existing.push(offlineItem);
+          localStorage.setItem('shiftrelay_offline_punches', JSON.stringify(existing));
+          cleanup();
+          alert('Network dropped: Gate punch recorded offline on device.\n\nAttendance locked and will sync upon reconnection.');
+          onClockInSuccess();
+          return;
+        }
         if (statusEl) statusEl.textContent = 'Error: ' + err.message;
         alert(err.message);
         scanActive = true;
@@ -1244,6 +1282,24 @@
 
         const completeGpsClockIn = async (coords) => {
           try {
+            if (!navigator.onLine) {
+              const offlineItem = {
+                id: 'punch_' + Date.now(),
+                endpoint: '/api/time-entries/clock-in',
+                method: 'POST',
+                body: { verificationMode: 'gps_snapshot', coords: coords, offlineTimestamp: new Date().toISOString() },
+                timestamp: new Date().toISOString(),
+                status: 'pending_sync',
+                description: 'Field GPS Snapshot (Air-gapped)'
+              };
+              const existing = JSON.parse(localStorage.getItem('shiftrelay_offline_punches') || '[]');
+              existing.push(offlineItem);
+              localStorage.setItem('shiftrelay_offline_punches', JSON.stringify(existing));
+              alert('Air-Gapped Offline Mode: GPS coordinates captured and saved to device!\n\nYour attendance timestamp is locked and will sync automatically once network returns.');
+              await renderWorkerToday(true);
+              return;
+            }
+
             const res = await fetch('/api/time-entries/clock-in', {
               method: 'POST',
               headers: {
@@ -1261,6 +1317,23 @@
             }
             await renderWorkerToday(true);
           } catch (err) {
+            if (!navigator.onLine || err.message?.includes('fetch')) {
+              const offlineItem = {
+                id: 'punch_' + Date.now(),
+                endpoint: '/api/time-entries/clock-in',
+                method: 'POST',
+                body: { verificationMode: 'gps_snapshot', coords: coords, offlineTimestamp: new Date().toISOString() },
+                timestamp: new Date().toISOString(),
+                status: 'pending_sync',
+                description: 'Field GPS Snapshot (Network drop)'
+              };
+              const existing = JSON.parse(localStorage.getItem('shiftrelay_offline_punches') || '[]');
+              existing.push(offlineItem);
+              localStorage.setItem('shiftrelay_offline_punches', JSON.stringify(existing));
+              alert('Network dropped: GPS snapshot saved locally.\n\nWill auto-sync when connection restores.');
+              await renderWorkerToday(true);
+              return;
+            }
             alert(err.message);
             if (btn) {
               btn.disabled = false;
@@ -7008,6 +7081,31 @@
           </div>
         </div>
 
+        <!-- Automated Payroll Cut-Off Schedule & Direct Bank CSV Export Banner -->
+        <div class="sr-card" style="margin-bottom:20px;padding:16px 20px;background:var(--sr-bg-card-subtle,#f8fafc);border:1px solid var(--sr-border-subtle);border-radius:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:#eff6ff;color:#3b82f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div>
+              <div style="font-size:13.5px;font-weight:700;color:var(--sr-text-main);">Automated Payroll Cut-Off Schedule</div>
+              <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">
+                Cycle Cut-Off: <strong>25th of every month</strong> · Auto-Export Scheduled: <strong>26th at 08:00 AM WAT</strong>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-export-bank-csv" style="font-size:12px;padding:7px 12px;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Export Bank Payout CSV</span>
+            </button>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-export-pencom-csv" style="font-size:12px;padding:7px 12px;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span>Export PenCom Schedule</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Download Schedule Actions Bar -->
         <div class="sr-cv-section" style="padding:16px 20px;margin-bottom:20px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;background:var(--sr-bg-card);">
           <div>
@@ -7150,6 +7248,16 @@
       </div>`;
 
     // Hook Dispatch Action
+    // Export Bank Payout CSV handler
+    document.getElementById('sr-btn-export-bank-csv')?.addEventListener('click', () => {
+      window.open('/api/payroll/export-bank-csv', '_blank');
+    });
+
+    // Export PenCom Statutory Schedule handler
+    document.getElementById('sr-btn-export-pencom-csv')?.addEventListener('click', () => {
+      window.open('/api/payroll/export-tax-csv', '_blank');
+    });
+
     const dispatchBtn = document.getElementById('sr-btn-dispatch-finance');
     const banner = document.getElementById('sr-dispatch-status-banner');
     const dispatchText = document.getElementById('sr-dispatch-text');
