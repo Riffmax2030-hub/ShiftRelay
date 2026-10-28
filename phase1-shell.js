@@ -65,7 +65,8 @@
   function isAuthorizedView(viewName, isManager, role) {
     const userRole = role || getUser()?.role;
     const allowedWorker = ['today', 'handovers', 'me', 'schedule'];
-    const allowedManager = ['overview', 'schedule', 'handovers', 'team', 'approvals', 'me'];
+    const allowedManager = ['overview', 'schedule', 'handovers', 'team', 'approvals', 'me',
+      'timesheets', 'open-shifts', 'payroll', 'analytics'];
     if (userRole === 'owner') allowedManager.push('settings');
     return isManager ? allowedManager.includes(viewName) : allowedWorker.includes(viewName);
   }
@@ -619,6 +620,10 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><polyline points="15 15 21 21 15 21"/></svg>
                 <span>Push to Finance</span>
               </button>
+              <button class="sr-nav-btn ${view === 'analytics' ? 'active' : ''}" data-sr-view="analytics" style="border-top:1px solid var(--sr-border-subtle);margin-top:4px;padding-top:12px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <span>Executive Analytics</span>
+              </button>
               ${user.role === 'owner' ? `
                 <button class="sr-nav-btn ${view === 'settings' ? 'active' : ''}" data-sr-view="settings">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -864,6 +869,8 @@
       await renderComplianceGoals();
     } else if (view === 'payroll') {
       await renderPushToFinance();
+    } else if (view === 'analytics') {
+      await renderExecutiveAnalytics();
     } else if (view === 'notifications') {
       await (isManager ? renderManagerOverview() : renderWorkerToday());
       toggleNotificationPanel(true);
@@ -8196,6 +8203,346 @@
       io.observe(el);
     });
   }
+
+  // ── Priority 5: Enterprise Executive Analytics Dashboard ──────────────────────
+  async function renderExecutiveAnalytics() {
+    const main = document.getElementById('sr-main');
+    if (!main) return;
+
+    // Loading skeleton
+    main.innerHTML = `
+      <div style="padding:24px 28px;">
+        <div class="sr-skeleton" style="height:32px;width:55%;border-radius:8px;margin-bottom:8px;"></div>
+        <div class="sr-skeleton" style="height:16px;width:38%;border-radius:6px;margin-bottom:32px;"></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
+          ${[1,2,3,4].map(() => `<div class="sr-skeleton" style="height:110px;border-radius:12px;"></div>`).join('')}
+        </div>
+        <div class="sr-skeleton" style="height:260px;border-radius:12px;margin-bottom:16px;"></div>
+        <div class="sr-skeleton" style="height:220px;border-radius:12px;"></div>
+      </div>
+    `;
+
+    let data = {};
+    try {
+      const res = await fetch('/api/analytics');
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to load analytics');
+      data = await res.json();
+    } catch (err) {
+      main.innerHTML = `
+        <div style="padding:48px 28px;text-align:center;">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" style="margin-bottom:12px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <p style="color:var(--sr-text-muted);margin:0 0 16px;">${escapeHtml(err.message)}</p>
+          <button class="sr-btn sr-btn-secondary" onclick="navigate('analytics')">Retry</button>
+        </div>
+      `;
+      return;
+    }
+
+    const { tenant = {}, headcount = {}, attendance = {}, hoursAndOvertime = {}, payrollBurn = {}, unitBreakdown = [], statutory = {} } = data;
+
+    // ── Helpers ──
+    const fmt = (n) => Number(n).toLocaleString('en-NG');
+    const fmtM = (n) => `₦${(Number(n) / 1e6).toFixed(2)}M`;
+    const pct = (n) => `${Number(n).toFixed(1)}%`;
+
+    // ── Budget bar width ──
+    const budgetUsed = Math.min(100, Number(payrollBurn.budgetUtilizationPercent) || 0);
+    const budgetColor = budgetUsed >= 95 ? '#ef4444' : budgetUsed >= 85 ? '#f59e0b' : '#10b981';
+    const qrW = Math.min(100, Number(attendance.gateQrPercent) || 0);
+    const gpsW = Math.min(100, Number(attendance.gpsSnapshotPercent) || 0);
+    const flagW = Math.min(100, attendance.outOfBoundsFlagged > 0 ? Math.round((attendance.outOfBoundsFlagged / attendance.totalPunches) * 100) : 0);
+
+    main.innerHTML = `
+      <!-- ── Page Header ── -->
+      <div style="padding:24px 28px 0;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px;">
+          <div>
+            <h1 style="margin:0;font-size:22px;font-weight:800;color:var(--sr-text-main);letter-spacing:-0.4px;">Executive Analytics</h1>
+            <p style="margin:4px 0 0;font-size:13px;color:var(--sr-text-muted);">
+              ${escapeHtml(tenant.companyId || '')} &nbsp;·&nbsp; ${escapeHtml(tenant.companyName || '')} &nbsp;·&nbsp; ${escapeHtml(tenant.hubName || '')}
+            </p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:11px;padding:4px 10px;background:var(--sr-bg-card-subtle,#f1f5f9);color:var(--sr-text-muted);border-radius:20px;border:1px solid var(--sr-border-subtle);">
+              ${escapeHtml(tenant.reportPeriod || '')}
+            </span>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-analytics-export-btn" style="font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export Audit Brief
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Compliance Status Bar ── -->
+        <div style="display:flex;align-items:center;gap:10px;margin:14px 0 20px;padding:10px 14px;background:var(--sr-bg-card-subtle,#f8fafc);border:1px solid var(--sr-border-subtle);border-radius:10px;flex-wrap:wrap;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;flex-shrink:0;"></span>
+          <span style="font-size:12px;color:var(--sr-text-muted);font-weight:500;">Payroll Status:</span>
+          <span style="font-size:12px;color:var(--sr-text-main);font-weight:700;">${escapeHtml(payrollBurn.statusLabel || 'Pending')}</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--sr-text-muted);">Statutory remittance due: <b>${escapeHtml(statutory.remittanceDueDate || '—')}</b></span>
+        </div>
+
+        <!-- ── KPI Stat Cards ── -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
+
+          <!-- Card 1: Attendance Rate -->
+          <div class="sr-card" style="padding:20px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <span style="font-size:12px;font-weight:600;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.6px;">Attendance Rate</span>
+              <div style="width:34px;height:34px;border-radius:10px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              </div>
+            </div>
+            <div style="font-size:32px;font-weight:800;color:#10b981;letter-spacing:-1px;line-height:1;">${pct(attendance.attendanceRatePercent)}</div>
+            <div style="font-size:12px;color:var(--sr-text-muted);margin-top:6px;">${pct(attendance.punctualityRatePercent)} on-time punctuality</div>
+            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:3px;">${fmt(headcount.absentToday)} absent · ${fmt(headcount.onLeave)} on leave</div>
+          </div>
+
+          <!-- Card 2: Payroll Burn -->
+          <div class="sr-card" style="padding:20px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <span style="font-size:12px;font-weight:600;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.6px;">Payroll Burn vs Budget</span>
+              <div style="width:34px;height:34px;border-radius:10px;background:#fffbeb;display:flex;align-items:center;justify-content:center;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+            </div>
+            <div style="font-size:22px;font-weight:800;color:var(--sr-text-main);letter-spacing:-0.5px;line-height:1;">${fmtM(payrollBurn.monthlyGrossBurnNgn)}</div>
+            <div style="font-size:12px;color:var(--sr-text-muted);margin:4px 0 10px;">of ${fmtM(payrollBurn.monthlyBudgetNgn)} approved budget</div>
+            <div style="background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:6px;overflow:hidden;">
+              <div style="width:${budgetUsed}%;height:100%;background:${budgetColor};border-radius:999px;transition:width 0.8s ease;"></div>
+            </div>
+            <div style="font-size:11px;color:${budgetColor};font-weight:700;margin-top:5px;">${pct(payrollBurn.budgetUtilizationPercent)} Budget Utilized</div>
+          </div>
+
+          <!-- Card 3: Active Workforce -->
+          <div class="sr-card" style="padding:20px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <span style="font-size:12px;font-weight:600;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.6px;">Active Workforce</span>
+              <div style="width:34px;height:34px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+            </div>
+            <div style="font-size:32px;font-weight:800;color:#3b82f6;letter-spacing:-1px;line-height:1;">${fmt(headcount.activeOnShift)}</div>
+            <div style="font-size:12px;color:var(--sr-text-muted);margin-top:6px;">on-shift now</div>
+            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:3px;">${fmt(headcount.totalRoster)} total rostered staff</div>
+          </div>
+
+          <!-- Card 4: Overtime Exposure -->
+          <div class="sr-card" style="padding:20px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <span style="font-size:12px;font-weight:600;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.6px;">Overtime Exposure</span>
+              <div style="width:34px;height:34px;border-radius:10px;background:#fef2f2;display:flex;align-items:center;justify-content:center;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+            </div>
+            <div style="font-size:32px;font-weight:800;color:#ef4444;letter-spacing:-1px;line-height:1;">${fmt(hoursAndOvertime.overtimeHours)}<span style="font-size:16px;font-weight:600;"> hrs</span></div>
+            <div style="font-size:12px;color:var(--sr-text-muted);margin-top:6px;">₦${fmt(hoursAndOvertime.overtimeSpendNgn)} accrued spend</div>
+            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:3px;">${fmt(hoursAndOvertime.totalHours)} total hrs · ${pct(hoursAndOvertime.complianceRate)} compliance</div>
+          </div>
+        </div>
+
+        <!-- ── Row 2: Dual-Mode Attendance Compliance + Statutory Remittance ── -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;" class="sr-analytics-2col">
+
+          <!-- Dual-Mode Compliance Gauge -->
+          <div class="sr-card" style="padding:22px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <h3 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">Dual-Mode Attendance Compliance</h3>
+              <span style="font-size:11px;padding:3px 8px;background:#ecfdf5;color:#059669;border-radius:4px;font-weight:700;">VERIFIED</span>
+            </div>
+            <p style="margin:0 0 18px;font-size:12px;color:var(--sr-text-muted);">${fmt(attendance.totalPunches)} punches verified this period</p>
+
+            <!-- Gate QR -->
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
+                  <span style="font-size:12px;font-weight:600;color:var(--sr-text-main);">Gate QR Muster</span>
+                  <span style="font-size:10px;background:#ecfdf5;color:#059669;padding:1px 6px;border-radius:3px;font-weight:700;">ZERO BATTERY</span>
+                </div>
+                <span style="font-size:13px;font-weight:700;color:#059669;">${attendance.gateQrPercent}% · ${fmt(attendance.gateQrCount)}</span>
+              </div>
+              <div style="background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:8px;overflow:hidden;">
+                <div style="width:${qrW}%;height:100%;background:#10b981;border-radius:999px;"></div>
+              </div>
+            </div>
+
+            <!-- GPS Snapshot -->
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
+                  <span style="font-size:12px;font-weight:600;color:var(--sr-text-main);">Field GPS Snapshot</span>
+                  <span style="font-size:10px;background:#eff6ff;color:#3b82f6;padding:1px 6px;border-radius:3px;font-weight:700;">1.5s BURST</span>
+                </div>
+                <span style="font-size:13px;font-weight:700;color:#3b82f6;">${attendance.gpsSnapshotPercent}% · ${fmt(attendance.gpsSnapshotCount)}</span>
+              </div>
+              <div style="background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:8px;overflow:hidden;">
+                <div style="width:${gpsW}%;height:100%;background:#3b82f6;border-radius:999px;"></div>
+              </div>
+            </div>
+
+            <!-- Out-of-Bounds -->
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <span style="font-size:12px;font-weight:600;color:var(--sr-text-main);">Perimeter Flagged</span>
+                </div>
+                <span style="font-size:13px;font-weight:700;color:${attendance.outOfBoundsFlagged > 0 ? '#ef4444' : '#10b981'};">${attendance.outOfBoundsFlagged > 0 ? attendance.outOfBoundsFlagged + ' flagged' : '✓ None'}</span>
+              </div>
+              <div style="background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:8px;overflow:hidden;">
+                <div style="width:${flagW}%;height:100%;background:#ef4444;border-radius:999px;"></div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;padding:10px 12px;background:#ecfdf5;border-radius:8px;border:1px solid #a7f3d0;display:flex;align-items:center;gap:8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <span style="font-size:11px;color:#065f46;font-weight:600;">Timesheets &amp; Finance dual-verification: Active</span>
+            </div>
+          </div>
+
+          <!-- Statutory Remittance Ledger -->
+          <div class="sr-card" style="padding:22px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <h3 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">Statutory Remittance Ledger</h3>
+              <span style="font-size:11px;padding:3px 8px;background:#fffbeb;color:#b45309;border-radius:4px;font-weight:700;">${escapeHtml(statutory.remittanceStatus || 'PENDING')}</span>
+            </div>
+            <p style="margin:0 0 16px;font-size:12px;color:var(--sr-text-muted);">Nigerian statutory deductions · ${escapeHtml(payrollBurn.payrollMonth || '')}</p>
+
+            ${[
+              { label: 'PenCom Pension (Employee 8% + Employer 10%)', value: payrollBurn.penComTotalNgn, sub: `${statutory.penComPercent}% of Gross`, color: '#7c3aed', bg: '#f5f3ff' },
+              { label: 'PAYE Income Tax (Finance Act CRA)', value: payrollBurn.payeTaxNgn, sub: `Eff. ${statutory.payePercent}% rate`, color: '#b45309', bg: '#fffbeb' },
+              { label: 'NSITF Contribution (1%)', value: payrollBurn.nsitfNgn, sub: '1.0% of Gross', color: '#0369a1', bg: '#eff6ff' },
+              { label: 'NHF Housing Fund (2.5%)', value: payrollBurn.nhfNgn, sub: '2.5% of Basic', color: '#059669', bg: '#ecfdf5' },
+            ].map(s => `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--sr-border-subtle);">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0;"></div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--sr-text-main);">${s.label}</div>
+                    <div style="font-size:11px;color:var(--sr-text-muted);">${s.sub}</div>
+                  </div>
+                </div>
+                <div style="text-align:right;flex-shrink:0;">
+                  <div style="font-size:13px;font-weight:700;color:${s.color};">₦${fmt(s.value)}</div>
+                </div>
+              </div>
+            `).join('')}
+
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;margin-top:2px;">
+              <span style="font-size:13px;font-weight:700;color:var(--sr-text-main);">Net Staff Disbursement</span>
+              <span style="font-size:16px;font-weight:800;color:#10b981;">₦${fmt(payrollBurn.netDisbursementNgn)}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Row 3: Operating Unit Performance Roster ── -->
+        <div class="sr-card" style="padding:22px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);margin-bottom:24px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h3 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">Operating Unit Performance</h3>
+            <span style="font-size:12px;color:var(--sr-text-muted);">${escapeHtml(tenant.hubName || '')}</span>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+              <thead>
+                <tr style="border-bottom:2px solid var(--sr-border-subtle);">
+                  <th style="text-align:left;padding:8px 12px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Unit</th>
+                  <th style="text-align:center;padding:8px 12px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Headcount</th>
+                  <th style="text-align:left;padding:8px 12px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Attendance</th>
+                  <th style="text-align:center;padding:8px 12px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.5px;">OT Hrs</th>
+                  <th style="text-align:center;padding:8px 12px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${unitBreakdown.map((u, i) => {
+                  const attColor = u.attendancePercent >= 97 ? '#10b981' : u.attendancePercent >= 95 ? '#f59e0b' : '#ef4444';
+                  const statusBg = u.status === 'On Track' ? '#ecfdf5' : '#fffbeb';
+                  const statusColor = u.status === 'On Track' ? '#059669' : '#b45309';
+                  const attW = Math.min(100, u.attendancePercent);
+                  return `
+                    <tr style="border-bottom:1px solid var(--sr-border-subtle);${i % 2 === 1 ? 'background:var(--sr-bg-card-subtle,#f8fafc);' : ''}">
+                      <td style="padding:12px 12px;font-weight:600;color:var(--sr-text-main);">${escapeHtml(u.unit)}</td>
+                      <td style="padding:12px 12px;text-align:center;font-weight:700;color:var(--sr-text-main);">${u.headcount}</td>
+                      <td style="padding:12px 12px;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                          <div style="flex:1;background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:6px;overflow:hidden;min-width:60px;">
+                            <div style="width:${attW}%;height:100%;background:${attColor};border-radius:999px;"></div>
+                          </div>
+                          <span style="font-size:12px;font-weight:700;color:${attColor};min-width:38px;">${pct(u.attendancePercent)}</span>
+                        </div>
+                      </td>
+                      <td style="padding:12px 12px;text-align:center;font-weight:600;color:var(--sr-text-main);">${u.overtimeHours}h</td>
+                      <td style="padding:12px 12px;text-align:center;">
+                        <span style="font-size:11px;padding:3px 8px;background:${statusBg};color:${statusColor};border-radius:4px;font-weight:700;">${escapeHtml(u.status)}</span>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Footer Note ── -->
+        <p style="font-size:11px;color:var(--sr-text-muted);text-align:center;margin-bottom:32px;">
+          Generated ${new Date(tenant.generatedAt || Date.now()).toLocaleString('en-NG')} &nbsp;·&nbsp; ShiftRelay Enterprise HCM &nbsp;·&nbsp; Confidential — Internal Use Only
+        </p>
+      </div>
+    `;
+
+    // Export button → generate a brief audit text summary
+    document.getElementById('sr-analytics-export-btn')?.addEventListener('click', () => {
+      const lines = [
+        `SHIFTRELAY EXECUTIVE AUDIT BRIEF`,
+        `${tenant.companyName} | ${tenant.hubName}`,
+        `Period: ${tenant.reportPeriod} | Generated: ${new Date(tenant.generatedAt || Date.now()).toLocaleString('en-NG')}`,
+        ``,
+        `HEADCOUNT`,
+        `  Total Roster:   ${headcount.totalRoster}`,
+        `  Active On-Shift: ${headcount.activeOnShift}`,
+        `  Absent Today:   ${headcount.absentToday}`,
+        `  On Leave:       ${headcount.onLeave}`,
+        ``,
+        `ATTENDANCE`,
+        `  Attendance Rate:   ${attendance.attendanceRatePercent}%`,
+        `  Punctuality Rate:  ${attendance.punctualityRatePercent}%`,
+        `  Gate QR Punches:   ${attendance.gateQrCount} (${attendance.gateQrPercent}%)`,
+        `  GPS Snapshots:     ${attendance.gpsSnapshotCount} (${attendance.gpsSnapshotPercent}%)`,
+        `  Flagged/Out-Bounds: ${attendance.outOfBoundsFlagged}`,
+        ``,
+        `HOURS & OVERTIME`,
+        `  Total Hours:    ${hoursAndOvertime.totalHours}h`,
+        `  Regular Hours:  ${hoursAndOvertime.regularHours}h`,
+        `  Overtime Hours: ${hoursAndOvertime.overtimeHours}h`,
+        `  OT Spend (NGN): ₦${Number(hoursAndOvertime.overtimeSpendNgn).toLocaleString('en-NG')}`,
+        ``,
+        `PAYROLL BURN`,
+        `  Monthly Gross:  ₦${Number(payrollBurn.monthlyGrossBurnNgn).toLocaleString('en-NG')}`,
+        `  Budget:         ₦${Number(payrollBurn.monthlyBudgetNgn).toLocaleString('en-NG')}`,
+        `  Utilization:    ${payrollBurn.budgetUtilizationPercent}%`,
+        ``,
+        `STATUTORY REMITTANCE`,
+        `  PenCom Total:   ₦${Number(payrollBurn.penComTotalNgn).toLocaleString('en-NG')}`,
+        `  PAYE Tax:       ₦${Number(payrollBurn.payeTaxNgn).toLocaleString('en-NG')}`,
+        `  NSITF + NHF:    ₦${Number(payrollBurn.nsitfAndNhfNgn).toLocaleString('en-NG')}`,
+        `  Net Disbursement: ₦${Number(payrollBurn.netDisbursementNgn).toLocaleString('en-NG')}`,
+        ``,
+        `OPERATING UNITS`,
+        ...unitBreakdown.map(u => `  ${u.unit.padEnd(22)} HC:${u.headcount}  Att:${u.attendancePercent}%  OT:${u.overtimeHours}h  [${u.status}]`),
+        ``,
+        `CONFIDENTIAL — SHIFTRELAY ENTERPRISE HCM — INTERNAL USE ONLY`,
+      ];
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ShiftRelay-Audit-Brief-${tenant.companyId}-${(tenant.reportPeriod || '').replace(/\s/g, '-')}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+  // ── End Executive Analytics Dashboard ─────────────────────────────────────────
 
   // Observe on initial render and any future dynamic content
   setTimeout(observeCards, 200);

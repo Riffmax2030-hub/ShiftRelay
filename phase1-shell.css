@@ -5590,3 +5590,6 @@ textarea:focus-visible {
 .sr-notif-item:hover {
   background: var(--sr-bg-card-subtle, #f8fafc) !important;
 }
+
+/* Executive Analytics */
+.sr-analytics-2col { grid-template-columns: 1fr 1fr; } @media (max-width: 768px) { .sr-analytics-2col { grid-template-columns: 1fr; } }

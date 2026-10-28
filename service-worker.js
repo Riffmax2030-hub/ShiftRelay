@@ -1,4 +1,4 @@
-const CACHE = 'shiftrelay-v91-notifications-drawer';
+const CACHE = 'shiftrelay-v92-executive-analytics';
 const ASSETS = [
   '/',
   '/index.html',
