@@ -4169,3 +4169,695 @@ select:focus {
     transform: none !important;
   }
 }
+/* ==========================================================================
+   SHIFTRELAY — WAVE 5 ENTERPRISE UI POLISH
+   Clock Hero · Metric Tiles · Buttons · Context Banner · Profile · Reviews
+   ========================================================================== */
+
+/* ── NEW DESIGN TOKENS ── */
+:root {
+  --sr-gradient-primary: linear-gradient(135deg, #0d524d 0%, #0a7a70 100%);
+  --sr-gradient-accent:  linear-gradient(135deg, #059669 0%, #10b981 100%);
+  --sr-gradient-danger:  linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+  --sr-clock-glow: 0 0 60px rgba(16, 185, 129, 0.18);
+}
+
+/* ==========================================================================
+   1. CLOCK CARD — HERO REDESIGN
+   ========================================================================== */
+
+.sr-clock-card {
+  border-radius: 20px !important;
+  padding: 28px 24px !important;
+  border: 1.5px solid var(--sr-border-medium) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  background: var(--sr-bg-card) !important;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+/* Ambient radial glow when clocked in */
+.sr-clock-card.clocked-in {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  background: linear-gradient(160deg, rgba(240, 253, 244, 0.9) 0%, var(--sr-bg-card) 55%) !important;
+  box-shadow: var(--sr-clock-glow), 0 4px 20px rgba(13, 82, 77, 0.06) !important;
+}
+
+[data-theme="dark"] .sr-clock-card.clocked-in {
+  background: linear-gradient(160deg, rgba(16, 185, 129, 0.07) 0%, var(--sr-bg-card) 55%) !important;
+  border-color: rgba(52, 211, 153, 0.25) !important;
+  box-shadow: 0 0 60px rgba(52, 211, 153, 0.12), 0 4px 20px rgba(0,0,0,0.2) !important;
+}
+
+/* Decorative circle behind timer */
+.sr-clock-card::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.sr-clock-card:not(.clocked-in)::before {
+  opacity: 0;
+}
+
+/* Timer — larger, bolder, monospace */
+.sr-clock-timer {
+  font-size: 44px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+  color: var(--sr-text-main) !important;
+  line-height: 1 !important;
+  margin: 12px 0 8px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-clock-card.clocked-in .sr-clock-timer {
+  color: #065f46 !important;
+}
+
+[data-theme="dark"] .sr-clock-card.clocked-in .sr-clock-timer {
+  color: #34d399 !important;
+}
+
+/* Status pill — upgraded */
+.sr-status-pill {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  padding: 5px 14px !important;
+  letter-spacing: 0.01em !important;
+}
+
+.sr-status-pill.active {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5) !important;
+  color: #064e3b !important;
+  border: 1.5px solid #6ee7b7 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15) !important;
+}
+
+/* Pulse dot — stronger animation */
+.sr-pulse-dot {
+  width: 8px !important;
+  height: 8px !important;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6) !important;
+  animation: sr-pulse-ring 1.6s ease-in-out infinite !important;
+}
+
+@keyframes sr-pulse-ring {
+  0%   { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  50%  { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* Clock action buttons */
+.sr-btn-primary {
+  background: var(--sr-gradient-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(13, 82, 77, 0.22) !important;
+  border: none !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Shimmer sweep on hover */
+.sr-btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.4s ease;
+}
+
+.sr-btn-primary:hover::after {
+  left: 150%;
+}
+
+.sr-btn-primary:hover {
+  background: linear-gradient(135deg, #083c38 0%, #0a5c56 100%) !important;
+  box-shadow: 0 6px 22px rgba(13, 82, 77, 0.32) !important;
+  transform: translateY(-1px) !important;
+}
+
+.sr-btn-primary:active {
+  transform: translateY(0) scale(0.98) !important;
+  box-shadow: 0 2px 8px rgba(13, 82, 77, 0.2) !important;
+}
+
+.sr-btn-danger {
+  background: var(--sr-gradient-danger) !important;
+  box-shadow: 0 4px 14px rgba(185, 28, 28, 0.22) !important;
+  border: none !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.sr-btn-danger:hover {
+  background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%) !important;
+  box-shadow: 0 6px 22px rgba(185, 28, 28, 0.32) !important;
+  transform: translateY(-1px) !important;
+}
+
+.sr-btn-danger:active {
+  transform: translateY(0) scale(0.98) !important;
+}
+
+.sr-btn-secondary {
+  background: var(--sr-bg-card) !important;
+  border: 1.5px solid var(--sr-border-medium) !important;
+  transition: all 0.15s cubic-bezier(0.16,1,0.3,1) !important;
+}
+
+.sr-btn-secondary:hover {
+  background: var(--sr-bg-subtle) !important;
+  border-color: #0d9488 !important;
+  color: #0d524d !important;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.12) !important;
+}
+
+[data-theme="dark"] .sr-btn-secondary:hover {
+  color: #34d399 !important;
+  border-color: rgba(52,211,153,0.4) !important;
+}
+
+/* ==========================================================================
+   2. METRIC TILES — ICON BADGE + ACCENT BORDER + COUNT GLOW
+   ========================================================================== */
+
+.sr-metric-tile {
+  border-radius: 18px !important;
+  padding: 18px 20px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform 0.18s cubic-bezier(0.16,1,0.3,1),
+              box-shadow 0.18s ease,
+              border-color 0.18s ease !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03) !important;
+}
+
+.sr-metric-tile:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.06) !important;
+  border-color: rgba(13,148,136,0.25) !important;
+}
+
+/* Subtle top-left corner accent */
+.sr-metric-tile::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 60px; height: 3px;
+  background: linear-gradient(90deg, #0d9488, transparent);
+  border-radius: 0 0 4px 0;
+  opacity: 0.6;
+}
+
+.sr-metric-tile strong {
+  font-size: 32px !important;
+  line-height: 1 !important;
+  margin: 6px 0 2px !important;
+  display: block !important;
+  letter-spacing: -0.03em !important;
+}
+
+.sr-metric-tile.highlight {
+  border-color: rgba(16,185,129,0.3) !important;
+  background: linear-gradient(145deg, #f0fdf4, #ffffff) !important;
+  box-shadow: 0 4px 16px rgba(16,185,129,0.08), 0 2px 8px rgba(0,0,0,0.02) !important;
+}
+
+[data-theme="dark"] .sr-metric-tile.highlight {
+  background: linear-gradient(145deg, rgba(16,185,129,0.08), rgba(13,17,23,0.9)) !important;
+}
+
+.sr-metric-tile.highlight strong {
+  color: #059669 !important;
+}
+
+[data-theme="dark"] .sr-metric-tile.highlight strong {
+  color: #34d399 !important;
+}
+
+/* ==========================================================================
+   3. CONTEXT BANNER — GLASSMORPHISM + TEAL GRADIENT BORDER
+   ========================================================================== */
+
+.sr-context-banner {
+  background: linear-gradient(135deg,
+    rgba(13,82,77,0.04) 0%,
+    rgba(16,185,129,0.03) 50%,
+    rgba(13,82,77,0.04) 100%) !important;
+  border: 1px solid transparent !important;
+  background-clip: padding-box !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), inset 0 0 0 1px rgba(13,148,136,0.15) !important;
+  border-radius: 14px !important;
+  padding: 14px 18px !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+[data-theme="dark"] .sr-context-banner {
+  background: linear-gradient(135deg,
+    rgba(13,82,77,0.12) 0%,
+    rgba(16,185,129,0.06) 50%,
+    rgba(13,82,77,0.10) 100%) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(52,211,153,0.12) !important;
+}
+
+.sr-context-banner-company {
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.sr-context-banner-badge {
+  background: var(--sr-gradient-primary) !important;
+  box-shadow: 0 2px 8px rgba(13,82,77,0.25) !important;
+  letter-spacing: 0.06em !important;
+  font-size: 10px !important;
+}
+
+/* ==========================================================================
+   4. BUTTONS — BLOCK / FULL WIDTH UPGRADE
+   ========================================================================== */
+
+.sr-btn-block {
+  border-radius: 14px !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.01em !important;
+  min-height: 52px !important;
+}
+
+/* ==========================================================================
+   5. REVIEW ITEMS (ACCESS REQUESTS + LEAVE) — ELEVATED HOVER
+   ========================================================================== */
+
+.sr-review-item {
+  border-radius: 14px !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
+  border: 1px solid var(--sr-border-subtle) !important;
+}
+
+.sr-review-item:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.05) !important;
+  border-color: rgba(13,148,136,0.2) !important;
+}
+
+[data-theme="dark"] .sr-review-item:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2) !important;
+}
+
+.sr-review-info strong {
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* ==========================================================================
+   6. PROFILE / CV SECTION — TIMELINE GLOW + STICKY HEADER ACCENT
+   ========================================================================== */
+
+.sr-cv-section {
+  border-radius: 20px !important;
+  transition: box-shadow 0.18s ease, border-color 0.18s ease !important;
+}
+
+.sr-cv-section:hover {
+  box-shadow: 0 8px 30px rgba(13,82,77,0.06) !important;
+  border-color: rgba(13,148,136,0.15) !important;
+}
+
+.sr-cv-section-header {
+  position: sticky !important;
+  top: 0 !important;
+  background: var(--sr-bg-card) !important;
+  z-index: 2 !important;
+  margin: -24px -24px 0 !important;
+  padding: 16px 24px !important;
+  border-bottom: 1px solid var(--sr-border-subtle) !important;
+  border-radius: 20px 20px 0 0 !important;
+}
+
+/* Timeline dot — glowing teal */
+.sr-cv-timeline-dot {
+  background: var(--sr-gradient-accent) !important;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.15), 0 0 8px rgba(16,185,129,0.2) !important;
+  width: 14px !important;
+  height: 14px !important;
+  left: 5px !important;
+}
+
+/* Timeline line — gradient */
+.sr-cv-timeline::before {
+  background: linear-gradient(180deg, #10b981 0%, rgba(13,148,136,0.15) 100%) !important;
+  width: 2px !important;
+  left: 12px !important;
+}
+
+.sr-cv-item-title {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.sr-cv-item-sub {
+  color: #0d9488 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="dark"] .sr-cv-item-sub {
+  color: #34d399 !important;
+}
+
+/* Card items in CV grid */
+.sr-cv-card-item {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
+}
+
+.sr-cv-card-item:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 18px rgba(13,82,77,0.07) !important;
+  border-color: rgba(13,148,136,0.2) !important;
+}
+
+/* ==========================================================================
+   7. SKELETON LOADER — FASTER + ROUNDED
+   ========================================================================== */
+
+.sr-skeleton {
+  border-radius: 14px !important;
+  background: linear-gradient(90deg,
+    var(--sr-bg-subtle) 20%,
+    rgba(13,148,136,0.06) 50%,
+    var(--sr-bg-subtle) 80%) !important;
+  background-size: 300% 100% !important;
+  animation: srShimmer 1.2s ease-in-out infinite !important;
+}
+
+[data-theme="dark"] .sr-skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 20%,
+    rgba(52,211,153,0.06) 50%,
+    rgba(255,255,255,0.04) 80%) !important;
+  background-size: 300% 100% !important;
+}
+
+/* ==========================================================================
+   8. PAYSLIP TOTAL ROW — PREMIUM GREEN GLOW CARD
+   ========================================================================== */
+
+.sr-payslip-total-row {
+  background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(13,148,136,0.06)) !important;
+  border: 1.5px solid rgba(16,185,129,0.3) !important;
+  box-shadow: 0 4px 20px rgba(16,185,129,0.1), 0 1px 3px rgba(0,0,0,0.04) !important;
+  border-radius: 14px !important;
+  padding: 16px 20px !important;
+}
+
+/* ==========================================================================
+   9. DISPATCH AUDIT LOCK BANNER — STAMPED FEEL
+   ========================================================================== */
+
+.sr-dispatch-audit-banner,
+[class*="audit-lock"],
+[class*="dispatch-lock"] {
+  background: linear-gradient(135deg, rgba(13,82,77,0.06), rgba(16,185,129,0.04)) !important;
+  border: 1px solid rgba(13,148,136,0.2) !important;
+  border-radius: 14px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.sr-dispatch-audit-banner::before,
+[class*="audit-lock"]::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0d524d, #10b981, #0d9488);
+}
+
+/* ==========================================================================
+   10. EMPTY STATES — BETTER LAYOUT + TEAL ICON RING
+   ========================================================================== */
+
+.sr-empty-state {
+  padding: 48px 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.sr-empty-state svg,
+.sr-empty-state .sr-empty-icon {
+  color: var(--sr-primary) !important;
+  opacity: 0.5 !important;
+  background: linear-gradient(135deg, rgba(13,82,77,0.08), rgba(16,185,129,0.08)) !important;
+  padding: 18px !important;
+  border-radius: 50% !important;
+  width: 56px !important;
+  height: 56px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 0 0 8px rgba(13,148,136,0.06) !important;
+}
+
+.sr-empty-state p {
+  font-size: 14px !important;
+  color: var(--sr-text-secondary) !important;
+  max-width: 280px !important;
+  text-align: center !important;
+  line-height: 1.5 !important;
+}
+
+/* ==========================================================================
+   11. TASK LIST ITEMS — SUBTLE TICK ANIMATION
+   ========================================================================== */
+
+.sr-task-item {
+  transition: background 0.12s ease, border-color 0.12s ease !important;
+  border-radius: 10px !important;
+}
+
+.sr-task-item:hover {
+  background: var(--sr-bg-subtle) !important;
+}
+
+.sr-task-item input[type="checkbox"]:checked + * {
+  text-decoration: line-through !important;
+  opacity: 0.55 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+/* ==========================================================================
+   12. CARD TITLE ROW — EDITORIAL WEIGHT
+   ========================================================================== */
+
+.sr-card-title-row h3 {
+  font-size: 17px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--sr-text-main) !important;
+}
+
+/* ==========================================================================
+   13. OPEN SHIFT CARD APPLY BUTTON — GRADIENT
+   ========================================================================== */
+
+.sr-open-shift-card .sr-btn-primary {
+  min-height: 40px !important;
+  font-size: 13px !important;
+  padding: 0 16px !important;
+  border-radius: 10px !important;
+}
+
+/* ==========================================================================
+   14. TIMESHEET TABLE — STRIPED ROWS + APPROVED GLOW
+   ========================================================================== */
+
+.sr-ts-table tbody tr:nth-child(even) {
+  background: rgba(248, 250, 252, 0.6);
+}
+
+[data-theme="dark"] .sr-ts-table tbody tr:nth-child(even) {
+  background: rgba(255,255,255,0.02);
+}
+
+.sr-ts-table tbody tr.approved td {
+  border-left: 3px solid #10b981;
+}
+
+.sr-ts-table tbody tr.pending td {
+  border-left: 3px solid #f59e0b;
+}
+
+.sr-ts-table tbody tr.rejected td {
+  border-left: 3px solid #ef4444;
+}
+
+/* ==========================================================================
+   15. BROADCAST ANNOUNCEMENT CARD — GRADIENT ACCENT TOP
+   ========================================================================== */
+
+.sr-announcement-card,
+[class*="announcement-item"],
+.sr-handover-item {
+  position: relative !important;
+  overflow: hidden !important;
+  border-radius: 14px !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.sr-announcement-card:hover,
+.sr-handover-item:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.05) !important;
+}
+
+/* ==========================================================================
+   16. EARNINGS SUMMARY AMOUNT — ANIMATED COUNTER PLACEHOLDER GLOW
+   ========================================================================== */
+
+.sr-earnings-amount {
+  font-size: 48px !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1 !important;
+  display: block !important;
+  animation: sr-amount-fadein 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
+}
+
+@keyframes sr-amount-fadein {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ==========================================================================
+   17. HANDOVER CARD — STATUS-COLOURED LEFT RAIL
+   ========================================================================== */
+
+.sr-handover-status-rail {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  border-radius: 2px 0 0 2px;
+}
+
+.sr-handover-status-rail.awaiting_review { background: #f59e0b; }
+.sr-handover-status-rail.relayed         { background: #10b981; }
+.sr-handover-status-rail.acknowledged    { background: #6366f1; }
+.sr-handover-status-rail.draft           { background: #94a3b8; }
+
+/* ==========================================================================
+   18. FEATURE TAB BAR — ACTIVE TAB UPGRADE
+   ========================================================================== */
+
+.sr-feature-tab-bar {
+  gap: 2px !important;
+  padding: 6px !important;
+  background: var(--sr-bg-subtle) !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--sr-border-subtle) !important;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.04) !important;
+}
+
+.sr-feature-tab {
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  transition: all 0.18s cubic-bezier(0.16,1,0.3,1) !important;
+}
+
+.sr-feature-tab.active {
+  background: var(--sr-bg-card) !important;
+  color: #0d524d !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04) !important;
+}
+
+[data-theme="dark"] .sr-feature-tab.active {
+  background: rgba(255,255,255,0.08) !important;
+  color: #34d399 !important;
+}
+
+/* ==========================================================================
+   19. NOTIFICATION BELL — BADGE PULSE
+   ========================================================================== */
+
+/* Notification count badge */
+#notification-count,
+[id*="notif-count"],
+.sr-notif-badge {
+  animation: sr-badge-bounce 0.4s cubic-bezier(0.16,1,0.3,1) forwards;
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  box-shadow: 0 2px 6px rgba(220,38,38,0.35) !important;
+}
+
+@keyframes sr-badge-bounce {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* ==========================================================================
+   20. MISC — DIVIDERS, LINK HOVER, SECTION GAPS
+   ========================================================================== */
+
+/* Branded horizontal rule */
+hr, .sr-divider {
+  border: none !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent 0%, var(--sr-border-subtle) 30%, var(--sr-border-subtle) 70%, transparent 100%) !important;
+  margin: 20px 0 !important;
+}
+
+/* Subtle link styling within cards */
+.sr-card a:not(.sr-btn) {
+  color: #0d9488;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(13,148,136,0.4);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.sr-card a:not(.sr-btn):hover {
+  color: #065f46;
+  border-bottom-style: solid;
+}
+
+/* Section gap between pages */
+.sr-section-gap > * + * {
+  animation: sr-item-stagger 0.3s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.sr-section-gap > *:nth-child(1) { animation-delay: 0.05s; }
+.sr-section-gap > *:nth-child(2) { animation-delay: 0.10s; }
+.sr-section-gap > *:nth-child(3) { animation-delay: 0.15s; }
+.sr-section-gap > *:nth-child(4) { animation-delay: 0.20s; }
+.sr-section-gap > *:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes sr-item-stagger {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ==========================================================================
+   RESPONSIVE — Keep touch targets comfortable on mobile
+   ========================================================================== */
+
+@media (max-width: 600px) {
+  .sr-clock-timer { font-size: 36px !important; }
+  .sr-metric-tile strong { font-size: 26px !important; }
+  .sr-btn-block { min-height: 48px !important; font-size: 14px !important; }
+  .sr-earnings-amount { font-size: 36px !important; }
+  .sr-metric-tile:hover { transform: none !important; }
+}

@@ -919,3 +919,253 @@
 .sr-input-with-icon input {
   padding-left: 40px !important;
 }
+/* ==========================================================================
+   WAVE 5 — SPLASH + ENTRY SCREEN + LOGIN MODAL PREMIUM POLISH
+   ========================================================================== */
+
+/* Splash screen — richer background */
+#sr-splash {
+  background: radial-gradient(ellipse at 30% 20%, #0d3d4d 0%, #0b2540 40%, #080f1a 100%) !important;
+}
+
+/* Animated particle rings behind splash icon */
+.splash-logo-wrap::before,
+.splash-logo-wrap::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(79, 195, 188, 0.15);
+  animation: splash-ring-expand 2.5s ease-out infinite;
+}
+
+.splash-logo-wrap::before {
+  width: 120px; height: 120px;
+  animation-delay: 0s;
+}
+
+.splash-logo-wrap::after {
+  width: 180px; height: 180px;
+  animation-delay: 0.6s;
+}
+
+.splash-logo-wrap {
+  position: relative;
+}
+
+@keyframes splash-ring-expand {
+  0%   { opacity: 0.5; transform: scale(0.8); }
+  100% { opacity: 0;   transform: scale(1.4); }
+}
+
+/* Splash icon — stronger glow */
+.splash-icon {
+  box-shadow: 0 24px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(79,195,188,0.15), 0 0 40px rgba(79,195,188,0.12) !important;
+  animation: splashPop 0.5s cubic-bezier(0.16,1,0.3,1) forwards, splash-float 4s ease-in-out 0.5s infinite;
+}
+
+@keyframes splash-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+
+/* Loader bar — teal to emerald gradient */
+.splash-loader-bar {
+  background: linear-gradient(90deg, #0d9488, #10b981, #34d399) !important;
+}
+
+/* ==========================================================================
+   ENTRY TOP — AMBIENT GLOW BEHIND ICON
+   ========================================================================== */
+
+.entry-top {
+  position: relative;
+}
+
+.entry-top::before {
+  content: '';
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 200px;
+  background: radial-gradient(ellipse, rgba(13,148,136,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.entry-icon-ring {
+  box-shadow: 0 16px 48px rgba(13,82,77,0.25), 0 0 0 8px rgba(13,148,136,0.07) !important;
+  animation: entry-icon-pop 0.5s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+@keyframes entry-icon-pop {
+  from { opacity: 0; transform: scale(0.85) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.entry-headline {
+  font-size: 30px !important;
+  letter-spacing: -0.04em !important;
+  animation: sr-item-stagger 0.4s cubic-bezier(0.16,1,0.3,1) both;
+  animation-delay: 0.08s;
+}
+
+.entry-headline em {
+  background: linear-gradient(135deg, #0d9488, #10b981) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  font-style: normal !important;
+}
+
+.entry-sub {
+  animation: sr-item-stagger 0.4s cubic-bezier(0.16,1,0.3,1) both;
+  animation-delay: 0.14s;
+}
+
+/* Feature pills — glassy */
+.entry-pill {
+  background: rgba(13,148,136,0.06) !important;
+  border: 1px solid rgba(13,148,136,0.15) !important;
+  color: #0d524d !important;
+  transition: background 0.15s ease, transform 0.15s ease !important;
+}
+
+.entry-pill:hover {
+  background: rgba(13,148,136,0.12) !important;
+  transform: translateY(-1px) !important;
+}
+
+[data-theme="dark"] .entry-pill {
+  background: rgba(52,211,153,0.08) !important;
+  border-color: rgba(52,211,153,0.15) !important;
+  color: #34d399 !important;
+}
+
+.entry-pill svg {
+  color: #0d9488 !important;
+}
+
+/* Entry primary button — super premium */
+.entry-btn-primary {
+  background: linear-gradient(135deg, #0a3d39 0%, #0d7a70 60%, #0f8f83 100%) !important;
+  box-shadow: 0 10px 28px rgba(13,82,77,0.35), 0 1px 0 rgba(255,255,255,0.1) inset !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.01em !important;
+  border-radius: 16px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Shimmer sweep on entry button */
+.entry-btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transform: skewX(-20deg);
+  animation: entry-btn-shimmer 3s ease infinite;
+}
+
+@keyframes entry-btn-shimmer {
+  0%   { left: -100%; }
+  40%  { left: 150%; }
+  100% { left: 150%; }
+}
+
+.entry-btn-primary:hover {
+  box-shadow: 0 14px 36px rgba(13,82,77,0.42), 0 1px 0 rgba(255,255,255,0.1) inset !important;
+  transform: translateY(-1px) !important;
+}
+
+.entry-btn-secondary {
+  border-radius: 16px !important;
+  font-weight: 700 !important;
+  transition: all 0.15s cubic-bezier(0.16,1,0.3,1) !important;
+}
+
+.entry-btn-secondary:hover {
+  background: rgba(13,148,136,0.06) !important;
+  border-color: #0d9488 !important;
+  color: #0d524d !important;
+}
+
+[data-theme="dark"] .entry-btn-secondary:hover {
+  background: rgba(52,211,153,0.06) !important;
+  border-color: rgba(52,211,153,0.3) !important;
+  color: #34d399 !important;
+}
+
+/* ==========================================================================
+   LOGIN MODAL — UPGRADED CARD + INPUT FOCUS
+   ========================================================================== */
+
+#sr-login-modal {
+  backdrop-filter: blur(14px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+  background: rgba(10,15,30,0.65) !important;
+}
+
+.sr-login-sheet {
+  border-radius: 28px 28px 0 0 !important;
+  box-shadow: 0 -20px 60px rgba(0,0,0,0.2), 0 0 0 1px rgba(13,148,136,0.1) !important;
+}
+
+/* Desktop: centred dialog */
+@media (min-width: 640px) {
+  .sr-login-sheet {
+    border-radius: 24px !important;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(13,148,136,0.12) !important;
+    animation: sr-modal-in 0.22s cubic-bezier(0.16,1,0.3,1) forwards !important;
+  }
+}
+
+/* Company ID input — accent styling */
+.sr-company-id-input {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+.sr-company-id-input::placeholder {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  opacity: 0.5 !important;
+}
+
+/* Tenant verified banner */
+.sr-tenant-verified-banner {
+  animation: sr-item-stagger 0.3s cubic-bezier(0.16,1,0.3,1) both !important;
+}
+
+/* Login submit button */
+.sr-signin-btn,
+[id*="signin-btn"],
+[id*="login-btn"] {
+  background: linear-gradient(135deg, #0a3d39 0%, #0d7a70 100%) !important;
+  box-shadow: 0 8px 24px rgba(13,82,77,0.3) !important;
+  font-weight: 800 !important;
+  font-size: 15px !important;
+  border-radius: 14px !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.sr-signin-btn:hover,
+[id*="signin-btn"]:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 32px rgba(13,82,77,0.38) !important;
+}
+
+/* Multi-tenant info banner in login */
+.sr-multitenant-banner {
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, rgba(13,82,77,0.06), rgba(16,185,129,0.04)) !important;
+  border: 1px solid rgba(13,148,136,0.15) !important;
+}
