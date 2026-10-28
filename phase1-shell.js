@@ -7367,6 +7367,96 @@
 })();
 
 /* ==========================================================================
+   WAVE 6 — PAGE TRANSITION TRIGGER
+   Re-applies the content-area fade-in animation on every route render
+   ========================================================================== */
+
+(function initPageTransitions() {
+  'use strict';
+  const style = document.createElement('style');
+  style.textContent = `
+    .sr-page-transitioning { animation: sr-page-in 0.22s cubic-bezier(0.16,1,0.3,1) both !important; }
+    @keyframes sr-page-in {
+      from { opacity: 0.5; transform: translateY(8px); }
+      to   { opacity: 1;   transform: none; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Watch the content area for innerHTML changes
+  const mo = new MutationObserver(function() {
+    const ca = document.getElementById('sr-content-area');
+    if (!ca) return;
+    ca.classList.remove('sr-page-transitioning');
+    // Force reflow
+    void ca.offsetWidth;
+    ca.classList.add('sr-page-transitioning');
+  });
+
+  function startObserving() {
+    const ca = document.getElementById('sr-content-area');
+    if (ca) {
+      mo.observe(ca, { childList: true });
+    } else {
+      setTimeout(startObserving, 300);
+    }
+  }
+  setTimeout(startObserving, 400);
+})();
+
+/* ==========================================================================
+   WAVE 6 — ANIMATED NUMBER COUNTER FOR STAT BOXES
+   ========================================================================== */
+
+(function initCounterAnimation() {
+  'use strict';
+
+  function animateCounter(el, target, duration) {
+    const start = 0;
+    const startTime = performance.now();
+    function step(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out quint
+      const eased = 1 - Math.pow(1 - progress, 4);
+      const current = Math.round(start + (target - start) * eased);
+      el.textContent = current.toLocaleString();
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  const io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const raw = el.getAttribute('data-count-target');
+      if (!raw) return;
+      io.unobserve(el);
+      animateCounter(el, parseInt(raw, 10), 900);
+    });
+  }, { threshold: 0.5 });
+
+  function observeCounters() {
+    // Only pure-integer metric tiles (not ₦ values)
+    document.querySelectorAll('.sr-metric-tile strong:not([data-count-done])').forEach(function(el) {
+      const text = el.textContent.trim();
+      const num = parseInt(text, 10);
+      if (!isNaN(num) && String(num) === text && num > 0) {
+        el.setAttribute('data-count-target', num);
+        el.setAttribute('data-count-done', '1');
+        el.textContent = '0';
+        io.observe(el);
+      }
+    });
+  }
+
+  setTimeout(observeCounters, 300);
+  const mo = new MutationObserver(function() { setTimeout(observeCounters, 100); });
+  mo.observe(document.body, { childList: true, subtree: true });
+})();
+
+/* ==========================================================================
    WAVE 4 — DONUT CHART DRAW-IN ANIMATION PATCH
    Applies CSS custom property --sr-dash-offset to each SVG segment
    ========================================================================== */

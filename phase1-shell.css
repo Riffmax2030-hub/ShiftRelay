@@ -4861,3 +4861,641 @@ hr, .sr-divider {
   .sr-earnings-amount { font-size: 36px !important; }
   .sr-metric-tile:hover { transform: none !important; }
 }
+/* ==========================================================================
+   SHIFTRELAY — WAVE 6 DEEP POLISH
+   Earnings Hero · Donut Chart · Handover Cards · Payslip Modal
+   Breakdown Rows · Dark Mode · Directory · Loading States · Misc
+   ========================================================================== */
+
+/* ==========================================================================
+   1. EARNINGS HERO — PREMIUM TAKE-HOME DISPLAY
+   ========================================================================== */
+
+.sr-earnings-hero {
+  padding: 36px 24px 24px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Ambient radial glow behind the big number */
+.sr-earnings-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  height: 180px;
+  background: radial-gradient(ellipse, rgba(16, 185, 129, 0.10) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.sr-earnings-amount {
+  font-size: 54px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1 !important;
+  background: linear-gradient(135deg, #0d524d 0%, #10b981 60%, #34d399 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  display: block !important;
+}
+
+[data-theme="dark"] .sr-earnings-amount {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 60%, #0d9488 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.sr-earnings-period {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+}
+
+.sr-earnings-delta.positive {
+  background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(13,148,136,0.08)) !important;
+  border: 1px solid rgba(16,185,129,0.25) !important;
+  color: #059669 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="dark"] .sr-earnings-delta.positive {
+  color: #34d399 !important;
+}
+
+/* ==========================================================================
+   2. EARNINGS DONUT — BIGGER + GLOWING SEGMENTS
+   ========================================================================== */
+
+.sr-earnings-donut {
+  width: 148px !important;
+  height: 148px !important;
+  filter: drop-shadow(0 4px 20px rgba(13,82,77,0.12));
+}
+
+.sr-earnings-donut svg {
+  width: 148px !important;
+  height: 148px !important;
+}
+
+.sr-earnings-donut-center {
+  line-height: 1 !important;
+}
+
+.sr-earnings-donut-pct {
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.03em !important;
+  color: #0d524d !important;
+}
+
+[data-theme="dark"] .sr-earnings-donut-pct {
+  color: #34d399 !important;
+}
+
+.sr-earnings-donut-label {
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+}
+
+/* Legend — monospace values */
+.sr-earnings-legend-pct {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: var(--sr-text-secondary) !important;
+}
+
+.sr-earnings-legend-swatch {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.06) !important;
+}
+
+/* ==========================================================================
+   3. BREAKDOWN ROWS — ALTERNATING + FINAL ROW HIGHLIGHT
+   ========================================================================== */
+
+.sr-earnings-breakdown-row {
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--sr-border-subtle) !important;
+  border-radius: 0 !important;
+  transition: background 0.12s ease !important;
+  margin: 0 -16px !important;
+}
+
+.sr-earnings-breakdown-row:hover {
+  background: rgba(13,148,136,0.03) !important;
+}
+
+.sr-earnings-breakdown-row:last-child {
+  border-bottom: none !important;
+  background: linear-gradient(135deg, rgba(16,185,129,0.07), rgba(13,148,136,0.05)) !important;
+  border-radius: 12px !important;
+  margin: 8px -16px 0 !important;
+  padding: 14px 16px !important;
+  border: 1.5px solid rgba(16,185,129,0.2) !important;
+}
+
+.sr-earnings-breakdown-label {
+  font-size: 14px !important;
+  color: var(--sr-text-secondary) !important;
+}
+
+.sr-earnings-breakdown-row:last-child .sr-earnings-breakdown-label {
+  font-weight: 900 !important;
+  font-size: 15px !important;
+  color: var(--sr-text-main) !important;
+}
+
+.sr-earnings-breakdown-val {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* ==========================================================================
+   4. HANDOVER CARDS — ELEVATED + STATUS GLOW RAIL
+   ========================================================================== */
+
+.sr-handover-card {
+  border-radius: 18px !important;
+  padding: 20px 22px !important;
+  transition: transform 0.18s cubic-bezier(0.16,1,0.3,1),
+              box-shadow 0.18s ease,
+              border-color 0.18s ease !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.sr-handover-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.07) !important;
+}
+
+/* Status left rail — gradient version */
+.sr-handover-card.status-awaiting_review {
+  border-left: 4px solid #f59e0b !important;
+  background: linear-gradient(135deg, rgba(245,158,11,0.03), var(--sr-bg-card)) !important;
+}
+
+.sr-handover-card.status-relayed {
+  border-left: 4px solid #10b981 !important;
+  background: linear-gradient(135deg, rgba(16,185,129,0.03), var(--sr-bg-card)) !important;
+}
+
+.sr-handover-card.status-acknowledged {
+  border-left: 4px solid #6366f1 !important;
+  background: linear-gradient(135deg, rgba(99,102,241,0.03), var(--sr-bg-card)) !important;
+}
+
+.sr-handover-card.highlight {
+  border-left: 4px solid #0d9488 !important;
+  box-shadow: 0 4px 20px rgba(13,148,136,0.08) !important;
+}
+
+.sr-handover-summary {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* Status badge pills — upgrade */
+.sr-badge-status {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
+  padding: 4px 12px !important;
+}
+
+.sr-badge-status.awaiting_review {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7) !important;
+  box-shadow: 0 1px 3px rgba(245,158,11,0.15) !important;
+}
+
+.sr-badge-status.relayed {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5) !important;
+  box-shadow: 0 1px 3px rgba(16,185,129,0.15) !important;
+}
+
+/* ==========================================================================
+   5. PAYSLIP MODAL HEADER — ENTERPRISE HEADER STAMP
+   ========================================================================== */
+
+/* The inline payslip modal gets a premium header */
+#sr-payslip-modal-backdrop > div {
+  border-radius: 20px !important;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(13,148,136,0.1) !important;
+  animation: sr-modal-in 0.22s cubic-bezier(0.16,1,0.3,1) forwards !important;
+}
+
+/* Header of payslip modal */
+#sr-payslip-modal-backdrop > div > div:first-child {
+  background: linear-gradient(135deg, #f0fdf4, #f8fafc) !important;
+  border-radius: 20px 20px 0 0 !important;
+  padding: 18px 28px !important;
+  border-bottom: 2px solid rgba(13,148,136,0.15) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Top teal stripe on payslip header */
+#sr-payslip-modal-backdrop > div > div:first-child::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0d524d, #10b981, #0d9488);
+}
+
+.sr-payslip-sheet {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+}
+
+/* Payslip section boxes — glass card */
+.sr-payslip-section-box {
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, rgba(248,250,252,0.8), rgba(241,245,249,0.6)) !important;
+  border: 1px solid var(--sr-border-subtle) !important;
+}
+
+/* Line items in payslip */
+.sr-payslip-line-item {
+  padding: 10px 0 !important;
+  transition: background 0.1s ease !important;
+}
+
+.sr-payslip-line-item:hover {
+  background: rgba(13,148,136,0.02) !important;
+  margin: 0 -4px !important;
+  padding: 10px 4px !important;
+  border-radius: 6px !important;
+}
+
+/* ==========================================================================
+   6. DARK MODE — COMPREHENSIVE PASS
+   ========================================================================== */
+
+[data-theme="dark"] {
+  --sr-bg-page:     #0d1117;
+  --sr-bg-card:     #161b22;
+  --sr-bg-elevated: #1c2333;
+  --sr-bg-subtle:   #21262d;
+
+  --sr-text-main:      #f0f6fc;
+  --sr-text-secondary: #8b949e;
+  --sr-text-muted:     #6e7681;
+
+  --sr-border-subtle: #21262d;
+  --sr-border-medium: #30363d;
+  --sr-border-strong: #484f58;
+
+  --sr-status-green-bg:     rgba(22, 101, 52, 0.15);
+  --sr-status-green-text:   #3fb950;
+  --sr-status-green-border: rgba(63, 185, 80, 0.25);
+
+  --sr-status-yellow-bg:    rgba(146, 64, 14, 0.15);
+  --sr-status-yellow-text:  #e3b341;
+  --sr-status-yellow-border: rgba(227, 179, 65, 0.25);
+
+  --sr-status-red-bg:    rgba(139, 0, 0, 0.15);
+  --sr-status-red-text:  #f85149;
+  --sr-status-red-border: rgba(248, 81, 73, 0.25);
+}
+
+[data-theme="dark"] .sr-payslip-sheet {
+  background: linear-gradient(180deg, #161b22 0%, #0d1117 100%) !important;
+}
+
+[data-theme="dark"] .sr-payslip-section-box {
+  background: rgba(255,255,255,0.03) !important;
+  border-color: #30363d !important;
+}
+
+[data-theme="dark"] .sr-earnings-breakdown-row:last-child {
+  background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(13,148,136,0.05)) !important;
+  border-color: rgba(52,211,153,0.2) !important;
+}
+
+[data-theme="dark"] .sr-metric-tile.highlight {
+  background: linear-gradient(145deg, rgba(52,211,153,0.08), rgba(22,27,34,0.9)) !important;
+}
+
+[data-theme="dark"] .sr-context-banner {
+  background: linear-gradient(135deg, rgba(13,82,77,0.15), rgba(16,185,129,0.07)) !important;
+}
+
+[data-theme="dark"] .sr-handover-card.status-awaiting_review {
+  background: linear-gradient(135deg, rgba(245,158,11,0.06), var(--sr-bg-card)) !important;
+}
+
+[data-theme="dark"] .sr-handover-card.status-relayed {
+  background: linear-gradient(135deg, rgba(16,185,129,0.06), var(--sr-bg-card)) !important;
+}
+
+[data-theme="dark"] .sr-clock-card.clocked-in {
+  border-color: rgba(52,211,153,0.3) !important;
+}
+
+[data-theme="dark"] .sr-cv-section-header {
+  background: #161b22 !important;
+  border-bottom-color: #21262d !important;
+}
+
+[data-theme="dark"] .sr-skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 20%,
+    rgba(52,211,153,0.06) 50%,
+    rgba(255,255,255,0.04) 80%) !important;
+}
+
+/* ==========================================================================
+   7. DIRECTORY / TEAM PAGE — MEMBER CARDS
+   ========================================================================== */
+
+/* Worker directory avatar initials — gradient */
+.sr-member-avatar,
+.sr-dir-avatar,
+[class*="member-initials"],
+[class*="dir-initials"] {
+  background: linear-gradient(135deg, #0d524d 0%, #0a7a70 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  font-size: 15px !important;
+  box-shadow: 0 2px 8px rgba(13,82,77,0.25) !important;
+}
+
+/* Directory card hover */
+.sr-member-card,
+.sr-dir-card,
+[class*="member-row"],
+[class*="worker-row"] {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
+}
+
+.sr-member-card:hover,
+.sr-dir-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important;
+  border-color: rgba(13,148,136,0.2) !important;
+}
+
+/* ==========================================================================
+   8. LOADING / ASYNC STATES — PREMIUM SPINNER
+   ========================================================================== */
+
+/* Override any legacy spinner with our branded one */
+.sr-loading-spinner,
+[class*="spin-wrap"],
+.sr-spinner {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.sr-loading-spinner::after,
+.sr-spinner::after {
+  content: '' !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  border: 2.5px solid rgba(13,148,136,0.2) !important;
+  border-top-color: #0d9488 !important;
+  animation: sr-spin 0.7s linear infinite !important;
+}
+
+/* Skeleton lines — varied widths for realism */
+.sr-skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(90deg, var(--sr-bg-subtle) 20%, rgba(13,148,136,0.06) 50%, var(--sr-bg-subtle) 80%);
+  background-size: 300% 100%;
+  animation: srShimmer 1.2s ease-in-out infinite;
+  margin-bottom: 10px;
+}
+
+.sr-skeleton-line.w-75 { width: 75%; }
+.sr-skeleton-line.w-50 { width: 50%; }
+.sr-skeleton-line.w-33 { width: 33%; }
+.sr-skeleton-line.w-90 { width: 90%; }
+
+/* ==========================================================================
+   9. OPEN SHIFT CARDS — REFINED SLOTS PILL + APPLY BTN
+   ========================================================================== */
+
+.sr-open-shift-card {
+  border-radius: 20px !important;
+  padding: 22px !important;
+}
+
+.sr-open-shift-card-slots {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Card header with role icon ring */
+.sr-open-shift-card-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-bottom: 14px !important;
+}
+
+/* ==========================================================================
+   10. AI ASSISTANT — CHAT BUBBLE DEPTH
+   ========================================================================== */
+
+.sr-assistant-wrap {
+  background: var(--sr-bg-card) !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--sr-border-subtle) !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04) !important;
+}
+
+.sr-assistant-messages {
+  background: var(--sr-bg-page) !important;
+}
+
+[data-theme="dark"] .sr-assistant-messages {
+  background: #0d1117 !important;
+}
+
+.sr-assistant-avatar {
+  background: linear-gradient(135deg, #0d524d, #0a7a70) !important;
+  box-shadow: 0 2px 8px rgba(13,82,77,0.25) !important;
+}
+
+.sr-assistant-input-bar {
+  border-top: 1px solid var(--sr-border-subtle) !important;
+  padding: 14px 18px !important;
+  background: var(--sr-bg-card) !important;
+}
+
+.sr-assistant-input {
+  border-radius: 12px !important;
+  background: var(--sr-bg-elevated) !important;
+  border: 1.5px solid var(--sr-border-medium) !important;
+  font-size: 14px !important;
+  padding: 10px 16px !important;
+}
+
+/* ==========================================================================
+   11. PAYROLL FINANCE PAGE — STAT BOX COLOUR ACCENTS
+   ========================================================================== */
+
+/* Finance stat boxes get individual colour top bars */
+.sr-stat-box:nth-child(1)::before { background: linear-gradient(90deg, #0d9488, #10b981) !important; }
+.sr-stat-box:nth-child(2)::before { background: linear-gradient(90deg, #3b82f6, #60a5fa) !important; }
+.sr-stat-box:nth-child(3)::before { background: linear-gradient(90deg, #f59e0b, #fcd34d) !important; }
+.sr-stat-box:nth-child(4)::before { background: linear-gradient(90deg, #ef4444, #f87171) !important; }
+
+/* Roster table avatar initials */
+.sr-roster-avatar {
+  background: linear-gradient(135deg, #0d524d 0%, #0a7a70 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 6px rgba(13,82,77,0.2) !important;
+  font-size: 13px !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Net remittance value upgrade */
+.sr-net-val {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  color: #059669 !important;
+  letter-spacing: -0.02em !important;
+}
+
+[data-theme="dark"] .sr-net-val {
+  color: #34d399 !important;
+}
+
+/* ==========================================================================
+   12. PAGE TRANSITIONS — SMOOTH VIEW SWAP
+   ========================================================================== */
+
+#sr-content-area {
+  animation: sr-page-in 0.22s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+@keyframes sr-page-in {
+  from { opacity: 0.6; transform: translateY(6px); }
+  to   { opacity: 1;   transform: none; }
+}
+
+/* ==========================================================================
+   13. TYPOGRAPHY — SHARPER HEADINGS ACROSS THE BOARD
+   ========================================================================== */
+
+h1, h2, h3, h4, h5 {
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* JetBrains Mono for all numeric/financial values by default */
+[class*="sr-stat-val"],
+[class*="sr-val"],
+[class*="-amount"],
+[class*="-total"],
+[class*="-balance"] {
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+/* ==========================================================================
+   14. SUBTLE PAGE BACKGROUND TEXTURE
+   ========================================================================== */
+
+#sr-shell-root,
+.sr-body-wrap,
+.sr-main-scroll-wrap {
+  background: var(--sr-bg-page) !important;
+}
+
+/* Faint dot grid texture on page background (light mode only) */
+[data-theme="light"] .sr-main-content {
+  background-image: radial-gradient(circle, rgba(13,148,136,0.04) 1px, transparent 1px) !important;
+  background-size: 24px 24px !important;
+}
+
+/* ==========================================================================
+   15. PRINT ENHANCEMENTS — CRISP OFFICIAL PAYSLIPS
+   ========================================================================== */
+
+@media print {
+  .sr-earnings-amount {
+    -webkit-text-fill-color: #0d524d !important;
+    color: #0d524d !important;
+    background: none !important;
+  }
+
+  .sr-payslip-sheet {
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  .sr-payslip-total-row {
+    background: #f0fdf4 !important;
+    border-color: #a7f3d0 !important;
+    box-shadow: none !important;
+  }
+
+  body {
+    font-size: 11px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* ==========================================================================
+   16. FOCUS VISIBLE — ACCESSIBLE KEYBOARD NAVIGATION
+   ========================================================================== */
+
+:focus-visible {
+  outline: 2px solid #0d9488 !important;
+  outline-offset: 2px !important;
+  border-radius: 6px !important;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #0d9488 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(13,148,136,0.15) !important;
+}
+
+/* ==========================================================================
+   17. FINAL RESPONSIVE SWEEP
+   ========================================================================== */
+
+@media (max-width: 480px) {
+  .sr-earnings-amount { font-size: 38px !important; }
+  .sr-earnings-donut { width: 110px !important; height: 110px !important; }
+  .sr-earnings-donut svg { width: 110px !important; height: 110px !important; }
+  .sr-handover-card { padding: 16px !important; }
+  .sr-cv-section { padding: 18px !important; }
+  .sr-clock-timer { font-size: 34px !important; }
+  .sr-payslip-grid-2col { grid-template-columns: 1fr !important; }
+}
+
+@media (min-width: 1280px) {
+  .sr-main-content { padding: 36px 48px !important; }
+  .sr-earnings-amount { font-size: 64px !important; }
+  .sr-clock-timer { font-size: 52px !important; }
+  .sr-metric-grid { grid-template-columns: repeat(4, 1fr) !important; }
+}
