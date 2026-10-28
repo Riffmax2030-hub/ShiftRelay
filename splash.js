@@ -190,13 +190,24 @@
       const avatarStyle = u.avatar_data_url
         ? `background-image:url('${u.avatar_data_url}');background-size:cover;background-position:center;color:transparent;`
         : '';
+      const roleBadge = u.role === 'owner' ? 'Executive Director' : (u.role === 'supervisor' ? 'Operations Lead' : 'Frontline Specialist');
+      const badgeClass = u.role === 'owner' ? 'sr-role-pill-owner' : (u.role === 'supervisor' ? 'sr-role-pill-supervisor' : 'sr-role-pill-worker');
       return `
         <button class="sr-demo-role-btn" data-sr-demo-login="${u.id}" type="button">
-          <span class="sr-demo-avatar" style="${avatarStyle}">${u.avatar_data_url ? '' : initial}</span>
-          <span>
-            <strong>${u.name || 'Unknown'}</strong>
-            <small>${u.title || u.role || ''}</small>
-          </span>
+          <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+            <div style="position:relative;flex-shrink:0;">
+              <span class="sr-demo-avatar" style="${avatarStyle}">${u.avatar_data_url ? '' : initial}</span>
+              <span class="sr-demo-online-dot"></span>
+            </div>
+            <div style="min-width:0;text-align:left;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <strong style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.name || 'Unknown'}</strong>
+                <span class="sr-demo-role-pill ${badgeClass}">${roleBadge}</span>
+              </div>
+              <small style="display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.title || u.role || 'Frontline Specialist'} • Dangote Ops</small>
+            </div>
+          </div>
+          <svg class="sr-demo-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       `;
     }).join('');
