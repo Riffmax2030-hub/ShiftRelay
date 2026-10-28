@@ -5,7 +5,7 @@
  *  1. Immediately show #sr-splash
  *  2. After 1.8s, check for existing session via /api/auth/session
  *     - Session found  -> fade splash, call login(user) directly (skip landing + entry)
- *     - No session     -> fade splash, show #sr-entry (the minimal Get Started screen)
+ *     - No session     -> fade splash, show #sr-entry (the enterprise entry screen)
  *  3. Entry screen:
  *     - "Request Enterprise Demo" -> opens the bottom-sheet modal on the Demo Request tab
  *     - "Enterprise Sign In"     -> opens the bottom-sheet modal on the Tri-Factor Sign In tab
