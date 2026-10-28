@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShiftRelay Concierge | Internal Enterprise Administration</title>
+  <link rel="icon" type="image/svg+xml" href="/logo-mark.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #080d16;
+      --bg-surface: #0f172a;
+      --bg-elevated: #1e293b;
+      --border-subtle: #334155;
+      --border-focus: #0d9488;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #0d9488;
+      --primary-hover: #0f766e;
+      --emerald: #10b981;
+      --emerald-subtle: rgba(16, 185, 129, 0.12);
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* Top Navigation Bar */
+    .admin-navbar {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo-chip {
+      background: linear-gradient(135deg, #0d524d, #10b981);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: -0.02em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+    .brand-badge {
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 3px 8px;
+      background: rgba(13, 148, 136, 0.15);
+      border: 1px solid rgba(13, 148, 136, 0.3);
+      color: #34d399;
+      border-radius: 9999px;
+    }
+
+    /* Auth Gate Card */
+    #auth-barrier {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: radial-gradient(circle at center, rgba(13, 148, 136, 0.08) 0%, transparent 65%);
+    }
+    .auth-card {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #0d524d, #10b981);
+    }
+    .auth-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: rgba(13, 148, 136, 0.15);
+      border: 1px solid rgba(13, 148, 136, 0.3);
+      color: #34d399;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .auth-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+    .auth-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .input-field {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg-elevated);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.15s ease;
+      margin-bottom: 16px;
+    }
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #0d524d 0%, #0d9488 100%);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(13, 82, 77, 0.3);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0a3d39 0%, #0f766e 100%);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      padding: 8px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-secondary:hover {
+      background: #334155;
+      border-color: #64748b;
+    }
+
+    /* Main Console View */
+    #admin-console {
+      flex: 1;
+      padding: 28px 32px 64px;
+      max-width: 1380px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #0d9488, #10b981);
+    }
+    .stat-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .stat-val {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+    .stat-sub {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 6px;
+    }
+
+    /* Segmented Navigation Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      background: var(--bg-surface);
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      background: transparent;
+      border: none;
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .tab-btn.active {
+      background: var(--bg-elevated);
+      color: #34d399;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Section Panels */
+    .console-panel {
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+    .console-panel.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    /* Data Tables */
+    .table-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+    .table-header-row {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(30, 41, 59, 0.4);
+    }
+    .table-title {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+    th {
+      background: #1e293b;
+      padding: 12px 18px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    td {
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+      vertical-align: middle;
+    }
+    tr:hover td {
+      background: rgba(13, 148, 136, 0.03);
+    }
+
+    /* Badges & Chips */
+    .company-id-chip {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .company-id-chip:hover {
+      background: rgba(16, 185, 129, 0.2);
+    }
+    .status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      display: inline-block;
+    }
+    .status-badge.active {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .status-badge.pending {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* Forms & Wizards */
+    .wizard-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 680px) {
+      .form-grid-2 { grid-template-columns: 1fr; }
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .form-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    .form-section-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 8px;
+      margin: 20px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .form-section-title:first-child { margin-top: 0; }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 13, 22, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-dialog {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: 20px;
+      max-width: 600px;
+      width: 100%;
+      padding: 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="admin-navbar">
+    <div class="brand-group">
+      <div class="brand-logo-chip">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        SHIFTRELAY
+      </div>
+      <span class="brand-title">Implementation Console</span>
+      <span class="brand-badge">Concierge Gateway</span>
+    </div>
+    <div id="nav-actions" style="display:none; align-items:center; gap:12px;">
+      <span style="font-size:12.5px; color:var(--text-muted);">Lead Engineer Active</span>
+      <button class="btn-secondary" onclick="signOutAdmin()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </header>
+
+  <!-- Section 1: Security Barrier -->
+  <main id="auth-barrier">
+    <div class="auth-card">
+      <div class="auth-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h2 class="auth-title">ShiftRelay Internal Console</h2>
+      <p class="auth-subtitle">Restricted to authorized ShiftRelay Concierge & Implementation Engineers. Public autonomous access is prohibited.</p>
+      
+      <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+        <input type="password" id="admin-passcode" class="input-field" placeholder="Enter Engineer Passcode" required autocomplete="current-password" autofocus>
+        <button type="submit" class="btn-primary" id="btn-login-submit">
+          <span>Authenticate Console</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+        <div id="login-error" style="color:var(--red); font-size:12.5px; margin-top:12px; display:none;"></div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Section 2: Main Engineer Workspace -->
+  <main id="admin-console" style="display: none;">
+    <!-- Live KPIs -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">
+          <span>Enterprise Clients</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M3 21h18"/><path d="M19 21v-4"/><path d="M19 11V7l-7-4-7 4v14"/></svg>
+        </div>
+        <div class="stat-val" id="kpi-tenants">0</div>
+        <div class="stat-sub">Provisioned Corporate Namespaces</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <span>Frontline Workforce</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="stat-val" id="kpi-workers">0</div>
+        <div class="stat-sub">Managed Active & Shell Profiles</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <span>Payroll Gross Volume</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="stat-val" id="kpi-volume" style="font-size:24px;">₦0.00</div>
+        <div class="stat-sub">Compliant Monthly Disbursement</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <span>Inbound Demo Leads</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div class="stat-val" id="kpi-leads">0</div>
+        <div class="stat-sub">Awaiting Tenant Provisioning</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('tenants')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Enterprise Clients Registry
+      </button>
+      <button class="tab-btn" onclick="switchTab('wizard')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Onboard New Client (Wizard)
+      </button>
+      <button class="tab-btn" onclick="switchTab('bulk')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+        Bulk Employee Provisioning
+      </button>
+      <button class="tab-btn" onclick="switchTab('leads')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        Inbound Leads
+      </button>
+    </div>
+
+    <!-- PANEL 1: Tenants Registry -->
+    <section id="panel-tenants" class="console-panel active">
+      <div class="table-container">
+        <div class="table-header-row">
+          <div>
+            <h3 class="table-title">Provisioned Enterprise Namespaces</h3>
+            <p style="font-size:12.5px; color:var(--text-muted);">Closed-loop Dayforce-grade multi-tenant boundaries</p>
+          </div>
+          <button class="btn-primary" style="width:auto; padding:8px 16px; font-size:13px;" onclick="switchTab('wizard')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Provision Client
+          </button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Company & Legal Entity</th>
+              <th>Tenant ID</th>
+              <th>Industry & State</th>
+              <th>Workforce</th>
+              <th>Executive Sponsor</th>
+              <th>Compliance</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tenants-table-body">
+            <tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">Loading enterprise tenants...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PANEL 2: Onboard New Client Wizard -->
+    <section id="panel-wizard" class="console-panel">
+      <div class="wizard-card">
+        <div style="margin-bottom:24px;">
+          <h2 style="font-size:20px; font-weight:800; letter-spacing:-0.02em;">Onboard New Enterprise Client</h2>
+          <p style="font-size:13px; color:var(--text-muted); margin-top:2px;">Execute corporate profile instantiation, unique Company ID generation, and Master Admin provisioning.</p>
+        </div>
+
+        <form id="onboard-tenant-form" onsubmit="handleOnboardTenant(event)">
+          <div class="form-section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M3 21h18"/><path d="M19 21v-4"/><path d="M19 11V7l-7-4-7 4v14"/></svg>
+            1. Corporate Legal Profile
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Legal Entity Name *</label>
+              <input type="text" id="wiz-legal-name" class="input-field" placeholder="e.g. BUA Cement Plc" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Trading / Brand Name</label>
+              <input type="text" id="wiz-trading-name" class="input-field" placeholder="e.g. BUA Operations">
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Industry Classification</label>
+              <select id="wiz-industry" class="input-field">
+                <option value="Manufacturing & Industrial">Manufacturing & Industrial</option>
+                <option value="Logistics & Supply Chain">Logistics & Supply Chain</option>
+                <option value="FMCG & Warehousing">FMCG & Warehousing</option>
+                <option value="Healthcare & Clinical Ops">Healthcare & Clinical Ops</option>
+                <option value="Hospitality & Retail">Hospitality & Retail</option>
+                <option value="Security & Facility Services">Security & Facility Services</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Operating Hub / State</label>
+              <input type="text" id="wiz-state" class="input-field" value="Lagos, Nigeria">
+            </div>
+          </div>
+
+          <div class="form-section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            2. Master Admin / Executive Sponsor
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">HR Director / Sponsor Full Name *</label>
+              <input type="text" id="wiz-admin-name" class="input-field" placeholder="e.g. Dr. Folake Adeleke" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Corporate Work Email *</label>
+              <input type="email" id="wiz-admin-email" class="input-field" placeholder="e.g. folake.adeleke@buagroup.com" required>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Official Mobile (for SMS Dispatch)</label>
+              <input type="tel" id="wiz-admin-phone" class="input-field" placeholder="+234 802 345 6789">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Official Title</label>
+              <input type="text" id="wiz-admin-title" class="input-field" value="Director of Human Capital Management">
+            </div>
+          </div>
+
+          <div class="form-section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            3. Statutory Framework & Compensation Defaults
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Base Currency</label>
+              <input type="text" id="wiz-currency" class="input-field" value="NGN" readonly style="opacity:0.8;">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Compliance Baseline</label>
+              <div style="font-size:12.5px; color:#34d399; padding:10px 14px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:12px;">
+                ✓ PenCom (8% / 10%) • ✓ NHF (2.5%) • ✓ NSITF (1%) • ✓ Finance Act CRA
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:24px; display:flex; gap:12px;">
+            <button type="submit" class="btn-primary" id="btn-submit-wizard">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Instantiate Enterprise Tenant</span>
+            </button>
+            <button type="button" class="btn-secondary" onclick="switchTab('tenants')">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- PANEL 3: Bulk Employee Provisioning -->
+    <section id="panel-bulk" class="console-panel">
+      <div class="wizard-card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2 style="font-size:20px; font-weight:800; letter-spacing:-0.02em;">Closed-Loop Frontline Intake (CSV)</h2>
+            <p style="font-size:13px; color:var(--text-muted); margin-top:2px;">Instantiate shell accounts with single-use activation tokens and contract rate lines.</p>
+          </div>
+          <button class="btn-secondary" onclick="downloadCsvTemplate()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download CSV Template
+          </button>
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label class="form-label">Select Target Enterprise Client *</label>
+          <select id="bulk-target-tenant" class="input-field" required>
+            <option value="">-- Choose Corporate Tenant --</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label class="form-label">Paste CSV Data or Drag & Drop File</label>
+          <textarea id="bulk-csv-text" class="input-field" rows="8" placeholder="FullName, Email, Phone, Role, Department, CompType, MonthlyRate, HourlyRate, BankName, AccountNumber
+Amina Otieno, amina@client.com, 08023456789, Process Specialist, Operations, fixed_monthly, 220000, 1375, Access Bank, 0123456789
+David Kariuki, david@client.com, 08034567890, Supervisor, Supervision, fixed_monthly, 350000, 2187, First Bank, 3109876543" style="font-family:var(--font-mono); font-size:12.5px;"></textarea>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-bottom:24px;">
+          <button class="btn-primary" style="width:auto; padding:12px 24px;" onclick="processBulkEmployees()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Process & Dispatch Shell Accounts</span>
+          </button>
+          <button class="btn-secondary" onclick="document.getElementById('bulk-csv-text').value = ''">Clear</button>
+        </div>
+
+        <!-- Provisioning Output Report -->
+        <div id="bulk-result-area" style="display:none; margin-top:24px;">
+          <h3 style="font-size:16px; font-weight:800; margin-bottom:12px; color:#34d399;">Provisioning Execution Report</h3>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Staff ID</th>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Phone Verification</th>
+                  <th>Single-Use Activation URL</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="bulk-result-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANEL 4: Inbound Leads -->
+    <section id="panel-leads" class="console-panel">
+      <div class="table-container">
+        <div class="table-header-row">
+          <div>
+            <h3 class="table-title">Inbound Enterprise Demo Inquiries</h3>
+            <p style="font-size:12.5px; color:var(--text-muted);">High-intent enterprise acquisition leads captured from public gates</p>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Company Name</th>
+              <th>Executive Contact</th>
+              <th>Work Email & Phone</th>
+              <th>Headcount</th>
+              <th>Industry</th>
+              <th>Received</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="leads-table-body">
+            <tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">Loading inbound leads...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal for Provisioning Completion -->
+  <div id="success-modal" class="modal-backdrop" style="display:none;">
+    <div class="modal-dialog">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+        <div style="width:40px; height:40px; border-radius:50%; background:rgba(16,185,129,0.15); color:#34d399; display:flex; align-items:center; justify-content:center;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div>
+          <h3 style="font-size:18px; font-weight:800;">Enterprise Client Instantiated</h3>
+          <p style="font-size:12.5px; color:var(--text-muted);">Multi-tenant boundaries and Master Admin configured</p>
+        </div>
+      </div>
+
+      <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:14px; padding:18px; margin-bottom:20px;">
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Generated Company ID (Tenant Gating Identifier):</div>
+        <div id="modal-company-id" style="font-family:var(--font-mono); font-size:24px; font-weight:900; color:#34d399; letter-spacing:0.04em;"></div>
+        
+        <div style="margin-top:14px; border-top:1px solid var(--border-subtle); padding-top:12px; font-size:13px; line-height:1.6;">
+          <div><strong>Master Admin:</strong> <span id="modal-admin-name"></span> (<span id="modal-admin-email"></span>)</div>
+          <div><strong>Temporary Password:</strong> <code id="modal-admin-password" style="background:#0f172a; padding:2px 6px; border-radius:4px; color:#fbbf24;"></code></div>
+          <div style="margin-top:8px; font-size:12px; color:#94a3b8;">This Company ID is required for all worker and executive tri-factor sign-ins.</div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn-secondary" onclick="copyModalCredentials()">Copy Credentials</button>
+        <button class="btn-primary" style="width:auto; padding:8px 18px;" onclick="closeSuccessModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let adminToken = localStorage.getItem('sr_admin_token') || null;
+
+    // Check existing auth on load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (adminToken) {
+        showConsole();
+      }
+    });
+
+    async function handleAdminLogin(event) {
+      event.preventDefault();
+      const passcode = document.getElementById('admin-passcode').value;
+      const errorDiv = document.getElementById('login-error');
+      errorDiv.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passcode })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Authentication rejected');
+
+        adminToken = data.token;
+        localStorage.setItem('sr_admin_token', adminToken);
+        showConsole();
+      } catch (err) {
+        errorDiv.textContent = err.message;
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    function signOutAdmin() {
+      adminToken = null;
+      localStorage.removeItem('sr_admin_token');
+      document.getElementById('auth-barrier').style.display = 'flex';
+      document.getElementById('admin-console').style.display = 'none';
+      document.getElementById('nav-actions').style.display = 'none';
+      document.getElementById('admin-passcode').value = '';
+    }
+
+    async function showConsole() {
+      document.getElementById('auth-barrier').style.display = 'none';
+      document.getElementById('admin-console').style.display = 'block';
+      document.getElementById('nav-actions').style.display = 'flex';
+      await refreshAllData();
+    }
+
+    async function refreshAllData() {
+      await Promise.all([
+        fetchOverview(),
+        fetchTenants(),
+        fetchLeads()
+      ]);
+    }
+
+    async function fetchOverview() {
+      try {
+        const res = await fetch('/api/admin/overview', {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        if (res.status === 401) return signOutAdmin();
+        const data = await res.json();
+        if (data.stats) {
+          document.getElementById('kpi-tenants').textContent = data.stats.totalTenants;
+          document.getElementById('kpi-workers').textContent = data.stats.totalFrontlineWorkers;
+          document.getElementById('kpi-volume').textContent = data.stats.monthlyPayrollVolume;
+          document.getElementById('kpi-leads').textContent = data.stats.totalInboundLeads;
+        }
+      } catch (e) {
+        console.error('Failed to load overview:', e);
+      }
+    }
+
+    let globalTenants = [];
+    async function fetchTenants() {
+      try {
+        const res = await fetch('/api/admin/tenants', {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        const data = await res.json();
+        globalTenants = data.tenants || [];
+        renderTenantsTable(globalTenants);
+        populateTenantDropdown(globalTenants);
+      } catch (e) {
+        console.error('Failed to fetch tenants:', e);
+      }
+    }
+
+    function renderTenantsTable(tenants) {
+      const tbody = document.getElementById('tenants-table-body');
+      if (tenants.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">No corporate clients onboarded yet.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = tenants.map(t => `
+        <tr>
+          <td>
+            <strong>${escapeHtml(t.legalName)}</strong>
+            <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(t.tradingName)}</div>
+          </td>
+          <td>
+            <span class="company-id-chip" onclick="copyText('${t.companyId}')" title="Click to copy Company ID">
+              ${escapeHtml(t.companyId)}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </span>
+          </td>
+          <td>
+            <div>${escapeHtml(t.industry)}</div>
+            <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(t.state)}</div>
+          </td>
+          <td>
+            <span style="font-family:var(--font-mono); font-weight:700;">${t.employeeCount}</span> workers
+          </td>
+          <td>
+            <div>${escapeHtml(t.masterAdminName)}</div>
+            <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(t.masterAdminEmail)}</div>
+          </td>
+          <td>
+            <span class="status-badge active">Verified</span>
+          </td>
+          <td style="text-align:right;">
+            <button class="btn-secondary" style="font-size:12px; padding:6px 12px;" onclick="openBulkForTenant('${t.id}')">
+              + Add Workers
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function populateTenantDropdown(tenants) {
+      const sel = document.getElementById('bulk-target-tenant');
+      sel.innerHTML = `<option value="">-- Choose Corporate Tenant --</option>` +
+        tenants.map(t => `<option value="${t.id}">${escapeHtml(t.legalName)} (${t.companyId})</option>`).join('');
+    }
+
+    async function fetchLeads() {
+      try {
+        const res = await fetch('/api/admin/demo-requests', {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        const data = await res.json();
+        const leads = data.requests || [];
+        renderLeadsTable(leads);
+      } catch (e) {
+        console.error('Failed to load leads:', e);
+      }
+    }
+
+    function renderLeadsTable(leads) {
+      const tbody = document.getElementById('leads-table-body');
+      if (leads.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">No inbound leads logged yet.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = leads.map(l => `
+        <tr>
+          <td><strong>${escapeHtml(l.companyName)}</strong></td>
+          <td>${escapeHtml(l.fullName)}</td>
+          <td>
+            <div>${escapeHtml(l.workEmail)}</div>
+            <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(l.phone || 'N/A')}</div>
+          </td>
+          <td><span style="font-family:var(--font-mono); font-weight:700;">${escapeHtml(l.headcount || '50-200')}</span></td>
+          <td>${escapeHtml(l.industry || 'Logistics')}</td>
+          <td><span style="font-size:12px; color:var(--text-muted);">${new Date(l.createdAt).toLocaleDateString()}</span></td>
+          <td style="text-align:right;">
+            <button class="btn-primary" style="width:auto; padding:6px 14px; font-size:12px;" onclick="convertLeadToClient('${escapeHtml(l.companyName)}', '${escapeHtml(l.fullName)}', '${escapeHtml(l.workEmail)}', '${escapeHtml(l.phone || '')}', '${escapeHtml(l.industry || '')}')">
+              Provision
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.console-panel').forEach(p => p.classList.remove('active'));
+      
+      const tabMap = {
+        'tenants': 0,
+        'wizard': 1,
+        'bulk': 2,
+        'leads': 3
+      };
+      document.querySelectorAll('.tab-btn')[tabMap[tabId]]?.classList.add('active');
+      document.getElementById(`panel-${tabId}`)?.classList.add('active');
+    }
+
+    function openBulkForTenant(tenantId) {
+      switchTab('bulk');
+      document.getElementById('bulk-target-tenant').value = tenantId;
+    }
+
+    function convertLeadToClient(compName, adminName, adminEmail, phone, industry) {
+      switchTab('wizard');
+      document.getElementById('wiz-legal-name').value = compName;
+      document.getElementById('wiz-trading-name').value = compName;
+      document.getElementById('wiz-admin-name').value = adminName;
+      document.getElementById('wiz-admin-email').value = adminEmail;
+      document.getElementById('wiz-admin-phone').value = phone;
+      if (industry) document.getElementById('wiz-industry').value = industry;
+    }
+
+    async function handleOnboardTenant(event) {
+      event.preventDefault();
+      const payload = {
+        legalName: document.getElementById('wiz-legal-name').value.trim(),
+        tradingName: document.getElementById('wiz-trading-name').value.trim(),
+        industry: document.getElementById('wiz-industry').value,
+        state: document.getElementById('wiz-state').value.trim(),
+        adminName: document.getElementById('wiz-admin-name').value.trim(),
+        adminEmail: document.getElementById('wiz-admin-email').value.trim(),
+        adminPhone: document.getElementById('wiz-admin-phone').value.trim(),
+        adminTitle: document.getElementById('wiz-admin-title').value.trim(),
+        currency: 'NGN'
+      };
+
+      const btn = document.getElementById('btn-submit-wizard');
+      btn.disabled = true;
+      btn.textContent = 'Generating Namespace & IDs...';
+
+      try {
+        const res = await fetch('/api/admin/tenants', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to instantiate tenant');
+
+        // Show success modal
+        document.getElementById('modal-company-id').textContent = data.companyId;
+        document.getElementById('modal-admin-name').textContent = data.masterAdmin.name;
+        document.getElementById('modal-admin-email').textContent = data.masterAdmin.email;
+        document.getElementById('modal-admin-password').textContent = data.masterAdmin.tempPassword;
+        document.getElementById('success-modal').style.display = 'flex';
+
+        document.getElementById('onboard-tenant-form').reset();
+        await refreshAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span>Instantiate Enterprise Tenant</span>`;
+      }
+    }
+
+    function closeSuccessModal() {
+      document.getElementById('success-modal').style.display = 'none';
+      switchTab('tenants');
+    }
+
+    function copyModalCredentials() {
+      const cid = document.getElementById('modal-company-id').textContent;
+      const email = document.getElementById('modal-admin-email').textContent;
+      const pw = document.getElementById('modal-admin-password').textContent;
+      const text = `ShiftRelay Enterprise Onboarding Credentials:\nCompany ID: ${cid}\nMaster Admin: ${email}\nTemporary Password: ${pw}\nSign-in Portal: ${window.location.origin}/?companyId=${cid}`;
+      navigator.clipboard.writeText(text);
+      alert('Credentials copied to clipboard!');
+    }
+
+    function copyText(str) {
+      navigator.clipboard.writeText(str);
+      alert(`Copied "${str}" to clipboard.`);
+    }
+
+    function downloadCsvTemplate() {
+      const csv = `FullName,WorkEmail,PhoneNumber,StaffID,Role,Department,CompensationType,MonthlyRate,HourlyRate,BankName,AccountNumber\n` +
+        `Amina Otieno,amina.otieno@company.com,08023456789,STAFF-0101,Process Specialist,Operations,fixed_monthly,220000,1375,Access Bank,0123456789\n` +
+        `David Kariuki,david.kariuki@company.com,08034567890,STAFF-0102,Shift Supervisor,Logistics,fixed_monthly,350000,2187,First Bank of Nigeria,3109876543\n` +
+        `Faith Wanjiku,faith.wanjiku@company.com,08045678901,STAFF-0103,Incoming Specialist,Supply Chain,fixed_monthly,185000,1156,Zenith Bank,2081123456\n` +
+        `Aaron Glover,aaron.glover@company.com,08056789012,STAFF-0104,Locum Frontline,Plant Operations,hourly_shift,0,1800,Guaranty Trust Bank (GTBank),0019283746`;
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ShiftRelay_Frontline_Employee_Template.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function processBulkEmployees() {
+      const tenantId = document.getElementById('bulk-target-tenant').value;
+      if (!tenantId) return alert('Please select a target enterprise client.');
+
+      const text = document.getElementById('bulk-csv-text').value.trim();
+      if (!text) return alert('Please paste CSV data or download template.');
+
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lines.length < 2) return alert('CSV must include a header and at least 1 employee row.');
+
+      const employees = [];
+      const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.trim());
+        if (cols.length < 2) continue;
+        employees.push({
+          fullName: cols[0],
+          email: cols[1],
+          phone: cols[2] || '',
+          staffId: cols[3] || '',
+          role: cols[4] || 'Frontline Specialist',
+          department: cols[5] || 'Operations',
+          compensationType: cols[6] || 'fixed_monthly',
+          monthlyRate: cols[7] || 200000,
+          hourlyRate: cols[8] || 1250,
+          bankName: cols[9] || 'Access Bank',
+          accountNumber: cols[10] || '0123456789'
+        });
+      }
+
+      if (employees.length === 0) return alert('No valid employee rows parsed.');
+
+      try {
+        const res = await fetch(`/api/admin/tenants/${tenantId}/employees/bulk`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({ employees })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Bulk intake failed');
+
+        renderBulkResults(data.employees);
+        await refreshAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    function renderBulkResults(list) {
+      const area = document.getElementById('bulk-result-area');
+      const tbody = document.getElementById('bulk-result-body');
+      area.style.display = 'block';
+
+      tbody.innerHTML = list.map(emp => {
+        const fullUrl = `${window.location.origin}${emp.activationUrl}`;
+        return `
+          <tr>
+            <td><code style="color:#34d399; font-weight:700;">${escapeHtml(emp.staffId)}</code></td>
+            <td><strong>${escapeHtml(emp.fullName)}</strong></td>
+            <td>${escapeHtml(emp.email)}</td>
+            <td><span style="font-size:12px; color:var(--text-muted);">${escapeHtml(emp.verificationKeyPrompt)}</span></td>
+            <td>
+              <input type="text" value="${fullUrl}" readonly style="background:#0f172a; border:1px solid #334155; color:#cbd5e1; padding:4px 8px; border-radius:6px; font-size:11px; width:220px;" onclick="this.select()">
+            </td>
+            <td>
+              <button class="btn-secondary" style="font-size:11.5px; padding:4px 8px;" onclick="copyText('${fullUrl}')">
+                Copy Link
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

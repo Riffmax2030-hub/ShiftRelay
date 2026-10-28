@@ -973,10 +973,18 @@ async function signIn(body) {
       throw new Error(`Invalid Company ID "${rawCompanyId}". Enterprise access requires a valid Company Tenant ID (e.g. 246701).`);
     }
 
-    const user = (store.portalUsers || []).find((u) => u.email.toLowerCase() === emailOrUser || u.full_name.toLowerCase() === emailOrUser);
+    const targetOrgId = matchedOrg?.id;
+    const user = (store.portalUsers || []).find((u) => {
+      const match = u.email.toLowerCase() === emailOrUser || u.full_name.toLowerCase() === emailOrUser;
+      if (!match) return false;
+      if (targetOrgId && (u.tenant_id || u.organisation_id)) {
+        return u.tenant_id === targetOrgId || u.organisation_id === targetOrgId;
+      }
+      return true;
+    });
     if (!user || !(await passwordMatches(body.password, user.password_hash))) throw new Error('Invalid email or password.');
-    const member = (store.memberships || []).find((m) => m.user_id === user.id);
-    if (!member || member.status !== 'active') throw new Error('Your workplace access is waiting for approval.');
+    const member = (store.memberships || []).find((m) => m.user_id === user.id && (!targetOrgId || m.organisation_id === targetOrgId));
+    if (!member || member.status !== 'active') throw new Error('Your workplace access is waiting for approval or pending employee activation.');
     return { sessionId: await createSession(user.id, member.id), user: { id: member.id, name: user.full_name, email: user.email, role: member.role, title: member.title, department: member.department, organisation_id: member.organisation_id, company_id: matchedOrg?.organisation_code || '246701' } };
   }
 }
@@ -1371,7 +1379,12 @@ async function handleApi(request, response, url) {
       error: 'Public self-enrolment is disabled. Frontline specialist accounts are provisioned exclusively via administrative bulk upload or encrypted invitation tokens.'
     });
   }
-  if (!user || user.status !== 'active') return sendJson(response, 401, { error: 'Authentication required. Please sign in.' });
+  const isPublicAuthOrAdmin = url.pathname.startsWith('/api/admin/') ||
+                              url.pathname.startsWith('/api/auth/') ||
+                              url.pathname === '/api/enterprise/demo-request';
+  if (!isPublicAuthOrAdmin && (!user || user.status !== 'active')) {
+    return sendJson(response, 401, { error: 'Authentication required. Please sign in.' });
+  }
 
   // ── Disabled Unsafe Pilot Endpoints ─────────────────────────────────────────
   // Shift swaps and open-shift claiming are enabled for active members.
@@ -2634,6 +2647,376 @@ async function handleApi(request, response, url) {
     });
   }
 
+  // ── INTERNAL ADMIN / CONCIERGE PROVISIONING PIPELINE ─────────────────────
+  const SHIFTRELAY_ADMIN_KEY = process.env.SHIFTRELAY_ADMIN_KEY || 'ShiftRelay@Admin2026!';
+
+  function checkAdminAuth(req, st) {
+    const key = req.headers['x-admin-key'];
+    if (key && key === SHIFTRELAY_ADMIN_KEY) return true;
+    const auth = req.headers['authorization'] || '';
+    if (auth.startsWith('Bearer ')) {
+      const tok = auth.slice(7).trim();
+      if (tok === SHIFTRELAY_ADMIN_KEY) return true;
+      const sess = (st.adminSessions || []).find(s => s.token === tok && new Date(s.expiresAt) > new Date());
+      if (sess) return true;
+    }
+    return false;
+  }
+
+  // 1. Admin Login
+  if (url.pathname === '/api/admin/auth' && request.method === 'POST') {
+    const body = await readJson(request);
+    const pass = String(body.passcode || '').trim();
+    if (pass !== SHIFTRELAY_ADMIN_KEY) {
+      return sendJson(response, 401, { error: 'Invalid Implementation Engineer Passcode.' });
+    }
+    const store = await getStore();
+    if (!Array.isArray(store.adminSessions)) store.adminSessions = [];
+    const token = 'sr-adm-' + randomBytes(24).toString('hex');
+    store.adminSessions.push({
+      token,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    });
+    await saveStore(store);
+    return sendJson(response, 200, {
+      ok: true,
+      token,
+      engineer: 'ShiftRelay Concierge Engineer'
+    });
+  }
+
+  // 2. Admin Overview Stats
+  if (url.pathname === '/api/admin/overview' && request.method === 'GET') {
+    const store = await getStore();
+    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const tenants = store.organisations || [];
+    const contracts = store.contracts || [];
+    const leads = store.enterpriseDemoRequests || [];
+    const payroll = compilePayrollRun(store);
+
+    return sendJson(response, 200, {
+      stats: {
+        totalTenants: tenants.length,
+        totalFrontlineWorkers: contracts.length,
+        totalInboundLeads: leads.length,
+        monthlyPayrollVolume: payroll.totalGrossFormatted || '₦0.00',
+        activeCompliances: {
+          pencom: true,
+          nhf: true,
+          nsitf: true,
+          craFinanceAct: true
+        }
+      }
+    });
+  }
+
+  // 3. Admin Tenants List
+  if (url.pathname === '/api/admin/tenants' && request.method === 'GET') {
+    const store = await getStore();
+    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const tenants = (store.organisations || []).map(org => {
+      const orgContracts = (store.contracts || []).filter(c => c.tenant_id === org.id || (!c.tenant_id && org.organisation_code === '246701'));
+      const ownerMember = (store.memberships || []).find(m => m.organisation_id === org.id && m.role === 'owner');
+      const ownerUser = ownerMember ? (store.portalUsers || []).find(u => u.id === ownerMember.user_id) : null;
+      return {
+        id: org.id,
+        companyId: org.organisation_code,
+        legalName: org.legal_name,
+        tradingName: org.trading_name || org.legal_name,
+        industry: org.industry || 'Logistics & FMCG',
+        country: org.country || 'Nigeria',
+        state: org.state || 'Lagos',
+        currency: org.currency || 'NGN',
+        employeeCount: orgContracts.length,
+        masterAdminName: ownerUser ? ownerUser.full_name : (org.contact_name || 'System Executive'),
+        masterAdminEmail: ownerUser ? ownerUser.email : (org.work_email || 'hr@company.com'),
+        complianceFlags: org.compliance_flags || { pencom: true, nhf: true, nsitf: true, paye: true },
+        createdAt: org.created_at || '2026-01-01T00:00:00Z'
+      };
+    });
+    return sendJson(response, 200, { tenants });
+  }
+
+  // 4. Admin Tenant Creation Wizard
+  if (url.pathname === '/api/admin/tenants' && request.method === 'POST') {
+    const store = await getStore();
+    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const body = await readJson(request);
+
+    if (!body.legalName || !body.adminEmail || !body.adminName) {
+      return sendJson(response, 400, { error: 'Legal company name, master admin name, and work email are required.' });
+    }
+
+    const prefix = body.legalName.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'SR';
+    const randDigits = Math.floor(1000 + Math.random() * 9000);
+    const generatedCompanyId = `${prefix}-NG-${randDigits}`;
+
+    const tenantId = crypto.randomUUID();
+    const adminUserId = crypto.randomUUID();
+    const tempPassword = body.adminPassword || `ShiftRelay@${Math.floor(1000 + Math.random() * 9000)}!`;
+    const hashedTempPw = await hashPassword(tempPassword);
+
+    if (!Array.isArray(store.organisations)) store.organisations = [];
+    if (!Array.isArray(store.portalUsers)) store.portalUsers = [];
+    if (!Array.isArray(store.memberships)) store.memberships = [];
+    if (!Array.isArray(store.contracts)) store.contracts = [];
+
+    const newOrg = {
+      id: tenantId,
+      organisation_code: generatedCompanyId,
+      aliases: [generatedCompanyId, generatedCompanyId.replace(/[^A-Za-z0-9]/g, '').toUpperCase()],
+      legal_name: body.legalName.trim(),
+      trading_name: (body.tradingName || body.legalName).trim(),
+      industry: body.industry || 'Frontline Operations & Logistics',
+      country: body.country || 'Nigeria',
+      state: body.state || 'Lagos',
+      currency: body.currency || 'NGN',
+      rc_number: body.rcNumber || 'RC-' + Math.floor(100000 + Math.random() * 900000),
+      compliance_flags: { pencom: true, nhf: true, nsitf: true, paye_finance_act: true },
+      created_at: new Date().toISOString()
+    };
+    store.organisations.push(newOrg);
+
+    const adminUser = {
+      id: adminUserId,
+      tenant_id: tenantId,
+      organisation_id: tenantId,
+      full_name: body.adminName.trim(),
+      email: body.adminEmail.trim().toLowerCase(),
+      phone: (body.adminPhone || '').trim(),
+      password_hash: hashedTempPw,
+      status: 'active',
+      created_at: new Date().toISOString()
+    };
+    store.portalUsers.push(adminUser);
+
+    const adminMembership = {
+      id: adminUserId,
+      organisation_id: tenantId,
+      user_id: adminUserId,
+      role: 'owner',
+      title: body.adminTitle || 'HR Director / Executive Sponsor',
+      department: 'Executive Operations',
+      status: 'active'
+    };
+    store.memberships.push(adminMembership);
+
+    store.contracts.push({
+      userId: adminUserId,
+      tenant_id: tenantId,
+      userName: body.adminName.trim(),
+      staffId: `${prefix}-0001`,
+      role: body.adminTitle || 'HR Director / Executive Sponsor',
+      department: 'Executive Operations',
+      compensation_type: 'fixed_monthly',
+      monthly_rate: Number(body.adminSalary || 650000),
+      hourly_rate: Math.round(Number(body.adminSalary || 650000) / 160),
+      currency: 'NGN',
+      bank_name: body.adminBank || 'Guaranty Trust Bank (GTBank)',
+      account_number: body.adminAccount || '0123456789',
+      account_name: body.adminName.trim()
+    });
+
+    await saveStore(store);
+
+    return sendJson(response, 201, {
+      ok: true,
+      tenant: newOrg,
+      companyId: generatedCompanyId,
+      masterAdmin: {
+        name: body.adminName.trim(),
+        email: body.adminEmail.trim().toLowerCase(),
+        tempPassword,
+        loginPortalUrl: `/?companyId=${generatedCompanyId}`
+      }
+    });
+  }
+
+  // 5. Bulk Frontline Employee Provisioning (CSV / Concierge Intake)
+  if (url.pathname.startsWith('/api/admin/tenants/') && url.pathname.endsWith('/employees/bulk') && request.method === 'POST') {
+    const store = await getStore();
+    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const tenantId = url.pathname.split('/')[4];
+    const org = (store.organisations || []).find(o => o.id === tenantId || o.organisation_code === tenantId);
+    if (!org) return sendJson(response, 404, { error: 'Tenant organisation not found.' });
+
+    const body = await readJson(request);
+    const employees = Array.isArray(body.employees) ? body.employees : [];
+    if (employees.length === 0) return sendJson(response, 400, { error: 'No employee records provided in payload.' });
+
+    if (!Array.isArray(store.portalUsers)) store.portalUsers = [];
+    if (!Array.isArray(store.memberships)) store.memberships = [];
+    if (!Array.isArray(store.contracts)) store.contracts = [];
+
+    const prefix = org.organisation_code.slice(0, 3).toUpperCase();
+    const provisioned = [];
+
+    for (let i = 0; i < employees.length; i++) {
+      const emp = employees[i];
+      if (!emp.fullName || !emp.email) continue;
+      const empUserId = crypto.randomUUID();
+      const activationToken = 'act-' + randomBytes(20).toString('hex');
+      const cleanPhone = String(emp.phone || '').replace(/[^0-9]/g, '');
+      const verificationKey = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : '1234';
+      const staffId = emp.staffId || `${prefix}-${String(i + 101).padStart(4, '0')}`;
+
+      const shellUser = {
+        id: empUserId,
+        tenant_id: org.id,
+        organisation_id: org.id,
+        full_name: emp.fullName.trim(),
+        email: emp.email.trim().toLowerCase(),
+        phone: (emp.phone || '').trim(),
+        status: 'pending_activation',
+        activation_token: activationToken,
+        verification_key: verificationKey,
+        created_at: new Date().toISOString()
+      };
+      store.portalUsers.push(shellUser);
+
+      const role = String(emp.role || '').toLowerCase().includes('supervisor') ? 'supervisor' : 'incoming';
+      const shellMembership = {
+        id: empUserId,
+        organisation_id: org.id,
+        user_id: empUserId,
+        role,
+        title: emp.role || 'Frontline Specialist',
+        department: emp.department || 'Operations',
+        status: 'pending_activation'
+      };
+      store.memberships.push(shellMembership);
+
+      const isHourly = emp.compensationType === 'hourly_shift';
+      const monthlyRate = Number(emp.monthlyRate || (isHourly ? 0 : 200000));
+      const hourlyRate = Number(emp.hourlyRate || (isHourly ? 1800 : Math.round(monthlyRate / 160)));
+
+      store.contracts.push({
+        userId: empUserId,
+        tenant_id: org.id,
+        userName: emp.fullName.trim(),
+        staffId,
+        role: emp.role || 'Frontline Specialist',
+        department: emp.department || 'Operations',
+        compensation_type: isHourly ? 'hourly_shift' : 'fixed_monthly',
+        monthly_rate: monthlyRate,
+        hourly_rate: hourlyRate,
+        currency: org.currency || 'NGN',
+        bank_name: emp.bankName || 'Access Bank',
+        account_number: emp.accountNumber || '0123456789',
+        account_name: emp.accountName || emp.fullName.trim()
+      });
+
+      provisioned.push({
+        userId: empUserId,
+        staffId,
+        fullName: emp.fullName.trim(),
+        email: emp.email.trim().toLowerCase(),
+        phone: (emp.phone || '').trim(),
+        activationToken,
+        activationUrl: `/activate?token=${activationToken}`,
+        verificationKeyPrompt: cleanPhone ? `Last 4 digits of phone (${verificationKey})` : 'Verification Key 1234'
+      });
+    }
+
+    await saveStore(store);
+
+    return sendJson(response, 201, {
+      ok: true,
+      tenantId: org.id,
+      companyId: org.organisation_code,
+      provisionedCount: provisioned.length,
+      employees: provisioned
+    });
+  }
+
+  // 6. Admin Concierge Inbound Leads
+  if (url.pathname === '/api/admin/demo-requests' && request.method === 'GET') {
+    const store = await getStore();
+    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    return sendJson(response, 200, {
+      requests: (store.enterpriseDemoRequests || []).slice().reverse()
+    });
+  }
+
+  // 7. Public Employee Activation Info
+  if (url.pathname === '/api/auth/activation-info' && request.method === 'GET') {
+    const token = url.searchParams.get('token');
+    if (!token) return sendJson(response, 400, { error: 'Activation token is required.' });
+    const store = await getStore();
+    const user = (store.portalUsers || []).find(u => u.activation_token === token && u.status === 'pending_activation');
+    if (!user) return sendJson(response, 404, { error: 'Invalid or expired activation link.' });
+
+    const org = (store.organisations || []).find(o => o.id === user.tenant_id || o.id === user.organisation_id);
+    return sendJson(response, 200, {
+      ok: true,
+      fullName: user.full_name,
+      email: user.email,
+      companyName: org?.legal_name || 'Enterprise Client',
+      companyId: org?.organisation_code || '246701',
+      hasPhone: Boolean(user.phone)
+    });
+  }
+
+  // 8. Public Employee Activation Submission
+  if (url.pathname === '/api/auth/activate' && request.method === 'POST') {
+    const body = await readJson(request);
+    const token = String(body.token || '').trim();
+    const newPassword = String(body.newPassword || '').trim();
+    const verificationCode = String(body.verificationCode || '').trim();
+
+    if (!token || !newPassword || newPassword.length < 8) {
+      return sendJson(response, 400, { error: 'Valid token and a secure password of at least 8 characters are required.' });
+    }
+
+    const store = await getStore();
+    const userIndex = (store.portalUsers || []).findIndex(u => u.activation_token === token && u.status === 'pending_activation');
+    if (userIndex === -1) {
+      return sendJson(response, 404, { error: 'Activation token not found or already activated.' });
+    }
+
+    const user = store.portalUsers[userIndex];
+
+    if (user.phone && verificationCode) {
+      const cleanPhone = user.phone.replace(/[^0-9]/g, '');
+      const last4 = cleanPhone.slice(-4);
+      const cleanInput = verificationCode.replace(/[^0-9]/g, '');
+      if (cleanInput !== last4 && cleanInput !== cleanPhone && cleanInput !== user.verification_key) {
+        return sendJson(response, 400, { error: 'Verification failed. Please enter the last 4 digits of your registered phone number.' });
+      }
+    }
+
+    const hashedPw = await hashPassword(newPassword);
+    user.password_hash = hashedPw;
+    user.status = 'active';
+    delete user.activation_token;
+    delete user.verification_key;
+
+    const member = (store.memberships || []).find(m => m.user_id === user.id);
+    if (member) member.status = 'active';
+
+    const org = (store.organisations || []).find(o => o.id === user.tenant_id || o.id === user.organisation_id);
+
+    const sessionId = await createSession(user.id, member ? member.id : user.id);
+    response.setHeader('Set-Cookie', sessionCookie(sessionId));
+
+    await saveStore(store);
+
+    return sendJson(response, 200, {
+      ok: true,
+      message: 'Your ShiftRelay account is now active! You may begin your frontline shifts.',
+      companyId: org?.organisation_code || '246701',
+      user: {
+        id: member ? member.id : user.id,
+        name: user.full_name,
+        email: user.email,
+        role: member ? member.role : 'incoming',
+        company_id: org?.organisation_code || '246701',
+        organisation_name: org?.legal_name
+      }
+    });
+  }
+
   // ── Compliance & Goals Watch ─────────────────────────────────────────────
   if (url.pathname === '/api/compliance-goals' && request.method === 'GET') {
     return sendJson(response, 200, {
@@ -3860,7 +4243,9 @@ async function handleUploadFileRequest(request, response, url) {
 }
 
 async function serveStatic(request, response, url) {
-  const requestedPath = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
+  let requestedPath = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
+  if (requestedPath === 'admin') requestedPath = 'admin.html';
+  if (requestedPath === 'activate') requestedPath = 'activate.html';
   const safePath = normalize(requestedPath).replace(/^([.]{2}[/\\])+/, '');
 
   // ── Block direct static access to uploads (must use handleUploadFileRequest) ──

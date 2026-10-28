@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activate Employee Profile | ShiftRelay Enterprise</title>
+  <link rel="icon" type="image/svg+xml" href="/logo-mark.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #080d16;
+      --bg-surface: #0f172a;
+      --bg-elevated: #1e293b;
+      --border-subtle: #334155;
+      --primary: #0d9488;
+      --primary-hover: #0f766e;
+      --emerald: #10b981;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      line-height: 1.5;
+      background-image: radial-gradient(circle at 50% 20%, rgba(13, 148, 136, 0.12) 0%, transparent 60%);
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: 24px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #0d524d, #10b981, #0d9488);
+    }
+
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(13, 148, 136, 0.15);
+      border: 1px solid rgba(13, 148, 136, 0.3);
+      color: #34d399;
+      font-size: 11.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .tenant-banner {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .company-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .company-id-chip {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 800;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg-elevated);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #0d524d 0%, #0d9488 100%);
+      border: none;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(13, 82, 77, 0.3);
+      transition: all 0.15s ease;
+      margin-top: 10px;
+    }
+
+    .btn-submit:hover {
+      background: linear-gradient(135deg, #0a3d39 0%, #0f766e 100%);
+      transform: translateY(-1px);
+    }
+
+    .error-box {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      margin-bottom: 18px;
+      display: none;
+    }
+
+    .success-view {
+      text-align: center;
+      display: none;
+    }
+
+    .success-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.15);
+      border: 2px solid #10b981;
+      color: #34d399;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card" id="activation-card">
+    <div id="step-loading" style="text-align:center; padding:32px 0;">
+      <div style="font-size:14px; color:var(--text-muted);">Verifying single-use onboarding token...</div>
+    </div>
+
+    <div id="step-invalid" style="display:none; text-align:center; padding:20px 0;">
+      <div style="width:56px; height:56px; border-radius:50%; background:rgba(239,68,68,0.15); color:#f87171; display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </div>
+      <h3 style="font-size:18px; font-weight:800; margin-bottom:6px;">Onboarding Token Expired</h3>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px;" id="invalid-msg">This onboarding link is invalid or has already been completed.</p>
+      <a href="/" style="display:inline-block; padding:10px 20px; background:#1e293b; color:#fff; text-decoration:none; border-radius:10px; font-size:13px; font-weight:700;">Return to Enterprise Login</a>
+    </div>
+
+    <div id="step-form" style="display:none;">
+      <div class="brand-pill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Frontline Profile Provisioning
+      </div>
+      <h1 class="title">Welcome, <span id="emp-name" style="color:#34d399;">Frontline Worker</span></h1>
+      <p class="subtitle">Complete identity verification and configure your private login password to activate your shifts.</p>
+
+      <div class="tenant-banner">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted);">Employer</div>
+          <div class="company-name" id="emp-company">Apex Logistics</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted);">Tenant ID</div>
+          <div class="company-id-chip" id="emp-company-id">246701</div>
+        </div>
+      </div>
+
+      <div id="error-box" class="error-box"></div>
+
+      <form id="activate-form" onsubmit="submitActivation(event)">
+        <div class="form-group" id="grp-verification">
+          <label class="form-label">Phone Identity Check *</label>
+          <input type="text" id="verification-code" class="input-field" placeholder="Enter last 4 digits of your registered mobile" required autofocus>
+          <small style="font-size:11.5px; color:var(--text-muted); display:block; margin-top:4px;">Verification credential registered by your HR department</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Create Private Password *</label>
+          <input type="password" id="new-password" class="input-field" placeholder="Minimum 8 characters" required minlength="8" autocomplete="new-password">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Confirm Password *</label>
+          <input type="password" id="confirm-password" class="input-field" placeholder="Re-enter password" required minlength="8" autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="btn-submit" id="btn-activate-submit">
+          <span>Activate My Workplace Profile</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </form>
+    </div>
+
+    <div id="step-success" class="success-view">
+      <div class="success-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 style="font-size:22px; font-weight:800; margin-bottom:8px;">Profile Successfully Activated!</h2>
+      <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:24px;">Your shell account has transitioned to active standing. Your attendance timecards, handovers, and statutory earnings are ready.</p>
+
+      <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:14px; padding:16px; margin-bottom:24px; text-align:left; font-size:13px; line-height:1.7;">
+        <div><strong>Assigned Company ID:</strong> <span id="success-company-id" style="font-family:var(--font-mono); color:#34d399; font-weight:800;"></span></div>
+        <div><strong>Work Email:</strong> <span id="success-email"></span></div>
+        <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">Keep your Company ID handy. You will need it whenever signing in to ShiftRelay.</div>
+      </div>
+
+      <button class="btn-submit" onclick="launchApp()">
+        <span>Launch ShiftRelay Workplace</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let token = new URLSearchParams(window.location.search).get('token');
+    let loadedCompanyId = '';
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (!token) {
+        showInvalid('No activation token found in link.');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/auth/activation-info?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Token expired or invalid');
+
+        document.getElementById('step-loading').style.display = 'none';
+        document.getElementById('step-form').style.display = 'block';
+
+        document.getElementById('emp-name').textContent = data.fullName;
+        document.getElementById('emp-company').textContent = data.companyName;
+        document.getElementById('emp-company-id').textContent = data.companyId;
+        loadedCompanyId = data.companyId;
+
+        if (!data.hasPhone) {
+          document.getElementById('grp-verification').style.display = 'none';
+          document.getElementById('verification-code').required = false;
+        }
+      } catch (err) {
+        showInvalid(err.message);
+      }
+    });
+
+    function showInvalid(msg) {
+      document.getElementById('step-loading').style.display = 'none';
+      document.getElementById('step-invalid').style.display = 'block';
+      if (msg) document.getElementById('invalid-msg').textContent = msg;
+    }
+
+    async function submitActivation(event) {
+      event.preventDefault();
+      const errBox = document.getElementById('error-box');
+      errBox.style.display = 'none';
+
+      const verificationCode = document.getElementById('verification-code')?.value || '';
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+
+      if (newPassword !== confirmPassword) {
+        errBox.textContent = 'Passwords do not match.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      const btn = document.getElementById('btn-activate-submit');
+      btn.disabled = true;
+      btn.textContent = 'Activating Profile...';
+
+      try {
+        const res = await fetch('/api/auth/activate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token,
+            verificationCode,
+            newPassword
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Activation failed');
+
+        document.getElementById('step-form').style.display = 'none';
+        document.getElementById('step-success').style.display = 'block';
+        document.getElementById('success-company-id').textContent = data.companyId || loadedCompanyId;
+        document.getElementById('success-email').textContent = data.user?.email || '';
+
+        // Store prefilled companyId in localStorage so login remembers it
+        localStorage.setItem('sr_last_company_id', data.companyId || loadedCompanyId);
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>Activate My Workplace Profile</span> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
+      }
+    }
+
+    function launchApp() {
+      window.location.href = `/?companyId=${encodeURIComponent(loadedCompanyId)}`;
+    }
+  </script>
+</body>
+</html>
