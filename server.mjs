@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { basename, extname, join, normalize, resolve } from 'node:path';
 import { databaseConfigured, demoMembers, demoOrganisation, initializeDatabase, isDatabaseConnectionError, sanitizeDatabaseError, query, seedDemoOrganisation } from './database.mjs';
 import { generateQrSvg } from './qr-svg-generator.js';
+import { calculateShiftScore, scoreWorkerEntries, monthlyScoreSummary } from './shift-score-engine.mjs';
 
 export function calculateHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
   const R = 6371e3; // Earth radius in meters
@@ -85,7 +86,7 @@ export async function getStore() {
   try { store = JSON.parse(await readFile(dataPath, 'utf8')); }
   catch { store = { handovers: [], notifications: [] }; }
 
-  // ── Enterprise Tenant & Nigerian Frontline Compensation Defaults ───────────
+  // ── Enterprise Tenants: Dangote + Flour Mills (separate company accounts) ──
   if (!Array.isArray(store.organisations) || store.organisations.length === 0) {
     store.organisations = [
       {
@@ -96,9 +97,49 @@ export async function getStore() {
         trading_name: 'Dangote Operations',
         industry: 'Logistics & FMCG',
         country: 'Nigeria',
-        currency: 'NGN'
+        currency: 'NGN',
+        hub_lat: 6.4474,
+        hub_lng: 3.3590,
+        hub_name: 'Apapa Industrial Terminal',
+        hub_perimeter: 500
+      },
+      {
+        // ── Pilot Tenant: Flour Mills of Nigeria Plc (Apapa Mill) ──────────
+        id: '00000000-0000-4000-8000-000000000200',
+        organisation_code: 'FLO-NG-6093',
+        aliases: ['FLO-NG-6093', 'FLOURMILLS', 'FMN'],
+        legal_name: 'Flour Mills of Nigeria Plc',
+        trading_name: 'Flour Mills',
+        industry: 'Food Manufacturing',
+        country: 'Nigeria',
+        currency: 'NGN',
+        hub_lat: 6.4510,
+        hub_lng: 3.3810,
+        hub_name: 'Apapa Mill Gate A',
+        hub_perimeter: 400,
+        subscription_tier: 'enterprise',
+        onboarding_fee_paid: true,
+        monthly_fee_ngn: 400000,
+        pepm_ngn: 4500
       }
     ];
+  }
+  // ── Ensure Flour Mills org always present in multi-tenant stores ────────────
+  if (!store.organisations.find(o => o.organisation_code === 'FLO-NG-6093')) {
+    store.organisations.push({
+      id: '00000000-0000-4000-8000-000000000200',
+      organisation_code: 'FLO-NG-6093',
+      aliases: ['FLO-NG-6093', 'FLOURMILLS', 'FMN'],
+      legal_name: 'Flour Mills of Nigeria Plc',
+      trading_name: 'Flour Mills',
+      industry: 'Food Manufacturing',
+      country: 'Nigeria',
+      currency: 'NGN',
+      hub_lat: 6.4510,
+      hub_lng: 3.3810,
+      hub_name: 'Apapa Mill Gate A',
+      hub_perimeter: 400
+    });
   }
   if (!Array.isArray(store.contracts) || store.contracts.length === 0) {
     store.contracts = [
@@ -171,8 +212,142 @@ export async function getStore() {
         bank_name: 'United Bank for Africa (UBA)',
         account_number: '2098765431',
         account_name: 'Aaron Glover'
+      },
+      // ── Flour Mills of Nigeria Plc — Pilot Tenant Workers ─────────────────
+      {
+        userId: 'fmn-emeka-001',
+        tenant_id: '00000000-0000-4000-8000-000000000200',
+        organisation_id: '00000000-0000-4000-8000-000000000200',
+        userName: 'Emeka Okafor',
+        staffId: 'FMN-0101',
+        role: 'Senior Mill Operator',
+        department: 'Milling — Wheat Processing',
+        compensation_type: 'fixed_monthly',
+        monthly_rate: 280000,
+        hourly_rate: 1750,
+        currency: 'NGN',
+        bank_name: 'Access Bank',
+        account_number: '0112345678',
+        account_name: 'Emeka Okafor'
+      },
+      {
+        userId: 'fmn-ngozi-002',
+        tenant_id: '00000000-0000-4000-8000-000000000200',
+        organisation_id: '00000000-0000-4000-8000-000000000200',
+        userName: 'Ngozi Adeyemi',
+        staffId: 'FMN-0102',
+        role: 'Packaging Line Lead',
+        department: 'Packaging & Dispatch',
+        compensation_type: 'fixed_monthly',
+        monthly_rate: 240000,
+        hourly_rate: 1500,
+        currency: 'NGN',
+        bank_name: 'Zenith Bank',
+        account_number: '2034567890',
+        account_name: 'Ngozi Adeyemi'
+      },
+      {
+        userId: 'fmn-chidi-003',
+        tenant_id: '00000000-0000-4000-8000-000000000200',
+        organisation_id: '00000000-0000-4000-8000-000000000200',
+        userName: 'Chidi Nwosu',
+        staffId: 'FMN-0103',
+        role: 'Quality Control Technician',
+        department: 'Quality Assurance',
+        compensation_type: 'fixed_monthly',
+        monthly_rate: 210000,
+        hourly_rate: 1313,
+        currency: 'NGN',
+        bank_name: 'First Bank of Nigeria',
+        account_number: '3041234567',
+        account_name: 'Chidi Nwosu'
+      },
+      {
+        userId: 'fmn-aisha-004',
+        tenant_id: '00000000-0000-4000-8000-000000000200',
+        organisation_id: '00000000-0000-4000-8000-000000000200',
+        userName: 'Aisha Bello',
+        staffId: 'FMN-0104',
+        role: 'Gate Security Officer',
+        department: 'Security & Access Control',
+        compensation_type: 'fixed_monthly',
+        monthly_rate: 195000,
+        hourly_rate: 1219,
+        currency: 'NGN',
+        bank_name: 'Guaranty Trust Bank (GTBank)',
+        account_number: '0198765432',
+        account_name: 'Aisha Bello'
+      },
+      {
+        userId: 'fmn-tunde-005',
+        tenant_id: '00000000-0000-4000-8000-000000000200',
+        organisation_id: '00000000-0000-4000-8000-000000000200',
+        userName: 'Tunde Fashola',
+        staffId: 'FMN-0105',
+        role: 'Maintenance Technician',
+        department: 'Engineering & Maintenance',
+        compensation_type: 'hourly_shift',
+        monthly_rate: 0,
+        hourly_rate: 2000,
+        currency: 'NGN',
+        bank_name: 'United Bank for Africa (UBA)',
+        account_number: '2078901234',
+        account_name: 'Tunde Fashola'
+      },
+      {
+        userId: 'fmn-hr-admin',
+        tenant_id: '00000000-0000-4000-8000-000000000200',
+        organisation_id: '00000000-0000-4000-8000-000000000200',
+        userName: 'Funke Adebisi',
+        staffId: 'FMN-HR-01',
+        role: 'HR & Payroll Supervisor',
+        department: 'Human Resources',
+        compensation_type: 'fixed_monthly',
+        monthly_rate: 420000,
+        hourly_rate: 2625,
+        currency: 'NGN',
+        bank_name: 'Access Bank',
+        account_number: '0156789012',
+        account_name: 'Funke Adebisi'
       }
     ];
+  }
+  // ── Seed rich demo time entries for Flour Mills workers ──────────────────────
+  if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
+  const fmnWorkers = ['fmn-emeka-001','fmn-ngozi-002','fmn-chidi-003','fmn-aisha-004','fmn-tunde-005'];
+  const hasFmnEntries = store.timeEntries.some(e => fmnWorkers.includes(e.membershipId));
+  if (!hasFmnEntries) {
+    // Generate 20 days of completed shifts for Oct 2026 (1st–24th, weekdays)
+    const fmnShiftDays = [1,2,3,6,7,8,9,10,13,14,15,16,17,20,21,22,23,24,27,28];
+    const geoModes = ['gate_qr','gate_qr','gate_qr','gps_snapshot','gate_qr'];
+    const geoStatuses = ['verified_on_site','verified_on_site','verified_on_site','within_geofence','verified_on_site'];
+    for (let wi = 0; wi < fmnWorkers.length; wi++) {
+      const memberId = fmnWorkers[wi];
+      const shiftHours = [8, 8, 8, 8, 10]; // Tunde does 10h shifts
+      const sh = shiftHours[wi];
+      for (const day of fmnShiftDays) {
+        const clockIn = new Date(`2026-10-${String(day).padStart(2,'0')}T06:00:00.000Z`);
+        // Introduce realistic variation: 1 late, 1 short, 1 open punch per worker
+        const isLate   = day === fmnShiftDays[3];
+        const isShort  = day === fmnShiftDays[7];
+        const isOpen   = day === fmnShiftDays[14]; // missed clock-out
+        if (isLate) clockIn.setMinutes(clockIn.getMinutes() + 18); // 18 min late
+        const clockOut = isOpen ? null : new Date(clockIn.getTime() + (isShort ? 5.5 : sh) * 3600000);
+        store.timeEntries.push({
+          id: `fmn-te-${memberId}-${day}`,
+          organisationId: '00000000-0000-4000-8000-000000000200',
+          membershipId: memberId,
+          clockedInAt: clockIn.toISOString(),
+          clockedOutAt: clockOut ? clockOut.toISOString() : null,
+          note: null,
+          verificationMode: geoModes[wi],
+          verificationDetails: `Muster Gate QR Verified (Apapa Mill Gate A)`,
+          geofenceStatus: geoStatuses[wi],
+          distanceMeters: 0,
+          siteName: 'Apapa Mill Gate A'
+        });
+      }
+    }
   }
   return store;
 }
@@ -1128,85 +1303,153 @@ export function calculateNigerianStatutory(grossSalary) {
   };
 }
 
-export function compilePayrollRun(store) {
-  const contracts = store.contracts || [];
+export function compilePayrollRun(store, tenantId = null) {
+  // ── Filter contracts by tenant when specified ──────────────────────────────
+  const allContracts = store.contracts || [];
+  const contracts = tenantId
+    ? allContracts.filter(c => c.tenant_id === tenantId || c.organisation_id === tenantId)
+    : allContracts;
+  const org = (store.organisations || []).find(o =>
+    tenantId ? (o.id === tenantId || o.organisation_code === tenantId) : true
+  ) || { legal_name: 'ShiftRelay Employer', organisation_code: 'SR-000', id: null };
+
+  const month = '2026-10'; // current payroll month
+
   const employees = contracts.map(c => {
     const isMonthly = c.compensation_type === 'fixed_monthly';
-    const baseRate = Number(c.monthly_rate || 0);
-    const hourlyRate = Number(c.hourly_rate || (baseRate > 0 ? Math.round(baseRate / 160) : 1500));
-    let regularHours = isMonthly ? 160 : 80;
+    const baseRate   = Number(c.monthly_rate  || 0);
+    const hourlyRate = Number(c.hourly_rate   || (baseRate > 0 ? Math.round(baseRate / 160) : 1500));
+
+    // ── Live attendance from store.timeEntries ─────────────────────────────
+    const memberEntries = (store.timeEntries || []).filter(e =>
+      e.membershipId === c.userId &&
+      typeof e.clockedInAt === 'string' &&
+      e.clockedInAt.startsWith(month)
+    );
+    const completedEntries = memberEntries.filter(e => e.clockedOutAt);
+    const openPunches      = memberEntries.filter(e => !e.clockedOutAt).length;
+
+    // Calculate hours from live attendance
+    let regularHours = 0;
     let overtimeHours = 0;
-    let unexcusedAbsenceDays = 0;
-    if (c.userName === 'Amina Otieno' || c.userId === '00000000-0000-4000-8000-000000000011') {
-      regularHours = 80;
-      overtimeHours = 11;
-    } else if (c.userName === 'Aaron Glover' || c.userId === 'demo-aaron') {
-      regularHours = 76;
-      overtimeHours = 6;
+    const STANDARD_DAILY_HOURS = 8;
+    const OVERTIME_THRESHOLD   = 8;
+    for (const e of completedEntries) {
+      const worked = (new Date(e.clockedOutAt) - new Date(e.clockedInAt)) / 3600000;
+      const reg = Math.min(worked, OVERTIME_THRESHOLD);
+      const ot  = Math.max(0, worked - OVERTIME_THRESHOLD);
+      regularHours  += reg;
+      overtimeHours += ot;
     }
-    const regularPay = isMonthly ? baseRate : (regularHours * hourlyRate);
-    const overtimePay = Math.round(overtimeHours * (hourlyRate * 1.5));
-    const absenceDeduction = Math.round(unexcusedAbsenceDays * (baseRate / 22));
-    const grossPay = Math.round(regularPay + overtimePay - absenceDeduction);
+    regularHours  = Math.round(regularHours  * 100) / 100;
+    overtimeHours = Math.round(overtimeHours * 100) / 100;
+
+    // Fall back to contract standard hours when no live entries exist yet
+    if (completedEntries.length === 0) {
+      regularHours  = isMonthly ? 160 : 80;
+      overtimeHours = 0;
+      // Legacy per-worker demo overrides (Dangote workers before live data)
+      if (c.userName === 'Amina Otieno' || c.userId === '00000000-0000-4000-8000-000000000011') {
+        regularHours = 80; overtimeHours = 11;
+      } else if (c.userName === 'Aaron Glover' || c.userId === 'demo-aaron') {
+        regularHours = 76; overtimeHours = 6;
+      }
+    }
+
+    // Unexcused absence days = missed punches (open entries)
+    const unexcusedAbsenceDays = openPunches;
+
+    // ── Shift Score integration ─────────────────────────────────────────────
+    const scoreData = monthlyScoreSummary(c.userId, store, month);
+    const { avgScore, grade: shiftGrade, performanceBonusPct, attendanceDeductionDays } = scoreData;
+
+    // ── Pay calculation ─────────────────────────────────────────────────────
+    const regularPay         = isMonthly ? baseRate : Math.round(regularHours * hourlyRate);
+    const overtimePay        = Math.round(overtimeHours * (hourlyRate * 1.5));
+    const performanceBonus   = Math.round(regularPay * performanceBonusPct);
+    const absenceDeduction   = Math.round(
+      (unexcusedAbsenceDays + attendanceDeductionDays) * (isMonthly ? baseRate / 22 : hourlyRate * STANDARD_DAILY_HOURS)
+    );
+    const grossPay           = Math.max(0, Math.round(regularPay + overtimePay + performanceBonus - absenceDeduction));
+
     const stat = calculateNigerianStatutory(grossPay);
+
     return {
-      userId: c.userId,
-      userName: c.userName,
-      staffId: c.staffId || 'DNG-' + (c.userId.slice(0, 4)),
-      role: c.role,
-      department: c.department,
+      userId:        c.userId,
+      userName:      c.userName,
+      staffId:       c.staffId || 'SR-' + c.userId.slice(0, 4).toUpperCase(),
+      role:          c.role,
+      department:    c.department,
+      tenant_id:     c.tenant_id || c.organisation_id || org.id,
       compensation_type: c.compensation_type,
-      currency: c.currency || 'NGN',
+      currency:      c.currency || 'NGN',
       baseRate,
       hourlyRate,
       regularHours,
       overtimeHours,
       unexcusedAbsenceDays,
+      completedShifts: completedEntries.length,
+      // Shift score integration
+      shiftScore:     avgScore,
+      shiftGrade,
+      performanceBonusPct,
+      performanceBonus,
+      attendanceDeductionDays,
+      // Pay components
       regularPay,
       overtimePay,
       absenceDeduction,
       grossPay,
-      cra: stat.cra,
-      taxableIncome: stat.taxableIncome,
-      payeTax: stat.payeTax,
-      pensionEmployee: stat.pensionEmployee,
-      pensionEmployer: stat.pensionEmployer,
-      nhf: stat.nhf,
-      nsitf: stat.nsitf,
+      // Nigerian statutory
+      cra:                   stat.cra,
+      taxableIncome:         stat.taxableIncome,
+      payeTax:               stat.payeTax,
+      pensionEmployee:       stat.pensionEmployee,
+      pensionEmployer:       stat.pensionEmployer,
+      nhf:                   stat.nhf,
+      nsitf:                 stat.nsitf,
       totalStatutoryDeductions: stat.totalDeductions,
-      netPay: stat.netPay,
-      bank_name: c.bank_name || 'Access Bank',
-      account_number: c.account_number || '0123456789',
-      account_name: c.account_name || c.userName,
-      narration: `Salary Oct 2026 ShiftRelay Verified`,
-      status: 'verified_ready',
+      netPay:                stat.netPay,
+      bank_name:     c.bank_name     || 'Access Bank',
+      account_number: c.account_number || '0000000000',
+      account_name:  c.account_name  || c.userName,
+      narration:    `Salary ${month.replace('-', ' ')} ShiftRelay Verified`,
+      status:       'verified_ready',
       formatted: {
-        basicSalary: '₦' + regularPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        overtimeBonus: '₦' + overtimePay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        grossTotal: '₦' + grossPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        pensionEmployee: '₦' + stat.pensionEmployee.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        pensionEmployer: '₦' + stat.pensionEmployer.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        payeTax: '₦' + stat.payeTax.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        nhf: '₦' + stat.nhf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        nsitf: '₦' + stat.nsitf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        totalDeductions: '₦' + stat.totalDeductions.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        netPay: '₦' + stat.netPay.toLocaleString('en-NG', { minimumFractionDigits: 2 })
+        basicSalary:      '₦' + regularPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        overtimeBonus:    '₦' + overtimePay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        performanceBonus: '₦' + performanceBonus.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        absenceDeduction: '₦' + absenceDeduction.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        grossTotal:       '₦' + grossPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        pensionEmployee:  '₦' + stat.pensionEmployee.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        pensionEmployer:  '₦' + stat.pensionEmployer.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        payeTax:          '₦' + stat.payeTax.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        nhf:              '₦' + stat.nhf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        nsitf:            '₦' + stat.nsitf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        totalDeductions:  '₦' + stat.totalDeductions.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        netPay:           '₦' + stat.netPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        shiftScore:       `${avgScore}/100 (Grade ${shiftGrade})`
       }
     };
   });
-  const totalGross = employees.reduce((acc, e) => acc + e.grossPay, 0);
+
+  const totalGross      = employees.reduce((acc, e) => acc + e.grossPay, 0);
   const totalDeductions = employees.reduce((acc, e) => acc + e.totalStatutoryDeductions, 0);
-  const totalNet = employees.reduce((acc, e) => acc + e.netPay, 0);
-  const totalPension = employees.reduce((acc, e) => acc + e.pensionEmployee + e.pensionEmployer, 0);
-  const totalPAYE = employees.reduce((acc, e) => acc + e.payeTax, 0);
+  const totalNet        = employees.reduce((acc, e) => acc + e.netPay, 0);
+  const totalPension    = employees.reduce((acc, e) => acc + e.pensionEmployee + e.pensionEmployer, 0);
+  const totalPAYE       = employees.reduce((acc, e) => acc + e.payeTax, 0);
+  const verifiedShifts  = employees.reduce((acc, e) => acc + e.completedShifts, 0);
+  const missedPunches   = employees.reduce((acc, e) => acc + e.unexcusedAbsenceDays, 0);
+
   return {
-    period: 'October 2026 Monthly Payroll Cycle',
-    payDate: 'Thursday, Oct 29, 2026',
-    currency: 'NGN',
+    period:      'October 2026 Monthly Payroll Cycle',
+    payDate:     'Thursday, Oct 29, 2026',
+    currency:    'NGN',
     currencySymbol: '₦',
-    companyName: 'Dangote Logistics & Operations (Nigeria)',
-    companyId: 'DAN-NG-4011',
-    dispatched: store.lastPayrollDispatch || null,
+    companyName: org.legal_name || org.trading_name || 'ShiftRelay Employer',
+    companyId:   org.organisation_code || 'SR-000',
+    dispatched:  store.lastPayrollDispatch || null,
+    attendanceDriven: true,
     summary: {
       employeeCount: employees.length,
       totalGross,
@@ -1214,8 +1457,8 @@ export function compilePayrollRun(store) {
       totalNet,
       totalPension,
       totalPAYE,
-      verifiedShiftsCount: 142,
-      missedPunchesResolved: 2
+      verifiedShiftsCount: verifiedShifts,
+      missedPunchesResolved: missedPunches
     },
     employees
   };
@@ -1751,8 +1994,10 @@ async function handleApi(request, response, url) {
   if (url.pathname === '/api/calendar/shifts' && request.method === 'POST') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can schedule shifts.' });
     const body = await readJson(request);
-    if (!body.membershipId || !body.startsAt || !body.endsAt) {
-      return sendJson(response, 400, { error: 'Worker, shift start, and shift end are required.' });
+    // Accept membershipId (single) OR workerIds array (bulk), and also title/department
+    const primaryMemberId = body.membershipId || (Array.isArray(body.workerIds) ? body.workerIds[0] : null);
+    if (!primaryMemberId || !body.startsAt || !body.endsAt) {
+      return sendJson(response, 400, { error: 'Worker (membershipId or workerIds), shift start, and shift end are required.' });
     }
     const startD = new Date(body.startsAt);
     const endD = new Date(body.endsAt);
@@ -1766,10 +2011,14 @@ async function handleApi(request, response, url) {
       if (!member) return sendJson(response, 400, { error: 'Assigned worker must be an active member of this company.' });
     } else {
       const store = await getStore();
-      const activeMembers = Array.isArray(store.memberships) && store.memberships.length
-        ? store.memberships.filter(m => m.organisation_id === user.organisation_id && m.status === 'active')
-        : demoMembers;
-      const member = activeMembers.find(m => m.id === body.membershipId);
+      // primaryMemberId already resolved above from membershipId or workerIds[0]
+      const memberIdToCheck = body.membershipId || (Array.isArray(body.workerIds) ? body.workerIds[0] : null);
+      const storeMembers = Array.isArray(store.memberships) && store.memberships.length
+        ? store.memberships.filter(m => m.status === 'active' || m.status === 'pending_activation')
+        : [];
+      // Check store memberships first, then fall back to demoMembers (always valid in dev)
+      const member = storeMembers.find(m => m.id === memberIdToCheck)
+        || demoMembers.find(m => m.id === memberIdToCheck);
       if (!member) return sendJson(response, 400, { error: 'Assigned worker must be an active member of this company.' });
     }
 
@@ -2915,13 +3164,16 @@ async function handleApi(request, response, url) {
   // ── Push to Finance: Master Month-End Payroll Compilation ──────────────────
   if (url.pathname === '/api/payroll/summary' && request.method === 'GET') {
     const store = await getStore();
-    const payroll = compilePayrollRun(store);
-    return sendJson(response, 200, payroll);
+    // Scope payroll to the requesting user's organisation when available
+    const tenantId = user.organisation_id || null;
+    const payroll = compilePayrollRun(store, tenantId);
+    return sendJson(response, 200, { payroll });
   }
 
   if (url.pathname === '/api/payroll/compile' && request.method === 'POST') {
     const store = await getStore();
-    const payroll = compilePayrollRun(store);
+    const tenantId = user.organisation_id || null;
+    const payroll = compilePayrollRun(store, tenantId);
     return sendJson(response, 200, { ok: true, payroll });
   }
 
@@ -2948,7 +3200,7 @@ async function handleApi(request, response, url) {
   // ── Push to Finance: Export Bank CSV Schedule ──────────────────────────────
   if (url.pathname === '/api/payroll/export-bank-csv' && request.method === 'GET') {
     const store = await getStore();
-    const payroll = compilePayrollRun(store);
+    const payroll = compilePayrollRun(store, user.organisation_id || null);
     const csvData = generateBankPaymentCSV(payroll.employees);
     response.writeHead(200, {
       'Content-Type': 'text/csv; charset=utf-8',
@@ -2961,7 +3213,7 @@ async function handleApi(request, response, url) {
   // ── Push to Finance: Export Statutory Tax & Pension CSV Schedule ───────────
   if (url.pathname === '/api/payroll/export-tax-csv' && request.method === 'GET') {
     const store = await getStore();
-    const payroll = compilePayrollRun(store);
+    const payroll = compilePayrollRun(store, user.organisation_id || null);
     const csvData = generateTaxPensionCSV(payroll.employees);
     response.writeHead(200, {
       'Content-Type': 'text/csv; charset=utf-8',
@@ -4420,6 +4672,193 @@ async function handleApi(request, response, url) {
     } catch (err) {
       return sendJson(response, 500, { error: err.message || 'Upload failed.' });
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SHIFT SCORE ENDPOINTS
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // Worker: GET /api/shift-scores  — own shift scores with explainable breakdown
+  if (url.pathname === '/api/shift-scores' && request.method === 'GET') {
+    const store = await getStore();
+    const month = url.searchParams.get('month') || new Date().toISOString().slice(0, 7);
+    const scored = scoreWorkerEntries(
+      user.id,
+      (store.timeEntries || []).filter(e => e.clockedInAt.startsWith(month)),
+      store.scheduledShifts || [],
+      store.punchCorrections || []
+    );
+    const summary = monthlyScoreSummary(user.id, store, month);
+    return sendJson(response, 200, {
+      month,
+      memberId: user.id,
+      memberName: user.name,
+      summary: {
+        avgScore:               summary.avgScore,
+        grade:                  summary.grade,
+        totalShifts:            summary.totalShifts,
+        attendedShifts:         summary.attendedShifts,
+        missedPunches:          summary.missedPunches,
+        performanceBonusPct:    summary.performanceBonusPct,
+        attendanceDeductionDays:summary.attendanceDeductionDays
+      },
+      shifts: scored
+    });
+  }
+
+  // Employer: GET /api/shift-scores/team  — all workers in org with scores
+  if (url.pathname === '/api/shift-scores/team' && request.method === 'GET') {
+    if (!['owner', 'workforce_admin', 'supervisor'].includes(user.role) && !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Manager access required.' });
+    }
+    const store  = await getStore();
+    const month  = url.searchParams.get('month') || new Date().toISOString().slice(0, 7);
+    const orgId  = user.organisation_id || demoOrganisation.id;
+    // Get all member IDs belonging to this org
+    const orgContracts = (store.contracts || []).filter(c =>
+      c.tenant_id === orgId || c.organisation_id === orgId ||
+      // Dangote demo workers have no explicit tenant_id
+      (!c.tenant_id && !c.organisation_id && orgId === demoOrganisation.id)
+    );
+    const team = orgContracts.map(c => {
+      const summary = monthlyScoreSummary(c.userId, store, month);
+      return {
+        memberId:      c.userId,
+        memberName:    c.userName,
+        staffId:       c.staffId,
+        role:          c.role,
+        department:    c.department,
+        avgScore:      summary.avgScore,
+        grade:         summary.grade,
+        attendedShifts:summary.attendedShifts,
+        missedPunches: summary.missedPunches,
+        performanceBonusPct: summary.performanceBonusPct
+      };
+    }).sort((a, b) => b.avgScore - a.avgScore);
+    return sendJson(response, 200, { month, orgId, team });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // STAFF IMPORT — Employer self-service (JSON rows, tenant-scoped)
+  // POST /api/staff/import
+  // Body: { employees: [{ fullName, email, phone, role, department,
+  //         compensationType, monthlyRate, hourlyRate,
+  //         bankName, accountNumber, accountName }] }
+  // ══════════════════════════════════════════════════════════════════════════
+  if (url.pathname === '/api/staff/import' && request.method === 'POST') {
+    if (!['owner', 'workforce_admin'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Only account owners can import staff.' });
+    }
+    const body = await readJson(request);
+    const rows = Array.isArray(body.employees) ? body.employees : [];
+    if (rows.length === 0) return sendJson(response, 400, { error: 'No employee records in payload.' });
+    if (rows.length > 500) return sendJson(response, 400, { error: 'Maximum 500 employees per import.' });
+
+    const store = await getStore();
+    const org   = (store.organisations || []).find(o => o.id === user.organisation_id);
+    if (!org) return sendJson(response, 404, { error: 'Organisation not found.' });
+    if (!Array.isArray(store.portalUsers))  store.portalUsers  = [];
+    if (!Array.isArray(store.memberships))  store.memberships  = [];
+    if (!Array.isArray(store.contracts))    store.contracts    = [];
+
+    const prefix = (org.organisation_code || 'SR').slice(0, 3).toUpperCase();
+    const existingEmails = new Set((store.portalUsers || []).map(u => u.email?.toLowerCase()));
+    const provisioned = [];
+    const skipped     = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const emp = rows[i];
+      if (!emp.fullName || !emp.email) { skipped.push({ row: i + 1, reason: 'Missing name or email' }); continue; }
+      const email = emp.email.trim().toLowerCase();
+      if (existingEmails.has(email)) { skipped.push({ row: i + 1, email, reason: 'Already exists' }); continue; }
+
+      const empUserId      = crypto.randomUUID();
+      const activationToken = 'act-' + randomBytes(16).toString('hex');
+      const cleanPhone     = String(emp.phone || '').replace(/\D/g, '');
+      const verificationKey = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : '1234';
+      const staffId        = emp.staffId || `${prefix}-${String(store.contracts.filter(c => c.tenant_id === org.id).length + i + 101).padStart(4,'0')}`;
+
+      store.portalUsers.push({
+        id:               empUserId,
+        tenant_id:        org.id,
+        organisation_id:  org.id,
+        full_name:        emp.fullName.trim(),
+        email,
+        phone:            (emp.phone || '').trim(),
+        status:           'pending_activation',
+        activation_token: activationToken,
+        verification_key: verificationKey,
+        created_at:       new Date().toISOString()
+      });
+
+      const role = String(emp.role || '').toLowerCase().includes('supervisor') ? 'supervisor' : 'incoming';
+      store.memberships.push({
+        id:              empUserId,
+        organisation_id: org.id,
+        user_id:         empUserId,
+        role,
+        title:      emp.role       || 'Frontline Worker',
+        department: emp.department || 'Operations',
+        status:     'pending_activation'
+      });
+
+      const isHourly   = String(emp.compensationType || '').includes('hourly');
+      const monthlyRate = Number(emp.monthlyRate || (isHourly ? 0 : 200000));
+      const hourlyRate  = Number(emp.hourlyRate  || (isHourly ? 1800 : Math.round(monthlyRate / 160)));
+
+      store.contracts.push({
+        userId:        empUserId,
+        tenant_id:     org.id,
+        organisation_id: org.id,
+        userName:      emp.fullName.trim(),
+        staffId,
+        role:          emp.role       || 'Frontline Worker',
+        department:    emp.department || 'Operations',
+        compensation_type: isHourly ? 'hourly_shift' : 'fixed_monthly',
+        monthly_rate:  monthlyRate,
+        hourly_rate:   hourlyRate,
+        currency:      org.currency || 'NGN',
+        bank_name:     emp.bankName      || 'Access Bank',
+        account_number: emp.accountNumber || '0000000000',
+        account_name:  emp.accountName   || emp.fullName.trim()
+      });
+
+      existingEmails.add(email);
+      provisioned.push({
+        staffId,
+        fullName:         emp.fullName.trim(),
+        email,
+        activationUrl:    `/activate?token=${activationToken}`,
+        verificationHint: cleanPhone ? `Last 4 digits: ${verificationKey}` : 'Pin: 1234'
+      });
+    }
+
+    await saveStore(store);
+    return sendJson(response, 201, {
+      ok:              true,
+      orgId:           org.id,
+      companyCode:     org.organisation_code,
+      provisionedCount: provisioned.length,
+      skippedCount:    skipped.length,
+      employees:       provisioned,
+      skipped
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // TENANT-SCOPED PAYROLL — GET /api/payroll/tenant-summary?tenant=FLO-NG-6093
+  // Returns payroll driven by live attendance for a specific company account
+  // ══════════════════════════════════════════════════════════════════════════
+  if (url.pathname === '/api/payroll/tenant-summary' && request.method === 'GET') {
+    const tenantParam = url.searchParams.get('tenant') || user.organisation_id;
+    if (!tenantParam) return sendJson(response, 400, { error: 'tenant query param required.' });
+    const store = await getStore();
+    const org = (store.organisations || []).find(o =>
+      o.id === tenantParam || o.organisation_code === tenantParam
+    );
+    if (!org) return sendJson(response, 404, { error: 'Tenant not found.' });
+    const payroll = compilePayrollRun(store, org.id);
+    return sendJson(response, 200, { payroll });
   }
 
   return sendJson(response, 404, { error: 'Not found.' });
