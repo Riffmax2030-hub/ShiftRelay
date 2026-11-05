@@ -1461,13 +1461,26 @@
     return { balance, recentText };
   }
 
-  function recordStarActivity(starsAdded, actionLabel) {
+  function recordStarActivity(starsAdded, actionLabel, uniqueKey = null) {
     const cur = getStarActivityState();
+    const today = new Date().toISOString().slice(0, 10);
+    
+    // Check one-time or daily reward cap
+    if (uniqueKey) {
+      const awardedRewards = JSON.parse(localStorage.getItem('sr_awarded_rewards') || '{}');
+      if (awardedRewards[uniqueKey]) {
+        console.log('[Reward Guard] Reward already claimed for:', uniqueKey);
+        return { balance: cur.balance, recentText: cur.recentText, alreadyAwarded: true };
+      }
+      awardedRewards[uniqueKey] = { date: today, timestamp: Date.now() };
+      localStorage.setItem('sr_awarded_rewards', JSON.stringify(awardedRewards));
+    }
+
     const nextBalance = cur.balance + (starsAdded || 25);
     const nextText = `+${starsAdded || 25} ★ earned · ${actionLabel}`;
     localStorage.setItem('sr_star_balance', String(nextBalance));
     localStorage.setItem('sr_recent_star_event', nextText);
-    return { balance: nextBalance, recentText: nextText };
+    return { balance: nextBalance, recentText: nextText, alreadyAwarded: false };
   }
 
   // ── 2. Polished Worker Today Screen ─────────────────────────────────────────
@@ -1739,7 +1752,11 @@
               const err = await res.json().catch(() => ({}));
               throw new Error(err.error || 'Clock-in failed');
             }
-            recordStarActivity(25, 'Biometric Water-Pulse Clock-In');
+            const todayKey = 'clockin_' + new Date().toISOString().slice(0, 10);
+            const rewardResult = recordStarActivity(25, 'Biometric Water-Pulse Clock-In', todayKey);
+            if (rewardResult.alreadyAwarded && window.toast) {
+              window.toast('Shift attendance logged. (Daily clock-in reward already awarded today)', 'info');
+            }
             SRAudio.playClockIn();
             triggerVibration([70, 50, 100]);
             sprayShineEffect(document.getElementById('sr-clock-card'));
@@ -1782,7 +1799,8 @@
             })
           });
         } catch (_) {}
-        recordStarActivity(15, 'Shift Completed & Clocked Out');
+        const todayOutKey = 'clockout_' + new Date().toISOString().slice(0, 10);
+        const outRewardResult = recordStarActivity(15, 'Shift Completed & Clocked Out', todayOutKey);
         SRAudio.playClockOut();
         triggerVibration([100, 50, 150]);
         setTimeout(() => renderWorkerToday(true), 350);
@@ -2171,13 +2189,18 @@
       const supStarState = getStarActivityState();
 
       const html = `
-        <!-- Distinct Company vs Site Context Banner with Broadcast Action -->
+        <!-- Distinct Company vs Site Context Banner with 2-Layer Dashboard Switcher -->
         <div class="sr-context-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <div class="sr-context-banner-text">
             <span class="sr-context-banner-company">Company: ${escapeHtml(companyName)}</span>
             <span class="sr-context-banner-site">Scope: <strong>${escapeHtml(siteName)}</strong></span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
+            <!-- 2-Layer Executive vs Shift Operations Switcher -->
+            <button class="sr-btn sr-btn-secondary" id="sr-btn-toggle-executive-view" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Corporate Executive Analytics Layer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+              <span>Executive Layer</span>
+            </button>
             <button class="sr-btn sr-btn-primary" id="sr-btn-open-broadcast" style="min-height:36px;padding:0 14px;font-size:12.5px;display:flex;align-items:center;gap:6px;">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
               Broadcast
@@ -4983,7 +5006,10 @@
                 const workerName = s.worker_name || 'Assigned Staff';
 
                 return `
-                  <div class="sr-review-item" style="align-items:flex-start;gap:12px;padding:14px 16px;">
+                  <div class="sr-review-item sr-draggable-shift" draggable="true" data-shift-id="${s.id || ''}" style="align-items:flex-start;gap:12px;padding:14px 16px;cursor:grab;transition:transform 0.15s,box-shadow 0.15s;">
+                    <div class="sr-drag-handle" title="Drag to reassign shift" style="display:flex;align-items:center;padding-top:10px;color:var(--sr-text-muted);cursor:grab;">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+                    </div>
                     <div style="width:40px;height:40px;border-radius:10px;background:var(--sr-primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0;">
                       ${escapeHtml(workerName.slice(0, 2).toUpperCase())}
                     </div>
