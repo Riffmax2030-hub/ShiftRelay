@@ -93,8 +93,8 @@ export async function getStore() {
         id: '00000000-0000-4000-8000-000000000100',
         organisation_code: '246701',
         aliases: ['DAN-NG-4011', 'SR-NG-101', '246701', 'DANGOTE'],
-        legal_name: 'Dangote Logistics & Operations (Nigeria)',
-        trading_name: 'Dangote Operations',
+        legal_name: 'Apex Logistics & Industrial Operations (Nigeria)',
+        trading_name: 'Apex Logistics',
         industry: 'Logistics & FMCG',
         country: 'Nigeria',
         currency: 'NGN',
@@ -402,6 +402,10 @@ function demoTimeSummary(user, store, month) {
 
 function sendJson(response, status, payload) {
   response.writeHead(status, {
+    'Access-Control-Allow-Origin': response.__corsOrigin || '*',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store, no-cache, must-revalidate, private',
     'Pragma': 'no-cache',
@@ -550,9 +554,9 @@ async function readBuffer(request) {
 }
 
 function sessionId(request) { return request.headers.cookie?.match(/(?:^|;\s*)shiftrelay_session=([^;]+)/)?.[1] || null; }
-function sessionCookie(value, maxAge = 60 * 60 * 24 * 7) { 
-  const secureFlag = IS_PRODUCTION ? '; Secure' : '';
-  return `shiftrelay_session=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${secureFlag}`; 
+function sessionCookie(value, maxAge = 60 * 60 * 24 * 7) {
+  const sameSiteMode = IS_PRODUCTION ? '; Secure; SameSite=None' : '; SameSite=Lax';
+  return `shiftrelay_session=${value}; HttpOnly; Path=/; Max-Age=${maxAge}${sameSiteMode}`;
 }
 async function hashPassword(password) { const salt = randomBytes(16).toString('hex'); const hash = await scrypt(password, salt, 64); return `${salt}:${Buffer.from(hash).toString('hex')}`; }
 async function passwordMatches(password, stored) { if (!stored) return false; const [salt, expected] = stored.split(':'); if (!salt || !expected) return false; const actual = Buffer.from(await scrypt(password, salt, 64)); const expectedBuffer = Buffer.from(expected, 'hex'); return actual.length === expectedBuffer.length && timingSafeEqual(actual, expectedBuffer); }
@@ -5784,6 +5788,26 @@ async function serveStatic(request, response, url) {
 const server = createServer((request, response) => {
   Promise.resolve().then(async () => {
     const url = new URL(request.url, `http://${request.headers.host}`);
+
+    // CORS & Mobile WebView support
+    const origin = request.headers.origin;
+    if (origin) {
+      response.__corsOrigin = origin;
+      response.setHeader('Access-Control-Allow-Origin', origin);
+      response.setHeader('Access-Control-Allow-Credentials', 'true');
+      response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+      response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    }
+    if (request.method === 'OPTIONS') {
+      response.writeHead(204, {
+        'Access-Control-Allow-Origin': origin || '*',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      });
+      response.end();
+      return;
+    }
     if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok' });
 
     // ── IP Rate Limiting ─────────────────────────────────────────────────
@@ -5917,7 +5941,7 @@ const server = createServer((request, response) => {
       const settlementRef = 'TR-SR-' + Date.now().toString(36).toUpperCase() + '-' + randomBytes(2).toString('hex').toUpperCase();
       return sendJson(response, 200, {
         ok: true,
-        provider: 'Paystack Instant Bulk Transfer',
+        provider: process.env.PAYSTACK_SECRET_KEY ? 'Paystack Instant Bulk Transfer (Live)' : 'Paystack Instant Bulk Transfer (Sandbox Demo Escrow)',
         settlementRef,
         amountNgn,
         bankName,

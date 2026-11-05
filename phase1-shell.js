@@ -6308,7 +6308,7 @@
               <div style="font-size:12px;font-weight:700;color:var(--sr-primary);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;">New Experience</div>
               <div class="sr-cv-inline-form-grid">
                 <div class="sr-form-group"><label class="sr-form-label">Job Title *</label><input type="text" class="sr-form-input" id="sr-new-exp-title" placeholder="e.g. Shift Supervisor" /></div>
-                <div class="sr-form-group"><label class="sr-form-label">Company *</label><input type="text" class="sr-form-input" id="sr-new-exp-company" placeholder="e.g. Dangote Industries" /></div>
+                <div class="sr-form-group"><label class="sr-form-label">Company *</label><input type="text" class="sr-form-input" id="sr-new-exp-company" placeholder="e.g. Apex Industrial Logistics" /></div>
                 <div class="sr-form-group"><label class="sr-form-label">Period</label><input type="text" class="sr-form-input" id="sr-new-exp-period" placeholder="e.g. Jan 2022 – Present" /></div>
                 <div class="sr-form-group" style="grid-column:1/-1;"><label class="sr-form-label">Description</label><textarea class="sr-form-input" id="sr-new-exp-desc" rows="2" placeholder="Key responsibilities and achievements..." style="resize:vertical;"></textarea></div>
               </div>
@@ -10590,7 +10590,7 @@
                 <div style="display:flex;align-items:center;gap:12px;">
                   <img src="icon.svg?v=130" width="44" height="44" style="border-radius:10px;flex-shrink:0;" alt="ShiftRelay" />
                   <div>
-                    <h2 style="font-size:18px;font-weight:800;color:var(--sr-text-main);margin:0 0 4px;">${escapeHtml(payslipData?.companyName || 'Dangote Logistics & Operations (Nigeria)')}</h2>
+                    <h2 style="font-size:18px;font-weight:800;color:var(--sr-text-main);margin:0 0 4px;">${escapeHtml(payslipData?.companyName || 'Apex Logistics & Industrial Operations (Nigeria)')}</h2>
                     <p style="font-size:12px;color:var(--sr-text-muted);margin:0;">Tenant ID: <strong style="color:var(--sr-text-main);">${escapeHtml(payslipData?.companyId || '246701')}</strong> • Statutory Employer Reg: PEN-NG-770182</p>
                   </div>
                 </div>

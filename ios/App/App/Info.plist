@@ -55,5 +55,9 @@
 	<string>ShiftRelay requires photo library access to attach shift images and documentation to handover reports.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>ShiftRelay requires photo library access to save shift handover briefs and credential certificates.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>ShiftRelay uses your location to verify shift clock-ins at authorized industrial work zones and gates.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>ShiftRelay uses Face ID and Touch ID for quick biometric authentication and attendance verification.</string>
 </dict>
 </plist>
