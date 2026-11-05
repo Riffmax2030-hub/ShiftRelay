@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <defs>
+    <linearGradient id="reticleBioGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5a0"/>
+      <stop offset="50%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#00d9f5"/>
+    </linearGradient>
+    <filter id="scannerLaserGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#00f5a0" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+  <!-- Obsidian Base Card -->
+  <rect x="6" y="6" width="108" height="108" rx="26" fill="#0a1320" stroke="rgba(0,245,160,0.3)" stroke-width="2"/>
+  <!-- Viewfinder reticle corner brackets -->
+  <path d="M22 36 V24 H34" stroke="#00f5a0" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#scannerLaserGlow)"/>
+  <path d="M98 36 V24 H86" stroke="#00f5a0" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#scannerLaserGlow)"/>
+  <path d="M22 84 V96 H34" stroke="#00f5a0" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#scannerLaserGlow)"/>
+  <path d="M98 84 V96 H86" stroke="#00f5a0" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#scannerLaserGlow)"/>
+  <!-- Fingerprint Core Ridges -->
+  <g transform="translate(60, 60)" stroke="url(#reticleBioGrad)" stroke-width="3" fill="none" stroke-linecap="round" filter="url(#scannerLaserGlow)">
+    <path d="M0 -28 A 28 28 0 0 1 24 0 A 28 28 0 0 1 0 28" />
+    <path d="M0 -28 A 28 28 0 0 0 -24 0 A 28 28 0 0 0 -12 24" />
+    <path d="M0 -20 A 20 20 0 0 1 16 0 A 20 20 0 0 1 0 20" />
+    <path d="M0 -20 A 20 20 0 0 0 -16 0 A 20 20 0 0 0 -6 18" />
+    <path d="M0 -12 A 12 12 0 0 1 8 0 A 12 12 0 0 1 0 12" />
+    <path d="M0 -12 A 12 12 0 0 0 -8 0 A 12 12 0 0 0 0 12" />
+    <line x1="0" y1="-5" x2="0" y2="5" stroke-width="3.5" />
+  </g>
+</svg>

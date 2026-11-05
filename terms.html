@@ -1,1 +1,386 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>ShiftRelay Terms of Service</title><link rel="stylesheet" href="legal.css" /></head><body><main class="legal"><a class="brand" href="/"><span>↝</span>ShiftRelay</a><h1>Terms of Service</h1><p>Last updated: July 2026</p><h2>Service</h2><p>ShiftRelay helps organisations manage shift handovers, schedules, notifications, and operational records. It is not an emergency service and does not replace legally required workplace procedures.</p><h2>Organisation responsibility</h2><p>Each organisation is responsible for authorised access, approved workflows, workforce policies, and verifying any AI-assisted output before acting on it.</p><h2>Acceptable use</h2><p>Do not upload unlawful, confidential, or sensitive information unless your organisation has the authority and safeguards to do so.</p><h2>Contact</h2><p>Before public launch, replace this with your monitored support email and legal business details.</p></main></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service & Enterprise SLA | ShiftRelay Technologies</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #050a14;
+      --bg-panel: rgba(12, 20, 38, 0.85);
+      --bg-card: rgba(15, 25, 48, 0.72);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-emerald: rgba(0, 245, 160, 0.28);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --emerald: #00f5a0;
+      --emerald-deep: #10b981;
+      --cyan: #06b6d4;
+      --sky: #38bdf8;
+      --indigo: #6366f1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-deep);
+      background-image:
+        radial-gradient(circle at 12% 10%, rgba(0, 245, 160, 0.09) 0%, transparent 40%),
+        radial-gradient(circle at 88% 20%, rgba(6, 182, 212, 0.09) 0%, transparent 45%),
+        radial-gradient(circle at 50% 90%, rgba(99, 102, 241, 0.07) 0%, transparent 50%);
+      color: var(--text-main);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+    /* Top Navbar */
+    .legal-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(5, 10, 20, 0.88);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+    .brand-link img {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 245, 160, 0.25);
+    }
+    .brand-wordmark {
+      font-family: 'Outfit', sans-serif;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .brand-wordmark span {
+      background: linear-gradient(135deg, #00f5a0, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .nav-pill {
+      padding: 9px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      transition: all 0.2s ease;
+    }
+    .nav-pill:hover, .nav-pill.active {
+      color: var(--text-main);
+      border-color: var(--border-emerald);
+      background: rgba(0, 245, 160, 0.08);
+    }
+    .nav-pill.primary {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: #03110c;
+      font-weight: 700;
+      border: none;
+    }
+    .container {
+      max-width: 1040px;
+      margin: 48px auto 80px;
+      padding: 0 24px;
+    }
+    .legal-hero {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-emerald);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    }
+    .legal-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(0, 245, 160, 0.1);
+      border: 1px solid rgba(0, 245, 160, 0.3);
+      color: var(--emerald);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+    .legal-hero h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    .legal-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .legal-meta strong { color: var(--text-main); }
+    .legal-grid {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .legal-grid { grid-template-columns: 1fr; }
+    }
+    .toc-card {
+      position: sticky;
+      top: 92px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+    }
+    .toc-title {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--emerald);
+      margin-bottom: 12px;
+    }
+    .toc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toc-list a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      display: block;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+    .toc-list a:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .doc-body {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .clause-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+    }
+    .clause-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--cyan);
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .clause-card h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: var(--text-main);
+    }
+    .clause-card p {
+      color: #cbd5e1;
+      font-size: 14.5px;
+      margin-bottom: 14px;
+    }
+    .clause-card ul {
+      padding-left: 20px;
+      color: #cbd5e1;
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .legal-footer {
+      margin-top: 48px;
+      padding: 28px;
+      border-radius: 18px;
+      background: rgba(16, 185, 129, 0.06);
+      border: 1px solid var(--border-emerald);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+  </style>
+</head>
+<body>
+  <header class="legal-nav">
+    <a href="/website.html" class="brand-link">
+      <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay Logo" />
+      <div class="brand-wordmark">Shift<span>Relay</span></div>
+    </a>
+    <nav class="nav-actions">
+      <a href="/website.html" class="nav-pill">shiftrelay.com Home</a>
+      <a href="/terms.html" class="nav-pill active">Terms of Service</a>
+      <a href="/privacy.html" class="nav-pill">Privacy &amp; NDPR Policy</a>
+      <a href="/" class="nav-pill">Mobile &amp; Gate App</a>
+      <a href="/website.html#demo-modal" class="nav-pill primary">Request a Demo</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="legal-hero">
+      <div class="legal-badge">MASTER SAAS SUBSCRIPTION &amp; APPLICATION TERMS</div>
+      <h1>Terms of Service &amp; Enterprise Platform Agreement</h1>
+      <p style="color: var(--text-muted); max-width: 780px;">
+        These Terms of Service ("Agreement") govern access to and use of the ShiftRelay Enterprise Workforce, Gate Kiosk, NFC Badge, Shift Handover, and Statutory Payroll Platform operated by ShiftRelay Technologies Ltd ("ShiftRelay") across <strong>shiftrelay.com</strong> and the ShiftRelay Mobile &amp; Gate Tablet Applications.
+      </p>
+      <div class="legal-meta">
+        <div><strong>Document Reference:</strong> SR-LEGAL-TOS-2026.4</div>
+        <div><strong>Effective Date:</strong> November 1, 2026</div>
+        <div><strong>Applicable Frameworks:</strong> Nigeria Data Protection Act (NDPA), Labour Act Cap L1, PenCom PRA 2014 &amp; ISO/IEC 27001</div>
+      </div>
+    </section>
+
+    <div class="legal-grid">
+      <aside class="toc-card">
+        <div class="toc-title">Clauses &amp; Schedule</div>
+        <ul class="toc-list">
+          <li><a href="#clause-1">01. Scope &amp; Concierge B2B Model</a></li>
+          <li><a href="#clause-2">02. Multi-Role &amp; Gate Kiosk Security</a></li>
+          <li><a href="#clause-3">03. Biometric, Geofence &amp; NFC Attendance</a></li>
+          <li><a href="#clause-4">04. Team Shift Swaps &amp; Handovers</a></li>
+          <li><a href="#clause-5">05. Statutory Payroll &amp; Tax Disclaimers</a></li>
+          <li><a href="#clause-6">06. Rectification Receipts &amp; Audits</a></li>
+          <li><a href="#clause-7">07. SaaS Fees, PEPM Billing &amp; SLA</a></li>
+        </ul>
+      </aside>
+
+      <div class="doc-body">
+        <article id="clause-1" class="clause-card">
+          <span class="clause-num">CLAUSE 01 // ENTERPRISE PROVISIONING</span>
+          <h2>Scope of Platform &amp; Concierge B2B Onboarding</h2>
+          <p>
+            ShiftRelay provides an enterprise-grade B2B workforce operations, attendance verification, shift handover, and statutory payroll automation platform. Access to the ShiftRelay Application is strictly provisioned through authorized Enterprise Tenant Agreements. Public self-registration on the corporate website (<strong>shiftrelay.com</strong>) is intentionally disabled to maintain strict organizational tenant isolation.
+          </p>
+          <ul>
+            <li><strong>Tenant Isolation:</strong> Each onboarded enterprise receives a unique Organization Code, dedicated geofence perimeter coordinates, and isolated roster ledgers.</li>
+            <li><strong>Worker Provisioning:</strong> Frontline staff, shift supervisors, and facility managers are provisioned exclusively via verified Employer CSV Roster imports or authorized HR Admin onboarding workflows.</li>
+          </ul>
+        </article>
+
+        <article id="clause-2" class="clause-card">
+          <span class="clause-num">CLAUSE 02 // ACCESS CONTROL &amp; GATE TABLETS</span>
+          <h2>Multi-Role Authentication &amp; 2-Layer Gate Tablet Security</h2>
+          <p>
+            The ShiftRelay application dynamically adapts its interface based on device profile and authenticated role (Frontline Worker, Shift Supervisor, Executive/Owner, or Dedicated Gate Attendance Tablet).
+          </p>
+          <ul>
+            <li><strong>2-Layer Gate Kiosk Lock:</strong> Tablets deployed at factory or facility gates require (i) the Company Unique Gate Code and (ii) a real-time 6-digit Verification Code dispatched to the registered Owner/Admin email address.</li>
+            <li><strong>Tamper Prevention:</strong> Exiting or logging out of a Gate Kiosk mode requires re-verification by the organization's Owner or Authorized Administrator.</li>
+            <li><strong>Encrypted NFC &amp; Rotating QR:</strong> Gate Tablets generate 60-second rotating cryptographic TOTP QR codes and read MIFARE DESFire EV3 encrypted NFC employee badges to prevent buddy-punching or photocopy spoofing.</li>
+          </ul>
+        </article>
+
+        <article id="clause-3" class="clause-card">
+          <span class="clause-num">CLAUSE 03 // ATTENDANCE TELEMETRY</span>
+          <h2>Biometric Water-Pulse Clock-In, GPS Geofencing &amp; Offline Sync</h2>
+          <p>
+            By clocking in via the ShiftRelay Mobile App or Gate Kiosk, Users and Customer Organizations acknowledge that ShiftRelay records cryptographically signed attendance timestamps, GPS perimeter validation at the moment of punch, or NFC/QR physical presence tokens.
+          </p>
+          <ul>
+            <li><strong>Actual vs. Scheduled Hours:</strong> Attendance logs record actual verified clock-in and clock-out events separately from scheduled shift rosters.</li>
+            <li><strong>Supervisor Dual-Capacity:</strong> Shift Supervisors who also execute active floor shifts may record personal clock-in/clock-out attendance alongside their team supervision duties.</li>
+          </ul>
+        </article>
+
+        <article id="clause-4" class="clause-card">
+          <span class="clause-num">CLAUSE 04 // WORKFLOW INTEGRITY</span>
+          <h2>Team-Scoped Shift Swaps, Checklists &amp; ShiftCoin Rewards</h2>
+          <p>
+            Shift swaps and open shift claims are strictly scoped to verified coworkers within the same enterprise tenant and operational unit. Cross-company shift visibility or unauthorized third-party substitution is strictly prohibited.
+          </p>
+          <ul>
+            <li><strong>Handover Accountability:</strong> Workers must complete assigned safety and operational checklists and submit handover notes prior to shift completion.</li>
+            <li><strong>ShiftCoin Stars (★):</strong> Punctuality, verified handovers, and peer coverage award non-transferable ShiftCoin stars redeemable solely within the employer-authorized reward catalog.</li>
+          </ul>
+        </article>
+
+        <article id="clause-5" class="clause-card">
+          <span class="clause-num">CLAUSE 05 // STATUTORY COMPLIANCE</span>
+          <h2>Automated Payroll Computation &amp; Statutory Remittance Schedules</h2>
+          <p>
+            ShiftRelay automates gross-to-net wage calculations based on verified attendance hours, overtime multipliers, and Nigerian statutory deduction schedules including Pension Reform Act (PenCom 8% Employee / 10% Employer), Personal Income Tax (PAYE Finance Act), National Housing Fund (NHF 2.5%), and NSITF (1%).
+          </p>
+          <p>
+            While ShiftRelay generates audit-ready CSV/PDF schedules and disbursement batches, final treasury release and statutory remittance filing remain the responsibility of the Customer Organization's designated Owner or Finance Officer.
+          </p>
+        </article>
+
+        <article id="clause-6" class="clause-card">
+          <span class="clause-num">CLAUSE 06 // DISPUTE RESOLUTION</span>
+          <h2>Official Rectification Receipts &amp; Immutable Audit Logs</h2>
+          <p>
+            Workers who identify discrepancies in attendance timestamps, identity records, or wage computations may generate an official <strong>Rectification Receipt (`RECT-*`)</strong> through the in-app Support Desk. Every Rectification Receipt is stamped with the worker's verified email, employee ID, and timestamp, and routed to the Operations Support &amp; HR Admin queue for audited resolution.
+          </p>
+        </article>
+
+        <article id="clause-7" class="clause-card">
+          <span class="clause-num">CLAUSE 07 // SERVICE LEVEL &amp; BILLING</span>
+          <h2>Enterprise Subscription Fees, Uptime SLA &amp; Governing Law</h2>
+          <p>
+            Enterprise tenants are billed on a Per-Employee-Per-Month (PEPM) subscription basis plus applicable one-time implementation and NFC badge provisioning fees as specified in the executed Enterprise Order Form. ShiftRelay maintains a 99.95% monthly uptime commitment with offline-first local punch queueing. This Agreement is governed by the laws of the Federal Republic of Nigeria.
+          </p>
+        </article>
+      </div>
+    </div>
+
+    <div class="legal-footer">
+      <div>
+        <strong style="display:block; font-size:15px;">Need a signed Enterprise DPA or Custom SLA?</strong>
+        <span style="font-size:13px; color:var(--text-muted);">Contact our Legal &amp; Enterprise Implementation Desk at legal@shiftrelay.com</span>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a href="/privacy.html" class="nav-pill">Read Privacy &amp; NDPR Policy →</a>
+        <a href="/website.html" class="nav-pill primary">Return to shiftrelay.com</a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Obsidian Cyber Chassis -->
+    <linearGradient id="sr-obsidian-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050811"/>
+      <stop offset="50%" stop-color="#0a1220"/>
+      <stop offset="100%" stop-color="#04070e"/>
+    </linearGradient>
+
+    <!-- Kinetic Relay Emerald-Cyan Gradient -->
+    <linearGradient id="sr-emerald-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F5A0"/>
+      <stop offset="50%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#00B4D8"/>
+    </linearGradient>
+
+    <linearGradient id="sr-cyan-emerald" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#00D9F5"/>
+      <stop offset="50%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#00F5A0"/>
+    </linearGradient>
+
+    <linearGradient id="sr-chassis-rim" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(0, 245, 160, 0.6)"/>
+      <stop offset="50%" stop-color="rgba(255, 255, 255, 0.12)"/>
+      <stop offset="100%" stop-color="rgba(0, 217, 245, 0.5)"/>
+    </linearGradient>
+
+    <linearGradient id="sr-highlight-specular" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <radialGradient id="sr-glow-core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00F5A0" stop-opacity="0.45"/>
+      <stop offset="50%" stop-color="#00B4D8" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#00F5A0" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="sr-neon-bloom" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Rounded High-Tech Squircle -->
+  <rect width="512" height="512" rx="124" fill="url(#sr-obsidian-grad)"/>
+  <rect x="5" y="5" width="502" height="502" rx="119" fill="none" stroke="url(#sr-chassis-rim)" stroke-width="2.5"/>
+  <rect x="14" y="14" width="484" height="484" rx="110" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1.5"/>
+
+  <!-- Core Ambient Glow -->
+  <circle cx="256" cy="256" r="140" fill="url(#sr-glow-core)"/>
+
+  <!-- Iconic S Relay Mark: Dual Interlocking Precision Wings -->
+  <g id="sr-iconic-s-mark" filter="url(#sr-neon-bloom)">
+    <!-- Top Arc Ribbon -->
+    <path d="M 372 165
+             C 372 105, 320 65, 245 65
+             C 170 65, 120 110, 120 175
+             C 120 228, 168 260, 240 282
+             L 282 295
+             C 334 311, 358 335, 358 368
+             C 358 395, 335 415, 292 422
+             C 310 405, 322 385, 322 360
+             C 322 322, 290 300, 235 284
+             L 195 272
+             C 152 258, 128 230, 128 190
+             C 128 125, 180 85, 255 85
+             C 315 85, 355 120, 355 165
+             Z"
+          fill="url(#sr-emerald-cyan)"/>
+
+    <!-- Bottom Arc Ribbon -->
+    <path d="M 140 347
+             C 140 407, 192 447, 267 447
+             C 342 447, 392 402, 392 337
+             C 392 284, 344 252, 272 230
+             L 230 217
+             C 178 201, 154 177, 154 144
+             C 154 117, 177 97, 220 90
+             C 202 107, 190 127, 190 152
+             C 190 190, 222 212, 277 228
+             L 317 240
+             C 360 254, 384 282, 384 322
+             C 384 387, 332 427, 257 427
+             C 197 427, 157 392, 157 347
+             Z"
+          fill="url(#sr-cyan-emerald)"/>
+
+    <!-- Relay Handover Center Baton Spark -->
+    <polygon points="256,236 270,256 256,276 242,256" fill="#ffffff"/>
+    <circle cx="280" cy="280" r="5" fill="#00D9F5"/>
+    <circle cx="232" cy="232" r="5" fill="#00F5A0"/>
+
+    <!-- Specular Arc Highlights -->
+    <path d="M 145 150 C 160 102, 205 78, 255 78 C 305 78, 345 102, 360 145" fill="none" stroke="url(#sr-highlight-specular)" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M 367 362 C 352 410, 307 434, 257 434 C 207 434, 167 410, 152 367" fill="none" stroke="url(#sr-highlight-specular)" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+</svg>

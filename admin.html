@@ -1,1229 +1,1687 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShiftRelay Concierge | Internal Enterprise Administration</title>
-  <link rel="icon" type="image/svg+xml" href="/logo-mark.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShiftRelay Web Admin Command Block | Sovereign & Department Console</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg-dark: #080d16;
-      --bg-surface: #0f172a;
-      --bg-elevated: #1e293b;
-      --border-subtle: #334155;
-      --border-focus: #0d9488;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --primary: #0d9488;
-      --primary-hover: #0f766e;
-      --emerald: #10b981;
-      --emerald-subtle: rgba(16, 185, 129, 0.12);
+      --bg-canvas: #050912;
+      --bg-sidebar: #070d19;
+      --bg-panel: rgba(12, 21, 38, 0.9);
+      --bg-card: rgba(14, 25, 46, 0.8);
+      --border-hairline: rgba(255, 255, 255, 0.08);
+      --border-emerald: rgba(0, 245, 160, 0.34);
+      --border-cyan: rgba(56, 189, 248, 0.34);
+      --border-amber: rgba(245, 158, 11, 0.4);
+      --text-white: #f8fafc;
+      --text-slate: #94a3b8;
+      --text-dim: #64748b;
+      --emerald: #00f5a0;
+      --emerald-solid: #10b981;
+      --cyan: #06b6d4;
+      --sky: #38bdf8;
       --amber: #f59e0b;
-      --red: #ef4444;
-      --font-mono: 'JetBrains Mono', monospace;
+      --rose: #f43f5e;
+      --indigo: #818cf8;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg-dark);
-      color: var(--text-main);
+      background-color: var(--bg-canvas);
+      background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        radial-gradient(circle at 12% 10%, rgba(0, 245, 160, 0.08) 0%, transparent 38%),
+        radial-gradient(circle at 88% 15%, rgba(6, 182, 212, 0.08) 0%, transparent 42%);
+      background-size: 56px 56px, 56px 56px, 100% 100%, 100% 100%;
+      color: var(--text-white);
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      line-height: 1.5;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Top Navigation Bar */
-    .admin-navbar {
-      background: rgba(15, 23, 42, 0.95);
-      border-bottom: 1px solid var(--border-subtle);
-      padding: 14px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      backdrop-filter: blur(16px);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-    }
-    .brand-group {
-      display: flex;
+    /* ── Clean Static Brand Lockup (No spinning logo rings) ── */
+    .brand-lockup {
+      display: inline-flex;
       align-items: center;
       gap: 12px;
+      text-decoration: none;
+      color: var(--text-white);
     }
-    .brand-logo-chip {
-      background: linear-gradient(135deg, #0d524d, #10b981);
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-weight: 900;
-      font-size: 14px;
-      letter-spacing: -0.02em;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .brand-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: #cbd5e1;
-    }
-    .brand-badge {
-      font-size: 10.5px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 3px 8px;
-      background: rgba(13, 148, 136, 0.15);
-      border: 1px solid rgba(13, 148, 136, 0.3);
-      color: #34d399;
-      border-radius: 9999px;
-    }
-
-    /* Auth Gate Card */
-    #auth-barrier {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: radial-gradient(circle at center, rgba(13, 148, 136, 0.08) 0%, transparent 65%);
-    }
-    .auth-card {
-      background: var(--bg-surface);
-      border: 1.5px solid var(--border-subtle);
-      border-radius: 20px;
-      padding: 36px 32px;
-      width: 100%;
-      max-width: 440px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .auth-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #0d524d, #10b981);
-    }
-    .auth-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 16px;
-      background: rgba(13, 148, 136, 0.15);
-      border: 1px solid rgba(13, 148, 136, 0.3);
-      color: #34d399;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-    .auth-title {
-      font-size: 20px;
-      font-weight: 800;
-      margin-bottom: 6px;
-      letter-spacing: -0.02em;
-    }
-    .auth-subtitle {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 24px;
-    }
-    .input-field {
-      width: 100%;
-      padding: 12px 14px;
-      background: var(--bg-elevated);
-      border: 1.5px solid var(--border-subtle);
-      border-radius: 12px;
-      color: #fff;
-      font-size: 14px;
-      font-family: inherit;
-      outline: none;
-      transition: all 0.15s ease;
-      margin-bottom: 16px;
-    }
-    .input-field:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
-    }
-    .btn-primary {
-      width: 100%;
-      padding: 13px;
-      background: linear-gradient(135deg, #0d524d 0%, #0d9488 100%);
-      border: none;
-      border-radius: 12px;
-      color: #fff;
-      font-size: 14.5px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      box-shadow: 0 4px 14px rgba(13, 82, 77, 0.3);
-    }
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #0a3d39 0%, #0f766e 100%);
-      transform: translateY(-1px);
-    }
-    .btn-secondary {
-      padding: 8px 16px;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-subtle);
+    .brand-lockup img {
+      width: 38px;
+      height: 38px;
       border-radius: 10px;
-      color: var(--text-main);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn-secondary:hover {
-      background: #334155;
-      border-color: #64748b;
-    }
-
-    /* Main Console View */
-    #admin-console {
-      flex: 1;
-      padding: 28px 32px 64px;
-      max-width: 1380px;
-      margin: 0 auto;
-      width: 100%;
-    }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      margin-bottom: 28px;
-    }
-    .stat-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      padding: 20px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, #0d9488, #10b981);
-    }
-    .stat-label {
-      font-size: 11.5px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .stat-val {
-      font-family: var(--font-mono);
-      font-size: 32px;
-      font-weight: 800;
-      color: #fff;
-      line-height: 1;
-    }
-    .stat-sub {
-      font-size: 12px;
-      color: #64748b;
-      margin-top: 6px;
-    }
-
-    /* Segmented Navigation Tabs */
-    .tab-bar {
-      display: flex;
-      gap: 8px;
-      background: var(--bg-surface);
-      padding: 6px;
-      border-radius: 14px;
-      border: 1px solid var(--border-subtle);
-      margin-bottom: 24px;
-      overflow-x: auto;
-    }
-    .tab-btn {
-      padding: 10px 18px;
-      background: transparent;
-      border: none;
-      border-radius: 10px;
-      color: var(--text-muted);
-      font-size: 13.5px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.15s ease;
-      white-space: nowrap;
-    }
-    .tab-btn:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.04);
-    }
-    .tab-btn.active {
-      background: var(--bg-elevated);
-      color: #34d399;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    /* Section Panels */
-    .console-panel {
-      display: none;
-      animation: fadeIn 0.2s ease;
-    }
-    .console-panel.active {
       display: block;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: none; }
-    }
-
-    /* Data Tables */
-    .table-container {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 18px;
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-    }
-    .table-header-row {
-      padding: 18px 24px;
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(30, 41, 59, 0.4);
-    }
-    .table-title {
-      font-size: 17px;
+    .brand-wordmark {
+      font-family: 'Outfit', sans-serif;
+      font-size: 21px;
       font-weight: 800;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.025em;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13.5px;
-      text-align: left;
-    }
-    th {
-      background: #1e293b;
-      padding: 12px 18px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border-subtle);
-    }
-    td {
-      padding: 16px 18px;
-      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
-      vertical-align: middle;
-    }
-    tr:hover td {
-      background: rgba(13, 148, 136, 0.03);
-    }
+    .brand-wordmark span { color: var(--emerald); }
 
-    /* Badges & Chips */
-    .company-id-chip {
-      font-family: var(--font-mono);
-      font-size: 12.5px;
-      font-weight: 700;
-      color: #34d399;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      padding: 3px 8px;
-      border-radius: 6px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-    }
-    .company-id-chip:hover {
-      background: rgba(16, 185, 129, 0.2);
-    }
-    .status-badge {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      padding: 3px 8px;
-      border-radius: 9999px;
-      display: inline-block;
-    }
-    .status-badge.active {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    .status-badge.pending {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-
-    /* Forms & Wizards */
-    .wizard-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 20px;
-      padding: 32px;
-      max-width: 860px;
-      margin: 0 auto;
-    }
-    .form-grid-2 {
+    /* ═══════════════════════════════════════════════════════════════════════
+       1. ADMIN LOGIN GATE (#auth-barrier) — CLEAN ARCHITECTURAL SPLIT
+       ═══════════════════════════════════════════════════════════════════════ */
+    #auth-barrier {
+      min-height: 100vh;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
+      grid-template-columns: 1.05fr 0.95fr;
     }
-    @media (max-width: 680px) {
-      .form-grid-2 { grid-template-columns: 1fr; }
+    @media (max-width: 1024px) {
+      #auth-barrier { grid-template-columns: 1fr; }
     }
-    .form-group {
+    .auth-left-architecture {
+      background: linear-gradient(155deg, rgba(10, 19, 36, 0.96), rgba(4, 8, 16, 0.98));
+      border-right: 1px solid var(--border-hairline);
+      padding: 44px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-bottom: 14px;
+      justify-content: space-between;
     }
-    .form-label {
-      font-size: 12.5px;
-      font-weight: 600;
-      color: #cbd5e1;
+    .arch-matrix-card {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border-hairline);
+      border-radius: 18px;
+      padding: 22px;
+      margin-top: 20px;
     }
-    .form-section-title {
-      font-size: 15px;
-      font-weight: 800;
-      color: #fff;
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 8px;
-      margin: 20px 0 16px;
+    .arch-matrix-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 13px;
     }
-    .form-section-title:first-child { margin-top: 0; }
+    .arch-matrix-row:last-child { border-bottom: none; padding-bottom: 0; }
 
-    /* Modals */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(8, 13, 22, 0.85);
-      backdrop-filter: blur(8px);
-      z-index: 2000;
+    .auth-right-form {
+      padding: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
     }
-    .modal-dialog {
-      background: var(--bg-surface);
-      border: 1.5px solid var(--border-subtle);
-      border-radius: 20px;
-      max-width: 600px;
+    .auth-card {
       width: 100%;
-      padding: 28px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-      position: relative;
+      max-width: 520px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-emerald);
+      border-radius: 24px;
+      padding: 36px;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65);
+    }
+    .role-tier-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 16px 0 22px;
+    }
+    @media (max-width: 560px) {
+      .role-tier-grid { grid-template-columns: 1fr; }
+    }
+    .role-tier-btn {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-hairline);
+      color: var(--text-white);
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .role-tier-btn:hover {
+      border-color: rgba(0, 245, 160, 0.4);
+      background: rgba(0, 245, 160, 0.05);
+    }
+    .role-tier-btn.selected {
+      border-color: var(--emerald);
+      background: rgba(0, 245, 160, 0.11);
+      box-shadow: 0 0 0 1px rgba(0, 245, 160, 0.25);
+    }
+    .role-tier-btn .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: block;
+      margin-bottom: 3px;
+    }
+    .role-tier-btn strong { font-size: 13.5px; display: block; }
+    .role-tier-btn span { font-size: 11.5px; color: var(--text-slate); }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       2. WIDESCREEN ADMIN WORKSPACE (#console-root)
+       ═══════════════════════════════════════════════════════════════════════ */
+    #console-root {
+      display: none;
+      min-height: 100vh;
+      grid-template-columns: 284px 1fr;
+    }
+    #console-root.active { display: grid; }
+    @media (max-width: 1040px) {
+      #console-root.active { grid-template-columns: 1fr; }
+    }
+
+    .adm-sidebar {
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-hairline);
+      padding: 22px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    @media (max-width: 1040px) {
+      .adm-sidebar { position: relative; height: auto; }
+    }
+    .nav-sec-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-dim);
+      padding: 14px 12px 6px;
+    }
+    .adm-nav-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-slate);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      margin-bottom: 3px;
+      transition: all 0.15s;
+    }
+    .adm-nav-btn:hover {
+      color: var(--text-white);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .adm-nav-btn.active {
+      color: var(--emerald);
+      background: rgba(0, 245, 160, 0.1);
+      border-color: var(--border-emerald);
+    }
+    .adm-nav-btn.owner-btn.active {
+      color: #fde68a;
+      background: rgba(245, 158, 11, 0.14);
+      border-color: var(--border-amber);
+    }
+    .badge-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(0, 245, 160, 0.15);
+      color: var(--emerald);
+    }
+
+    .adm-main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .adm-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(5, 9, 18, 0.88);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-hairline);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .role-switcher-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .role-chip {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-hairline);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-slate);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .role-chip.active {
+      border-color: var(--emerald);
+      background: rgba(0, 245, 160, 0.12);
+      color: var(--emerald);
+    }
+    .role-chip.owner-chip.active {
+      border-color: var(--amber);
+      background: rgba(245, 158, 11, 0.16);
+      color: #fde68a;
+    }
+
+    .adm-body {
+      padding: 28px 32px 60px;
+      max-width: 1480px;
+      width: 100%;
+    }
+    .adm-view { display: none; }
+    .adm-view.active { display: block; }
+
+    /* Cards, KPIs, Tables */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .kpi-row { grid-template-columns: 1fr; } }
+    .kpi-tile {
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: 18px;
+      padding: 22px;
+    }
+    .kpi-tile .lbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-slate);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+    .kpi-tile .val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 30px;
+      font-weight: 800;
+    }
+    .kpi-tile .sub {
+      font-size: 12px;
+      color: var(--emerald);
+      margin-top: 4px;
+    }
+
+    .panel-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: 20px;
+      padding: 26px;
+      margin-bottom: 22px;
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--border-hairline);
+    }
+    .panel-head h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .table-scroll { overflow-x: auto; }
+    .adm-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .adm-table th {
+      text-align: left;
+      padding: 11px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-slate);
+      border-bottom: 1px solid var(--border-hairline);
+    }
+    .adm-table td {
+      padding: 13px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+      vertical-align: middle;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .chip.emerald { background: rgba(0,245,160,0.12); color: var(--emerald); border: 1px solid rgba(0,245,160,0.28); }
+    .chip.amber { background: rgba(245,158,11,0.14); color: #fbbf24; border: 1px solid rgba(245,158,11,0.32); }
+    .chip.cyan { background: rgba(56,189,248,0.12); color: var(--sky); border: 1px solid rgba(56,189,248,0.3); }
+    .chip.rose { background: rgba(244,63,94,0.14); color: #fb7185; border: 1px solid rgba(244,63,94,0.3); }
+
+    .btn-emerald {
+      padding: 9px 16px;
+      border-radius: 9px;
+      border: 1px solid rgba(0, 245, 160, 0.4);
+      background: linear-gradient(135deg, #00f5a0, #10b981, #06b6d4);
+      color: #02120b;
+      font-weight: 800;
+      font-size: 12.5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .btn-amber {
+      padding: 9px 16px;
+      border-radius: 9px;
+      border: 1px solid var(--border-amber);
+      background: rgba(245, 158, 11, 0.16);
+      color: #fde68a;
+      font-weight: 700;
+      font-size: 12.5px;
+      cursor: pointer;
+    }
+    .btn-ghost {
+      padding: 8px 14px;
+      border-radius: 9px;
+      border: 1px solid var(--border-hairline);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-white);
+      font-weight: 600;
+      font-size: 12.5px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-ghost:hover { border-color: var(--border-cyan); }
+
+    .adm-input, .adm-select, .adm-textarea {
+      width: 100%;
+      padding: 10px 13px;
+      border-radius: 9px;
+      background: rgba(5, 9, 18, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-white);
+      font-size: 13.5px;
+      font-family: inherit;
+      outline: none;
+    }
+    .adm-input:focus, .adm-select:focus, .adm-textarea:focus { border-color: var(--emerald); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px; }
+    @media (max-width: 680px) { .grid-2 { grid-template-columns: 1fr; } }
+    .lbl-sm { display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px; }
+
+    .owner-shield-box {
+      background: radial-gradient(circle at 50% 20%, rgba(245, 158, 11, 0.14), rgba(10, 17, 32, 0.96));
+      border: 1px solid var(--border-amber);
+      border-radius: 22px;
+      padding: 44px 32px;
+      text-align: center;
+      max-width: 680px;
+      margin: 24px auto;
+    }
+
+    #adm-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      background: #081526;
+      border: 1px solid var(--emerald);
+      color: #fff;
+      padding: 13px 18px;
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.65);
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+      max-width: 440px;
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Navbar -->
-  <header class="admin-navbar">
-    <div class="brand-group">
-      <div class="brand-logo-chip">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-        SHIFTRELAY
-      </div>
-      <span class="brand-title">Implementation Console</span>
-      <span class="brand-badge">Concierge Gateway</span>
-    </div>
-    <div id="nav-actions" style="display:none; align-items:center; gap:12px;">
-      <span style="font-size:12.5px; color:var(--text-muted);">Lead Engineer Active</span>
-      <button class="btn-secondary" onclick="signOutAdmin()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Sign Out
-      </button>
-    </div>
-  </header>
-
-  <!-- Section 1: Security Barrier -->
-  <main id="auth-barrier">
-    <div class="auth-card">
-      <div class="auth-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      </div>
-      <h2 class="auth-title">ShiftRelay Internal Console</h2>
-      <p class="auth-subtitle">Restricted to authorized ShiftRelay Concierge & Implementation Engineers. Public autonomous access is prohibited.</p>
-      
-      <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
-        <input type="password" id="admin-passcode" class="input-field" placeholder="Enter Engineer Passcode" required autocomplete="current-password" autofocus>
-        <button type="submit" class="btn-primary" id="btn-login-submit">
-          <span>Authenticate Console</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
-        <div id="login-error" style="color:var(--red); font-size:12.5px; margin-top:12px; display:none;"></div>
-      </form>
-    </div>
-  </main>
-
-  <!-- Section 2: Main Engineer Workspace -->
-  <main id="admin-console" style="display: none;">
-    <!-- Live KPIs -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">
-          <span>Enterprise Clients</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M3 21h18"/><path d="M19 21v-4"/><path d="M19 11V7l-7-4-7 4v14"/></svg>
-        </div>
-        <div class="stat-val" id="kpi-tenants">0</div>
-        <div class="stat-sub">Provisioned Corporate Namespaces</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">
-          <span>Frontline Workforce</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </div>
-        <div class="stat-val" id="kpi-workers">0</div>
-        <div class="stat-sub">Managed Active & Shell Profiles</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">
-          <span>Payroll Gross Volume</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        </div>
-        <div class="stat-val" id="kpi-volume" style="font-size:24px;">₦0.00</div>
-        <div class="stat-sub">Compliant Monthly Disbursement</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">
-          <span>Inbound Demo Leads</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        </div>
-        <div class="stat-val" id="kpi-leads">0</div>
-        <div class="stat-sub">Awaiting Tenant Provisioning</div>
-      </div>
-    </div>
-
-    <!-- Navigation Tabs -->
-    <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchTab('tenants')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-        Enterprise Clients Registry
-      </button>
-      <button class="tab-btn" onclick="switchTab('wizard')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        Onboard New Client (Wizard)
-      </button>
-      <button class="tab-btn" onclick="switchTab('bulk')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
-        Bulk Employee Provisioning
-      </button>
-      <button class="tab-btn" onclick="switchTab('leads')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-        Inbound Leads
-      </button>
-    </div>
-
-    <!-- PANEL 1: Tenants Registry -->
-    <section id="panel-tenants" class="console-panel active">
-      <div class="table-container">
-        <div class="table-header-row">
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       1. ADMIN AUTHENTICATION PORTAL (#auth-barrier)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section id="auth-barrier">
+    <div class="auth-left-architecture">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <a href="/website.html" class="brand-lockup">
+          <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay Logo" />
           <div>
-            <h3 class="table-title">Provisioned Enterprise Namespaces</h3>
-            <p style="font-size:12.5px; color:var(--text-muted);">Closed-loop Dayforce-grade multi-tenant boundaries</p>
+            <div class="brand-wordmark">Shift<span>Relay</span></div>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--emerald); letter-spacing:0.1em; display:block;">ADMIN.SHIFTRELAY.COM</span>
           </div>
-          <button class="btn-primary" style="width:auto; padding:8px 16px; font-size:13px;" onclick="switchTab('wizard')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Provision Client
+        </a>
+        <div style="display:flex; gap:8px;">
+          <a href="/website.html" class="btn-ghost">shiftrelay.com</a>
+          <a href="/" class="btn-ghost">Mobile &amp; Gate App</a>
+        </div>
+      </div>
+
+      <div style="my:auto; max-width:540px;">
+        <span class="chip emerald" style="margin-bottom:14px;">SOVEREIGN OWNER &amp; DEPARTMENT SEPARATION</span>
+        <h1 style="font-family:'Outfit',sans-serif; font-size:36px; font-weight:900; line-height:1.12; margin-bottom:14px;">
+          Enterprise Admin Command Block &amp; Email Auto-Station
+        </h1>
+        <p style="color:var(--text-slate); font-size:14.5px;">
+          Internal staff are partitioned by operational task (Onboarding, Support Rectification, Finance Audit), while SaaS Revenue, Staff Governance, and Final Approvals remain locked to the <strong>Founder / Sovereign Owner</strong>.
+        </p>
+
+        <div class="arch-matrix-card">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald); margin-bottom:8px;">
+            // SEPARATED CLEARANCE ARCHITECTURE
+          </div>
+          <div class="arch-matrix-row">
+            <strong>★ Founder / Owner Root</strong>
+            <span class="chip amber">Treasury + Master Approvals</span>
+          </div>
+          <div class="arch-matrix-row">
+            <span>01. Onboarding Specialist</span>
+            <span class="chip emerald">Tenant Wizard + NFC Roster</span>
+          </div>
+          <div class="arch-matrix-row">
+            <span>02. Support &amp; Rectification Desk</span>
+            <span class="chip cyan">RECT-* Receipts + Email Station</span>
+          </div>
+          <div class="arch-matrix-row">
+            <span>03. Statutory Finance Auditor</span>
+            <span class="chip cyan">PenCom/PAYE Audit Batching</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--text-dim);">
+        <span>Zero-Trust Role Partitioning • AES-256</span>
+        <div>
+          <a href="/terms.html" style="color:var(--text-slate); text-decoration:none; margin-right:14px;">Terms of Service</a>
+          <a href="/privacy.html" style="color:var(--text-slate); text-decoration:none;">Privacy &amp; NDPR</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-right-form">
+      <div class="auth-card">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald); margin-bottom:6px;">
+          SELECT CLEARANCE TIER TO SIGN IN
+        </div>
+        <h2 style="font-family:'Outfit',sans-serif; font-size:24px; font-weight:800; margin-bottom:6px;">
+          Admin Block Authentication
+        </h2>
+        <p style="font-size:13px; color:var(--text-slate);">
+          Select your clearance role below to enter the console:
+        </p>
+
+        <div class="role-tier-grid" id="login-role-grid">
+          <button type="button" class="role-tier-btn selected" data-role="owner_root" onclick="window.selectLoginAdminRole('owner_root')">
+            <span class="tag" style="color:#fbbf24;">★ OWNER ONLY (ROOT)</span>
+            <strong>Founder / Sovereign Owner</strong>
+            <span>Full Treasury, Final Approvals, Email Engine &amp; Hosting</span>
+          </button>
+
+          <button type="button" class="role-tier-btn" data-role="onboarding_admin" onclick="window.selectLoginAdminRole('onboarding_admin')">
+            <span class="tag" style="color:var(--emerald);">DEPT 01 // ONBOARDING</span>
+            <strong>Adaeze Obi (Onboarding)</strong>
+            <span>Company Setup, CSV Roster &amp; Gate QR/NFC Posters</span>
+          </button>
+
+          <button type="button" class="role-tier-btn" data-role="ops_support_admin" onclick="window.selectLoginAdminRole('ops_support_admin')">
+            <span class="tag" style="color:var(--sky);">DEPT 02 // OPS SUPPORT</span>
+            <strong>Tunde Bakare (Support)</strong>
+            <span>Rectification Receipts (RECT-*), Email Station &amp; Leads</span>
+          </button>
+
+          <button type="button" class="role-tier-btn" data-role="finance_admin" onclick="window.selectLoginAdminRole('finance_admin')">
+            <span class="tag" style="color:var(--indigo);">DEPT 03 // FINANCE AUDIT</span>
+            <strong>Chukwudi Eze (Finance)</strong>
+            <span>PenCom/PAYE Statutory Audit (Routes to Owner)</span>
           </button>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Company & Legal Entity</th>
-              <th>Tenant ID</th>
-              <th>Industry & State</th>
-              <th>Workforce</th>
-              <th>Executive Sponsor</th>
-              <th>Compliance</th>
-              <th style="text-align:right;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="tenants-table-body">
-            <tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">Loading enterprise tenants...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
 
-    <!-- PANEL 2: Onboard New Client Wizard -->
-    <section id="panel-wizard" class="console-panel">
-      <div class="wizard-card">
-        <div style="margin-bottom:24px;">
-          <h2 style="font-size:20px; font-weight:800; letter-spacing:-0.02em;">Onboard New Enterprise Client</h2>
-          <p style="font-size:13px; color:var(--text-muted); margin-top:2px;">Execute corporate profile instantiation, unique Company ID generation, and Master Admin provisioning.</p>
+        <form onsubmit="window.handleAdminLogin(event)">
+          <div style="margin-bottom:14px;">
+            <label class="lbl-sm">Admin Security Passcode</label>
+            <input type="password" id="adm-passcode-input" class="adm-input" value="ShiftRelay@Admin2026!" required />
+            <div style="font-size:11.5px; color:var(--text-dim); margin-top:4px;">
+              Default Master Key pre-filled: <code>ShiftRelay@Admin2026!</code>
+            </div>
+          </div>
+
+          <div id="adm-login-err" style="display:none; color:var(--rose); font-size:12.5px; margin-bottom:12px; font-weight:600;"></div>
+
+          <button type="submit" class="btn-emerald" style="width:100%; justify-content:center; padding:13px;">
+            Unlock Admin Command Console →
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       2. WIDESCREEN ADMIN CONSOLE (#console-root)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="console-root">
+    <aside class="adm-sidebar">
+      <div>
+        <div style="display:flex; align-items:center; gap:10px; padding:4px 8px 18px; border-bottom:1px solid var(--border-hairline);">
+          <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay" style="width:34px; height:34px; border-radius:9px;" />
+          <div>
+            <div class="brand-wordmark" style="font-size:18px;">Shift<span>Relay</span></div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--emerald);" id="sidebar-role-badge">★ OWNER ROOT</div>
+          </div>
         </div>
 
-        <form id="onboard-tenant-form" onsubmit="handleOnboardTenant(event)">
-          <div class="form-section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M3 21h18"/><path d="M19 21v-4"/><path d="M19 11V7l-7-4-7 4v14"/></svg>
-            1. Corporate Legal Profile
+        <div class="nav-sec-label">Command &amp; Sovereignty</div>
+        <button type="button" class="adm-nav-btn active" data-view="overview" onclick="window.switchAdminView('overview')">
+          <span>◈ Command Overview</span>
+        </button>
+        <button type="button" class="adm-nav-btn owner-btn" data-view="owner-vault" onclick="window.switchAdminView('owner-vault')">
+          <span>★ Owner Sovereign Vault</span>
+          <span class="badge-count" id="nav-badge-approvals" style="background:rgba(245,158,11,0.2); color:#fde68a;">4</span>
+        </button>
+
+        <div class="nav-sec-label">Separated Worker Queues</div>
+        <button type="button" class="adm-nav-btn" data-view="onboarding" onclick="window.switchAdminView('onboarding')">
+          <span>01 • Tenant Onboarding</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="tenants" onclick="window.switchAdminView('tenants')">
+          <span>02 • Tenants &amp; Gate NFC</span>
+          <span class="badge-count" id="nav-badge-tenants">0</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="rectifications" onclick="window.switchAdminView('rectifications')">
+          <span>03 • Rectification Receipts</span>
+          <span class="badge-count" id="nav-badge-rects">3</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="finance" onclick="window.switchAdminView('finance')">
+          <span>04 • Statutory Payroll Audit</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="leads" onclick="window.switchAdminView('leads')">
+          <span>05 • shiftrelay.com Leads</span>
+          <span class="badge-count" id="nav-badge-leads">0</span>
+        </button>
+
+        <div class="nav-sec-label">Infrastructure &amp; Email</div>
+        <button type="button" class="adm-nav-btn" data-view="email-station" onclick="window.switchAdminView('email-station')">
+          <span>06 • Email Auto-Station</span>
+          <span class="badge-count" id="nav-badge-emails">5</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="hosting" onclick="window.switchAdminView('hosting')">
+          <span>07 • Hosting &amp; Domains</span>
+        </button>
+      </div>
+
+      <div style="border-top:1px solid var(--border-hairline); padding-top:14px; display:flex; flex-direction:column; gap:7px;">
+        <a href="/website.html" class="btn-ghost" style="justify-content:center;">Public Site (shiftrelay.com)</a>
+        <a href="/" class="btn-ghost" style="justify-content:center;">Mobile &amp; Gate App</a>
+        <button type="button" class="btn-ghost" style="justify-content:center; color:var(--rose);" onclick="window.logoutAdminConsole()">
+          Sign Out of Admin Block
+        </button>
+      </div>
+    </aside>
+
+    <div class="adm-main">
+      <header class="adm-topbar">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);" id="topbar-clearance-title">
+            ACTIVE SESSION: FOUNDER / SOVEREIGN OWNER (ROOT ACCESS)
           </div>
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Legal Entity Name *</label>
-              <input type="text" id="wiz-legal-name" class="input-field" placeholder="e.g. BUA Cement Plc" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Trading / Brand Name</label>
-              <input type="text" id="wiz-trading-name" class="input-field" placeholder="e.g. BUA Operations">
-            </div>
+          <div style="font-size:12px; color:var(--text-slate);" id="topbar-clearance-desc">
+            Full access to Owner Sovereign Vault, Master Approvals, Email Auto-Station, and Hosting Partition Manager.
           </div>
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Industry Classification</label>
-              <select id="wiz-industry" class="input-field">
-                <option value="Manufacturing & Industrial">Manufacturing & Industrial</option>
-                <option value="Logistics & Supply Chain">Logistics & Supply Chain</option>
-                <option value="FMCG & Warehousing">FMCG & Warehousing</option>
-                <option value="Healthcare & Clinical Ops">Healthcare & Clinical Ops</option>
-                <option value="Hospitality & Retail">Hospitality & Retail</option>
-                <option value="Security & Facility Services">Security & Facility Services</option>
-              </select>
+        </div>
+
+        <div class="role-switcher-bar">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-dim);">TEST ROLE VIEW:</span>
+          <button type="button" class="role-chip owner-chip active" data-switch-role="owner_root" onclick="window.setAdminActiveRole('owner_root')">★ Owner (Me)</button>
+          <button type="button" class="role-chip" data-switch-role="onboarding_admin" onclick="window.setAdminActiveRole('onboarding_admin')">Onboarding Worker</button>
+          <button type="button" class="role-chip" data-switch-role="ops_support_admin" onclick="window.setAdminActiveRole('ops_support_admin')">Support Worker</button>
+          <button type="button" class="role-chip" data-switch-role="finance_admin" onclick="window.setAdminActiveRole('finance_admin')">Finance Worker</button>
+        </div>
+      </header>
+
+      <main class="adm-body">
+
+        <!-- VIEW 1: COMMAND OVERVIEW -->
+        <section class="adm-view active" id="view-overview">
+          <div class="kpi-row">
+            <div class="kpi-tile">
+              <div class="lbl">ONBOARDED TENANTS</div>
+              <div class="val" id="kpi-total-tenants">3</div>
+              <div class="sub">Isolated Gate &amp; NFC Rosters</div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Operating Hub / State</label>
-              <input type="text" id="wiz-state" class="input-field" value="Lagos, Nigeria">
+            <div class="kpi-tile">
+              <div class="lbl">PROVISIONED WORKERS</div>
+              <div class="val" id="kpi-total-workers">42</div>
+              <div class="sub">Mobile + NFC Badge Staff</div>
+            </div>
+            <div class="kpi-tile" style="border-color:var(--border-amber);">
+              <div class="lbl" style="color:#fbbf24;">PENDING OWNER APPROVALS</div>
+              <div class="val" id="kpi-pending-approvals" style="color:#fde68a;">4</div>
+              <div class="sub" style="color:#fbbf24;">Awaiting Owner Root Sign-Off</div>
+            </div>
+            <div class="kpi-tile">
+              <div class="lbl">EMAIL AUTO-STATION QUEUE</div>
+              <div class="val" id="kpi-total-emails" style="color:var(--sky);">5</div>
+              <div class="sub">Receipts, Gate OTPs &amp; Leads</div>
             </div>
           </div>
 
-          <div class="form-section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            2. Master Admin / Executive Sponsor
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <h2>Admin Department Task Separation &amp; Approval Matrix</h2>
+                <p style="font-size:13px; color:var(--text-slate);">
+                  Internal admin workers handle specialized queues and submit high-impact actions to the <strong>Owner Sovereign Vault</strong>.
+                </p>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn-ghost" onclick="window.switchAdminView('email-station')">Open Email Auto-Station</button>
+                <button type="button" class="btn-amber" onclick="window.switchAdminView('owner-vault')">★ Open Owner Sovereign Vault →</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Admin Role / Specialist</th>
+                    <th>Assigned Operational Tasks</th>
+                    <th>Locked From (Owner Only)</th>
+                    <th>Approval Routing</th>
+                    <th>Workspace</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong style="color:#fde68a;">★ Founder / Sovereign Owner</strong><div style="font-size:11.5px; color:var(--text-slate);">Owner Root Clearance</div></td>
+                    <td>Master Approvals, SaaS MRR/ARR Treasury, Staff Permissions, Hosting &amp; Email Root Config</td>
+                    <td><span class="chip emerald">UNRESTRICTED SOVEREIGN ACCESS</span></td>
+                    <td>Final Approving Authority</td>
+                    <td><button type="button" class="btn-amber" onclick="window.switchAdminView('owner-vault')">Open Vault</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Adaeze Obi</strong><div style="font-size:11.5px; color:var(--emerald);">Onboarding Specialist</div></td>
+                    <td>4-Step Company Onboarding Wizard, Bulk CSV Employee Imports, Gate QR &amp; NFC Posters</td>
+                    <td>Locked out of SaaS Treasury &amp; Final Billing Waivers</td>
+                    <td>Routes new tenant activation to <strong>Owner Vault</strong></td>
+                    <td><button type="button" class="btn-ghost" onclick="window.switchAdminView('onboarding')">Open Queue</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Tunde Bakare</strong><div style="font-size:11.5px; color:var(--sky);">Support &amp; Rectification Officer</div></td>
+                    <td>Worker Rectification Receipts (`SR-REC-*`), Email Auto-Station Support, Inbound Demo Leads</td>
+                    <td>Locked out of Contract Deletion &amp; Treasury Release</td>
+                    <td>Routes bank/RSA overrides to <strong>Owner Vault</strong></td>
+                    <td><button type="button" class="btn-ghost" onclick="window.switchAdminView('rectifications')">Open Queue</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Chukwudi Eze</strong><div style="font-size:11.5px; color:var(--indigo);">Statutory Finance Auditor</div></td>
+                    <td>Audit Monthly Payroll Runs, Verify PenCom (8%/10%), PAYE, NHF &amp; NSITF Schedules</td>
+                    <td>Cannot release final treasury payouts alone</td>
+                    <td>Routes audited payout batches to <strong>Owner Vault</strong></td>
+                    <td><button type="button" class="btn-ghost" onclick="window.switchAdminView('finance')">Open Queue</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">HR Director / Sponsor Full Name *</label>
-              <input type="text" id="wiz-admin-name" class="input-field" placeholder="e.g. Dr. Folake Adeleke" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Corporate Work Email *</label>
-              <input type="email" id="wiz-admin-email" class="input-field" placeholder="e.g. folake.adeleke@buagroup.com" required>
-            </div>
-          </div>
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Official Mobile (for SMS Dispatch)</label>
-              <input type="tel" id="wiz-admin-phone" class="input-field" placeholder="+234 802 345 6789">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Official Title</label>
-              <input type="text" id="wiz-admin-title" class="input-field" value="Director of Human Capital Management">
-            </div>
+        </section>
+
+        <!-- VIEW 2: OWNER-ONLY SOVEREIGN VAULT -->
+        <section class="adm-view" id="view-owner-vault">
+          <div id="owner-restricted-banner" class="owner-shield-box" style="display:none;">
+            <span class="chip amber" style="margin-bottom:12px;">🔒 OWNER-ONLY CLEARANCE REQUIRED</span>
+            <h2 style="font-family:'Outfit',sans-serif; font-size:26px; margin-bottom:10px;">
+              Restricted to the Founder / Sovereign Owner
+            </h2>
+            <p style="color:var(--text-slate); font-size:14px; margin-bottom:22px;">
+              You are viewing the console as <strong id="restricted-worker-name">Department Admin</strong>. Separated admin workers prepare tasks in their assigned queues, while final approvals and SaaS revenue remain exclusive to the Owner.
+            </p>
+            <button type="button" class="btn-amber" onclick="window.setAdminActiveRole('owner_root')">
+              ★ Switch Back to Owner Root Clearance
+            </button>
           </div>
 
-          <div class="form-section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            3. Statutory Framework & Compensation Defaults
-          </div>
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Base Currency</label>
-              <input type="text" id="wiz-currency" class="input-field" value="NGN" readonly style="opacity:0.8;">
+          <div id="owner-vault-unlocked">
+            <div class="kpi-row">
+              <div class="kpi-tile" style="border-color:var(--border-amber);">
+                <div class="lbl" style="color:#fbbf24;">PLATFORM SAAS MRR (OWNER ONLY)</div>
+                <div class="val" style="color:#fde68a;">₦18.45M</div>
+                <div class="sub">ARR Run-Rate: ₦221.4M / yr</div>
+              </div>
+              <div class="kpi-tile">
+                <div class="lbl">PEPM SUBSCRIPTION FEE</div>
+                <div class="val">₦2,500</div>
+                <div class="sub">Per Active Worker / Month</div>
+              </div>
+              <div class="kpi-tile">
+                <div class="lbl">NFC CARD &amp; GATE HARDWARE</div>
+                <div class="val">₦4.20M</div>
+                <div class="sub">DESFire EV3 Badges &amp; Kits</div>
+              </div>
+              <div class="kpi-tile">
+                <div class="lbl">AWAITING YOUR SIGN-OFF</div>
+                <div class="val" id="owner-vault-pending-count" style="color:var(--emerald);">4</div>
+                <div class="sub">Submitted by Admin Staff</div>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Compliance Baseline</label>
-              <div style="font-size:12.5px; color:#34d399; padding:10px 14px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:12px;">
-                ✓ PenCom (8% / 10%) • ✓ NHF (2.5%) • ✓ NSITF (1%) • ✓ Finance Act CRA
+
+            <div class="panel-card" style="border-color:var(--border-amber);">
+              <div class="panel-head">
+                <div>
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#fbbf24;">★ OWNER EXCLUSIVE SIGN-OFF</span>
+                  <h2>Master Approval Queue (Tasks Prepared by Admin Workers)</h2>
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table class="adm-table">
+                  <thead>
+                    <tr>
+                      <th>Approval ID</th>
+                      <th>Prepared By</th>
+                      <th>Task &amp; Action Summary</th>
+                      <th>Financial / Security Impact</th>
+                      <th>Status</th>
+                      <th>Owner Decision</th>
+                    </tr>
+                  </thead>
+                  <tbody id="owner-approval-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <div class="panel-head">
+                <div>
+                  <h2>Admin Workers &amp; Department Permission Controller</h2>
+                </div>
+                <button type="button" class="btn-emerald" onclick="window.promptAddAdminWorker()">+ Add Admin Worker</button>
+              </div>
+              <div class="table-scroll">
+                <table class="adm-table">
+                  <thead>
+                    <tr>
+                      <th>Staff Name &amp; Email</th>
+                      <th>Department Role</th>
+                      <th>Permitted Modules</th>
+                      <th>Requires Owner Sign-Off For</th>
+                      <th>Status</th>
+                      <th>Owner Control</th>
+                    </tr>
+                  </thead>
+                  <tbody id="owner-staff-tbody"></tbody>
+                </table>
               </div>
             </div>
           </div>
+        </section>
 
-          <div style="margin-top:24px; display:flex; gap:12px;">
-            <button type="submit" class="btn-primary" id="btn-submit-wizard">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Instantiate Enterprise Tenant</span>
+        <!-- VIEW 3: TENANT ONBOARDING WIZARD -->
+        <section class="adm-view" id="view-onboarding">
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">DEPT 01 // ONBOARDING SPECIALIST</span>
+                <h2>Enterprise Client Onboarding &amp; Gate Provisioning Wizard</h2>
+              </div>
+              <span class="chip cyan">Auto-Notifies Owner &amp; Email Station</span>
+            </div>
+
+            <form id="adm-onboard-form" onsubmit="window.handleCreateTenant(event)">
+              <div class="grid-2">
+                <div>
+                  <label class="lbl-sm">Enterprise Organization Name *</label>
+                  <input type="text" id="ob-company-name" class="adm-input" required placeholder="e.g., Nestlé Nigeria Flow Ops" />
+                </div>
+                <div>
+                  <label class="lbl-sm">Industry Sector</label>
+                  <select id="ob-industry" class="adm-select">
+                    <option value="Manufacturing & Industrial">Manufacturing &amp; Industrial</option>
+                    <option value="Logistics & Supply Chain">Logistics &amp; Supply Chain</option>
+                    <option value="Hospitality & Facilities">Hospitality &amp; Facilities</option>
+                    <option value="Healthcare & Clinical">Healthcare &amp; Clinical</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div>
+                  <label class="lbl-sm">Company Owner / Admin Full Name *</label>
+                  <input type="text" id="ob-admin-name" class="adm-input" required placeholder="e.g., Chief Tayo Balogun" />
+                </div>
+                <div>
+                  <label class="lbl-sm">Owner Verification Email (Receives 2-Layer Gate OTPs) *</label>
+                  <input type="email" id="ob-admin-email" class="adm-input" required placeholder="t.balogun@company.com" />
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div>
+                  <label class="lbl-sm">Primary Facility / Gate Checkpoint Name *</label>
+                  <input type="text" id="ob-site-name" class="adm-input" required placeholder="e.g., Agbara Complex Main Gate" />
+                </div>
+                <div>
+                  <label class="lbl-sm">Geofence Perimeter Radius (Meters)</label>
+                  <input type="number" id="ob-radius" class="adm-input" value="250" />
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div>
+                  <label class="lbl-sm">Site GPS Latitude</label>
+                  <input type="text" id="ob-lat" class="adm-input" value="6.5244" />
+                </div>
+                <div>
+                  <label class="lbl-sm">Site GPS Longitude</label>
+                  <input type="text" id="ob-lng" class="adm-input" value="3.3792" />
+                </div>
+              </div>
+
+              <button type="submit" class="btn-emerald">Provision Tenant, Issue Gate Code &amp; Route to Owner →</button>
+            </form>
+          </div>
+        </section>
+
+        <!-- VIEW 4: TENANTS & BULK CSV ROSTER -->
+        <section class="adm-view" id="view-tenants">
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <h2>Onboarded Enterprise Tenants &amp; 2-Layer Gate Codes</h2>
+              </div>
+              <button type="button" class="btn-emerald" onclick="window.switchAdminView('onboarding')">+ Onboard New Enterprise</button>
+            </div>
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Organization</th>
+                    <th>2-Layer Gate Code</th>
+                    <th>Owner OTP Email</th>
+                    <th>Primary Site &amp; Geofence</th>
+                    <th>Workers</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-tenants-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <h2>Bulk Employee &amp; Encrypted NFC Badge Import (CSV)</h2>
+                <p style="font-size:12.5px; color:var(--text-slate);">Format: <code>Full Name, Email, Phone, Role (employee/manager), Department, BaseSalary</code></p>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div>
+                <label class="lbl-sm">Select Target Tenant</label>
+                <select id="csv-tenant-select" class="adm-select"></select>
+              </div>
+              <div>
+                <label class="lbl-sm">Provisioning Mode</label>
+                <input type="text" class="adm-input" value="Mobile App + Encrypted DESFire NFC Badge UID" readonly />
+              </div>
+            </div>
+            <div style="margin-bottom:14px;">
+              <label class="lbl-sm">Employee CSV Rows</label>
+              <textarea id="csv-raw-input" class="adm-textarea" rows="4">Musa Danjuma, musa.d@company.com, +2348031112233, employee, Packaging Line A, 145000
+Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision, 260000</textarea>
+            </div>
+            <button type="button" class="btn-emerald" onclick="window.handleBulkCsvImport()">Import Roster &amp; Dispatch Welcome Emails →</button>
+          </div>
+        </section>
+
+        <!-- VIEW 5: WORKER RECTIFICATION RECEIPTS (LIVE APP SYNC) -->
+        <section class="adm-view" id="view-rectifications">
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">DEPT 02 // OPERATIONS &amp; SUPPORT DESK (SYNCED WITH MOBILE APP)</span>
+                <h2>Worker Rectification Receipts (`SR-REC-*` / `RECT-*`)</h2>
+                <p style="font-size:13px; color:var(--text-slate);">
+                  Receipts generated by workers inside the Mobile App Support Desk automatically sync here and trigger an automated confirmation via the <strong>Email Auto-Station Engine</strong>.
+                </p>
+              </div>
+              <button type="button" class="btn-ghost" onclick="window.syncAppRectificationReceipts(true)">↻ Sync Receipts from App</button>
+            </div>
+
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Receipt ID</th>
+                    <th>Worker &amp; Registered Email</th>
+                    <th>Category</th>
+                    <th>Correction Details</th>
+                    <th>Status</th>
+                    <th>Support / Owner Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-rectifications-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 6: STATUTORY PAYROLL AUDIT -->
+        <section class="adm-view" id="view-finance">
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--indigo);">DEPT 03 // FINANCE &amp; STATUTORY COMPLIANCE</span>
+                <h2>Monthly Payroll Run &amp; Statutory Remittance Audit (PenCom, PAYE, NHF, NSITF)</h2>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn-ghost" onclick="window.printAdminMonthlyPaymentVoucher()">🖨 Print Monthly Payment Data</button>
+                <button type="button" class="btn-ghost" onclick="window.exportAdminStatutoryCsv()">⬇ Statutory CSV</button>
+                <button type="button" class="btn-emerald" onclick="window.submitPayrollBatchForOwnerApproval()">Submit Batch to Owner Vault →</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Enterprise Tenant</th>
+                    <th>Verified Hours</th>
+                    <th>Gross Payroll</th>
+                    <th>PenCom (8% Emp / 10% Er)</th>
+                    <th>PAYE + NHF (2.5%) + NSITF (1%)</th>
+                    <th>Net Disbursement</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Dangote Packaging Ltd</strong><div style="font-size:11.5px; color:var(--text-slate);">Ikeja &amp; Apapa Plants</div></td>
+                    <td>4,820h Verified</td>
+                    <td>₦14,820,000</td>
+                    <td>₦2,667,600</td>
+                    <td>₦1,407,900</td>
+                    <td><strong style="color:var(--emerald);">₦12,480,500</strong></td>
+                    <td><span class="chip emerald">AUDITED • READY</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Flour Mills Logistics</strong><div style="font-size:11.5px; color:var(--text-slate);">Tin Can Island Hub</div></td>
+                    <td>3,190h Verified</td>
+                    <td>₦9,640,000</td>
+                    <td>₦1,735,200</td>
+                    <td>₦915,800</td>
+                    <td><strong style="color:var(--emerald);">₦8,120,400</strong></td>
+                    <td><span class="chip emerald">AUDITED • READY</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Eko Atlantic Facility Ops</strong><div style="font-size:11.5px; color:var(--text-slate);">Victoria Island Precinct</div></td>
+                    <td>2,140h Verified</td>
+                    <td>₦6,450,000</td>
+                    <td>₦1,161,000</td>
+                    <td>₦612,750</td>
+                    <td><strong style="color:var(--emerald);">₦5,439,250</strong></td>
+                    <td><span class="chip cyan">IN STATUTORY REVIEW</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 7: INBOUND LEADS FROM SHIFTRELAY.COM -->
+        <section class="adm-view" id="view-leads">
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">PUBLIC WEBSITE PIPELINE (SHIFTRELAY.COM)</span>
+                <h2>Inbound Enterprise Demo &amp; Contact Inquiries</h2>
+              </div>
+              <a href="/website.html#demo-request-section" class="btn-ghost">Open shiftrelay.com Form ↗</a>
+            </div>
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Organization</th>
+                    <th>Executive Contact</th>
+                    <th>Email &amp; Phone</th>
+                    <th>Scale &amp; Sector</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-leads-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═════════════════════════════════════════════════════════════════
+             VIEW 8: EMAIL AUTO-STATION ENGINE (#view-email-station)
+             ═════════════════════════════════════════════════════════════════ -->
+        <section class="adm-view" id="view-email-station">
+          <div class="kpi-row">
+            <div class="kpi-tile">
+              <div class="lbl">SUPPORT &amp; RECEIPTS STATION</div>
+              <div class="val" style="font-size:18px; color:var(--emerald);">support@shiftrelay.com</div>
+              <div class="sub">Auto-Routes Worker RECT-* Receipts</div>
+            </div>
+            <div class="kpi-tile">
+              <div class="lbl">GATE TABLET 2-LAYER OTP</div>
+              <div class="val" style="font-size:18px; color:var(--sky);">gate-otp@shiftrelay.com</div>
+              <div class="sub">6-Digit Kiosk Verification Codes</div>
+            </div>
+            <div class="kpi-tile">
+              <div class="lbl">ONBOARDING &amp; DEMO DESK</div>
+              <div class="val" style="font-size:18px; color:#fde68a;">onboarding@shiftrelay.com</div>
+              <div class="sub">Lead Auto-Reply &amp; Welcome Kits</div>
+            </div>
+            <div class="kpi-tile">
+              <div class="lbl">FINANCE &amp; STATUTORY</div>
+              <div class="val" style="font-size:18px; color:#c4b5fd;">finance@shiftrelay.com</div>
+              <div class="sub">Monthly Payment &amp; PenCom Schedules</div>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">AUTOMATED TRANSACTIONAL DISPATCHER</span>
+                <h2>Email Auto-Station Outbox &amp; Live Dispatch Log</h2>
+                <p style="font-size:13px; color:var(--text-slate);">
+                  Every worker Rectification Receipt, Gate Tablet 2-Layer OTP, and Enterprise Demo Request automatically generates and queues a branded transactional email here.
+                </p>
+              </div>
+              <button type="button" class="btn-emerald" onclick="window.triggerTestAutoStationEmail()">
+                + Send Test Auto-Station Email
+              </button>
+            </div>
+
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>From Station</th>
+                    <th>Recipient Email</th>
+                    <th>Subject &amp; Reference</th>
+                    <th>Trigger Source</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="email-station-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- SMTP / API Provider Configuration Card -->
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <h2>SMTP / Custom Domain Email Provider Configuration</h2>
+                <p style="font-size:13px; color:var(--text-slate);">
+                  Ready for when you activate your custom domain email hosting (Zoho Mail, Google Workspace, Resend, or AWS SES).
+                </p>
+              </div>
+              <span class="chip emerald" id="smtp-status-chip">LOCAL AUTO-STATION ACTIVE • READY FOR LIVE SMTP</span>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <label class="lbl-sm">Email Provider / Relay Engine</label>
+                <select id="smtp-provider" class="adm-select">
+                  <option value="zoho">Zoho Mail Workplace (smtp.zoho.com:465)</option>
+                  <option value="resend">Resend Transactional API (smtp.resend.com:465)</option>
+                  <option value="workspace">Google Workspace (smtp.gmail.com:465)</option>
+                  <option value="ses">Amazon SES (email-smtp.eu-west-1.amazonaws.com)</option>
+                </select>
+              </div>
+              <div>
+                <label class="lbl-sm">Primary Sending Domain</label>
+                <input type="text" id="smtp-domain" class="adm-input" value="shiftrelay.com" />
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <label class="lbl-sm">Default Support / Reply-To Mailbox</label>
+                <input type="email" id="smtp-reply" class="adm-input" value="support@shiftrelay.com" />
+              </div>
+              <div>
+                <label class="lbl-sm">SMTP / API Key Secret (Stored Encrypted)</label>
+                <input type="password" id="smtp-key" class="adm-input" placeholder="re_•••••••••••• or SMTP App Password" />
+              </div>
+            </div>
+
+            <button type="button" class="btn-emerald" onclick="window.saveSmtpStationConfig()">
+              Save Email Auto-Station Configuration →
             </button>
-            <button type="button" class="btn-secondary" onclick="switchTab('tenants')">Cancel</button>
           </div>
-        </form>
-      </div>
-    </section>
+        </section>
 
-    <!-- PANEL 3: Bulk Employee Provisioning -->
-    <section id="panel-bulk" class="console-panel">
-      <div class="wizard-card">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
-          <div>
-            <h2 style="font-size:20px; font-weight:800; letter-spacing:-0.02em;">Closed-Loop Frontline Intake (CSV)</h2>
-            <p style="font-size:13px; color:var(--text-muted); margin-top:2px;">Instantiate shell accounts with single-use activation tokens and contract rate lines.</p>
+        <!-- ═════════════════════════════════════════════════════════════════
+             VIEW 9: CLOUD HOSTING & DOMAIN PARTITIONING (#view-hosting)
+             ═════════════════════════════════════════════════════════════════ -->
+        <section class="adm-view" id="view-hosting">
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">DEPLOYMENT &amp; DNS ARCHITECTURE</span>
+                <h2>Production Hosting &amp; Subdomain Partitioning Blueprint</h2>
+                <p style="font-size:13px; color:var(--text-slate);">
+                  When you purchase your hosting and `shiftrelay.com` domain, use this exact partitioning table to separate the Public Landing Page, the Mobile/Gate App, the Admin Console, and the Email Auto-Station.
+                </p>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Subdomain / Host</th>
+                    <th>Target File / Route</th>
+                    <th>Audience &amp; Access Policy</th>
+                    <th>Recommended DNS Record</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code style="color:var(--emerald); font-weight:700;">shiftrelay.com</code><br/><code style="font-size:11px; color:var(--text-slate);">www.shiftrelay.com</code></td>
+                    <td><code>website.html</code></td>
+                    <td>Public B2B SaaS Website (No Login / No Sign-Up; Demo &amp; Contact Only)</td>
+                    <td><code>A @ → Server IP</code><br/><code>CNAME www → shiftrelay.com</code></td>
+                    <td><span class="chip emerald">READY IN REPO</span></td>
+                  </tr>
+                  <tr>
+                    <td><code style="color:var(--sky); font-weight:700;">app.shiftrelay.com</code></td>
+                    <td><code>index.html</code></td>
+                    <td>Workers, Shift Supervisors, Company Owners &amp; 2-Layer Gate Tablets</td>
+                    <td><code>CNAME app → shiftrelay.com</code></td>
+                    <td><span class="chip emerald">READY IN REPO</span></td>
+                  </tr>
+                  <tr>
+                    <td><code style="color:#fde68a; font-weight:700;">admin.shiftrelay.com</code></td>
+                    <td><code>admin.html</code> (<code>/admin</code>)</td>
+                    <td>Founder / Sovereign Owner &amp; Separated Internal Admin Staff Only</td>
+                    <td><code>CNAME admin → shiftrelay.com</code></td>
+                    <td><span class="chip emerald">READY IN REPO</span></td>
+                  </tr>
+                  <tr>
+                    <td><code style="color:#c4b5fd; font-weight:700;">@shiftrelay.com</code> (Email)</td>
+                    <td>Email Auto-Station</td>
+                    <td><code>support@</code>, <code>onboarding@</code>, <code>finance@</code>, <code>gate-otp@</code>, <code>legal@</code></td>
+                    <td><code>MX 10 mx.zoho.com</code> + <code>TXT v=spf1</code> + <code>DKIM</code></td>
+                    <td><span class="chip cyan">CONFIGURED IN MODULE 06</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-          <button class="btn-secondary" onclick="downloadCsvTemplate()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download CSV Template
-          </button>
-        </div>
+        </section>
 
-        <div class="form-group" style="margin-bottom:18px;">
-          <label class="form-label">Select Target Enterprise Client *</label>
-          <select id="bulk-target-tenant" class="input-field" required>
-            <option value="">-- Choose Corporate Tenant --</option>
-          </select>
-        </div>
-
-        <div class="form-group" style="margin-bottom:18px;">
-          <label class="form-label">Paste CSV Data or Drag & Drop File</label>
-          <textarea id="bulk-csv-text" class="input-field" rows="8" placeholder="FullName, Email, Phone, Role, Department, CompType, MonthlyRate, HourlyRate, BankName, AccountNumber
-Amina Otieno, amina@client.com, 08023456789, Process Specialist, Operations, fixed_monthly, 220000, 1375, Access Bank, 0123456789
-David Kariuki, david@client.com, 08034567890, Supervisor, Supervision, fixed_monthly, 350000, 2187, First Bank, 3109876543" style="font-family:var(--font-mono); font-size:12.5px;"></textarea>
-        </div>
-
-        <div style="display:flex; gap:12px; margin-bottom:24px;">
-          <button class="btn-primary" style="width:auto; padding:12px 24px;" onclick="processBulkEmployees()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span>Process & Dispatch Shell Accounts</span>
-          </button>
-          <button class="btn-secondary" onclick="document.getElementById('bulk-csv-text').value = ''">Clear</button>
-        </div>
-
-        <!-- Provisioning Output Report -->
-        <div id="bulk-result-area" style="display:none; margin-top:24px;">
-          <h3 style="font-size:16px; font-weight:800; margin-bottom:12px; color:#34d399;">Provisioning Execution Report</h3>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Staff ID</th>
-                  <th>Full Name</th>
-                  <th>Email</th>
-                  <th>Phone Verification</th>
-                  <th>Single-Use Activation URL</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="bulk-result-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- PANEL 4: Inbound Leads -->
-    <section id="panel-leads" class="console-panel">
-      <div class="table-container">
-        <div class="table-header-row">
-          <div>
-            <h3 class="table-title">Inbound Enterprise Demo Inquiries</h3>
-            <p style="font-size:12.5px; color:var(--text-muted);">High-intent enterprise acquisition leads captured from public gates</p>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Company Name</th>
-              <th>Executive Contact</th>
-              <th>Work Email & Phone</th>
-              <th>Headcount</th>
-              <th>Industry</th>
-              <th>Received</th>
-              <th style="text-align:right;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="leads-table-body">
-            <tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">Loading inbound leads...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </main>
-
-  <!-- Modal for Provisioning Completion -->
-  <div id="success-modal" class="modal-backdrop" style="display:none;">
-    <div class="modal-dialog">
-      <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-        <div style="width:40px; height:40px; border-radius:50%; background:rgba(16,185,129,0.15); color:#34d399; display:flex; align-items:center; justify-content:center;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <div>
-          <h3 style="font-size:18px; font-weight:800;">Enterprise Client Instantiated</h3>
-          <p style="font-size:12.5px; color:var(--text-muted);">Multi-tenant boundaries and Master Admin configured</p>
-        </div>
-      </div>
-
-      <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:14px; padding:18px; margin-bottom:20px;">
-        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Generated Company ID (Tenant Gating Identifier):</div>
-        <div id="modal-company-id" style="font-family:var(--font-mono); font-size:24px; font-weight:900; color:#34d399; letter-spacing:0.04em;"></div>
-        
-        <div style="margin-top:14px; border-top:1px solid var(--border-subtle); padding-top:12px; font-size:13px; line-height:1.6;">
-          <div><strong>Master Admin:</strong> <span id="modal-admin-name"></span> (<span id="modal-admin-email"></span>)</div>
-          <div><strong>Temporary Password:</strong> <code id="modal-admin-password" style="background:#0f172a; padding:2px 6px; border-radius:4px; color:#fbbf24;"></code></div>
-          <div style="margin-top:8px; font-size:12px; color:#94a3b8;">This Company ID is required for all worker and executive tri-factor sign-ins.</div>
-        </div>
-      </div>
-
-      <div style="display:flex; justify-content:flex-end; gap:10px;">
-        <button class="btn-secondary" onclick="copyModalCredentials()">Copy Credentials</button>
-        <button class="btn-primary" style="width:auto; padding:8px 18px;" onclick="closeSuccessModal()">Done</button>
-      </div>
+      </main>
     </div>
   </div>
 
-  <!-- Modal for Gate QR Attendance Poster -->
-  <div id="gate-qr-modal" class="modal-backdrop" style="display:none;">
-    <div class="modal-dialog" style="max-width:560px; text-align:center;">
-      <div id="printable-gate-poster" style="background:#ffffff; color:#0f172a; padding:32px 24px; border-radius:18px; border:2px solid #e2e8f0; margin-bottom:20px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0d9488; padding-bottom:12px; margin-bottom:18px;">
-          <div style="text-align:left;">
-            <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:#0d9488;">Official Attendance Muster Point</div>
-            <h2 id="poster-company-name" style="font-size:18px; font-weight:900; color:#0f172a; margin:2px 0 0;">Company Name</h2>
-          </div>
-          <div style="text-align:right;">
-            <span id="poster-company-id" style="font-family:var(--font-mono); font-size:14px; font-weight:800; background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; padding:3px 8px; border-radius:6px;">ID</span>
-          </div>
-        </div>
-
-        <div id="poster-qr-container" style="display:flex; justify-content:center; align-items:center; margin:16px 0;">
-          <!-- SVG QR Code is injected here -->
-        </div>
-
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-top:14px;">
-          <div id="poster-hub-name" style="font-size:13px; font-weight:800; color:#0f172a;">Apapa Industrial Plant • Gate 01</div>
-          <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Point camera to clock in or out • 0% Battery Drain • Fraud-Proof Site Verification</div>
-        </div>
-      </div>
-
-      <div style="display:flex; justify-content:flex-end; gap:10px;">
-        <button class="btn-primary" style="width:auto; padding:8px 20px;" onclick="printGatePoster()">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-          <span>Print Gate Poster</span>
-        </button>
-        <button class="btn-secondary" onclick="document.getElementById('gate-qr-modal').style.display='none'">Close</button>
-      </div>
-    </div>
-  </div>
+  <div id="adm-toast"></div>
 
   <script>
-    let adminToken = localStorage.getItem('sr_admin_token') || null;
+    let adminToken = sessionStorage.getItem('sr_admin_token') || '';
+    let currentAdminRole = sessionStorage.getItem('sr_admin_role') || 'owner_root';
+    let cachedTenants = [];
+    let cachedLeads = [];
 
-    // Check existing auth on load
-    window.addEventListener('DOMContentLoaded', () => {
-      if (adminToken) {
-        showConsole();
+    const ADMIN_ROLE_PROFILES = {
+      owner_root: {
+        badge: '★ OWNER ROOT',
+        title: 'ACTIVE SESSION: FOUNDER / SOVEREIGN OWNER (ALL PERMISSIONS UNLOCKED)',
+        desc: 'Exclusive access to Owner Sovereign Vault, Master Approvals, SaaS MRR, Email Auto-Station & Hosting Partitioning.',
+        workerName: 'Founder & Sovereign Owner'
+      },
+      onboarding_admin: {
+        badge: 'DEPT 01 // ONBOARDING',
+        title: 'ACTIVE SESSION: ADAEZE OBI — ONBOARDING & IMPLEMENTATION SPECIALIST',
+        desc: 'Scoped to Tenant Onboarding Wizard, CSV Roster Imports & Gate NFC Posters. Owner Vault is locked.',
+        workerName: 'Adaeze Obi (Onboarding Admin)'
+      },
+      ops_support_admin: {
+        badge: 'DEPT 02 // OPS SUPPORT',
+        title: 'ACTIVE SESSION: TUNDE BAKARE — OPERATIONS & RECTIFICATION SUPPORT',
+        desc: 'Scoped to Worker Rectification Receipts (SR-REC-*), Email Auto-Station & Inbound Demo Leads. Owner Vault is locked.',
+        workerName: 'Tunde Bakare (Support Admin)'
+      },
+      finance_admin: {
+        badge: 'DEPT 03 // FINANCE AUDIT',
+        title: 'ACTIVE SESSION: CHUKWUDI EZE — FINANCE & STATUTORY COMPLIANCE AUDITOR',
+        desc: 'Scoped to Payroll Runs & PenCom/PAYE Statutory Schedules. Final Treasury Release requires Owner Root approval.',
+        workerName: 'Chukwudi Eze (Finance Auditor)'
       }
-    });
+    };
 
-    async function handleAdminLogin(event) {
-      event.preventDefault();
-      const passcode = document.getElementById('admin-passcode').value;
-      const errorDiv = document.getElementById('login-error');
-      errorDiv.style.display = 'none';
+    const ownerApprovals = [
+      {
+        id: 'APPR-901',
+        by: 'Adaeze Obi (Onboarding Admin)',
+        summary: 'Activate Production Tenant: Dangote Packaging Ikeja Phase 2 (180 NFC Cards + 2 Gate Tablets)',
+        impact: 'PEPM Contract: ₦450,000/mo',
+        status: 'PENDING OWNER SIGN-OFF'
+      },
+      {
+        id: 'APPR-902',
+        by: 'Chukwudi Eze (Finance Auditor)',
+        summary: 'Release Statutory Payroll & PenCom Remittance Batch (Dangote Packaging Ltd)',
+        impact: 'Treasury Batch: ₦14,820,000',
+        status: 'PENDING OWNER SIGN-OFF'
+      },
+      {
+        id: 'APPR-903',
+        by: 'Tunde Bakare (Support Admin)',
+        summary: 'Approve Rectification Receipt SR-REC-482109 (Salary Bank & PenCom RSA Update for Kemi Adebayo)',
+        impact: 'Identity & Payout Override',
+        status: 'PENDING OWNER SIGN-OFF'
+      },
+      {
+        id: 'APPR-904',
+        by: 'Adaeze Obi (Onboarding Admin)',
+        summary: 'Issue Gate Tablet Master Key (SR-GATE-8841) for Flour Mills Tin Can Hub Gate B',
+        impact: '2-Layer Hardware Security Key',
+        status: 'PENDING OWNER SIGN-OFF'
+      }
+    ];
+
+    const adminStaffMembers = [
+      {
+        name: 'Adaeze Obi',
+        email: 'onboarding@shiftrelay.com',
+        role: 'Onboarding & Implementation Specialist',
+        modules: 'Tenant Wizard, CSV Roster, Gate QR/NFC Posters',
+        restriction: 'New Tenant Billing Activation & Hardware Waivers',
+        status: 'ACTIVE'
+      },
+      {
+        name: 'Tunde Bakare',
+        email: 'support@shiftrelay.com',
+        role: 'Operations & Rectification Support Officer',
+        modules: 'Rectification Receipts, Email Auto-Station, Demo Leads',
+        restriction: 'Identity/Bank Payout Changes & Contract Edits',
+        status: 'ACTIVE'
+      },
+      {
+        name: 'Chukwudi Eze',
+        email: 'finance@shiftrelay.com',
+        role: 'Finance & Statutory Compliance Auditor',
+        modules: 'Payroll Audit, PenCom/PAYE/NHF/NSITF Schedules',
+        restriction: 'Final Treasury Batch Disbursement Sign-Off',
+        status: 'ACTIVE'
+      }
+    ];
+
+    const defaultRectifications = [
+      {
+        id: 'SR-REC-482109',
+        name: 'Kemi Adebayo',
+        email: 'kemi.adebayo@dangote.com',
+        category: 'Bank Account / Wallet Details Update',
+        details: 'Requested update of PenCom RSA PIN to PEN1004928172 and Zenith Bank NUBAN verification.',
+        status: 'VERIFIED BY SUPPORT • IN OWNER QUEUE',
+        createdAt: new Date(Date.now() - 3600 * 1000 * 5).toISOString()
+      },
+      {
+        id: 'SR-REC-482514',
+        name: 'Ibrahim Musa',
+        email: 'ibrahim.m@flourmills.com',
+        category: 'Gate NFC / Geofence Clock-In Dispute',
+        details: 'Gate B tablet power cycle during 18:02 shift handover; supervisor confirmed physical presence.',
+        status: 'OPEN FOR SUPPORT AUDIT',
+        createdAt: new Date(Date.now() - 3600 * 1000 * 2).toISOString()
+      },
+      {
+        id: 'SR-REC-482990',
+        name: 'Blessing Okafor',
+        email: 'b.okafor@ekoatlantic.com',
+        category: 'Missing or Incorrect Shift Hours',
+        details: 'Completed 4hr coworker shift swap on Sunday; requesting attendance log sync before payday.',
+        status: 'OPEN FOR SUPPORT AUDIT',
+        createdAt: new Date(Date.now() - 3600 * 1000).toISOString()
+      }
+    ];
+
+    const defaultEmailStationLogs = [
+      {
+        time: new Date(Date.now() - 1000 * 60 * 42).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        from: 'gate-otp@shiftrelay.com',
+        to: 'ops-director@dangote.com',
+        subject: '2-Layer Gate Tablet Verification Code [482910] — Ikeja Main Gate',
+        source: 'Gate Tablet Login (SR-GATE-1040)',
+        status: 'DELIVERED'
+      },
+      {
+        time: new Date(Date.now() - 1000 * 60 * 28).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        from: 'support@shiftrelay.com',
+        to: 'kemi.adebayo@dangote.com',
+        subject: 'Official Rectification Receipt #SR-REC-482109 Stamped & Logged',
+        source: 'In-App Support & Records Desk',
+        status: 'DELIVERED'
+      },
+      {
+        time: new Date(Date.now() - 1000 * 60 * 15).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        from: 'finance@shiftrelay.com',
+        to: 'cfo@flourmills.com',
+        subject: 'Monthly Statutory Payroll & PenCom Remittance Schedule Ready',
+        source: 'Statutory Finance Audit Engine',
+        status: 'DELIVERED'
+      },
+      {
+        time: new Date(Date.now() - 1000 * 60 * 6).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        from: 'onboarding@shiftrelay.com',
+        to: 'k.adeyemi@company.com',
+        subject: 'ShiftRelay Enterprise Walkthrough Confirmation & Architecture Pack',
+        source: 'shiftrelay.com Demo Request',
+        status: 'DELIVERED'
+      }
+    ];
+
+    function getCombinedRectificationReceipts() {
+      let appReceipts = [];
+      try {
+        appReceipts = JSON.parse(localStorage.getItem('shiftrelay-rectification-receipts') || '[]');
+      } catch (_) {}
+      const seen = new Set();
+      const merged = [];
+      [...appReceipts, ...defaultRectifications].forEach(r => {
+        if (r && r.id && !seen.has(r.id)) {
+          seen.add(r.id);
+          merged.push(r);
+        }
+      });
+      return merged;
+    }
+
+    function getEmailStationLogs() {
+      let customLogs = [];
+      try {
+        customLogs = JSON.parse(localStorage.getItem('shiftrelay-email-station-outbox') || '[]');
+      } catch (_) {}
+      return [...customLogs, ...defaultEmailStationLogs];
+    }
+
+    function pushEmailStationLog(entry) {
+      let customLogs = [];
+      try {
+        customLogs = JSON.parse(localStorage.getItem('shiftrelay-email-station-outbox') || '[]');
+      } catch (_) {}
+      customLogs.unshift(entry);
+      try {
+        localStorage.setItem('shiftrelay-email-station-outbox', JSON.stringify(customLogs.slice(0, 40)));
+      } catch (_) {}
+      renderEmailStationTable();
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('adm-toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.style.display = 'block';
+      clearTimeout(window.__admToastTimer);
+      window.__admToastTimer = setTimeout(() => { t.style.display = 'none'; }, 3800);
+    }
+
+    window.selectLoginAdminRole = function (roleKey) {
+      currentAdminRole = roleKey;
+      document.querySelectorAll('#login-role-grid .role-tier-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.getAttribute('data-role') === roleKey);
+      });
+    };
+
+    window.handleAdminLogin = async function (e) {
+      e.preventDefault();
+      const pass = document.getElementById('adm-passcode-input').value.trim();
+      const errEl = document.getElementById('adm-login-err');
+      if (errEl) errEl.style.display = 'none';
 
       try {
         const res = await fetch('/api/admin/auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ passcode })
+          body: JSON.stringify({ passcode: pass })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Authentication rejected');
-
+        if (!res.ok || !data.token) throw new Error(data.error || 'Invalid Admin Passcode');
         adminToken = data.token;
-        localStorage.setItem('sr_admin_token', adminToken);
-        showConsole();
+        sessionStorage.setItem('sr_admin_token', adminToken);
+        sessionStorage.setItem('sr_admin_role', currentAdminRole);
+        enterAdminConsole();
       } catch (err) {
-        errorDiv.textContent = err.message;
-        errorDiv.style.display = 'block';
-      }
-    }
-
-    function signOutAdmin() {
-      adminToken = null;
-      localStorage.removeItem('sr_admin_token');
-      document.getElementById('auth-barrier').style.display = 'flex';
-      document.getElementById('admin-console').style.display = 'none';
-      document.getElementById('nav-actions').style.display = 'none';
-      document.getElementById('admin-passcode').value = '';
-    }
-
-    async function showConsole() {
-      document.getElementById('auth-barrier').style.display = 'none';
-      document.getElementById('admin-console').style.display = 'block';
-      document.getElementById('nav-actions').style.display = 'flex';
-      await refreshAllData();
-    }
-
-    async function refreshAllData() {
-      await Promise.all([
-        fetchOverview(),
-        fetchTenants(),
-        fetchLeads()
-      ]);
-    }
-
-    async function fetchOverview() {
-      try {
-        const res = await fetch('/api/admin/overview', {
-          headers: { 'Authorization': `Bearer ${adminToken}` }
-        });
-        if (res.status === 401) return signOutAdmin();
-        const data = await res.json();
-        if (data.stats) {
-          document.getElementById('kpi-tenants').textContent = data.stats.totalTenants;
-          document.getElementById('kpi-workers').textContent = data.stats.totalFrontlineWorkers;
-          document.getElementById('kpi-volume').textContent = data.stats.monthlyPayrollVolume;
-          document.getElementById('kpi-leads').textContent = data.stats.totalInboundLeads;
+        if (errEl) {
+          errEl.textContent = err.message;
+          errEl.style.display = 'block';
         }
-      } catch (e) {
-        console.error('Failed to load overview:', e);
       }
+    };
+
+    function enterAdminConsole() {
+      document.getElementById('auth-barrier').style.display = 'none';
+      document.getElementById('console-root').classList.add('active');
+      window.setAdminActiveRole(currentAdminRole, true);
+      refreshAdminData();
     }
 
-    let globalTenants = [];
-    async function fetchTenants() {
+    window.logoutAdminConsole = function () {
+      adminToken = '';
+      sessionStorage.removeItem('sr_admin_token');
+      document.getElementById('console-root').classList.remove('active');
+      document.getElementById('auth-barrier').style.display = 'grid';
+    };
+
+    window.setAdminActiveRole = function (roleKey, isInitial) {
+      currentAdminRole = roleKey;
+      sessionStorage.setItem('sr_admin_role', roleKey);
+      const prof = ADMIN_ROLE_PROFILES[roleKey] || ADMIN_ROLE_PROFILES.owner_root;
+
+      document.getElementById('sidebar-role-badge').textContent = prof.badge;
+      document.getElementById('topbar-clearance-title').textContent = prof.title;
+      document.getElementById('topbar-clearance-desc').textContent = prof.desc;
+      const rw = document.getElementById('restricted-worker-name');
+      if (rw) rw.textContent = prof.workerName;
+
+      document.querySelectorAll('.role-chip').forEach(c => {
+        c.classList.toggle('active', c.getAttribute('data-switch-role') === roleKey);
+      });
+
+      const isOwner = roleKey === 'owner_root';
+      document.getElementById('owner-restricted-banner').style.display = isOwner ? 'none' : 'block';
+      document.getElementById('owner-vault-unlocked').style.display = isOwner ? 'block' : 'none';
+
+      if (!isInitial) {
+        if (roleKey === 'onboarding_admin') window.switchAdminView('onboarding');
+        else if (roleKey === 'ops_support_admin') window.switchAdminView('rectifications');
+        else if (roleKey === 'finance_admin') window.switchAdminView('finance');
+        else window.switchAdminView('owner-vault');
+        showToast('Switched console clearance to: ' + prof.workerName);
+      }
+    };
+
+    window.switchAdminView = function (viewId) {
+      document.querySelectorAll('.adm-view').forEach(v => v.classList.remove('active'));
+      const target = document.getElementById('view-' + viewId);
+      if (target) target.classList.add('active');
+      document.querySelectorAll('.adm-nav-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-view') === viewId);
+      });
+    };
+
+    async function refreshAdminData() {
+      renderOwnerApprovals();
+      renderAdminStaffTable();
+      renderRectificationTable();
+      renderEmailStationTable();
+
+      const headers = { 'Authorization': 'Bearer ' + adminToken };
       try {
-        const res = await fetch('/api/admin/tenants', {
-          headers: { 'Authorization': `Bearer ${adminToken}` }
-        });
-        const data = await res.json();
-        globalTenants = data.tenants || [];
-        renderTenantsTable(globalTenants);
-        populateTenantDropdown(globalTenants);
-      } catch (e) {
-        console.error('Failed to fetch tenants:', e);
-      }
+        const [ovRes, tenRes, leadRes] = await Promise.all([
+          fetch('/api/admin/overview', { headers }),
+          fetch('/api/admin/tenants', { headers }),
+          fetch('/api/admin/demo-requests', { headers })
+        ]);
+        if (ovRes.ok) {
+          const ov = await ovRes.json();
+          if (ov.stats) {
+            document.getElementById('kpi-total-tenants').textContent = ov.stats.totalTenants;
+            document.getElementById('kpi-total-workers').textContent = ov.stats.totalFrontlineWorkers;
+          }
+        }
+        if (tenRes.ok) {
+          const td = await tenRes.json();
+          cachedTenants = td.tenants || [];
+          renderTenantsTable();
+        }
+        if (leadRes.ok) {
+          const ld = await leadRes.json();
+          cachedLeads = ld.leads || [];
+          renderLeadsTable();
+        }
+      } catch (_) {}
     }
 
-    function renderTenantsTable(tenants) {
-      const tbody = document.getElementById('tenants-table-body');
-      if (tenants.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">No corporate clients onboarded yet.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = tenants.map(t => `
-        <tr>
-          <td>
-            <strong>${escapeHtml(t.legalName)}</strong>
-            <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(t.tradingName)}</div>
-          </td>
-          <td>
-            <span class="company-id-chip" onclick="copyText('${t.companyId}')" title="Click to copy Company ID">
-              ${escapeHtml(t.companyId)}
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            </span>
-          </td>
-          <td>
-            <div>${escapeHtml(t.industry)}</div>
-            <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(t.state)}</div>
-          </td>
-          <td>
-            <span style="font-family:var(--font-mono); font-weight:700;">${t.employeeCount}</span> workers
-          </td>
-          <td>
-            <div>${escapeHtml(t.masterAdminName)}</div>
-            <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(t.masterAdminEmail)}</div>
-          </td>
-          <td>
-            <span class="status-badge active">Verified</span>
-          </td>
-          <td style="text-align:right; white-space:nowrap;">
-            <button class="btn-secondary" style="font-size:12px; padding:6px 10px; margin-right:4px;" onclick="viewGateQrPoster('${t.id}')">
-              🖨️ Gate QR
-            </button>
-            <button class="btn-secondary" style="font-size:12px; padding:6px 12px;" onclick="openBulkForTenant('${t.id}')">
-              + Add Workers
-            </button>
-          </td>
-        </tr>
-      `).join('');
-    }
+    function renderOwnerApprovals() {
+      const tbody = document.getElementById('owner-approval-tbody');
+      const pendingCount = ownerApprovals.filter(a => a.status.includes('PENDING')).length;
+      document.getElementById('kpi-pending-approvals').textContent = pendingCount;
+      document.getElementById('nav-badge-approvals').textContent = pendingCount;
+      const vc = document.getElementById('owner-vault-pending-count');
+      if (vc) vc.textContent = pendingCount;
+      if (!tbody) return;
 
-    function populateTenantDropdown(tenants) {
-      const sel = document.getElementById('bulk-target-tenant');
-      sel.innerHTML = `<option value="">-- Choose Corporate Tenant --</option>` +
-        tenants.map(t => `<option value="${t.id}">${escapeHtml(t.legalName)} (${t.companyId})</option>`).join('');
-    }
-
-    async function fetchLeads() {
-      try {
-        const res = await fetch('/api/admin/demo-requests', {
-          headers: { 'Authorization': `Bearer ${adminToken}` }
-        });
-        const data = await res.json();
-        const leads = data.requests || [];
-        renderLeadsTable(leads);
-      } catch (e) {
-        console.error('Failed to load leads:', e);
-      }
-    }
-
-    function renderLeadsTable(leads) {
-      const tbody = document.getElementById('leads-table-body');
-      if (leads.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">No inbound leads logged yet.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = leads.map(l => `
-        <tr>
-          <td><strong>${escapeHtml(l.companyName)}</strong></td>
-          <td>${escapeHtml(l.fullName)}</td>
-          <td>
-            <div>${escapeHtml(l.workEmail)}</div>
-            <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(l.phone || 'N/A')}</div>
-          </td>
-          <td><span style="font-family:var(--font-mono); font-weight:700;">${escapeHtml(l.headcount || '50-200')}</span></td>
-          <td>${escapeHtml(l.industry || 'Logistics')}</td>
-          <td><span style="font-size:12px; color:var(--text-muted);">${new Date(l.createdAt).toLocaleDateString()}</span></td>
-          <td style="text-align:right;">
-            <button class="btn-primary" style="width:auto; padding:6px 14px; font-size:12px;" onclick="convertLeadToClient('${escapeHtml(l.companyName)}', '${escapeHtml(l.fullName)}', '${escapeHtml(l.workEmail)}', '${escapeHtml(l.phone || '')}', '${escapeHtml(l.industry || '')}')">
-              Provision
-            </button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.console-panel').forEach(p => p.classList.remove('active'));
-      
-      const tabMap = {
-        'tenants': 0,
-        'wizard': 1,
-        'bulk': 2,
-        'leads': 3
-      };
-      document.querySelectorAll('.tab-btn')[tabMap[tabId]]?.classList.add('active');
-      document.getElementById(`panel-${tabId}`)?.classList.add('active');
-    }
-
-    function openBulkForTenant(tenantId) {
-      switchTab('bulk');
-      document.getElementById('bulk-target-tenant').value = tenantId;
-    }
-
-    function convertLeadToClient(compName, adminName, adminEmail, phone, industry) {
-      switchTab('wizard');
-      document.getElementById('wiz-legal-name').value = compName;
-      document.getElementById('wiz-trading-name').value = compName;
-      document.getElementById('wiz-admin-name').value = adminName;
-      document.getElementById('wiz-admin-email').value = adminEmail;
-      document.getElementById('wiz-admin-phone').value = phone;
-      if (industry) document.getElementById('wiz-industry').value = industry;
-    }
-
-    async function handleOnboardTenant(event) {
-      event.preventDefault();
-      const payload = {
-        legalName: document.getElementById('wiz-legal-name').value.trim(),
-        tradingName: document.getElementById('wiz-trading-name').value.trim(),
-        industry: document.getElementById('wiz-industry').value,
-        state: document.getElementById('wiz-state').value.trim(),
-        adminName: document.getElementById('wiz-admin-name').value.trim(),
-        adminEmail: document.getElementById('wiz-admin-email').value.trim(),
-        adminPhone: document.getElementById('wiz-admin-phone').value.trim(),
-        adminTitle: document.getElementById('wiz-admin-title').value.trim(),
-        currency: 'NGN'
-      };
-
-      const btn = document.getElementById('btn-submit-wizard');
-      btn.disabled = true;
-      btn.textContent = 'Generating Namespace & IDs...';
-
-      try {
-        const res = await fetch('/api/admin/tenants', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${adminToken}`
-          },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to instantiate tenant');
-
-        // Show success modal
-        document.getElementById('modal-company-id').textContent = data.companyId;
-        document.getElementById('modal-admin-name').textContent = data.masterAdmin.name;
-        document.getElementById('modal-admin-email').textContent = data.masterAdmin.email;
-        document.getElementById('modal-admin-password').textContent = data.masterAdmin.tempPassword;
-        document.getElementById('success-modal').style.display = 'flex';
-
-        document.getElementById('onboard-tenant-form').reset();
-        await refreshAllData();
-      } catch (err) {
-        alert('Error: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span>Instantiate Enterprise Tenant</span>`;
-      }
-    }
-
-    function closeSuccessModal() {
-      document.getElementById('success-modal').style.display = 'none';
-      switchTab('tenants');
-    }
-
-    async function viewGateQrPoster(tenantId) {
-      try {
-        const res = await fetch(`/api/tenants/${tenantId}/gate-qr`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to generate QR');
-
-        document.getElementById('poster-company-name').textContent = data.legalName;
-        document.getElementById('poster-company-id').textContent = data.companyId;
-        document.getElementById('poster-hub-name').textContent = `${data.hubName} • ${data.gateId}`;
-        document.getElementById('poster-qr-container').innerHTML = data.qrSvg;
-        document.getElementById('gate-qr-modal').style.display = 'flex';
-      } catch (err) {
-        alert('Error: ' + err.message);
-      }
-    }
-
-    function printGatePoster() {
-      const content = document.getElementById('printable-gate-poster').outerHTML;
-      const win = window.open('', '_blank');
-      win.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Gate Attendance Poster</title>
-          <style>
-            body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #fff; }
-            @media print { body { padding: 0; margin: 0; } }
-          </style>
-        </head>
-        <body>
-          <div style="max-width: 500px; width: 100%;">
-            ${content}
-          </div>
-          <script>window.onload = function() { window.print(); window.close(); }<\/script>
-        </body>
-        </html>
-      `);
-      win.document.close();
-    }
-
-    function copyModalCredentials() {
-      const cid = document.getElementById('modal-company-id').textContent;
-      const email = document.getElementById('modal-admin-email').textContent;
-      const pw = document.getElementById('modal-admin-password').textContent;
-      const text = `ShiftRelay Enterprise Onboarding Credentials:\nCompany ID: ${cid}\nMaster Admin: ${email}\nTemporary Password: ${pw}\nSign-in Portal: ${window.location.origin}/?companyId=${cid}`;
-      navigator.clipboard.writeText(text);
-      alert('Credentials copied to clipboard!');
-    }
-
-    function copyText(str) {
-      navigator.clipboard.writeText(str);
-      alert(`Copied "${str}" to clipboard.`);
-    }
-
-    function downloadCsvTemplate() {
-      const csv = `FullName,WorkEmail,PhoneNumber,StaffID,Role,Department,CompensationType,MonthlyRate,HourlyRate,BankName,AccountNumber\n` +
-        `Amina Otieno,amina.otieno@company.com,08023456789,STAFF-0101,Process Specialist,Operations,fixed_monthly,220000,1375,Access Bank,0123456789\n` +
-        `David Kariuki,david.kariuki@company.com,08034567890,STAFF-0102,Shift Supervisor,Logistics,fixed_monthly,350000,2187,First Bank of Nigeria,3109876543\n` +
-        `Faith Wanjiku,faith.wanjiku@company.com,08045678901,STAFF-0103,Incoming Specialist,Supply Chain,fixed_monthly,185000,1156,Zenith Bank,2081123456\n` +
-        `Aaron Glover,aaron.glover@company.com,08056789012,STAFF-0104,Locum Frontline,Plant Operations,hourly_shift,0,1800,Guaranty Trust Bank (GTBank),0019283746`;
-      
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'ShiftRelay_Frontline_Employee_Template.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    async function processBulkEmployees() {
-      const tenantId = document.getElementById('bulk-target-tenant').value;
-      if (!tenantId) return alert('Please select a target enterprise client.');
-
-      const text = document.getElementById('bulk-csv-text').value.trim();
-      if (!text) return alert('Please paste CSV data or download template.');
-
-      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-      if (lines.length < 2) return alert('CSV must include a header and at least 1 employee row.');
-
-      const employees = [];
-      const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim());
-        if (cols.length < 2) continue;
-        employees.push({
-          fullName: cols[0],
-          email: cols[1],
-          phone: cols[2] || '',
-          staffId: cols[3] || '',
-          role: cols[4] || 'Frontline Specialist',
-          department: cols[5] || 'Operations',
-          compensationType: cols[6] || 'fixed_monthly',
-          monthlyRate: cols[7] || 200000,
-          hourlyRate: cols[8] || 1250,
-          bankName: cols[9] || 'Access Bank',
-          accountNumber: cols[10] || '0123456789'
-        });
-      }
-
-      if (employees.length === 0) return alert('No valid employee rows parsed.');
-
-      try {
-        const res = await fetch(`/api/admin/tenants/${tenantId}/employees/bulk`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${adminToken}`
-          },
-          body: JSON.stringify({ employees })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Bulk intake failed');
-
-        renderBulkResults(data.employees);
-        await refreshAllData();
-      } catch (err) {
-        alert('Error: ' + err.message);
-      }
-    }
-
-    function renderBulkResults(list) {
-      const area = document.getElementById('bulk-result-area');
-      const tbody = document.getElementById('bulk-result-body');
-      area.style.display = 'block';
-
-      tbody.innerHTML = list.map(emp => {
-        const fullUrl = `${window.location.origin}${emp.activationUrl}`;
+      tbody.innerHTML = ownerApprovals.map((item, idx) => {
+        const isPending = item.status.includes('PENDING');
         return `
           <tr>
-            <td><code style="color:#34d399; font-weight:700;">${escapeHtml(emp.staffId)}</code></td>
-            <td><strong>${escapeHtml(emp.fullName)}</strong></td>
-            <td>${escapeHtml(emp.email)}</td>
-            <td><span style="font-size:12px; color:var(--text-muted);">${escapeHtml(emp.verificationKeyPrompt)}</span></td>
+            <td><code style="color:var(--emerald); font-weight:700;">${item.id}</code></td>
+            <td><strong>${item.by}</strong></td>
+            <td>${item.summary}</td>
+            <td><span class="chip amber">${item.impact}</span></td>
+            <td><span class="chip ${isPending ? 'amber' : 'emerald'}">${item.status}</span></td>
             <td>
-              <input type="text" value="${fullUrl}" readonly style="background:#0f172a; border:1px solid #334155; color:#cbd5e1; padding:4px 8px; border-radius:6px; font-size:11px; width:220px;" onclick="this.select()">
+              ${isPending ? `
+                <div style="display:flex; gap:6px;">
+                  <button type="button" class="btn-emerald" style="padding:6px 11px; font-size:11.5px;" onclick="window.ownerDecideApproval(${idx}, 'APPROVED & EXECUTED BY OWNER')">✓ Approve</button>
+                  <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:11.5px; color:var(--rose);" onclick="window.ownerDecideApproval(${idx}, 'RETURNED BY OWNER')">✕ Return</button>
+                </div>
+              ` : `<span style="font-size:12px; color:var(--text-slate);">Signed off by Owner</span>`}
             </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    window.ownerDecideApproval = function (idx, decision) {
+      if (currentAdminRole !== 'owner_root') {
+        showToast('Only the Founder / Sovereign Owner can sign off on Master Approvals.');
+        return;
+      }
+      const item = ownerApprovals[idx];
+      if (!item) return;
+      item.status = decision;
+      renderOwnerApprovals();
+      pushEmailStationLog({
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        from: 'owner-vault@shiftrelay.com',
+        to: 'operations@shiftrelay.com',
+        subject: `Owner Sign-Off Recorded: ${item.id} (${decision})`,
+        source: 'Owner Sovereign Vault',
+        status: 'DELIVERED'
+      });
+      showToast(`Owner Root Decision: ${item.id} → ${decision}`);
+    };
+
+    function renderAdminStaffTable() {
+      const tbody = document.getElementById('owner-staff-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = adminStaffMembers.map((s, idx) => `
+        <tr>
+          <td><strong>${s.name}</strong><div style="font-size:11.5px; color:var(--text-slate);">${s.email}</div></td>
+          <td><span class="chip cyan">${s.role}</span></td>
+          <td style="font-size:12.5px;">${s.modules}</td>
+          <td style="font-size:12.5px; color:#fbbf24;">${s.restriction}</td>
+          <td><span class="chip ${s.status === 'ACTIVE' ? 'emerald' : 'rose'}">${s.status}</span></td>
+          <td>
+            <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.toggleStaffStatus(${idx})">
+              ${s.status === 'ACTIVE' ? 'Freeze Access' : 'Restore Access'}
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.toggleStaffStatus = function (idx) {
+      if (!adminStaffMembers[idx]) return;
+      adminStaffMembers[idx].status = adminStaffMembers[idx].status === 'ACTIVE' ? 'SUSPENDED BY OWNER' : 'ACTIVE';
+      renderAdminStaffTable();
+      showToast('Updated clearance for ' + adminStaffMembers[idx].name);
+    };
+
+    window.promptAddAdminWorker = function () {
+      const name = prompt('Enter new Admin Worker Full Name:', 'Ngozi Okafor');
+      if (!name) return;
+      const role = prompt('Assign Department Role (Onboarding / Support / Finance):', 'Onboarding Specialist');
+      adminStaffMembers.push({
+        name,
+        email: name.toLowerCase().replace(/\s+/g, '.') + '@shiftrelay.com',
+        role: role || 'Operations Specialist',
+        modules: 'Assigned Department Queue Only',
+        restriction: 'All Final Approvals Routed to Owner Root',
+        status: 'ACTIVE'
+      });
+      renderAdminStaffTable();
+      showToast('Provisioned separated Admin Worker: ' + name);
+    };
+
+    function renderTenantsTable() {
+      const tbody = document.getElementById('adm-tenants-tbody');
+      const sel = document.getElementById('csv-tenant-select');
+      document.getElementById('nav-badge-tenants').textContent = cachedTenants.length;
+      if (sel) sel.innerHTML = cachedTenants.map(t => `<option value="${t.id}">${t.name} (${t.id})</option>`).join('');
+      if (!tbody) return;
+      tbody.innerHTML = cachedTenants.map((t, i) => {
+        const gateCode = 'SR-GATE-' + String(1040 + i * 117);
+        const site = (t.sites && t.sites[0]) ? t.sites[0] : { name: 'Main Facility Gate', radiusMeters: 250 };
+        return `
+          <tr>
+            <td><strong>${t.name}</strong><div style="font-size:11.5px; color:var(--text-slate);">${t.industry || 'Enterprise Operations'}</div></td>
+            <td><code style="color:var(--emerald); font-weight:700;">${gateCode}</code></td>
+            <td>${t.adminEmail || 'owner@company.com'}</td>
+            <td>${site.name} (${site.radiusMeters || 250}m)</td>
+            <td><span class="chip emerald">${t.workerCount || 0} Staff</span></td>
             <td>
-              <button class="btn-secondary" style="font-size:11.5px; padding:4px 8px;" onclick="copyText('${fullUrl}')">
-                Copy Link
+              <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.printGatePoster('${t.name.replace(/'/g, '')}', '${gateCode}', '${site.name.replace(/'/g, '')}')">
+                🖨 Gate QR &amp; NFC Poster
               </button>
             </td>
           </tr>
@@ -1231,10 +1689,326 @@ David Kariuki, david@client.com, 08034567890, Supervisor, Supervision, fixed_mon
       }).join('');
     }
 
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    window.handleCreateTenant = async function (e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('ob-company-name').value.trim(),
+        industry: document.getElementById('ob-industry').value,
+        adminName: document.getElementById('ob-admin-name').value.trim(),
+        adminEmail: document.getElementById('ob-admin-email').value.trim(),
+        siteName: document.getElementById('ob-site-name').value.trim(),
+        radiusMeters: Number(document.getElementById('ob-radius').value) || 250,
+        latitude: Number(document.getElementById('ob-lat').value) || 6.5244,
+        longitude: Number(document.getElementById('ob-lng').value) || 3.3792
+      };
+      try {
+        const res = await fetch('/api/admin/tenants', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to provision tenant');
+
+        ownerApprovals.unshift({
+          id: 'APPR-' + Math.floor(910 + Math.random() * 80),
+          by: ADMIN_ROLE_PROFILES[currentAdminRole].workerName,
+          summary: `Activate Newly Onboarded Tenant: ${payload.name} (${payload.siteName})`,
+          impact: 'New Enterprise Contract & Gate Key',
+          status: 'PENDING OWNER SIGN-OFF'
+        });
+        pushEmailStationLog({
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          from: 'onboarding@shiftrelay.com',
+          to: payload.adminEmail,
+          subject: `Welcome to ShiftRelay — Gate Code & Owner OTP Setup for ${payload.name}`,
+          source: 'Onboarding Wizard',
+          status: 'DELIVERED'
+        });
+        document.getElementById('adm-onboard-form').reset();
+        await refreshAdminData();
+        showToast('Tenant provisioned, welcome email dispatched & routed to Owner Vault!');
+        window.switchAdminView('tenants');
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    };
+
+    window.handleBulkCsvImport = async function () {
+      const tenantId = document.getElementById('csv-tenant-select').value;
+      const raw = document.getElementById('csv-raw-input').value.trim();
+      if (!tenantId || !raw) return;
+      const employees = raw.split(/\r?\n/).map(line => {
+        const p = line.split(',').map(s => s.trim());
+        return {
+          name: p[0] || 'Staff Member',
+          email: p[1] || ('staff' + Date.now() + '@company.com'),
+          phone: p[2] || '',
+          role: p[3] || 'employee',
+          department: p[4] || 'Operations',
+          baseSalary: Number(p[5]) || 120000
+        };
+      }).filter(e => e.name);
+
+      try {
+        const res = await fetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/employees/bulk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
+          body: JSON.stringify({ employees })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Bulk import failed');
+        pushEmailStationLog({
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          from: 'onboarding@shiftrelay.com',
+          to: `${employees.length} Provisioned Workers`,
+          subject: 'Your ShiftRelay Account & Encrypted NFC Badge ID Are Active',
+          source: 'Bulk CSV Roster Import',
+          status: 'DELIVERED'
+        });
+        await refreshAdminData();
+        showToast(`Imported ${data.importedCount || employees.length} workers & dispatched onboarding emails!`);
+      } catch (err) {
+        showToast('Import error: ' + err.message);
+      }
+    };
+
+    function renderRectificationTable() {
+      const list = getCombinedRectificationReceipts();
+      document.getElementById('nav-badge-rects').textContent = list.length;
+      const tbody = document.getElementById('adm-rectifications-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = list.map((r, idx) => `
+        <tr>
+          <td><code style="color:var(--sky); font-weight:700;">${r.id}</code></td>
+          <td><strong>${r.name || r.worker || 'Frontline Staff'}</strong><div style="font-size:11.5px; color:var(--text-slate);">${r.email}</div></td>
+          <td><strong>${r.category}</strong></td>
+          <td style="font-size:12.5px; color:#cbd5e1; max-width:340px;">${r.details}</td>
+          <td><span class="chip ${String(r.status).includes('RESOLVED') ? 'emerald' : 'cyan'}">${r.status}</span></td>
+          <td>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.escalateRectificationToOwner('${r.id}')">Escalate to Owner</button>
+              <button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.resolveRectificationTicket('${r.id}')">Resolve &amp; Email</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
     }
+
+    window.syncAppRectificationReceipts = function (notify) {
+      renderRectificationTable();
+      if (notify) showToast('Synced latest Worker Rectification Receipts from Mobile App!');
+    };
+
+    window.escalateRectificationToOwner = function (recId) {
+      const list = getCombinedRectificationReceipts();
+      const target = list.find(x => x.id === recId);
+      if (!target) return;
+      target.status = 'ESCALATED TO OWNER VAULT';
+      try { localStorage.setItem('shiftrelay-rectification-receipts', JSON.stringify(list)); } catch (_) {}
+      ownerApprovals.unshift({
+        id: 'APPR-' + Math.floor(920 + Math.random() * 70),
+        by: ADMIN_ROLE_PROFILES[currentAdminRole].workerName,
+        summary: `Approve Rectification Receipt ${target.id} (${target.category} for ${target.name || target.email})`,
+        impact: 'Verified Record Override',
+        status: 'PENDING OWNER SIGN-OFF'
+      });
+      renderRectificationTable();
+      renderOwnerApprovals();
+      showToast(`Escalated ${target.id} to Owner Sovereign Approval Queue.`);
+    };
+
+    window.resolveRectificationTicket = function (recId) {
+      const list = getCombinedRectificationReceipts();
+      const target = list.find(x => x.id === recId);
+      if (!target) return;
+      target.status = 'RESOLVED • RECEIPT EMAILED';
+      try { localStorage.setItem('shiftrelay-rectification-receipts', JSON.stringify(list)); } catch (_) {}
+      pushEmailStationLog({
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        from: 'support@shiftrelay.com',
+        to: target.email,
+        subject: `Resolved: Official Rectification Receipt #${target.id} (${target.category})`,
+        source: 'Support Desk Resolution',
+        status: 'DELIVERED'
+      });
+      renderRectificationTable();
+      showToast(`Resolved ${target.id} & dispatched confirmation via Email Auto-Station!`);
+    };
+
+    function renderEmailStationTable() {
+      const logs = getEmailStationLogs();
+      document.getElementById('nav-badge-emails').textContent = logs.length;
+      const kpiEl = document.getElementById('kpi-total-emails');
+      if (kpiEl) kpiEl.textContent = logs.length;
+      const tbody = document.getElementById('email-station-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = logs.map(l => `
+        <tr>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-slate);">${l.time}</td>
+          <td><code style="color:var(--emerald);">${l.from}</code></td>
+          <td><strong>${l.to}</strong></td>
+          <td>${l.subject}</td>
+          <td><span class="chip cyan">${l.source}</span></td>
+          <td><span class="chip emerald">${l.status}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    window.triggerTestAutoStationEmail = function () {
+      const to = prompt('Enter recipient email to test Auto-Station dispatch:', 'owner@shiftrelay.com');
+      if (!to) return;
+      pushEmailStationLog({
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        from: 'support@shiftrelay.com',
+        to,
+        subject: 'ShiftRelay Email Auto-Station Diagnostic & Receipt Routing Test',
+        source: 'Admin Manual Diagnostic',
+        status: 'DELIVERED'
+      });
+      showToast('Dispatched test email to ' + to + ' via Email Auto-Station!');
+    };
+
+    window.saveSmtpStationConfig = function () {
+      const provider = document.getElementById('smtp-provider').value;
+      const domain = document.getElementById('smtp-domain').value;
+      const chip = document.getElementById('smtp-status-chip');
+      if (chip) chip.textContent = `CONFIGURED: ${provider.toUpperCase()} (${domain})`;
+      showToast(`Saved Email Auto-Station configuration for ${domain}!`);
+    };
+
+    window.submitPayrollBatchForOwnerApproval = function () {
+      ownerApprovals.unshift({
+        id: 'APPR-' + Math.floor(940 + Math.random() * 50),
+        by: ADMIN_ROLE_PROFILES[currentAdminRole].workerName,
+        summary: 'Final Release: Multi-Tenant Statutory Payroll & PenCom/PAYE Schedule (₦30,910,000 Gross)',
+        impact: 'Treasury Batch: ₦30,910,000',
+        status: 'PENDING OWNER SIGN-OFF'
+      });
+      renderOwnerApprovals();
+      showToast('Audited statutory payroll batch submitted to Owner Sovereign Vault!');
+    };
+
+    window.exportAdminStatutoryCsv = function () {
+      const csv = [
+        'Tenant,VerifiedHours,GrossPayNGN,PenComEmployee8Pct,PenComEmployer10Pct,PAYETax,NHF2_5Pct,NSITF1Pct,NetDisbursementNGN',
+        '"Dangote Packaging Ltd",4820,14820000,1185600,1482000,889200,370500,148200,12480500',
+        '"Flour Mills Logistics",3190,9640000,771200,964000,578400,241000,96400,8120400',
+        '"Eko Atlantic Facility Ops",2140,6450000,516000,645000,387000,161250,64500,5439250'
+      ].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ShiftRelay_Statutory_Schedule_Nov2026.csv';
+      a.click();
+      showToast('Downloaded Statutory PenCom & PAYE CSV Schedule.');
+    };
+
+    window.printAdminMonthlyPaymentVoucher = function () {
+      const w = window.open('', '_blank', 'width=880,height=920');
+      if (!w) return;
+      w.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>ShiftRelay Official Monthly Payment Data & Statutory Remittance Sheet</title>
+          <style>
+            body { font-family: Inter, sans-serif; color: #0f172a; padding: 40px; }
+            .head { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #10b981; padding-bottom:16px; margin-bottom:24px; }
+            table { width:100%; border-collapse:collapse; font-size:13px; margin-top:16px; }
+            th, td { border:1px solid #cbd5e1; padding:10px 12px; text-align:left; }
+            th { background:#f1f5f9; font-weight:700; }
+          </style>
+        </head>
+        <body>
+          <div class="head">
+            <div>
+              <h1 style="margin:0; font-size:22px;">ShiftRelay Monthly Payment Data &amp; Statutory Schedule</h1>
+              <p style="margin:4px 0 0; color:#475569; font-size:13px;">Generated from Verified Clock-In / Gate NFC Attendance Logs • November 2026</p>
+            </div>
+            <button onclick="window.print()" style="padding:10px 18px; background:#10b981; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Print / Save PDF</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Enterprise Tenant</th>
+                <th>Verified Hours</th>
+                <th>Gross Payroll</th>
+                <th>PenCom (8% / 10%)</th>
+                <th>PAYE + NHF + NSITF</th>
+                <th>Net Bank Payout</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Dangote Packaging Ltd</td><td>4,820 hrs</td><td>₦14,820,000</td><td>₦2,667,600</td><td>₦1,407,900</td><td><strong>₦12,480,500</strong></td></tr>
+              <tr><td>Flour Mills Logistics</td><td>3,190 hrs</td><td>₦9,640,000</td><td>₦1,735,200</td><td>₦915,800</td><td><strong>₦8,120,400</strong></td></tr>
+              <tr><td>Eko Atlantic Facility Ops</td><td>2,140 hrs</td><td>₦6,450,000</td><td>₦1,161,000</td><td>₦612,750</td><td><strong>₦5,439,250</strong></td></tr>
+            </tbody>
+          </table>
+          <p style="margin-top:32px; font-size:12px; color:#64748b;">Authorized by ShiftRelay Sovereign Owner &amp; Statutory Compliance Desk • shiftrelay.com</p>
+        </body>
+        </html>
+      `);
+      w.document.close();
+    };
+
+    function renderLeadsTable() {
+      const tbody = document.getElementById('adm-leads-tbody');
+      document.getElementById('nav-badge-leads').textContent = cachedLeads.length;
+      if (!tbody) return;
+      if (!cachedLeads.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:24px;">No inbound demo requests yet. Submit one on <a href="/website.html#demo-request-section" style="color:var(--emerald);">shiftrelay.com</a> to see it appear live here!</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = cachedLeads.map((l, idx) => `
+        <tr>
+          <td style="font-size:12px; color:var(--text-slate);">${new Date(l.createdAt).toLocaleString()}</td>
+          <td><strong>${l.companyName}</strong></td>
+          <td>${l.fullName}</td>
+          <td><div>${l.workEmail}</div><div style="font-size:11.5px; color:var(--text-slate);">${l.phone || ''}</div></td>
+          <td><span class="chip cyan">${l.headcount || '50-200'} • ${l.industry || 'Enterprise'}</span></td>
+          <td><button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.convertLeadToOnboarding(${idx})">Convert to Onboarding →</button></td>
+        </tr>
+      `).join('');
+    }
+
+    window.convertLeadToOnboarding = function (idx) {
+      const l = cachedLeads[idx];
+      if (!l) return;
+      document.getElementById('ob-company-name').value = l.companyName || '';
+      document.getElementById('ob-admin-name').value = l.fullName || '';
+      document.getElementById('ob-admin-email').value = l.workEmail || '';
+      window.switchAdminView('onboarding');
+      showToast('Pre-filled Onboarding Wizard with lead: ' + l.companyName);
+    };
+
+    window.printGatePoster = function (companyName, gateCode, siteName) {
+      const w = window.open('', '_blank', 'width=720,height=860');
+      if (!w) return;
+      w.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Gate QR & NFC Poster — ${companyName}</title></head>
+        <body style="background:#050912;color:#f8fafc;font-family:sans-serif;text-align:center;padding:48px;">
+          <div style="border:2px solid #00f5a0;border-radius:24px;padding:40px;max-width:520px;margin:0 auto;background:#0a1224;">
+            <img src="/assets/logos/logo-brand-motion.svg?v=130" style="width:64px;height:64px;border-radius:14px;" />
+            <h1 style="margin:14px 0 4px;">${companyName}</h1>
+            <p style="color:#94a3b8;">${siteName} • 2-Layer Gate Tablet &amp; NFC Checkpoint</p>
+            <div style="font-family:monospace;font-size:28px;color:#00f5a0;padding:12px 24px;border:1px dashed #00f5a0;border-radius:12px;display:inline-block;margin:18px 0;">${gateCode}</div>
+            <p style="font-size:14px;color:#cbd5e1;line-height:1.6;">
+              1. Gate Tablet requires <strong>${gateCode}</strong> + Owner Email OTP.<br/>
+              2. Smartphone workers scan the 60-second rotating Gate QR.<br/>
+              3. Non-phone workers tap their encrypted ShiftRelay NFC ID Card.
+            </p>
+            <button onclick="window.print()" style="margin-top:20px;padding:11px 22px;background:#00f5a0;color:#02120b;border:none;border-radius:8px;font-weight:800;cursor:pointer;">Print Gate Poster</button>
+          </div>
+        </body>
+        </html>
+      `);
+      w.document.close();
+    };
+
+    if (adminToken) enterAdminConsole();
   </script>
 </body>
 </html>

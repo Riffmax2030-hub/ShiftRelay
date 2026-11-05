@@ -3,9 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="icon" href="icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icon.svg" />
+    <link rel="icon" href="icon.svg?v=130" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg?v=130" />
     <meta name="theme-color" content="#102033" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ShiftRelay" />
     <link rel="manifest" href="manifest.webmanifest" />
     <meta name="description" content="ShiftRelay gives frontline teams accountable shift handovers." />
     <title>ShiftRelay | Work moves forward</title>
@@ -41,7 +44,7 @@
     <link rel="stylesheet" href="swap-review.css" />
     <link rel="stylesheet" href="me-profile.css" />
     <link rel="stylesheet" href="shiftrelay-v3.css" />
-    <link rel="stylesheet" href="splash.css?v=88" />
+    <link rel="stylesheet" href="splash.css?v=130" />
     <link rel="stylesheet" href="offline-queue.css" />
     <link rel="stylesheet" href="signature-pad.css" />
     <link rel="stylesheet" href="chat-engine.css" />
@@ -56,8 +59,26 @@
     <link rel="stylesheet" href="facility-switcher.css" />
     <link rel="stylesheet" href="emergency-broadcast.css" />
     <link rel="stylesheet" href="live-translation.css" />
-    <link rel="stylesheet" href="phase1-shell.css?v=91" />
+    <link rel="stylesheet" href="phase1-shell.css?v=130" />
     <link rel="stylesheet" href="sr-premium.css" />
+    <script>
+      (function() {
+        try {
+          if (localStorage.getItem('sr_restored_build') !== 'v130' && 'caches' in window) {
+            caches.keys().then(function(names) {
+              return Promise.all(names.map(function(n) { return caches.delete(n); }));
+            }).then(function() {
+              localStorage.setItem('sr_restored_build', 'v130');
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(regs) {
+                  regs.forEach(function(r) { r.update(); });
+                });
+              }
+            });
+          }
+        } catch (e) {}
+      })();
+    </script>
     <script src="theme.js"></script>
     <script src="alarm-engine.js"></script>
   </head>
@@ -66,12 +87,48 @@
          SPLASH SCREEN — auto-removed after session check
          ====================================================== -->
     <div id="sr-splash" role="status" aria-live="polite" aria-label="ShiftRelay loading">
-      <div class="splash-logo-wrap">
-        <img src="icon.svg" class="splash-icon" alt="ShiftRelay" width="88" height="88" />
-        <span class="splash-wordmark">Shift<span>Relay</span></span>
-        <span class="splash-tagline">Frontline OS</span>
-        <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+      <!-- Cosmic Ambient Mesh, Aurora Nebula & Rotating Astrology Orbital Rings -->
+      <div class="sr-splash-mesh-bg"></div>
+      <div class="sr-splash-radial-glow"></div>
+      <div class="sr-splash-aurora-wave"></div>
+      <div class="sr-splash-orbit-system" aria-hidden="true">
+        <div class="sr-splash-orbit-ring sr-orbit-1"></div>
+        <div class="sr-splash-orbit-ring sr-orbit-2"></div>
+        <div class="sr-splash-orbit-ring sr-orbit-3"></div>
       </div>
+
+      <!-- Cinematic Brand Reveal Stage -->
+      <div class="sr-splash-brand-stage" id="sr-splash-stage">
+        <!-- Logo Row: Standalone Iconic 3D "S" with Liquid Aura Halo -->
+        <div class="sr-splash-logo-row">
+          <div class="sr-splash-s-mark" id="sr-splash-s-mark">
+            <span class="sr-splash-s-aura"></span>
+            <img src="assets/logos/logo-iconic-s-mark.svg?v=130" alt="ShiftRelay S Mark" width="90" height="110" />
+          </div>
+
+          <!-- Remaining words emerging from behind the S -->
+          <div class="sr-splash-unveil-text" id="sr-splash-unveil-text">
+            <div class="sr-splash-wordmark">
+              <span class="sr-splash-suffix" style="background:linear-gradient(135deg,#1AD079 0%,#34d399 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">SHIFT</span><span class="sr-splash-relay" style="background:linear-gradient(135deg,#f8fafc 0%,#cbd5e1 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">RELAY</span>
+            </div>
+            <span class="sr-splash-tagline">COSMIC SHIFT PULSE &bull; WORKFORCE OS</span>
+          </div>
+        </div>
+
+        <!-- Liquid Energy Scanline -->
+        <div class="sr-splash-laser-line" id="sr-splash-laser-line"></div>
+
+        <!-- System Online Telemetry Pill -->
+        <div class="sr-splash-status-row">
+          <span class="sr-splash-pulse-dot"></span>
+          <span class="sr-splash-status-text">SYNCHRONIZING BIOMETRIC SHIFT PULSE</span>
+        </div>
+      </div>
+
+      <!-- Fast Skip button -->
+      <button type="button" class="sr-splash-skip-btn" id="sr-splash-skip-btn" aria-label="Skip to Login">
+        <span>Skip</span> &rarr;
+      </button>
     </div>
 
     <!-- ======================================================
@@ -82,11 +139,11 @@
       <div class="entry-top">
         <div class="sr-entry-badge-chip">
           <span class="sr-entry-badge-pulse"></span>
-          <span>Closed Multi-Tenant Frontline HCM</span>
+          <span>Frontline OS</span>
         </div>
-        <img src="icon.svg" class="entry-icon-ring" alt="ShiftRelay" width="80" height="80" />
+        <img src="icon.svg?v=130" class="entry-icon-ring" alt="ShiftRelay" width="80" height="80" />
         <h1 class="entry-headline">Every shift.<br><em class="sr-headline-gradient">Accounted for.</em></h1>
-        <p class="entry-sub">Digital handovers, team schedules, and frontline operational accountability.</p>
+        <p class="entry-sub">Shift work, simplified.</p>
         <div class="entry-pills">
           <span class="entry-pill">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -117,16 +174,16 @@
 
       <div class="entry-bottom">
         <button class="entry-btn-primary" id="entry-btn-signin" type="button">
-          <span>Enterprise Sign In</span>
+          <span>Sign In</span>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </button>
         <button class="entry-btn-secondary" id="entry-btn-start" type="button">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
-          <span>Request Enterprise Demo</span>
+          <span>Request Demo</span>
         </button>
         <p class="entry-legal">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:3px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
-          Closed multi-tenant enterprise system. Access strictly gated by Company ID. <a href="terms.html">Terms</a> &amp; <a href="privacy.html">Privacy</a>.
+          Enterprise-only. <a href="website.html">shiftrelay.com</a> • <a href="admin.html">Web Admin</a> • <a href="terms.html">Terms</a> &amp; <a href="privacy.html">Privacy</a>.
         </p>
       </div>
     </div>
@@ -139,8 +196,8 @@
         <div class="sr-sheet-handle"></div>
         <div class="sr-sheet-header">
           <div style="display:flex;align-items:center;gap:10px;">
-            <img src="icon.svg" width="24" height="24" style="border-radius:6px;" alt="" />
-            <h3 style="margin:0;font-size:18px;font-weight:800;letter-spacing:-0.02em;">ShiftRelay Enterprise</h3>
+            <img src="icon.svg?v=130" width="24" height="24" style="border-radius:6px;" alt="" />
+            <h3 style="margin:0;font-size:18px;font-weight:800;letter-spacing:-0.02em;">ShiftRelay</h3>
           </div>
           <button type="button" id="sr-modal-close" aria-label="Close" style="background:transparent;border:none;padding:6px;cursor:pointer;color:#64748b;border-radius:6px;">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -159,6 +216,10 @@
           <button class="sr-sheet-tab" data-tab="demo" type="button">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             <span>Role Drive</span>
+          </button>
+          <button class="sr-sheet-tab" data-tab="gate-station" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Gate Station</span>
           </button>
         </div>
 
@@ -199,7 +260,7 @@
             </label>
 
             <button class="sr-sheet-submit" type="submit" style="display:flex;align-items:center;justify-content:center;gap:8px;">
-              <span>Sign In to Enterprise</span>
+              <span>Sign In</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
             <p class="sr-sheet-msg" id="sr-sheet-msg"></p>
@@ -273,6 +334,63 @@
           <p style="font-size:13px;color:#64748b;margin:0 0 14px;line-height:1.5;">Try ShiftRelay instantly as a demo user. No password needed.</p>
           <div class="sr-demo-roles" id="sr-demo-role-list"></div>
         </div>
+
+        <!-- Gate Terminal Activation Pane (2-Layer Security) -->
+        <div class="sr-sheet-pane" data-pane="gate-station" style="display:none">
+          <form class="sr-sheet-form" id="sr-sheet-gate-terminal-form">
+            <div style="background:rgba(13,148,136,0.06);border:1px solid rgba(13,148,136,0.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;">
+              <span style="font-size:24px;">🔒</span>
+              <div style="font-size:12px;color:var(--text-main);line-height:1.4;">
+                <strong>Gate Terminal Pairing (2-Layer Security)</strong><br>
+                <span style="color:var(--text-muted);">Pairs this tablet as an authorized facility muster station. Locks out personal logins and enables high-speed NFC &amp; QR attendance scanning.</span>
+              </div>
+            </div>
+
+            <label>
+              <span>1. Company Tenant Code</span>
+              <input name="gateCompanyId" id="sr-gate-company-id" required value="CP-4482" placeholder="e.g. CP-4482 or 246701" class="sr-input-monospace" />
+            </label>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
+              <label style="margin:0;">
+                <span>Gate Identifier</span>
+                <select name="gateLocation" id="sr-gate-location">
+                  <option value="Apapa Mill Gate A">Apapa Mill Gate A</option>
+                  <option value="Victoria Island Main Turnstile">VI Main Turnstile</option>
+                  <option value="Ikeja Logistics Gate 2">Ikeja Logistics Gate 2</option>
+                  <option value="East Warehouse Auxiliary">East Warehouse Auxiliary</option>
+                </select>
+              </label>
+              <label style="margin:0;">
+                <span>Registered Admin Email</span>
+                <input name="gateAdminEmail" id="sr-gate-admin-email" type="email" required value="owner@shiftrelay.demo" placeholder="admin@company.com" />
+              </label>
+            </div>
+
+            <!-- OTP Step -->
+            <div id="sr-gate-otp-section" style="margin-top:14px;padding:12px;background:var(--sr-bg-card-subtle,#f8fafc);border-radius:10px;border:1px dashed #cbd5e1;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:12px;font-weight:700;color:var(--sr-text-main,#0f172a);">2. Admin 2FA Approval Code</span>
+                <button type="button" id="sr-btn-request-gate-otp" style="background:none;border:none;color:#0d9488;font-size:11.5px;font-weight:700;cursor:pointer;text-decoration:underline;">Send Code to Admin</button>
+              </div>
+              <input name="gateOtpCode" id="sr-gate-otp-code" maxlength="6" value="849201" placeholder="Enter 6-digit code (e.g. 849201)" class="sr-input-monospace" style="height:44px;font-size:16px;letter-spacing:4px;text-align:center;font-weight:700;" />
+              <div id="sr-gate-otp-sent-hint" style="font-size:11px;color:#10b981;margin-top:4px;">✓ 2FA Code Verified for Setup (Test Code: <strong>849201</strong>)</div>
+            </div>
+
+            <div style="margin-top:12px;">
+              <label>
+                <span>3. Set Facility Master PIN (4 digits to exit/deactivate)</span>
+                <input name="gateMasterPin" id="sr-gate-master-pin" type="password" maxlength="4" value="1234" placeholder="4-digit PIN (e.g. 1234)" class="sr-input-monospace" style="height:42px;letter-spacing:3px;text-align:center;font-weight:700;" />
+              </label>
+            </div>
+
+            <button class="sr-sheet-submit" type="submit" id="sr-btn-activate-terminal" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;background:#0d9488;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>Authorize &amp; Lock Into Gate Station</span>
+            </button>
+            <p class="sr-sheet-msg" id="sr-gate-terminal-msg"></p>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -281,7 +399,7 @@
       <nav class="landing-navbar" aria-label="Main Navigation">
         <div class="landing-nav-inner">
           <a class="landing-brand" href="#" aria-label="ShiftRelay Home">
-            <img src="icon.svg" alt="" width="32" height="32" />
+            <img src="icon.svg?v=130" alt="" width="32" height="32" />
             <span>ShiftRelay</span>
           </a>
           <div class="landing-nav-actions">
@@ -312,7 +430,7 @@
 
           <div class="landing-cta-row">
             <a href="#landing-portal-anchor" class="primary btn-hero-start" id="btn-hero-get-started" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;">
-              <span>Request Enterprise Demo</span>
+              <span>Request Demo</span>
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </a>
             <a href="#landing-portal-anchor" class="secondary btn-hero-demo" id="btn-hero-try-demo" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
@@ -386,7 +504,7 @@
       <footer class="landing-footer">
         <div class="landing-footer-inner">
           <div class="footer-brand-row">
-            <a class="footer-brand" href="#"><img src="icon.svg" alt="" width="26" height="26" /><span>ShiftRelay</span></a>
+            <a class="footer-brand" href="#"><img src="icon.svg?v=130" alt="" width="26" height="26" /><span>ShiftRelay</span></a>
             <p class="footer-tagline">Closed frontline workforce operating system and enterprise HCM platform.</p>
           </div>
           <div class="footer-links-grid">
@@ -438,7 +556,7 @@
         <header class="app-header">
           <div class="header-brand-row">
             <a class="brand-mark" href="#" aria-label="ShiftRelay home">
-              <img src="icon.svg" alt="" width="28" height="28" />
+              <img src="icon.svg?v=130" alt="" width="28" height="28" />
             </a>
             <div class="header-user-pill" id="header-user-pill">
               <span class="avatar" id="header-avatar">AO</span>
@@ -626,8 +744,8 @@
     <script src="facility-switcher.js"></script>
     <script src="emergency-broadcast.js"></script>
     <script src="live-translation.js"></script>
-    <script src="phase1-shell.js?v=93"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=91',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script src="phase1-shell.js?v=130"></script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=130',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 

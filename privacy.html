@@ -1,1 +1,297 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>ShiftRelay Privacy Policy</title><link rel="stylesheet" href="legal.css" /></head><body><main class="legal"><a class="brand" href="/"><span>↝</span>ShiftRelay</a><h1>Privacy Policy</h1><p>Last updated: July 2026</p><h2>Information we process</h2><p>ShiftRelay processes account and organisation details, profile photos, shift schedules, attendance records, handover notes, incident reports, and optional voice recordings/transcripts to provide workplace handover services.</p><h2>How we use it</h2><p>We use this information to authenticate users, route handovers, record work activity, provide AI-assisted summaries when enabled by an organisation, and maintain operational audit records.</p><h2>Your choices</h2><p>You can update profile information in the app and request account deletion at any time. <a href="delete-account.html">Request account deletion</a>.</p><h2>Contact</h2><p>Before public launch, replace this with your monitored support email and legal business details.</p></main></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy, Biometric & NDPR Compliance | ShiftRelay Technologies</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #050a14;
+      --bg-panel: rgba(12, 20, 38, 0.85);
+      --bg-card: rgba(15, 25, 48, 0.72);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-emerald: rgba(0, 245, 160, 0.28);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --emerald: #00f5a0;
+      --emerald-deep: #10b981;
+      --cyan: #06b6d4;
+      --sky: #38bdf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-deep);
+      background-image:
+        radial-gradient(circle at 15% 12%, rgba(6, 182, 212, 0.1) 0%, transparent 42%),
+        radial-gradient(circle at 85% 22%, rgba(0, 245, 160, 0.09) 0%, transparent 45%);
+      color: var(--text-main);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+    .legal-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(5, 10, 20, 0.88);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+    .brand-link img {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 245, 160, 0.25);
+    }
+    .brand-wordmark {
+      font-family: 'Outfit', sans-serif;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .brand-wordmark span {
+      background: linear-gradient(135deg, #00f5a0, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .nav-pill {
+      padding: 9px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      transition: all 0.2s ease;
+    }
+    .nav-pill:hover, .nav-pill.active {
+      color: var(--text-main);
+      border-color: var(--border-emerald);
+      background: rgba(0, 245, 160, 0.08);
+    }
+    .nav-pill.primary {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: #03110c;
+      font-weight: 700;
+      border: none;
+    }
+    .container {
+      max-width: 1040px;
+      margin: 48px auto 80px;
+      padding: 0 24px;
+    }
+    .legal-hero {
+      background: var(--bg-panel);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 32px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    }
+    .legal-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      color: var(--sky);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+    .legal-hero h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    .legal-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .legal-meta strong { color: var(--text-main); }
+    .doc-body {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+      gap: 24px;
+    }
+    @media (max-width: 640px) {
+      .doc-body { grid-template-columns: 1fr; }
+    }
+    .clause-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+    }
+    .clause-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--emerald);
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .clause-card h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-main);
+    }
+    .clause-card p {
+      color: #cbd5e1;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    .clause-card ul {
+      padding-left: 18px;
+      color: #cbd5e1;
+      font-size: 13.5px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .legal-footer {
+      margin-top: 40px;
+      padding: 28px;
+      border-radius: 18px;
+      background: rgba(6, 182, 212, 0.07);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+  </style>
+</head>
+<body>
+  <header class="legal-nav">
+    <a href="/website.html" class="brand-link">
+      <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay Logo" />
+      <div class="brand-wordmark">Shift<span>Relay</span></div>
+    </a>
+    <nav class="nav-actions">
+      <a href="/website.html" class="nav-pill">shiftrelay.com Home</a>
+      <a href="/terms.html" class="nav-pill">Terms of Service</a>
+      <a href="/privacy.html" class="nav-pill active">Privacy &amp; NDPR Policy</a>
+      <a href="/" class="nav-pill">Mobile &amp; Gate App</a>
+      <a href="/website.html#demo-modal" class="nav-pill primary">Request a Demo</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="legal-hero">
+      <div class="legal-badge">NDPA / NDPR &amp; BIOMETRIC DATA PROTECTION CHARTER</div>
+      <h1>Privacy Policy &amp; Workforce Data Protection Notice</h1>
+      <p style="color: var(--text-muted); max-width: 780px;">
+        ShiftRelay Technologies Ltd ("ShiftRelay", "Processor") processes workforce identity, attendance, geofence, NFC badge, and payroll records strictly on behalf of onboarded Enterprise Employers ("Data Controllers") in compliance with the Nigeria Data Protection Act (NDPA 2023), NDPR, and GDPR standards.
+      </p>
+      <div class="legal-meta">
+        <div><strong>Document Reference:</strong> SR-LEGAL-PRIV-2026.4</div>
+        <div><strong>Data Protection Officer:</strong> dpo@shiftrelay.com</div>
+        <div><strong>Encryption Standard:</strong> AES-256 at Rest / TLS 1.3 in Transit / DESFire EV3 NFC</div>
+      </div>
+    </section>
+
+    <div class="doc-body">
+      <article class="clause-card">
+        <span class="clause-num">01 // POINT-OF-PUNCH GEOLOCATION</span>
+        <h2>Zero Continuous Background Tracking</h2>
+        <p>
+          ShiftRelay respects worker privacy outside active shift hours. GPS geofence coordinates are captured <strong>strictly at the moment a worker presses the Clock-In or Clock-Out button</strong> or submits a site-verified task checklist.
+        </p>
+        <ul>
+          <li>We never track your live location when you are off-shift or after clocking out.</li>
+          <li>Workers without smartphones who punch via Gate Tablet NFC Badges or QR Scanners have zero personal mobile device telemetry collected.</li>
+        </ul>
+      </article>
+
+      <article class="clause-card">
+        <span class="clause-num">02 // BIOMETRIC &amp; NFC BADGE TOKENS</span>
+        <h2>WebAuthn Passkeys &amp; Encrypted NFC Cards</h2>
+        <p>
+          When using biometric verification (TouchID, FaceID, Android BiometricPrompt, or the Reactive Thumbprint Water-Pulse Clock), raw biometric templates never leave your device's hardware Secure Enclave.
+        </p>
+        <ul>
+          <li>ShiftRelay receives only a cryptographic passkey assertion signature.</li>
+          <li>ShiftRelay NFC ID Cards store an encrypted rolling card UID token (`SR-NFC-*`) rather than plaintext personal financial data.</li>
+        </ul>
+      </article>
+
+      <article class="clause-card">
+        <span class="clause-num">03 // STATUTORY PAYROLL &amp; IDENTITY RECORDS</span>
+        <h2>Why We Process BVN/NIN, PenCom &amp; Tax IDs</h2>
+        <p>
+          To compute accurate monthly payroll and statutory schedules for your employer, ShiftRelay processes verified employment data including:
+        </p>
+        <ul>
+          <li>Full legal name, employee code, verified work/personal email, and role assignment.</li>
+          <li>Pension RSA PIN (PenCom), Tax Identification Number (PAYE), NHF number, and designated salary bank account details.</li>
+          <li>Professional CV credentials, education history, and safety certifications uploaded to your Worker Profile.</li>
+        </ul>
+      </article>
+
+      <article class="clause-card">
+        <span class="clause-num">04 // WORKER RECTIFICATION RIGHTS</span>
+        <h2>Right to Inspect &amp; Rectify via Official Receipts</h2>
+        <p>
+          Under the Nigeria Data Protection Act (NDPA), every worker has the right to request correction of inaccurate attendance, identity, or payroll records.
+        </p>
+        <ul>
+          <li>Use the in-app <strong>Support Desk &amp; Rectification Receipt</strong> generator to lodge an immediate correction request (`RECT-*`).</li>
+          <li>Every receipt is delivered to your email and routed to verified Operations Support staff with a complete audit trail.</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="legal-footer">
+      <div>
+        <strong style="display:block; font-size:15px;">Questions about Data Sovereignty, NDPA Audits, or Sub-processors?</strong>
+        <span style="font-size:13px; color:var(--text-muted);">Reach our Data Protection Officer at dpo@shiftrelay.com</span>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a href="/terms.html" class="nav-pill">← View Terms of Service</a>
+        <a href="/website.html" class="nav-pill primary">Return to shiftrelay.com</a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

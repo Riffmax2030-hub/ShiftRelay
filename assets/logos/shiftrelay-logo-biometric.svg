@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80" fill="none">
+  <defs>
+    <linearGradient id="bioGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5a0"/>
+      <stop offset="100%" stop-color="#00c076"/>
+    </linearGradient>
+    <linearGradient id="phoneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5a0"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <!-- Biometric Smartphone Glyph -->
+  <g transform="translate(10, 8)">
+    <!-- Phone Chassis -->
+    <rect x="0" y="0" width="42" height="64" rx="10" fill="url(#phoneGrad)" />
+    <rect x="3" y="3" width="36" height="58" rx="8" fill="#081726" />
+    <!-- Speaker slit -->
+    <rect x="17" y="6" width="8" height="2" rx="1" fill="#00f5a0" opacity="0.7" />
+    <!-- Biometric Fingerprint ridges inside phone screen -->
+    <g transform="translate(11, 16)" stroke="url(#bioGrad)" stroke-width="1.8" fill="none" stroke-linecap="round">
+      <path d="M10 28 A 10 10 0 0 1 10 8 A 10 10 0 0 1 10 28" />
+      <path d="M10 24 A 6 6 0 0 1 10 12 A 6 6 0 0 1 10 24" />
+      <path d="M10 20 A 2 2 0 0 1 10 16 A 2 2 0 0 1 10 20" />
+      <path d="M3 28 V 22" />
+      <path d="M17 28 V 22" />
+      <!-- Scanner brackets -->
+      <path d="M-2 2 H2 V-2" stroke="#ffffff" stroke-width="1.5" />
+      <path d="M22 2 H18 V-2" stroke="#ffffff" stroke-width="1.5" />
+      <path d="M-2 30 H2 V34" stroke="#ffffff" stroke-width="1.5" />
+      <path d="M22 30 H18 V34" stroke="#ffffff" stroke-width="1.5" />
+    </g>
+    <!-- Home indicator -->
+    <rect x="15" y="57" width="12" height="2" rx="1" fill="#00f5a0" opacity="0.8" />
+  </g>
+  <!-- Brand Wordmark: ShiftRelay -->
+  <text x="64" y="50" font-family="'Inter', -apple-system, BlinkMacSystemFont, sans-serif" font-size="38" font-weight="800" letter-spacing="-0.035em">
+    <tspan fill="#00f5a0">Shift</tspan><tspan fill="#ffffff">Relay</tspan>
+  </text>
+  <!-- Verified Small Rosette beside Wordmark -->
+  <g transform="translate(268, 20) scale(0.35)">
+    <path d="M50 4 C55 4, 58 9, 63 9 C68 10, 73 7, 78 11 C83 15, 84 21, 88 26 C92 31, 97 34, 98 40 C99 46, 96 51, 96 57 C96 63, 99 68, 97 74 C95 80, 89 83, 85 88 C81 92, 79 98, 73 99 C67 100, 63 96, 57 97 C51 98, 46 101, 40 100 C34 99, 31 94, 25 93 C19 92, 14 96, 9 92 C4 88, 5 82, 3 76 C1 70, 4 65, 3 59 C2 53, -1 48, 1 42 C3 36, 8 33, 11 28 C14 23, 14 17, 19 13 C24 9, 29 11, 35 9 C41 7, 45 4, 50 4 Z" 
+          fill="#0e223d" stroke="#00f5a0" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M34 52 L45 63 L66 40" fill="none" stroke="#00f5a0" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

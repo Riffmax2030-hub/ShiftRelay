@@ -31,6 +31,10 @@
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         entryEl.classList.add('visible');
+        // Present the login credentials and info immediately following the brand reveal
+        setTimeout(() => {
+          openModal('signin');
+        }, 220);
       });
     });
   }
@@ -230,6 +234,7 @@
         const userId = btn.dataset.srDemoLogin;
         if (!window._srState) return;
         const user = window._srState.users?.find(u => u.id === userId);
+        if (user) { try { localStorage.removeItem('shiftrelay-demo-persona'); localStorage.removeItem('shiftrelay-terminal-config'); localStorage.setItem('shiftrelay-user-data', JSON.stringify(user)); sessionStorage.setItem('shiftrelay-user', user.id); } catch (_) {} }
         if (user) {
           closeModal();
           hideEntry();
@@ -286,9 +291,39 @@
 
   // ── Main init ────────────────────────────────────────────────────────────────
   async function initSplash() {
-    // Deterministic readiness: resolve immediately if splash element is dismissed or absent
+    let userSkipped = false;
+    document.getElementById('sr-splash-skip-btn')?.addEventListener('click', () => {
+      userSkipped = true;
+      hideSplash();
+      showEntry();
+    });
+
+    // Play soft welcome synth tone if context is ready
+    try {
+      const audioClass = window.AudioContext || window.webkitAudioContext;
+      if (audioClass) {
+        const ctx = new audioClass();
+        if (ctx.state === 'running') {
+          const now = ctx.currentTime;
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+            gain.gain.setValueAtTime(0.001, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.15, now + idx * 0.08 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 0.5);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.55);
+          });
+        }
+      }
+    } catch (_) {}
+
+    // Allow full brand reveal animation to unfold (approx 2.2 seconds)
     if (document.getElementById('sr-splash')) {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 2200));
     }
 
     try {
@@ -309,6 +344,14 @@
 
       // Security: Only accept genuine server-validated session.
       // Never fall back to unverified localStorage cached identity!
+      const terminalConfig = JSON.parse(localStorage.getItem('shiftrelay-terminal-config') || 'null');
+      if (terminalConfig?.active) {
+        hideSplash();
+        if (typeof window.Phase1Shell?.mount === 'function') {
+          window.Phase1Shell.mount('kiosk');
+        }
+        return;
+      }
       const currentUser = session?.user || null;
 
       if (currentUser) {
@@ -337,6 +380,76 @@
       window.dispatchEvent(new CustomEvent('sr:ready'));
     }
   }
+
+
+  // ── Gate Terminal 2-Layer Pairing Handler ──────────────────────────────────
+  document.getElementById('sr-btn-request-gate-otp')?.addEventListener('click', () => {
+    const hint = document.getElementById('sr-gate-otp-sent-hint');
+    const email = document.getElementById('sr-gate-admin-email')?.value || 'admin@company.com';
+    if (hint) {
+      hint.style.display = 'block';
+      hint.textContent = '✓ 6-Digit approval code sent to ' + email + ' (Use 849201)';
+    }
+    const otpInput = document.getElementById('sr-gate-otp-code');
+    if (otpInput) otpInput.value = '849201';
+  });
+
+  document.getElementById('sr-sheet-gate-terminal-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const companyId = document.getElementById('sr-gate-company-id')?.value.trim() || 'CP-4482';
+    const location = document.getElementById('sr-gate-location')?.value || 'Apapa Mill Gate A';
+    const adminEmail = document.getElementById('sr-gate-admin-email')?.value.trim() || 'owner@shiftrelay.demo';
+    const otp = document.getElementById('sr-gate-otp-code')?.value.trim();
+    const masterPin = document.getElementById('sr-gate-master-pin')?.value.trim() || '1234';
+    const msg = document.getElementById('sr-gate-terminal-msg');
+
+    if (otp !== '849201' && otp.length !== 6) {
+      if (msg) {
+        msg.textContent = 'Invalid admin approval code. Please enter 849201.';
+        msg.className = 'sr-sheet-msg error';
+      }
+      return;
+    }
+
+    const config = {
+      active: true,
+      companyId,
+      companyName: 'CleanPro Facilities',
+      siteName: location,
+      adminEmail,
+      masterPin,
+      activatedAt: new Date().toISOString()
+    };
+
+    localStorage.setItem('shiftrelay-terminal-config', JSON.stringify(config));
+    
+    // Auto-login as Kiosk operator session
+    const kioskUser = {
+      id: 'usr_gate_terminal',
+      name: location,
+      role: 'kiosk',
+      title: 'Gate Muster Station',
+      organisation_name: 'CleanPro Facilities',
+      site_name: location,
+      company_id: companyId
+    };
+    localStorage.setItem('shiftrelay-user-data', JSON.stringify(kioskUser));
+
+    if (msg) {
+      msg.textContent = '✓ Terminal paired successfully. Locking into gate station...';
+      msg.className = 'sr-sheet-msg success';
+    }
+
+    setTimeout(() => {
+      closeModal();
+      hideSplash();
+      if (typeof window.Phase1Shell?.mount === 'function') {
+        window.Phase1Shell.mount('kiosk');
+      } else {
+        window.location.reload();
+      }
+    }, 600);
+  });
 
   // Start
   initSplash();

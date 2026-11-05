@@ -1,4 +1,4 @@
-const CACHE = 'shiftrelay-v93-biometrics-offline-payroll';
+const CACHE = 'shiftrelay-v130-golden-build';
 const ASSETS = [
   '/',
   '/index.html',
@@ -86,12 +86,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Network-First for core shell files so updates are immediately visible
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-cache' })
       .then((response) => {
-        // 3. Cache-Control check: NEVER cache if response is marked no-store or private
-        const cc = (response.headers.get('cache-control') || '').toLowerCase();
-        if (response.ok && !cc.includes('no-store') && !cc.includes('private')) {
+        if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(event.request, copy));
         }

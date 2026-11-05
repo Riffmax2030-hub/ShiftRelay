@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="spBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07291E"/>
+      <stop offset="100%" stop-color="#03140E"/>
+    </linearGradient>
+    <filter id="glow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1AD079" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <rect x="6" y="8" width="168" height="184" rx="38" fill="url(#spBg)" stroke="#1AD079" stroke-opacity="0.45" stroke-width="2.5"/>
+  <g transform="translate(88, 98) scale(1.05)" fill="none" stroke="#ECFDF5" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <path d="M -42 -38 C -28 -70, 28 -70, 44 -34 C 49 -20, 49 -4, 47 12" />
+    <path d="M -48 -12 C -46 -38, -30 -56, -5 -58 C 22 -60, 36 -40, 36 -12 C 36 4, 34 16, 44 25" />
+    <path d="M -48 4 C -32 2, -22 -10, -18 -28 C -14 -42, 0 -46, 12 -41 C 23 -36, 25 -20, 23 -2 C 21 14, 25 27, 41 34" />
+    <path d="M -46 20 C -27 16, -12 2, -7 -20 C -3 -32, 11 -30, 12 -16 C 14 2, 11 20, 22 34" />
+    <path d="M -41 34 C -22 29, -5 14, 0 -9" />
+    <path d="M -16 25 C -5 20, 5 20, 16 29" />
+    <path d="M -2 9 L 4 21" />
+    <path d="M -39 46 C -23 34, -2 32, 11 41" />
+    <path d="M -34 61 C -20 48, -3 48, 7 57" />
+    <path d="M -23 73 C -12 64, -2 64, 5 71" />
+    <g transform="translate(32, 55)" stroke="none">
+      <circle cx="0" cy="0" r="26" fill="#1AD079" />
+      <circle cx="0" cy="-5" r="7.5" fill="#041B14" />
+      <path d="M -4.5 -1 L 4.5 -1 L 7.5 13 L -7.5 13 Z" fill="#041B14" />
+    </g>
+  </g>
+</svg>

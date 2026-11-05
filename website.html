@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShiftRelay | Enterprise Workforce, Gate NFC & Automated Statutory Payroll OS</title>
+  <meta name="description" content="ShiftRelay is the enterprise workforce operating system for verified shift handovers, 2-layer NFC/QR gate attendance, team shift swaps, and automated Nigerian statutory payroll." />
+  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-canvas: #050912;
+      --bg-elevated: #0a1120;
+      --bg-card: rgba(13, 22, 40, 0.78);
+      --bg-card-hover: rgba(17, 29, 52, 0.92);
+      --border-hairline: rgba(255, 255, 255, 0.075);
+      --border-emerald: rgba(0, 245, 160, 0.32);
+      --border-cyan: rgba(56, 189, 248, 0.32);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --emerald: #00f5a0;
+      --emerald-solid: #10b981;
+      --cyan: #06b6d4;
+      --sky: #38bdf8;
+      --amber: #f59e0b;
+      --indigo: #6366f1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-canvas);
+      background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+        radial-gradient(circle at 18% 6%, rgba(0, 245, 160, 0.085) 0%, transparent 36%),
+        radial-gradient(circle at 84% 12%, rgba(6, 182, 212, 0.085) 0%, transparent 40%);
+      background-size: 64px 64px, 64px 64px, 100% 100%, 100% 100%;
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Top Enterprise Navbar (Clean Static Brand Mark • Zero Login / Zero Sign-Up) ── */
+    .site-navbar {
+      position: sticky;
+      top: 0;
+      z-index: 300;
+      background: rgba(5, 9, 18, 0.86);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-hairline);
+      padding: 14px 40px;
+    }
+    .navbar-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    @media (max-width: 960px) {
+      .site-navbar { padding: 14px 20px; }
+      .nav-center-links { display: none !important; }
+    }
+    /* Clean Static Brand Lockup — NO spinning/bouncing effects on the logo */
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+    .brand-mark-static {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: block;
+      flex-shrink: 0;
+    }
+    .brand-wordmark {
+      font-family: 'Outfit', sans-serif;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #ffffff;
+    }
+    .brand-wordmark span {
+      color: var(--emerald);
+    }
+    .brand-sub-domain {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      display: block;
+      margin-top: -2px;
+    }
+
+    .nav-center-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+    .nav-center-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: color 0.18s ease;
+    }
+    .nav-center-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-cta-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-outline {
+      padding: 9px 18px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .btn-outline:hover {
+      border-color: var(--border-cyan);
+      background: rgba(56, 189, 248, 0.08);
+    }
+    .btn-primary-emerald {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 245, 160, 0.4);
+      background: linear-gradient(135deg, #00f5a0 0%, #10b981 55%, #06b6d4 100%);
+      color: #02120b;
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 8px 24px rgba(0, 245, 160, 0.2);
+    }
+    .btn-primary-emerald:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px rgba(0, 245, 160, 0.32);
+    }
+
+    /* ── Layout Container ── */
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 80px 28px;
+    }
+
+    /* ── 1. Hero Section (Linear / Stripe / Rippling Split Architecture) ── */
+    .hero-section {
+      padding-top: 56px;
+      padding-bottom: 64px;
+    }
+    .hero-split {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 44px;
+      align-items: center;
+    }
+    @media (max-width: 1080px) {
+      .hero-split { grid-template-columns: 1fr; }
+    }
+    .changelog-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(0, 245, 160, 0.07);
+      border: 1px solid var(--border-emerald);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--emerald);
+      margin-bottom: 22px;
+    }
+    .changelog-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald);
+    }
+    .hero-h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(36px, 4.6vw, 58px);
+      font-weight: 900;
+      line-height: 1.06;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    .hero-h1 .accent {
+      background: linear-gradient(135deg, #00f5a0 0%, #38bdf8 65%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-lead {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 590px;
+      margin-bottom: 30px;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .hero-proof-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      padding-top: 26px;
+      border-top: 1px solid var(--border-hairline);
+    }
+    .proof-item strong {
+      display: block;
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+    .proof-item span {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+
+    /* Interactive 4-Tab Product Architecture Window (Right Side of Hero) */
+    .arch-window {
+      background: rgba(10, 17, 32, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(0, 245, 160, 0.12);
+      overflow: hidden;
+    }
+    .arch-window-bar {
+      background: rgba(5, 9, 18, 0.95);
+      border-bottom: 1px solid var(--border-hairline);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .window-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .window-dots i {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.16);
+    }
+    .window-dots i:nth-child(1) { background: #f43f5e; }
+    .window-dots i:nth-child(2) { background: #f59e0b; }
+    .window-dots i:nth-child(3) { background: #10b981; }
+    .window-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .win-tab {
+      padding: 5px 11px;
+      border-radius: 7px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .win-tab.active {
+      background: rgba(0, 245, 160, 0.12);
+      border-color: var(--border-emerald);
+      color: var(--emerald);
+    }
+    .arch-window-body {
+      padding: 24px;
+      min-height: 350px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .arch-pane { display: none; }
+    .arch-pane.active { display: block; }
+
+    /* Mini UI Mockup Elements inside the Hero Window */
+    .mock-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-hairline);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .mock-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .mono-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(0, 245, 160, 0.12);
+      color: var(--emerald);
+      border: 1px solid rgba(0, 245, 160, 0.25);
+    }
+
+    /* ── Enterprise Trust Strip ── */
+    .trust-strip {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 24px 28px;
+      border-top: 1px solid var(--border-hairline);
+      border-bottom: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .trust-logos {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      letter-spacing: 0.02em;
+    }
+
+    /* ── Section Header Standard ── */
+    .section-header {
+      max-width: 760px;
+      margin-bottom: 48px;
+    }
+    .section-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--emerald);
+      margin-bottom: 10px;
+      display: block;
+    }
+    .section-header h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(28px, 3.5vw, 42px);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+    .section-header p {
+      color: var(--text-secondary);
+      font-size: 16px;
+    }
+
+    /* ── 2. Earned Bento Grid (6-Cell Linear/Rippling Architecture) ── */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+    }
+    .bento-cell {
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: 22px;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .bento-cell:hover {
+      border-color: rgba(0, 245, 160, 0.35);
+      background: var(--bg-card-hover);
+    }
+    .span-7 { grid-column: span 7; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+    .span-8 { grid-column: span 8; }
+    @media (max-width: 1024px) {
+      .span-7, .span-5, .span-4, .span-8 { grid-column: span 12; }
+    }
+    .bento-cell h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      margin: 10px 0 10px;
+    }
+    .bento-cell p {
+      font-size: 14.5px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+    .bento-spec-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: auto;
+    }
+    .spec-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-hairline);
+      color: #cbd5e1;
+    }
+
+    /* ── 3. How It Works & Stakeholder Role Switcher ── */
+    .stakeholder-tabs {
+      display: inline-flex;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-hairline);
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .stk-btn {
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .stk-btn.active {
+      background: linear-gradient(135deg, rgba(0, 245, 160, 0.18), rgba(6, 182, 212, 0.18));
+      color: var(--emerald);
+      border: 1px solid var(--border-emerald);
+    }
+    .stk-panel {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: 22px;
+      padding: 36px;
+      grid-template-columns: 1fr 1fr;
+      gap: 36px;
+      align-items: center;
+    }
+    .stk-panel.active { display: grid; }
+    @media (max-width: 900px) {
+      .stk-panel.active { grid-template-columns: 1fr; }
+    }
+
+    /* ── 4. YouTube Product Walkthrough Cinema Section ── */
+    .cinema-card {
+      background: linear-gradient(160deg, rgba(13, 24, 46, 0.92), rgba(7, 13, 26, 0.96));
+      border: 1px solid var(--border-cyan);
+      border-radius: 26px;
+      padding: 40px;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+    }
+    .cinema-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap: 36px;
+      align-items: center;
+    }
+    @media (max-width: 980px) {
+      .cinema-grid { grid-template-columns: 1fr; }
+    }
+    .yt-16-9 {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #02050b;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .yt-16-9 iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    /* ── 5. Cloud & Subdomain Partition Architecture Blueprint ── */
+    .partition-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+    @media (max-width: 1060px) {
+      .partition-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .partition-grid { grid-template-columns: 1fr; }
+    }
+    .partition-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: 18px;
+      padding: 24px;
+    }
+    .partition-domain {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--emerald);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    /* ── 6. Split Demo Qualification & Contact Us Section ── */
+    .conversion-split {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 28px;
+    }
+    @media (max-width: 960px) {
+      .conversion-split { grid-template-columns: 1fr; }
+    }
+    .conversion-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-emerald);
+      border-radius: 24px;
+      padding: 36px;
+    }
+    .form-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 600px) {
+      .form-2col { grid-template-columns: 1fr; }
+    }
+    .inp-group { margin-bottom: 16px; }
+    .inp-group label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+    .inp-group input, .inp-group select, .inp-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(5, 9, 18, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+    .inp-group input:focus, .inp-group select:focus, .inp-group textarea:focus {
+      border-color: var(--emerald);
+    }
+
+    /* ── Footer ── */
+    .corp-footer {
+      border-top: 1px solid var(--border-hairline);
+      background: #03060d;
+      padding: 64px 28px 40px;
+    }
+    .footer-grid {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      gap: 36px;
+    }
+    @media (max-width: 860px) {
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 540px) {
+      .footer-grid { grid-template-columns: 1fr; }
+    }
+    .footer-col h4 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+    }
+    .footer-col a {
+      display: block;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13.5px;
+      margin-bottom: 9px;
+    }
+    .footer-col a:hover { color: var(--emerald); }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       PUBLIC NAVBAR (shiftrelay.com) — CLEAN STATIC BRAND MARK • NO LOGIN/SIGNUP
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <header class="site-navbar">
+    <div class="navbar-inner">
+      <a href="/website.html" class="brand-lockup">
+        <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay Brand Mark" class="brand-mark-static" />
+        <div>
+          <div class="brand-wordmark">Shift<span>Relay</span></div>
+          <span class="brand-sub-domain">SHIFTRELAY.COM</span>
+        </div>
+      </a>
+
+      <nav class="nav-center-links">
+        <a href="#platform-bento">Platform Architecture</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#video-showcase">YouTube Product Tour</a>
+        <a href="#hosting-architecture">Cloud &amp; Email Engine</a>
+        <a href="#legal-center">Legal &amp; Terms</a>
+      </nav>
+
+      <div class="nav-cta-cluster">
+        <a href="#contact-desk" class="btn-outline">Contact Us</a>
+        <a href="#demo-request-section" class="btn-primary-emerald">Request a Demo →</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       1. HERO SECTION + INTERACTIVE 4-TAB PRODUCT SANDBOX WINDOW
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="container hero-section">
+    <div class="hero-split">
+      <div>
+        <div class="changelog-pill">
+          <span class="changelog-dot"></span>
+          <span>SHIFTRELAY OS v4.8 • BIOMETRIC, GATE NFC &amp; STATUTORY PAYROLL</span>
+        </div>
+
+        <h1 class="hero-h1">
+          Accountable Shift Operations &amp; <span class="accent">Automated Statutory Payroll</span> at Scale.
+        </h1>
+
+        <p class="hero-lead">
+          ShiftRelay eliminates ghost workers, buddy-punching, and manual payroll reconciliation. Engineered for industrial plants, logistics fleets, healthcare, and corporate facilities with 2-layer Gate Tablets, encrypted NFC ID cards, and 1-click PenCom &amp; PAYE compliance.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#demo-request-section" class="btn-primary-emerald" style="padding:13px 26px; font-size:14px;">
+            Book an Enterprise Demo →
+          </a>
+          <a href="#video-showcase" class="btn-outline" style="padding:13px 22px; font-size:14px;">
+            ▶ Watch YouTube App Tour
+          </a>
+          <a href="#how-it-works" class="btn-outline" style="padding:13px 20px; font-size:14px;">
+            How It Works
+          </a>
+        </div>
+
+        <div class="hero-proof-grid">
+          <div class="proof-item">
+            <strong>99.98%</strong>
+            <span>Geofence, Biometric &amp; Gate NFC Verification</span>
+          </div>
+          <div class="proof-item">
+            <strong>60s TOTP</strong>
+            <span>Rotating Gate QR + Encrypted DESFire EV3 Badges</span>
+          </div>
+          <div class="proof-item">
+            <strong>100% Auto</strong>
+            <span>PenCom (8%/10%), PAYE, NHF &amp; NSITF Schedules</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Interactive Product Architecture Preview Window (No spinning logo gimmick) -->
+      <div class="arch-window">
+        <div class="arch-window-bar">
+          <div class="window-dots"><i></i><i></i><i></i></div>
+          <div class="window-tabs">
+            <button type="button" class="win-tab active" data-pane="pane-mobile" onclick="window.switchHeroPane('pane-mobile')">01. Mobile Clock</button>
+            <button type="button" class="win-tab" data-pane="pane-gate" onclick="window.switchHeroPane('pane-gate')">02. Gate NFC Kiosk</button>
+            <button type="button" class="win-tab" data-pane="pane-payroll" onclick="window.switchHeroPane('pane-payroll')">03. Statutory Payroll</button>
+            <button type="button" class="win-tab" data-pane="pane-email" onclick="window.switchHeroPane('pane-email')">04. Email Station</button>
+          </div>
+        </div>
+
+        <div class="arch-window-body">
+          <!-- Pane 1: Mobile App Biometric Water-Pulse & Coworker Swap -->
+          <div class="arch-pane active" id="pane-mobile">
+            <div class="mock-row" style="margin-bottom:14px;">
+              <div>
+                <div style="font-size:12px; color:var(--text-secondary);">ACTIVE WORKER SESSION • TODAY TAB</div>
+                <strong style="font-size:17px;">Reactive Water-Pulse Biometric Clock</strong>
+              </div>
+              <span class="mono-tag">GPS PERIMETER VERIFIED</span>
+            </div>
+
+            <div class="mock-card" style="display:flex; align-items:center; justify-content:space-between; gap:16px; background:rgba(0,245,160,0.05); border-color:var(--border-emerald);">
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:800; color:var(--emerald);">06 : 42 : 19</div>
+                <div style="font-size:12.5px; color:var(--text-secondary); margin-top:2px;">Shift: 08:00 – 17:00 • Ikeja Plant Bay 4</div>
+                <div style="font-size:12px; color:#fde68a; margin-top:6px;">★ +15 ShiftCoin Stars Earned (On-Time Streak)</div>
+              </div>
+              <div style="width:74px; height:74px; border-radius:50%; background:radial-gradient(circle, rgba(244,63,94,0.35), rgba(15,23,42,0.95)); border:2px solid #f43f5e; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+                <span style="font-size:10px; font-weight:800; color:#fda4af;">ACTIVE</span>
+                <span style="font-size:11px; font-weight:800; color:#fff;">CLOCK OUT</span>
+              </div>
+            </div>
+
+            <div class="mock-card">
+              <div class="mock-row" style="margin-bottom:6px;">
+                <strong style="font-size:13.5px;">Coworker-Scoped Team Shift Swap</strong>
+                <span class="mono-tag" style="color:var(--sky); border-color:var(--border-cyan); background:rgba(56,189,248,0.1);">SAME COMPANY ONLY</span>
+              </div>
+              <p style="font-size:12.5px; color:var(--text-secondary);">
+                Workers can offer and claim shifts strictly among verified coworkers in the same enterprise unit. Supervisors also carry a personal shift clock on their own dashboard.
+              </p>
+            </div>
+          </div>
+
+          <!-- Pane 2: Gate Kiosk Tablet (2-Layer Auth + Encrypted NFC Card) -->
+          <div class="arch-pane" id="pane-gate">
+            <div class="mock-row" style="margin-bottom:14px;">
+              <div>
+                <div style="font-size:12px; color:var(--text-secondary);">DEDICATED GATE TABLET MODE • 2-LAYER LOCK</div>
+                <strong style="font-size:17px;">60s Authenticator QR + DESFire NFC Badge Tap</strong>
+              </div>
+              <span class="mono-tag">SR-GATE-1040</span>
+            </div>
+
+            <div class="mock-card" style="display:grid; grid-template-columns:110px 1fr; gap:16px; align-items:center;">
+              <div style="width:100px; height:100px; border-radius:12px; background:#fff; color:#050912; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:800; font-size:11px; border:3px solid var(--emerald);">
+                <div>[ TOTP QR ]</div>
+                <div style="color:#059669; margin-top:4px;">Rotates: 48s</div>
+              </div>
+              <div>
+                <strong style="font-size:14px; display:block; margin-bottom:4px;">No Smartphone? Tap Encrypted NFC ID Card</strong>
+                <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:8px;">
+                  Built-in MIFARE DESFire EV3 chip inside the staff ID card—never washes off like printed QR stickers.
+                </p>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--emerald);">
+                  ✓ Last NFC Tap: Musa Danjuma (SR-NFC-8841) • 07:54:12
+                </div>
+              </div>
+            </div>
+
+            <div class="mock-card">
+              <div style="font-size:12.5px; color:var(--text-secondary);">
+                <strong style="color:var(--text-primary);">2-Layer Gate Tablet Security:</strong> Logging in or exiting Kiosk mode requires the Company Gate Code + a 6-digit OTP sent to the Owner's registered email.
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 3: Statutory Payroll & Executive Printout -->
+          <div class="arch-pane" id="pane-payroll">
+            <div class="mock-row" style="margin-bottom:14px;">
+              <div>
+                <div style="font-size:12px; color:var(--text-secondary);">EXECUTIVE TREASURY &amp; COMPLIANCE</div>
+                <strong style="font-size:17px;">Automated Nigerian Statutory Payroll Run</strong>
+              </div>
+              <span class="mono-tag">PENCOM &amp; PAYE READY</span>
+            </div>
+
+            <div class="mock-card">
+              <div class="mock-row" style="padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid var(--border-hairline);">
+                <span style="font-size:12.5px; color:var(--text-secondary);">Verified Gross Shift Payroll (142 Staff)</span>
+                <strong style="font-family:'JetBrains Mono',monospace; font-size:14px;">₦14,820,000.00</strong>
+              </div>
+              <div class="mock-row" style="margin-bottom:6px; font-size:12.5px;">
+                <span style="color:var(--text-secondary);">PenCom Pension (8% Emp / 10% Employer)</span>
+                <span style="font-family:'JetBrains Mono',monospace; color:#c4b5fd;">₦2,667,600.00</span>
+              </div>
+              <div class="mock-row" style="margin-bottom:6px; font-size:12.5px;">
+                <span style="color:var(--text-secondary);">PAYE Income Tax + NHF (2.5%) + NSITF (1%)</span>
+                <span style="font-family:'JetBrains Mono',monospace; color:#fcd34d;">₦1,407,900.00</span>
+              </div>
+              <div class="mock-row" style="padding-top:8px; margin-top:8px; border-top:1px solid var(--border-hairline);">
+                <strong style="font-size:13px;">Net Verified Bank Disbursement</strong>
+                <strong style="font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--emerald);">₦12,480,500.00</strong>
+              </div>
+            </div>
+
+            <div style="font-size:12px; color:var(--text-secondary);">
+              Owners &amp; Managers can export Bank CSVs, PenCom schedules, and print official <strong>Monthly Payment Data Vouchers</strong> in one click.
+            </div>
+          </div>
+
+          <!-- Pane 4: Email Auto-Station & Rectification Receipts -->
+          <div class="arch-pane" id="pane-email">
+            <div class="mock-row" style="margin-bottom:14px;">
+              <div>
+                <div style="font-size:12px; color:var(--text-secondary);">EMAIL AUTO-STATION ENGINE</div>
+                <strong style="font-size:17px;">Automated Receipts, Gate OTPs &amp; Support Routing</strong>
+              </div>
+              <span class="mono-tag">SMTP / API READY</span>
+            </div>
+
+            <div class="mock-card">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky); margin-bottom:4px;">
+                AUTO-DISPATCHED: support@shiftrelay.com → amara@cleanpro.ng
+              </div>
+              <strong style="font-size:13.5px; display:block; margin-bottom:4px;">Official Rectification Receipt #SR-REC-849201</strong>
+              <p style="font-size:12.5px; color:var(--text-secondary);">
+                When a worker reports an incorrect shift hour or bank record in the Support Desk, ShiftRelay stamps a verified receipt with their email and routes it to the Support Admin Queue.
+              </p>
+            </div>
+
+            <div class="mock-card" style="margin-bottom:0;">
+              <div style="font-size:12.5px; color:var(--text-secondary);">
+                Includes dedicated corporate stations for <code>onboarding@</code>, <code>support@</code>, <code>finance@</code>, and <code>gate-otp@shiftrelay.com</code>.
+              </div>
+            </div>
+          </div>
+
+          <div class="mock-row" style="padding-top:14px; border-top:1px solid var(--border-hairline); font-size:12px; color:var(--text-muted);">
+            <span>Click any module tab above to inspect ShiftRelay's architecture</span>
+            <a href="#demo-request-section" style="color:var(--emerald); text-decoration:none; font-weight:700;">Request Live Walkthrough →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Enterprise Trust Bar -->
+  <div class="trust-strip">
+    <span style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em;">
+      ENGINEERED FOR MULTI-SITE OPERATIONS
+    </span>
+    <div class="trust-logos">
+      <span>DANGOTE PACKAGING</span>
+      <span>•</span>
+      <span>FLOUR MILLS LOGISTICS</span>
+      <span>•</span>
+      <span>EKO ATLANTIC FACILITY OPS</span>
+      <span>•</span>
+      <span>LAGOON CLINICAL SHIFTS</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       2. EARNED BENTO GRID — CORE SAAS CAPABILITIES
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="container" id="platform-bento">
+    <div class="section-header">
+      <span class="section-eyebrow">PRECISION WORKFORCE INFRASTRUCTURE</span>
+      <h2>Every Shift, Gate Punch, and Statutory Naira—Unified in One OS.</h2>
+      <p>
+        Built on a zero-trust, concierge-onboarded B2B architecture. One unified application dynamically adapts to smartphones and dedicated gate tablets.
+      </p>
+    </div>
+
+    <div class="bento-grid">
+      <!-- Cell 1 (Span 7) -->
+      <article class="bento-cell span-7">
+        <div>
+          <span class="mono-tag">BIOMETRIC &amp; GEOLOCATION ENGINE</span>
+          <h3>Reactive Water-Pulse Clock &amp; Point-of-Punch Geofencing</h3>
+          <p>
+            Workers clock in with our thumbprint water-fill push button that turns emerald on active shift and crimson on clock-out. GPS coordinates are verified strictly at the moment of punch—zero off-shift background tracking. Shift Supervisors also carry their own personal shift clock alongside team oversight.
+          </p>
+        </div>
+        <div class="bento-spec-list">
+          <span class="spec-chip">Orbital Liquid Timer</span>
+          <span class="spec-chip">Zero Off-Shift Tracking</span>
+          <span class="spec-chip">Supervisor Personal Clock</span>
+          <span class="spec-chip">Offline Queue Sync</span>
+        </div>
+      </article>
+
+      <!-- Cell 2 (Span 5) -->
+      <article class="bento-cell span-5">
+        <div>
+          <span class="mono-tag" style="color:var(--sky); border-color:var(--border-cyan); background:rgba(56,189,248,0.1);">GATE HARDWARE &amp; NFC</span>
+          <h3>2-Layer Gate Tablet &amp; Encrypted DESFire NFC Cards</h3>
+          <p>
+            Deploy any standard Android/iPad tablet at your facility gate. Our 2-layer login (Company Code + Owner Email OTP) locks the tablet into a 60-second rotating QR generator and encrypted NFC card reader—eliminating washed-off printed QR stickers.
+          </p>
+        </div>
+        <div class="bento-spec-list">
+          <span class="spec-chip">MIFARE DESFire EV3</span>
+          <span class="spec-chip">60s TOTP QR Code</span>
+          <span class="spec-chip">Owner OTP Logout Lock</span>
+        </div>
+      </article>
+
+      <!-- Cell 3 (Span 4) -->
+      <article class="bento-cell span-4">
+        <div>
+          <span class="mono-tag">TEAM INTEGRITY</span>
+          <h3>Coworker-Only Shift Swaps</h3>
+          <p>
+            Workers can offer and claim shift swaps strictly with verified coworkers inside their own company and operational unit—preventing external cross-company access.
+          </p>
+        </div>
+        <div class="bento-spec-list">
+          <span class="spec-chip">Tenant-Isolated Pool</span>
+          <span class="spec-chip">Supervisor Approval</span>
+        </div>
+      </article>
+
+      <!-- Cell 4 (Span 4) -->
+      <article class="bento-cell span-4">
+        <div>
+          <span class="mono-tag">RECOGNITION &amp; RETENTION</span>
+          <h3>ShiftCoin Stars (★) &amp; Instant Rewards</h3>
+          <p>
+            On-time clock-ins, verified room/bay checklists, and coworker shift coverage automatically credit ShiftCoin stars to the worker's one-line activity strip.
+          </p>
+        </div>
+        <div class="bento-spec-list">
+          <span class="spec-chip">Punctuality Streaks</span>
+          <span class="spec-chip">Cash Bonus Exchange</span>
+        </div>
+      </article>
+
+      <!-- Cell 5 (Span 4) -->
+      <article class="bento-cell span-4">
+        <div>
+          <span class="mono-tag">RECORDS &amp; SUPPORT DESK</span>
+          <h3>Email Rectification Receipts (`RECT-*`)</h3>
+          <p>
+            Instead of messy chat complaints, workers generate official, email-stamped Rectification Receipts for any hour, profile, or bank discrepancy.
+          </p>
+        </div>
+        <div class="bento-spec-list">
+          <span class="spec-chip">Auto-Emailed Receipt</span>
+          <span class="spec-chip">Admin Support Queue</span>
+        </div>
+      </article>
+
+      <!-- Cell 6 (Span 12) -->
+      <article class="bento-cell" style="grid-column: span 12; display:grid; grid-template-columns: 1.2fr 0.8fr; gap:28px; align-items:center;">
+        <div>
+          <span class="mono-tag">NIGERIAN STATUTORY &amp; TREASURY ENGINE</span>
+          <h3>Automated Gross-to-Net Payroll, PenCom, PAYE &amp; Monthly Payment Printouts</h3>
+          <p style="margin-bottom:14px;">
+            Actual clock-in/clock-out attendance logs (separated cleanly from scheduled hours) flow directly into the Executive Payroll Engine. Automatically compute overtime, PenCom (8% Employee / 10% Employer), Finance Act PAYE, NHF (2.5%), and NSITF (1%), and print official Monthly Payment Data sheets.
+          </p>
+          <div class="bento-spec-list">
+            <span class="spec-chip">PenCom PRA 2014</span>
+            <span class="spec-chip">Finance Act PAYE</span>
+            <span class="spec-chip">1-Click Bank Payout CSV</span>
+            <span class="spec-chip">Printable Monthly Payment Sheet</span>
+          </div>
+        </div>
+        <div style="background:rgba(5,9,18,0.85); border:1px solid var(--border-emerald); border-radius:16px; padding:20px; font-family:'JetBrains Mono',monospace; font-size:12px;">
+          <div style="color:var(--emerald); font-weight:700; margin-bottom:8px;">// MONTHLY PAYMENT VOUCHER EXPORT</div>
+          <div style="color:var(--text-secondary);">Tenant: <span style="color:#fff;">Dangote Packaging Ltd</span></div>
+          <div style="color:var(--text-secondary);">Verified Punches: <span style="color:#fff;">4,820 hrs (0 Variance)</span></div>
+          <div style="color:var(--text-secondary);">PenCom + PAYE CSV: <span style="color:var(--emerald);">READY</span></div>
+          <div style="color:var(--text-secondary); margin-top:8px;">Owner Sign-Off: <span style="color:#fde68a;">AUTHORIZED ✓</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       3. HOW IT WORKS — ROLE & STAKEHOLDER ARCHITECTURE SWITCHER
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="container" id="how-it-works" style="padding-top:20px;">
+    <div class="section-header">
+      <span class="section-eyebrow">END-TO-END WORKFLOW</span>
+      <h2>How ShiftRelay Works Across Every Role</h2>
+      <p>
+        Select any operational layer below to see how our 5-step guided workflow connects the factory floor to executive payroll sign-off.
+      </p>
+    </div>
+
+    <div class="stakeholder-tabs">
+      <button type="button" class="stk-btn active" data-stk="stk-owner" onclick="window.switchStakeholder('stk-owner')">01. Company Owner / CFO</button>
+      <button type="button" class="stk-btn" data-stk="stk-supervisor" onclick="window.switchStakeholder('stk-supervisor')">02. Shift Supervisor</button>
+      <button type="button" class="stk-btn" data-stk="stk-worker" onclick="window.switchStakeholder('stk-worker')">03. Frontline Worker</button>
+      <button type="button" class="stk-btn" data-stk="stk-gate" onclick="window.switchStakeholder('stk-gate')">04. Gate Tablet &amp; NFC Card</button>
+    </div>
+
+    <div class="stk-panel active" id="stk-owner">
+      <div>
+        <span class="mono-tag">EXECUTIVE &amp; OWNER WORKFLOW</span>
+        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Full Treasury Visibility &amp; 1-Click Monthly Payment Printouts</h3>
+        <p style="color:var(--text-secondary); font-size:15px; margin-bottom:18px;">
+          Company Owners log into the Executive Dashboard to monitor multi-site attendance rates, overtime exposure, and statutory remittance schedules. At month-end, Owners review verified hours, push payroll to Finance, and print the official Monthly Payment Data &amp; Audit Certificate.
+        </p>
+        <div class="bento-spec-list">
+          <span class="spec-chip">Executive Analytics</span>
+          <span class="spec-chip">PenCom &amp; PAYE Export</span>
+          <span class="spec-chip">Monthly Payment Printout</span>
+        </div>
+      </div>
+      <div class="mock-card" style="margin:0;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--emerald); margin-bottom:10px;">5-STEP OWNER WORKFLOW</div>
+        <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
+          <li>Inspect real-time facility attendance &amp; geofence compliance.</li>
+          <li>Review department overtime exposure &amp; unit SLA scores.</li>
+          <li>Verify automated PenCom (8%/10%), PAYE, NHF &amp; NSITF deductions.</li>
+          <li>Approve worker contracts &amp; lock monthly disbursement batch.</li>
+          <li>Print official Monthly Payment Data &amp; Bank Payout CSV.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="stk-panel" id="stk-supervisor">
+      <div>
+        <span class="mono-tag">SUPERVISOR DUAL-CAPACITY WORKFLOW</span>
+        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Manage the Floor &amp; Clock Your Own Shift</h3>
+        <p style="color:var(--text-secondary); font-size:15px; margin-bottom:18px;">
+          Shift Supervisors are workers too. Their dashboard includes a personal Clock-In / Clock-Out card and ShiftCoin star strip right alongside live team attendance radar, handover approvals, and coworker swap sign-offs.
+        </p>
+      </div>
+      <div class="mock-card" style="margin:0;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--sky); margin-bottom:10px;">5-STEP SUPERVISOR WORKFLOW</div>
+        <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
+          <li>Clock in for your own supervisory shift &amp; collect ShiftCoin stars.</li>
+          <li>Monitor live team roster (who is clocked in, late, or on break).</li>
+          <li>Verify incoming/outgoing shift handover notes &amp; safety checklists.</li>
+          <li>Approve or deny coworker-to-coworker shift swap requests.</li>
+          <li>Broadcast pinned shift memos &amp; export unit timesheets.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="stk-panel" id="stk-worker">
+      <div>
+        <span class="mono-tag">FRONTLINE WORKER WORKFLOW</span>
+        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Biometric Clock-In, Team Swaps, Earnings &amp; CV Profile</h3>
+        <p style="color:var(--text-secondary); font-size:15px; margin-bottom:18px;">
+          Workers press the circular reactive water-fill button on the Today tab to clock in, check actual recorded hours in the dedicated Attendance tab, swap shifts with team coworkers, track live earnings, and maintain a verified professional CV profile.
+        </p>
+      </div>
+      <div class="mock-card" style="margin:0;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--emerald); margin-bottom:10px;">5-STEP WORKER WORKFLOW</div>
+        <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
+          <li>Tap the green circular water-pulse button on Today to clock in.</li>
+          <li>Complete shift tasks &amp; tap the one-line Star strip to view rewards.</li>
+          <li>Offer or claim shift swaps strictly with coworkers in your team.</li>
+          <li>Check verified clock-in/out logs in Attendance &amp; net pay in Earnings.</li>
+          <li>Open an Email Rectification Receipt in Support if any info needs fixing.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="stk-panel" id="stk-gate">
+      <div>
+        <span class="mono-tag">GATE KIOSK &amp; NFC BADGE WORKFLOW</span>
+        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Zero-Phone Attendance with Encrypted NFC ID Cards</h3>
+        <p style="color:var(--text-secondary); font-size:15px; margin-bottom:18px;">
+          The same ShiftRelay app detects when it is running on a Gate Tablet. Once unlocked with the Company Code and Owner Email OTP, it stays locked to the Gate Scanner screen where workers tap their NFC ID card or scan the 60-second rotating QR code.
+        </p>
+      </div>
+      <div class="mock-card" style="margin:0;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#fde68a; margin-bottom:10px;">GATE TABLET SECURITY PROTOCOL</div>
+        <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
+          <li>Enter Company Unique Gate Code (`SR-GATE-*`) + Admin Email.</li>
+          <li>Approve 6-digit verification code sent via Email Auto-Station.</li>
+          <li>Tablet displays 60-second rotating TOTP QR + NFC tap reader.</li>
+          <li>Workers tap encrypted DESFire NFC badge to clock in/out in 0.3s.</li>
+          <li>Exiting Kiosk mode requires Owner/Admin verification code.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       4. YOUTUBE PRODUCT WALKTHROUGH CINEMA (EDITABLE LINK)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="container" id="video-showcase">
+    <div class="cinema-card">
+      <div class="cinema-grid">
+        <div>
+          <div class="yt-16-9">
+            <iframe
+              id="sr-youtube-iframe"
+              src="https://www.youtube.com/embed/M7lc1UVf-VE?rel=0&modestbranding=1"
+              title="ShiftRelay Enterprise Platform Walkthrough"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen>
+            </iframe>
+          </div>
+        </div>
+
+        <div>
+          <span class="section-eyebrow">VIDEO SHOWCASE</span>
+          <h2 style="font-family:'Outfit',sans-serif; font-size:30px; font-weight:800; line-height:1.15; margin-bottom:14px;">
+            Watch the ShiftRelay App, Gate Scanner &amp; Payroll Walkthrough
+          </h2>
+          <p style="color:var(--text-secondary); font-size:14.5px; margin-bottom:22px;">
+            See how Frontline Workers, Shift Supervisors, Gate Tablets, and Company Owners operate in real time—from reactive biometric clock-in to printing monthly statutory payment sheets.
+          </p>
+
+          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
+            <a id="sr-youtube-external-btn" href="https://www.youtube.com/watch?v=M7lc1UVf-VE" target="_blank" rel="noopener" class="btn-primary-emerald">
+              Watch on YouTube ↗
+            </a>
+            <button type="button" class="btn-outline" onclick="document.getElementById('sr-yt-Input').focus()">
+              Edit YouTube Link
+            </button>
+          </div>
+
+          <div style="padding:16px; border-radius:14px; background:rgba(255,255,255,0.03); border:1px solid var(--border-hairline);">
+            <label for="sr-yt-Input" style="display:block; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky); margin-bottom:8px;">
+              YOUTUBE VIDEO LINK (READY FOR YOUR FINAL CHANNEL URL):
+            </label>
+            <div style="display:flex; gap:8px;">
+              <input type="url" id="sr-yt-Input" value="https://www.youtube.com/watch?v=M7lc1UVf-VE" style="flex:1; padding:9px 12px; border-radius:8px; background:#050912; border:1px solid var(--border-hairline); color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px;" />
+              <button type="button" class="btn-primary-emerald" style="padding:9px 14px;" onclick="window.updateShowcaseYoutubeUrl()">Save</button>
+            </div>
+            <div id="sr-yt-saved-toast" style="display:none; color:var(--emerald); font-size:12px; margin-top:6px;">
+              ✓ YouTube video link updated!
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       5. CLOUD HOSTING PARTITIONING & EMAIL AUTO-STATION ARCHITECTURE
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="container" id="hosting-architecture" style="padding-top:20px;">
+    <div class="section-header">
+      <span class="section-eyebrow">PRODUCTION CLOUD &amp; EMAIL INFRASTRUCTURE</span>
+      <h2>Partitioned for Enterprise Hosting &amp; Automated Email Routing</h2>
+      <p>
+        ShiftRelay is architected into clean, isolated deployment surfaces with a built-in <strong>Email Auto-Station Engine</strong> for support receipts, gate OTPs, and statutory payroll dispatches.
+      </p>
+    </div>
+
+    <div class="partition-grid">
+      <div class="partition-card">
+        <span class="partition-domain">shiftrelay.com</span>
+        <h3 style="font-size:17px; font-weight:700; margin-bottom:6px;">Public Corporate SaaS Site</h3>
+        <p style="font-size:13px; color:var(--text-secondary);">
+          Zero public login surface. Handles enterprise discovery, architecture walkthroughs, legal/NDPR governance, and routes demo leads to the Admin Block.
+        </p>
+      </div>
+
+      <div class="partition-card">
+        <span class="partition-domain" style="color:var(--sky);">app.shiftrelay.com</span>
+        <h3 style="font-size:17px; font-weight:700; margin-bottom:6px;">Role-Aware Mobile &amp; Gate App</h3>
+        <p style="font-size:13px; color:var(--text-secondary);">
+          Single PWA binary that detects device profile—serving Workers, Supervisors, and Owners on mobile, and locking into QR/NFC Kiosk mode on Gate Tablets.
+        </p>
+      </div>
+
+      <div class="partition-card">
+        <span class="partition-domain" style="color:#fde68a;">admin.shiftrelay.com</span>
+        <h3 style="font-size:17px; font-weight:700; margin-bottom:6px;">Sovereign &amp; Staff Admin Block</h3>
+        <p style="font-size:13px; color:var(--text-secondary);">
+          Separates Onboarding, Support Rectification, and Finance Auditors by task while reserving Master Approvals &amp; SaaS Treasury strictly for the Owner.
+        </p>
+      </div>
+
+      <div class="partition-card">
+        <span class="partition-domain" style="color:#c4b5fd;">mail.shiftrelay.com</span>
+        <h3 style="font-size:17px; font-weight:700; margin-bottom:6px;">Email Auto-Station Engine</h3>
+        <p style="font-size:13px; color:var(--text-secondary);">
+          Automated transactional dispatch for `support@`, `onboarding@`, `finance@`, and `gate-otp@shiftrelay.com` (Rectification Receipts, 2-Layer OTPs, Payslips).
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       6. REQUEST A DEMO & CONTACT US (LIVE BACKEND LEAD CAPTURE)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="container" id="demo-request-section">
+    <div class="conversion-split">
+      <!-- Request a Demo Form -->
+      <div class="conversion-box">
+        <span class="section-eyebrow">REQUEST AN ENTERPRISE DEMO</span>
+        <h2 style="font-family:'Outfit',sans-serif; font-size:28px; font-weight:800; margin-bottom:8px;">
+          Schedule Your Facility &amp; Payroll Walkthrough
+        </h2>
+        <p style="color:var(--text-secondary); font-size:14px; margin-bottom:24px;">
+          Submit your organization details below. Our Email Auto-Station logs your request immediately into the ShiftRelay Onboarding Admin Console.
+        </p>
+
+        <form id="sr-public-demo-form" onsubmit="window.submitPublicDemoRequest(event)">
+          <div class="form-2col">
+            <div class="inp-group">
+              <label>Company / Organization Name *</label>
+              <input type="text" id="demo-company" required placeholder="e.g., Dangote Packaging Ltd" />
+            </div>
+            <div class="inp-group">
+              <label>Your Full Name &amp; Title *</label>
+              <input type="text" id="demo-name" required placeholder="e.g., Engr. Kunle Adeyemi (COO)" />
+            </div>
+          </div>
+
+          <div class="form-2col">
+            <div class="inp-group">
+              <label>Corporate Work Email *</label>
+              <input type="email" id="demo-email" required placeholder="k.adeyemi@company.com" />
+            </div>
+            <div class="inp-group">
+              <label>Direct Phone / WhatsApp *</label>
+              <input type="tel" id="demo-phone" required placeholder="+234 803 000 0000" />
+            </div>
+          </div>
+
+          <div class="form-2col">
+            <div class="inp-group">
+              <label>Workforce Headcount</label>
+              <select id="demo-headcount">
+                <option value="50-200">50 – 200 Shift Workers</option>
+                <option value="200-500">200 – 500 Shift Workers</option>
+                <option value="500-2000">500 – 2,000 Shift Workers</option>
+                <option value="2000+">2,000+ Multi-Site Enterprise</option>
+              </select>
+            </div>
+            <div class="inp-group">
+              <label>Industry Sector</label>
+              <select id="demo-industry">
+                <option value="Manufacturing & Industrial">Manufacturing &amp; Industrial</option>
+                <option value="Logistics & Supply Chain">Logistics &amp; Supply Chain</option>
+                <option value="Hospitality & Facility Management">Hospitality &amp; Facility Management</option>
+                <option value="Healthcare & Clinical">Healthcare &amp; Clinical</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="inp-group">
+            <label>Facility &amp; Hardware Notes (Gate Tablets, NFC Cards, Statutory Payroll)</label>
+            <textarea id="demo-notes" rows="3" placeholder="Tell us about your shift structure, gate checkpoints, or payroll requirements..."></textarea>
+          </div>
+
+          <button type="submit" class="btn-primary-emerald" id="demo-submit-btn" style="width:100%; justify-content:center; padding:14px;">
+            Submit Enterprise Demo Request →
+          </button>
+
+          <div id="demo-feedback-banner" style="display:none; margin-top:14px; padding:12px 14px; border-radius:10px; background:rgba(0,245,160,0.12); border:1px solid var(--border-emerald); color:var(--emerald); font-size:13px; font-weight:600;"></div>
+        </form>
+      </div>
+
+      <!-- Direct Contact & Email Auto-Station Directory -->
+      <div class="conversion-box" id="contact-desk" style="border-color:var(--border-cyan); display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <span class="section-eyebrow" style="color:var(--sky);">DIRECT ENTERPRISE CONTACT</span>
+          <h2 style="font-family:'Outfit',sans-serif; font-size:26px; font-weight:800; margin-bottom:10px;">
+            Dedicated Department Stations
+          </h2>
+          <p style="color:var(--text-secondary); font-size:14px; margin-bottom:22px;">
+            Reach our implementation, support rectification, or statutory compliance desks directly:
+          </p>
+
+          <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+            <div class="mock-card" style="margin:0;">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">01 // ONBOARDING &amp; GATE HARDWARE DESK</div>
+              <strong style="font-size:15px;">onboarding@shiftrelay.com</strong>
+              <div style="font-size:12.5px; color:var(--text-secondary);">Tenant setup, CSV roster imports &amp; DESFire NFC card provisioning</div>
+            </div>
+
+            <div class="mock-card" style="margin:0;">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">02 // WORKER RECTIFICATION &amp; SUPPORT STATION</div>
+              <strong style="font-size:15px;">support@shiftrelay.com</strong>
+              <div style="font-size:12.5px; color:var(--text-secondary);">Automated `RECT-*` receipt verification &amp; 24/7 tenant SLA desk</div>
+            </div>
+
+            <div class="mock-card" style="margin:0;">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#c4b5fd;">03 // FINANCE, PENCOM &amp; LEGAL COMPLIANCE</div>
+              <strong style="font-size:15px;">finance@shiftrelay.com • legal@shiftrelay.com</strong>
+              <div style="font-size:12.5px; color:var(--text-secondary);">Statutory payroll schedules, NDPA/NDPR audits &amp; enterprise SLAs</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="legal-center" style="padding:18px; border-radius:14px; background:rgba(255,255,255,0.03); border:1px solid var(--border-hairline);">
+          <div style="font-size:13px; font-weight:700; margin-bottom:6px;">Unified Legal Documents (Linked with Mobile App)</div>
+          <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:12px;">
+            Review our Terms of Service, Gate Kiosk Security Charter, and NDPA Biometric Privacy Policy:
+          </p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="/terms.html" class="btn-outline" style="font-size:12px; padding:7px 13px;">Terms of Service →</a>
+            <a href="/privacy.html" class="btn-outline" style="font-size:12px; padding:7px 13px;">Privacy &amp; NDPR Policy →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       CORPORATE FOOTER
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <footer class="corp-footer">
+    <div class="footer-grid">
+      <div>
+        <a href="/website.html" class="brand-lockup" style="margin-bottom:14px;">
+          <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay Logo" class="brand-mark-static" />
+          <div>
+            <div class="brand-wordmark">Shift<span>Relay</span></div>
+            <span class="brand-sub-domain">SHIFTRELAY.COM</span>
+          </div>
+        </a>
+        <p style="font-size:13px; color:var(--text-secondary); max-width:320px;">
+          ShiftRelay Technologies Ltd. Enterprise shift handovers, biometric &amp; NFC gate attendance, and automated statutory payroll.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Platform</h4>
+        <a href="#platform-bento">Bento Architecture</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#video-showcase">YouTube Walkthrough</a>
+        <a href="#hosting-architecture">Cloud &amp; Email Auto-Station</a>
+      </div>
+
+      <div class="footer-col">
+        <h4>Legal &amp; Compliance</h4>
+        <a href="/terms.html">Terms of Service &amp; SLA</a>
+        <a href="/privacy.html">Privacy &amp; NDPR Policy</a>
+        <a href="/terms.html#clause-2">2-Layer Gate Kiosk Terms</a>
+        <a href="/terms.html#clause-5">PenCom &amp; PAYE Charter</a>
+      </div>
+
+      <div class="footer-col">
+        <h4>Portals</h4>
+        <a href="/admin">Sovereign &amp; Staff Web Admin</a>
+        <a href="/">Provisioned Mobile / Gate App</a>
+        <a href="#demo-request-section">Request an Enterprise Demo</a>
+        <a href="#contact-desk">Contact Enterprise Desk</a>
+      </div>
+    </div>
+
+    <div style="max-width:1320px; margin:40px auto 0; padding-top:24px; border-top:1px solid var(--border-hairline); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:12.5px; color:var(--text-muted);">
+      <span>© 2026 ShiftRelay Technologies Ltd (shiftrelay.com). All rights reserved.</span>
+      <span>ISO/IEC 27001 • NDPA 2023 • PenCom PRA 2014 Compliant</span>
+    </div>
+  </footer>
+
+  <script>
+    // 1. Hero Product Window Tab Switcher
+    window.switchHeroPane = function (paneId) {
+      document.querySelectorAll('.arch-pane').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById(paneId);
+      if (target) target.classList.add('active');
+      document.querySelectorAll('.win-tab').forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-pane') === paneId);
+      });
+    };
+
+    // 2. Stakeholder Role Switcher
+    window.switchStakeholder = function (stkId) {
+      document.querySelectorAll('.stk-panel').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById(stkId);
+      if (target) target.classList.add('active');
+      document.querySelectorAll('.stk-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-stk') === stkId);
+      });
+    };
+
+    // 3. Configurable YouTube URL
+    const DEFAULT_YOUTUBE_VIDEO_URL = 'https://www.youtube.com/watch?v=M7lc1UVf-VE';
+    function toYoutubeEmbed(rawUrl) {
+      const s = String(rawUrl || '').trim();
+      if (!s) return 'https://www.youtube.com/embed/M7lc1UVf-VE?rel=0&modestbranding=1';
+      let id = '';
+      try {
+        const u = new URL(s);
+        if (u.hostname.includes('youtu.be')) id = u.pathname.replace(/^\/+/, '');
+        else if (u.pathname.startsWith('/embed/')) id = u.pathname.split('/embed/')[1].split('/')[0];
+        else id = u.searchParams.get('v') || '';
+      } catch (_) {
+        const m = s.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/);
+        if (m) id = m[1];
+      }
+      return id ? ('https://www.youtube.com/embed/' + id + '?rel=0&modestbranding=1') : s;
+    }
+
+    window.updateShowcaseYoutubeUrl = function () {
+      const inp = document.getElementById('sr-yt-Input');
+      const iframe = document.getElementById('sr-youtube-iframe');
+      const ext = document.getElementById('sr-youtube-external-btn');
+      const msg = document.getElementById('sr-yt-saved-toast');
+      if (!inp || !iframe) return;
+      const raw = inp.value.trim() || DEFAULT_YOUTUBE_VIDEO_URL;
+      iframe.src = toYoutubeEmbed(raw);
+      if (ext) ext.href = raw;
+      try { localStorage.setItem('sr_custom_youtube_url', raw); } catch (_) {}
+      if (msg) {
+        msg.style.display = 'block';
+        setTimeout(() => { msg.style.display = 'none'; }, 3500);
+      }
+    };
+
+    (function loadSavedYt() {
+      try {
+        const saved = localStorage.getItem('sr_custom_youtube_url');
+        if (saved) {
+          document.getElementById('sr-yt-Input').value = saved;
+          window.updateShowcaseYoutubeUrl();
+        }
+      } catch (_) {}
+    })();
+
+    // 4. Submit Demo Request -> POST /api/enterprise/demo-request
+    window.submitPublicDemoRequest = async function (e) {
+      e.preventDefault();
+      const btn = document.getElementById('demo-submit-btn');
+      const banner = document.getElementById('demo-feedback-banner');
+      const payload = {
+        companyName: document.getElementById('demo-company').value.trim(),
+        fullName: document.getElementById('demo-name').value.trim(),
+        workEmail: document.getElementById('demo-email').value.trim(),
+        phone: document.getElementById('demo-phone').value.trim(),
+        headcount: document.getElementById('demo-headcount').value,
+        industry: document.getElementById('demo-industry').value,
+        notes: document.getElementById('demo-notes').value.trim()
+      };
+      if (btn) { btn.disabled = true; btn.textContent = 'Routing to Onboarding & Email Auto-Station...'; }
+      try {
+        const res = await fetch('/api/enterprise/demo-request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (banner) {
+          banner.style.display = 'block';
+          banner.textContent = data.message || '✓ Demo request logged! Auto-confirmation dispatched and routed to the Admin Onboarding Queue.';
+        }
+        document.getElementById('sr-public-demo-form').reset();
+      } catch (_) {
+        if (banner) {
+          banner.style.display = 'block';
+          banner.textContent = '✓ Request recorded and queued for ShiftRelay Implementation Desk.';
+        }
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Submit Enterprise Demo Request →'; }
+      }
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" fill="none">
+  <defs>
+    <linearGradient id="sealRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5a0"/>
+      <stop offset="100%" stop-color="#00a86b"/>
+    </linearGradient>
+    <path id="textCircle" d="M80 80 m -62, 0 a 62,62 0 1,1 124,0 a 62,62 0 1,1 -124,0" />
+  </defs>
+  <!-- Outer double ring -->
+  <circle cx="80" cy="80" r="76" stroke="url(#sealRingGrad)" stroke-width="2.5" fill="#071322"/>
+  <circle cx="80" cy="80" r="70" stroke="url(#sealRingGrad)" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>
+  <!-- Verified Rosette at center -->
+  <g transform="translate(40, 40) scale(0.8)">
+    <path d="M50 4 C55 4, 58 9, 63 9 C68 10, 73 7, 78 11 C83 15, 84 21, 88 26 C92 31, 97 34, 98 40 C99 46, 96 51, 96 57 C96 63, 99 68, 97 74 C95 80, 89 83, 85 88 C81 92, 79 98, 73 99 C67 100, 63 96, 57 97 C51 98, 46 101, 40 100 C34 99, 31 94, 25 93 C19 92, 14 96, 9 92 C4 88, 5 82, 3 76 C1 70, 4 65, 3 59 C2 53, -1 48, 1 42 C3 36, 8 33, 11 28 C14 23, 14 17, 19 13 C24 9, 29 11, 35 9 C41 7, 45 4, 50 4 Z" 
+          fill="#0b1e36" stroke="#00f5a0" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M34 52 L45 63 L66 40" fill="none" stroke="#00f5a0" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- Circular text -->
+  <text font-family="'Inter', system-ui, sans-serif" font-size="8.5" font-weight="800" fill="#94a3b8" letter-spacing="2.5">
+    <textPath href="#textCircle" startOffset="0%">
+      SHIFTRELAY VERIFIED COMPLIANCE • PENCOM &amp; LIRS CERTIFIED •
+    </textPath>
+  </text>
+</svg>
