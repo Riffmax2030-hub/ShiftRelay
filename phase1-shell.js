@@ -29,29 +29,29 @@
     const copy = { ...u };
     // Map any synthetic demo persona IDs to real backend seeded UUIDs in database.mjs
     if (copy.id === 'usr_cleaner_demo' || (copy.role === 'worker' && !copy.id?.startsWith('00000000-'))) {
-      copy.id = '00000000-0000-4000-8000-000000000011';
+      copy.id = '00000000-0000-4000-8000-000000000003';
       copy.role = 'outgoing';
-      copy.name = copy.name || 'Amina Otieno';
-      copy.email = copy.email || 'amina@shiftrelay.demo';
-      copy.title = copy.title || 'Senior Cleaner & Operations Specialist';
-      copy.department = copy.department || 'Operations';
-      copy.organisation_name = copy.organisation_name || 'CleanPro Facilities';
+      copy.name = copy.name || 'Babatunde Adeleke';
+      copy.email = copy.email || 'babatunde@riffmax.tech';
+      copy.title = copy.title || 'Lead Frontend Architect';
+      copy.department = copy.department || 'Frontend Engineering';
+      copy.organisation_name = copy.organisation_name || 'Riffmax Technology';
     } else if (copy.id === 'usr_supervisor_demo' || (copy.role === 'supervisor' && !copy.id?.startsWith('00000000-'))) {
-      copy.id = '00000000-0000-4000-8000-000000000012';
+      copy.id = '00000000-0000-4000-8000-000000000002';
       copy.role = 'supervisor';
-      copy.name = copy.name || 'David Kariuki';
-      copy.email = copy.email || 'david@shiftrelay.demo';
-      copy.title = copy.title || 'Shift Supervisor';
-      copy.department = copy.department || 'Operations';
-      copy.organisation_name = copy.organisation_name || 'CleanPro Facilities';
+      copy.name = copy.name || 'Olaide Emmanuela';
+      copy.email = copy.email || 'olaide@riffmax.tech';
+      copy.title = copy.title || 'Operations Lead & Shift Supervisor';
+      copy.department = copy.department || 'Operations & Delivery';
+      copy.organisation_name = copy.organisation_name || 'Riffmax Technology';
     } else if (copy.id === 'usr_owner_demo' || (copy.role === 'owner' && !copy.id?.startsWith('00000000-'))) {
-      copy.id = '00000000-0000-4000-8000-000000000014';
+      copy.id = '00000000-0000-4000-8000-000000000001';
       copy.role = 'owner';
-      copy.name = copy.name || 'Jordan Lee';
-      copy.email = copy.email || 'jordan@shiftrelay.demo';
-      copy.title = copy.title || 'Managing Director & Facility Owner';
-      copy.department = copy.department || 'Leadership';
-      copy.organisation_name = copy.organisation_name || 'CleanPro Facilities';
+      copy.name = copy.name || 'Sherif Akanmu';
+      copy.email = copy.email || 'sherif@riffmax.tech';
+      copy.title = copy.title || 'Managing Director & CEO';
+      copy.department = copy.department || 'Executive Directorate';
+      copy.organisation_name = copy.organisation_name || 'Riffmax Technology';
     }
     return copy;
   }
@@ -723,7 +723,7 @@
     const isOffline = !navigator.onLine || (window.OfflineQueue?.getPendingCount?.() > 0);
 
     // Build responsive header HTML
-    const companyName = user.organisation_name || user.organisationId || 'Workplace';
+    const companyName = user.organisation_name || user.organisationId || 'Riffmax Technology';
     const siteName = user.department || user.site_name || 'Main Facility';
     const roleTitle = user.title || user.role || 'Member';
 
@@ -759,7 +759,7 @@
             <button class="sr-context-pill" id="sr-btn-context" aria-label="Switch organization context" title="Click to switch workplace">
               <span class="sr-dot"></span>
               <div class="sr-context-pill-text">
-                <span class="sr-context-pill-org">${escapeHtml(companyName)} <span class="sr-header-tenant-chip">ID: ${escapeHtml(user.company_id || '246701')}</span></span>
+                <span class="sr-context-pill-org">${escapeHtml(companyName)} <span class="sr-header-tenant-chip">ID: ${escapeHtml(user.company_id || 'RIF-2026')}</span></span>
                 <span class="sr-context-pill-site">${escapeHtml(siteName)} · ${escapeHtml(roleTitle)}</span>
               </div>
               <svg class="sr-context-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
@@ -1595,7 +1595,7 @@
       }
 
       const tasks = relevantHandover?.handover?.tasks || relevantHandover?.handover?.actions || [];
-      const companyName = user.organisation_name || 'Apex Healthcare';
+      const companyName = user.organisation_name || 'Riffmax Technology';
       const siteName = user.department || 'Operations Unit';
       const tenantId = user.tenant_id || user.company_id || user.organisation_id || 'FLO-NG-6093';
       const starState = getStarActivityState();
@@ -2251,7 +2251,7 @@
       const pendingLeave = (leaveData.requests || []).filter(r => r.status === 'pending');
       const activeAnnouncements = announcementsData.announcements || [];
 
-      const companyName = user.organisation_name || 'Apex Healthcare';
+      const companyName = user.organisation_name || 'Riffmax Technology';
       const siteName = user.department || 'Operations Management Unit';
       const supActiveEntry = timeData.active || (timeData.entries || []).find(e => !e.clocked_out_at && e.membership_id === user.id) || (localStorage.getItem('sr_sup_active_shift') ? JSON.parse(localStorage.getItem('sr_sup_active_shift')) : null);
       const isSupClockedIn = Boolean(supActiveEntry);
@@ -3979,7 +3979,7 @@
       const html = `
         <div class="sr-context-banner">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Riffmax Technology')}</span>
             <span class="sr-context-banner-site">Scope: <strong>${escapeHtml(user.department || 'Operations')}</strong></span>
           </div>
           <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
@@ -4395,7 +4395,7 @@
       const html = `
         <div class="sr-context-banner">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Riffmax Technology')}</span>
             <span class="sr-context-banner-site">Scope: <strong>${escapeHtml(user.department || 'Operations Leadership')}</strong></span>
           </div>
           <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
@@ -5608,17 +5608,87 @@
                     <span style="font-size: 11.5px; color: var(--p-text-3);">Access Revoked</span>
                     <span class="sr-badge sr-badge-neutral" style="font-size: 11px;">Deactivated</span>
                   ` : `
-                    <span style="font-size: 11.5px; color: var(--p-text-3);">Frontline Access</span>
-                    <button type="button" class="sr-btn sr-btn-danger sr-btn-revoke-member" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-title="${escapeHtml(m.title || roleLabel)}" style="min-height: 28px; padding: 0 10px; font-size: 11.5px; background: transparent; color: var(--p-red); border: 1px solid var(--p-red-border);">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-                      Revoke
-                    </button>
+                    <div style="display:flex;align-items:center;gap:6px;width:100%;justify-content:space-between;">
+                      <button type="button" class="sr-btn sr-btn-primary sr-btn-send-invite" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-email="${escapeHtml(m.email || '')}" style="min-height: 28px; padding: 0 10px; font-size: 11.5px; background: var(--p-teal); color: #fff; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        <span>Enable &amp; Invite</span>
+                      </button>
+                      <button type="button" class="sr-btn sr-btn-danger sr-btn-revoke-member" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-title="${escapeHtml(m.title || roleLabel)}" style="min-height: 28px; padding: 0 8px; font-size: 11.5px; background: transparent; color: var(--p-red); border: 1px solid var(--p-red-border); border-radius: 6px; cursor: pointer;">
+                        Revoke
+                      </button>
+                    </div>
                   `}
                 </div>
               ` : ''}
             </article>
           `;
         }).join('');
+
+        // Bind Enable & Send Invite buttons
+        listContainer.querySelectorAll('.sr-btn-send-invite').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const memberId = btn.dataset.id;
+            const memberName = btn.dataset.name;
+            const memberEmail = btn.dataset.email;
+            btn.disabled = true;
+            btn.innerHTML = '<span>Inviting…</span>';
+
+            try {
+              const res = await fetch('/api/executive/invite-member', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId })
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error || 'Failed to dispatch invite');
+
+              btn.style.background = '#059669';
+              btn.innerHTML = '<span>✓ Invite Sent</span>';
+              showToast(`Invitation dispatched to ${memberEmail}! Link active.`);
+
+              // Show shareable modal dialog
+              const shareModal = document.createElement('div');
+              shareModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:grid;place-items:center;z-index:99999;padding:20px;';
+              shareModal.innerHTML = `
+                <div style="background:#0f172a;border:1.5px solid #334155;border-radius:18px;max-width:480px;width:100%;padding:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.7);color:#f8fafc;">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                    <span style="font-size:20px;">✉</span>
+                    <h3 style="margin:0;font-size:17px;font-weight:800;color:#34d399;">Activation Invite Dispatched!</h3>
+                  </div>
+                  <p style="font-size:13.5px;color:#94a3b8;line-height:1.5;margin-bottom:16px;">
+                    An official activation link has been delivered to <strong>${memberEmail}</strong> via the ShiftRelay Email Engine.
+                  </p>
+                  <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px;margin-bottom:16px;">
+                    <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;text-transform:uppercase;font-weight:700;">Direct Activation URL:</div>
+                    <code id="modal-act-url" style="font-family:monospace;font-size:12px;color:#38bdf8;word-break:break-all;display:block;">${data.member?.activationUrl || (window.location.origin + '/activate?token=' + data.member?.activationToken)}</code>
+                  </div>
+                  <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button type="button" id="btn-copy-act-url" style="padding:8px 16px;background:#10b981;color:#022c22;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;">
+                      Copy Link
+                    </button>
+                    <button type="button" id="btn-close-act-modal" style="padding:8px 16px;background:#334155;color:#f8fafc;border:none;border-radius:8px;font-weight:600;font-size:12.5px;cursor:pointer;">
+                      Done
+                    </button>
+                  </div>
+                </div>
+              `;
+              document.body.appendChild(shareModal);
+              shareModal.querySelector('#btn-copy-act-url').addEventListener('click', () => {
+                const urlText = shareModal.querySelector('#modal-act-url').textContent;
+                navigator.clipboard?.writeText(urlText);
+                showToast('Copied activation link to clipboard!');
+              });
+              shareModal.querySelector('#btn-close-act-modal').addEventListener('click', () => {
+                shareModal.remove();
+              });
+            } catch (err) {
+              btn.disabled = false;
+              btn.innerHTML = '<span>Enable &amp; Invite</span>';
+              showToast('Error: ' + err.message);
+            }
+          });
+        });
 
         // Bind revoke buttons
         listContainer.querySelectorAll('.sr-btn-revoke-member').forEach(btn => {
@@ -5635,7 +5705,7 @@
       container.innerHTML = `
         <div class="sr-context-banner">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Riffmax Technology')}</span>
             <span class="sr-context-banner-site">Site: <strong>${escapeHtml(user.department || 'Operations')}</strong></span>
           </div>
           <span class="sr-context-banner-badge">${allMembers.length} Members</span>
@@ -5824,7 +5894,7 @@
       container.innerHTML = `
         <div class="sr-context-banner">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Apex Healthcare')}</span>
+            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Riffmax Technology')}</span>
             <span class="sr-context-banner-site">Scope: <strong>${escapeHtml(user.department || 'Operations')}</strong></span>
           </div>
           <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
@@ -8893,35 +8963,35 @@
   const ROLE_DEMO_PERSONAS = {
     cleaner: {
       id: 'usr_cleaner_demo',
-      name: 'Amara Okafor',
-      email: 'amara@cleanpro.ng',
+      name: 'Babatunde Adeleke',
+      email: 'babatunde@riffmax.tech',
       role: 'worker',
-      title: 'Senior Cleaner',
-      organisation_name: 'CleanPro Facilities',
-      site_name: 'Eko Atlantic Tower A',
-      company_id: 'CP-4482',
-      stars: 950
+      title: 'Lead Frontend Architect',
+      organisation_name: 'Riffmax Technology',
+      site_name: 'Victoria Island Engineering Hub',
+      company_id: 'RIF-2026',
+      stars: 1200
     },
     supervisor: {
       id: 'usr_supervisor_demo',
-      name: 'David Kariuki',
-      email: 'david@cleanpro.ng',
+      name: 'Olaide Emmanuela',
+      email: 'olaide@riffmax.tech',
       role: 'supervisor',
-      title: 'Shift Supervisor',
-      organisation_name: 'CleanPro Facilities',
-      site_name: 'Eko Atlantic Complex',
-      company_id: 'CP-4482',
-      stars: 2400
+      title: 'Operations Lead & Shift Supervisor',
+      organisation_name: 'Riffmax Technology',
+      site_name: 'Victoria Island Engineering Hub',
+      company_id: 'RIF-2026',
+      stars: 2800
     },
     owner: {
       id: 'usr_owner_demo',
-      name: 'Jordan Lee',
-      email: 'jordan@cleanpro.ng',
+      name: 'Sherif Akanmu',
+      email: 'sherif@riffmax.tech',
       role: 'owner',
-      title: 'Managing Director & Facility Owner',
-      organisation_name: 'CleanPro Facilities',
-      site_name: 'Corporate HQ',
-      company_id: 'CP-4482',
+      title: 'Managing Director & CEO',
+      organisation_name: 'Riffmax Technology',
+      site_name: 'Corporate HQ (Lagos)',
+      company_id: 'RIF-2026',
       stars: 5000
     }
   };

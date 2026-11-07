@@ -1,3 +1,66 @@
+
+// ── ShiftRelay Enterprise Email Delivery Engine ───────────────────────────
+export async function sendShiftRelayEmail({ to, subject, html, text, source = 'ShiftRelay Engine' }) {
+  const store = await getStore();
+  if (!Array.isArray(store.emailStation)) store.emailStation = [];
+
+  const emailId = 'eml_' + Date.now() + '_' + Math.floor(1000 + Math.random() * 9000);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const from = process.env.FROM_EMAIL || 'notifications@shiftrelay.tech';
+
+  const emailRecord = {
+    id: emailId,
+    time: timeStr,
+    timestamp: now.toISOString(),
+    from,
+    to,
+    subject,
+    html: html || text,
+    text: text || (html ? html.replace(/<[^>]+>/g, '') : ''),
+    source,
+    status: 'DELIVERED'
+  };
+
+  store.emailStation.unshift(emailRecord);
+  if (store.emailStation.length > 500) store.emailStation.pop();
+  await saveStore(store);
+
+  // Extract link if present in email text or html
+  const urlMatch = (html || text || '').match(/https?:\/\/[^\s"'>]+/);
+  const clickableUrl = urlMatch ? urlMatch[0] : null;
+
+  console.log('\n' + '╔═══════════════════════════════════════════════════════════════════════════════╗');
+  console.log('║ ✉ SHIFTRELAY EMAIL ENGINE DISPATCH                                            ║');
+  console.log('╠═══════════════════════════════════════════════════════════════════════════════╣');
+  console.log('║ Recipient: ' + to.padEnd(65) + '║');
+  console.log('║ Subject:   ' + subject.slice(0, 65).padEnd(65) + '║');
+  console.log('║ Source:    ' + source.padEnd(65) + '║');
+  if (clickableUrl) {
+    console.log('║ Action Link: ' + clickableUrl.slice(0, 63).padEnd(63) + '║');
+  }
+  console.log('╚═══════════════════════════════════════════════════════════════════════════════╝\n');
+
+  // Optional: If RESEND_API_KEY is configured in .env, dispatch live transactional email
+  if (process.env.RESEND_API_KEY) {
+    try {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ from, to, subject, html, text })
+      });
+      console.log('✓ Dispatched to real inbox via Resend API');
+    } catch (e) {
+      console.warn('Resend dispatch failed (fallback to mock station):', e.message);
+    }
+  }
+
+  return emailRecord;
+}
+
 import { createServer } from 'node:http';
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
@@ -86,269 +149,68 @@ export async function getStore() {
   try { store = JSON.parse(await readFile(dataPath, 'utf8')); }
   catch { store = { handovers: [], notifications: [] }; }
 
-  // ── Enterprise Tenants: Dangote + Flour Mills (separate company accounts) ──
+    // ── Premier Enterprise Tenant: Riffmax Technology Limited ──
   if (!Array.isArray(store.organisations) || store.organisations.length === 0) {
     store.organisations = [
       {
         id: '00000000-0000-4000-8000-000000000100',
-        organisation_code: '246701',
-        aliases: ['DAN-NG-4011', 'SR-NG-101', '246701', 'DANGOTE'],
-        legal_name: 'Apex Logistics & Industrial Operations (Nigeria)',
-        trading_name: 'Apex Logistics',
-        industry: 'Logistics & FMCG',
+        organisation_code: 'RIF-2026',
+        aliases: ['RIF-2026', 'RIFFMAX', 'RIFFMAX-01', 'RIF-01', '246701'],
+        legal_name: 'Riffmax Technology Limited',
+        trading_name: 'Riffmax Technology',
+        work_email: 'sherif@riffmax.tech',
+        industry: 'Enterprise SaaS & Workforce DeepTech',
         country: 'Nigeria',
+        state: 'Lagos',
         currency: 'NGN',
-        hub_lat: 6.4474,
-        hub_lng: 3.3590,
-        hub_name: 'Apapa Industrial Terminal',
-        hub_perimeter: 500
-      },
-      {
-        // ── Pilot Tenant: Flour Mills of Nigeria Plc (Apapa Mill) ──────────
-        id: '00000000-0000-4000-8000-000000000200',
-        organisation_code: 'FLO-NG-6093',
-        aliases: ['FLO-NG-6093', 'FLOURMILLS', 'FMN'],
-        legal_name: 'Flour Mills of Nigeria Plc',
-        trading_name: 'Flour Mills',
-        industry: 'Food Manufacturing',
-        country: 'Nigeria',
-        currency: 'NGN',
-        hub_lat: 6.4510,
-        hub_lng: 3.3810,
-        hub_name: 'Apapa Mill Gate A',
-        hub_perimeter: 400,
-        subscription_tier: 'enterprise',
+        time_zone: 'Africa/Lagos',
+        hub_name: 'Riffmax Software Engineering Hub',
+        address: 'Victoria Island / Lekki Tech Corridor, Lagos, Nigeria',
+        hub_lat: 6.4312,
+        hub_lng: 3.4244,
+        hub_perimeter: 120,
+        subscription_tier: 'enterprise_founding_partner',
+        verification_status: 'verified',
         onboarding_fee_paid: true,
-        monthly_fee_ngn: 400000,
-        pepm_ngn: 4500
+        monthly_fee_ngn: 500000,
+        pepm_ngn: 5000,
+        created_at: new Date().toISOString()
       }
     ];
   }
-  // ── Ensure Flour Mills org always present in multi-tenant stores ────────────
-  if (!store.organisations.find(o => o.organisation_code === 'FLO-NG-6093')) {
-    store.organisations.push({
-      id: '00000000-0000-4000-8000-000000000200',
-      organisation_code: 'FLO-NG-6093',
-      aliases: ['FLO-NG-6093', 'FLOURMILLS', 'FMN'],
-      legal_name: 'Flour Mills of Nigeria Plc',
-      trading_name: 'Flour Mills',
-      industry: 'Food Manufacturing',
-      country: 'Nigeria',
-      currency: 'NGN',
-      hub_lat: 6.4510,
-      hub_lng: 3.3810,
-      hub_name: 'Apapa Mill Gate A',
-      hub_perimeter: 400
-    });
-  }
+
   if (!Array.isArray(store.contracts) || store.contracts.length === 0) {
-    store.contracts = [
-      {
-        userId: '00000000-0000-4000-8000-000000000011',
-        userName: 'Amina Otieno',
-        staffId: 'DNG-0411',
-        role: 'Process Operations Specialist',
-        department: 'Industrial Plant Operations',
-        compensation_type: 'fixed_monthly',
-        monthly_rate: 220000,
-        hourly_rate: 1375,
-        currency: 'NGN',
-        bank_name: 'Access Bank',
-        account_number: '0123456789',
-        account_name: 'Amina Otieno'
-      },
-      {
-        userId: '00000000-0000-4000-8000-000000000012',
-        userName: 'David Kariuki',
-        staffId: 'DNG-0102',
-        role: 'Shift Operations Supervisor',
-        department: 'Plant Supervision & Handover',
-        compensation_type: 'fixed_monthly',
-        monthly_rate: 350000,
-        hourly_rate: 2187,
-        currency: 'NGN',
-        bank_name: 'First Bank of Nigeria',
-        account_number: '3109876543',
-        account_name: 'David Kariuki'
-      },
-      {
-        userId: '00000000-0000-4000-8000-000000000013',
-        userName: 'Faith Wanjiku',
-        staffId: 'DNG-0823',
-        role: 'Incoming Specialist',
-        department: 'Supply Chain Operations',
-        compensation_type: 'fixed_monthly',
-        monthly_rate: 185000,
-        hourly_rate: 1156,
-        currency: 'NGN',
-        bank_name: 'Zenith Bank',
-        account_number: '2081123456',
-        account_name: 'Faith Wanjiku'
-      },
-      {
-        userId: '00000000-0000-4000-8000-000000000014',
-        userName: 'Jordan Lee',
-        staffId: 'DNG-0001',
-        role: 'Managing Director / Owner',
-        department: 'Executive Operations',
-        compensation_type: 'fixed_monthly',
-        monthly_rate: 750000,
-        hourly_rate: 4687,
-        currency: 'NGN',
-        bank_name: 'Guaranty Trust Bank (GTBank)',
-        account_number: '0019283746',
-        account_name: 'Jordan Lee'
-      },
-      {
-        userId: 'demo-aaron',
-        userName: 'Aaron Glover',
-        staffId: 'DNG-1194',
-        role: 'Frontline Locum Specialist',
-        department: 'Logistics Fleet Maintenance',
-        compensation_type: 'hourly_shift',
-        monthly_rate: 0,
-        hourly_rate: 1800,
-        currency: 'NGN',
-        bank_name: 'United Bank for Africa (UBA)',
-        account_number: '2098765431',
-        account_name: 'Aaron Glover'
-      },
-      // ── Flour Mills of Nigeria Plc — Pilot Tenant Workers ─────────────────
-      {
-        userId: 'fmn-emeka-001',
-        tenant_id: '00000000-0000-4000-8000-000000000200',
-        organisation_id: '00000000-0000-4000-8000-000000000200',
-        userName: 'Emeka Okafor',
-        staffId: 'FMN-0101',
-        role: 'Senior Mill Operator',
-        department: 'Milling — Wheat Processing',
-        compensation_type: 'fixed_monthly',
-        monthly_rate: 280000,
-        hourly_rate: 1750,
-        currency: 'NGN',
-        bank_name: 'Access Bank',
-        account_number: '0112345678',
-        account_name: 'Emeka Okafor'
-      },
-      {
-        userId: 'fmn-ngozi-002',
-        tenant_id: '00000000-0000-4000-8000-000000000200',
-        organisation_id: '00000000-0000-4000-8000-000000000200',
-        userName: 'Ngozi Adeyemi',
-        staffId: 'FMN-0102',
-        role: 'Packaging Line Lead',
-        department: 'Packaging & Dispatch',
-        compensation_type: 'fixed_monthly',
-        monthly_rate: 240000,
-        hourly_rate: 1500,
-        currency: 'NGN',
-        bank_name: 'Zenith Bank',
-        account_number: '2034567890',
-        account_name: 'Ngozi Adeyemi'
-      },
-      {
-        userId: 'fmn-chidi-003',
-        tenant_id: '00000000-0000-4000-8000-000000000200',
-        organisation_id: '00000000-0000-4000-8000-000000000200',
-        userName: 'Chidi Nwosu',
-        staffId: 'FMN-0103',
-        role: 'Quality Control Technician',
-        department: 'Quality Assurance',
-        compensation_type: 'fixed_monthly',
-        monthly_rate: 210000,
-        hourly_rate: 1313,
-        currency: 'NGN',
-        bank_name: 'First Bank of Nigeria',
-        account_number: '3041234567',
-        account_name: 'Chidi Nwosu'
-      },
-      {
-        userId: 'fmn-aisha-004',
-        tenant_id: '00000000-0000-4000-8000-000000000200',
-        organisation_id: '00000000-0000-4000-8000-000000000200',
-        userName: 'Aisha Bello',
-        staffId: 'FMN-0104',
-        role: 'Gate Security Officer',
-        department: 'Security & Access Control',
-        compensation_type: 'fixed_monthly',
-        monthly_rate: 195000,
-        hourly_rate: 1219,
-        currency: 'NGN',
-        bank_name: 'Guaranty Trust Bank (GTBank)',
-        account_number: '0198765432',
-        account_name: 'Aisha Bello'
-      },
-      {
-        userId: 'fmn-tunde-005',
-        tenant_id: '00000000-0000-4000-8000-000000000200',
-        organisation_id: '00000000-0000-4000-8000-000000000200',
-        userName: 'Tunde Fashola',
-        staffId: 'FMN-0105',
-        role: 'Maintenance Technician',
-        department: 'Engineering & Maintenance',
-        compensation_type: 'hourly_shift',
-        monthly_rate: 0,
-        hourly_rate: 2000,
-        currency: 'NGN',
-        bank_name: 'United Bank for Africa (UBA)',
-        account_number: '2078901234',
-        account_name: 'Tunde Fashola'
-      },
-      {
-        userId: 'fmn-hr-admin',
-        tenant_id: '00000000-0000-4000-8000-000000000200',
-        organisation_id: '00000000-0000-4000-8000-000000000200',
-        userName: 'Funke Adebisi',
-        staffId: 'FMN-HR-01',
-        role: 'HR & Payroll Supervisor',
-        department: 'Human Resources',
-        compensation_type: 'fixed_monthly',
-        monthly_rate: 420000,
-        hourly_rate: 2625,
-        currency: 'NGN',
-        bank_name: 'Access Bank',
-        account_number: '0156789012',
-        account_name: 'Funke Adebisi'
-      }
+    const riffmaxStaff = [
+      { id: '00000000-0000-4000-8000-000000000001', name: 'Sherif Akanmu', role: 'Managing Director & CEO', dept: 'Executive Operations', salary: 1200000 },
+      { id: '00000000-0000-4000-8000-000000000002', name: 'Olaide Emmanuela', role: 'Operations Lead & Shift Supervisor', dept: 'Operations Leadership', salary: 750000 },
+      { id: '00000000-0000-4000-8000-000000000003', name: 'Babatunde Adeleke', role: 'Lead Frontend Systems Engineer', dept: 'Engineering Core', salary: 650000 },
+      { id: '00000000-0000-4000-8000-000000000004', name: 'Chidinma Okonjo', role: 'Lead Mobile Native Engineer', dept: 'Mobile Engineering', salary: 600000 },
+      { id: '00000000-0000-4000-8000-000000000005', name: 'Tariq Al-Hassan', role: 'Principal Distributed Backend Engineer', dept: 'Cloud & Infrastructure', salary: 650000 },
+      { id: '00000000-0000-4000-8000-000000000006', name: 'Ngozi Eze', role: 'Lead QA & Security Specialist', dept: 'Quality & Security', salary: 550000 },
+      { id: '00000000-0000-4000-8000-000000000007', name: 'Farouk Bello', role: 'DevOps & Site Reliability Engineer', dept: 'Cloud & Infrastructure', salary: 580000 },
+      { id: '00000000-0000-4000-8000-000000000008', name: 'Folake Balogun', role: 'Product Operations & Compliance Lead', dept: 'Product & Regulatory', salary: 540000 },
+      { id: '00000000-0000-4000-8000-000000000009', name: 'Kelechi Nnamdi', role: 'Lead UI/UX Systems Designer', dept: 'Design & Experience', salary: 520000 },
+      { id: '00000000-0000-4000-8000-000000000010', name: 'Zainab Abubakar', role: 'Customer Success & Field Ops Lead', dept: 'Customer Operations', salary: 480000 },
+      { id: '00000000-0000-4000-8000-000000000011', name: 'Damilola Fashola', role: 'Data Platform & Analytics Engineer', dept: 'Engineering Core', salary: 520000 },
+      { id: '00000000-0000-4000-8000-000000000012', name: 'Ibrahim Yusuf', role: 'Systems Integrations Specialist', dept: 'Integrations & API', salary: 500000 }
     ];
+    store.contracts = riffmaxStaff.map((staff, i) => ({
+      userId: staff.id,
+      tenant_id: '00000000-0000-4000-8000-000000000100',
+      userName: staff.name,
+      staffId: `RIF-${String(i + 1).padStart(4, '0')}`,
+      role: staff.role,
+      department: staff.dept,
+      compensation_type: 'fixed_monthly',
+      monthly_rate: staff.salary,
+      hourly_rate: Math.round(staff.salary / 160),
+      currency: 'NGN',
+      bank_name: 'Guaranty Trust Bank (GTBank)',
+      account_number: '012' + String(1000000 + i),
+      account_name: staff.name
+    }));
   }
-  // ── Seed rich demo time entries for Flour Mills workers ──────────────────────
   if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
-  const fmnWorkers = ['fmn-emeka-001','fmn-ngozi-002','fmn-chidi-003','fmn-aisha-004','fmn-tunde-005'];
-  const hasFmnEntries = store.timeEntries.some(e => fmnWorkers.includes(e.membershipId));
-  if (!hasFmnEntries) {
-    // Generate 20 days of completed shifts for Oct 2026 (1st–24th, weekdays)
-    const fmnShiftDays = [1,2,3,6,7,8,9,10,13,14,15,16,17,20,21,22,23,24,27,28];
-    const geoModes = ['gate_qr','gate_qr','gate_qr','gps_snapshot','gate_qr'];
-    const geoStatuses = ['verified_on_site','verified_on_site','verified_on_site','within_geofence','verified_on_site'];
-    for (let wi = 0; wi < fmnWorkers.length; wi++) {
-      const memberId = fmnWorkers[wi];
-      const shiftHours = [8, 8, 8, 8, 10]; // Tunde does 10h shifts
-      const sh = shiftHours[wi];
-      for (const day of fmnShiftDays) {
-        const clockIn = new Date(`2026-10-${String(day).padStart(2,'0')}T06:00:00.000Z`);
-        // Introduce realistic variation: 1 late, 1 short, 1 open punch per worker
-        const isLate   = day === fmnShiftDays[3];
-        const isShort  = day === fmnShiftDays[7];
-        const isOpen   = day === fmnShiftDays[14]; // missed clock-out
-        if (isLate) clockIn.setMinutes(clockIn.getMinutes() + 18); // 18 min late
-        const clockOut = isOpen ? null : new Date(clockIn.getTime() + (isShort ? 5.5 : sh) * 3600000);
-        store.timeEntries.push({
-          id: `fmn-te-${memberId}-${day}`,
-          organisationId: '00000000-0000-4000-8000-000000000200',
-          membershipId: memberId,
-          clockedInAt: clockIn.toISOString(),
-          clockedOutAt: clockOut ? clockOut.toISOString() : null,
-          note: null,
-          verificationMode: geoModes[wi],
-          verificationDetails: `Muster Gate QR Verified (Apapa Mill Gate A)`,
-          geofenceStatus: geoStatuses[wi],
-          distanceMeters: 0,
-          siteName: 'Apapa Mill Gate A'
-        });
-      }
-    }
-  }
   return store;
 }
 
@@ -1639,6 +1501,295 @@ async function handleApi(request, response, url) {
       return sendJson(response, 400, { error: error.message || 'Unable to submit your request.' });
     }
   }
+
+  // ── Company Lookup for 3-Layer Login (Layer 1 Validation) ──────────────────
+  if (url.pathname === '/api/auth/company-lookup' && request.method === 'GET') {
+    const rawCode = String(url.searchParams.get('code') || '').trim();
+    const cleanCode = rawCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (!cleanCode) return sendJson(response, 400, { error: 'Company code is required.' });
+
+    const store = await getStore();
+    let org = (store.organisations || []).find(o => {
+      const c = String(o.organisation_code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      const aliases = (o.aliases || []).map(a => String(a).replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+      return c === cleanCode || aliases.includes(cleanCode);
+    });
+
+    if (!org && cleanCode === 'RIF2026') {
+      org = store.organisations?.[0];
+    }
+
+    if (!org) {
+      return sendJson(response, 200, { ok: true, found: false, message: 'Tenant company code not recognized.' });
+    }
+
+    return sendJson(response, 200, {
+      ok: true,
+      found: true,
+      company: {
+        companyId: org.organisation_code || 'RIF-2026',
+        legalName: org.legal_name || 'Riffmax Technology Limited',
+        tradingName: org.trading_name || 'Riffmax Technology',
+        industry: org.industry || 'Enterprise SaaS & Workforce DeepTech',
+        country: org.country || 'Nigeria',
+        state: org.state || 'Lagos',
+        hubName: org.hub_name || 'Riffmax Software Engineering Hub',
+        hubLat: org.hub_lat || 6.4312,
+        hubLng: org.hub_lng || 3.4244,
+        hubRadius: org.hub_perimeter || 120
+      }
+    });
+  }
+
+  // ── Executive Onboarding Submission ────────────────────────────────────────
+  if (url.pathname === '/api/auth/executive-onboard' && request.method === 'POST') {
+    const body = await readJson(request);
+    const companyCode = String(body.companyId || body.companyCode || '').trim();
+    const email = String(body.email || '').trim().toLowerCase();
+    const password = String(body.password || '').trim();
+    const confirmPassword = String(body.confirmPassword || '').trim();
+
+    if (!companyCode || !email || !password) {
+      return sendJson(response, 400, { error: 'Company code, executive email, and master password are required.' });
+    }
+    if (password.length < 8) {
+      return sendJson(response, 400, { error: 'Master password must be at least 8 characters with high entropy.' });
+    }
+    if (password !== confirmPassword) {
+      return sendJson(response, 400, { error: 'Password confirmation does not match.' });
+    }
+
+    const store = await getStore();
+    const org = (store.organisations || []).find(o => {
+      const c = String(o.organisation_code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      const codeClean = companyCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      return c === codeClean || (o.aliases || []).map(a => String(a).replace(/[^A-Za-z0-9]/g, '').toUpperCase()).includes(codeClean);
+    }) || store.organisations?.[0];
+
+    let userObj = (store.portalUsers || []).find(u => u.email.toLowerCase() === email);
+    if (!userObj) {
+      // Create executive portal user if first time
+      userObj = {
+        id: '00000000-0000-4000-8000-000000000001',
+        full_name: body.fullName || 'Sherif Akanmu',
+        email,
+        phone: body.phone || '+234 803 000 0001',
+        tenant_id: org.id,
+        organisation_id: org.id,
+        status: 'active',
+        created_at: new Date().toISOString()
+      };
+      if (!Array.isArray(store.portalUsers)) store.portalUsers = [];
+      store.portalUsers.push(userObj);
+    }
+
+    userObj.password_hash = await hashPassword(password);
+    userObj.status = 'active';
+
+    let member = (store.memberships || []).find(m => m.user_id === userObj.id || m.id === userObj.id);
+    if (!member) {
+      member = {
+        id: userObj.id,
+        organisation_id: org.id,
+        user_id: userObj.id,
+        role: 'owner',
+        title: 'Managing Director & CEO',
+        department: 'Executive Operations',
+        status: 'active'
+      };
+      if (!Array.isArray(store.memberships)) store.memberships = [];
+      store.memberships.push(member);
+    }
+    member.status = 'active';
+
+    await saveStore(store);
+
+    // Dispatch Executive Welcome Email via ShiftRelay Email Engine
+    const protocol = request.headers['x-forwarded-proto'] || 'http';
+    const host = request.headers.host || 'localhost:4000';
+    const loginUrl = `${protocol}://${host}/?companyId=${org.organisation_code}`;
+
+    await sendShiftRelayEmail({
+      to: email,
+      subject: `Official Tenant Onboarding Confirmed: ${org.legal_name || 'Riffmax Technology Limited'}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#090d16;color:#f8fafc;border-radius:16px;">
+          <h2 style="color:#10b981;margin-bottom:8px;">ShiftRelay Sovereign Workplace Verified</h2>
+          <p style="color:#94a3b8;font-size:14px;">Executive onboarding completed for <strong>${userObj.full_name}</strong> at <strong>${org.legal_name}</strong>.</p>
+          <div style="background:#1e293b;padding:16px;border-radius:12px;margin:20px 0;">
+            <p style="margin:4px 0;"><strong>Company ID:</strong> <code style="color:#34d399;font-weight:700;">${org.organisation_code}</code></p>
+            <p style="margin:4px 0;"><strong>Work Email:</strong> ${email}</p>
+            <p style="margin:4px 0;"><strong>Security Standing:</strong> NDPR & Sovereign Biometric Enforced</p>
+          </div>
+          <a href="${loginUrl}" style="display:inline-block;padding:12px 24px;background:#10b981;color:#022c22;text-decoration:none;font-weight:700;border-radius:8px;">Open Executive Dashboard</a>
+        </div>
+      `,
+      source: 'Executive Onboarding Wizard'
+    });
+
+    const sessionIdValue = await createSession(userObj.id, member.id);
+    response.setHeader('Set-Cookie', sessionCookie(sessionIdValue));
+
+    return sendJson(response, 200, {
+      ok: true,
+      message: 'Executive profile configured. Welcome to ShiftRelay Workplace.',
+      user: {
+        id: member.id,
+        name: userObj.full_name,
+        email: userObj.email,
+        role: member.role,
+        title: member.title,
+        department: member.department,
+        organisation_id: org.id,
+        organisation_name: org.trading_name || org.legal_name,
+        company_id: org.organisation_code
+      }
+    });
+  }
+
+  // ── Executive 1-Click Employee Invite & Enablement ─────────────────────────
+  if (url.pathname === '/api/executive/invite-member' && request.method === 'POST') {
+    const authUser = await getUser(request);
+    if (!authUser || !['owner', 'supervisor', 'manager'].includes(authUser.role)) {
+      return sendJson(response, 403, { error: 'Executive or Supervisor authorization required to invite personnel.' });
+    }
+
+    const body = await readJson(request);
+    const memberId = body.memberId || body.userId;
+    if (!memberId) return sendJson(response, 400, { error: 'Member ID is required.' });
+
+    const store = await getStore();
+    const member = (store.memberships || []).find(m => m.id === memberId || m.user_id === memberId);
+    if (!member) return sendJson(response, 404, { error: 'Member not found in organization roster.' });
+
+    const userRecord = (store.portalUsers || []).find(u => u.id === (member.user_id || member.id));
+    if (!userRecord) return sendJson(response, 404, { error: 'User record for member not found.' });
+
+    const org = (store.organisations || []).find(o => o.id === member.organisation_id) || store.organisations?.[0];
+    const activationToken = 'act-' + randomBytes(20).toString('hex');
+
+    userRecord.activation_token = activationToken;
+    userRecord.status = 'pending_activation';
+    member.status = 'pending_activation';
+    await saveStore(store);
+
+    const protocol = request.headers['x-forwarded-proto'] || 'http';
+    const host = request.headers.host || 'localhost:4000';
+    const activationUrl = `${protocol}://${host}/activate?token=${activationToken}`;
+
+    await sendShiftRelayEmail({
+      to: userRecord.email,
+      subject: `Invitation: Activate your ShiftRelay Profile for ${org?.trading_name || 'Riffmax Technology'}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#090d16;color:#f8fafc;border-radius:16px;">
+          <h2 style="color:#10b981;margin-bottom:8px;">Welcome to ${org?.trading_name || 'Riffmax Technology'} Workplace</h2>
+          <p style="color:#94a3b8;font-size:14px;">Hello <strong>${userRecord.full_name}</strong>,</p>
+          <p style="color:#cbd5e1;font-size:14px;line-height:1.6;">You have been provisioned by executive leadership as <strong>${member.title || member.role}</strong> on ShiftRelay. Please click the button below to set your password and complete your workplace onboarding.</p>
+          <div style="background:#1e293b;padding:16px;border-radius:12px;margin:20px 0;">
+            <p style="margin:4px 0;"><strong>Company ID:</strong> <code style="color:#34d399;font-weight:700;">${org?.organisation_code || 'RIF-2026'}</code></p>
+            <p style="margin:4px 0;"><strong>Work Email:</strong> ${userRecord.email}</p>
+            <p style="margin:4px 0;"><strong>Assigned Role:</strong> ${member.title || member.role}</p>
+            <p style="margin:4px 0;"><strong>Department:</strong> ${member.department || 'Engineering Core'}</p>
+          </div>
+          <div style="text-align:center;margin:28px 0;">
+            <a href="${activationUrl}" style="display:inline-block;padding:14px 28px;background:#10b981;color:#022c22;text-decoration:none;font-weight:800;font-size:15px;border-radius:10px;box-shadow:0 10px 15px -3px rgba(16,185,129,0.3);">Activate My Workplace Profile</a>
+          </div>
+          <p style="font-size:12px;color:#64748b;margin-top:24px;">Direct Activation Link: <br><a href="${activationUrl}" style="color:#38bdf8;">${activationUrl}</a></p>
+        </div>
+      `,
+      source: 'Executive Workforce Console'
+    });
+
+    return sendJson(response, 200, {
+      ok: true,
+      message: `Activation invitation dispatched to ${userRecord.email}`,
+      member: {
+        id: member.id,
+        name: userRecord.full_name,
+        email: userRecord.email,
+        role: member.role,
+        status: 'pending_activation',
+        activationUrl,
+        activationToken
+      }
+    });
+  }
+
+  // ── ShiftRelay Email Outbox Dispatcher (Inspection & Verification) ─────────
+  if ((url.pathname === '/api/dev/outbox' || url.pathname === '/api/admin/emails') && request.method === 'GET') {
+    const store = await getStore();
+    return sendJson(response, 200, {
+      ok: true,
+      total: (store.emailStation || []).length,
+      emails: store.emailStation || []
+    });
+  }
+
+  // ── Admin Live Database Updates: Tenant Editor ─────────────────────────────
+  if (url.pathname.startsWith('/api/admin/tenants/') && request.method === 'PUT') {
+    const store = await getStore();
+    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const targetTenantId = url.pathname.split('/')[4];
+    const orgIndex = (store.organisations || []).findIndex(o => o.id === targetTenantId || o.organisation_code === targetTenantId);
+    if (orgIndex === -1) return sendJson(response, 404, { error: 'Tenant organisation not found.' });
+
+    const body = await readJson(request);
+    const org = store.organisations[orgIndex];
+
+    if (body.legalName) org.legal_name = body.legalName.trim();
+    if (body.tradingName) org.trading_name = body.tradingName.trim();
+    if (body.organisationCode) org.organisation_code = body.organisationCode.trim().toUpperCase();
+    if (body.workEmail) org.work_email = body.workEmail.trim().toLowerCase();
+    if (body.industry) org.industry = body.industry.trim();
+    if (body.address) org.address = body.address.trim();
+    if (body.hubName) org.hub_name = body.hubName.trim();
+    if (body.hubLat !== undefined) org.hub_lat = Number(body.hubLat);
+    if (body.hubLng !== undefined) org.hub_lng = Number(body.hubLng);
+    if (body.hubPerimeter !== undefined) org.hub_perimeter = Number(body.hubPerimeter);
+    if (body.subscriptionTier) org.subscription_tier = body.subscriptionTier;
+
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, message: 'Tenant records updated successfully.', tenant: org });
+  }
+
+  // ── Admin Live Database Updates: Employee Editor ───────────────────────────
+  if (url.pathname.startsWith('/api/admin/employees/') && request.method === 'PUT') {
+    const store = await getStore();
+    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const targetUserId = url.pathname.split('/')[4];
+    const userIndex = (store.portalUsers || []).findIndex(u => u.id === targetUserId);
+    if (userIndex === -1) return sendJson(response, 404, { error: 'Employee not found.' });
+
+    const body = await readJson(request);
+    const userObj = store.portalUsers[userIndex];
+    if (body.fullName) userObj.full_name = body.fullName.trim();
+    if (body.email) userObj.email = body.email.trim().toLowerCase();
+    if (body.phone !== undefined) userObj.phone = (body.phone || '').trim();
+    if (body.status) userObj.status = body.status;
+
+    const member = (store.memberships || []).find(m => m.user_id === targetUserId || m.id === targetUserId);
+    if (member) {
+      if (body.role) member.role = body.role;
+      if (body.title) member.title = body.title;
+      if (body.department) member.department = body.department;
+      if (body.status) member.status = body.status;
+    }
+
+    const contract = (store.contracts || []).find(c => c.userId === targetUserId);
+    if (contract) {
+      if (body.fullName) contract.userName = body.fullName.trim();
+      if (body.role) contract.role = body.role;
+      if (body.department) contract.department = body.department;
+      if (body.monthlyRate !== undefined) {
+        contract.monthly_rate = Number(body.monthlyRate);
+        contract.hourly_rate = Math.round(Number(body.monthlyRate) / 160);
+      }
+    }
+
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, message: 'Employee record updated in database.', user: userObj, member });
+  }
+
   if (url.pathname === '/api/auth/sign-in' && request.method === 'POST') {
     try { const session = await signIn(await readJson(request)); response.setHeader('Set-Cookie', sessionCookie(session.sessionId)); return sendJson(response, 200, { user: session.user }); }
     catch (error) {
@@ -1910,9 +2061,9 @@ async function handleApi(request, response, url) {
     if (!['owner', 'manager', 'workforce_admin', 'supervisor'].includes(user.role)) return sendJson(response, 403, { error: 'Executive analytics requires manager or owner access.' });
     // Enterprise Executive Intelligence Payload (Nigerian Industrial HCM)
     const tenant = {
-      companyId: user.company_id || 'FLO-NG-6093',
-      companyName: user.company_name || 'Flour Mills of Nigeria Plc',
-      hubName: user.hub_name || 'Apapa Industrial Hub',
+      companyId: user.company_id || 'RIF-2026',
+      companyName: user.company_name || 'Riffmax Technology Limited',
+      hubName: user.hub_name || 'Riffmax Software Engineering Hub (Lagos)',
       currency: 'NGN',
       reportPeriod: new Date().toLocaleDateString('en-NG', { month: 'long', year: 'numeric' }),
       generatedAt: new Date().toISOString()
@@ -4158,13 +4309,13 @@ async function getUserRewards(user, store) {
     const user = (store.portalUsers || []).find(u => u.activation_token === token && u.status === 'pending_activation');
     if (!user) return sendJson(response, 404, { error: 'Invalid or expired activation link.' });
 
-    const org = (store.organisations || []).find(o => o.id === user.tenant_id || o.id === user.organisation_id);
+    const member = (store.memberships || []).find(m => m.user_id === user.id); const org = (store.organisations || []).find(o => o.id === user.tenant_id || o.id === user.organisation_id || (member && o.id === member.organisation_id)) || store.organisations?.[0];
     return sendJson(response, 200, {
       ok: true,
       fullName: user.full_name,
       email: user.email,
-      companyName: org?.legal_name || 'Enterprise Client',
-      companyId: org?.organisation_code || '246701',
+      companyName: org?.trading_name || org?.legal_name || 'Riffmax Technology Limited',
+      companyId: org?.organisation_code || 'RIF-2026',
       hasPhone: Boolean(user.phone)
     });
   }
@@ -4222,7 +4373,7 @@ async function getUserRewards(user, store) {
         name: user.full_name,
         email: user.email,
         role: member ? member.role : 'incoming',
-        company_id: org?.organisation_code || '246701',
+        company_id: org?.organisation_code || 'RIF-2026',
         organisation_name: org?.legal_name
       }
     });

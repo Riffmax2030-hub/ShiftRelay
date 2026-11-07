@@ -434,21 +434,22 @@ export function sanitizeDatabaseError(error) {
 
 export const demoOrganisation = {
   id: '00000000-0000-4000-8000-000000000100',
-  code: 'SR-GLOBAL-01',
+  code: 'RIF-2026',
   siteId: '00000000-0000-4000-8000-000000000101'
 };
 
 export const demoMembers = [
-  { id: '00000000-0000-4000-8000-000000000011', name: 'Amina Otieno', email: 'amina@shiftrelay.demo', role: 'outgoing', title: 'Operations worker', department: 'Operations', avatar_data_url: '/uploads/avatars/avatar-amina.jpg', cover_photo_url: '/uploads/covers/cover-operations.jpg' },
-  { id: '00000000-0000-4000-8000-000000000012', name: 'David Kariuki', email: 'david@shiftrelay.demo', role: 'supervisor', title: 'Shift supervisor', department: 'Operations', avatar_data_url: '/uploads/avatars/avatar-david.jpg', cover_photo_url: '/uploads/covers/cover-supervisor.jpg' },
-  { id: '00000000-0000-4000-8000-000000000013', name: 'Faith Wanjiku', email: 'faith@shiftrelay.demo', role: 'incoming', title: 'Incoming worker', department: 'Operations', avatar_data_url: '/uploads/avatars/avatar-faith.jpg', cover_photo_url: '/uploads/covers/cover-logistics.jpg' },
-  { id: '00000000-0000-4000-8000-000000000014', name: 'Jordan Lee', email: 'jordan@shiftrelay.demo', role: 'owner', title: 'Organisation owner', department: 'Leadership', avatar_data_url: '/uploads/avatars/avatar-jordan.jpg', cover_photo_url: '/uploads/covers/cover-engineering.jpg' }
+  { id: '00000000-0000-4000-8000-000000000001', name: 'Sherif Akanmu', email: 'sherif@riffmax.tech', role: 'owner', title: 'Managing Director & CEO', department: 'Executive Directorate' },
+  { id: '00000000-0000-4000-8000-000000000002', name: 'Olaide Emmanuela', email: 'olaide@riffmax.tech', role: 'supervisor', title: 'Operations Lead & Shift Supervisor', department: 'Operations & Delivery' },
+  { id: '00000000-0000-4000-8000-000000000003', name: 'Babatunde Adeleke', email: 'babatunde@riffmax.tech', role: 'outgoing', title: 'Lead Frontend Architect', department: 'Frontend Engineering' },
+  { id: '00000000-0000-4000-8000-000000000004', name: 'Chidinma Okonjo', email: 'chidinma@riffmax.tech', role: 'incoming', title: 'Mobile Native Lead', department: 'Mobile Engineering' },
+  { id: '00000000-0000-4000-8000-000000000005', name: 'Tariq Al-Hassan', email: 'tariq@riffmax.tech', role: 'worker', title: 'Senior Distributed Systems Engineer', department: 'Backend Infrastructure' }
 ];
 
 export async function seedDemoOrganisation() {
   if (!pool) return;
-  await query('insert into organisations (id, organisation_code, legal_name, trading_name, work_email, industry, country, time_zone, verification_status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9) on conflict (id) do nothing', [demoOrganisation.id, demoOrganisation.code, 'ShiftRelay Global Demo Organisation', 'ShiftRelay Global', 'owner@shiftrelay.demo', 'Operations', 'Global', 'UTC', 'verified']);
-  await query('insert into organisation_sites (id, organisation_id, name, address, time_zone) values ($1, $2, $3, $4, $5) on conflict (id) do nothing', [demoOrganisation.siteId, demoOrganisation.id, 'Global Operations Hub', 'Remote and multi-site', 'UTC']);
+  await query('insert into organisations (id, organisation_code, legal_name, trading_name, work_email, industry, country, time_zone, verification_status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9) on conflict (id) do nothing', [demoOrganisation.id, demoOrganisation.code, 'Riffmax Technology Limited', 'Riffmax Technology', 'sherif@riffmax.tech', 'Enterprise SaaS & Workforce DeepTech', 'Nigeria', 'Africa/Lagos', 'verified']);
+  await query('insert into organisation_sites (id, organisation_id, name, address, time_zone) values ($1, $2, $3, $4, $5) on conflict (id) do nothing', [demoOrganisation.siteId, demoOrganisation.id, 'Riffmax Software Engineering Hub', 'Victoria Island / Lekki Tech Corridor, Lagos, Nigeria', 'Africa/Lagos']);
   for (const member of demoMembers) {
     await query('insert into portal_users (id, full_name, email, email_verified) values ($1, $2, $3, true) on conflict (id) do nothing', [member.id, member.name, member.email]);
     await query('insert into memberships (id, organisation_id, user_id, site_id, role, title, department, status) values ($1, $2, $1, $3, $4, $5, $6, $7) on conflict (id) do nothing', [member.id, demoOrganisation.id, demoOrganisation.siteId, member.role, member.title, member.department, 'active']);

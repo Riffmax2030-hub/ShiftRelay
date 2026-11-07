@@ -1667,22 +1667,35 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       const tbody = document.getElementById('adm-tenants-tbody');
       const sel = document.getElementById('csv-tenant-select');
       document.getElementById('nav-badge-tenants').textContent = cachedTenants.length;
-      if (sel) sel.innerHTML = cachedTenants.map(t => `<option value="${t.id}">${t.name} (${t.id})</option>`).join('');
+      if (sel) sel.innerHTML = cachedTenants.map(t => `<option value="${t.id}">${t.tradingName || t.legalName || t.name} (${t.companyId || t.id})</option>`).join('');
       if (!tbody) return;
       tbody.innerHTML = cachedTenants.map((t, i) => {
-        const gateCode = 'SR-GATE-' + String(1040 + i * 117);
-        const site = (t.sites && t.sites[0]) ? t.sites[0] : { name: 'Main Facility Gate', radiusMeters: 250 };
+        const companyName = t.tradingName || t.legalName || t.name || 'Enterprise Client';
+        const companyCode = t.companyId || t.organisation_code || 'RIF-2026';
+        const adminEmail = t.masterAdminEmail || t.adminEmail || t.work_email || 'sherif@riffmax.tech';
+        const siteName = t.hubName || t.siteName || 'Riffmax Engineering Hub (Victoria Island)';
+        const radius = t.hubRadius || t.hub_perimeter || 120;
+        const staffCount = t.employeeCount || t.workerCount || 12;
+
         return `
           <tr>
-            <td><strong>${t.name}</strong><div style="font-size:11.5px; color:var(--text-slate);">${t.industry || 'Enterprise Operations'}</div></td>
-            <td><code style="color:var(--emerald); font-weight:700;">${gateCode}</code></td>
-            <td>${t.adminEmail || 'owner@company.com'}</td>
-            <td>${site.name} (${site.radiusMeters || 250}m)</td>
-            <td><span class="chip emerald">${t.workerCount || 0} Staff</span></td>
             <td>
-              <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.printGatePoster('${t.name.replace(/'/g, '')}', '${gateCode}', '${site.name.replace(/'/g, '')}')">
-                🖨 Gate QR &amp; NFC Poster
-              </button>
+              <strong>${escapeHtml(companyName)}</strong>
+              <div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(t.legalName || companyName)} · ${escapeHtml(t.industry || 'Enterprise SaaS & HCM')}</div>
+            </td>
+            <td><code style="color:var(--emerald); font-weight:800; font-family:'JetBrains Mono',monospace;">${escapeHtml(companyCode)}</code></td>
+            <td><a href="mailto:${escapeHtml(adminEmail)}" style="color:#38bdf8; text-decoration:none;">${escapeHtml(adminEmail)}</a></td>
+            <td>${escapeHtml(siteName)} (${radius}m)</td>
+            <td><span class="chip emerald">${staffCount} Staff</span></td>
+            <td>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn-emerald" style="padding:4px 9px; font-size:11px;" onclick="window.openEditTenantModal('${t.id}')">
+                  ✏ Edit Tenant
+                </button>
+                <button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="window.printGatePoster('${companyName.replace(/'/g, '')}', '${companyCode}', '${siteName.replace(/'/g, '')}')">
+                  🖨 Gate Poster
+                </button>
+              </div>
             </td>
           </tr>
         `;
@@ -1836,23 +1849,39 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       showToast(`Resolved ${target.id} & dispatched confirmation via Email Auto-Station!`);
     };
 
-    function renderEmailStationTable() {
-      const logs = getEmailStationLogs();
+    async function renderEmailStationTable() {
+      let logs = getEmailStationLogs();
+      try {
+        const res = await fetch('/api/admin/emails', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.emails) && data.emails.length > 0) {
+            logs = [...data.emails, ...logs.filter(l => !data.emails.some(e => e.id === l.id))];
+          }
+        }
+      } catch (_) {}
+
       document.getElementById('nav-badge-emails').textContent = logs.length;
       const kpiEl = document.getElementById('kpi-total-emails');
       if (kpiEl) kpiEl.textContent = logs.length;
       const tbody = document.getElementById('email-station-tbody');
       if (!tbody) return;
-      tbody.innerHTML = logs.map(l => `
-        <tr>
-          <td style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-slate);">${l.time}</td>
-          <td><code style="color:var(--emerald);">${l.from}</code></td>
-          <td><strong>${l.to}</strong></td>
-          <td>${l.subject}</td>
-          <td><span class="chip cyan">${l.source}</span></td>
-          <td><span class="chip emerald">${l.status}</span></td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = logs.map(l => {
+        const urlMatch = (l.html || l.text || '').match(/https?:\/\/[^\s"'>]+/);
+        const linkHtml = urlMatch ? `<br><a href="${urlMatch[0]}" target="_blank" style="font-size:11px; color:#38bdf8; text-decoration:underline;">Open Activation Link ↗</a>` : '';
+        return `
+          <tr>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-slate);">${l.time || 'Just now'}</td>
+            <td><code style="color:var(--emerald);">${l.from || 'engine@shiftrelay.tech'}</code></td>
+            <td><strong>${l.to}</strong></td>
+            <td>${l.subject}${linkHtml}</td>
+            <td><span class="chip cyan">${l.source || 'Email Engine'}</span></td>
+            <td><span class="chip emerald">${l.status || 'DELIVERED'}</span></td>
+          </tr>
+        `;
+      }).join('');
     }
 
     window.triggerTestAutoStationEmail = function () {
