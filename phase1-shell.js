@@ -237,7 +237,11 @@
   };
 
   function isManagerRole(role) {
-    return role === 'supervisor' || role === 'owner';
+    return role === 'supervisor' || role === 'owner' || role === 'executive' || role === 'admin';
+  }
+
+  function isExecutiveRole(role) {
+    return role === 'owner' || role === 'executive' || role === 'admin';
   }
 
   function isAuthorizedView(viewName, isManager, role) {
@@ -246,13 +250,24 @@
       'assistant', 'time-away', 'timeaway-leave', 'timesheets',
       'settings', 'open-shifts', 'kiosk', 'gate-kiosk', 'compliance', 'notifications'
     ];
-    const allowedManager = [
+    const allowedSupervisor = [
       'overview', 'schedule', 'handovers', 'team', 'approvals', 'me',
-      'timesheets', 'open-shifts', 'payroll', 'analytics', 'earnings',
-      'rewards', 'assistant', 'time-away', 'timeaway-leave', 'compliance',
+      'timesheets', 'open-shifts', 'earnings', 'rewards', 'assistant',
+      'time-away', 'timeaway-leave', 'compliance', 'settings', 'kiosk', 'gate-kiosk', 'notifications'
+    ];
+    const allowedExecutive = [
+      'analytics', 'overview', 'schedule', 'team', 'approvals', 'me',
+      'compliance', 'payroll', 'timesheets', 'handovers', 'open-shifts',
+      'earnings', 'rewards', 'assistant', 'time-away', 'timeaway-leave',
       'settings', 'kiosk', 'gate-kiosk', 'notifications'
     ];
-    return isManager ? allowedManager.includes(viewName) : allowedWorker.includes(viewName);
+    if (role === 'owner' || role === 'executive' || role === 'admin') {
+      return allowedExecutive.includes(viewName);
+    }
+    if (role === 'supervisor') {
+      return allowedSupervisor.includes(viewName);
+    }
+    return allowedWorker.includes(viewName);
   }
 
   // ── Notifications State & Accessible Panel Manager (UI Phase 4) ────────────
@@ -677,14 +692,18 @@
     const user = getUser();
     if (!user) return;
 
-    const isManager = isManagerRole(user.role);
-    const defaultView = isManager ? 'overview' : 'today';
+    const isExecutive = isExecutiveRole(user.role);
+    const isSupervisor = user.role === 'supervisor';
+    const isManager = isExecutive || isSupervisor;
+    const defaultView = isExecutive ? 'analytics' : (isSupervisor ? 'overview' : 'today');
     let view = activeView || defaultView;
-    // Prevent cross-role view mismatch (e.g., Worker stuck on Supervisor overview or vice versa)
+    // Prevent cross-role view mismatch
     if (!isManager && (view === 'overview' || view === 'payroll' || view === 'analytics' || view === 'approvals')) {
       view = 'today';
-    } else if (isManager && view === 'today') {
+    } else if (isSupervisor && view === 'today') {
       view = 'overview';
+    } else if (isExecutive && view === 'today') {
+      view = 'analytics';
     }
     if (view === 'gate-kiosk') view = 'kiosk';
     if (view === 'timeaway-leave') view = 'time-away';
@@ -876,18 +895,44 @@
 
         <!-- Body Shell (Desktop Sidebar + Main Area + Mobile Dock) -->
         <div class="sr-body-wrap">
-          <!-- Desktop Sidebar -->
+          <!-- Desktop Sidebar (3 Distinct Roles: Executive vs Supervisor vs Worker) -->
           <nav class="sr-sidebar" aria-label="Sidebar navigation">
             <div class="sr-sidebar-role-badge">
-              ${isManager ? (user.role === 'owner' ? 'Organisation Owner' : 'Shift Supervisor') : 'Frontline Specialist'}
+              ${isExecutive ? 'Corporate Executive' : isSupervisor ? 'Shift Supervisor' : 'Frontline Specialist'}
             </div>
-            ${isManager ? `
-              <!-- 6 Clean Single-Name Tabs (Manager Sidebar) -->
+            ${isExecutive ? `
+              <!-- 6 Clean Tabs: Corporate Executive Layer -->
+              <button class="sr-nav-btn ${view === 'analytics' ? 'active' : ''}" data-sr-view="analytics">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                <span>Executive</span>
+              </button>
+              <button class="sr-nav-btn ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                <span>Schedule</span>
+              </button>
+              <button class="sr-nav-btn ${(view === 'team' || view === 'approvals') ? 'active' : ''}" data-sr-view="team">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Workforce</span>
+              </button>
+              <button class="sr-nav-btn ${view === 'compliance' ? 'active' : ''}" data-sr-view="compliance">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                <span>Compliance</span>
+              </button>
+              <button class="sr-nav-btn ${view === 'payroll' ? 'active' : ''}" data-sr-view="payroll">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><polyline points="15 15 21 21 15 21"/></svg>
+                <span>Finance</span>
+              </button>
+              <button class="sr-nav-btn ${view === 'settings' ? 'active' : ''}" data-sr-view="settings" style="margin-top:auto;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>Organisation</span>
+              </button>
+            ` : isSupervisor ? `
+              <!-- 6 Clean Tabs: Shift Supervisor Floor Layer -->
               <button class="sr-nav-btn ${view === 'overview' ? 'active' : ''}" data-sr-view="overview">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-                <span>Overview</span>
+                <span>Shift Ops</span>
               </button>
-              <button class="sr-nav-btn ${(view === 'schedule' || view === 'handovers') ? 'active' : ''}" data-sr-view="schedule">
+              <button class="sr-nav-btn ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                 <span>Schedule</span>
               </button>
@@ -899,21 +944,21 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span>Team</span>
               </button>
-              <button class="sr-nav-btn ${(view === 'payroll' || view === 'analytics') ? 'active' : ''}" data-sr-view="payroll">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><polyline points="15 15 21 21 15 21"/></svg>
-                <span>Finance</span>
+              <button class="sr-nav-btn ${view === 'handovers' ? 'active' : ''}" data-sr-view="handovers">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <span>Handovers</span>
               </button>
               <button class="sr-nav-btn ${view === 'settings' ? 'active' : ''}" data-sr-view="settings" style="margin-top:auto;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 <span>Settings</span>
               </button>
             ` : `
-              <!-- 6 Clean Single-Name Tabs (Worker Sidebar) -->
+              <!-- 6 Clean Tabs: Frontline Worker Layer -->
               <button class="sr-nav-btn ${view === 'today' ? 'active' : ''}" data-sr-view="today">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <span>Today</span>
               </button>
-              <button class="sr-nav-btn ${(view === 'schedule' || view === 'handovers') ? 'active' : ''}" data-sr-view="schedule">
+              <button class="sr-nav-btn ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                 <span>Schedule</span>
               </button>
@@ -930,12 +975,11 @@
                 <span>Shifts</span>
               </button>
               <button class="sr-nav-btn ${view === 'settings' ? 'active' : ''}" data-sr-view="settings" style="margin-top:auto;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82l-.06-.06a1.65 1.65 0 0 0 1.82-.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 <span>Settings</span>
               </button>
             `}
           </nav>
-
           <!-- Main Scrollable Area -->
           <div class="sr-main-scroll-wrap" style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto;">
             <div id="sr-broadcast-banner-slot"></div>
@@ -946,15 +990,41 @@
           </div>
         </div>
 
-        <!-- Mobile Bottom Dock (Hidden on >= 768px) -->
+        <!-- Mobile Bottom Dock (3 Distinct Roles: Executive vs Supervisor vs Worker) -->
         <nav class="sr-mobile-dock" aria-label="Mobile navigation">
-          ${isManager ? `
-            <!-- 6 Consolidated Tabs (Manager Mobile Dock) -->
+          ${isExecutive ? `
+            <!-- 6 Tabs: Corporate Executive Mobile Dock -->
+            <button class="sr-dock-item ${view === 'analytics' ? 'active' : ''}" data-sr-view="analytics">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+              <span class="sr-dock-label">Executive</span>
+            </button>
+            <button class="sr-dock-item ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+              <span class="sr-dock-label">Schedule</span>
+            </button>
+            <button class="sr-dock-item ${(view === 'team' || view === 'approvals') ? 'active' : ''}" data-sr-view="team">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              <span class="sr-dock-label">Workforce</span>
+            </button>
+            <button class="sr-dock-item ${view === 'compliance' ? 'active' : ''}" data-sr-view="compliance">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              <span class="sr-dock-label">Compliance</span>
+            </button>
+            <button class="sr-dock-item ${view === 'payroll' ? 'active' : ''}" data-sr-view="payroll">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span class="sr-dock-label">Finance</span>
+            </button>
+            <button class="sr-dock-item ${view === 'settings' ? 'active' : ''}" data-sr-view="settings">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span class="sr-dock-label">Organisation</span>
+            </button>
+          ` : isSupervisor ? `
+            <!-- 6 Tabs: Shift Supervisor Mobile Dock -->
             <button class="sr-dock-item ${view === 'overview' ? 'active' : ''}" data-sr-view="overview">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-              <span class="sr-dock-label">Overview</span>
+              <span class="sr-dock-label">Shift Ops</span>
             </button>
-            <button class="sr-dock-item ${(view === 'schedule' || view === 'handovers') ? 'active' : ''}" data-sr-view="schedule">
+            <button class="sr-dock-item ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
               <span class="sr-dock-label">Schedule</span>
             </button>
@@ -966,21 +1036,21 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
               <span class="sr-dock-label">Team</span>
             </button>
-            <button class="sr-dock-item ${(view === 'payroll' || view === 'analytics') ? 'active' : ''}" data-sr-view="payroll">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              <span class="sr-dock-label">Finance</span>
+            <button class="sr-dock-item ${view === 'handovers' ? 'active' : ''}" data-sr-view="handovers">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="sr-dock-label">Handovers</span>
             </button>
             <button class="sr-dock-item ${view === 'settings' ? 'active' : ''}" data-sr-view="settings">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               <span class="sr-dock-label">Settings</span>
             </button>
           ` : `
-            <!-- 6 Consolidated Tabs (Mobile Dock) -->
+            <!-- 6 Tabs: Frontline Worker Mobile Dock -->
             <button class="sr-dock-item ${view === 'today' ? 'active' : ''}" data-sr-view="today">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               <span class="sr-dock-label">Today</span>
             </button>
-            <button class="sr-dock-item ${(view === 'schedule' || view === 'handovers') ? 'active' : ''}" data-sr-view="schedule">
+            <button class="sr-dock-item ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
               <span class="sr-dock-label">Schedule</span>
             </button>
@@ -997,7 +1067,7 @@
               <span class="sr-dock-label">Shifts</span>
             </button>
             <button class="sr-dock-item ${view === 'settings' ? 'active' : ''}" data-sr-view="settings">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82l-.06-.06a1.65 1.65 0 0 0 1.82-.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               <span class="sr-dock-label">Settings</span>
             </button>
           `}
@@ -1058,7 +1128,7 @@
           if (window._srState) window._srState.user = personaData;
           SRAudio.playClockIn();
           demoMenu.classList.add('hidden');
-          const targetHome = (p === 'supervisor' || p === 'owner') ? 'overview' : 'today';
+          const targetHome = p === 'owner' ? 'analytics' : (p === 'supervisor' ? 'overview' : 'today');
           await mountShell(targetHome);
           startInvestorTour(p);
         }
@@ -2206,7 +2276,7 @@
               Broadcast
             </button>
             <span class="sr-context-banner-badge">
-              ${user.role === 'owner' ? 'ORGANISATION OWNER' : 'SHIFT SUPERVISOR'}
+              ${user.role === 'owner' ? 'ORGANISATION OWNER' : 'SHIFT SUPERVISOR (FLOOR OPS)'}
             </span>
           </div>
         </div>
@@ -2320,11 +2390,19 @@
             <small style="color:var(--sr-text-muted);font-size:11.5px;">Live on Site</small>
           </div>
 
-          <div class="sr-metric-tile">
-            <span>Payroll Batch</span>
-            <strong style="color:#10b981;">₦1,065,000</strong>
-            <small style="color:var(--sr-text-muted);font-size:11.5px;">Verified Ready</small>
-          </div>
+          ${user.role === 'owner' ? `
+            <div class="sr-metric-tile">
+              <span>Payroll Batch</span>
+              <strong style="color:#10b981;">₦1,065,000</strong>
+              <small style="color:var(--sr-text-muted);font-size:11.5px;">Verified Ready</small>
+            </div>
+          ` : `
+            <div class="sr-metric-tile">
+              <span>Exceptions</span>
+              <strong style="color:#f59e0b;">1 Flagged</strong>
+              <small style="color:var(--sr-text-muted);font-size:11.5px;">Auxiliary Gate</small>
+            </div>
+          `}
 
           ${user.role === 'owner' ? `
             <div class="sr-metric-tile ${pendingLeave.length > 0 ? 'highlight' : ''}">
@@ -2410,39 +2488,68 @@
           </div>
         </section>
 
-        <!-- 2. 1-Click Batch Payroll Disbursement Cockpit -->
-        <section class="sr-card" aria-label="Shift Payroll Disbursement" style="border-top: 3px solid #10b981; background: linear-gradient(135deg, var(--sr-bg-card) 0%, rgba(16,185,129,0.03) 100%);">
-          <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <div>
-              <h3 style="margin:0;font-size:16px;">Verified Shift Payroll</h3>
-              <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Biometric &amp; geofence-verified shifts ready for batch payout</p>
+        ${user.role === 'owner' ? `
+          <!-- 2. 1-Click Batch Payroll Disbursement Cockpit (Executive Only) -->
+          <section class="sr-card" aria-label="Shift Payroll Disbursement" style="border-top: 3px solid #10b981; background: linear-gradient(135deg, var(--sr-bg-card) 0%, rgba(16,185,129,0.03) 100%);">
+            <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <div>
+                <h3 style="margin:0;font-size:16px;">Verified Shift Payroll</h3>
+                <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Biometric &amp; geofence-verified shifts ready for batch payout</p>
+              </div>
+              <span class="sr-badge-certified" id="sr-payroll-batch-badge">5 Verified</span>
             </div>
-            <span class="sr-badge-certified" id="sr-payroll-batch-badge">5 Verified</span>
-          </div>
 
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;margin:16px 0;">
-            <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
-              <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Eligible Staff</span>
-              <div style="font-size:20px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">5 Workers</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;margin:16px 0;">
+              <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
+                <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Eligible Staff</span>
+                <div style="font-size:20px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">5 Workers</div>
+              </div>
+              <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
+                <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Verified Hours</span>
+                <div style="font-size:20px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">172.5 hrs</div>
+              </div>
+              <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
+                <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Net Batch Total</span>
+                <div style="font-size:20px;font-weight:800;color:var(--sr-primary);margin-top:2px;">₦1,065,000.00</div>
+              </div>
             </div>
-            <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
-              <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Verified Hours</span>
-              <div style="font-size:20px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">172.5 hrs</div>
-            </div>
-            <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
-              <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Net Batch Total</span>
-              <div style="font-size:20px;font-weight:800;color:var(--sr-primary);margin-top:2px;">₦1,065,000.00</div>
-            </div>
-          </div>
 
-          <div style="display:flex;justify-content:flex-end;">
-            <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-batch-payroll" style="min-height:42px;padding:0 22px;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;background:var(--sr-primary);border-color:var(--sr-primary);">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>1-Click Batch Authorize &amp; Disburse</span>
-            </button>
-          </div>
-        </section>
+            <div style="display:flex;justify-content:flex-end;">
+              <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-batch-payroll" style="min-height:42px;padding:0 22px;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;background:var(--sr-primary);border-color:var(--sr-primary);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>1-Click Batch Authorize &amp; Disburse</span>
+              </button>
+            </div>
+          </section>
+        ` : `
+          <!-- 2. Shift Relay & Handover Briefings (Supervisor Floor Focus) -->
+          <section class="sr-card" aria-label="Shift Handover Briefings" style="border-top: 3px solid #10b981;">
+            <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <div>
+                <h3 style="margin:0;font-size:16px;">Shift Relay &amp; Handover Briefings</h3>
+                <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Incoming &amp; outgoing equipment turnover, critical safety sign-offs</p>
+              </div>
+              <span class="sr-badge-certified" style="background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3);">
+                ${handoversAwaitingRelay.length} Pending Relay
+              </span>
+            </div>
 
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--sr-bg-card-subtle);border-radius:10px;border:1px solid var(--sr-border-subtle);flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="width:34px;height:34px;border-radius:8px;background:rgba(16,185,129,0.15);color:#10b981;display:flex;align-items:center;justify-content:center;font-weight:700;">H1</span>
+                  <div>
+                    <strong style="font-size:13.5px;color:var(--sr-text-main);">Morning Shift to Afternoon Shift Handover</strong>
+                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Forklift battery at 92% &middot; Gate 3 dock cleared &middot; Amara Okafor</div>
+                  </div>
+                </div>
+                <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-view-handovers-shortcut" style="padding:4px 12px;font-size:12px;min-height:30px;color:var(--sr-primary);border-color:var(--sr-primary);">
+                  Review Briefing
+                </button>
+              </div>
+            </div>
+          </section>
+        `}
         <!-- 3. Enterprise Shift Audit & Client Billing Kit -->
         <section class="sr-card" aria-label="Enterprise Audit and Export Kit" style="border-top: 3px solid #3b82f6;">
           <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -2797,6 +2904,9 @@
       });
 
       // ── 1-Click Batch Payroll Disbursement Binding ───────────────────────
+    document.getElementById('sr-btn-view-handovers-shortcut')?.addEventListener('click', () => {
+      navigate('handovers');
+    });
       document.getElementById('sr-btn-batch-payroll')?.addEventListener('click', async () => {
         const btn = document.getElementById('sr-btn-batch-payroll');
         const badge = document.getElementById('sr-payroll-batch-badge');
@@ -8871,10 +8981,10 @@
       },
       {
         step: 3,
-        view: 'open-shifts',
-        target: '[data-review-swap], #sr-offer-swap-btn, #sr-content-area',
-        title: '3. Approve Team Coworker Shift Swaps',
-        body: 'Review shift swaps offered and claimed by coworkers within your unit and authorize them so every shift remains 100% covered.'
+        view: 'schedule',
+        target: '.sr-obsidian-drag-handle, #sr-content-area',
+        title: '3. Obsidian Drag-and-Drop Shift Assigning',
+        body: 'Drag team members between morning, afternoon, and night shifts with live Obsidian balance indicators.'
       },
       {
         step: 4,
@@ -8885,51 +8995,50 @@
       },
       {
         step: 5,
-        view: 'overview',
-        target: '#sr-btn-export-geofence-cert, #sr-btn-export-payroll-csv',
-        title: '5. Print Monthly Attendance & Payment Audit Data',
-        body: 'Generate printable GPS Attendance Certificates and export monthly shift payment data for facility management and client billing.'
+        view: 'handovers',
+        target: '[data-sr-mgr-tab="pending"], #sr-content-area',
+        title: '5. Certify Shift Relay Briefs & Safety Logs',
+        body: 'Review handover notes, equipment status, and certified shift logs before relieving outgoing crews.'
       }
     ],
     owner: [
       {
         step: 1,
-        view: 'overview',
-        target: '.sr-metric-grid, [data-action="approve-member"]',
-        title: '1. Executive Overview & Workforce Approvals',
-        body: 'Monitor live company-wide headcount, approve new worker access requests, and oversee shift operations across all sites.'
+        view: 'analytics',
+        target: '.sr-analytics-2col, #sr-analytics-export-btn',
+        title: '1. Executive Intelligence & Multi-Hub Cockpit',
+        body: 'Monitor live organization headcount, multi-hub operational index across Lagos and Kano, and executive payroll budget vs. burn in real time.'
       },
       {
         step: 2,
-        view: 'open-shifts',
-        target: '[data-review-swap], #sr-content-area',
-        title: '2. Team Shift Swap & Roster Governance',
-        body: 'Oversee internal team shift swaps, coverage compliance, and supervisor shift handovers across your organisation.'
+        view: 'compliance',
+        target: '#sr-content-area',
+        title: '2. Zero-Trust Perimeter Breach & Audit Compliance',
+        body: 'Track real-time biometric and geofence perimeter breach logs and generate NDPA-compliant audit vouchers.'
       },
       {
         step: 3,
-        view: 'overview',
-        target: '#sr-btn-batch-payroll',
-        title: '3. 1-Click Verified Batch Payroll Authorization',
-        body: 'Authorize and disburse wages for all biometric and geofence-verified shift hours in a single click—eliminating ghost workers.'
+        view: 'payroll',
+        target: '#sr-btn-batch-payroll, #sr-content-area',
+        title: '3. Verified Batch Payroll & Paystack Settlement Release',
+        body: 'Review audited shift hours and disburse net batch pay directly to bank accounts via Paystack integration.'
       },
       {
         step: 4,
-        view: 'payroll',
-        target: '[data-sr-view="payroll"], #sr-content-area',
-        title: '4. Finance, PenCom & PAYE Statutory Remittance',
-        body: 'Inspect itemized gross-to-net payroll ledgers, PenCom pension contributions, PAYE tax schedules, and bank dispatch status.'
+        view: 'analytics',
+        target: '#sr-content-area',
+        title: '4. PenCom & State PAYE Statutory Remittance',
+        body: 'Review automated statutory withholding schedules: PenCom Pension, State PAYE, NSITF, and NHF vouchers.'
       },
       {
         step: 5,
-        view: 'overview',
-        target: '#sr-btn-export-payroll-csv, #sr-btn-export-geofence-cert',
-        title: '5. Print Monthly Payment Data & Client Certificates',
-        body: 'Print official monthly payment ledgers (CSV/PDF) and client proof-of-service attendance certificates for accounting and audits.'
+        view: 'analytics',
+        target: '#sr-analytics-export-btn',
+        title: '5. Export Executive Audit Brief & Certificates',
+        body: 'Download or export the official NDPA & Statutory Compliance Certificate and executive audit briefs.'
       }
     ]
   };
-
   function clearTourHighlights() {
     document.querySelectorAll('.sr-tour-target-highlight').forEach(el => {
       el.classList.remove('sr-tour-target-highlight');
@@ -12656,7 +12765,7 @@
 
   // ── Priority 5: Enterprise Executive Analytics Dashboard ──────────────────────
   async function renderExecutiveAnalytics() {
-    const main = document.getElementById('sr-main');
+    const main = document.getElementById('sr-content-area') || document.getElementById('sr-main');
     if (!main) return;
 
     // Loading skeleton
@@ -12715,6 +12824,10 @@
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <span style="font-size:11px;padding:4px 10px;background:var(--sr-bg-card-subtle,#f1f5f9);color:var(--sr-text-muted);border-radius:20px;border:1px solid var(--sr-border-subtle);">
               ${escapeHtml(tenant.reportPeriod || '')}
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-switch-to-shiftops" style="font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Frontline Shift Operations Layer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+              <span>Shift Floor Layer</span>
+            </button>
             </span>
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-analytics-export-btn" style="font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -12942,6 +13055,14 @@
     `;
 
     // Export button → generate a brief audit text summary
+    document.getElementById('sr-btn-switch-to-shiftops')?.addEventListener('click', () => {
+      navigate('overview');
+    });
+
+    document.getElementById('sr-btn-exec-disburse')?.addEventListener('click', () => {
+      navigate('payroll');
+    });
+
     document.getElementById('sr-analytics-export-btn')?.addEventListener('click', () => {
       const lines = [
         `SHIFTRELAY EXECUTIVE AUDIT BRIEF`,
