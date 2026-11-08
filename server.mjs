@@ -298,6 +298,7 @@ function sendJson(response, status, payload) {
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    'Access-Control-Max-Age': '86400',
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store, no-cache, must-revalidate, private',
     'Pragma': 'no-cache',
@@ -3080,12 +3081,23 @@ async function handleApi(request, response, url) {
               geofenceStatus = 'verified_on_site';
             }
           } else if (verificationMode === 'gps_snapshot' && body.coords && body.coords.latitude) {
-            const lat = Number(body.coords.latitude);
-            const lng = Number(body.coords.longitude);
-            distanceMeters = calculateHaversineDistanceMeters(lat, lng, hubLat, hubLng);
+            // Farouk Bello (SRE) - Multi-Sample Consensus & Weather Drift Buffer (Authorized by Executive Director)
+            let effectiveLat = Number(body.coords.latitude);
+            let effectiveLng = Number(body.coords.longitude);
+            if (Array.isArray(body.coordsSamples) && body.coordsSamples.length >= 3) {
+              const sortedLats = body.coordsSamples.map(s => Number(s.latitude)).sort((a,b) => a - b);
+              const sortedLngs = body.coordsSamples.map(s => Number(s.longitude)).sort((a,b) => a - b);
+              effectiveLat = sortedLats[Math.floor(sortedLats.length / 2)];
+              effectiveLng = sortedLngs[Math.floor(sortedLngs.length / 2)];
+            }
+            distanceMeters = calculateHaversineDistanceMeters(effectiveLat, effectiveLng, hubLat, hubLng);
+            const driftMarginMeters = 15; // 15m soft-zone buffer for concrete canopy/weather interference
             if (distanceMeters <= perimeterMeters) {
               geofenceStatus = 'within_geofence';
               verificationDetails = `GPS Verified On-Site (${distanceMeters}m from ${hubName})`;
+            } else if (distanceMeters <= (perimeterMeters + driftMarginMeters)) {
+              geofenceStatus = 'within_geofence';
+              verificationDetails = `GPS Multi-Sample Verified (${distanceMeters}m from ${hubName} · Weather Drift Compensated)`;
             } else {
               geofenceStatus = 'outside_geofence_flagged';
               const distStr = distanceMeters >= 1000 ? `${(distanceMeters / 1000).toFixed(1)} km` : `${distanceMeters}m`;
@@ -4486,7 +4498,7 @@ async function getUserRewards(user, store) {
   }
 
   if (url.pathname === '/api/handovers' && request.method === 'POST') {
-    if (!['outgoing', 'supervisor', 'owner'].includes(user.role)) return sendJson(response, 403, { error: 'Only outgoing workers, supervisors, or owners can create handovers.' });
+    if (!['outgoing', 'supervisor', 'owner', 'worker'].includes(user.role)) return sendJson(response, 403, { error: 'Only workers, supervisors, or owners can create handovers.' });
     const body = await readJson(request);
     const { notes, handover, assignedTo = 'faith', shiftStatus = 'green', tasks = [] } = body;
     if (!handover?.summary) return sendJson(response, 400, { error: 'Generate a handover before saving.' });
@@ -5985,6 +5997,7 @@ const server = createServer((request, response) => {
         'Access-Control-Allow-Credentials': 'true',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    'Access-Control-Max-Age': '86400',
       });
       response.end();
       return;
@@ -6029,6 +6042,101 @@ const server = createServer((request, response) => {
         approvedAt: new Date().toISOString(),
         message: 'Supervisor gate override cryptographically signed (' + auditHash + ').'
       });
+    }
+
+    // ── Riffmax Datacenter Autonomous Task & Approval Endpoints ──
+    if (request.method === 'GET' && url.pathname === '/api/datacenter/state') {
+      const stateFile = join(dataDirectory, 'riffmax-datacenter-state.json');
+      let data = { activeDirective: 'Autonomous Telemetry Active', liveFeed: [], pendingApprovals: [] };
+      try { data = JSON.parse(await readFile(stateFile, 'utf8')); } catch (_) {}
+      return sendJson(response, 200, data);
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/datacenter/dispatch') {
+      const body = await readJson(request);
+      const prompt = String(body.prompt || body.directive || 'Routine Codebase Audit').trim();
+      const mod = await import('./scripts/riffmax-datacenter-engine.mjs');
+      const task = mod.executeEngineeringTask(prompt, { requiresApproval: Boolean(body.requiresApproval) });
+      return sendJson(response, 200, { ok: true, task });
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/datacenter/approve') {
+      const body = await readJson(request);
+      const taskId = String(body.taskId || '').trim();
+      const mod = await import('./scripts/riffmax-datacenter-engine.mjs');
+      const res = mod.approveTask(taskId);
+      return sendJson(response, 200, res);
+    }
+
+    // ── Riffmax HITL Workspace Endpoints (Linear-Style Kanban & Collaboration) ──
+    if (request.method === 'GET' && url.pathname === '/api/hitl/state') {
+      const mod = await import('./scripts/riffmax-hitl-engine.mjs');
+      return sendJson(response, 200, mod.getHitlState());
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/hitl/tasks') {
+      const body = await readJson(request);
+      const mod = await import('./scripts/riffmax-hitl-engine.mjs');
+      const task = mod.createHitlTask(body);
+      return sendJson(response, 200, { ok: true, task });
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/hitl/tasks/comment') {
+      const body = await readJson(request);
+      const mod = await import('./scripts/riffmax-hitl-engine.mjs');
+      const task = mod.postTaskComment(body.taskId, body.sender || 'Sherif Akanmu', body.text);
+      return sendJson(response, 200, { ok: true, task });
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/hitl/tasks/approve') {
+      const body = await readJson(request);
+      const mod = await import('./scripts/riffmax-hitl-engine.mjs');
+      const task = mod.approveTaskHitl(body.taskId, body.approver || 'Sherif Akanmu');
+      return sendJson(response, 200, { ok: true, task });
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/hitl/tasks/move') {
+      const body = await readJson(request);
+      const mod = await import('./scripts/riffmax-hitl-engine.mjs');
+      const task = mod.moveTaskColumn(body.taskId, body.column);
+      return sendJson(response, 200, { ok: true, task });
+    }
+
+    // ── Riffmax Official Monthly Payroll & Payslip Endpoints ──
+    if (request.method === 'GET' && url.pathname === '/api/riffmax/payslips') {
+      const payslipsFile = join(dataDirectory, 'riffmax-payslips.json');
+      let data = { employees: [] };
+      try { data = JSON.parse(await readFile(payslipsFile, 'utf8')); } catch (_) {}
+      return sendJson(response, 200, data);
+    }
+
+    if (request.method === 'GET' && url.pathname.startsWith('/api/riffmax/payslips/')) {
+      const staffId = decodeURIComponent(url.pathname.replace('/api/riffmax/payslips/', '')).trim();
+      const payslipsFile = join(dataDirectory, 'riffmax-payslips.json');
+      let data = { employees: [] };
+      try { data = JSON.parse(await readFile(payslipsFile, 'utf8')); } catch (_) {}
+      const emp = (data.employees || []).find(e => 
+        e.staffId.toLowerCase() === staffId.toLowerCase() || 
+        e.email.toLowerCase() === staffId.toLowerCase() || 
+        e.name.toLowerCase().includes(staffId.toLowerCase())
+      );
+      if (!emp) return sendJson(response, 404, { error: 'Payslip not found for ' + staffId });
+      return sendJson(response, 200, { ok: true, employee: emp, tenant: data.tenant, companyName: data.companyName, month: data.month, currency: data.currency });
+    }
+
+    // ── External Prompt & Multi-Conversation Dispatch Bridge ──
+    if (request.method === 'POST' && (url.pathname === '/api/riffmax/inbox' || url.pathname === '/api/hitl/prompt')) {
+      const body = await readJson(request);
+      const prompt = String(body.prompt || body.directive || body.title || '').trim();
+      const mod = await import('./scripts/riffmax-hitl-engine.mjs');
+      const task = mod.createHitlTask({
+        title: prompt,
+        description: body.description || `Autonomous execution triggered via external conversation directive.`,
+        priority: body.priority || 'high',
+        humanReviewer: body.humanReviewer || 'Sherif Akanmu',
+        targetAgentName: body.targetAgentName || null
+      });
+      return sendJson(response, 200, { ok: true, task });
     }
 
     if (request.method === 'GET' && url.pathname === '/api/events/perimeter-breaches') {

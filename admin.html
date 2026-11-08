@@ -1253,6 +1253,15 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
   <div id="adm-toast"></div>
 
   <script>
+    if (window.location.protocol === 'file:') {
+      const origFetch = window.fetch;
+      window.fetch = function(url, options) {
+        if (typeof url === 'string' && url.startsWith('/')) {
+          url = 'http://localhost:4000' + url;
+        }
+        return origFetch(url, options);
+      };
+    }
     let adminToken = sessionStorage.getItem('sr_admin_token') || '';
     let currentAdminRole = sessionStorage.getItem('sr_admin_role') || 'owner_root';
     let cachedTenants = [];

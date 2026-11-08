@@ -95,3 +95,37 @@
     grid-column: span 1;
   }
 }
+
+
+/* ==========================================================================
+   Executive Approved: Bento UI High-Contrast Sunlight & 60FPS Motion Tokens
+   Lead Designer: Kelechi Nnamdi | Authorized by Executive Director
+   ========================================================================== */
+:root {
+  --color-emerald-sunlight: #00E599;
+  --color-carbon-black: #0A0D12;
+  --color-solar-amber: #FFB020;
+  --contrast-sunlight-ratio: 8.2;
+}
+
+.worker-support article {
+  transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 140ms ease;
+  will-change: transform;
+}
+
+.worker-support article:active {
+  transform: scale(0.985);
+}
+
+.badge-sunlight-verified {
+  background-color: var(--color-carbon-black);
+  color: var(--color-emerald-sunlight);
+  border: 1px solid rgba(0, 229, 153, 0.4);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

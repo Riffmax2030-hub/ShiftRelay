@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riffmax Technology Limited · Autonomous Operations & HITL Workspace</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236366f1'/><text x='50' y='68' font-size='50' font-weight='bold' text-anchor='middle' fill='%23ffffff'>R</text></svg>">
+  <style>
+    :root {
+      --bg: #08090d;
+      --card-bg: #11131a;
+      --card-border: #1d212d;
+      --hover-bg: #181c26;
+      --accent-indigo: #6366f1;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Command Header */
+    header {
+      background: rgba(17, 19, 26, 0.96);
+      border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.35);
+    }
+
+    .brand-info h1 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hitl-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-weight: 600;
+    }
+
+    .datacenter-telemetry {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.4);
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .telemetry-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .dot-live {
+      width: 7px;
+      height: 7px;
+      background: var(--accent-emerald);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-emerald);
+      animation: pulse 2s infinite;
+    }
+
+    .dot-amber {
+      width: 7px;
+      height: 7px;
+      background: var(--accent-amber);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-amber);
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      background: #1a1e2b;
+      color: var(--text-main);
+      border: 1px solid #2a3142;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: #23293a;
+      border-color: #3e4860;
+    }
+
+    .btn-primary {
+      background: var(--accent-indigo);
+      border-color: var(--accent-indigo);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: #4f46e5;
+      border-color: #4f46e5;
+    }
+
+    .btn-emerald {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-emerald:hover {
+      background: rgba(16, 185, 129, 0.25);
+    }
+
+    .btn-amber {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    .btn-amber:hover {
+      background: rgba(245, 158, 11, 0.25);
+    }
+
+    .btn-subtle {
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+    }
+
+    .btn-subtle:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+    }
+
+    .btn-sm {
+      padding: 3px 8px;
+      font-size: 11px;
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      padding: 20px 24px;
+      max-width: 1720px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .section-title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-tag {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* ── SECTION 1: Unified Team Directory (Humans & AI Specialists) ── */
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .team-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      position: relative;
+    }
+
+    .team-card:hover {
+      transform: translateY(-2px);
+      border-color: #2e3549;
+    }
+
+    .team-card.human {
+      border-left: 3px solid #8b5cf6;
+    }
+
+    .team-card.ai_agent {
+      border-left: 3px solid #06b6d4;
+    }
+
+    .team-header-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .team-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .team-card.human .team-avatar {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    }
+
+    .team-card.ai_agent .team-avatar {
+      background: linear-gradient(135deg, #0284c7, #06b6d4);
+    }
+
+    .team-name-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .team-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .type-badge {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .type-badge.human {
+      background: rgba(139, 92, 246, 0.18);
+      color: #c084fc;
+    }
+
+    .type-badge.ai {
+      background: rgba(6, 182, 212, 0.18);
+      color: #38bdf8;
+    }
+
+    .team-role {
+      font-size: 11px;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .team-meta-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 11px;
+    }
+
+    .salary-chip {
+      font-family: var(--font-mono);
+      color: #34d399;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    /* ── SECTION 2: Linear-Style Task Kanban Board ── */
+    .kanban-board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 1200px) {
+      .kanban-board {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .kanban-board {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .kanban-column {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      min-height: 440px;
+      max-height: 720px;
+      overflow: hidden;
+    }
+
+    .kanban-column-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .column-counter {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 1px 7px;
+      border-radius: 10px;
+      color: var(--text-muted);
+    }
+
+    .kanban-cards {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .task-card {
+      background: #161923;
+      border: 1px solid #232736;
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .task-card:hover {
+      border-color: #3b435c;
+      background: #1c202d;
+      transform: translateY(-1px);
+    }
+
+    .task-card.active-selected {
+      border-color: var(--accent-indigo);
+      box-shadow: 0 0 0 1px var(--accent-indigo), 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .task-card.review-required {
+      border-color: rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.03);
+    }
+
+    .task-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .task-id {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .priority-badge {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-weight: 700;
+    }
+
+    .priority-badge.high, .priority-badge.critical {
+      background: rgba(244, 63, 94, 0.15);
+      color: #fb7185;
+    }
+
+    .priority-badge.medium {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+    }
+
+    .priority-badge.low {
+      background: rgba(148, 163, 184, 0.15);
+      color: #cbd5e1;
+    }
+
+    .task-title {
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #f1f5f9;
+    }
+
+    .task-meta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .task-assignees {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .assignee-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .benchmark-chip {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #38bdf8;
+      background: rgba(6, 182, 212, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+
+    .card-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* ── SECTION 3: Contextual Collaboration Hub & Embedded Chat Thread ── */
+    .collab-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+      min-height: 480px;
+    }
+
+    @media (max-width: 992px) {
+      .collab-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .collab-task-details {
+      padding: 20px 24px;
+      border-right: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .collab-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .collab-title h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.3;
+    }
+
+    .collab-title p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .collab-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .meta-box {
+      background: #161923;
+      border: 1px solid #232736;
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-box span {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .meta-box strong {
+      font-size: 12px;
+      color: #f1f5f9;
+      font-weight: 600;
+    }
+
+    .files-pill-box {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .file-pill {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      background: rgba(99, 102, 241, 0.12);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    /* Embedded Chat Thread */
+    .thread-panel {
+      display: flex;
+      flex-direction: column;
+      background: #0d0f15;
+    }
+
+    .thread-header {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .thread-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 380px;
+    }
+
+    .msg-bubble {
+      max-width: 88%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .msg-bubble.human {
+      align-self: flex-end;
+      background: #252a3a;
+      border: 1px solid #363d52;
+      color: #ffffff;
+    }
+
+    .msg-bubble.ai_agent {
+      align-self: flex-start;
+      background: #141824;
+      border: 1px solid #1f2738;
+      border-left: 3px solid #06b6d4;
+      color: #e2e8f0;
+    }
+
+    .msg-author {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .msg-bubble.human .msg-author {
+      color: #a5b4fc;
+    }
+
+    .msg-bubble.ai_agent .msg-author {
+      color: #38bdf8;
+    }
+
+    .quick-chips {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      overflow-x: auto;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .chip-btn {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+    .chip-btn:hover {
+      background: rgba(99, 102, 241, 0.2);
+      color: #818cf8;
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .thread-input-box {
+      padding: 12px 16px;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      gap: 8px;
+      background: #12141c;
+    }
+
+    .thread-input {
+      flex: 1;
+      background: #1a1e2b;
+      border: 1px solid #2a3142;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #ffffff;
+      font-size: 12px;
+      outline: none;
+    }
+
+    .thread-input:focus {
+      border-color: var(--accent-indigo);
+    }
+
+    /* Modal Backdrop */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 24px;
+      max-width: 580px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-card.wide {
+      max-width: 900px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .form-input {
+      background: #181c26;
+      border: 1px solid #282f42;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #ffffff;
+      font-size: 12px;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-indigo);
+    }
+
+    /* ── Digital Payslip Styling (Print-Ready) ── */
+    .payslip-container {
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 8px;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .payslip-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+    }
+
+    .payslip-company h2 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #1e1b4b;
+      letter-spacing: -0.02em;
+    }
+
+    .payslip-company p {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .payslip-badge {
+      background: #e0e7ff;
+      color: #3730a3;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .payslip-employee-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 11px;
+    }
+
+    .payslip-employee-grid div strong {
+      display: block;
+      color: #64748b;
+      font-size: 9px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .payslip-employee-grid div span {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .payslip-tables {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .payslip-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .payslip-table th {
+      background: #f1f5f9;
+      text-align: left;
+      padding: 6px 10px;
+      font-size: 10px;
+      text-transform: uppercase;
+      color: #475569;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .payslip-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #1e293b;
+    }
+
+    .payslip-table td.amount {
+      text-align: right;
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    .payslip-net-box {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 6px;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .payslip-net-box span {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #065f46;
+    }
+
+    .payslip-net-box strong {
+      font-size: 20px;
+      font-family: var(--font-mono);
+      color: #047857;
+    }
+
+    .payslip-footer-note {
+      font-size: 10px;
+      color: #64748b;
+      line-height: 1.4;
+      border-top: 1px dashed #cbd5e1;
+      padding-top: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #payslipPrintArea, #payslipPrintArea * {
+        visibility: visible;
+      }
+      #payslipPrintArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Command Header with Datacenter Telemetry -->
+  <header>
+    <div class="brand-section">
+      <div class="brand-logo">R</div>
+      <div class="brand-info">
+        <h1>RIFFMAX TECHNOLOGY <span class="hitl-badge">HITL WORKSPACE</span></h1>
+      </div>
+    </div>
+
+    <!-- Datacenter Telemetry Conduit -->
+    <div class="datacenter-telemetry">
+      <div class="telemetry-chip">
+        <span class="dot-live"></span>
+        <span>Lekki Alpha DC</span>
+      </div>
+      <span>·</span>
+      <div class="telemetry-chip">
+        <span style="color: #34d399;">99.99%</span> Uptime
+      </div>
+      <span>·</span>
+      <div class="telemetry-chip">
+        <span style="color: #38bdf8;">18.2ms</span> Latency
+      </div>
+      <span>·</span>
+      <div class="telemetry-chip">
+        <span style="color: #a78bfa;">12</span> Specialists
+      </div>
+      <span>·</span>
+      <div class="telemetry-chip">
+        <span style="color: #34d399;">48/48</span> OWASP Tests
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn btn-amber btn-sm" id="btnPendingReviews" style="display: none;">
+        <span class="dot-amber"></span>
+        <span id="pendingReviewsCount">1</span> Pending Clearance
+      </button>
+
+      <button class="btn btn-emerald" id="btnOpenPayroll">
+        📑 Monthly Payroll (₦13.55M)
+      </button>
+
+      <button class="btn btn-subtle" id="btnOpenConnectModal">
+        🔗 External Bridge
+      </button>
+
+      <button class="btn btn-primary" id="btnNewTask">
+        + New Milestone
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ── SECTION 1: Unified Team Directory (Humans & AI Specialists) ── -->
+    <section>
+      <div class="section-title-bar">
+        <div class="section-title">
+          <span>🏢 Team Org Chart · Humans & Autonomous Specialists</span>
+          <span class="section-tag" id="teamCountBadge">24 Active Staff</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">
+          Tap <strong>Payslip</strong> on any card to view official PenCom/PITA tax advice
+        </div>
+      </div>
+
+      <!-- Department Filter Pills -->
+      <div class="quick-chips" style="padding: 0 0 12px 0; background: transparent; border: none; margin-bottom: 6px;" id="deptFilterChips">
+        <button class="chip-btn" style="background: rgba(99, 102, 241, 0.25); color: #fff;" onclick="setDeptFilter('all', this)">All (24)</button>
+        <button class="chip-btn" onclick="setDeptFilter('Engineering Core', this)">Core Engineering (6)</button>
+        <button class="chip-btn" onclick="setDeptFilter('Branding & Creative Design', this)">Branding & Design (3)</button>
+        <button class="chip-btn" onclick="setDeptFilter('Advertising & Growth Marketing', this)">Growth & Marketing (3)</button>
+        <button class="chip-btn" onclick="setDeptFilter('Business Strategy & Investor Relations', this)">Strategy & Investors (2)</button>
+        <button class="chip-btn" onclick="setDeptFilter('Legal & Regulatory Compliance', this)">Legal & Regulatory (2)</button>
+        <button class="chip-btn" onclick="setDeptFilter('Human Resources & People Ops', this)">HR & People (2)</button>
+        <button class="chip-btn" onclick="setDeptFilter('Facilities & Workplace Security', this)">Facilities & Security (4)</button>
+        <button class="chip-btn" onclick="setDeptFilter('Executive Directorate', this)">Executive (2)</button>
+      </div>
+
+      <div class="team-grid" id="teamGrid">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- ── SECTION 2: Linear-Style Task Kanban Board ── -->
+    <section>
+      <div class="section-title-bar">
+        <div class="section-title">
+          <span>📋 Engineering Kanban · Linear HITL Flow</span>
+          <span class="section-tag" id="taskCountBadge">Loading Tasks...</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">
+          Autonomous Agents submit completed drafts to <span style="color: #f59e0b; font-weight: 600;">Awaiting Human Review</span>
+        </div>
+      </div>
+
+      <div class="kanban-board">
+        <!-- Column 1: Todo -->
+        <div class="kanban-column" data-col="todo">
+          <div class="kanban-column-header">
+            <span>Backlog</span>
+            <span class="column-counter" id="count-todo">0</span>
+          </div>
+          <div class="kanban-cards" id="col-todo"></div>
+        </div>
+
+        <!-- Column 2: In Progress -->
+        <div class="kanban-column" data-col="in_progress">
+          <div class="kanban-column-header">
+            <span>In Progress (Agent Active)</span>
+            <span class="column-counter" id="count-in_progress">0</span>
+          </div>
+          <div class="kanban-cards" id="col-in_progress"></div>
+        </div>
+
+        <!-- Column 3: Awaiting Review (HITL Gate) -->
+        <div class="kanban-column" data-col="awaiting_review" style="border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.02);">
+          <div class="kanban-column-header" style="background: rgba(245, 158, 11, 0.08); color: #fbbf24;">
+            <span>⚠️ Awaiting Human Review (HITL)</span>
+            <span class="column-counter" id="count-awaiting_review" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">0</span>
+          </div>
+          <div class="kanban-cards" id="col-awaiting_review"></div>
+        </div>
+
+        <!-- Column 4: Done / Deployed -->
+        <div class="kanban-column" data-col="done">
+          <div class="kanban-column-header">
+            <span>Deployed to Production</span>
+            <span class="column-counter" id="count-done">0</span>
+          </div>
+          <div class="kanban-cards" id="col-done"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 3: Contextual Collaboration Hub & Embedded Chat Thread ── -->
+    <section>
+      <div class="section-title-bar">
+        <div class="section-title">
+          <span>💬 Contextual Collaboration Hub · Human ⇄ Agent Pairing</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);" id="collabSubtext">
+          Review live code diffs, verify benchmarks, or instruct the specialist via direct chat
+        </div>
+      </div>
+
+      <div class="collab-container" id="collabContainer">
+        <!-- Task Details -->
+        <div class="collab-task-details">
+          <div class="collab-header">
+            <div class="collab-title">
+              <h3 id="cTitle">Select a task from the Kanban Board</h3>
+              <p id="cDesc">Click any card to inspect code diffs, performance benchmarks, and chat with the specialist.</p>
+            </div>
+            <div id="cApprovalAction">
+              <button class="btn btn-emerald" id="btnApproveAction" style="display: none;">✓ Approve & Deploy</button>
+            </div>
+          </div>
+
+          <div class="collab-meta-grid">
+            <div class="meta-box">
+              <span>Assigned Human Lead</span>
+              <strong id="cHuman">Sherif Akanmu</strong>
+            </div>
+            <div class="meta-box">
+              <span>Assigned AI Specialist</span>
+              <strong style="color: #38bdf8;" id="cAgent">Tariq Al-Hassan</strong>
+            </div>
+            <div class="meta-box">
+              <span>Commit Hash</span>
+              <strong style="color: #a78bfa; font-family: var(--font-mono);" id="cCommit">6b8ea214</strong>
+            </div>
+            <div class="meta-box">
+              <span>Files Touched</span>
+              <div class="files-pill-box" id="cFiles">
+                <span class="file-pill">server.mjs</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meta-box" style="margin-top: 4px;">
+            <span>Performance Benchmark & Verification</span>
+            <strong style="color: #34d399; font-family: var(--font-mono);" id="cBenchmark">Idempotency Dedup: < 2ms · 0 Duplicate Mutations</strong>
+          </div>
+        </div>
+
+        <!-- Embedded Chat Thread -->
+        <div class="thread-panel">
+          <div class="thread-header">
+            <span>Direct Task Conversation</span>
+            <span style="font-size: 10px; color: #818cf8;" id="threadAgentTag">AI Specialist Assigned</span>
+          </div>
+
+          <div class="thread-messages" id="threadMessages">
+            <!-- Messages rendered by JS -->
+          </div>
+
+          <!-- Quick Action Prompt Chips -->
+          <div class="quick-chips">
+            <span style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">Quick Directives:</span>
+            <button class="chip-btn" onclick="sendQuickPrompt('Please optimize the database queries and check latency.')">⚡ Optimize Latency</button>
+            <button class="chip-btn" onclick="sendQuickPrompt('Run targeted security regression and verify OWASP bounds.')">🛡️ Security Check</button>
+            <button class="chip-btn" onclick="sendQuickPrompt('Ensure WCAG AAA contrast ratio on high-sunlight industrial screens.')">🎨 Adjust UI Contrast</button>
+            <button class="chip-btn" onclick="sendQuickPrompt('Looks verified. Approved and ready for production deployment.')">✓ Ship & Deploy</button>
+          </div>
+
+          <div class="thread-input-box">
+            <input type="text" class="thread-input" id="threadInput" placeholder="Direct message the agent on this task (e.g. '@Tariq please optimize query latency' or 'Looks good, deploy')...">
+            <button class="btn btn-primary" id="btnSendMessage">Send</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── MODAL: Digital Official Nigerian Payslip ── -->
+  <div class="modal-backdrop" id="payslipModal">
+    <div class="modal-card wide">
+      <div style="display: flex; justify-content: space-between; align-items: center;" class="no-print">
+        <h3 style="font-size: 14px; font-weight: 700; color: #f1f5f9;">📄 Official Employee Pay Advice (Statutory Certified)</h3>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-emerald btn-sm" onclick="window.print()">🖨️ Print Official Payslip</button>
+          <button class="btn btn-subtle btn-sm" onclick="closePayslipModal()">✕ Close</button>
+        </div>
+      </div>
+
+      <div id="payslipPrintArea" class="payslip-container">
+        <!-- Letterhead -->
+        <div class="payslip-header">
+          <div class="payslip-company">
+            <h2>RIFFMAX TECHNOLOGY LIMITED</h2>
+            <p>Plot 12, Victoria Island Corporate Corridor, Lagos State, Nigeria</p>
+            <p>RC: 7892104 · Tax ID: TIN-2026-RIF · PenCom Employer Code: PR00091823</p>
+          </div>
+          <div class="payslip-badge">
+            OFFICIAL PAYSLIP<br>
+            <span id="psMonth">NOVEMBER 2026</span>
+          </div>
+        </div>
+
+        <!-- Employee Metadata Grid -->
+        <div class="payslip-employee-grid">
+          <div>
+            <strong>Staff ID</strong>
+            <span id="psStaffId">RIF-0005</span>
+          </div>
+          <div>
+            <strong>Employee Name</strong>
+            <span id="psName">Tariq Al-Hassan</span>
+          </div>
+          <div>
+            <strong>Designation / Department</strong>
+            <span id="psRole">Principal Distributed Backend Engineer</span>
+          </div>
+          <div>
+            <strong>Payment Mode</strong>
+            <span id="psBank">GTBank · 0121000005</span>
+          </div>
+          <div>
+            <strong>Pay Period</strong>
+            <span id="psPeriod">01/11/2026 - 30/11/2026</span>
+          </div>
+          <div>
+            <strong>Completed Shifts</strong>
+            <span id="psShifts">21 Shifts (179 Hours)</span>
+          </div>
+          <div>
+            <strong>Pension PIN</strong>
+            <span id="psPensionPin">PEN-2026-90182</span>
+          </div>
+          <div>
+            <strong>Tax Jurisdiction</strong>
+            <span id="psTaxJurisdiction">Lagos State LIRS (PITA 2011)</span>
+          </div>
+        </div>
+
+        <!-- Earnings & Deductions Tables -->
+        <div class="payslip-tables">
+          <!-- Earnings Table -->
+          <table class="payslip-table">
+            <thead>
+              <tr>
+                <th>Earnings Component</th>
+                <th style="text-align: right;">Amount (NGN)</th>
+              </tr>
+            </thead>
+            <tbody id="psEarningsBody">
+              <tr>
+                <td>Basic Salary</td>
+                <td class="amount" id="psBasic">₦390,000.00</td>
+              </tr>
+              <tr>
+                <td>Housing Allowance</td>
+                <td class="amount" id="psHousing">₦195,000.00</td>
+              </tr>
+              <tr>
+                <td>Transport Allowance</td>
+                <td class="amount" id="psTransport">₦65,000.00</td>
+              </tr>
+              <tr style="background: #f8fafc; font-weight: 700;">
+                <td><strong>GROSS PAYABLE</strong></td>
+                <td class="amount" id="psGross" style="color: #1e293b;"><strong>₦650,000.00</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Deductions Table -->
+          <table class="payslip-table">
+            <thead>
+              <tr>
+                <th>Statutory Deductions</th>
+                <th style="text-align: right;">Amount (NGN)</th>
+              </tr>
+            </thead>
+            <tbody id="psDeductionsBody">
+              <tr>
+                <td>PAYE Income Tax (LIRS)</td>
+                <td class="amount" id="psTax">₦87,087.00</td>
+              </tr>
+              <tr>
+                <td>Employee Pension (8% PRA 2014)</td>
+                <td class="amount" id="psPension">₦52,000.00</td>
+              </tr>
+              <tr>
+                <td>National Housing Fund (2.5% NHF)</td>
+                <td class="amount" id="psNhf">₦16,250.00</td>
+              </tr>
+              <tr>
+                <td>NSITF Employee Compensation (1%)</td>
+                <td class="amount" id="psNsitf">₦6,500.00</td>
+              </tr>
+              <tr style="background: #f8fafc; font-weight: 700;">
+                <td><strong>TOTAL DEDUCTIONS</strong></td>
+                <td class="amount" id="psDeductions" style="color: #dc2626;"><strong>₦155,337.00</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Net Payable Banner -->
+        <div class="payslip-net-box">
+          <div>
+            <span>NET AMOUNT DISBURSED VIA GTBANK NIP</span>
+            <p style="font-size: 11px; color: #047857; margin-top: 2px;">Direct Corporate ACH Settlement completed</p>
+          </div>
+          <strong id="psNetPay">₦494,663.00</strong>
+        </div>
+
+        <!-- Statutory Note & Sign-off -->
+        <div class="payslip-footer-note">
+          <div>
+            This is a system-generated computer advice from ShiftRelay Payroll Engine on behalf of Riffmax Technology Limited.<br>
+            Complies with the Personal Income Tax Act (PITA 2011) and Pension Reform Act 2014.
+          </div>
+          <div style="text-align: right; font-weight: 600;">
+            Sherif Akanmu<br>
+            <span style="font-size: 9px; color: #64748b; font-weight: normal;">MD & Chief Executive Officer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: Complete Monthly Payroll Register (₦7.54M) ── -->
+  <div class="modal-backdrop" id="payrollRegisterModal">
+    <div class="modal-card wide">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="font-size: 15px; font-weight: 700; color: #f1f5f9;">📑 Riffmax Technology · November 2026 Payroll Register</h3>
+          <p style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">12 Staff Members · Gross: ₦7,540,000 · Total Disbursed: ₦5,746,624</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-emerald btn-sm" onclick="window.print()">🖨️ Print Register</button>
+          <button class="btn btn-subtle btn-sm" onclick="closePayrollRegisterModal()">✕ Close</button>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto; margin-top: 8px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
+          <thead>
+            <tr style="background: rgba(255, 255, 255, 0.04); border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
+              <th style="padding: 8px;">Staff ID</th>
+              <th style="padding: 8px;">Name & Role</th>
+              <th style="padding: 8px;">Bank & Acct</th>
+              <th style="padding: 8px; text-align: right;">Gross Pay</th>
+              <th style="padding: 8px; text-align: right;">PAYE Tax</th>
+              <th style="padding: 8px; text-align: right;">Pension (8%)</th>
+              <th style="padding: 8px; text-align: right;">Net Disbursed</th>
+              <th style="padding: 8px; text-align: center;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="payrollTableBody">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: External Conversation Bridge Instructions ── -->
+  <div class="modal-backdrop" id="connectModal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 15px; font-weight: 700; color: #f1f5f9;">🔗 External Multi-Conversation Bridge</h3>
+        <button class="btn btn-subtle btn-sm" onclick="closeConnectModal()">✕</button>
+      </div>
+
+      <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+        You can dispatch instructions to Riffmax Technology specialists directly from your other conversations or terminal!
+      </p>
+
+      <div class="meta-box">
+        <span>Option 1: Append JSON to Shared File</span>
+        <pre style="font-family: var(--font-mono); font-size: 11px; color: #38bdf8; background: #0c0e14; padding: 10px; border-radius: 4px; overflow-x: auto; margin-top: 4px;">
+// Append a line to: data/riffmax-inbox.jsonl
+{"prompt": "Audit OWASP routes and mobile biometrics", "priority": "high"}</pre>
+      </div>
+
+      <div class="meta-box">
+        <span>Option 2: Direct HTTP POST from Any Client</span>
+        <pre style="font-family: var(--font-mono); font-size: 11px; color: #34d399; background: #0c0e14; padding: 10px; border-radius: 4px; overflow-x: auto; margin-top: 4px;">
+curl -X POST http://localhost:4000/api/riffmax/inbox \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Virtualize Bento UI card DOM rendering to achieve 60FPS lock"}'</pre>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn btn-primary" onclick="closeConnectModal()">Understood</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: Create New Milestone / Task ── -->
+  <div class="modal-backdrop" id="newTaskModal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 15px; font-weight: 700; color: #f1f5f9;">🚀 Create New Milestone / Task</h3>
+        <button class="btn btn-subtle btn-sm" id="btnCancelModal">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Task Title / Engineering Directive</label>
+        <input type="text" class="form-input" id="inputTaskTitle" placeholder="e.g. Audit mobile biometrics on Android 15">
+      </div>
+      <div class="form-group">
+        <label>Technical Objectives / Requirements</label>
+        <textarea class="form-input" id="inputTaskDesc" rows="3" placeholder="Provide technical guidelines or requirements for the AI specialist..."></textarea>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label>Human Lead (Reviewer)</label>
+          <select class="form-input" id="selectHumanReviewer">
+            <option value="Sherif Akanmu">Sherif Akanmu (MD & CEO)</option>
+            <option value="Olaide Emmanuela">Olaide Emmanuela (Shift Supervisor)</option>
+            <option value="Lead Human Engineer">Lead Human Engineer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>AI Specialist</label>
+          <select class="form-input" id="selectTargetAgent">
+            <option value="">🤖 Auto-Route (Smart Router)</option>
+            <optgroup label="Core Engineering">
+              <option value="Tariq Al-Hassan">Tariq Al-Hassan (Backend)</option>
+              <option value="Babatunde Adeleke">Babatunde Adeleke (Frontend)</option>
+              <option value="Chidinma Okonjo">Chidinma Okonjo (Mobile Native)</option>
+              <option value="Ngozi Eze">Ngozi Eze (QA & Security)</option>
+              <option value="Farouk Bello">Farouk Bello (DevOps & SRE)</option>
+              <option value="Ibrahim Yusuf">Ibrahim Yusuf (Integrations & ERP)</option>
+            </optgroup>
+            <optgroup label="Branding & Design">
+              <option value="Kelechi Nnamdi">Kelechi Nnamdi (UI/UX Systems)</option>
+              <option value="Adanna Adeleke">Adanna Adeleke (Brand Identity)</option>
+              <option value="Simi Balogun">Simi Balogun (Motion & Onboarding)</option>
+            </optgroup>
+            <optgroup label="Advertising & Growth">
+              <option value="Tunde Bakare">Tunde Bakare (Growth Marketing)</option>
+              <option value="Amara Okeke">Amara Okeke (Brand Storyteller)</option>
+              <option value="Zainab Abubakar">Zainab Abubakar (Field Ops & CSAT)</option>
+            </optgroup>
+            <optgroup label="Business Strategy & Investors">
+              <option value="Femi Otedola-Coker">Femi Otedola-Coker (Investor Relations)</option>
+              <option value="Chidinma Kalu">Chidinma Kalu (Enterprise Commercial)</option>
+            </optgroup>
+            <optgroup label="Legal & HR Operations">
+              <option value="Barrister Yetunde Williams">Barrister Yetunde Williams (General Counsel)</option>
+              <option value="Folake Balogun">Folake Balogun (Labor Law & Compliance)</option>
+              <option value="Blessing Nwachukwu">Blessing Nwachukwu (Head of People)</option>
+              <option value="Damilola Fashola">Damilola Fashola (Payroll Telemetry)</option>
+            </optgroup>
+            <optgroup label="Facilities & Physical Security">
+              <option value="Emeka Obinna">Emeka Obinna (Facilities Manager)</option>
+              <option value="Sergeant Musa Danjuma">Sergeant Musa Danjuma (Chief Security & Gate)</option>
+              <option value="Suleiman Bello">Suleiman Bello (Perimeter Patrol)</option>
+              <option value="Chioma Anyanwu">Chioma Anyanwu (Reception & Concierge)</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
+        <button class="btn" onclick="document.getElementById('newTaskModal').classList.remove('open')">Cancel</button>
+        <button class="btn btn-primary" id="btnSubmitNewTask">Dispatch to Specialist</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let state = { team: [], tasks: [] };
+    let payrollData = null;
+    let activeTaskId = 'TASK-101';
+    let currentDeptFilter = 'all';
+
+    function setDeptFilter(dept, btnEl) {
+      currentDeptFilter = dept;
+      document.querySelectorAll('#deptFilterChips .chip-btn').forEach(b => {
+        b.style.background = 'rgba(255, 255, 255, 0.05)';
+        b.style.color = 'var(--text-muted)';
+      });
+      if (btnEl) {
+        btnEl.style.background = 'rgba(99, 102, 241, 0.25)';
+        btnEl.style.color = '#fff';
+      }
+      renderTeam(state.team || []);
+    }
+
+    // ── Render Team Org Chart ──
+    function renderTeam(team) {
+      const container = document.getElementById('teamGrid');
+      let filtered = team;
+      if (currentDeptFilter !== 'all') {
+        filtered = team.filter(m => (m.dept || '').toLowerCase().includes(currentDeptFilter.toLowerCase()));
+      }
+      const badge = document.getElementById('teamCountBadge');
+      if (badge) badge.textContent = `${filtered.length} of ${team.length} Staff Shown`;
+
+      container.innerHTML = filtered.map(m => `
+        <div class="team-card ${m.type}">
+          <div class="team-header-row">
+            <div class="team-avatar">${m.avatar}</div>
+            <div class="team-name-row">
+              <div>
+                <span class="team-name">${m.name}</span>
+                <div class="team-role">${m.role}</div>
+              </div>
+              <span class="type-badge ${m.type === 'human' ? 'human' : 'ai'}">${m.type === 'human' ? 'Leader' : 'AI Agent'}</span>
+            </div>
+          </div>
+          <div style="font-size: 10px; color: #818cf8; font-family: var(--font-mono); margin-top: -4px;">
+            ${m.dept || 'Engineering'}
+          </div>
+          <div class="team-meta-bottom">
+            <span class="salary-chip">₦${(m.grossPay || 600000).toLocaleString()}/mo</span>
+            <button class="btn btn-emerald btn-sm" onclick="openPayslip('${m.staffId || m.name}')">📄 Payslip</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ── Render Kanban Columns ──
+    function renderKanban(tasks) {
+      const cols = { todo: [], in_progress: [], awaiting_review: [], done: [] };
+      tasks.forEach(t => {
+        if (cols[t.column]) cols[t.column].push(t);
+        else cols.todo.push(t);
+      });
+
+      document.getElementById('count-todo').textContent = cols.todo.length;
+      document.getElementById('count-in_progress').textContent = cols.in_progress.length;
+      document.getElementById('count-awaiting_review').textContent = cols.awaiting_review.length;
+      document.getElementById('count-done').textContent = cols.done.length;
+
+      document.getElementById('taskCountBadge').textContent = `${tasks.length} Active Tasks`;
+
+      // Pending clearance alert in header
+      const pendingBtn = document.getElementById('btnPendingReviews');
+      if (cols.awaiting_review.length > 0) {
+        pendingBtn.style.display = 'inline-flex';
+        document.getElementById('pendingReviewsCount').textContent = `${cols.awaiting_review.length}`;
+        pendingBtn.onclick = () => {
+          if (cols.awaiting_review.length > 0) selectTask(cols.awaiting_review[0].id);
+        };
+      } else {
+        pendingBtn.style.display = 'none';
+      }
+
+      ['todo', 'in_progress', 'awaiting_review', 'done'].forEach(colKey => {
+        const colEl = document.getElementById(`col-${colKey}`);
+        colEl.innerHTML = cols[colKey].map(t => `
+          <div class="task-card ${t.id === activeTaskId ? 'active-selected' : ''} ${colKey === 'awaiting_review' ? 'review-required' : ''}" onclick="selectTask('${t.id}')">
+            <div class="task-top-row">
+              <span class="task-id">${t.id}</span>
+              <span class="priority-badge ${t.priority}">${t.priority}</span>
+            </div>
+            <div class="task-title">${t.title}</div>
+            <div class="task-meta-bar">
+              <div class="task-assignees">
+                <span class="assignee-chip">👤 ${t.assignedHuman ? t.assignedHuman.split(' ')[0] : 'Sherif'}</span>
+                <span class="assignee-chip" style="color: #38bdf8;">🤖 ${t.assignedAgent ? t.assignedAgent.split(' ')[0] : 'Agent'}</span>
+              </div>
+              <span class="benchmark-chip">${t.commitHash || 'git'}</span>
+            </div>
+            ${colKey === 'awaiting_review' ? `
+              <div class="card-quick-actions" onclick="event.stopPropagation()">
+                <button class="btn btn-emerald btn-sm" style="width: 100%; justify-content: center;" onclick="quickApprove('${t.id}')">
+                  ✓ Quick Approve & Deploy
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        `).join('');
+      });
+    }
+
+    // ── Select Task & Render Collaboration Hub ──
+    function selectTask(taskId) {
+      activeTaskId = taskId;
+      const task = state.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      document.querySelectorAll('.task-card').forEach(c => c.classList.remove('active-selected'));
+
+      document.getElementById('cTitle').textContent = task.title;
+      document.getElementById('cDesc').textContent = task.description;
+      document.getElementById('cHuman').textContent = task.assignedHuman || 'Sherif Akanmu';
+      document.getElementById('cAgent').textContent = `${task.assignedAgent} (@${(task.assignedAgent || 'Agent').split(' ')[0]})`;
+      document.getElementById('cCommit').textContent = task.commitHash || 'git-dev';
+      document.getElementById('cBenchmark').textContent = task.benchmark || 'Validated';
+      document.getElementById('threadAgentTag').textContent = `Chatting with ${task.assignedAgent}`;
+
+      const filesBox = document.getElementById('cFiles');
+      filesBox.innerHTML = (task.filesTouched || ['server.mjs']).map(f => `<span class="file-pill">${f}</span>`).join('');
+
+      const approvalBtn = document.getElementById('btnApproveAction');
+      if (task.column === 'awaiting_review') {
+        approvalBtn.style.display = 'inline-flex';
+        approvalBtn.textContent = '✓ Approve & Deploy to Production';
+        approvalBtn.disabled = false;
+      } else if (task.column === 'done') {
+        approvalBtn.style.display = 'inline-flex';
+        approvalBtn.textContent = '✓ Deployed to Production';
+        approvalBtn.disabled = true;
+      } else {
+        approvalBtn.style.display = 'none';
+      }
+
+      renderThread(task.comments || []);
+    }
+
+    function renderThread(comments) {
+      const messagesEl = document.getElementById('threadMessages');
+      messagesEl.innerHTML = comments.map(c => `
+        <div class="msg-bubble ${c.role}">
+          <span class="msg-author">${c.sender} · ${c.timestamp}</span>
+          <div class="msg-content">${c.text}</div>
+        </div>
+      `).join('');
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // ── Quick Directive Chips ──
+    function sendQuickPrompt(promptText) {
+      document.getElementById('threadInput').value = promptText;
+      sendMessage();
+    }
+
+    // ── Send Message in Thread ──
+    async function sendMessage() {
+      const input = document.getElementById('threadInput');
+      const text = input.value.trim();
+      if (!text || !activeTaskId) return;
+
+      input.value = '';
+      try {
+        const res = await fetch('/api/hitl/tasks/comment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId: activeTaskId, sender: 'Sherif Akanmu', text })
+        });
+        const result = await res.json();
+        if (result.ok && result.task) {
+          syncHitlState();
+        }
+      } catch (e) {}
+    }
+
+    document.getElementById('btnSendMessage').addEventListener('click', sendMessage);
+    document.getElementById('threadInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    // ── Approve Task Action ──
+    async function quickApprove(taskId) {
+      try {
+        const res = await fetch('/api/hitl/tasks/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId, approver: 'Sherif Akanmu' })
+        });
+        const result = await res.json();
+        if (result.ok) syncHitlState();
+      } catch (e) {}
+    }
+
+    document.getElementById('btnApproveAction').addEventListener('click', () => {
+      if (activeTaskId) quickApprove(activeTaskId);
+    });
+
+    // ── Payslip Viewer ──
+    async function openPayslip(identifier) {
+      if (!payrollData) {
+        try {
+          const res = await fetch('/api/riffmax/payslips');
+          if (res.ok) payrollData = await res.json();
+        } catch (e) {}
+      }
+
+      const emp = (payrollData && payrollData.employees) 
+        ? payrollData.employees.find(e => 
+            e.staffId.toLowerCase() === identifier.toLowerCase() || 
+            e.name.toLowerCase().includes(identifier.toLowerCase()) || 
+            e.email.toLowerCase().includes(identifier.toLowerCase())
+          )
+        : null;
+
+      if (!emp) {
+        alert('Payslip not found for ' + identifier);
+        return;
+      }
+
+      document.getElementById('psMonth').textContent = emp.month === '2026-11' ? 'NOVEMBER 2026' : emp.month;
+      document.getElementById('psStaffId').textContent = emp.staffId;
+      document.getElementById('psName').textContent = emp.name;
+      document.getElementById('psRole').textContent = `${emp.role} (${emp.department})`;
+      document.getElementById('psBank').textContent = `${emp.bank} · ${emp.account}`;
+      document.getElementById('psPeriod').textContent = emp.payPeriod;
+      document.getElementById('psShifts').textContent = `${emp.completedShifts} Shifts (${emp.totalHours} Hours)`;
+
+      // Basic breakdown 60% basic, 30% housing, 10% transport
+      const gross = emp.grossPay || 600000;
+      document.getElementById('psBasic').textContent = '₦' + Math.round(gross * 0.6).toLocaleString() + '.00';
+      document.getElementById('psHousing').textContent = '₦' + Math.round(gross * 0.3).toLocaleString() + '.00';
+      document.getElementById('psTransport').textContent = '₦' + Math.round(gross * 0.1).toLocaleString() + '.00';
+      document.getElementById('psGross').innerHTML = `<strong>₦${gross.toLocaleString()}.00</strong>`;
+
+      document.getElementById('psTax').textContent = '₦' + (emp.payeTax || 0).toLocaleString() + '.00';
+      document.getElementById('psPension').textContent = '₦' + (emp.pension || 0).toLocaleString() + '.00';
+      document.getElementById('psNhf').textContent = '₦' + (emp.nhf || 0).toLocaleString() + '.00';
+      document.getElementById('psNsitf').textContent = '₦' + (emp.nsitf || 0).toLocaleString() + '.00';
+      document.getElementById('psDeductions').innerHTML = `<strong>₦${(emp.totalDeductions || 0).toLocaleString()}.00</strong>`;
+
+      document.getElementById('psNetPay').textContent = '₦' + (emp.netPay || 0).toLocaleString() + '.00';
+
+      document.getElementById('payslipModal').classList.add('open');
+    }
+
+    function closePayslipModal() {
+      document.getElementById('payslipModal').classList.remove('open');
+    }
+
+    // ── Monthly Payroll Register Modal ──
+    async function openPayrollRegister() {
+      if (!payrollData) {
+        try {
+          const res = await fetch('/api/riffmax/payslips');
+          if (res.ok) payrollData = await res.json();
+        } catch (e) {}
+      }
+
+      if (!payrollData || !payrollData.employees) return;
+
+      const tbody = document.getElementById('payrollTableBody');
+      tbody.innerHTML = payrollData.employees.map(e => `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+          <td style="padding: 8px; font-family: var(--font-mono); color: #818cf8;">${e.staffId}</td>
+          <td style="padding: 8px;"><strong>${e.name}</strong><br><span style="color: var(--text-muted); font-size: 10px;">${e.role}</span></td>
+          <td style="padding: 8px; font-family: var(--font-mono); font-size: 10px;">${e.bank}<br>${e.account}</td>
+          <td style="padding: 8px; text-align: right; font-family: var(--font-mono);">₦${e.grossPay.toLocaleString()}</td>
+          <td style="padding: 8px; text-align: right; font-family: var(--font-mono); color: #fb7185;">₦${e.payeTax.toLocaleString()}</td>
+          <td style="padding: 8px; text-align: right; font-family: var(--font-mono); color: #fbbf24;">₦${e.pension.toLocaleString()}</td>
+          <td style="padding: 8px; text-align: right; font-family: var(--font-mono); color: #34d399; font-weight: 700;">₦${e.netPay.toLocaleString()}</td>
+          <td style="padding: 8px; text-align: center;">
+            <button class="btn btn-emerald btn-sm" onclick="openPayslip('${e.staffId}')">View Slip</button>
+          </td>
+        </tr>
+      `).join('');
+
+      document.getElementById('payrollRegisterModal').classList.add('open');
+    }
+
+    function closePayrollRegisterModal() {
+      document.getElementById('payrollRegisterModal').classList.remove('open');
+    }
+
+    document.getElementById('btnOpenPayroll').addEventListener('click', openPayrollRegister);
+
+    // ── Connect Modal ──
+    document.getElementById('btnOpenConnectModal').addEventListener('click', () => {
+      document.getElementById('connectModal').classList.add('open');
+    });
+
+    function closeConnectModal() {
+      document.getElementById('connectModal').classList.remove('open');
+    }
+
+    // ── Modal for New Task ──
+    const modal = document.getElementById('newTaskModal');
+    document.getElementById('btnNewTask').addEventListener('click', () => modal.classList.add('open'));
+    document.getElementById('btnCancelModal').addEventListener('click', () => modal.classList.remove('open'));
+
+    document.getElementById('btnSubmitNewTask').addEventListener('click', async () => {
+      const title = document.getElementById('inputTaskTitle').value.trim();
+      const description = document.getElementById('inputTaskDesc').value.trim();
+      const humanReviewer = document.getElementById('selectHumanReviewer').value;
+      const targetAgentName = document.getElementById('selectTargetAgent').value;
+
+      if (!title) return;
+
+      try {
+        const res = await fetch('/api/hitl/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, humanReviewer, targetAgentName })
+        });
+        const result = await res.json();
+        if (result.ok && result.task) {
+          activeTaskId = result.task.id;
+          modal.classList.remove('open');
+          document.getElementById('inputTaskTitle').value = '';
+          document.getElementById('inputTaskDesc').value = '';
+          syncHitlState();
+        }
+      } catch (e) {}
+    });
+
+    // ── Sync State with Backend ──
+    async function syncHitlState() {
+      try {
+        const res = await fetch('/api/hitl/state');
+        if (!res.ok) return;
+        state = await res.json();
+        renderTeam(state.team || []);
+        renderKanban(state.tasks || []);
+        if (activeTaskId) selectTask(activeTaskId);
+      } catch (e) {}
+    }
+
+    // Initial load and periodic polling
+    syncHitlState();
+    setInterval(syncHitlState, 2000);
+  </script>
+</body>
+</html>
