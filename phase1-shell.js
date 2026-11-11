@@ -716,6 +716,8 @@
     const companyName = user.organisation_name || user.organisationId || 'Riffmax Technology';
     const siteName = user.department || user.site_name || 'Main Facility';
     const roleTitle = user.title || user.role || 'Member';
+    const deptOrSite = user.department || user.site_name || 'Backend Infrastructure';
+    const formattedRole = user.title || (isExecutive ? 'Executive' : isSupervisorAccount ? 'Supervisor' : 'Frontline Specialist');
 
     // Immediate unread count from cache (zero blocking latency)
     const unreadCount = cachedNotifications.filter(n => !n.read_at && !n.read).length || 0;
@@ -802,56 +804,12 @@
               </div>
             ` : ''}
 
-            <!-- Clean Team Role Switcher (For Level 1 Live Team Testing) -->
-            <div class="sr-demo-switcher-wrap" style="position:relative;">
-              <button class="sr-demo-pill" id="sr-btn-demo-switch" type="button" aria-haspopup="true" aria-expanded="false" title="Switch Staff Account">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                <span class="sr-demo-label">${isExecutive ? 'Executive' : isSupervisorAccount ? 'Supervisor' : 'Worker'}</span>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <div id="sr-demo-menu" class="sr-demo-menu hidden" role="menu">
-                <div class="sr-demo-menu-header">
-                  <strong>Workspace Role Switcher</strong>
-                  <span>Switch active role view</span>
-                </div>
-                <div class="sr-demo-menu-items">
-                  <button type="button" class="sr-demo-option ${!isExecutive && !isSupervisorAccount ? 'active' : ''}" data-persona="cleaner">
-                    <span class="sr-demo-icon" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,0.14);color:#10b981;">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    </span>
-                    <div class="sr-demo-opt-text">
-                      <div class="sr-demo-opt-title">Babatunde Adeleke (Worker)</div>
-                      <div class="sr-demo-opt-desc">Shift, Handover, Schedule, Earnings</div>
-                    </div>
-                  </button>
-                  <button type="button" class="sr-demo-option ${isSupervisorAccount ? 'active' : ''}" data-persona="supervisor">
-                    <span class="sr-demo-icon" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(56,189,248,0.14);color:#38bdf8;">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    </span>
-                    <div class="sr-demo-opt-text">
-                      <div class="sr-demo-opt-title">Olaide Emmanuela (Supervisor)</div>
-                      <div class="sr-demo-opt-desc">Dual-Mode: Worker View ⇄ Supervisor Floor</div>
-                    </div>
-                  </button>
-                  <button type="button" class="sr-demo-option ${isExecutive ? 'active' : ''}" data-persona="owner">
-                    <span class="sr-demo-icon" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(168,85,247,0.14);color:#a855f7;">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-                    </span>
-                    <div class="sr-demo-opt-text">
-                      <div class="sr-demo-opt-title">Sherif Akanmu (Executive)</div>
-                      <div class="sr-demo-opt-desc">Pulse, Payroll, Workforce, Audit</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </div>
-
             <!-- Company & Site Context Pill (Top Bar Right, away from ShiftRelay wordmark) -->
-            <button class="sr-context-pill" id="sr-btn-context" aria-label="Workplace context" title="Company: ${escapeHtml(companyName)} · Site: ${escapeHtml(siteName)}">
+            <button class="sr-context-pill" id="sr-btn-context" aria-label="Workplace context" title="${escapeHtml(companyName)} · ${escapeHtml(deptOrSite)} · ${escapeHtml(formattedRole)}">
               <span class="sr-dot"></span>
               <div class="sr-context-pill-text">
-                <span class="sr-context-pill-org">Company: ${escapeHtml(companyName)}</span>
-                <span class="sr-context-pill-site">Site: ${escapeHtml(siteName)} · ${escapeHtml((user.role || 'WORKER').toUpperCase())}</span>
+                <span class="sr-context-pill-org">${escapeHtml(companyName)}</span>
+                <span class="sr-context-pill-site">${escapeHtml(deptOrSite)} · ${escapeHtml(formattedRole)}</span>
               </div>
               <svg class="sr-context-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
             </button>
@@ -945,9 +903,6 @@
         <div class="sr-body-wrap">
           <!-- Desktop Sidebar (5-Tab Priority Hierarchy Across All 3 Dashboards) -->
           <nav class="sr-sidebar" aria-label="Sidebar navigation">
-            <div class="sr-sidebar-role-badge">
-              ${isExecutive ? 'Executive Command' : isSupervisor ? 'Supervisor Active Duty' : isSupervisorAccount ? 'Supervisor · My Shift' : 'Frontline Specialist'}
-            </div>
             ${isExecutive ? `
               <!-- 5 Priority Tabs: Corporate Executive Dashboard -->
               <button class="sr-nav-btn ${view === 'analytics' ? 'active' : ''}" data-sr-view="analytics">
@@ -1110,11 +1065,54 @@
         </nav>
 
         <!-- Floating Support Symbol Button (No Text, No Green Light) -->
-        <button class="sr-floating-ai-beacon" id="sr-btn-floating-ai" aria-label="Support" title="Support">
+        <button class="sr-floating-ai-beacon" id="sr-btn-floating-ai" aria-label="Support" title="ShiftRelay Support">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
         </button>
+
+        <!-- Pop-out Support Chat Widget with Close Button (No dedicated tab) -->
+        <div id="sr-support-popout" class="sr-support-popout hidden" role="dialog" aria-modal="true" aria-label="ShiftRelay Support">
+          <div class="sr-support-header">
+            <div class="sr-support-header-left">
+              <span class="sr-support-avatar-badge">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              </span>
+              <div>
+                <div class="sr-support-header-title">ShiftRelay Support</div>
+                <div class="sr-support-header-status"><span class="sr-support-live-dot"></span> Online · Support Team</div>
+              </div>
+            </div>
+            <button type="button" class="sr-support-close-btn" id="sr-btn-close-support" aria-label="Close Support">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="sr-support-body" id="sr-support-body">
+            <div class="sr-support-faq-wrap" id="sr-support-faq-wrap">
+              <div class="sr-support-faq-title">Frequently Asked Questions</div>
+              <div class="sr-support-faq-chips" id="sr-support-faq-chips">
+                <button type="button" class="sr-support-faq-btn" data-faq-id="swap">How do I swap an assigned shift?</button>
+                <button type="button" class="sr-support-faq-btn" data-faq-id="pay">When is monthly salary paid?</button>
+                <button type="button" class="sr-support-faq-btn" data-faq-id="profile">How do I update my profile details?</button>
+                <button type="button" class="sr-support-faq-btn" data-faq-id="offline">How does offline clock-in work?</button>
+                <button type="button" class="sr-support-faq-btn" data-faq-id="hazard">How do I report a workplace safety issue?</button>
+              </div>
+            </div>
+            <div class="sr-support-msgs" id="sr-support-msgs"></div>
+          </div>
+          <div class="sr-support-footer">
+            <button type="button" class="sr-support-cta-btn" id="sr-btn-chat-team">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              <span>Chat with Support Team</span>
+            </button>
+            <form class="sr-support-input-row" id="sr-support-input-form" style="display:none;margin-top:8px;">
+              <input type="text" id="sr-support-chat-input" class="sr-support-input" placeholder="Type your message to support..." autocomplete="off" />
+              <button type="submit" id="sr-support-send-btn" class="sr-support-send-btn" aria-label="Send message">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     `;
 
@@ -1322,7 +1320,7 @@
 
     document.getElementById('sr-btn-floating-ai')?.addEventListener('click', (e) => {
       e.preventDefault();
-      navigate('assistant');
+      toggleSupportPopout();
     });
 
     document.getElementById('sr-shell-sync')?.addEventListener('click', async () => {
@@ -1369,7 +1367,8 @@
     } else if (view === 'rewards') {
       await renderRewardsCenter();
     } else if (view === 'assistant') {
-      await renderAssistant();
+      toggleSupportPopout(true);
+      return;
     } else if (view === 'open-shifts') {
       await renderOpenShiftMarketplace();
     } else if (view === 'compliance') {
@@ -3252,24 +3251,52 @@
     }
   }
 
-  // ── 4. Authorised Multi-Company Context Switcher Modal ──────────────────────
-  async function openContextModal() {
+  // ── 4. Authorised Workplace & Staff Context Pop-out Modal ───────────────────
+  function openContextModal() {
     document.getElementById('sr-context-modal')?.remove();
+
+    const user = getUser();
+    const companyName = user?.organisation_name || user?.organisationId || 'Riffmax Technology Limited';
+    const deptName = user?.department || user?.site_name || 'Backend Infrastructure';
+    const staffName = user?.name || 'Staff Member';
+    const roleTitle = user?.title || (user?.role === 'owner' ? 'Executive' : (user?.role === 'supervisor' || user?.role === 'manager') ? 'Supervisor' : 'Frontline Specialist');
 
     const backdrop = document.createElement('div');
     backdrop.id = 'sr-context-modal';
     backdrop.className = 'sr-modal-backdrop';
     backdrop.innerHTML = `
-      <div class="sr-modal-card" role="dialog" aria-modal="true" aria-label="Switch Workplace Context">
-        <div class="sr-modal-header">
-          <h3>Your Workplaces &amp; Roles</h3>
-          <button type="button" class="sr-icon-btn" id="sr-btn-close-modal" aria-label="Close">
+      <div class="sr-context-popout-card" role="dialog" aria-modal="true" aria-label="Workplace & Staff Information">
+        <div class="sr-context-popout-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="width:34px;height:34px;border-radius:10px;background:rgba(16,185,129,0.16);color:#10b981;display:inline-flex;align-items:center;justify-content:center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+            </span>
+            <div>
+              <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Workplace &amp; Staff Details</h3>
+              <span style="font-size:11.5px;color:var(--sr-text-muted);">Verified Session Details</span>
+            </div>
+          </div>
+          <button type="button" class="sr-icon-btn" id="sr-btn-close-context-modal" aria-label="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
-        <div class="sr-modal-body" id="sr-modal-memberships-list">
-          <div class="sr-skeleton" style="height: 60px; margin-bottom: 8px;"></div>
-          <div class="sr-skeleton" style="height: 60px;"></div>
+        <div class="sr-context-popout-body">
+          <div class="sr-context-info-row">
+            <span class="sr-context-info-label">Company Name</span>
+            <span class="sr-context-info-val" style="color:#10b981;">${escapeHtml(companyName)}</span>
+          </div>
+          <div class="sr-context-info-row">
+            <span class="sr-context-info-label">Department</span>
+            <span class="sr-context-info-val">${escapeHtml(deptName)}</span>
+          </div>
+          <div class="sr-context-info-row">
+            <span class="sr-context-info-label">Job Role</span>
+            <span class="sr-context-info-val">${escapeHtml(roleTitle)}</span>
+          </div>
+          <div class="sr-context-info-row">
+            <span class="sr-context-info-label">Staff Name</span>
+            <span class="sr-context-info-val">${escapeHtml(staffName)}</span>
+          </div>
         </div>
       </div>
     `;
@@ -3277,77 +3304,9 @@
     document.body.appendChild(backdrop);
 
     const closeModal = () => backdrop.remove();
+    document.getElementById('sr-btn-close-context-modal')?.addEventListener('click', closeModal);
     document.getElementById('sr-btn-close-modal')?.addEventListener('click', closeModal);
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
-
-    const listEl = document.getElementById('sr-modal-memberships-list');
-    try {
-      const res = await fetch('/api/user/memberships');
-      if (!res.ok) throw new Error('Could not load memberships');
-      const data = await res.json();
-      const memberships = data.memberships || [];
-      const user = getUser();
-
-      if (memberships.length === 0) {
-        listEl.innerHTML = '<p style="color:var(--sr-text-muted);font-size:13px;text-align:center;">No other active workplaces associated with your account.</p>';
-        return;
-      }
-
-      listEl.innerHTML = memberships.map(m => {
-        const isCurrent = m.id === user.id || m.organisation_id === user.organisation_id;
-        return `
-          <div class="sr-card" style="padding:14px;margin-bottom:8px;border-color:${isCurrent ? 'var(--sr-primary)' : 'var(--sr-border-subtle)'};background:${isCurrent ? 'rgba(13,82,77,0.04)' : 'var(--sr-bg-card)'};">
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-              <div>
-                <strong style="display:block;font-size:14px;color:var(--sr-text-main);">${escapeHtml(m.organisation_name || 'Workplace')}</strong>
-                <small style="color:var(--sr-text-muted);font-size:12px;">Unit: ${escapeHtml(m.department || 'Operations')} · Role: ${escapeHtml(m.role.toUpperCase())}</small>
-              </div>
-              ${isCurrent ? `
-                <span class="sr-status-pill active" style="font-size:11px;">ACTIVE</span>
-              ` : `
-                <button class="sr-btn sr-btn-secondary" style="min-height:34px;padding:0 12px;font-size:12px;" data-switch-membership="${m.id}">
-                  Switch Context
-                </button>
-              `}
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      listEl.querySelectorAll('[data-switch-membership]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          btn.disabled = true;
-          try {
-            // Clear previous-company notifications immediately during company switching
-            clearNotificationState();
-            closeNotificationPanel(false);
-
-            const switchRes = await fetch('/api/user/active-membership', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ membershipId: btn.dataset.switchMembership })
-            });
-            if (!switchRes.ok) {
-              const err = await switchRes.json();
-              throw new Error(err.error || 'Context switch failed');
-            }
-            closeModal();
-            // Re-fetch active session and remount
-            const sessionRes = await fetch('/api/auth/session');
-            if (sessionRes.ok) {
-              const session = await sessionRes.json();
-              if (window.login) window.login(session.user);
-            }
-          } catch (err) {
-            alert(err.message);
-            btn.disabled = false;
-          }
-        });
-      });
-
-    } catch (err) {
-      listEl.innerHTML = `<p style="color:#dc2626;font-size:13px;">${escapeHtml(err.message)}</p>`;
-    }
   }
 
   // ── 24. Pinned Shift Broadcast Banner & Announcement Engine ─────────────────
@@ -7266,7 +7225,66 @@
     }
   }
 
-  // ── 9. Polished Worker Me (Profile) Screen (UI Phase 4) ───────────────────
+  // ── 9. Real Barcode Generators (GS1 Code-128 1D & ISO/IEC 18004 2D QR) ──────
+  const CODE128_PATTERNS = [
+    "212222","222122","222221","121223","121322","131222","122213","122312","132212","221213",
+    "221312","231212","112232","122132","122231","113222","123122","123221","223211","221132",
+    "221231","213212","223112","312131","311222","321122","321221","312212","322112","322211",
+    "212123","212321","232121","111323","131123","131321","112313","132113","132311","211313",
+    "231113","231311","112133","112331","132131","113123","113321","133121","313121","211331",
+    "231131","213113","213311","213131","311123","311321","331121","312113","312311","332111",
+    "314111","221411","431111","111224","111422","121124","121421","141122","141221","112214",
+    "112412","122114","122411","142112","142211","241211","221114","413111","241112","134111",
+    "111242","121142","121241","114212","124112","124211","411212","421112","421211","212141",
+    "214121","412121","111143","111341","131141","114113","114311","411113","411311","113141",
+    "114131","311141","411131","211412","211214","211232","2331112"
+  ];
+
+  function generateBarcode128Svg(text, width = 240, height = 56) {
+    if (!text) text = "RIF-2026-003";
+    let check = 104;
+    const codes = [104];
+    for (let i = 0; i < text.length; i++) {
+      const val = text.charCodeAt(i) - 32;
+      if (val < 0 || val > 94) continue;
+      codes.push(val);
+      check = (check + (i + 1) * val) % 103;
+    }
+    codes.push(check);
+    codes.push(106);
+
+    let patternStr = "";
+    for (const c of codes) {
+      patternStr += CODE128_PATTERNS[c] || "212222";
+    }
+
+    let totalModules = 0;
+    for (let i = 0; i < patternStr.length; i++) {
+      totalModules += parseInt(patternStr[i], 10);
+    }
+
+    const quietZone = 8;
+    const svgWidth = totalModules + quietZone * 2;
+    const barHeight = height - 16;
+    let x = quietZone;
+    let rects = "";
+
+    for (let i = 0; i < patternStr.length; i++) {
+      const w = parseInt(patternStr[i], 10);
+      const isBar = i % 2 === 0;
+      if (isBar) {
+        rects += `<rect x="${x}" y="3" width="${w}" height="${barHeight}" fill="#0f172a" />`;
+      }
+      x += w;
+    }
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgWidth} ${height}" width="${width}" height="${height}" shape-rendering="crispEdges">
+      <rect width="${svgWidth}" height="${height}" fill="#ffffff" rx="6" />
+      ${rects}
+      <text x="${svgWidth / 2}" y="${height - 3}" font-family="JetBrains Mono, monospace" font-size="9" font-weight="800" text-anchor="middle" fill="#0f172a">${text}</text>
+    </svg>`;
+  }
+
   // ── 9. Polished Worker Me (CV-Style Profile & Settings) ───────────────────
   async function renderWorkerMe() {
     const user = getUser();
@@ -7357,183 +7375,232 @@
       ? `<img src="${escapeHtml(profile.avatarUrl)}" alt="${escapeHtml(user.name)}" class="sr-me-avatar-img" id="sr-me-avatar-display" />`
       : `<div class="sr-me-avatar-fallback" id="sr-me-avatar-display">${escapeHtml(initials)}</div>`;
 
-    const staffCode = 'RIF-2026-' + String(user.id || '003').slice(-3);
+    const staffCode = user.employee_code || ('RIF-2026-' + String(user.id || '003').slice(-3));
+    const qrPayload = `SHIFTRELAY VERIFIED ID\nStaff Name: ${user.name || 'Specialist'}\nStaff ID: ${staffCode}\nCompany: ${orgName}\nDepartment: ${deptName}\nRole: ${roleDisplay}\nStatus: VERIFIED ACTIVE`;
+    const qrSvg = (typeof window !== 'undefined' && typeof window.generateQrSvg === 'function')
+      ? window.generateQrSvg(qrPayload, 128)
+      : (typeof generateQrSvg === 'function' ? generateQrSvg(qrPayload, 128) : '');
+    const barcodeSvg = generateBarcode128Svg(staffCode, 240, 52);
 
     container.innerHTML = `
-      <div class="sr-me-container" style="display:flex;flex-direction:column;gap:16px;">
-        <!-- Card 1: Official Digital Worker ID Badge & Scannable Gate QR Pass ([RIFA-27]) -->
-        <div class="sr-card" style="padding:0;overflow:hidden;border-radius:18px;border:1.5px solid var(--sr-border-medium);">
-          <div style="background:linear-gradient(135deg,#090d16 0%,#0f172a 60%,#064e3b 100%);padding:18px 20px;color:#f8fafc;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <img src="icon.svg?v=140" width="30" height="30" alt="" style="border-radius:8px;" />
-              <div>
-                <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#34d399;">Official Digital Work Pass</div>
-                <div style="font-size:14px;font-weight:800;color:#ffffff;">${escapeHtml(orgName)} &bull; #${escapeHtml(user.company_id || '246701')}</div>
-              </div>
-            </div>
-            <span style="padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#34d399;font-size:10.5px;font-weight:800;letter-spacing:0.04em;">VERIFIED STAFF ID</span>
-          </div>
-
-          <div style="padding:20px;display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;">
-            <div style="display:flex;align-items:center;gap:14px;min-width:0;">
-              <div class="sr-me-avatar-wrapper" style="width:68px;height:68px;flex-shrink:0;position:relative;">
-                <div class="sr-avatar-clickable-hitbox" id="sr-me-avatar-tap-zone" title="Tap to update ID photo" style="cursor:pointer;width:100%;height:100%;border-radius:16px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d9488,#10b981);color:#fff;font-size:22px;font-weight:800;">
-                  ${profile.avatarUrl ? `<img src="${escapeHtml(profile.avatarUrl)}" alt="${escapeHtml(user.name)}" class="sr-me-avatar-img" id="sr-me-avatar-display" style="width:100%;height:100%;object-fit:cover;" />` : escapeHtml(initials)}
+      <div class="sr-modern-cv-wrap">
+        <!-- Hero Header Card -->
+        <div class="sr-cv-hero-card">
+          <div class="sr-cv-hero-banner">
+            <div class="sr-cv-hero-left">
+              <div class="sr-cv-avatar-wrap sr-me-avatar-wrapper">
+                <div class="sr-avatar-clickable-hitbox" id="sr-me-avatar-tap-zone" title="Tap to update profile photo" style="cursor:pointer;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+                  ${profile.avatarUrl ? `<img src="${escapeHtml(profile.avatarUrl)}" alt="${escapeHtml(user.name)}" class="sr-cv-avatar-img" id="sr-me-avatar-display" />` : escapeHtml(initials)}
                 </div>
                 <input type="file" id="sr-avatar-file-input" accept="image/*" style="display:none;" />
               </div>
-              <div style="min-width:0;">
-                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                  <h2 id="sr-me-display-name" style="margin:0;font-size:19px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(user.name)}</h2>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <div class="sr-cv-hero-identity">
+                <h2 class="sr-cv-hero-name" id="sr-me-display-name">
+                  ${escapeHtml(user.name)}
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.6" title="Verified Personnel">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <polyline points="9 12 11 14 15 10"/>
+                  </svg>
+                </h2>
+                <div class="sr-cv-hero-headline" id="sr-me-display-role">${escapeHtml(roleDisplay)}</div>
+                <div class="sr-cv-hero-meta-chips">
+                  <span class="sr-cv-meta-chip status-avail">
+                    <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399;"></span>
+                    Available for Remote &amp; Shift Duty
+                  </span>
+                  <span class="sr-cv-meta-chip">${escapeHtml(orgName)}</span>
+                  <span class="sr-cv-meta-chip">${escapeHtml(deptName)}</span>
+                  <span class="sr-cv-meta-chip">ID: <strong style="color:#ffffff;">${escapeHtml(staffCode)}</strong></span>
+                  <span class="sr-cv-meta-chip">${escapeHtml(workEmail)}</span>
                 </div>
-                <div id="sr-me-display-role" style="font-size:13px;font-weight:700;color:var(--sr-primary);margin-top:2px;">${escapeHtml(roleDisplay)}</div>
-                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">Unit: <strong>${escapeHtml(deptName)}</strong> &bull; ID: <code style="font-weight:800;color:var(--sr-text-main);">${escapeHtml(staffCode)}</code></div>
               </div>
             </div>
-
-            <!-- Geometric Gate Check-In QR Pass -->
-            <div style="padding:10px;border-radius:12px;background:#ffffff;border:1.5px solid #cbd5e1;text-align:center;flex-shrink:0;" title="Scan at Facility Gate Kiosk">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#090d16" stroke-width="1.8">
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-                <rect x="5" y="5" width="3" height="3" fill="#090d16"/><rect x="16" y="5" width="3" height="3" fill="#090d16"/><rect x="5" y="16" width="3" height="3" fill="#090d16"/>
-                <path d="M14 14h3v3h-3zM18 14h3v3h-3zM14 18h3v3h-3zM18 18h3v3h-3z"/>
-              </svg>
-              <div style="font-size:9px;font-weight:800;color:#0f172a;letter-spacing:0.04em;margin-top:2px;">GATE PASS</div>
-            </div>
-          </div>
-
-          <div style="padding:12px 20px;background:var(--sr-bg-card-subtle);border-top:1px solid var(--sr-border-subtle);display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-            <div>
-              <div style="font-size:10.5px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Default Shift</div>
-              <div style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">06:00 – 14:00 WAT</div>
-            </div>
-            <div>
-              <div style="font-size:10.5px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Reliability</div>
-              <div style="font-size:12.5px;font-weight:800;color:#10b981;margin-top:2px;">99.4% On-Time</div>
-            </div>
-            <div>
-              <div style="font-size:10.5px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Work Email</div>
-              <div style="font-size:12px;font-weight:700;color:var(--sr-text-main);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(workEmail)}</div>
+            <div class="sr-cv-hero-actions">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-edit-cv-modal" style="min-height:36px;padding:0 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                <span>Edit Profile</span>
+              </button>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-export-cv" style="min-height:36px;padding:0 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Export Dossier</span>
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- Card 2: Verified Salary Bank & Statutory Remittance Wallet -->
-        <div class="sr-card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <!-- Bento Grid Row 1: Scannable Work ID Pass + Remote & Shift Performance Bento -->
+        <div class="sr-bento-grid">
+          <!-- Bento Col 1: Official Scannable Barcode Pass (Span 6) -->
+          <div class="sr-bento-card sr-barcode-pass-card sr-bento-span-6">
+            <div class="sr-bento-card-header" style="border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:12px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="width:28px;height:28px;border-radius:8px;background:rgba(52,211,153,0.18);color:#34d399;display:inline-flex;align-items:center;justify-content:center;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </span>
+                <div>
+                  <div style="font-size:14px;font-weight:800;color:#ffffff;">Digital ID &amp; Gate Pass</div>
+                  <div style="font-size:11px;color:#94a3b8;">ISO/IEC 18004 2D QR + GS1 Code-128 Barcode</div>
+                </div>
+              </div>
+              <span style="padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#34d399;font-size:10.5px;font-weight:800;letter-spacing:0.04em;">VERIFIED ACTIVE</span>
+            </div>
+
+            <div class="sr-barcode-codes-row">
+              <!-- Real 2D QR Code Box -->
+              <div class="sr-barcode-qr-box" title="Scan with any smartphone camera to view verified company personnel record">
+                ${qrSvg}
+                <div style="font-size:9.5px;font-weight:800;color:#0f172a;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;">Scan ID Info</div>
+              </div>
+
+              <!-- Real 1D Code-128 Barcode Box -->
+              <div class="sr-barcode-1d-box" title="Scan with any barcode laser scanner">
+                <div style="font-size:9px;font-weight:800;color:#64748b;letter-spacing:0.06em;text-transform:uppercase;">GS1 Code-128 Staff Barcode</div>
+                ${barcodeSvg}
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;color:#94a3b8;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+              <span>Facility Gate: <strong>All Turnstiles Clear</strong></span>
+              <span style="color:#34d399;font-weight:700;">NIBSS &amp; PenCom Compliant</span>
+            </div>
+          </div>
+
+          <!-- Bento Col 2: Performance & Reliability Bento (Span 6) -->
+          <div class="sr-bento-card sr-bento-span-6">
+            <div class="sr-bento-card-header">
+              <h3 class="sr-bento-card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                <span>Operational Reliability</span>
+              </h3>
+              <span class="sr-status-pill active" style="font-size:10.5px;">Level 1 Operational Clear</span>
+            </div>
+
+            <div class="sr-metrics-bento-grid">
+              <div class="sr-metric-bento-item">
+                <div class="sr-metric-bento-val">1,420</div>
+                <div class="sr-metric-bento-label">Verified Hours</div>
+              </div>
+              <div class="sr-metric-bento-item">
+                <div class="sr-metric-bento-val" style="color:#10b981;">99.4%</div>
+                <div class="sr-metric-bento-label">Punctuality Score</div>
+              </div>
+              <div class="sr-metric-bento-item">
+                <div class="sr-metric-bento-val" style="color:#38bdf8;">0</div>
+                <div class="sr-metric-bento-label">Safety Incidents</div>
+              </div>
+              <div class="sr-metric-bento-item">
+                <div class="sr-metric-bento-val" style="color:#a855f7;">142</div>
+                <div class="sr-metric-bento-label">Verified Handovers</div>
+              </div>
+            </div>
+
+            <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;justify-content:space-between;font-size:12px;">
+              <span style="color:var(--sr-text-muted);">Default Shift Window</span>
+              <span style="font-weight:800;color:var(--sr-text-main);">06:00 – 14:00 WAT (Morning)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento Grid Row 2: Professional Summary & Skills -->
+        <div class="sr-bento-grid">
+          <!-- Professional Summary Card (Span 7) -->
+          <div class="sr-bento-card sr-bento-span-7">
+            <div class="sr-bento-card-header">
+              <h3 class="sr-bento-card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                <span>Professional Summary</span>
+              </h3>
+              <button type="button" class="sr-cv-inline-edit-btn" id="sr-btn-edit-summary" title="Edit Summary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </button>
+            </div>
+
+            <div id="sr-cv-summary-content" class="sr-cv-summary-text" contenteditable="true" data-placeholder="Click to write your professional summary..." style="line-height:1.6;font-size:13.5px;color:var(--sr-text-main);padding:10px 12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);border-radius:12px;min-height:70px;">${escapeHtml(summaryText)}</div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+              <span id="sr-summary-hint" style="font-size:11.5px;color:var(--sr-text-muted);">Click text above to edit inline, or tap the pencil icon.</span>
+              <div id="sr-summary-actions" style="display:none;gap:8px;justify-content:flex-end;margin-left:auto;">
+                <button type="button" id="sr-summary-cancel" class="sr-btn sr-btn-secondary" style="font-size:12px;min-height:30px;padding:0 12px;">Cancel</button>
+                <button type="button" id="sr-summary-save" class="sr-btn sr-btn-primary" style="font-size:12px;min-height:30px;padding:0 14px;">Save Summary</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Verified Skills Card (Span 5) -->
+          <div class="sr-bento-card sr-bento-span-5">
+            <div class="sr-bento-card-header">
+              <h3 class="sr-bento-card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <span>Core Competencies &amp; Skills</span>
+              </h3>
+              <button type="button" class="sr-cv-inline-edit-btn" id="sr-btn-edit-skills" title="Bulk Edit Skills">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </button>
+            </div>
+
+            <div id="sr-cv-skills-list" class="sr-cv-tags-wrap" style="display:flex;flex-wrap:wrap;gap:8px;">
+              ${skills.map(s => `<span class="sr-cv-skill-tag" data-skill="${escapeHtml(s)}">${escapeHtml(s)}<button type="button" class="sr-skill-remove" aria-label="Remove skill" title="Remove">&times;</button></span>`).join('')}
+            </div>
+
+            <div class="sr-skill-input-wrap" style="margin-top:4px;position:relative;">
+              <input type="text" id="sr-skill-typeahead" class="sr-form-input" placeholder="+ Add a skill (e.g. Forklift Operation, SOP Adherence)..." autocomplete="off" />
+              <div id="sr-skill-dropdown" class="sr-skill-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,0.14);max-height:220px;overflow-y:auto;margin-top:4px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento Grid Row 3: Statutory Payroll & Remittance Clearances (Span 12) -->
+        <div class="sr-bento-card sr-bento-span-12">
+          <div class="sr-bento-card-header">
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="width:30px;height:30px;border-radius:8px;background:rgba(16,185,129,0.12);color:#10b981;display:inline-flex;align-items:center;justify-content:center;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
               </span>
-              <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Payroll Wallet</h3>
-            </div>
-            <span class="sr-status-pill active" style="font-size:10.5px;">GAPS / NIBSS Verified</span>
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div style="padding:12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);">Salary Settlement Bank</div>
-              <div style="font-size:13.5px;font-weight:800;color:var(--sr-text-main);margin-top:3px;">Guaranty Trust Bank (GTBank)</div>
-              <div style="font-size:12px;color:#059669;font-weight:700;margin-top:2px;">Acct: **** 4821 &bull; Active</div>
-            </div>
-            <div style="padding:12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);">PenCom Pension RSA</div>
-              <div style="font-size:13.5px;font-weight:800;color:var(--sr-text-main);margin-top:3px;">Stanbic IBTC Pension</div>
-              <div style="font-size:12px;color:var(--sr-text-muted);font-weight:700;margin-top:2px;">PIN: PEN1004829104</div>
-            </div>
-            <div style="padding:12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);">PAYE Tax Identification</div>
-              <div style="font-size:13.5px;font-weight:800;color:var(--sr-text-main);margin-top:3px;">FIRS / LIRS Statutory</div>
-              <div style="font-size:12px;color:var(--sr-text-muted);font-weight:700;margin-top:2px;">TIN: 9482019-NG</div>
-            </div>
-            <div style="padding:12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);">Safety Certifications</div>
-              <div style="font-size:13.5px;font-weight:800;color:var(--sr-text-main);margin-top:3px;">ISO-45001 Level 1</div>
-              <div style="font-size:12px;color:#059669;font-weight:700;margin-top:2px;">3 Active Clearances</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 3: LinkedIn-Style Modular Personnel CV (Summary -> Skills -> Experience -> Education -> Certifications) -->
-        <div class="sr-card" style="padding:16px 20px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="width:34px;height:34px;border-radius:10px;background:rgba(13,148,136,0.12);color:var(--sr-primary);display:inline-flex;align-items:center;justify-content:center;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
-              </span>
               <div>
-                <h3 style="margin:0;font-size:15.5px;font-weight:800;color:var(--sr-text-main);">Personnel CV</h3>
-                <span style="font-size:12px;color:var(--sr-text-muted);">Editable sections: Summary, Skills, Experience, Education, Certifications</span>
+                <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Statutory Compliance &amp; Remittance Records</h3>
+                <div style="font-size:11.5px;color:var(--sr-text-muted);">Employer &amp; Banking Integration Visuals &bull; Remittance Handled by Finance Department</div>
               </div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-edit-cv-modal" style="min-height:32px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                <span>Edit Profile Header</span>
-              </button>
-              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-export-cv" style="min-height:32px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span>Export Dossier</span>
-              </button>
-              <span class="sr-badge-certified" style="font-size:11px;">Verified CV</span>
+            <span class="sr-status-pill active" style="font-size:10.5px;">GAPS &bull; NIBSS Verified</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
+            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Salary Settlement Bank</div>
+              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">Guaranty Trust Bank (GTBank)</div>
+              <div style="font-size:12px;color:#059669;font-weight:700;margin-top:2px;">Acct: **** 4821 &bull; Active Direct Deposit</div>
+            </div>
+            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">PenCom Pension RSA</div>
+              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">Stanbic IBTC Pension</div>
+              <div style="font-size:12px;color:var(--sr-text-muted);font-weight:700;margin-top:2px;">PIN: PEN1004829104</div>
+            </div>
+            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">PAYE Tax Identification</div>
+              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">FIRS / LIRS Statutory</div>
+              <div style="font-size:12px;color:var(--sr-text-muted);font-weight:700;margin-top:2px;">TIN: 9482019-NG</div>
+            </div>
+            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Health Insurance NHIS</div>
+              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">Hygeia HMO Enterprise</div>
+              <div style="font-size:12px;color:#059669;font-weight:700;margin-top:2px;">Policy: HYG-88201-OP</div>
             </div>
           </div>
         </div>
 
-        <!-- Section 1: About / Summary -->
-        <section class="sr-cv-section" id="sr-cv-section-summary">
-          <div class="sr-cv-section-header">
-            <h3 class="sr-cv-section-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <span>Summary</span>
-            </h3>
-            <button type="button" class="sr-cv-inline-edit-btn" id="sr-btn-edit-summary" title="Edit Summary">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            </button>
-          </div>
-          <div id="sr-cv-summary-content" class="sr-cv-summary-text" contenteditable="true" data-placeholder="Click to write your professional summary...">${escapeHtml(summaryText)}</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-            <span id="sr-summary-hint" style="font-size:11.5px;color:var(--sr-text-muted);">Click summary text above to edit inline, or tap the pencil icon.</span>
-            <div id="sr-summary-actions" style="display:none;gap:8px;justify-content:flex-end;margin-left:auto;">
-              <button type="button" id="sr-summary-cancel" class="sr-btn sr-btn-secondary" style="font-size:12px;min-height:30px;padding:0 12px;">Cancel</button>
-              <button type="button" id="sr-summary-save" class="sr-btn sr-btn-primary" style="font-size:12px;min-height:30px;padding:0 14px;">Save Summary</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- Section 2: Skills -->
-        <section class="sr-cv-section" id="sr-cv-section-skills">
-          <div class="sr-cv-section-header">
-            <h3 class="sr-cv-section-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              <span>Skills</span>
-            </h3>
-            <button type="button" class="sr-cv-inline-edit-btn" id="sr-btn-edit-skills" title="Bulk Edit Skills">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            </button>
-          </div>
-          <div id="sr-cv-skills-list" class="sr-cv-tags-wrap">
-            ${skills.map(s => `<span class="sr-cv-skill-tag" data-skill="${escapeHtml(s)}">${escapeHtml(s)}<button type="button" class="sr-skill-remove" aria-label="Remove skill" title="Remove">&times;</button></span>`).join('')}
-          </div>
-          <div class="sr-skill-input-wrap" style="margin-top:4px;">
-            <input type="text" id="sr-skill-typeahead" class="sr-form-input" placeholder="+ Add a skill (e.g. Forklift Operation, Shift Handover Protocol, ISO 9001)..." autocomplete="off" />
-            <div id="sr-skill-dropdown" class="sr-skill-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,0.14);max-height:220px;overflow-y:auto;margin-top:4px;"></div>
-          </div>
-        </section>
-
-        <!-- Section 3: Professional Experience -->
-        <section class="sr-cv-section" id="sr-cv-section-experience">
-          <div class="sr-cv-section-header">
-            <h3 class="sr-cv-section-title">
+        <!-- Bento Grid Row 4: Professional Experience Timeline (Span 12) -->
+        <div class="sr-bento-card sr-bento-span-12">
+          <div class="sr-bento-card-header">
+            <h3 class="sr-bento-card-title">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-              <span>Professional Experience</span>
+              <span>Professional Experience Timeline</span>
             </h3>
-            <button type="button" id="sr-btn-add-experience" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+            <button type="button" id="sr-btn-add-experience" class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              <span>Add Experience</span>
+              <span>Add Position</span>
             </button>
           </div>
+
           <div id="sr-cv-experience-list" class="sr-cv-timeline">
             ${experiences.map((exp, idx) => {
               const expId = exp.id || ('exp-' + (idx + 1));
@@ -7568,7 +7635,6 @@
               `;
             }).join('')}
 
-            <!-- Inline New Experience Form -->
             <div id="sr-exp-new-form" class="sr-cv-inline-form sr-cv-new-entry" style="display:none;padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-medium);">
               <div style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);margin-bottom:8px;">Add Position</div>
               <div class="sr-cv-inline-form-grid">
@@ -7583,144 +7649,144 @@
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        <!-- Section 4: Education -->
-        <section class="sr-cv-section" id="sr-cv-section-education">
-          <div class="sr-cv-section-header">
-            <h3 class="sr-cv-section-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-              <span>Education</span>
-            </h3>
-            <button type="button" id="sr-btn-add-edu" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              <span>Add Education</span>
-            </button>
-          </div>
-          <div id="sr-cv-edu-list" class="sr-cv-grid">
-            ${educations.map((edu, idx) => {
-              const eduId = edu.id || ('edu-' + (idx + 1));
-              return `
-              <div class="sr-cv-card-item" data-edu-id="${escapeHtml(eduId)}">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-                  <p class="sr-cv-card-name" style="flex:1;margin:0;">${escapeHtml(edu.degree || '')}</p>
-                  <button type="button" class="sr-cv-inline-edit-btn" data-edu-edit="${escapeHtml(eduId)}" title="Edit education"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-                </div>
-                <p class="sr-cv-card-meta"><span>${escapeHtml(edu.institution || '')}</span><span>${escapeHtml(edu.year || '')}</span></p>
-                <div class="sr-cv-inline-form" id="sr-edu-edit-${escapeHtml(eduId)}" style="display:none;margin-top:10px;">
-                  <input type="text" class="sr-form-input" name="edu-name" value="${escapeHtml(edu.degree || '')}" placeholder="Degree / Diploma *" style="margin-bottom:6px;" />
-                  <input type="text" class="sr-form-input" name="edu-sub1" value="${escapeHtml(edu.institution || '')}" placeholder="Institution" style="margin-bottom:6px;" />
-                  <input type="text" class="sr-form-input" name="edu-year" value="${escapeHtml(edu.year || '')}" placeholder="Year" style="margin-bottom:8px;" />
-                  <div style="display:flex;gap:6px;justify-content:flex-end;">
-                    <button type="button" class="sr-btn sr-btn-danger sr-edu-delete" data-edu-id="${escapeHtml(eduId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Delete</button>
-                    <button type="button" class="sr-btn sr-btn-secondary sr-edu-cancel" style="font-size:11px;min-height:26px;padding:0 8px;">Cancel</button>
-                    <button type="button" class="sr-btn sr-btn-primary sr-edu-save" data-edu-id="${escapeHtml(eduId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Save</button>
+        <!-- Bento Grid Row 5: Education & Certifications (Span 6 + Span 6) -->
+        <div class="sr-bento-grid">
+          <!-- Education Bento (Span 6) -->
+          <div class="sr-bento-card sr-bento-span-6">
+            <div class="sr-bento-card-header">
+              <h3 class="sr-bento-card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                <span>Education &amp; Academics</span>
+              </h3>
+              <button type="button" id="sr-btn-add-edu" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Add Education</span>
+              </button>
+            </div>
+
+            <div id="sr-cv-edu-list" class="sr-cv-grid">
+              ${educations.map((edu, idx) => {
+                const eduId = edu.id || ('edu-' + (idx + 1));
+                return `
+                <div class="sr-cv-card-item" data-edu-id="${escapeHtml(eduId)}">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                    <p class="sr-cv-card-name" style="flex:1;margin:0;">${escapeHtml(edu.degree || '')}</p>
+                    <button type="button" class="sr-cv-inline-edit-btn" data-edu-edit="${escapeHtml(eduId)}" title="Edit education"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+                  </div>
+                  <p class="sr-cv-card-meta"><span>${escapeHtml(edu.institution || '')}</span><span>${escapeHtml(edu.year || '')}</span></p>
+                  <div class="sr-cv-inline-form" id="sr-edu-edit-${escapeHtml(eduId)}" style="display:none;margin-top:10px;">
+                    <input type="text" class="sr-form-input" name="edu-name" value="${escapeHtml(edu.degree || '')}" placeholder="Degree / Diploma *" style="margin-bottom:6px;" />
+                    <input type="text" class="sr-form-input" name="edu-sub1" value="${escapeHtml(edu.institution || '')}" placeholder="Institution" style="margin-bottom:6px;" />
+                    <input type="text" class="sr-form-input" name="edu-year" value="${escapeHtml(edu.year || '')}" placeholder="Year" style="margin-bottom:8px;" />
+                    <div style="display:flex;gap:6px;justify-content:flex-end;">
+                      <button type="button" class="sr-btn sr-btn-danger sr-edu-delete" data-edu-id="${escapeHtml(eduId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Delete</button>
+                      <button type="button" class="sr-btn sr-btn-secondary sr-edu-cancel" style="font-size:11px;min-height:26px;padding:0 8px;">Cancel</button>
+                      <button type="button" class="sr-btn sr-btn-primary sr-edu-save" data-edu-id="${escapeHtml(eduId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Save</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-              `;
-            }).join('')}
+                `;
+              }).join('')}
 
-            <div id="sr-edu-new-form" class="sr-cv-card-item sr-cv-new-entry" style="display:none;grid-column:1/-1;">
-              <div style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);margin-bottom:6px;">Add Education</div>
-              <input type="text" id="sr-new-edu-degree" class="sr-form-input" placeholder="Degree or Course Name *" style="margin-bottom:6px;" />
-              <input type="text" id="sr-new-edu-institution" class="sr-form-input" placeholder="School / Institution" style="margin-bottom:6px;" />
-              <input type="text" id="sr-new-edu-year" class="sr-form-input" placeholder="Graduation Year (e.g. 2021)" style="margin-bottom:8px;" />
-              <div style="display:flex;gap:6px;justify-content:flex-end;">
-                <button type="button" id="sr-new-edu-cancel" class="sr-btn sr-btn-secondary" style="font-size:11.5px;min-height:28px;padding:0 10px;">Cancel</button>
-                <button type="button" id="sr-new-edu-save" class="sr-btn sr-btn-primary" style="font-size:11.5px;min-height:28px;padding:0 12px;">Add</button>
+              <div id="sr-edu-new-form" class="sr-cv-card-item sr-cv-new-entry" style="display:none;grid-column:1/-1;">
+                <div style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);margin-bottom:6px;">Add Education</div>
+                <input type="text" id="sr-new-edu-degree" class="sr-form-input" placeholder="Degree or Course Name *" style="margin-bottom:6px;" />
+                <input type="text" id="sr-new-edu-institution" class="sr-form-input" placeholder="School / Institution" style="margin-bottom:6px;" />
+                <input type="text" id="sr-new-edu-year" class="sr-form-input" placeholder="Graduation Year (e.g. 2021)" style="margin-bottom:8px;" />
+                <div style="display:flex;gap:6px;justify-content:flex-end;">
+                  <button type="button" id="sr-new-edu-cancel" class="sr-btn sr-btn-secondary" style="font-size:11.5px;min-height:28px;padding:0 10px;">Cancel</button>
+                  <button type="button" id="sr-new-edu-save" class="sr-btn sr-btn-primary" style="font-size:11.5px;min-height:28px;padding:0 12px;">Add</button>
+                </div>
               </div>
             </div>
           </div>
-        </section>
 
-        <!-- Section 5: Certifications & Licenses -->
-        <section class="sr-cv-section" id="sr-cv-section-certifications">
-          <div class="sr-cv-section-header">
-            <h3 class="sr-cv-section-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
-              <span>Certifications</span>
-            </h3>
-            <button type="button" id="sr-btn-add-cert" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              <span>Add Certification</span>
-            </button>
-          </div>
-          <div id="sr-cv-cert-list" class="sr-cv-grid">
-            ${certifications.map((c, idx) => {
-              const certId = c.id || ('cert-' + (idx + 1));
-              return `
-              <div class="sr-cv-card-item" data-cert-id="${escapeHtml(certId)}">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-                  <p class="sr-cv-card-name" style="flex:1;margin:0;">${escapeHtml(c.name || 'Certification')}</p>
-                  <button type="button" class="sr-cv-inline-edit-btn" data-cert-edit="${escapeHtml(certId)}" title="Edit certification"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-                </div>
-                <p class="sr-cv-card-meta"><span>${escapeHtml(c.issuer || '')}</span><span>${escapeHtml(c.year || '')}</span></p>
-                <div class="sr-cv-inline-form" id="sr-cert-edit-${escapeHtml(certId)}" style="display:none;margin-top:10px;">
-                  <input type="text" class="sr-form-input" name="cert-name" value="${escapeHtml(c.name || '')}" placeholder="Certification Name *" style="margin-bottom:6px;" />
-                  <input type="text" class="sr-form-input" name="cert-sub1" value="${escapeHtml(c.issuer || '')}" placeholder="Issuing Organisation" style="margin-bottom:6px;" />
-                  <input type="text" class="sr-form-input" name="cert-year" value="${escapeHtml(c.year || '')}" placeholder="Issued Year" style="margin-bottom:8px;" />
-                  <div style="display:flex;gap:6px;justify-content:flex-end;">
-                    <button type="button" class="sr-btn sr-btn-danger sr-cert-delete" data-cert-id="${escapeHtml(certId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Delete</button>
-                    <button type="button" class="sr-btn sr-btn-secondary sr-cert-cancel" style="font-size:11px;min-height:26px;padding:0 8px;">Cancel</button>
-                    <button type="button" class="sr-btn sr-btn-primary sr-cert-save" data-cert-id="${escapeHtml(certId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Save</button>
+          <!-- Certifications Bento (Span 6) -->
+          <div class="sr-bento-card sr-bento-span-6">
+            <div class="sr-bento-card-header">
+              <h3 class="sr-bento-card-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+                <span>Certifications &amp; Licenses</span>
+              </h3>
+              <button type="button" id="sr-btn-add-cert" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Add Certification</span>
+              </button>
+            </div>
+
+            <div id="sr-cv-cert-list" class="sr-cv-grid">
+              ${certifications.map((c, idx) => {
+                const certId = c.id || ('cert-' + (idx + 1));
+                return `
+                <div class="sr-cv-card-item" data-cert-id="${escapeHtml(certId)}">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                    <p class="sr-cv-card-name" style="flex:1;margin:0;">${escapeHtml(c.name || 'Certification')}</p>
+                    <button type="button" class="sr-cv-inline-edit-btn" data-cert-edit="${escapeHtml(certId)}" title="Edit certification"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+                  </div>
+                  <p class="sr-cv-card-meta"><span>${escapeHtml(c.issuer || '')}</span><span>${escapeHtml(c.year || '')}</span></p>
+                  <div class="sr-cv-inline-form" id="sr-cert-edit-${escapeHtml(certId)}" style="display:none;margin-top:10px;">
+                    <input type="text" class="sr-form-input" name="cert-name" value="${escapeHtml(c.name || '')}" placeholder="Certification Name *" style="margin-bottom:6px;" />
+                    <input type="text" class="sr-form-input" name="cert-sub1" value="${escapeHtml(c.issuer || '')}" placeholder="Issuing Organisation" style="margin-bottom:6px;" />
+                    <input type="text" class="sr-form-input" name="cert-year" value="${escapeHtml(c.year || '')}" placeholder="Issued Year" style="margin-bottom:8px;" />
+                    <div style="display:flex;gap:6px;justify-content:flex-end;">
+                      <button type="button" class="sr-btn sr-btn-danger sr-cert-delete" data-cert-id="${escapeHtml(certId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Delete</button>
+                      <button type="button" class="sr-btn sr-btn-secondary sr-cert-cancel" style="font-size:11px;min-height:26px;padding:0 8px;">Cancel</button>
+                      <button type="button" class="sr-btn sr-btn-primary sr-cert-save" data-cert-id="${escapeHtml(certId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Save</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-              `;
-            }).join('')}
+                `;
+              }).join('')}
 
-            <div id="sr-cert-new-form" class="sr-cv-card-item sr-cv-new-entry" style="display:none;grid-column:1/-1;">
-              <div style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);margin-bottom:6px;">Add Certification</div>
-              <input type="text" id="sr-new-cert-name" class="sr-form-input" placeholder="Certification Name *" style="margin-bottom:6px;" />
-              <input type="text" id="sr-new-cert-issuer" class="sr-form-input" placeholder="Issuing Body (e.g. NEBOSH, ISO)" style="margin-bottom:6px;" />
-              <input type="text" id="sr-new-cert-year" class="sr-form-input" placeholder="Year (e.g. 2025)" style="margin-bottom:8px;" />
-              <div style="display:flex;gap:6px;justify-content:flex-end;">
-                <button type="button" id="sr-new-cert-cancel" class="sr-btn sr-btn-secondary" style="font-size:11.5px;min-height:28px;padding:0 10px;">Cancel</button>
-                <button type="button" id="sr-new-cert-save" class="sr-btn sr-btn-primary" style="font-size:11.5px;min-height:28px;padding:0 12px;">Add</button>
+              <div id="sr-cert-new-form" class="sr-cv-card-item sr-cv-new-entry" style="display:none;grid-column:1/-1;">
+                <div style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);margin-bottom:6px;">Add Certification</div>
+                <input type="text" id="sr-new-cert-name" class="sr-form-input" placeholder="Certification Name *" style="margin-bottom:6px;" />
+                <input type="text" id="sr-new-cert-issuer" class="sr-form-input" placeholder="Issuing Body (e.g. NEBOSH, ISO)" style="margin-bottom:6px;" />
+                <input type="text" id="sr-new-cert-year" class="sr-form-input" placeholder="Year (e.g. 2025)" style="margin-bottom:8px;" />
+                <div style="display:flex;gap:6px;justify-content:flex-end;">
+                  <button type="button" id="sr-new-cert-cancel" class="sr-btn sr-btn-secondary" style="font-size:11.5px;min-height:28px;padding:0 10px;">Cancel</button>
+                  <button type="button" id="sr-new-cert-save" class="sr-btn sr-btn-primary" style="font-size:11.5px;min-height:28px;padding:0 12px;">Add</button>
+                </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        <!-- Card 4: App Appearance, Settings Shortcut & Session Controls -->
-        <div class="sr-card">
-          <h3 style="margin:0 0 12px;font-size:15px;font-weight:800;color:var(--sr-text-main);">Workspace Controls</h3>
-          <div style="display:flex;flex-direction:column;gap:10px;">
+        <!-- Bento Grid Row 6: Workspace Theme, Preferences & Session Logout (Span 12) -->
+        <div class="sr-bento-card sr-bento-span-12">
+          <h3 style="margin:0 0 12px;font-size:15px;font-weight:800;color:var(--sr-text-main);">Workspace Controls &amp; Session Security</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
               <div>
-                <div style="font-size:13.5px;font-weight:700;color:var(--sr-text-main);">Display Theme (High-Glare / Night Shift)</div>
-                <div style="font-size:11.5px;color:var(--sr-text-muted);">Switch between Daylight High-Contrast and Night-Shift Dark Mode</div>
+                <div style="font-size:13px;font-weight:700;color:var(--sr-text-main);">Display Theme</div>
+                <div style="font-size:11.5px;color:var(--sr-text-muted);">High-Glare Daylight / Night Shift</div>
               </div>
-              <button type="button" id="sr-profile-theme-btn" class="sr-btn sr-btn-secondary" style="min-height:36px !important;padding:0 14px;font-size:12px;font-weight:800;">
+              <button type="button" id="sr-profile-theme-btn" class="sr-btn sr-btn-secondary" style="min-height:34px !important;padding:0 12px;font-size:12px;font-weight:800;">
                 Toggle Theme
               </button>
             </div>
 
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
               <div>
-                <div style="font-size:13.5px;font-weight:700;color:var(--sr-text-main);">Detailed Preferences &amp; Security</div>
-                <div style="font-size:11.5px;color:var(--sr-text-muted);">Configure alerts, notifications, and password settings</div>
+                <div style="font-size:13px;font-weight:700;color:var(--sr-text-main);">Preferences &amp; Security</div>
+                <div style="font-size:11.5px;color:var(--sr-text-muted);">Alerts, notifications, passwords</div>
               </div>
-              <button type="button" id="sr-profile-settings-btn" class="sr-btn sr-btn-primary" style="min-height:36px !important;padding:0 14px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                <span>Open Settings</span>
+              <button type="button" id="sr-profile-settings-btn" class="sr-btn sr-btn-primary" style="min-height:34px !important;padding:0 12px;font-size:12px;font-weight:800;">
+                Open Settings
               </button>
             </div>
-          </div>
-        </div>
 
-        <!-- Card 5: Session Security & Log Out -->
-        <div class="sr-card" style="border-color:rgba(239,68,68,0.3);background:linear-gradient(135deg,var(--sr-bg-card) 0%,rgba(239,68,68,0.03) 100%);">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-            <div>
-              <h3 style="margin:0 0 2px;font-size:15px;font-weight:800;color:var(--sr-text-main);">Shift Session Security</h3>
-              <p style="margin:0;font-size:12.5px;color:var(--sr-text-muted);">Sign out of your ShiftRelay personnel session on this device.</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:#ef4444;">Session Security</div>
+                <div style="font-size:11.5px;color:var(--sr-text-muted);">Sign out of your ShiftRelay personnel session</div>
+              </div>
+              <button type="button" class="sr-btn sr-btn-danger" id="sr-btn-me-signout" style="min-height:34px !important;padding:0 14px;font-size:12px;font-weight:800;background:#dc2626;color:#ffffff;border:none;cursor:pointer;">
+                Log Out
+              </button>
             </div>
-            <button type="button" class="sr-btn sr-btn-danger" id="sr-btn-me-signout" style="min-height:40px !important;padding:0 20px;font-size:13px;font-weight:800;display:inline-flex;align-items:center;gap:8px;background:#dc2626;color:#ffffff;border:none;box-shadow:0 4px 12px rgba(220,38,38,0.25);cursor:pointer;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              <span>Log Out of ShiftRelay</span>
-            </button>
           </div>
         </div>
       </div>
@@ -12971,471 +13037,121 @@ Issued on: ${new Date().toISOString()}
     return safe;
   }
 
-  function getSavedReceipts() {
-    try {
-      return JSON.parse(localStorage.getItem('shiftrelay-rectification-receipts') || '[]');
-    } catch (_) {
-      return [];
+  // Compatibility stubs for legacy receipt invocations (receipt cards and modals removed per user specification)
+  function getSavedReceipts() { return []; }
+  function createRectificationReceipt() { return { id: 'SR-SUP-001' }; }
+  function openRectificationReceiptModal() {}
+
+  // ── Support Pop-out Chat & Frontline Assistance Engine ─────────────────────
+  let supportChatInitialized = false;
+
+  function toggleSupportPopout(forceOpen) {
+    const popout = document.getElementById('sr-support-popout');
+    if (!popout) return;
+    const shouldOpen = forceOpen !== undefined ? forceOpen : popout.classList.contains('hidden');
+    if (shouldOpen) {
+      popout.classList.remove('hidden');
+      initSupportChat();
+    } else {
+      popout.classList.add('hidden');
     }
   }
 
-  function createRectificationReceipt(issueCategory, issueDetails) {
-    const user = getUser();
-    const recId = 'SR-REC-' + Math.floor(100000 + Math.random() * 900000);
-    const nowIso = new Date().toISOString();
-    const receipt = {
-      id: recId,
-      name: user?.name || 'Amara Okafor',
-      email: user?.email || 'amara@cleanpro.ng',
-      role: user?.title || (user?.role === 'owner' ? 'Facility Owner' : user?.role === 'supervisor' ? 'Shift Supervisor' : 'Frontline Specialist'),
-      site: user?.site_name || 'Eko Atlantic Tower A',
-      company: user?.organisation_name || 'CleanPro Facilities',
-      category: issueCategory || 'Information & Records Rectification',
-      details: issueDetails || 'User requested verification and correction of shift, payroll, or profile information.',
-      status: 'ISSUED & LOGGED',
-      createdAt: nowIso
-    };
-    const list = getSavedReceipts();
-    list.unshift(receipt);
-    localStorage.setItem('shiftrelay-rectification-receipts', JSON.stringify(list.slice(0, 30)));
-    try {
-      const outbox = JSON.parse(localStorage.getItem('shiftrelay-email-station-outbox') || '[]');
-      outbox.unshift({
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        from: 'support@shiftrelay.com',
-        to: receipt.email,
-        subject: 'Official Rectification Receipt #' + receipt.id + ' (' + receipt.category + ')',
-        source: 'App Support & Records Desk',
-        status: 'DELIVERED'
-      });
-      localStorage.setItem('shiftrelay-email-station-outbox', JSON.stringify(outbox.slice(0, 40)));
-    } catch (_) {}
-    return receipt;
+  function appendSupportBubble(role, html) {
+    const msgsEl = document.getElementById('sr-support-msgs');
+    if (!msgsEl) return;
+    const bubble = document.createElement('div');
+    bubble.className = `sr-support-bubble ${role}`;
+    bubble.innerHTML = html;
+    msgsEl.appendChild(bubble);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
   }
 
-  function openRectificationReceiptModal(receiptObj) {
-    const existing = document.getElementById('sr-rectification-receipt-modal');
-    if (existing) existing.remove();
-
+  function initSupportChat() {
     const user = getUser();
-    const rec = receiptObj || createRectificationReceipt('General Record Correction', 'Verification of employee profile, shift hours, or payout record.');
-    const formattedDate = new Date(rec.createdAt).toLocaleString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
+    const firstName = (user?.name || 'Staff').split(' ')[0];
+    const msgsEl = document.getElementById('sr-support-msgs');
+    if (!msgsEl) return;
 
-    const modalHtml = `
-      <div id="sr-rectification-receipt-modal" class="sr-audit-modal-backdrop" role="dialog" aria-modal="true" aria-label="Official Rectification Receipt">
-        <div class="sr-audit-sheet" style="max-width:540px;padding:24px;">
-          <div class="sr-audit-sheet-header" style="padding-bottom:14px;margin-bottom:16px;border-bottom:2px solid #0d9488;">
-            <div>
-              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#0d9488;display:block;">ShiftRelay Official Record Receipt</span>
-              <h2 style="font-size:18px;font-weight:800;color:#0f172a;margin:2px 0 0;">Information Rectification Receipt</h2>
-            </div>
-            <button type="button" class="sr-icon-btn sr-no-print" id="sr-close-receipt-modal" aria-label="Close Receipt" style="color:#475569;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
+    if (!supportChatInitialized) {
+      supportChatInitialized = true;
+      msgsEl.innerHTML = '';
+      appendSupportBubble('bot', `Hi <strong>${escapeHtml(firstName)}</strong>! Welcome to ShiftRelay Support. How can our team help you with your shifts, hours, or account today?`);
 
-          <!-- Form to customize or create a new receipt if needed -->
-          <div class="sr-no-print" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:16px;">
-            <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px;">Update Receipt Details &amp; Registered Email</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Registered Email Address</label>
-                <input type="email" id="sr-rec-input-email" value="${escapeHtml(rec.email)}" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:12.5px;color:#0f172a;background:#fff;" />
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Incorrect Info Category</label>
-                <select id="sr-rec-input-cat" style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:12.5px;color:#0f172a;background:#fff;">
-                  <option value="Missing or Incorrect Shift Hours" ${rec.category.includes('Shift') ? 'selected' : ''}>Missing or Incorrect Shift Hours</option>
-                  <option value="Payroll / Payslip Amount Discrepancy" ${rec.category.includes('Pay') ? 'selected' : ''}>Payroll / Payslip Amount Discrepancy</option>
-                  <option value="Bank Account / Wallet Details Update" ${rec.category.includes('Bank') ? 'selected' : ''}>Bank Account / Wallet Details Update</option>
-                  <option value="Name, Role or Site Assignment Correction" ${rec.category.includes('Profile') || rec.category.includes('Name') ? 'selected' : ''}>Name, Role or Site Assignment Correction</option>
-                  <option value="Gate NFC / Geofence Clock-In Dispute" ${rec.category.includes('Gate') ? 'selected' : ''}>Gate NFC / Geofence Clock-In Dispute</option>
-                </select>
-              </div>
-            </div>
-            <div style="margin-bottom:8px;">
-              <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Correction Summary (What needs to be fixed)</label>
-              <input type="text" id="sr-rec-input-desc" value="${escapeHtml(rec.details)}" placeholder="Describe the incorrect information..." style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:12.5px;color:#0f172a;background:#fff;" />
-            </div>
-            <button type="button" id="sr-btn-update-receipt-live" style="padding:6px 12px;border-radius:6px;background:#0d9488;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;">
-              Generate &amp; Stamp Receipt With Email
-            </button>
-          </div>
+      const FAQS = {
+        swap: {
+          q: 'How do I swap an assigned shift?',
+          a: 'To swap an assigned shift, open <strong>Schedule</strong>, select your upcoming shift, and tap <strong>Offer Swap</strong>. Your shift supervisor is notified immediately to verify and approve the exchange.'
+        },
+        pay: {
+          q: 'When is monthly salary paid?',
+          a: 'Statutory salary payouts are processed at month end. You can review your accrued shift hours, take-home earnings, and statutory PenCom &amp; PAYE breakdowns anytime under the <strong>Earnings</strong> tab.'
+        },
+        profile: {
+          q: 'How do I update my profile details?',
+          a: 'Go to the <strong>Profile</strong> tab to view your Verified Digital Work Pass and scannable barcode. To update personal details or bank payout information, tap <strong>Edit Profile</strong>.'
+        },
+        offline: {
+          q: 'How does offline clock-in work?',
+          a: 'ShiftRelay stores your clock-in timestamps, GPS coordinates, and handover checklists in an encrypted local offline queue. All entries sync automatically to the cloud the moment connectivity returns.'
+        },
+        hazard: {
+          q: 'How do I report a workplace safety issue?',
+          a: 'Tap <strong>Report Hazard</strong> on your My Shift console or add an urgent safety note in your Shift Handover turnover so incoming teams and site supervisors are alerted instantly.'
+        }
+      };
 
-          <!-- Official Printable Receipt Box -->
-          <div id="sr-printable-receipt-box" style="border:1.5px solid #cbd5e1;border-radius:12px;padding:18px;background:#ffffff;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px dashed #cbd5e1;padding-bottom:12px;margin-bottom:12px;">
-              <div>
-                <div style="font-size:11px;color:#64748b;font-weight:700;">RECEIPT REFERENCE</div>
-                <div style="font-size:16px;font-weight:900;color:#0f172a;font-family:monospace;" id="sr-rec-view-id">${escapeHtml(rec.id)}</div>
-              </div>
-              <div style="text-align:right;">
-                <span style="background:#dcfce7;color:#15803d;font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;border:1px solid #86efac;">VERIFIED RECORD</span>
-                <div style="font-size:11px;color:#64748b;margin-top:4px;">${escapeHtml(formattedDate)}</div>
-              </div>
-            </div>
+      document.querySelectorAll('[data-faq-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const item = FAQS[btn.dataset.faqId];
+          if (!item) return;
+          appendSupportBubble('user', item.q);
+          setTimeout(() => {
+            appendSupportBubble('bot', item.a);
+          }, 200);
+        });
+      });
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px;margin-bottom:14px;">
-              <div>
-                <span style="color:#64748b;font-size:11px;display:block;">STAFF NAME</span>
-                <strong style="color:#0f172a;">${escapeHtml(rec.name)}</strong>
-              </div>
-              <div>
-                <span style="color:#64748b;font-size:11px;display:block;">REGISTERED EMAIL</span>
-                <strong style="color:#0d9488;" id="sr-rec-view-email">${escapeHtml(rec.email)}</strong>
-              </div>
-              <div>
-                <span style="color:#64748b;font-size:11px;display:block;">ORGANISATION &amp; SITE</span>
-                <strong style="color:#0f172a;">${escapeHtml(rec.company)} &middot; ${escapeHtml(rec.site)}</strong>
-              </div>
-              <div>
-                <span style="color:#64748b;font-size:11px;display:block;">ROLE DESIGNATION</span>
-                <strong style="color:#0f172a;">${escapeHtml(rec.role)}</strong>
-              </div>
-            </div>
+      const chatCtaBtn = document.getElementById('sr-btn-chat-team');
+      const inputForm = document.getElementById('sr-support-input-form');
+      const chatInput = document.getElementById('sr-support-chat-input');
 
-            <div style="background:#f1f5f9;border-radius:8px;padding:12px;margin-bottom:12px;">
-              <div style="font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;margin-bottom:3px;" id="sr-rec-view-cat">${escapeHtml(rec.category)}</div>
-              <div style="font-size:13px;color:#0f172a;line-height:1.45;" id="sr-rec-view-desc">${escapeHtml(rec.details)}</div>
-            </div>
+      chatCtaBtn?.addEventListener('click', () => {
+        chatCtaBtn.style.display = 'none';
+        if (inputForm) inputForm.style.display = 'flex';
+        appendSupportBubble('bot', 'You are now connected with ShiftRelay Support. Send your question below and a member of our team will respond shortly.');
+        chatInput?.focus();
+      });
 
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#64748b;padding-top:8px;border-top:1px solid #e2e8f0;">
-              <span>Copy linked to: <strong id="sr-rec-view-email-foot">${escapeHtml(rec.email)}</strong></span>
-              <span>Authorized by ShiftRelay Records Desk</span>
-            </div>
-          </div>
+      inputForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = (chatInput?.value || '').trim();
+        if (!text) return;
+        chatInput.value = '';
+        appendSupportBubble('user', escapeHtml(text));
 
-          <div class="sr-no-print" style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-close-receipt-foot">Close</button>
-            <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-print-receipt" style="background:#0d9488;border-color:#0d9488;">Print / Save Receipt PDF</button>
-          </div>
-        </div>
-      </div>
-    `;
+        try {
+          const res = await fetch('/api/work-assistant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text, question: text, userId: user?.id })
+          });
+          const data = await res.json().catch(() => ({}));
+          const reply = data.answer || data.response || data.message || 'Thank you for contacting ShiftRelay Support. Our frontline operations team has received your message and will follow up promptly.';
+          appendSupportBubble('bot', reply);
+        } catch (_) {
+          appendSupportBubble('bot', 'Your message has been received by ShiftRelay Support. Our team will review your inquiry shortly.');
+        }
+      });
 
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    const closeFn = () => document.getElementById('sr-rectification-receipt-modal')?.remove();
-    document.getElementById('sr-close-receipt-modal')?.addEventListener('click', closeFn);
-    document.getElementById('sr-btn-close-receipt-foot')?.addEventListener('click', closeFn);
-
-    document.getElementById('sr-btn-update-receipt-live')?.addEventListener('click', () => {
-      const newEmail = document.getElementById('sr-rec-input-email')?.value.trim() || rec.email;
-      const newCat = document.getElementById('sr-rec-input-cat')?.value || rec.category;
-      const newDesc = document.getElementById('sr-rec-input-desc')?.value.trim() || rec.details;
-
-      const updated = createRectificationReceipt(newCat, newDesc);
-      updated.email = newEmail;
-
-      document.getElementById('sr-rec-view-id').textContent = updated.id;
-      document.getElementById('sr-rec-view-email').textContent = updated.email;
-      document.getElementById('sr-rec-view-email-foot').textContent = updated.email;
-      document.getElementById('sr-rec-view-cat').textContent = updated.category;
-      document.getElementById('sr-rec-view-desc').textContent = updated.details;
-
-      SRAudio.playClockIn();
-      showToast('Official receipt ' + updated.id + ' stamped for ' + updated.email, 'success');
-    });
-
-    document.getElementById('sr-btn-print-receipt')?.addEventListener('click', () => {
-      window.print();
-    });
+      document.getElementById('sr-btn-close-support')?.addEventListener('click', () => {
+        toggleSupportPopout(false);
+      });
+    }
   }
 
   async function renderAssistant() {
-    const container = document.getElementById('sr-content-area');
-    if (!container) return;
-    const user = getUser();
-    const firstName = (user?.name || 'Member').split(' ')[0];
-    const userEmail = user?.email || 'amara@cleanpro.ng';
-    let cachedHistory = [];
-
-    // ── Company Standard Frontline FAQ Knowledge Base (Real Bold HTML, Zero Asterisks) ──
-    const FAQ = [
-      {
-        q: 'My shift hours or pay information is incorrect',
-        a: '<strong>Official Information Rectification:</strong> We have generated an official <strong>Rectification Receipt</strong> linked to your email address (<strong>' + escapeHtml(userEmail) + '</strong>). Click <strong>Open Receipt</strong> below to view, customize, or print your verification ticket for immediate payroll adjustment.',
-        issueReceipt: true,
-        receiptCat: 'Missing or Incorrect Shift Hours / Pay',
-        receiptDesc: 'Staff reported an discrepancy in recorded shift hours or payslip calculation requiring supervisor and payroll rectification.'
-      },
-      {
-        q: 'How do I update my bank account or profile details?',
-        a: '<strong>Updating Bank &amp; Profile Details:</strong> Open <strong>Settings</strong> or tap your <strong>Profile</strong> badge in the top bar to update your role, phone number, or bank payout details. If a locked record is wrong, open a <strong>Rectification Receipt</strong> below with your email address so HR updates it before payday.',
-        issueReceipt: true,
-        receiptCat: 'Bank Account / Profile Information Update',
-        receiptDesc: 'Request to update and verify staff bank payout details or personal profile information.'
-      },
-      {
-        q: 'How do I clock in with GPS or the Gate NFC card?',
-        a: '<strong>Clock-In &amp; Attendance Verification:</strong> On your smartphone, open the <strong>Today</strong> tab and tap <strong>Clock In</strong> inside the site geofence. If you do not have a phone on shift, tap your <strong>Staff NFC ID Card</strong> on the <strong>Gate Station Tablet</strong> at the building entrance.'
-      },
-      {
-        q: 'How do I exchange ShiftCoins into cash?',
-        a: '<strong>ShiftCoin Cashout:</strong> Navigate to the <strong>Earnings</strong> tab and tap <strong>Exchange Coins to Cash</strong>. Once you reach <strong>500 ShiftCoins</strong> from on-time streaks and completed room checklists, you can credit the cash bonus directly to your payday wallet.'
-      },
-      {
-        q: 'When is my next payday and how is tax calculated?',
-        a: '<strong>Payday &amp; Statutory Breakdown:</strong> Your verified shift earnings accrue live on the <strong>Earnings</strong> page. Monthly payouts automatically itemize your <strong>8% employee PenCom pension</strong>, <strong>10% employer pension contribution</strong>, and statutory PAYE tax on your downloadable payslip.'
-      },
-      {
-        q: 'How do I request leave or swap a shift?',
-        a: '<strong>Leave &amp; Shift Swaps:</strong> To request PTO or sick leave, open <strong>Attendance</strong> and select <strong>Time Away</strong>. To swap a shift with a teammate, open the <strong>Shifts</strong> tab and tap <strong>Offer Swap</strong> for supervisor approval.'
-      },
-      {
-        q: 'What if the internet goes offline during my shift?',
-        a: '<strong>Offline Queue Protection:</strong> ShiftRelay stores your clock-in timestamp, GPS coordinates, and completed checklists in encrypted local phone storage. As soon as your connection returns, all records sync automatically.'
-      },
-      {
-        q: 'How do I report a damaged item or safety issue?',
-        a: '<strong>Safety &amp; Handover Reporting:</strong> Log any broken equipment, chemical shortage, or safety hazard in your <strong>Shift Handover Note</strong> on the <strong>Schedule</strong> page so the incoming team and supervisor are alerted immediately.'
-      }
-    ];
-
-    container.innerHTML = `
-      <div class="sr-page-wrap sr-chat-page" style="padding-bottom:0;display:flex;flex-direction:column;height:calc(100vh - 100px);max-height:860px;overflow:hidden;">
-
-        <!-- Company Standard Support & Receipt Header (No Green Light) -->
-        <div class="sr-chat-header" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--sr-border-subtle);gap:10px;flex-wrap:wrap;">
-          <div class="sr-chat-avatar-hud" style="display:flex;align-items:center;gap:10px;">
-            <div class="sr-chat-bot-avatar" style="width:36px;height:36px;border-radius:10px;background:var(--sr-primary);display:flex;align-items:center;justify-content:center;color:#fff;">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            </div>
-            <div>
-              <div style="font-size:15px;font-weight:800;color:var(--sr-text-main);">
-                Support Desk
-              </div>
-              <div style="font-size:11.5px;color:var(--sr-text-muted);">
-                Official FAQ, Email Rectification Receipts (&bull; ${escapeHtml(userEmail)})
-              </div>
-            </div>
-          </div>
-          <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-create-receipt" style="font-size:12px;padding:7px 12px;display:inline-flex;align-items:center;gap:6px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-            <span>Open Receipt</span>
-          </button>
-        </div>
-
-        <!-- Common Questions FAQ Strip -->
-        <div class="sr-chat-suggestions" id="sr-chat-suggestions">
-          <div style="font-size:10.5px;font-weight:800;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;padding:0 2px;">
-            Frequently Asked Questions (Tap to view answer or generate receipt)
-          </div>
-          <div class="sr-suggestions-scroll">
-            ${FAQ.map((f, i) => `<button class="sr-suggestion-chip" data-faq="${i}">${escapeHtml(f.q)}</button>`).join('')}
-          </div>
-        </div>
-
-        <!-- Messages Area -->
-        <div class="sr-assistant-messages" id="sr-assistant-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;">
-        </div>
-
-        <!-- Input Bar -->
-        <div class="sr-assistant-input-bar">
-          <div style="flex:1;position:relative;">
-            <input
-              class="sr-assistant-input"
-              id="sr-assistant-input"
-              type="text"
-              placeholder="Report incorrect shift/pay info or ask a workplace question…"
-              autocomplete="off"
-              aria-label="Support message"
-            />
-          </div>
-          <button class="sr-assistant-send-btn" id="sr-assistant-send" aria-label="Send message">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
-          </button>
-        </div>
-
-      </div>`;
-
-    const msgsEl  = document.getElementById('sr-assistant-msgs');
-    const inputEl = document.getElementById('sr-assistant-input');
-    const sendBtn = document.getElementById('sr-assistant-send');
-    const suggEl  = document.getElementById('sr-chat-suggestions');
-
-    document.getElementById('sr-btn-create-receipt')?.addEventListener('click', () => {
-      const rec = createRectificationReceipt('Information & Records Rectification', 'Staff opened an official rectification receipt for record verification.');
-      openRectificationReceiptModal(rec);
-    });
-
-    function appendReceiptCardToChat(receipt) {
-      const cardWrap = document.createElement('div');
-      cardWrap.className = 'sr-chat-receipt-card';
-      cardWrap.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <span style="font-size:10.5px;font-weight:800;color:#0d9488;text-transform:uppercase;letter-spacing:0.05em;">Official Rectification Receipt</span>
-          <span style="font-family:monospace;font-size:11.5px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(receipt.id)}</span>
-        </div>
-        <div style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);margin-bottom:3px;">${escapeHtml(receipt.category)}</div>
-        <div style="font-size:11.5px;color:var(--sr-text-muted);margin-bottom:8px;">
-          Registered Email: <strong>${escapeHtml(receipt.email)}</strong>
-        </div>
-        <button type="button" class="sr-btn sr-btn-primary sr-btn-open-inline-receipt" style="width:100%;font-size:12px;padding:7px 12px;">
-          Open Receipt (${escapeHtml(receipt.id)})
-        </button>
-      `;
-      cardWrap.querySelector('.sr-btn-open-inline-receipt')?.addEventListener('click', () => {
-        openRectificationReceiptModal(receipt);
-      });
-      msgsEl.appendChild(cardWrap);
-      msgsEl.scrollTop = msgsEl.scrollHeight;
-    }
-
-    function addBubble(role, text, interactionId = null, feedback = null, timestamp = null, receiptObj = null) {
-      const wrap = document.createElement('div');
-      wrap.className = 'sr-assistant-bubble-wrap' + (role === 'user' ? ' user' : '');
-
-      const avatarEl = document.createElement('div');
-      avatarEl.className = 'sr-assistant-avatar';
-      if (role === 'bot') {
-        avatarEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
-        avatarEl.style.background = 'var(--sr-primary)';
-      } else {
-        avatarEl.textContent = firstName.slice(0, 2).toUpperCase();
-        avatarEl.style.background = 'var(--sr-text-muted)';
-      }
-
-      const col = document.createElement('div');
-      col.className = 'sr-assistant-bubble-col';
-
-      const bubble = document.createElement('div');
-      bubble.className = 'sr-assistant-bubble ' + role;
-      if (role === 'bot') {
-        bubble.innerHTML = formatCompanyChatHtml(text);
-      } else {
-        bubble.textContent = text;
-      }
-      col.appendChild(bubble);
-
-      if (receiptObj) {
-        const recBox = document.createElement('div');
-        recBox.className = 'sr-chat-receipt-inline';
-        recBox.style.cssText = 'margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--sr-bg-card);border:1.5px solid #0d9488;display:flex;flex-direction:column;gap:6px;';
-        recBox.innerHTML = `
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong style="font-size:11px;color:#0d9488;text-transform:uppercase;">Receipt Created</strong>
-            <span style="font-family:monospace;font-size:11.5px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(receiptObj.id)}</span>
-          </div>
-          <div style="font-size:12px;color:var(--sr-text-main);">Email: <strong>${escapeHtml(receiptObj.email)}</strong></div>
-          <button type="button" class="sr-btn sr-btn-primary sr-open-rec-btn" style="font-size:12px;padding:6px 10px;margin-top:2px;">
-            Open Receipt
-          </button>
-        `;
-        recBox.querySelector('.sr-open-rec-btn')?.addEventListener('click', () => {
-          openRectificationReceiptModal(receiptObj);
-        });
-        col.appendChild(recBox);
-      }
-
-      if (timestamp) {
-        const timeEl = document.createElement('div');
-        timeEl.className = 'sr-bubble-timestamp';
-        const t = new Date(timestamp);
-        timeEl.textContent = t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        col.appendChild(timeEl);
-      }
-
-      if (role === 'bot') { wrap.appendChild(avatarEl); wrap.appendChild(col); }
-      else { wrap.appendChild(col); wrap.appendChild(avatarEl); }
-
-      msgsEl.appendChild(wrap);
-      msgsEl.scrollTop = msgsEl.scrollHeight;
-      return { wrap, col };
-    }
-
-    async function loadChatHistory() {
-      msgsEl.innerHTML = '';
-      addBubble(
-        'bot',
-        'Hello <strong>' + escapeHtml(firstName) + '</strong>. Welcome to the <strong>ShiftRelay Support &amp; Records Desk</strong>.<br><br>Select any frequently asked question above, or let us know if any of your <strong>shift hours, pay, or profile information is incorrect</strong> to generate an official <strong>Rectification Receipt</strong> with your email address (<strong>' + escapeHtml(userEmail) + '</strong>).',
-        null,
-        null,
-        new Date().toISOString()
-      );
-    }
-
-    // FAQ Chip Click -> Instant Answer + Receipt if applicable
-    suggEl?.querySelectorAll('.sr-suggestion-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const idx = parseInt(chip.dataset.faq, 10);
-        const item = FAQ[idx];
-        if (!item) return;
-        addBubble('user', item.q, null, null, new Date().toISOString());
-        let rec = null;
-        if (item.issueReceipt) {
-          rec = createRectificationReceipt(item.receiptCat, item.receiptDesc);
-        }
-        addBubble('bot', item.a, null, null, new Date().toISOString(), rec);
-      });
-    });
-
-    async function sendAssistantMessage() {
-      const text = (inputEl?.value || '').trim();
-      if (!text) return;
-      if (inputEl) inputEl.value = '';
-      if (sendBtn) sendBtn.disabled = true;
-
-      addBubble('user', text, null, null, new Date().toISOString());
-
-      // Check if user is reporting incorrect info, wrong hours, pay issue, receipt, or email
-      const lower = text.toLowerCase();
-      const needsReceipt = /incorrect|wrong|mistake|error|missing|dispute|receipt|hours|pay|salary|wage|bank|email|fix|change|update/.test(lower);
-
-      // Match local FAQ first for instant company-standard response
-      const matchedFaq = FAQ.find(f => f.q.toLowerCase() === lower);
-      if (matchedFaq) {
-        const rec = matchedFaq.issueReceipt ? createRectificationReceipt(matchedFaq.receiptCat, matchedFaq.receiptDesc) : null;
-        addBubble('bot', matchedFaq.a, null, null, new Date().toISOString(), rec);
-        if (sendBtn) sendBtn.disabled = false;
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/work-assistant', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, question: text, userId: user?.id })
-        });
-        const data = await res.json().catch(() => ({}));
-        let answer = data.answer || data.response || data.message || '';
-
-        let rec = null;
-        if (needsReceipt) {
-          rec = createRectificationReceipt('Reported Information Correction', text);
-          answer = 'We have logged your report and generated an official <strong>Rectification Receipt (' + escapeHtml(rec.id) + ')</strong> linked to <strong>' + escapeHtml(userEmail) + '</strong>. Click <strong>Open Receipt</strong> below to view or print your verification record.';
-        } else if (!answer) {
-          answer = 'Your request has been logged with the <strong>Site Records Desk</strong>. If any of your shift or pay records are inaccurate, tap <strong>Open Receipt</strong> in the top bar to generate an official correction ticket with your email address.';
-        }
-
-        addBubble('bot', answer, data.id, null, new Date().toISOString(), rec);
-      } catch (err) {
-        const rec = createRectificationReceipt('Offline Record Inquiry', text);
-        addBubble(
-          'bot',
-          'Your message was recorded locally and an official <strong>Rectification Receipt (' + escapeHtml(rec.id) + ')</strong> has been prepared for <strong>' + escapeHtml(userEmail) + '</strong>. Click <strong>Open Receipt</strong> below to inspect it.',
-          null,
-          null,
-          new Date().toISOString(),
-          rec
-        );
-      } finally {
-        if (sendBtn) sendBtn.disabled = false;
-        inputEl?.focus();
-      }
-    }
-
-    sendBtn?.addEventListener('click', sendAssistantMessage);
-    inputEl?.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAssistantMessage(); }
-    });
-
-    await loadChatHistory();
-    inputEl?.focus();
+    toggleSupportPopout(true);
   }
   // ── Open Shift Marketplace & Shift Swap Exchange ───────────────────────────
   let activeOpenShiftsTab = 'shifts'; // 'shifts' | 'swaps'

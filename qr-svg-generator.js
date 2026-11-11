@@ -59,7 +59,7 @@ const QR_CONFIGS = {
   5: { size: 37, totalBytes: 134, ecBytes: 26, dataBytes: 108, align: [6, 30] }
 };
 
-export function generateQrMatrix(text) {
+function generateQrMatrix(text) {
   const bytes = new TextEncoder().encode(text);
   let ver = 3;
   if (bytes.length > 50) ver = 4;
@@ -227,7 +227,7 @@ export function generateQrMatrix(text) {
   return matrix;
 }
 
-export function generateQrSvg(text, size = 240, darkColor = '#0f172a', lightColor = '#ffffff') {
+function generateQrSvg(text, size = 240, darkColor = '#0f172a', lightColor = '#ffffff') {
   const matrix = generateQrMatrix(text);
   const N = matrix.length;
   const padding = 3;
@@ -252,8 +252,12 @@ export function generateQrSvg(text, size = 240, darkColor = '#0f172a', lightColo
   </svg>`;
 }
 
-// Browser exposure if running in window context
+// Browser & Module exposure
 if (typeof window !== 'undefined') {
   window.generateQrMatrix = generateQrMatrix;
   window.generateQrSvg = generateQrSvg;
 }
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { generateQrMatrix, generateQrSvg };
+}
+export { generateQrMatrix, generateQrSvg };
