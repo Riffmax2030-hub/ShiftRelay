@@ -615,7 +615,23 @@ function renderOrganisationForm(){
 function renderJoinForm(){
   renderOrganisationForm();
 }
-function login(user){state.user=user;sessionStorage.setItem('shiftrelay-user',user.id);try{localStorage.setItem('shiftrelay-user-data',JSON.stringify(user))}catch(e){}$('#login-view').classList.add('hidden');$('#app-view').classList.remove('hidden');$('#app-view').dataset.role=user.role;$('#app-view').dataset.workerName=user.name;$('#app-view').dataset.workerTitle=user.title||'Workplace member';const entryEl=document.getElementById('sr-entry');if(entryEl){entryEl.style.display='none';}const modalEl=document.getElementById('sr-login-modal');if(modalEl){modalEl.classList.remove('open');}const initials=user.name.split(' ').map((n)=>n[0]).join('');$('#sidebar-avatar').textContent=initials;$('#sidebar-name').textContent=user.name;$('#sidebar-role').textContent=user.title;const ha=$('#header-avatar');if(ha){if(user.avatar_data_url){ha.textContent='';ha.style.backgroundImage=`url('${user.avatar_data_url}')`;ha.style.backgroundSize='cover';ha.style.backgroundPosition='center';ha.style.color='transparent';}else{ha.textContent=initials;ha.style.backgroundImage='';ha.style.color='';}}const hn=$('#header-name');if(hn){hn.textContent=user.name}const hr=$('#header-role');if(hr){hr.textContent=user.title||user.role}setApiStatus();if(window.Phase1Shell?.mount){window.Phase1Shell.mount();}else{renderDashboard();}refreshNotifications();window.connectTeamRealtime?.()}
+function login(user){
+  state.user=user;
+  sessionStorage.setItem('shiftrelay-user',user.id);
+  try{localStorage.setItem('shiftrelay-user-data',JSON.stringify(user))}catch(e){}
+  $('#login-view')?.classList.add('hidden');
+  $('#app-view')?.classList.remove('hidden');
+  const entryEl=document.getElementById('sr-entry');if(entryEl){entryEl.style.display='none';}
+  const modalEl=document.getElementById('sr-login-modal');if(modalEl){modalEl.classList.remove('open');}
+  setApiStatus();
+  if(window.Phase1Shell?.mount){
+    window.Phase1Shell.mount();
+  }else if(typeof renderDashboard==='function'){
+    renderDashboard();
+  }
+  refreshNotifications();
+  window.connectTeamRealtime?.();
+}
 window._srLoginCallback = (user) => login(user);
 
 function setApiStatus(){const badge=$('#api-status');if(!badge)return;badge.textContent='Shift Engine Active';badge.className='api-status connected'}

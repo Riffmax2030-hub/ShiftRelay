@@ -1,75 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="100%" height="100%">
   <defs>
-    <!-- Premium Industrial Substrate Gradient -->
-    <linearGradient id="srBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0a1526"/>
-      <stop offset="50%" stop-color="#0c1a30"/>
-      <stop offset="100%" stop-color="#07101f"/>
+    <linearGradient id="srDarkGreenBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07291E"/>
+      <stop offset="55%" stop-color="#041B14"/>
+      <stop offset="100%" stop-color="#02100C"/>
     </linearGradient>
-
-    <!-- Vibrant Emerald Relay Beam -->
-    <linearGradient id="srEmeraldBeam" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#34d399"/>
-      <stop offset="100%" stop-color="#059669"/>
+    <radialGradient id="srEmeraldAmbient" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#1AD079" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#1AD079" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="srRidgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F0FDF4"/>
+      <stop offset="65%" stop-color="#D1FAE5"/>
+      <stop offset="100%" stop-color="#34D399"/>
     </linearGradient>
-
-    <!-- Electric Cyan Sapphire Beam -->
-    <linearGradient id="srSapphireBeam" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8"/>
-      <stop offset="100%" stop-color="#0284c7"/>
-    </linearGradient>
-
-    <!-- Core Handover Node Glow -->
-    <linearGradient id="srNodeCore" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#10b981"/>
-    </linearGradient>
-
-    <!-- Subtle Drop Shadow for Woven Overlap -->
-    <filter id="srWovenShadow" x="-10%" y="-10%" width="120%" height="120%">
+    <filter id="srGlow" x="-15%" y="-15%" width="130%" height="130%">
       <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.45"/>
     </filter>
   </defs>
 
-  <!-- Precision Squircle Substrate Container -->
-  <rect x="12" y="12" width="296" height="296" rx="64" fill="url(#srBgGrad)" stroke="#1e293b" stroke-width="2"/>
-  <rect x="22" y="22" width="276" height="276" rx="54" fill="none" stroke="#38bdf8" stroke-opacity="0.12" stroke-width="1.5"/>
+  <!-- Deep Dark Green Squircle Background -->
+  <rect x="6" y="6" width="308" height="308" rx="64" fill="url(#srDarkGreenBg)" stroke="#1AD079" stroke-opacity="0.4" stroke-width="4"/>
+  <circle cx="160" cy="136" r="130" fill="url(#srEmeraldAmbient)"/>
 
-  <!-- Corner Biometric Target Alignment Brackets (Inspired by Image 2 & 3) -->
-  <path d="M 52 76 L 52 52 L 76 52" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7"/>
-  <path d="M 268 76 L 268 52 L 244 52" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7"/>
-  <path d="M 52 244 L 52 268 L 76 268" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7"/>
-  <path d="M 268 244 L 268 268 L 244 268" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7"/>
+  <!-- Biometric Fingerprint + Keyhole Lock Mark (Centered Upper Stage) -->
+  <g transform="translate(156, 126)" fill="none" stroke="url(#srRidgeGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#srGlow)">
+    <!-- Outer Top Arch -->
+    <path d="M -46 -42 C -32 -78, 32 -78, 48 -38 C 54 -22, 54 -4, 52 14"/>
+    <!-- Left Upper Ridge -->
+    <path d="M -54 -14 C -52 -42, -34 -62, -6 -64 C 24 -66, 40 -44, 40 -14 C 40 4, 38 18, 48 28"/>
+    <!-- Inner Swirl Loop & Ridge Lines -->
+    <path d="M -54 4 C -36 2, -24 -12, -20 -32 C -16 -48, 0 -52, 14 -46 C 26 -40, 28 -22, 26 -2 C 24 16, 28 30, 46 38"/>
+    <path d="M -52 22 C -30 18, -14 2, -8 -22 C -4 -36, 12 -34, 14 -18 C 16 2, 12 22, 24 38"/>
+    <path d="M -46 38 C -24 32, -6 16, 0 -10"/>
+    <!-- Y-Branch Ridge Core above Lower Arch -->
+    <path d="M -18 28 C -6 22, 6 22, 18 32"/>
+    <path d="M -2 10 L 4 23"/>
+    <!-- Bottom Concentric Arch Ridges -->
+    <path d="M -44 52 C -26 38, -2 36, 12 46"/>
+    <path d="M -38 68 C -22 54, -4 54, 8 64"/>
+    <path d="M -26 82 C -14 72, -2 72, 6 80"/>
+    <path d="M -14 92 C -8 87, -2 87, 3 91"/>
 
-  <!-- Centered Woven Geometric Baton Cross (Inspired by User Inspiration Image 1) -->
-  <!-- Centered at (160, 160) with 45-degree woven diagonal track pairs -->
-  <g transform="translate(160, 160)" filter="url(#srWovenShadow)">
-    <!-- Diagonal Pair 1: Top-Left to Bottom-Right Primary Relay Track (Emerald) -->
-    <!-- Upper Left Inflow Beam 1 -->
-    <rect x="-82" y="-52" width="68" height="18" rx="6" transform="rotate(45 -48 -43)" fill="url(#srEmeraldBeam)"/>
-    <!-- Upper Left Inflow Beam 2 (Parallel) -->
-    <rect x="-62" y="-72" width="68" height="18" rx="6" transform="rotate(45 -28 -63)" fill="url(#srEmeraldBeam)"/>
-
-    <!-- Lower Right Outflow Beam 1 -->
-    <rect x="14" y="34" width="68" height="18" rx="6" transform="rotate(45 48 43)" fill="url(#srEmeraldBeam)"/>
-    <!-- Lower Right Outflow Beam 2 (Parallel) -->
-    <rect x="-6" y="54" width="68" height="18" rx="6" transform="rotate(45 28 63)" fill="url(#srEmeraldBeam)"/>
-
-    <!-- Diagonal Pair 2: Top-Right to Bottom-Left Counter Relay Track (Sapphire) -->
-    <!-- Upper Right Inflow Beam 1 -->
-    <rect x="14" y="-52" width="68" height="18" rx="6" transform="rotate(-45 48 -43)" fill="url(#srSapphireBeam)"/>
-    <!-- Upper Right Inflow Beam 2 (Parallel) -->
-    <rect x="-6" y="-72" width="68" height="18" rx="6" transform="rotate(-45 28 -63)" fill="url(#srSapphireBeam)"/>
-
-    <!-- Lower Left Outflow Beam 1 -->
-    <rect x="-82" y="34" width="68" height="18" rx="6" transform="rotate(-45 -48 43)" fill="url(#srSapphireBeam)"/>
-    <!-- Lower Left Outflow Beam 2 (Parallel) -->
-    <rect x="-62" y="54" width="68" height="18" rx="6" transform="rotate(-45 -28 63)" fill="url(#srSapphireBeam)"/>
-
-    <!-- Central Diamond Handover Relay Core (Interlocking Precision Keyhole Node) -->
-    <polygon points="0,-22 22,0 0,22 -22,0" fill="#0c1a30" stroke="url(#srEmeraldBeam)" stroke-width="3"/>
-    <!-- Inner Radiant Shift Node -->
-    <circle cx="0" cy="0" r="7" fill="url(#srNodeCore)"/>
-    <circle cx="0" cy="0" r="3" fill="#0a1526"/>
+    <!-- Circular Keyhole Lock Badge (Bottom-Right of Fingerprint) -->
+    <g transform="translate(38, 64)" stroke="none">
+      <circle cx="0" cy="0" r="32" fill="#1AD079"/>
+      <!-- Keyhole Cutout in Deep Dark Green -->
+      <circle cx="0" cy="-6" r="9" fill="#041B14"/>
+      <path d="M -5 -1 L 5 -1 L 9 16 L -9 16 Z" fill="#041B14"/>
+    </g>
   </g>
 </svg>

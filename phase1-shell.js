@@ -669,18 +669,6 @@
 
   // ── 1. Mount Application Shell ──────────────────────────────────────────────
   async function mountShell(activeView = null) {
-    // Synchronize employer organisation profile picture across all worker views
-    if (!window._srOrgLogo) {
-      try {
-        const _profRes = await fetch('/api/worker-profile');
-        if (_profRes.ok) {
-          const _profData = await _profRes.json();
-          if (_profData.profile?.employerAvatarUrl) {
-            window._srOrgLogo = _profData.profile.employerAvatarUrl;
-          }
-        }
-      } catch (_) {}
-    }
     const terminalConfig = JSON.parse(localStorage.getItem('shiftrelay-terminal-config') || 'null');
     if (terminalConfig?.active || activeView === 'kiosk') {
       document.getElementById('app-view')?.classList.remove('hidden');
@@ -729,26 +717,26 @@
     const siteName = user.department || user.site_name || 'Main Facility';
     const roleTitle = user.title || user.role || 'Member';
 
-    // Notification unread count
-    let unreadCount = 0;
-    try {
-      const notifRes = await fetch('/api/notifications');
-      if (notifRes.ok) {
-        const notifData = await notifRes.json();
-        cachedNotifications = notifData.notifications || [];
-        unreadCount = cachedNotifications.filter(n => !n.read_at && !n.read).length;
-      }
-    } catch (_) {}
+    // Immediate unread count from cache (zero blocking latency)
+    const unreadCount = cachedNotifications.filter(n => !n.read_at && !n.read).length || 0;
 
-    // Check active shift status for header indicator
-    let isUserActiveOnShift = false;
-    try {
-      const timeCheckRes = await fetch('/api/time-entries');
-      if (timeCheckRes.ok) {
-        const timeCheckData = await timeCheckRes.json();
-        isUserActiveOnShift = Boolean(timeCheckData.active);
-      }
-    } catch (_) {}
+    // Fire background updates without blocking immediate UI shell render
+    if (!window._srOrgLogo) {
+      fetch('/api/worker-profile')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.profile?.employerAvatarUrl) window._srOrgLogo = d.profile.employerAvatarUrl; })
+        .catch(() => {});
+    }
+    fetch('/api/notifications')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d && Array.isArray(d.notifications)) {
+          cachedNotifications = d.notifications;
+          const count = cachedNotifications.filter(n => !n.read_at && !n.read).length;
+          updateBellBadge(count);
+        }
+      })
+      .catch(() => {});
 
     const shellHtml = `
       <div id="sr-app-shell">
@@ -759,10 +747,42 @@
             <span class="sr-offline-text" id="sr-offline-status-text">${isOffline ? 'Offline Mode Active · Shift actions queued locally · Auto-syncs on reconnect' : 'Online · Cloud Connected'}</span>
           </div>
         </div>
-        <!-- Top Responsive Header -->
+        <!-- Top Responsive Header (Consistent across Worker, Supervisor & Executive Cockpits) -->
         <header class="sr-header" role="banner">
           <div class="sr-header-left">
             <a href="#" class="sr-brand-link" id="sr-brand-home" aria-label="ShiftRelay Home">
+              <span class="sr-brand-badge" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 320 320" fill="none">
+                  <defs>
+                    <linearGradient id="srHdrDarkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#07291E"/>
+                      <stop offset="55%" stop-color="#041B14"/>
+                      <stop offset="100%" stop-color="#02100C"/>
+                    </linearGradient>
+                    <linearGradient id="srHdrRidgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#F0FDF4"/>
+                      <stop offset="65%" stop-color="#D1FAE5"/>
+                      <stop offset="100%" stop-color="#34D399"/>
+                    </linearGradient>
+                  </defs>
+                  <rect x="6" y="6" width="308" height="308" rx="64" fill="url(#srHdrDarkBg)" stroke="#1AD079" stroke-opacity="0.45" stroke-width="5"/>
+                  <g transform="translate(156, 126)" fill="none" stroke="url(#srHdrRidgeGrad)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M -46 -42 C -32 -78, 32 -78, 48 -38 C 54 -22, 54 -4, 52 14"/>
+                    <path d="M -54 -14 C -52 -42, -34 -62, -6 -64 C 24 -66, 40 -44, 40 -14 C 40 4, 38 18, 48 28"/>
+                    <path d="M -54 4 C -36 2, -24 -12, -20 -32 C -16 -48, 0 -52, 14 -46 C 26 -40, 28 -22, 26 -2 C 24 16, 28 30, 46 38"/>
+                    <path d="M -52 22 C -30 18, -14 2, -8 -22 C -4 -36, 12 -34, 14 -18 C 16 2, 12 22, 24 38"/>
+                    <path d="M -46 38 C -24 32, -6 16, 0 -10"/>
+                    <path d="M -18 28 C -6 22, 6 22, 18 32"/>
+                    <path d="M -44 52 C -26 38, -2 36, 12 46"/>
+                    <path d="M -38 68 C -22 54, -4 54, 8 64"/>
+                    <g transform="translate(38, 64)" stroke="none">
+                      <circle cx="0" cy="0" r="32" fill="#1AD079"/>
+                      <circle cx="0" cy="-6" r="9" fill="#041B14"/>
+                      <path d="M -5 -1 L 5 -1 L 9 16 L -9 16 Z" fill="#041B14"/>
+                    </g>
+                  </g>
+                </svg>
+              </span>
               <span class="sr-brand-text"><span class="sr-brand-shift">SHIFT</span><span class="sr-brand-relay">RELAY</span></span>
             </a>
           </div>

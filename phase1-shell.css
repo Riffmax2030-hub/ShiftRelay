@@ -112,13 +112,12 @@ body:has(#sr-app-shell) #dashboard,
   margin: 0 !important;
 }
 
-body:has(#sr-app-shell) .frontline-dock,
-#app-view:has(#sr-app-shell) .frontline-dock {
-  display: none !important;
-}
-
-body:has(#sr-app-shell) .app-header,
-#app-view:has(#sr-app-shell) .app-header {
+/* ── Total permanent suppression of obsolete v1/v2 layouts ── */
+.frontline-dock,
+.dock-container,
+.app-header,
+.landing-experience,
+#login-view.landing-experience {
   display: none !important;
 }
 
@@ -155,7 +154,7 @@ body:has(#sr-app-shell) .app-header,
 .sr-brand-link {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   text-decoration: none;
   color: var(--sr-text-main);
   font-weight: 800;
@@ -163,15 +162,43 @@ body:has(#sr-app-shell) .app-header,
   letter-spacing: -0.02em;
 }
 
-.sr-brand-link img {
-  border-radius: 8px;
+.sr-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+  transition: transform 0.18s ease;
 }
 
-.sr-brand-link span span {
-  background: linear-gradient(135deg, #0d9488 0%, #10b981 50%, #34d399 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.sr-brand-link:hover .sr-brand-badge {
+  transform: scale(1.05);
+}
+
+.sr-brand-text {
+  display: inline-flex;
+  align-items: baseline;
+  letter-spacing: -0.02em;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+  user-select: none;
+}
+
+.sr-brand-shift {
+  font-weight: 900;
+  color: #10b981;
+}
+
+.sr-brand-relay {
+  font-weight: 800;
+  color: var(--sr-text-main, #0f172a);
+}
+
+[data-theme="dark"] .sr-brand-relay,
+.dark .sr-brand-relay {
+  color: #f1f5f9;
 }
 
 /* ── Company vs Site Context Switcher Pill ── */

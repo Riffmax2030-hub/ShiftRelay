@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="icon" href="icon.svg?v=141" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icon.svg?v=141" />
+    <link rel="icon" href="icon.svg?v=148" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg?v=148" />
     <meta name="theme-color" content="#102033" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,57 +18,20 @@
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="bento-ui.css" />
-    <link rel="stylesheet" href="portal.css" />
-    <link rel="stylesheet" href="approval.css" />
-    <link rel="stylesheet" href="worker.css" />
-    <link rel="stylesheet" href="assistant.css" />
-    <link rel="stylesheet" href="quote.css" />
-    <link rel="stylesheet" href="dashboard.css" />
-    <link rel="stylesheet" href="profile.css" />
-    <link rel="stylesheet" href="account-menu.css" />
-    <link rel="stylesheet" href="metrics.css" />
-    <link rel="stylesheet" href="notification-ui.css" />
-    <link rel="stylesheet" href="notification-experience.css" />
-    <link rel="stylesheet" href="language.css" />
-    <link rel="stylesheet" href="preferences.css" />
-    <link rel="stylesheet" href="calendar-experience.css" />
-    <link rel="stylesheet" href="community-experience.css" />
-    <link rel="stylesheet" href="community-overrides.css" />
-    <link rel="stylesheet" href="schedule-polish.css" />
-    <link rel="stylesheet" href="direct-messages.css" />
-    <link rel="stylesheet" href="onboarding-experience.css" />
-    <link rel="stylesheet" href="checklists.css" />
-    <link rel="stylesheet" href="frontline-social.css" />
     <link rel="stylesheet" href="dark-mode.css" />
-    <link rel="stylesheet" href="notification-centre.css" />
-    <link rel="stylesheet" href="swap-review.css" />
-    <link rel="stylesheet" href="me-profile.css" />
-    <link rel="stylesheet" href="shiftrelay-v3.css" />
-    <link rel="stylesheet" href="splash.css?v=146" />
+    <link rel="stylesheet" href="splash.css?v=148" />
     <link rel="stylesheet" href="offline-queue.css" />
-    <link rel="stylesheet" href="signature-pad.css" />
-    <link rel="stylesheet" href="chat-engine.css" />
-    <link rel="stylesheet" href="gesture-hints.css" />
-    <link rel="stylesheet" href="shift-calendar.css" />
-    <link rel="stylesheet" href="safety-incident.css" />
-    <link rel="stylesheet" href="worker-passport.css" />
-    <link rel="stylesheet" href="facility-zones.css" />
-    <link rel="stylesheet" href="analytics-dashboard.css" />
-    <link rel="stylesheet" href="first-shift-onboarding.css" />
-    <link rel="stylesheet" href="push-notifications.css" />
-    <link rel="stylesheet" href="facility-switcher.css" />
-    <link rel="stylesheet" href="emergency-broadcast.css" />
-    <link rel="stylesheet" href="live-translation.css" />
-    <link rel="stylesheet" href="phase1-shell.css?v=147" />
+    <link rel="stylesheet" href="me-profile.css" />
+    <link rel="stylesheet" href="phase1-shell.css?v=148" />
     <link rel="stylesheet" href="sr-premium.css" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v141' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v148' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v141');
+              localStorage.setItem('sr_restored_build', 'v148');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { r.update(); });
@@ -91,7 +54,7 @@
     <div id="sr-splash" role="status" aria-live="polite" aria-label="ShiftRelay loading">
       <div class="sr-splash-clean-stage" id="sr-splash-stage">
         <div class="sr-splash-brand-lockup">
-          <img src="icon.svg?v=145" class="sr-splash-brand-icon" alt="ShiftRelay" width="96" height="96" />
+          <img src="icon.svg?v=148" class="sr-splash-brand-icon" alt="ShiftRelay" width="96" height="96" />
           <div class="sr-splash-brand-text">
             <span class="sr-splash-brand-shift">SHIFT</span><span class="sr-splash-brand-relay">RELAY</span>
           </div>
@@ -113,8 +76,8 @@
       <div class="sr-login-sheet sr-auth-card">
         <div class="sr-auth-brand-bar">
           <div style="display:flex;align-items:center;gap:10px;">
-            <img src="icon.svg?v=145" width="28" height="28" style="border-radius:7px;" alt="ShiftRelay" />
-            <span style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;">ShiftRelay</span>
+            <img src="icon.svg?v=148" width="28" height="28" style="border-radius:7px;" alt="ShiftRelay" />
+            <span style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;"><span style="color:#10b981;font-weight:900;">SHIFT</span>RELAY</span>
           </div>
           <span class="sr-auth-step-pill" id="sr-auth-step-label">Step 1 of 3</span>
         </div>
@@ -374,118 +337,28 @@
     </main>
 
     <main class="app hidden" id="app-view">
-      <!-- Hidden DOM anchors kept for app.js compatibility during login hydration -->
-      <span style="display:none" id="sidebar-avatar"></span>
-      <span style="display:none" id="sidebar-name"></span>
-      <span style="display:none" id="sidebar-role"></span>
-
-      <section class="main-content">
-        <!-- Top App Header -->
-        <header class="app-header">
-          <div class="header-brand-row">
-            <a class="brand-mark" href="#" aria-label="ShiftRelay home">
-              <img src="icon.svg?v=145" alt="" width="28" height="28" />
-            </a>
-            <div class="header-user-pill" id="header-user-pill">
-              <span class="avatar" id="header-avatar">AO</span>
-              <div>
-                <strong id="header-name"></strong>
-                <small id="header-role"></small>
-              </div>
-            </div>
-          </div>
-          <div class="header-center">
-            <p class="eyebrow" id="page-kicker">YOUR WORKSPACE</p>
-            <h1 id="page-title">Today</h1>
-          </div>
-          <div class="header-actions">
-            <button class="bell notification-trigger" id="notification-button" aria-label="Open notifications">
-              <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
-                <path d="M10 21h4"/>
-              </svg>
-              <b id="notification-count">0</b>
-            </button>
-            <button class="account-menu-button" id="account-menu-button" aria-label="Account menu" aria-expanded="false">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-              </svg>
-            </button>
-            <button class="logout" id="logout-button" aria-label="Switch role" style="display:none">Switch role</button>
-          </div>
-        </header>
-
-        <section id="dashboard"></section>
-      </section>
-
-      <!-- ShiftRelay Native Bottom Dock — Icons Only (Home | Lounge | Handover | Discover | Profile) -->
-      <nav class="frontline-dock" aria-label="ShiftRelay primary navigation">
-        <div class="dock-container">
-
-          <!-- HOME (former Today) -->
-          <button class="dock-tab active" data-go="dashboard" aria-label="Home — shift command" title="Home">
-            <span class="dock-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-            </span>
-            <span class="dock-label">Home</span>
-          </button>
-
-          <!-- LOUNGE (frontline feed) -->
-          <button class="dock-tab" data-go="lounge" aria-label="Lounge — social feed" title="Lounge">
-            <span class="dock-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-            </span>
-            <span class="dock-label">Lounge</span>
-          </button>
-
-          <!-- HANDOVER (former Relay — Centre Action Button) -->
-          <button class="dock-tab dock-compose-tab" data-go="handover" aria-label="Handover brief" title="Handover">
-            <span class="dock-compose-btn" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                <polyline points="2 17 12 22 22 17"/>
-                <polyline points="2 12 12 17 22 12"/>
-              </svg>
-            </span>
-            <span class="dock-label">Handover</span>
-          </button>
-
-          <!-- DISCOVER (shift opportunities & network) -->
-          <button class="dock-tab" data-go="discover" aria-label="Discover — shifts and network" title="Discover">
-            <span class="dock-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88"/>
-              </svg>
-            </span>
-            <span class="dock-label">Discover</span>
-          </button>
-
-          <!-- PROFILE (former Me / Passport) -->
-          <button class="dock-tab" data-go="passport" aria-label="Profile — credentials and identity" title="Profile">
-            <span class="dock-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-            </span>
-            <span class="dock-label">Profile</span>
-          </button>
-        </div>
-      </nav>
-
-      <aside class="notification-panel hidden" id="notification-panel">
-        <div><strong>Notifications</strong></div>
+      <!-- Hidden compatibility DOM anchors ensuring zero null-pointer regressions in utility libraries -->
+      <div style="display:none !important;" id="sr-compat-anchors" aria-hidden="true">
+        <span id="page-title"></span>
+        <span id="page-kicker"></span>
+        <span id="sidebar-avatar"></span>
+        <span id="sidebar-name"></span>
+        <span id="sidebar-role"></span>
+        <span id="header-avatar"></span>
+        <strong id="header-name"></strong>
+        <small id="header-role"></small>
+        <div id="header-user-pill"></div>
+        <b id="notification-count">0</b>
+        <button id="notification-button"></button>
+        <button id="account-menu-button"></button>
+        <button id="logout-button"></button>
+        <aside id="notification-panel"></aside>
         <section id="notification-list"></section>
-      </aside>
+        <section id="access-panel"></section>
+      </div>
+
+      <!-- Main Application Container: Phase 1 Shell mounts exclusively here -->
+      <section id="dashboard" class="sr-dashboard-main"></section>
     </main>
     
     <!-- Terms & Workplace Confidentiality Policy Modal -->
@@ -537,9 +410,9 @@
     <script src="icons.js"></script>
     <script src="language.js"></script>
     <script src="language-pack.js"></script>
-    <script src="app.js?v=147"></script>
+    <script src="app.js?v=148"></script>
     <script src="biometrics.js"></script>
-    <script src="splash.js?v=147"></script>
+    <script src="splash.js?v=148"></script>
     <script src="notifications.js"></script>
    <script src="profile.js"></script>
    <script src="checklists.js"></script>
@@ -573,8 +446,8 @@
     <script src="facility-switcher.js"></script>
     <script src="emergency-broadcast.js"></script>
     <script src="live-translation.js"></script>
-    <script src="phase1-shell.js?v=147"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=147',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script src="phase1-shell.js?v=148"></script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=148',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 

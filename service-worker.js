@@ -1,8 +1,8 @@
-const CACHE = 'shiftrelay-v147-fast-auth';
+const CACHE = 'shiftrelay-v148-instant';
 const CORE_SHELL_ASSETS = [
   '/',
   '/index.html',
-  '/icon.svg?v=145'
+  '/icon.svg?v=148'
 ];
 
 self.addEventListener('install', (event) => {
