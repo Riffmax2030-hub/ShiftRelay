@@ -1173,7 +1173,11 @@ async function signIn(body) {
   }
 
   if (databaseReady) {
-    const orgRes = await query('select id, organisation_code, legal_name, trading_name from organisations where upper(replace(organisation_code, \'-\', \'\')) = $1 limit 1', [cleanCode]);
+    const riffmaxAliasCodes = ['RIF2026', 'RIFFMAX', 'RIFFMAX01', 'RIF01', '246701'];
+    let orgRes = await query('select id, organisation_code, legal_name, trading_name from organisations where upper(replace(organisation_code, \'-\', \'\')) = $1 limit 1', [cleanCode]);
+    if (!orgRes.rows[0] && riffmaxAliasCodes.includes(cleanCode)) {
+      orgRes = await query('select id, organisation_code, legal_name, trading_name from organisations where id = $1 or upper(replace(organisation_code, \'-\', \'\')) = \'RIF2026\' limit 1', [demoOrganisation.id]);
+    }
     const org = orgRes.rows[0];
     if (!org) throw new Error(`Invalid Company ID "${rawCompanyId}". Please check your tenant identifier.`);
 
@@ -1650,15 +1654,35 @@ async function handleApi(request, response, url) {
     const cleanCode = rawCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     if (!cleanCode) return sendJson(response, 400, { error: 'Company code is required.' });
 
-    const store = await getStore();
-    let org = (store.organisations || []).find(o => {
-      const c = String(o.organisation_code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-      const aliases = (o.aliases || []).map(a => String(a).replace(/[^A-Za-z0-9]/g, '').toUpperCase());
-      return c === cleanCode || aliases.includes(cleanCode);
-    });
+    const riffmaxAliasCodes = ['RIF2026', 'RIFFMAX', 'RIFFMAX01', 'RIF01', '246701'];
+    let org = null;
+    if (databaseReady) {
+      let dbRes = await query(
+        'select id, organisation_code, legal_name, trading_name, industry, country, time_zone from organisations where upper(replace(organisation_code, \'-\', \'\')) = $1 limit 1',
+        [cleanCode]
+      );
+      if (!dbRes.rows[0] && riffmaxAliasCodes.includes(cleanCode)) {
+        dbRes = await query(
+          'select id, organisation_code, legal_name, trading_name, industry, country, time_zone from organisations where id = $1 or upper(replace(organisation_code, \'-\', \'\')) = \'RIF2026\' limit 1',
+          [demoOrganisation.id]
+        );
+      }
+      if (dbRes.rows[0]) {
+        org = dbRes.rows[0];
+      }
+    }
 
-    if (!org && cleanCode === 'RIF2026') {
-      org = store.organisations?.[0];
+    if (!org) {
+      const store = await getStore();
+      org = (store.organisations || []).find(o => {
+        const c = String(o.organisation_code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        const aliases = (o.aliases || []).map(a => String(a).replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+        return c === cleanCode || aliases.includes(cleanCode);
+      });
+
+      if (!org && riffmaxAliasCodes.includes(cleanCode)) {
+        org = store.organisations?.[0];
+      }
     }
 
     if (!org) {
@@ -1743,6 +1767,19 @@ async function handleApi(request, response, url) {
       store.memberships.push(member);
     }
     member.status = 'active';
+
+    if (databaseReady) {
+      const existingDbUser = (await query('select id from portal_users where lower(email) = lower($1) limit 1', [email])).rows[0];
+      const dbUserId = existingDbUser?.id || userObj.id || crypto.randomUUID();
+      await query(
+        'insert into portal_users (id, full_name, email, phone, password_hash, email_verified) values ($1, $2, $3, $4, $5, true) on conflict (id) do update set password_hash = excluded.password_hash, email_verified = true',
+        [dbUserId, userObj.full_name || 'Executive Owner', email, userObj.phone || null, userObj.password_hash]
+      );
+      await query(
+        'insert into memberships (id, organisation_id, user_id, site_id, role, title, department, status) values ($1, $2, $3, $4, $5, $6, $7, $8) on conflict (organisation_id, user_id) do update set status = \'active\', role = excluded.role',
+        [member.id || dbUserId, org.id || demoOrganisation.id, dbUserId, demoOrganisation.siteId, member.role || 'owner', member.title || 'Managing Director & CEO', member.department || 'Executive Operations', 'active']
+      );
+    }
 
     await saveStore(store);
 

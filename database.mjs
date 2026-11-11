@@ -535,13 +535,46 @@ export const demoMembers = [
   { id: '00000000-0000-4000-8000-000000000005', name: 'Tariq Al-Hassan', email: 'tariq@riffmax.tech', role: 'worker', title: 'Senior Distributed Systems Engineer', department: 'Backend Infrastructure' }
 ];
 
+// Matches Riffmax2026! using ShiftRelay's scrypt format (salt:hex). Override via SHIFTRELAY_DEMO_MEMBER_PASS.
+const DEFAULT_DEMO_MEMBER_PASSWORD_HASH = '7b31e66ba6e49c68372e58d0a00829d3:a5e2489fa6f3841ee9c8099bf3425c808ebd1ae72ac18fd7d188eb9a2daf728198fa664db814cbd38b16b81a6ad7f2edf39bf0ecbfd8a4863931aeaf1c35d96a';
+
+async function resolveDemoMemberPasswordHash() {
+  const override = String(process.env.SHIFTRELAY_DEMO_MEMBER_PASS || '').trim();
+  if (!override) return DEFAULT_DEMO_MEMBER_PASSWORD_HASH;
+  const { randomBytes, scryptSync } = await import('node:crypto');
+  const salt = randomBytes(16).toString('hex');
+  return `${salt}:${scryptSync(override, salt, 64).toString('hex')}`;
+}
+
 export async function seedDemoOrganisation() {
   if (!pool) return;
+  const demoPasswordHash = await resolveDemoMemberPasswordHash();
   await query('insert into organisations (id, organisation_code, legal_name, trading_name, work_email, industry, country, time_zone, verification_status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9) on conflict (id) do nothing', [demoOrganisation.id, demoOrganisation.code, 'Riffmax Technology Limited', 'Riffmax Technology', 'sherif@riffmax.tech', 'Enterprise SaaS & Workforce DeepTech', 'Nigeria', 'Africa/Lagos', 'verified']);
   await query('insert into organisation_sites (id, organisation_id, name, address, time_zone) values ($1, $2, $3, $4, $5) on conflict (id) do nothing', [demoOrganisation.siteId, demoOrganisation.id, 'Riffmax Software Engineering Hub', 'Victoria Island / Lekki Tech Corridor, Lagos, Nigeria', 'Africa/Lagos']);
   for (const member of demoMembers) {
-    await query('insert into portal_users (id, full_name, email, email_verified) values ($1, $2, $3, true) on conflict (id) do nothing', [member.id, member.name, member.email]);
-    await query('insert into memberships (id, organisation_id, user_id, site_id, role, title, department, status) values ($1, $2, $1, $3, $4, $5, $6, $7) on conflict (id) do nothing', [member.id, demoOrganisation.id, demoOrganisation.siteId, member.role, member.title, member.department, 'active']);
+    const existing = await query(
+      'select id, password_hash from portal_users where id = $1 or lower(email) = lower($2) limit 1',
+      [member.id, member.email]
+    );
+    let userId = member.id;
+    if (existing.rows[0]) {
+      userId = existing.rows[0].id;
+      if (!existing.rows[0].password_hash) {
+        await query(
+          'update portal_users set password_hash = $1, email_verified = true where id = $2',
+          [demoPasswordHash, userId]
+        );
+      }
+    } else {
+      await query(
+        'insert into portal_users (id, full_name, email, password_hash, email_verified) values ($1, $2, $3, $4, true) on conflict (id) do update set password_hash = coalesce(portal_users.password_hash, excluded.password_hash), email_verified = true',
+        [member.id, member.name, member.email, demoPasswordHash]
+      );
+    }
+    await query(
+      'insert into memberships (id, organisation_id, user_id, site_id, role, title, department, status) values ($1, $2, $3, $4, $5, $6, $7, $8) on conflict (organisation_id, user_id) do update set status = \'active\'',
+      [member.id, demoOrganisation.id, userId, demoOrganisation.siteId, member.role, member.title, member.department, 'active']
+    );
   }
 }
 

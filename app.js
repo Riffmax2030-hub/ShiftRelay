@@ -1238,9 +1238,13 @@ function performLogout(){
     try { sessionStorage.clear(); } catch(_) {}
     state.user = null;
     $('#app-view').classList.add('hidden');
-    const entryEl = document.getElementById('sr-entry');
-    if (entryEl) { entryEl.style.display=''; entryEl.classList.remove('hidden-out'); entryEl.classList.add('visible'); }
-    else { $('#login-view').classList.remove('hidden'); renderLogin(); }
+    if (typeof window.openShiftRelaySignIn === 'function') {
+      window.openShiftRelaySignIn();
+    } else {
+      const entryEl = document.getElementById('sr-entry');
+      if (entryEl) { entryEl.style.display=''; entryEl.classList.remove('hidden-out'); entryEl.classList.add('visible'); }
+      else { $('#login-view').classList.remove('hidden'); renderLogin(); }
+    }
   };
   if (window.OfflineQueue?.getPendingCount?.() > 0) {
     window.OfflineQueue.promptLogoutWarning(doLogout);
