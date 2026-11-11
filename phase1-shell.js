@@ -237,7 +237,7 @@
   };
 
   function isManagerRole(role) {
-    return role === 'supervisor' || role === 'owner' || role === 'executive' || role === 'admin';
+    return role === 'supervisor' || role === 'manager' || role === 'owner' || role === 'executive' || role === 'admin';
   }
 
   function isExecutiveRole(role) {
@@ -264,7 +264,7 @@
     if (role === 'owner' || role === 'executive' || role === 'admin') {
       return allowedExecutive.includes(viewName);
     }
-    if (role === 'supervisor') {
+    if (role === 'supervisor' || role === 'manager') {
       return allowedSupervisor.includes(viewName);
     }
     return allowedWorker.includes(viewName);
@@ -693,7 +693,7 @@
     if (!user) return;
 
     const isExecutive = isExecutiveRole(user.role);
-    const isSupervisorAccount = user.role === 'supervisor';
+    const isSupervisorAccount = user.role === 'supervisor' || user.role === 'manager';
     const supervisorModePref = localStorage.getItem('sr_supervisor_mode') || 'supervisor';
     const isSupervisor = isSupervisorAccount && supervisorModePref !== 'worker';
     const isManager = isExecutive || isSupervisor;
@@ -763,19 +763,8 @@
         <header class="sr-header" role="banner">
           <div class="sr-header-left">
             <a href="#" class="sr-brand-link" id="sr-brand-home" aria-label="ShiftRelay Home">
-              <img src="icon.svg?v=145" alt="ShiftRelay" width="32" height="32" />
               <span class="sr-brand-text"><span class="sr-brand-shift">SHIFT</span><span class="sr-brand-relay">RELAY</span></span>
             </a>
-
-            <!-- Company vs Site Context Switcher Pill -->
-            <button class="sr-context-pill" id="sr-btn-context" aria-label="Switch organization context" title="Click to switch workplace">
-              <span class="sr-dot"></span>
-              <div class="sr-context-pill-text">
-                <span class="sr-context-pill-org">${escapeHtml(companyName)} <span class="sr-header-tenant-chip">ID: ${escapeHtml(user.company_id || 'RIF-2026')}</span></span>
-                <span class="sr-context-pill-site">${escapeHtml(siteName)} · ${escapeHtml(roleTitle)}</span>
-              </div>
-              <svg class="sr-context-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-            </button>
           </div>
 
           <div class="sr-header-right">
@@ -787,7 +776,7 @@
                   <span>My Shift</span>
                 </button>
                 <button type="button" data-sup-mode="supervisor" class="sr-sup-mode-btn ${isSupervisor ? 'active' : ''}" style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;border:none;font-size:11.5px;font-weight:700;cursor:pointer;transition:all 0.18s ease;${isSupervisor ? 'background:#0284c7;color:#ffffff;box-shadow:0 2px 8px rgba(2,132,199,0.35);' : 'background:transparent;color:var(--sr-text-muted,#94a3b8);'}">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   <span>Supervisor Mode</span>
                 </button>
               </div>
@@ -802,8 +791,8 @@
               </button>
               <div id="sr-demo-menu" class="sr-demo-menu hidden" role="menu">
                 <div class="sr-demo-menu-header">
-                  <strong>Riffmax Team Workspace Switcher</strong>
-                  <span>Switch between Worker, Supervisor &amp; Executive views</span>
+                  <strong>Workspace Role Switcher</strong>
+                  <span>Switch active role view</span>
                 </div>
                 <div class="sr-demo-menu-items">
                   <button type="button" class="sr-demo-option ${!isExecutive && !isSupervisorAccount ? 'active' : ''}" data-persona="cleaner">
@@ -812,12 +801,12 @@
                     </span>
                     <div class="sr-demo-opt-text">
                       <div class="sr-demo-opt-title">Babatunde Adeleke (Worker)</div>
-                      <div class="sr-demo-opt-desc">My Shift, Handover, Schedule &amp; Pay</div>
+                      <div class="sr-demo-opt-desc">Shift, Handover, Schedule, Earnings</div>
                     </div>
                   </button>
                   <button type="button" class="sr-demo-option ${isSupervisorAccount ? 'active' : ''}" data-persona="supervisor">
                     <span class="sr-demo-icon" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(56,189,248,0.14);color:#38bdf8;">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     </span>
                     <div class="sr-demo-opt-text">
                       <div class="sr-demo-opt-title">Olaide Emmanuela (Supervisor)</div>
@@ -830,12 +819,22 @@
                     </span>
                     <div class="sr-demo-opt-text">
                       <div class="sr-demo-opt-title">Sherif Akanmu (Executive)</div>
-                      <div class="sr-demo-opt-desc">Command Pulse, Payroll, Workforce &amp; Audit</div>
+                      <div class="sr-demo-opt-desc">Pulse, Payroll, Workforce, Audit</div>
                     </div>
                   </button>
                 </div>
               </div>
             </div>
+
+            <!-- Company & Site Context Pill (Top Bar Right, away from ShiftRelay wordmark) -->
+            <button class="sr-context-pill" id="sr-btn-context" aria-label="Workplace context" title="Company: ${escapeHtml(companyName)} · Site: ${escapeHtml(siteName)}">
+              <span class="sr-dot"></span>
+              <div class="sr-context-pill-text">
+                <span class="sr-context-pill-org">Company: ${escapeHtml(companyName)}</span>
+                <span class="sr-context-pill-site">Site: ${escapeHtml(siteName)} · ${escapeHtml((user.role || 'WORKER').toUpperCase())}</span>
+              </div>
+              <svg class="sr-context-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
 
             <!-- Notifications Bell -->
             <button class="sr-icon-btn" id="sr-shell-bell" aria-label="Notifications" title="Notifications" aria-haspopup="dialog" aria-expanded="false" aria-controls="sr-notif-panel">
@@ -843,17 +842,8 @@
               <span class="sr-badge-counter" id="sr-shell-bell-badge" style="${unreadCount > 0 ? '' : 'display:none;'}">${unreadCount > 99 ? '99+' : unreadCount}</span>
             </button>
 
-            <!-- User Profile Avatar Pill (Opens full CV Profile & Digital Work Pass) -->
-            <button class="sr-user-avatar-pill" id="sr-shell-avatar" aria-label="View Digital Staff ID" title="Open Digital Staff ID &amp; Profile">
-              <span class="sr-header-avatar-circle">
-                ${escapeHtml(user.name ? user.name.slice(0, 2).toUpperCase() : 'U')}
-              </span>
-              <span class="sr-header-user-firstname">${escapeHtml((user.name || 'Member').split(' ')[0])}</span>
-              <span class="sr-header-active-dot ${isUserActiveOnShift ? '' : 'offduty'}" title="${isUserActiveOnShift ? 'Active on Shift' : 'Off Duty'}"></span>
-            </button>
-
             <!-- Workplace Settings Button -->
-            <button class="sr-icon-btn ${view === 'settings' ? 'active' : ''}" id="sr-shell-settings" aria-label="Settings" title="Workplace Settings &amp; Preferences">
+            <button class="sr-icon-btn ${view === 'settings' ? 'active' : ''}" id="sr-shell-settings" aria-label="Settings" title="Workplace Settings">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
 
@@ -957,7 +947,7 @@
                 <span>4. Operations</span>
               </button>
               <button class="sr-nav-btn ${(view === 'compliance' || view === 'settings') ? 'active' : ''}" data-sr-view="compliance">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 <span>5. Governance</span>
               </button>
             ` : isSupervisor ? `
@@ -971,7 +961,7 @@
                 <span>2. Handovers</span>
               </button>
               <button class="sr-nav-btn ${view === 'approvals' ? 'active' : ''}" data-sr-view="approvals">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
                 <span>3. Approvals</span>
               </button>
               <button class="sr-nav-btn ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
@@ -998,7 +988,7 @@
               </button>
               <button class="sr-nav-btn ${(view === 'earnings' || view === 'timesheets' || view === 'rewards') ? 'active' : ''}" data-sr-view="earnings">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                <span>4. Pay &amp; Hours</span>
+                <span>4. Earnings</span>
               </button>
               <button class="sr-nav-btn ${view === 'me' ? 'active' : ''}" data-sr-view="me">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1049,7 +1039,7 @@
               <span class="sr-dock-label">Operations</span>
             </button>
             <button class="sr-dock-item ${(view === 'compliance' || view === 'settings') ? 'active' : ''}" data-sr-view="compliance">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               <span class="sr-dock-label">Governance</span>
             </button>
           ` : isSupervisor ? `
@@ -1063,7 +1053,7 @@
               <span class="sr-dock-label">Handovers</span>
             </button>
             <button class="sr-dock-item ${view === 'approvals' ? 'active' : ''}" data-sr-view="approvals">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
               <span class="sr-dock-label">Approvals</span>
             </button>
             <button class="sr-dock-item ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
@@ -1090,7 +1080,7 @@
             </button>
             <button class="sr-dock-item ${(view === 'earnings' || view === 'timesheets' || view === 'rewards') ? 'active' : ''}" data-sr-view="earnings">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-              <span class="sr-dock-label">Pay &amp; Hours</span>
+              <span class="sr-dock-label">Earnings</span>
             </button>
             <button class="sr-dock-item ${(view === 'me' || view === 'settings') ? 'active' : ''}" data-sr-view="me">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1099,8 +1089,8 @@
           `}
         </nav>
 
-        <!-- Floating Support & Records Symbol Button (No Text, No Green Light) -->
-        <button class="sr-floating-ai-beacon" id="sr-btn-floating-ai" aria-label="Support & Records Desk" title="Support & Records Desk">
+        <!-- Floating Support Symbol Button (No Text, No Green Light) -->
+        <button class="sr-floating-ai-beacon" id="sr-btn-floating-ai" aria-label="Support" title="Support">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
@@ -1175,7 +1165,7 @@
 
     document.getElementById('sr-btn-start-tour')?.addEventListener('click', () => {
       demoMenu?.classList.add('hidden');
-      const activeRoleKey = user.role === 'owner' ? 'owner' : user.role === 'supervisor' ? 'supervisor' : 'cleaner';
+      const activeRoleKey = user.role === 'owner' ? 'owner' : (user.role === 'supervisor' || user.role === 'manager') ? 'supervisor' : 'cleaner';
       startInvestorTour(activeRoleKey);
     });
 
@@ -1198,7 +1188,7 @@
         statusText.textContent = 'Offline Mode Active · Actions queued with GPS timestamp (simulated)';
         showToast('Simulating offline shift mode. All actions will queue locally.', 'info');
       } else {
-        statusText.textContent = '✓ Reconnected · 0 queued actions synced with cloud';
+        statusText.textContent = 'Reconnected · 0 queued actions synced with cloud';
         offlineBar.style.background = '#10b981';
         SRAudio.playClockIn();
         showToast('Connection restored! Queue synchronized.', 'success');
@@ -1215,7 +1205,7 @@
       const offlineBar = document.getElementById('sr-offline-bar');
       const statusText = document.getElementById('sr-offline-status-text');
       if (offlineBar && statusText) {
-        statusText.textContent = '✓ Reconnected · Synchronized with shift cloud';
+        statusText.textContent = 'Reconnected · Synchronized with shift cloud';
         offlineBar.style.background = '#10b981';
         SRAudio.playClockIn();
         setTimeout(() => {
@@ -1293,11 +1283,6 @@
         currentNotifFilter = btn.dataset.cat;
         renderNotificationItems(cachedNotifications);
       });
-    });
-
-    document.getElementById('sr-shell-avatar')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      navigate('me');
     });
 
     document.getElementById('sr-shell-settings')?.addEventListener('click', (e) => {
@@ -1639,6 +1624,34 @@
       const clockedInTime = activeEntry ? (activeEntry.clocked_in_at || activeEntry.clockedInAt) : null;
       const handovers = handoversData.handovers || [];
 
+      const shiftStartLabel = String(user.shift_start || user.shiftStart || '06:00').slice(0, 5);
+      const shiftEndLabel   = String(user.shift_end   || user.shiftEnd   || '14:00').slice(0, 5);
+
+      const computeShiftEndMs = (inTimeIso) => {
+        if (activeEntry?.shiftEndAt) return new Date(activeEntry.shiftEndAt).getTime();
+        const parseHM = (val, fH, fM) => {
+          const m = String(val || '').match(/^(\d{1,2}):(\d{2})/);
+          if (!m) return [fH, fM];
+          const h = Number(m[1]), min = Number(m[2]);
+          return (h >= 0 && h < 24 && min >= 0 && min < 60) ? [h, min] : [fH, fM];
+        };
+        const [sH, sM] = parseHM(shiftStartLabel, 6, 0);
+        const [eH, eM] = parseHM(shiftEndLabel, 14, 0);
+        const startMin = sH * 60 + sM;
+        let endMin = eH * 60 + eM;
+        if (endMin <= startMin) endMin += 1440;
+        const durationMs = (endMin - startMin) * 60000;
+        const inMs = new Date(inTimeIso).getTime();
+        const d = new Date(inMs);
+        const candidate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), eH, eM, 0, 0);
+        if (eH * 60 + eM <= startMin) candidate.setDate(candidate.getDate() + 1);
+        return inMs < candidate.getTime() ? candidate.getTime() : inMs + durationMs;
+      };
+
+      const shiftEndMs = (isClockedIn && clockedInTime) ? computeShiftEndMs(clockedInTime) : null;
+      const isShiftLockedUntilEnd = Boolean(shiftEndMs && Date.now() < shiftEndMs);
+      const shiftUnlockClock = shiftEndMs ? new Date(shiftEndMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : shiftEndLabel;
+
       // Check if user has already completed a verified shift today
       const todayIsoDate = new Date().toISOString().slice(0, 10);
       const completedTodayEntry = (timeData.entries || []).find(e => {
@@ -1798,15 +1811,6 @@
       })));
 
       const html = `
-        <!-- Distinct Company vs Site Context Banner -->
-        <div class="sr-context-banner">
-          <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Company: ${escapeHtml(companyName)}</span>
-            <span class="sr-context-banner-site">Site: <strong>${escapeHtml(siteName)}</strong></span>
-          </div>
-          <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
-        </div>
-
         <!-- Today's Assigned Shift Duty Station Card -->
         <div class="sr-card" style="padding:14px 16px;margin-bottom:12px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:12px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
@@ -1816,13 +1820,13 @@
               </span>
               <div>
                 <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.04em;display:block;">Today's Assigned Shift</span>
-                <strong style="font-size:14px;color:var(--sr-text-main);">Morning Rotation &bull; 06:00 &ndash; 14:00 WAT</strong>
+                <strong style="font-size:14px;color:var(--sr-text-main);">Shift Window &bull; ${escapeHtml(shiftStartLabel)} &ndash; ${escapeHtml(shiftEndLabel)} WAT</strong>
               </div>
             </div>
             <span class="sr-status-pill active" style="font-size:11px;">Roster Assigned</span>
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;padding-top:8px;border-top:1px solid var(--sr-border-subtle);font-size:12px;">
-            <div><span style="color:var(--sr-text-muted);">Duty Station:</span> <strong style="color:var(--sr-text-main);">Main Production Floor A</strong></div>
+            <div><span style="color:var(--sr-text-muted);">Duty Station:</span> <strong style="color:var(--sr-text-main);">${escapeHtml(siteName)}</strong></div>
             <div><span style="color:var(--sr-text-muted);">Shift Supervisor:</span> <strong style="color:var(--sr-text-main);">Olaide Emmanuela</strong></div>
             <div><span style="color:var(--sr-text-muted);">Handover Lead:</span> <strong style="color:var(--sr-text-main);">Babatunde Adeleke</strong></div>
           </div>
@@ -1832,7 +1836,7 @@
         <section class="sr-clock-card sr-cosmic-clock-card ${isClockedIn ? 'clocked-in' : ''}" id="sr-clock-card" aria-label="Shift Time Tracking">
           <div class="sr-cosmic-clock-header">
             <span class="sr-status-pill ${isClockedIn ? 'active' : (hasCompletedShiftToday ? 'completed' : 'inactive')}" id="sr-today-shift-status">
-              ${isClockedIn ? '<span class="sr-pulse-dot"></span> Active on Shift' : (hasCompletedShiftToday ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Shift Completed · Off Duty' : 'Off Duty · Ready')}
+              ${isClockedIn ? '<span class="sr-pulse-dot"></span> Active on Shift' : (hasCompletedShiftToday ? 'Shift Completed · Off Duty' : 'Off Duty · Ready')}
             </span>
             <small style="font-size:12px;font-weight:600;color:var(--sr-text-muted);font-family:\'JetBrains Mono\',monospace;">
               ${isClockedIn && clockedInTime ? `In · ${new Date(clockedInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : (hasCompletedShiftToday ? 'Today Logged: 8h 00m Verified' : '8h Shift Target')}
@@ -1870,21 +1874,28 @@
             <div class="sr-water-conduit-stream"></div>
           </div>
 
-          <!-- Circular Biometric Thumbprint Reactive Water Push Button (Green = Clock In, Red = Clock Out) -->
+          <!-- Circular Biometric Thumbprint Reactive Water Push Button (Green = Clock In, Locked During Shift, Auto Clock-Out at Shift End) -->
           <div class="sr-water-btn-stage">
             <button type="button"
-              class="sr-water-push-btn ${isClockedIn ? 'sr-water-btn-out' : 'sr-water-btn-in'}"
+              class="sr-water-push-btn ${isClockedIn ? (isShiftLockedUntilEnd ? 'sr-water-btn-locked' : 'sr-water-btn-out') : 'sr-water-btn-in'}"
               id="sr-btn-water-clock"
-              aria-label="${isClockedIn ? 'Clock Out' : 'Clock In'}">
+              ${isShiftLockedUntilEnd ? 'disabled aria-disabled="true"' : ''}
+              aria-label="${isClockedIn ? (isShiftLockedUntilEnd ? 'Clock Out Locked Until Shift End' : 'Clock Out') : 'Clock In'}">
               <div class="sr-btn-water-wave"></div>
-              <!-- Biometric Fingerprint + Keyhole Lock SVG -->
               <svg class="sr-water-btn-icon" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10" stroke-opacity="0.35"/>
-                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
-                <line x1="12" y1="2" x2="12" y2="12" stroke-width="2.8"/>
+                ${isShiftLockedUntilEnd
+                  ? '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
+                  : '<circle cx="12" cy="12" r="10" stroke-opacity="0.35"/><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12" stroke-width="2.8"/>'}
               </svg>
-              <span class="sr-water-btn-label">${isClockedIn ? 'CLOCK OUT' : 'CLOCK IN'}</span>
+              <span class="sr-water-btn-label" id="sr-water-btn-label">${isClockedIn ? (isShiftLockedUntilEnd ? 'SHIFT LOCKED' : 'CLOCK OUT') : 'CLOCK IN'}</span>
             </button>
+            ${isClockedIn ? `
+              <div id="sr-shift-lock-note" style="margin-top:8px;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);text-align:center;">
+                ${isShiftLockedUntilEnd
+                  ? `Clock-out unlocks at ${escapeHtml(shiftUnlockClock)} &bull; Auto clock-out active`
+                  : 'Shift ended &bull; Processing automatic clock-out'}
+              </div>
+            ` : ''}
           </div>
 
           ${isClockedIn ? `
@@ -1941,8 +1952,8 @@
             </div>
           </div>
           <button class="sr-btn sr-btn-primary sr-btn-block" id="sr-btn-ack-handover" data-id="${effectiveHandover.id}" style="min-height:40px !important;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Acknowledge &amp; Take Over Shift</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+            <span>Take Over Shift</span>
           </button>
         </section>
 
@@ -1950,7 +1961,7 @@
         <section class="sr-card sr-task-section" aria-label="Shift Task Checklist">
           <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
             <div style="display:flex;align-items:center;gap:10px;">
-              <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Shift Safety &amp; Operational Checklist</h3>
+              <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Shift Checklist</h3>
               <span class="sr-task-industry-chip">${escapeHtml(activeIndustrySuite.badge)}</span>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
@@ -1998,18 +2009,66 @@
 
       container.innerHTML = html;
 
-      // Start elapsed timer & orbital liquid level if clocked in
+      let autoClockOutInFlight = false;
+
+      // Helper to execute direct or scheduled auto Clock-Out
+      const performWaterClockOut = async (isAuto = false) => {
+        if (autoClockOutInFlight) return;
+        if (!isAuto && shiftEndMs && Date.now() < shiftEndMs) {
+          showToast(`Clock-out is locked until your shift ends at ${shiftUnlockClock}.`, 'info');
+          return;
+        }
+        autoClockOutInFlight = true;
+        if (elapsedInterval) {
+          clearInterval(elapsedInterval);
+          elapsedInterval = null;
+        }
+        const waterBtn = document.getElementById('sr-btn-water-clock');
+        if (waterBtn) {
+          waterBtn.disabled = true;
+          waterBtn.classList.add('surging');
+        }
+        try {
+          await fetch('/api/time-entries/clock-out', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Idempotency-Key': (isAuto ? 'idem_auto_out_' : 'idem_out_') + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
+            },
+            body: JSON.stringify({
+              verificationMode: isAuto ? 'auto_shift_end' : 'standard',
+              verificationDetails: isAuto ? 'Auto Clock-Out at Scheduled Shift End' : 'Biometric Thumbprint Clock-Out'
+            })
+          });
+        } catch (_) {}
+        const todayOutKey = 'clockout_' + new Date().toISOString().slice(0, 10);
+        recordStarActivity(15, isAuto ? 'Auto Clock-Out at Shift End' : 'Shift Completed', todayOutKey);
+        SRAudio.playClockOut();
+        triggerVibration([100, 50, 150]);
+        if (isAuto) {
+          showToast('Shift ended — automatically clocked out to prevent overtime.', 'info');
+        }
+        setTimeout(() => renderWorkerToday(true), 350);
+      };
+
+      // Start elapsed timer, orbital progress & automatic end-of-shift clock-out
       if (isClockedIn && clockedInTime) {
         const startTime = new Date(clockedInTime).getTime();
+        const totalDuration = Math.max(60000, (shiftEndMs || (startTime + 8 * 3600000)) - startTime);
         const updateTimer = () => {
-          const diffSec = Math.max(0, Math.floor((Date.now() - startTime) / 1000));
+          const nowMs = Date.now();
+          if (shiftEndMs && nowMs >= shiftEndMs) {
+            performWaterClockOut(true);
+            return;
+          }
+          const diffSec = Math.max(0, Math.floor((nowMs - startTime) / 1000));
           const h = String(Math.floor(diffSec / 3600)).padStart(2, '0');
           const m = String(Math.floor((diffSec % 3600) / 60)).padStart(2, '0');
           const s = String(diffSec % 60).padStart(2, '0');
           const el = document.getElementById('sr-elapsed-timer');
           if (el) el.textContent = `${h}:${m}:${s}`;
 
-          const pct = Math.min(1, Math.max(0.18, diffSec / (8 * 3600)));
+          const pct = Math.min(1, Math.max(0.18, (nowMs - startTime) / totalDuration));
           const ring = document.getElementById('sr-orbital-progress-circle');
           if (ring) {
             const circumference = 527.78;
@@ -2019,9 +2078,18 @@
           if (waterEl) {
             waterEl.style.height = `${Math.round(32 + pct * 56)}%`;
           }
+          const lockNote = document.getElementById('sr-shift-lock-note');
+          if (lockNote && shiftEndMs) {
+            const remMs = Math.max(0, shiftEndMs - nowMs);
+            const remH = Math.floor(remMs / 3600000);
+            const remM = Math.ceil((remMs % 3600000) / 60000);
+            lockNote.textContent = `Clock-out unlocks at ${shiftUnlockClock} (${remH}h ${remM}m left) · Auto clock-out active`;
+          }
         };
         updateTimer();
-        elapsedInterval = setInterval(updateTimer, 1000);
+        if (!autoClockOutInFlight) {
+          elapsedInterval = setInterval(updateTimer, 1000);
+        }
       }
 
       // Helper to execute Biometric / GPS Clock-In with rising water-fill animation
@@ -2075,38 +2143,11 @@
         }
       };
 
-      // Helper to execute direct Clock-Out (Red circular thumbprint button)
-      const performWaterClockOut = async () => {
-        const waterBtn = document.getElementById('sr-btn-water-clock');
-        if (waterBtn) {
-          waterBtn.disabled = true;
-          waterBtn.classList.add('surging');
-        }
-        try {
-          await fetch('/api/time-entries/clock-out', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Idempotency-Key': 'idem_out_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
-            },
-            body: JSON.stringify({
-              verificationMode: 'standard',
-              verificationDetails: 'Biometric Thumbprint Clock-Out'
-            })
-          });
-        } catch (_) {}
-        const todayOutKey = 'clockout_' + new Date().toISOString().slice(0, 10);
-        const outRewardResult = recordStarActivity(15, 'Shift Completed & Clocked Out', todayOutKey);
-        SRAudio.playClockOut();
-        triggerVibration([100, 50, 150]);
-        setTimeout(() => renderWorkerToday(true), 350);
-      };
-
       // Bind Circular Thumbprint Water-Fill Button (#sr-btn-water-clock)
       document.getElementById('sr-btn-water-clock')?.addEventListener('click', (e) => {
         e.preventDefault();
         if (isClockedIn) {
-          performWaterClockOut();
+          performWaterClockOut(false);
         } else {
           performWaterClockIn();
         }
@@ -2447,12 +2488,12 @@
         resultBox.className = 'sr-terminal-result-card ' + (isClockIn ? 'success-in' : 'success-out');
         resultBox.innerHTML = `
           <div style="display:flex;align-items:center;gap:12px;">
-            <div style="width:44px;height:44px;border-radius:50%;background:#ffffff;color:#10b981;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-              ✓
+            <div style="width:44px;height:44px;border-radius:50%;background:#ffffff;color:#10b981;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+              IN
             </div>
             <div>
               <div style="font-size:16px;font-weight:800;color:#ffffff;">
-                ${isClockIn ? '✓ CLOCKED IN · ' + escapeHtml(staffName) : '✓ CLOCKED OUT · ' + escapeHtml(staffName)}
+                ${isClockIn ? 'CLOCKED IN · ' + escapeHtml(staffName) : 'CLOCKED OUT · ' + escapeHtml(staffName)}
               </div>
               <div style="font-size:12.5px;color:rgba(255,255,255,0.9);margin-top:2px;">
                 ${isClockIn ? 'Shift Started at ' + timeStr + ' &middot; Geofence 100% In Perimeter' : 'Shift Complete &middot; 8.0 hrs Banked &middot; +50 PTS ShiftCoins Rewarded'}
@@ -2610,7 +2651,7 @@
               </span>
               <div>
                 <div style="display:flex;align-items:center;gap:8px;">
-                  <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Live Floor Oversight &amp; Duty Command</h3>
+                  <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Floor Command</h3>
                   <span class="sr-status-pill active" style="font-size:10.5px;">Active Duty</span>
                 </div>
                 <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">
@@ -2794,8 +2835,8 @@
 
             <div style="display:flex;justify-content:flex-end;">
               <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-batch-payroll" style="min-height:42px;padding:0 22px;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;background:var(--sr-primary);border-color:var(--sr-primary);">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                <span>1-Click Batch Authorize &amp; Disburse</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                <span>Batch Authorize Payroll</span>
               </button>
             </div>
           </section>
@@ -2942,7 +2983,7 @@
             </div>
           ` : `
             <div class="sr-empty-state">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               <p>No pending requests.</p>
             </div>
           `}
@@ -3121,11 +3162,11 @@
           triggerVibration([50, 50, 100]);
           cell.innerHTML = `
             <span class="sr-attendance-badge gps-valid" style="padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:600;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.25);">
-              ✓ Supervisor Certified Override
+              Supervisor Certified Override
             </span>
             <span class="sr-badge-certified" style="font-size:11px;">Approved</span>
           `;
-          showToast('Geofence exception for Tariq Al-Hassan approved & certified.', 'success');
+          showToast('Geofence exception for Tariq Al-Hassan approved.', 'success');
         }
       });
 
@@ -3147,13 +3188,13 @@
           triggerVibration([100, 50, 150]);
           btn.style.background = '#10b981';
           btn.style.borderColor = '#10b981';
-          btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span>Batch Disbursed Successfully</span>`;
+          btn.innerHTML = `<span>Batch Disbursed Successfully</span>`;
           if (badge) {
             badge.textContent = 'Disbursed';
             badge.style.background = 'rgba(16,185,129,0.15)';
             badge.style.color = '#10b981';
           }
-          showToast('₦1,065,000.00 successfully authorized & dispatched to 5 worker accounts!', 'success');
+          showToast('₦1,065,000.00 successfully authorized for 5 worker accounts!', 'success');
         } catch (_) {
           btn.disabled = false;
           btn.textContent = 'Retry Batch Authorize';
@@ -3349,7 +3390,6 @@
           </div>
           <div class="sr-broadcast-actions">
             <button type="button" class="sr-btn sr-btn-ack-broadcast" data-id="${active.id}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               Acknowledge Notice
             </button>
             <button type="button" class="sr-broadcast-dismiss-btn" aria-label="Dismiss banner">
@@ -3370,7 +3410,7 @@
             headers: { 'Content-Type': 'application/json' }
           });
           if (!ackRes.ok) throw new Error('Could not record acknowledgement');
-          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Acknowledged`;
+          btn.innerHTML = `Acknowledged`;
           btn.style.background = 'var(--p-green)';
           btn.style.borderColor = 'var(--p-green)';
           btn.style.color = '#fff';
@@ -4272,7 +4312,7 @@
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
           ${(pendingBaton.checklist || []).map(chk => `
             <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.1);color:#059669;font-size:11.5px;font-weight:700;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="8"/></svg>
               ${escapeHtml(chk)}
             </span>
           `).join('')}
@@ -4280,12 +4320,12 @@
 
         ${pendingBaton.status !== 'acknowledged' ? `
           <button type="button" id="sr-btn-ack-baton" class="sr-btn sr-btn-primary" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Acknowledge &amp; Take Over Shift</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+            <span>Take Over Shift</span>
           </button>
         ` : `
           <div style="font-size:12.5px;font-weight:700;color:#059669;display:flex;align-items:center;gap:6px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span>You have acknowledged and taken over this shift baton.</span>
           </div>
         `}
@@ -4446,7 +4486,7 @@
       };
 
       const canAcknowledge = status === 'relayed' && (user.role === 'incoming' || user.role === 'owner');
-      const canRelay = status === 'awaiting_review' && ['supervisor', 'owner'].includes(user.role);
+      const canRelay = status === 'awaiting_review' && ['supervisor', 'manager', 'owner'].includes(user.role);
 
       return `
         <article class="sr-handover-card status-${status}" data-handover-id="${item.id}">
@@ -4498,7 +4538,7 @@
               ` : ''}
               ${canRelay ? `
                 <button class="sr-btn sr-btn-primary" style="min-height:44px;padding:0 16px;font-size:13px;" data-action="relay-handover" data-id="${item.id}">
-                  Approve &amp; Relay Handover
+                  Approve Handover
                 </button>
               ` : ''}
             </div>
@@ -4561,7 +4601,7 @@
             throw new Error(err.error || 'Acknowledgement failed');
           }
           delete btn.dataset.idempotencyKey;
-          if (user.role === 'supervisor' || user.role === 'owner') {
+          if (user.role === 'supervisor' || user.role === 'manager' || user.role === 'owner') {
             await renderManagerHandovers();
           } else {
             await renderWorkerHandovers();
@@ -4593,7 +4633,7 @@
             throw new Error(err.error || 'Relay failed');
           }
           delete btn.dataset.idempotencyKey;
-          if (user.role === 'supervisor' || user.role === 'owner') {
+          if (user.role === 'supervisor' || user.role === 'manager' || user.role === 'owner') {
             await renderManagerHandovers();
           } else {
             await renderWorkerHandovers();
@@ -5220,7 +5260,7 @@
             <div style="display:flex;gap:0;">
             ${['shifts', 'handovers'].map(t => {
               if (scheduleTab === 'attendance') scheduleTab = 'shifts';
-              const labels = { shifts: 'My Shifts', handovers: 'Relays &amp; Handovers' };
+              const labels = { shifts: 'My Shifts', handovers: 'Relays' };
               const isActive = scheduleTab === t;
               return `<button role="tab" aria-selected="${isActive}" id="sr-sched-tab-${t}" data-sched-tab="${t}"
                 style="padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13.5px;font-weight:700;
@@ -5231,7 +5271,7 @@
             </div>
             <button type="button" class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('open-shifts')" style="margin-bottom:6px;min-height:34px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
-              <span>Shift Swaps &amp; Open Shifts</span>
+              <span>Shift Swaps</span>
             </button>
           </div>
         </div>
@@ -5304,7 +5344,7 @@
         const hRes = await fetch('/api/handovers');
         const hData = hRes.ok ? await hRes.json() : { handovers: [] };
         const handovers = hData.handovers || [];
-        const canCreate = ['outgoing', 'supervisor', 'owner'].includes(user.role);
+        const canCreate = ['outgoing', 'supervisor', 'manager', 'owner'].includes(user.role);
         const needsAction = handovers.filter(h => {
           if (user.role === 'incoming') {
             return h.status === 'relayed' && (h.assignedTo === user.id || user.role === 'owner');
@@ -5463,10 +5503,10 @@
           <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
             <div>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-                <h2 style="margin:0;font-size:18px;font-weight:800;color:var(--sr-text-main);">Shift Roster &amp; Drag-Drop Assignment</h2>
-                <span class="sr-status-pill active" style="font-size:11px;">Drag &amp; Drop Scheduling Active</span>
+                <h2 style="margin:0;font-size:18px;font-weight:800;color:var(--sr-text-main);">Shift Roster</h2>
+                <span class="sr-status-pill active" style="font-size:11px;">Interactive Scheduling Active</span>
               </div>
-              <div style="font-size:12px;color:var(--sr-text-muted);">Drag any worker onto a calendar date to select shift hours &amp; save &bull; Timezone: <strong>${escapeHtml(tz)}</strong></div>
+              <div style="font-size:12px;color:var(--sr-text-muted);">Drag any worker onto a calendar date to assign shift hours &bull; Timezone: <strong>${escapeHtml(tz)}</strong></div>
             </div>
 
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -5499,7 +5539,7 @@
                 style="padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13.5px;font-weight:800;
                 color:${managerScheduleTab === 'leave' ? 'var(--sr-primary)' : 'var(--sr-text-muted)'};
                 border-bottom:${managerScheduleTab === 'leave' ? '2px solid var(--sr-primary)' : '2px solid transparent'};
-                margin-bottom:-2px;transition:color .15s ease;">Leave &amp; Time Off</button>
+                margin-bottom:-2px;transition:color .15s ease;">Leave</button>
             </div>
 
             <div style="padding-bottom:6px;display:flex;align-items:center;gap:6px;">
@@ -6287,7 +6327,7 @@
                     <div style="display:flex;align-items:center;gap:6px;width:100%;justify-content:space-between;">
                       <button type="button" class="sr-btn sr-btn-primary sr-btn-send-invite" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-email="${escapeHtml(m.email || '')}" style="min-height: 28px; padding: 0 10px; font-size: 11.5px; background: var(--p-teal); color: #fff; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                        <span>Enable &amp; Invite</span>
+                        <span>Invite</span>
                       </button>
                       <button type="button" class="sr-btn sr-btn-danger sr-btn-revoke-member" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-title="${escapeHtml(m.title || roleLabel)}" style="min-height: 28px; padding: 0 8px; font-size: 11.5px; background: transparent; color: var(--p-red); border: 1px solid var(--p-red-border); border-radius: 6px; cursor: pointer;">
                         Revoke
@@ -6320,7 +6360,7 @@
               if (!res.ok) throw new Error(data.error || 'Failed to dispatch invite');
 
               btn.style.background = '#059669';
-              btn.innerHTML = '<span>✓ Invite Sent</span>';
+              btn.innerHTML = '<span>Invite Sent</span>';
               showToast(`Invitation dispatched to ${memberEmail}! Link active.`);
 
               // Show shareable modal dialog
@@ -6362,7 +6402,7 @@
               });
             } catch (err) {
               btn.disabled = false;
-              btn.innerHTML = '<span>Enable &amp; Invite</span>';
+              btn.innerHTML = '<span>Invite</span>';
               showToast('Error: ' + err.message);
             }
           });
@@ -6694,7 +6734,7 @@
             ${pendingSwaps.length > 0 ? `<span class="sr-tab-badge">${pendingSwaps.length}</span>` : ''}
           </button>
           <button class="sr-tab-btn ${approvalsTab === 'timecards' ? 'active' : ''}" data-sr-approval-tab="timecards">
-            <span>Timecards &amp; OT</span>
+            <span>Timecards</span>
             ${pendingTimecards.length > 0 ? `<span class="sr-tab-badge">${pendingTimecards.length}</span>` : ''}
           </button>
           <button class="sr-tab-btn ${approvalsTab === 'access' ? 'active' : ''}" data-sr-approval-tab="access">
@@ -6704,7 +6744,7 @@
         </div>
         ${(approvalsTab === 'swaps' && pendingSwaps.length > 0) ? `
           <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-bulk-approve-swaps" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;" title="Approve all pending swaps for upcoming shift">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
             <span>Approve All (${pendingSwaps.length})</span>
           </button>
         ` : ''}
@@ -6825,7 +6865,7 @@
           </div>
           ${tc.status === 'pending' ? `
             <div style="display:flex;gap:10px;">
-              <button type="button" class="sr-btn sr-btn-primary" data-tc-approve="${escapeHtml(tc.id)}" style="width:100%;min-height:40px !important;">Verify &amp; Approve Timecard</button>
+              <button type="button" class="sr-btn sr-btn-primary" data-tc-approve="${escapeHtml(tc.id)}" style="width:100%;min-height:40px !important;">Approve Timecard</button>
             </div>
           ` : ''}
         </div>
@@ -6870,7 +6910,7 @@
     if (!requests || requests.length === 0) {
       container.innerHTML = `
         <div class="sr-empty-state">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
           <p>No pending access requests.</p>
         </div>
       `;
@@ -7366,7 +7406,7 @@
               <span style="width:30px;height:30px;border-radius:8px;background:rgba(16,185,129,0.12);color:#10b981;display:inline-flex;align-items:center;justify-content:center;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
               </span>
-              <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Payroll Bank &amp; Statutory Wallet</h3>
+              <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Payroll Wallet</h3>
             </div>
             <span class="sr-status-pill active" style="font-size:10.5px;">GAPS / NIBSS Verified</span>
           </div>
@@ -7403,8 +7443,8 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
               </span>
               <div>
-                <h3 style="margin:0;font-size:15.5px;font-weight:800;color:var(--sr-text-main);">Personnel CV &amp; Operational Dossier</h3>
-                <span style="font-size:12px;color:var(--sr-text-muted);">Editable inline sections: Summary, Skills, Experience, Education &amp; Certifications</span>
+                <h3 style="margin:0;font-size:15.5px;font-weight:800;color:var(--sr-text-main);">Personnel CV</h3>
+                <span style="font-size:12px;color:var(--sr-text-muted);">Editable sections: Summary, Skills, Experience, Education, Certifications</span>
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -7426,7 +7466,7 @@
           <div class="sr-cv-section-header">
             <h3 class="sr-cv-section-title">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <span>About &amp; Summary</span>
+              <span>Summary</span>
             </h3>
             <button type="button" class="sr-cv-inline-edit-btn" id="sr-btn-edit-summary" title="Edit Summary">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -7447,7 +7487,7 @@
           <div class="sr-cv-section-header">
             <h3 class="sr-cv-section-title">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              <span>Skills &amp; Competencies</span>
+              <span>Skills</span>
             </h3>
             <button type="button" class="sr-cv-inline-edit-btn" id="sr-btn-edit-skills" title="Bulk Edit Skills">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -7579,7 +7619,7 @@
           <div class="sr-cv-section-header">
             <h3 class="sr-cv-section-title">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
-              <span>Certifications &amp; Licenses</span>
+              <span>Certifications</span>
             </h3>
             <button type="button" id="sr-btn-add-cert" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -7625,7 +7665,7 @@
 
         <!-- Card 4: App Appearance, Settings Shortcut & Session Controls -->
         <div class="sr-card">
-          <h3 style="margin:0 0 12px;font-size:15px;font-weight:800;color:var(--sr-text-main);">Workspace Controls &amp; Settings</h3>
+          <h3 style="margin:0 0 12px;font-size:15px;font-weight:800;color:var(--sr-text-main);">Workspace Controls</h3>
           <div style="display:flex;flex-direction:column;gap:10px;">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
               <div>
@@ -9111,11 +9151,20 @@ Issued on: ${new Date().toISOString()}
       window.location.reload();
     };
 
-    if (window.OfflineQueue?.promptLogoutWarning) {
-      window.OfflineQueue.promptLogoutWarning(proceedSignOut);
-    } else {
-      await proceedSignOut();
-    }
+    openConsequentialModal({
+      title: 'Confirm Logout',
+      bodyHtml: '<p style="margin:0;font-size:14px;color:var(--sr-text-main);line-height:1.5;">Are you sure you want to log out of your ShiftRelay session?</p>',
+      confirmLabel: 'Confirm',
+      confirmBtnClass: 'sr-btn sr-btn-danger',
+      onConfirm: async (modalEl) => {
+        modalEl.remove();
+        if (window.OfflineQueue?.getPendingCount?.() > 0 && window.OfflineQueue?.promptLogoutWarning) {
+          window.OfflineQueue.promptLogoutWarning(proceedSignOut);
+        } else {
+          await proceedSignOut();
+        }
+      }
+    });
   }
 
   // Export to global scope
@@ -9189,7 +9238,7 @@ Issued on: ${new Date().toISOString()}
               </div>
               <h2 class="sr-coin-balance-display">
                 <span class="sr-coin-num" id="sr-stars-balance-val">${stars.toLocaleString()}</span>
-                <span class="sr-coin-unit">Stars &amp; Coins</span>
+                <span class="sr-coin-unit">ShiftStars</span>
               </h2>
               <div class="sr-coin-subtext">
                 ${needed > 0
@@ -9244,7 +9293,7 @@ Issued on: ${new Date().toISOString()}
           </button>
           <button class="sr-comp-option" data-tab="shop" id="sr-tab-btn-shop">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-            <span>Cash &amp; Gift Shop</span>
+            <span>Shop</span>
           </button>
           <button class="sr-comp-option" data-tab="badges" id="sr-tab-btn-badges">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
@@ -9271,11 +9320,11 @@ Issued on: ${new Date().toISOString()}
               </div>
             </div>
             <div class="sr-streak-days-row">
-              <div class="sr-streak-day-node active-done" title="Monday: On-Time">M<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="sr-streak-day-node active-done" title="Tuesday: On-Time">T<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="sr-streak-day-node active-done" title="Wednesday: On-Time">W<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="sr-streak-day-node active-done" title="Thursday: On-Time">T<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <div class="sr-streak-day-node active-today" title="Friday: Active on Shift">F<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="sr-streak-day-node active-done" title="Monday: On-Time">M</div>
+              <div class="sr-streak-day-node active-done" title="Tuesday: On-Time">T</div>
+              <div class="sr-streak-day-node active-done" title="Wednesday: On-Time">W</div>
+              <div class="sr-streak-day-node active-done" title="Thursday: On-Time">T</div>
+              <div class="sr-streak-day-node active-today" title="Friday: Active on Shift">F</div>
               <div class="sr-streak-day-node" title="Saturday: Next (+50 PTS)">S</div>
               <div class="sr-streak-day-node" title="Sunday: Milestone (+150 PTS)">S</div>
             </div>
@@ -9287,7 +9336,7 @@ Issued on: ${new Date().toISOString()}
               <p style="margin:2px 0 0;font-size:12px;color:var(--sr-text-muted);">Perform everyday shift actions to earn stars automatically.</p>
             </div>
             <span class="sr-badge" style="background:rgba(16,185,129,0.12);color:var(--sr-primary);font-size:11px;font-weight:700;">
-              Clock &amp; Premise Verification Active
+              Verification Active
             </span>
           </div>
 
@@ -9309,7 +9358,7 @@ Issued on: ${new Date().toISOString()}
                 <div class="sr-quest-footer">
                   <div class="sr-quest-status-text">
                     ${q.claimed
-                      ? '<span style="color:var(--sr-text-muted);">✓ Claimed</span>'
+                      ? '<span style="color:var(--sr-text-muted);">Claimed</span>'
                       : q.completed
                         ? '<span style="color:#10b981;font-weight:700;">Ready to Claim!</span>'
                         : `<span style="color:var(--sr-text-muted);">Progress: ${q.progress} / ${q.target}</span>`}
@@ -9351,7 +9400,7 @@ Issued on: ${new Date().toISOString()}
                   <div class="sr-roadmap-insignia">${escapeHtml(m.insignia)}</div>
                   <p class="sr-roadmap-reqs">${escapeHtml(m.reqs)}</p>
                   <div class="sr-roadmap-status-pill ${m.unlocked ? 'achieved' : 'locked'}">
-                    ${m.unlocked ? '✓ Tenure Milestone Achieved' : 'Locked · Career Milestone in Progress'}
+                    ${m.unlocked ? 'Tenure Milestone Achieved' : 'Locked · Career Milestone in Progress'}
                   </div>
                 </div>
               </div>
@@ -9359,11 +9408,11 @@ Issued on: ${new Date().toISOString()}
           </div>
         </div>
 
-        <!-- ── TAB 3: Cash & Gift Redemption Shop ──────────────────── -->
+        <!-- ── TAB 3: Cash Redemption Shop ──────────────────── -->
         <div class="sr-rewards-tab-pane" id="sr-pane-shop" style="display:none;">
           <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <div>
-              <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Exchange Stars for Real Cash &amp; Perks</h3>
+              <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Exchange Stars for Cash</h3>
               <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Redeem verified point balances directly to your Nigerian bank account or utility voucher.</p>
             </div>
             <div style="font-size:13px;font-weight:800;color:#f59e0b;">
@@ -9406,12 +9455,12 @@ Issued on: ${new Date().toISOString()}
           <div class="sr-merit-badges-grid">
             <div class="sr-merit-badge-card">
               <div class="sr-merit-badge-icon" style="background:rgba(16,185,129,0.15);color:#10b981;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
               <div>
                 <strong style="font-size:13.5px;color:var(--sr-text-main);display:block;">Punctuality Master</strong>
                 <span style="font-size:11.5px;color:var(--sr-text-muted);display:block;margin-top:2px;">30 consecutive verified on-time clock-ins</span>
-                <span style="font-size:10px;font-weight:800;color:#10b981;margin-top:4px;display:inline-block;">✓ MINTED BADGE</span>
+                <span style="font-size:10px;font-weight:800;color:#10b981;margin-top:4px;display:inline-block;">MINTED BADGE</span>
               </div>
             </div>
 
@@ -9422,7 +9471,7 @@ Issued on: ${new Date().toISOString()}
               <div>
                 <strong style="font-size:13.5px;color:var(--sr-text-main);display:block;">Safety First Champion</strong>
                 <span style="font-size:11.5px;color:var(--sr-text-muted);display:block;margin-top:2px;">100% Safety PPE checklist verification</span>
-                <span style="font-size:10px;font-weight:800;color:#3b82f6;margin-top:4px;display:inline-block;">✓ MINTED BADGE</span>
+                <span style="font-size:10px;font-weight:800;color:#3b82f6;margin-top:4px;display:inline-block;">MINTED BADGE</span>
               </div>
             </div>
 
@@ -9433,7 +9482,7 @@ Issued on: ${new Date().toISOString()}
               <div>
                 <strong style="font-size:13.5px;color:var(--sr-text-main);display:block;">Zero Context Loss</strong>
                 <span style="font-size:11.5px;color:var(--sr-text-muted);display:block;margin-top:2px;">15 verified incoming/outgoing shift batons</span>
-                <span style="font-size:10px;font-weight:800;color:#a855f7;margin-top:4px;display:inline-block;">✓ MINTED BADGE</span>
+                <span style="font-size:10px;font-weight:800;color:#a855f7;margin-top:4px;display:inline-block;">MINTED BADGE</span>
               </div>
             </div>
 
@@ -9492,7 +9541,7 @@ Issued on: ${new Date().toISOString()}
           <div style="background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);border-radius:12px;padding:12px 14px;margin-bottom:16px;">
             <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.04em;">Disbursal Destination</div>
             <div style="font-size:13.5px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">Zenith Bank · 2034567890</div>
-            <div style="font-size:11.5px;color:#10b981;font-weight:600;margin-top:2px;">✓ Verified NIP Direct Instant Settlement</div>
+            <div style="font-size:11.5px;color:#10b981;font-weight:600;margin-top:2px;">Verified NIP Direct Instant Settlement</div>
           </div>
           <form id="sr-redeem-form" style="display:flex;flex-direction:column;gap:12px;">
             <div class="sr-form-group">
@@ -9509,7 +9558,7 @@ Issued on: ${new Date().toISOString()}
             </div>
             <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
               <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-redeem">Cancel</button>
-              <button type="submit" class="sr-btn sr-btn-primary" id="sr-btn-confirm-redeem" style="background:#10b981;border:none;">Confirm &amp; Disburse</button>
+              <button type="submit" class="sr-btn sr-btn-primary" id="sr-btn-confirm-redeem" style="background:#10b981;border:none;">Confirm</button>
             </div>
           </form>
         </div>
@@ -9847,18 +9896,18 @@ Issued on: ${new Date().toISOString()}
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
               </div>
               <div>
-                <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--sr-text-main);">Industry Sector &amp; Operational Protocols</h3>
-                <p style="margin:2px 0 0;font-size:12px;color:var(--sr-text-muted);">Configures default shift checklists, safety rules &amp; compliance requirements</p>
+                <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--sr-text-main);">Industry Sector</h3>
+                <p style="margin:2px 0 0;font-size:12px;color:var(--sr-text-muted);">Configures default shift checklists, safety rules, compliance requirements</p>
               </div>
             </div>
 
             <div style="margin-top:14px;">
               <select id="sr-settings-industry-select" class="sr-input" style="width:100%;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);color:var(--sr-text-main);cursor:pointer;">
-                <option value="manufacturing" ${(localStorage.getItem('shiftrelay-company-industry') || 'manufacturing') === 'manufacturing' ? 'selected' : ''}>Manufacturing &amp; Industrial Operations (Safety PPE, Line Power &amp; Calibration)</option>
-                <option value="logistics" ${localStorage.getItem('shiftrelay-company-industry') === 'logistics' ? 'selected' : ''}>Logistics, Warehousing &amp; Distribution (Forklift Pre-Op, Bay Hazards &amp; Cargo)</option>
-                <option value="facility" ${localStorage.getItem('shiftrelay-company-industry') === 'facility' ? 'selected' : ''}>Facility Management &amp; Cleaning (MSDS Chemical Dilution &amp; Sanitization)</option>
-                <option value="food_beverage" ${localStorage.getItem('shiftrelay-company-industry') === 'food_beverage' ? 'selected' : ''}>Food Processing &amp; Beverage (Cold-Chain Temp, CIP Scrub &amp; Traceability)</option>
-                <option value="security" ${localStorage.getItem('shiftrelay-company-industry') === 'security' ? 'selected' : ''}>Security &amp; Guarding Operations (Radio Check, Turnstiles &amp; Access Log)</option>
+                <option value="manufacturing" ${(localStorage.getItem('shiftrelay-company-industry') || 'manufacturing') === 'manufacturing' ? 'selected' : ''}>Manufacturing Operations (Safety PPE, Line Power, Calibration)</option>
+                <option value="logistics" ${localStorage.getItem('shiftrelay-company-industry') === 'logistics' ? 'selected' : ''}>Logistics Warehousing Distribution (Forklift Pre-Op, Cargo)</option>
+                <option value="facility" ${localStorage.getItem('shiftrelay-company-industry') === 'facility' ? 'selected' : ''}>Facility Management (MSDS Chemical Dilution, Sanitization)</option>
+                <option value="food_beverage" ${localStorage.getItem('shiftrelay-company-industry') === 'food_beverage' ? 'selected' : ''}>Food Processing (Cold-Chain Temp, Traceability)</option>
+                <option value="security" ${localStorage.getItem('shiftrelay-company-industry') === 'security' ? 'selected' : ''}>Security Operations (Radio Check, Access Log)</option>
               </select>
             </div>
           </div>
@@ -9867,7 +9916,7 @@ Issued on: ${new Date().toISOString()}
         <!-- ── ALERTS / NOTIFICATIONS TAB ── -->
         <div id="sr-stab-notifications" style="display:${activeTab==='notifications'?'flex':'none'};flex-direction:column;gap:14px;">
           <div class="sr-card">
-            <h3 style="margin:0 0 16px;font-size:15px;font-weight:700;color:var(--sr-text-main);">Alerts &amp; Notifications</h3>
+            <h3 style="margin:0 0 16px;font-size:15px;font-weight:700;color:var(--sr-text-main);">Notifications</h3>
             <div style="display:flex;flex-direction:column;gap:14px;">
 
               <!-- Sound -->
@@ -9878,7 +9927,7 @@ Issued on: ${new Date().toISOString()}
                   </div>
                   <div>
                     <div style="font-size:13.5px;font-weight:600;color:var(--sr-text-main);">Sound</div>
-                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Clock-in/out chimes &amp; alerts</div>
+                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Clock-in/out chimes</div>
                   </div>
                 </div>
                 <button class="sr-notif-toggle" data-pref="sound" role="switch" aria-checked="${notifPrefs.sound}"
@@ -9981,7 +10030,7 @@ Issued on: ${new Date().toISOString()}
               ${user.role === 'owner' ? `
                 <button class="sr-btn sr-btn-secondary" id="sr-btn-launch-org-settings" style="display:flex;align-items:center;gap:8px;justify-content:flex-start;padding:12px 16px;">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                  <span>Organisation Branding &amp; Pay Config</span>
+                  <span>Organisation Config</span>
                 </button>
               ` : ''}
             </div>
@@ -10066,12 +10115,8 @@ Issued on: ${new Date().toISOString()}
     document.getElementById('sr-btn-launch-org-settings')?.addEventListener('click', () => renderOwnerSettings());
 
     // ── Sign Out ───────────────────────────────────────────────────────
-    document.getElementById('sr-btn-settings-signout')?.addEventListener('click', async () => {
-      try {
-        await fetch('/api/auth/sign-out', { method: 'POST' });
-        localStorage.removeItem('shiftrelay-user-data');
-        window.location.reload();
-      } catch (_) { window.location.reload(); }
+    document.getElementById('sr-btn-settings-signout')?.addEventListener('click', () => {
+      handleSafeSignOut();
     });
 
     // ── Password Form ──────────────────────────────────────────────────
@@ -10764,23 +10809,23 @@ Issued on: ${new Date().toISOString()}
         <div class="sr-page-header" style="margin-bottom:14px;">
           <div>
             <h2 class="sr-page-title">Attendance</h2>
-            <p class="sr-page-subtitle">Recorded Hours, Actual Clock-In/Out Log, Timesheets &amp; Leave</p>
+            <p class="sr-page-subtitle">Recorded Hours, Actual Clock Log, Timesheets, Leave</p>
           </div>
         </div>
 
-        <!-- 2 Clean Sub-tabs: Attendance Log & Timesheets | Leave -->
+        <!-- 2 Clean Sub-tabs: Timesheets | Leave -->
         <div role="tablist" style="display:flex;gap:6px;border-bottom:2px solid var(--sr-border-subtle);margin-bottom:18px;">
           <button role="tab" aria-selected="${timeAndLeaveTab === 'timesheets'}" id="sr-tl-tab-timesheets"
             class="sr-btn ${timeAndLeaveTab === 'timesheets' ? 'sr-btn-primary' : 'sr-btn-secondary'}"
             style="font-size:13.5px;padding:8px 18px;border-radius:10px 10px 0 0;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:text-bottom;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span>Attendance Log &amp; Timesheets</span>
+            <span>Timesheets</span>
           </button>
           <button role="tab" aria-selected="${timeAndLeaveTab === 'leave'}" id="sr-tl-tab-leave"
             class="sr-btn ${timeAndLeaveTab === 'leave' ? 'sr-btn-primary' : 'sr-btn-secondary'}"
             style="font-size:13.5px;padding:8px 18px;border-radius:10px 10px 0 0;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:text-bottom;"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-            <span>Leave &amp; Time Off</span>
+            <span>Leave</span>
           </button>
         </div>
 
@@ -11522,8 +11567,8 @@ Issued on: ${new Date().toISOString()}
       <div class="sr-page-wrap">
         <div class="sr-page-header">
           <div>
-            <h2 class="sr-page-title">Leave &amp; Time Away</h2>
-            <p class="sr-page-subtitle">Frontline Shift Relief &amp; Absence Coordination</p>
+            <h2 class="sr-page-title">Leave</h2>
+            <p class="sr-page-subtitle">Frontline Shift Relief Coordination</p>
           </div>
           <button class="sr-btn sr-btn-primary" id="sr-ta-new-btn" style="display:inline-flex;align-items:center;gap:6px;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -11771,15 +11816,11 @@ Issued on: ${new Date().toISOString()}
         <div class="sr-comp-switch" id="sr-earnings-view-switch" role="tablist" style="margin-bottom:16px;">
           <button class="sr-comp-option active" id="sr-btn-view-salaried" role="tab" aria-selected="true">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span>Monthly Salary &amp; Accrual</span>
+            <span>Monthly Salary</span>
           </button>
-          <button class="sr-comp-option" id="sr-btn-view-hourly" role="tab" aria-selected="false">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span>Hourly Shifts &amp; Overtime</span>
-          </button>
-          <button class="sr-comp-option" id="sr-btn-view-rewards-jump" role="tab" aria-selected="false">
+          <button class="sr-comp-option" id="sr-btn-view-rewards" role="tab" aria-selected="false">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <span>Frontline Star Rewards</span>
+            <span>Rewards</span>
           </button>
         </div>
 
@@ -11905,6 +11946,7 @@ Issued on: ${new Date().toISOString()}
           <div style="border-top:1px solid var(--sr-border-subtle);"></div>
 
           <h4 style="font-size:14px;font-weight:700;color:var(--sr-text-main);margin:0;">Statutory Breakdown</h4>
+          <p style="font-size:11.5px;color:var(--sr-text-muted);margin:3px 0 8px;">Displayed for transparency only. Your employer's finance team and bank handle salary disbursements and statutory remittances.</p>
 
           <div class="sr-earnings-donut-wrap">
             <div class="sr-earnings-donut">
@@ -11933,7 +11975,7 @@ Issued on: ${new Date().toISOString()}
               </div>
               <div class="sr-earnings-legend-item">
                 <span class="sr-earnings-legend-swatch" style="background:#f59e0b;"></span>
-                <span class="sr-earnings-legend-label">PenCom Pension & NHF</span>
+                <span class="sr-earnings-legend-label">PenCom Pension</span>
                 <span class="sr-earnings-legend-pct">${preTaxPct}%</span>
               </div>
               <div class="sr-earnings-legend-item">
@@ -12081,40 +12123,36 @@ Issued on: ${new Date().toISOString()}
         </div>
       </div>`;
 
-    // ── Dual Compensation Tab Toggle ─────────────────────────────
-    const salariedTab = document.getElementById('sr-btn-view-salaried');
-    const hourlyTab   = document.getElementById('sr-btn-view-hourly');
+    // ── Earnings Subpage Toggle (Monthly Salary / Rewards) ──────────────
+    const salariedTab  = document.getElementById('sr-btn-view-salaried');
+    const rewardsTab   = document.getElementById('sr-btn-view-rewards');
     const salariedCard = document.getElementById('sr-salaried-accrual-card');
     const hourlyCard   = document.getElementById('sr-hourly-ledger-card');
 
     function activateSalariedTab() {
       if (salariedTab) { salariedTab.classList.add('active'); salariedTab.setAttribute('aria-selected','true'); }
-      if (hourlyTab)   { hourlyTab.classList.remove('active'); hourlyTab.setAttribute('aria-selected','false'); }
+      if (rewardsTab)  { rewardsTab.classList.remove('active'); rewardsTab.setAttribute('aria-selected','false'); }
       if (salariedCard) salariedCard.style.display = '';
       if (hourlyCard)   { hourlyCard.classList.remove('active'); hourlyCard.style.display = 'none'; }
+      const paySection = document.getElementById('sr-pay-only-section');
+      if (paySection) paySection.style.display = '';
     }
 
-    function activateHourlyTab() {
-      if (hourlyTab)   { hourlyTab.classList.add('active'); hourlyTab.setAttribute('aria-selected','true'); }
+    function activateRewardsTab() {
+      if (rewardsTab)  { rewardsTab.classList.add('active'); rewardsTab.setAttribute('aria-selected','true'); }
       if (salariedTab) { salariedTab.classList.remove('active'); salariedTab.setAttribute('aria-selected','false'); }
       if (hourlyCard)  { hourlyCard.classList.add('active'); hourlyCard.style.display = ''; }
       if (salariedCard) salariedCard.style.display = 'none';
-    }
-
-    if (salariedTab) salariedTab.addEventListener('click', () => {
-      activateSalariedTab();
-      const paySection = document.getElementById('sr-pay-only-section');
-      if (paySection) paySection.style.display = '';
-    });
-    if (hourlyTab)   hourlyTab.addEventListener('click', () => {
-      activateHourlyTab();
       const paySection = document.getElementById('sr-pay-only-section');
       if (paySection) paySection.style.display = 'none';
       _loadEarningsRewards();
-    });
+    }
 
-    // Auto-switch based on payModel from org settings
-    if (payModel === 'hourly_shift') { activateHourlyTab(); _loadEarningsRewards(); }
+    if (salariedTab) salariedTab.addEventListener('click', activateSalariedTab);
+    if (rewardsTab)  rewardsTab.addEventListener('click', activateRewardsTab);
+
+    // Ensure Monthly Salary is active by default and Rewards panel starts hidden
+    activateSalariedTab();
 
     // ── Inline Rewards Loader ──────────────────────────────────────────────────
     async function _loadEarningsRewards() {
@@ -12175,7 +12213,7 @@ Issued on: ${new Date().toISOString()}
             <div style="display:flex;align-items:center;gap:9px;">
               <span style="display:inline-flex;align-items:center;">
                 ${a.done
-                  ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+                  ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="12" cy="12" r="4" fill="#10b981"/></svg>'
                   : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.35;"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>'}
               </span>
               <span style="font-size:13px;color:${a.done ? 'var(--sr-text-muted)' : 'var(--sr-text-main)'};${a.done ? 'text-decoration:line-through;' : ''}">${escapeHtml(a.label)}</span>
@@ -12590,9 +12628,9 @@ Issued on: ${new Date().toISOString()}
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
             <div>
-              <div style="font-size:14px;font-weight:700;color:var(--sr-text-main);">Statutory Banking &amp; Remittance Schedules</div>
+              <div style="font-size:14px;font-weight:700;color:var(--sr-text-main);">Statutory Schedules</div>
               <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;line-height:1.4;">
-                Cut-Off: <strong>25th monthly</strong> &bull; Compatible with GTBank GAPS, Access Online, Zenith &amp; PenCom/LIRS portals.
+                Cut-Off: <strong>25th monthly</strong> &bull; Visual schedules for your company's finance team (GTBank GAPS, Access Online, Zenith, PenCom/LIRS portals). Your finance department handles remittances.
               </div>
             </div>
           </div>
@@ -12603,7 +12641,7 @@ Issued on: ${new Date().toISOString()}
             </a>
             <a href="/api/payroll/export-tax-csv" download class="sr-btn sr-btn-secondary" id="sr-btn-export-tax-csv" style="font-size:12.5px;padding:8px 14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              <span>PAYE &amp; PenCom CSV</span>
+              <span>Statutory CSV</span>
             </a>
           </div>
         </div>
@@ -13147,10 +13185,10 @@ Issued on: ${new Date().toISOString()}
             </div>
             <div>
               <div style="font-size:15px;font-weight:800;color:var(--sr-text-main);">
-                Support &amp; Records Desk
+                Support Desk
               </div>
               <div style="font-size:11.5px;color:var(--sr-text-muted);">
-                Official FAQ &amp; Email Rectification Receipts (&bull; ${escapeHtml(userEmail)})
+                Official FAQ, Email Rectification Receipts (&bull; ${escapeHtml(userEmail)})
               </div>
             </div>
           </div>
@@ -13710,7 +13748,7 @@ Issued on: ${new Date().toISOString()}
                 <div style="display:flex;gap:6px;">
                   ${!isMine && s.status === 'pending' ? `
                     <button class="sr-btn sr-btn-primary" style="padding:6px 14px;font-size:12px;display:flex;align-items:center;gap:5px;" data-claim-swap="${escapeHtml(s.id)}">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"/></svg>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
                       <span>Claim Coworker Shift</span>
                     </button>
                   ` : ''}
@@ -13887,10 +13925,10 @@ Issued on: ${new Date().toISOString()}
         <div class="sr-page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
           <div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-              <h2 class="sr-page-title" style="margin:0;">Statutory &amp; Operational Governance</h2>
+              <h2 class="sr-page-title" style="margin:0;">Statutory Governance</h2>
               <span class="sr-status-pill active" style="font-size:11px;">98.4% Audit Score</span>
             </div>
-            <p class="sr-page-subtitle" style="margin:0;">PenCom, LIRS PAYE Finance Act, Nigerian Labour Act &amp; Shift Handover Compliance</p>
+            <p class="sr-page-subtitle" style="margin:0;">PenCom, LIRS PAYE Finance Act, Nigerian Labour Act, Shift Handover Compliance (Visual audit only — your finance department handles remittances)</p>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-gov-open-settings" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
@@ -13906,7 +13944,7 @@ Issued on: ${new Date().toISOString()}
 
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
           <div class="sr-card" style="padding:14px;margin:0;border-top:3px solid #10b981;">
-            <div style="font-size:10.5px;font-weight:800;color:var(--sr-text-muted);text-transform:uppercase;">PenCom &amp; PAYE</div>
+            <div style="font-size:10.5px;font-weight:800;color:var(--sr-text-muted);text-transform:uppercase;">Statutory</div>
             <div style="font-size:20px;font-weight:900;color:#10b981;margin-top:4px;font-family:'JetBrains Mono',monospace;">100%</div>
             <div style="font-size:11px;color:var(--sr-text-muted);margin-top:2px;">Remittance Ready</div>
           </div>
@@ -13953,7 +13991,7 @@ Issued on: ${new Date().toISOString()}
   }
 
   const ICONS = {
-    success: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    success: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
     error:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
     info:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
     warning: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
@@ -14114,7 +14152,12 @@ Issued on: ${new Date().toISOString()}
   }
 
   setTimeout(observeCounters, 300);
-  const mo = new MutationObserver(function() { setTimeout(observeCounters, 100); });
+  let debounceTimer = null;
+  const mo = new MutationObserver(function(mutations) {
+    if (!mutations.some(function(m) { return m.addedNodes && m.addedNodes.length > 0; })) return;
+    if (debounceTimer) return;
+    debounceTimer = setTimeout(function() { debounceTimer = null; requestAnimationFrame(observeCounters); }, 120);
+  });
   mo.observe(document.body, { childList: true, subtree: true });
 })();
 
@@ -14143,10 +14186,11 @@ Issued on: ${new Date().toISOString()}
 
   // Try immediately and also after any dynamic render
   setTimeout(applyDonutAnimation, 100);
+  let debounceTimer = null;
   const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      if (m.addedNodes.length) applyDonutAnimation();
-    });
+    if (!mutations.some(function(m) { return m.addedNodes && m.addedNodes.length > 0; })) return;
+    if (debounceTimer) return;
+    debounceTimer = setTimeout(function() { debounceTimer = null; requestAnimationFrame(applyDonutAnimation); }, 120);
   });
   observer.observe(document.body, { childList: true, subtree: true });
 })();
@@ -14541,7 +14585,12 @@ Issued on: ${new Date().toISOString()}
 
   // Observe on initial render and any future dynamic content
   setTimeout(observeCards, 200);
-  const mo = new MutationObserver(function() { setTimeout(observeCards, 100); });
+  let debounceTimer = null;
+  const mo = new MutationObserver(function(mutations) {
+    if (!mutations.some(function(m) { return m.addedNodes && m.addedNodes.length > 0; })) return;
+    if (debounceTimer) return;
+    debounceTimer = setTimeout(function() { debounceTimer = null; requestAnimationFrame(observeCards); }, 120);
+  });
   mo.observe(document.body, { childList: true, subtree: true });
 })();
 

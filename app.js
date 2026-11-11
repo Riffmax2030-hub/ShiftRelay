@@ -5,7 +5,7 @@ const demoHandover={summary:'3 items need the incoming team’s attention.',acti
 const $=(selector)=>document.querySelector(selector);const escape=(value)=>String(value).replace(/[&<>'"]/g,(character)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[character]));
 function toast(message){const box=$('#toast');box.textContent=message;box.classList.remove('hidden');setTimeout(()=>box.classList.add('hidden'),4200)}
 async function api(path,options={}){const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);try{const headers={'X-ShiftRelay-User':state.user?.id||'',...(options.headers||{})};const response=await fetch(path,{...options,headers,signal:controller.signal});const payload=await response.json();if(!response.ok)throw new Error(payload.error||'Something went wrong.');return payload}catch(error){if(error.name==='AbortError')throw new Error('This request took too long. Please try again.');throw error}finally{clearTimeout(timeout)}}
-function roleIcon(role){return role==='supervisor'?'✓':role==='incoming'?'→':'+'}function roleCopy(role){return role==='supervisor'?'Review and approve handovers':role==='incoming'?'Receive and acknowledge handovers':'Capture your outgoing shift update'}
+function roleIcon(role){return role==='supervisor'?'SUP':role==='incoming'?'→':'+'}function roleCopy(role){return role==='supervisor'?'Review and approve handovers':role==='incoming'?'Receive and acknowledge handovers':'Capture your outgoing shift update'}
 const countryOptions=()=>{const codes='AF AL DZ AS AD AO AI AQ AG AR AM AW AU AT AZ BS BH BD BB BY BE BZ BJ BM BT BO BQ BA BW BR IO BN BG BF BI CV KH CM CA KY CF TD CL CN CX CC CO KM CG CD CK CR CI HR CU CW CY CZ DK DJ DM DO EC EG SV GQ ER EE SZ ET FK FO FJ FI FR GF PF TF GA GM GE DE GH GI GR GL GD GP GU GT GG GN GW GY HT HM VA HN HK HU IS IN ID IR IQ IE IM IL IT JM JP JE JO KZ KE KI KP KR KW KG LA LV LB LS LR LY LI LT LU MO MG MW MY MV ML MT MH MQ MR MU YT MX FM MD MC MN ME MS MA MZ MM NA NR NP NL NC NZ NI NE NG NU NF MK MP NO OM PK PW PS PA PG PY PE PH PN PL PT PR QA RE RO RU RW BL SH KN LC MF PM VC WS SM ST SA SN RS SC SL SG SX SK SI SB SO ZA GS SS ES LK SD SR SJ SE CH SY TW TJ TZ TH TL TG TK TO TT TN TR TM TC TV UG UA AE GB US UM UY UZ VU VE VN VG VI WF EH YE ZM ZW'.split(' ');try{const names=new Intl.DisplayNames(['en'],{type:'region'});return codes.map((code)=>`<option value="${code}">${escape(names.of(code))}</option>`).join('')}catch{return '<option value="">Select country</option>'}};const timeZoneOptions=()=>{try{return Intl.supportedValuesOf('timeZone').map((zone)=>`<option value="${zone}" ${zone===Intl.DateTimeFormat().resolvedOptions().timeZone?'selected':''}>${zone}</option>`).join('')}catch{return '<option value="UTC">UTC</option>'}};
 async function setup(){
   const [users,config]=await Promise.all([
@@ -165,11 +165,11 @@ function renderLogin() {
   const stepIndicators = `
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:18px;font-size:11px;font-weight:700;letter-spacing:0.04em;">
       <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;${loginFlow.step === 1 ? 'background:rgba(16,185,129,0.2);color:#34d399;border:1px solid rgba(16,185,129,0.3);' : loginFlow.step > 1 ? 'background:rgba(16,185,129,0.1);color:#10b981;' : 'color:var(--text-muted);'}">
-        ${loginFlow.step > 1 ? '✓' : '1'} Company ID
+        1 Company ID
       </span>
       <span style="color:var(--text-muted);">→</span>
       <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;${loginFlow.step === 2 ? 'background:rgba(16,185,129,0.2);color:#34d399;border:1px solid rgba(16,185,129,0.3);' : loginFlow.step > 2 ? 'background:rgba(16,185,129,0.1);color:#10b981;' : 'color:var(--text-muted);'}">
-        ${loginFlow.step > 2 ? '✓' : '2'} Work Email
+        2 Work Email
       </span>
       <span style="color:var(--text-muted);">→</span>
       <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;${loginFlow.step === 3 ? 'background:rgba(16,185,129,0.2);color:#34d399;border:1px solid rgba(16,185,129,0.3);' : 'color:var(--text-muted);'}">
@@ -484,13 +484,13 @@ function renderExecutiveOnboarding(panel, urlParams) {
         <input type="password" id="ob-confirm-password" required minlength="8" placeholder="Re-enter password" autocomplete="new-password" />
       </label>
 
-      <label style="margin-top:10px;display:block;">Company Industry &amp; Core Shift Protocol *
+      <label style="margin-top:10px;display:block;">Industry Sector *
         <select id="ob-company-industry" style="width:100%;padding:10px 12px;border-radius:8px;background:var(--bg-elevated,#1e293b);border:1px solid var(--border-subtle);color:var(--text-main);font-size:13px;font-weight:600;margin-top:5px;">
-          <option value="manufacturing" selected>Manufacturing &amp; Industrial Operations (Safety PPE, Line Power &amp; Calibration)</option>
-          <option value="logistics">Logistics, Warehousing &amp; Distribution (Forklift Pre-Op, Bay Hazards &amp; Cargo)</option>
-          <option value="facility">Facility Management &amp; Cleaning (MSDS Chemical Dilution &amp; Sanitization Log)</option>
-          <option value="food_beverage">Food Processing &amp; Beverage (Cold-Chain Temp, CIP Scrub &amp; Traceability)</option>
-          <option value="security">Security &amp; Guarding Operations (Radio Check, Turnstiles &amp; Access Log)</option>
+          <option value="manufacturing" selected>Manufacturing Operations (Safety PPE, Line Power, Calibration)</option>
+          <option value="logistics">Logistics &mdash; Warehousing Distribution (Forklift Pre-Op, Cargo)</option>
+          <option value="facility">Facility Management (MSDS Chemical Dilution, Sanitization)</option>
+          <option value="food_beverage">Food Processing (Cold-Chain Temp, Traceability)</option>
+          <option value="security">Security Operations (Radio Check, Access Log)</option>
         </select>
       </label>
 
@@ -501,12 +501,12 @@ function renderExecutiveOnboarding(panel, urlParams) {
         </label>
         <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
           <input type="checkbox" id="chk-ob-ndpr" checked required style="margin-top:3px;accent-color:#10b981;" />
-          <span>I accept NDPR & Corporate Governance Data Privacy Protocols.</span>
+          <span>I accept NDPR Corporate Governance Data Privacy Protocols.</span>
         </label>
       </div>
 
       <button class="primary" type="submit" id="btn-ob-submit" style="width:100%;justify-content:center;font-weight:800;padding:12px;">
-        Complete Onboarding & Enter Workplace →
+        Enter Workplace →
       </button>
     </form>
     <p class="form-message" id="form-message" style="margin-top:12px;"></p>
@@ -884,7 +884,7 @@ function renderHandoverForm(){
       </label>
     </div>
 
-    <p class="eyebrow">2. IMPORTANT NOTES & EVENTS</p>
+    <p class="eyebrow">2. IMPORTANT NOTES</p>
     <p>Include urgent issues, pending tasks, equipment logs, and anything the incoming team must know.</p>
     <div class="sr-quick-template-chips" id="sr-quick-template-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px;">
       <button type="button" class="sr-template-chip" data-snippet="Equipment & Gate Scanners checked — operating at 100% capacity." style="padding:5px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid rgba(16,185,129,0.35);background:rgba(16,185,129,0.1);color:#10b981;cursor:pointer;">Equipment Check OK</button>
@@ -903,7 +903,7 @@ function renderHandoverForm(){
     <div id="handover-photo-preview" class="hidden" style="margin:10px 0;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;"></div>
 
     <div class="button-row">
-      <button class="primary" id="analyze-button">Generate handover & tasks</button>
+      <button class="primary" id="analyze-button">Generate Handover</button>
       <button class="secondary" id="clear-button">Clear</button>
     </div>
   </section>
@@ -1018,7 +1018,7 @@ async function analyze(){
   <ul>${state.currentHandover.tasks.map((item)=>`<li><b>${escape(item.text)}</b> — ${escape(item.owner)}, ${escape(item.due)}</li>`).join('')}</ul>
   ${handover.missing_context[0]?`<p><b>Check before relay:</b> ${escape(handover.missing_context[0].question)}</p>`:''}
   <div class="button-row">
-    <button class="primary" id="save-handover">Submit & Relay to Next Shift</button>
+    <button class="primary" id="save-handover">Relay Shift</button>
     <button class="secondary" id="print-brief">${Icons.printer()} Print Shift Brief (PDF)</button>
     <button class="secondary" id="download-brief">Export .txt</button>
   </div>`;
@@ -1246,11 +1246,38 @@ function performLogout(){
       else { $('#login-view').classList.remove('hidden'); renderLogin(); }
     }
   };
-  if (window.OfflineQueue?.getPendingCount?.() > 0) {
-    window.OfflineQueue.promptLogoutWarning(doLogout);
-  } else {
-    doLogout();
-  }
+  const proceedWithLogout = () => {
+    if (window.OfflineQueue?.getPendingCount?.() > 0) {
+      window.OfflineQueue.promptLogoutWarning(doLogout);
+    } else {
+      doLogout();
+    }
+  };
+  let existingModal = document.getElementById('sr-legacy-logout-confirm');
+  if (existingModal) existingModal.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'sr-legacy-logout-confirm';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.innerHTML = `
+    <div style="background:var(--sr-surface,#fff);color:var(--sr-text,#0f172a);border-radius:14px;max-width:380px;width:100%;padding:22px;box-shadow:0 20px 48px rgba(15,23,42,0.28);border:1px solid var(--sr-border,#e2e8f0);">
+      <h3 style="margin:0 0 8px;font-size:17px;font-weight:700;">Confirm Logout</h3>
+      <p style="margin:0 0 18px;font-size:14px;line-height:1.5;color:var(--sr-text-muted,#475569);">Are you sure you want to log out of your ShiftRelay session?</p>
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button type="button" id="sr-legacy-logout-cancel" class="secondary" style="min-height:38px;padding:0 16px;border-radius:8px;cursor:pointer;">Cancel</button>
+        <button type="button" id="sr-legacy-logout-confirm-btn" class="primary" style="min-height:38px;padding:0 16px;border-radius:8px;background:#dc2626;color:#fff;border:none;font-weight:600;cursor:pointer;">Confirm</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const closeOverlay = () => overlay.remove();
+  document.getElementById('sr-legacy-logout-cancel')?.addEventListener('click', closeOverlay);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+  document.getElementById('sr-legacy-logout-confirm-btn')?.addEventListener('click', () => {
+    closeOverlay();
+    proceedWithLogout();
+  });
 }
 
 $('#logout-button').addEventListener('click', performLogout);$('#notification-button').addEventListener('click',()=>$('#notification-panel').classList.toggle('hidden'));document.addEventListener('click',(event)=>{if(!event.target.closest('#notification-button')&&!event.target.closest('#notification-panel'))$('#notification-panel').classList.add('hidden')});setup();

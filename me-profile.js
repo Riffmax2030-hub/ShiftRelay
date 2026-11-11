@@ -315,13 +315,13 @@ async function renderMeProfile(targetUserId) {
         <!-- SUB-TABS ROW -->
         <div class="discover-tab-row" style="margin:20px 0 16px;gap:8px;">
           <button class="discover-sub-tab active" data-me-tab="credentials">
-            ${MeIcons.briefcase()} Credentials &amp; Career
+            ${MeIcons.briefcase()} Credentials
           </button>
           <button class="discover-sub-tab" data-me-tab="relays">
-            ${MeIcons.award()} My Shift Relays &amp; Logs (${myHandovers.length})
+            ${MeIcons.award()} Relays (${myHandovers.length})
           </button>
           <button class="discover-sub-tab" data-me-tab="schedule">
-            ${MeIcons.calendar2()} Roster &amp; Availability
+            ${MeIcons.calendar2()} Roster
           </button>
         </div>
 
@@ -490,7 +490,7 @@ async function renderMeProfile(targetUserId) {
                 </div>
               </div>
               <div>
-                <label class="me-form-label">Key Responsibilities &amp; Highlights</label>
+                <label class="me-form-label">Key Responsibilities</label>
                 <textarea id="me-exp-desc" placeholder="Shift duties, special equipment operated, patient count, safety records…"></textarea>
               </div>
               <div class="me-form-actions">
@@ -505,7 +505,7 @@ async function renderMeProfile(targetUserId) {
         <div class="me-section">
           <div class="me-section-header">
             <div>
-              <h3 class="me-section-title">Certificates &amp; Verified Licenses</h3>
+              <h3 class="me-section-title">Certificates</h3>
             </div>
             ${isSelf ? `<button class="me-section-action" id="me-add-cert-btn">${MeIcons.plus()} Add Certificate</button>` : ''}
           </div>
@@ -560,7 +560,7 @@ async function renderMeProfile(targetUserId) {
         <!-- H. SKILLS & ENDORSEMENTS -->
         <div class="me-section">
           <div class="me-section-header">
-            <h3 class="me-section-title">Verified Skills &amp; Peer Endorsements</h3>
+            <h3 class="me-section-title">Endorsed Skills</h3>
           </div>
           <div class="me-skills-wrap" id="me-skills-wrap">
             ${(profile.skills || ['Shift Handover Protocol', 'Incident Prevention', 'Team Communication', 'Process Compliance']).map(s => {
@@ -592,7 +592,7 @@ async function renderMeProfile(targetUserId) {
               <div class="me-badge-icon-wrap">${MeIcons.star()}</div>
               <div class="me-badge-info">
                 <p class="me-badge-name">Top Relayer</p>
-                <p class="me-badge-progress">${(stats.handoversRelayed ?? 0) >= 50 ? 'Achieved ✓' : `${stats.handoversRelayed ?? 0}/50 Relays`}</p>
+                <p class="me-badge-progress">${(stats.handoversRelayed ?? 0) >= 50 ? 'Achieved' : `${stats.handoversRelayed ?? 0}/50 Relays`}</p>
               </div>
             </div>
             <!-- Iron Streak -->
@@ -600,7 +600,7 @@ async function renderMeProfile(targetUserId) {
               <div class="me-badge-icon-wrap">${MeIcons.bolt()}</div>
               <div class="me-badge-info">
                 <p class="me-badge-name">Iron Streak</p>
-                <p class="me-badge-progress">${(stats.checkInStreak ?? 0) >= 7 ? 'Achieved ✓' : `${stats.checkInStreak ?? 0}/7 Consecutive Days`}</p>
+                <p class="me-badge-progress">${(stats.checkInStreak ?? 0) >= 7 ? 'Achieved' : `${stats.checkInStreak ?? 0}/7 Consecutive Days`}</p>
               </div>
             </div>
             <!-- Zero-Defect Reliability -->
@@ -608,7 +608,7 @@ async function renderMeProfile(targetUserId) {
               <div class="me-badge-icon-wrap">${MeIcons.shield()}</div>
               <div class="me-badge-info">
                 <p class="me-badge-name">Zero-Defect Reliability</p>
-                <p class="me-badge-progress">${(stats.reliabilityScore ?? 0) >= 98 ? 'Achieved ✓' : `${stats.reliabilityScore ?? 0}% Reliability Score`}</p>
+                <p class="me-badge-progress">${(stats.reliabilityScore ?? 0) >= 98 ? 'Achieved' : `${stats.reliabilityScore ?? 0}% Reliability Score`}</p>
               </div>
             </div>
             <!-- Peer-Vouched Pro -->
@@ -616,7 +616,7 @@ async function renderMeProfile(targetUserId) {
               <div class="me-badge-icon-wrap">${MeIcons.handshake()}</div>
               <div class="me-badge-info">
                 <p class="me-badge-name">Peer-Vouched Pro</p>
-                <p class="me-badge-progress">${(stats.endorsementsCount ?? 0) >= 5 ? 'Achieved ✓' : `${stats.endorsementsCount ?? 0}/5 Endorsements`}</p>
+                <p class="me-badge-progress">${(stats.endorsementsCount ?? 0) >= 5 ? 'Achieved' : `${stats.endorsementsCount ?? 0}/5 Endorsements`}</p>
               </div>
             </div>
           </div>
@@ -638,7 +638,7 @@ async function renderMeProfile(targetUserId) {
         <div id="me-panel-relays" class="me-tab-panel" style="display:none;">
           <div class="me-section">
             <div class="me-section-header">
-              <h3 class="me-section-title">Verified Shift Relays &amp; Logs</h3>
+              <h3 class="me-section-title">Verified Shift Relays</h3>
               ${isSelf ? `<button class="primary" data-go="handover" style="min-height:34px;padding:0 12px;font-size:12px;">+ New Relay</button>` : ''}
             </div>
             ${myHandovers.length ? `
@@ -647,7 +647,7 @@ async function renderMeProfile(targetUserId) {
                   const hData = h.handover || {};
                   const actionsCount = Array.isArray(hData.actions) ? hData.actions.length : 0;
                   const dateStr = h.createdAt ? new Date(h.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent';
-                  const statusLabel = h.status === 'acknowledged' ? 'Acknowledged ✓' : h.status === 'relayed' ? 'Relayed Active' : 'Pending Review';
+                  const statusLabel = h.status === 'acknowledged' ? 'Acknowledged' : h.status === 'relayed' ? 'Relayed Active' : 'Pending Review';
                   const statusClass = h.status === 'acknowledged' ? 'ack' : 'relayed';
                   return `
                     <div class="me-relay-card">
@@ -681,7 +681,7 @@ async function renderMeProfile(targetUserId) {
         <div id="me-panel-schedule" class="me-tab-panel" style="display:none;">
           <div class="me-section">
             <div class="me-section-header">
-              <h3 class="me-section-title">Weekly Roster &amp; Shift Schedule</h3>
+              <h3 class="me-section-title">Weekly Shift Roster</h3>
             </div>
             
             <div class="me-position-rows" style="margin-bottom:20px;">
@@ -703,7 +703,7 @@ async function renderMeProfile(targetUserId) {
             <!-- Overtime / Open Shifts Availability Card -->
             <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
               <div>
-                <strong style="color:#065f46;font-size:14px;display:block;">Available for Open Shifts &amp; Overtime</strong>
+                <strong style="color:#065f46;font-size:14px;display:block;">Available for Open Shifts</strong>
                 <span style="font-size:12px;color:#047857;">Show your profile to supervisors looking for shift coverage.</span>
               </div>
               <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">

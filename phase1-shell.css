@@ -187,7 +187,7 @@ body:has(#sr-app-shell) .app-header,
   min-height: var(--sr-touch-min);
   flex-shrink: 1;
   min-width: 0;
-  max-width: 160px;
+  max-width: 380px;
   transition: all 0.15s ease;
   font-family: inherit;
   color: var(--sr-text-main);
@@ -217,11 +217,11 @@ body:has(#sr-app-shell) .app-header,
 }
 
 .sr-context-pill-org {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--sr-text-main);
   white-space: nowrap;
-  max-width: 140px;
+  max-width: 340px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -231,6 +231,9 @@ body:has(#sr-app-shell) .app-header,
   font-weight: 600;
   color: var(--sr-text-muted);
   white-space: nowrap;
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sr-context-chevron {
@@ -9131,6 +9134,17 @@ textarea:focus-visible {
   animation: srRedPulseRing 2.6s ease-in-out infinite;
 }
 
+/* LOCKED state during active shift until shift end */
+.sr-water-push-btn.sr-water-btn-locked {
+  background: radial-gradient(circle at 50% 25%, #334155 0%, #1e293b 65%, #0f172a 100%);
+  box-shadow:
+    0 0 0 5px rgba(100, 116, 139, 0.20),
+    0 8px 22px rgba(15, 23, 42, 0.35),
+    inset 0 2px 6px rgba(255, 255, 255, 0.16);
+  opacity: 0.88;
+  cursor: not-allowed;
+}
+
 @keyframes srGreenPulseRing {
   0%, 100% {
     box-shadow:
@@ -9927,7 +9941,18 @@ textarea:focus-visible {
   }
 
   .sr-brand-text {
-    display: none;
+    display: inline-flex;
+    font-size: 14px;
+  }
+
+  .sr-context-pill {
+    max-width: 120px;
+    padding: 4px 8px;
+  }
+
+  .sr-context-pill-org,
+  .sr-context-pill-site {
+    max-width: 84px;
   }
 
   .sr-header-right {

@@ -360,10 +360,47 @@ async function requireAdminGate(request, response, store, allowedRoles = null) {
   return ctx;
 }
 
+function computeScheduledShiftEndMs(user, clockedInMs) {
+  const parseHM = (val, fallbackH, fallbackM) => {
+    const m = String(val || '').match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return [fallbackH, fallbackM];
+    const h = Number(m[1]), min = Number(m[2]);
+    return (h >= 0 && h < 24 && min >= 0 && min < 60) ? [h, min] : [fallbackH, fallbackM];
+  };
+  const [sH, sM] = parseHM(user?.shift_start || user?.shiftStart, 6, 0);
+  const [eH, eM] = parseHM(user?.shift_end || user?.shiftEnd, 14, 0);
+  const startMin = sH * 60 + sM;
+  let endMin = eH * 60 + eM;
+  if (endMin <= startMin) endMin += 1440;
+  const durationMs = (endMin - startMin) * 60000;
+
+  const d = new Date(clockedInMs);
+  const candidate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), eH, eM, 0, 0);
+  if (eH * 60 + eM <= startMin) candidate.setDate(candidate.getDate() + 1);
+  if (clockedInMs < candidate.getTime()) return candidate.getTime();
+  return clockedInMs + durationMs;
+}
+
 function demoTimeSummary(user, store, month) {
   if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
+  const nowMs = Date.now();
+  let mutated = false;
+  for (const entry of store.timeEntries) {
+    if (entry.membershipId === user.id && !entry.clockedOutAt) {
+      const endMs = computeScheduledShiftEndMs(user, new Date(entry.clockedInAt).getTime());
+      if (nowMs >= endMs) {
+        entry.clockedOutAt = new Date(endMs).toISOString();
+        entry.clockOutVerificationMode = 'auto_shift_end';
+        entry.clockOutDetails = 'Auto Clock-Out at Scheduled Shift End';
+        mutated = true;
+      }
+    }
+  }
+  if (mutated) saveStore(store).catch(() => {});
+
   const now = new Date();
-  const monthStart = month ? new Date(`${month.slice(0, 7)}-01T00:00:00.000Z`) : new Date(now.getFullYear(), now.getMonth(), 1);
+  const safeMonth = typeof month === 'string' && month.length >= 7 ? month.slice(0, 7) : '';
+  const monthStart = safeMonth ? new Date(`${safeMonth}-01T00:00:00.000Z`) : new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(monthStart);
   monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
   const entries = store.timeEntries
@@ -377,6 +414,7 @@ function demoTimeSummary(user, store, month) {
   const active = activeRaw ? {
     ...activeRaw,
     clocked_in_at: activeRaw.clockedInAt,
+    shiftEndAt: new Date(computeScheduledShiftEndMs(user, new Date(activeRaw.clockedInAt).getTime())).toISOString(),
     verification_mode: activeRaw.verificationMode || 'standard',
     verification_details: activeRaw.verificationDetails || 'Verified On-Site',
     geofence_status: activeRaw.geofenceStatus || 'verified_on_site',
@@ -1124,8 +1162,16 @@ const wellbeingQuotes = [
 ];
 async function timeSummary(user, month) {
   if (!databaseReady) return demoTimeSummary(user, await getStore(), month);
+  const openRows = await query('select id, clocked_in_at from time_entries where membership_id = $1 and clocked_out_at is null', [user.id]);
+  for (const row of openRows.rows) {
+    const endMs = computeScheduledShiftEndMs(user, new Date(row.clocked_in_at).getTime());
+    if (Date.now() >= endMs) {
+      await query('update time_entries set clocked_out_at = $1 where id = $2 and clocked_out_at is null', [new Date(endMs).toISOString(), row.id]);
+    }
+  }
   const result = await query(`select id, clocked_in_at, clocked_out_at, note, extract(epoch from (coalesce(clocked_out_at, now()) - clocked_in_at))/3600 as hours from time_entries where membership_id = $1 and clocked_in_at >= date_trunc('month', $2::date) and clocked_in_at < date_trunc('month', $2::date) + interval '1 month' order by clocked_in_at desc`, [user.id, month || new Date().toISOString().slice(0, 7) + '-01']);
-  const active = result.rows.find((entry) => !entry.clocked_out_at) || null;
+  const activeRow = result.rows.find((entry) => !entry.clocked_out_at) || null;
+  const active = activeRow ? { ...activeRow, shiftEndAt: new Date(computeScheduledShiftEndMs(user, new Date(activeRow.clocked_in_at).getTime())).toISOString() } : null;
   const totalHours = result.rows.reduce((total, entry) => total + Number(entry.hours), 0);
   const weekHours = result.rows.filter((entry) => new Date(entry.clocked_in_at) >= new Date(Date.now() - 7 * 86400000)).reduce((total, entry) => total + Number(entry.hours), 0);
   return { active, totalHours: Math.round(totalHours * 10) / 10, weekHours: Math.round(weekHours * 10) / 10, entries: result.rows };
@@ -1423,9 +1469,9 @@ export function compilePayrollRun(store, tenantId = null) {
     const stat = calculateNigerianStatutory(grossPay);
 
     return {
-      userId:        c.userId,
-      userName:      c.userName,
-      staffId:       c.staffId || 'SR-' + c.userId.slice(0, 4).toUpperCase(),
+      userId:        c.userId || c.id || '',
+      userName:      c.userName || 'Staff Member',
+      staffId:       c.staffId || 'SR-' + String(c.userId || c.id || '0000').slice(0, 4).toUpperCase(),
       role:          c.role,
       department:    c.department,
       tenant_id:     c.tenant_id || c.organisation_id || org.id,
@@ -3084,13 +3130,13 @@ async function handleApi(request, response, url) {
   }
 
   if (url.pathname === '/api/memberships/pending' && request.method === 'GET') {
-    if (!['owner', 'supervisor'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation managers can review access requests.' });
+    if (!['owner', 'supervisor', 'manager'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation managers can review access requests.' });
     return sendJson(response, 200, await pendingMemberships(user));
   }
 
   const membershipReviewMatch = url.pathname.match(/^\/api\/memberships\/([^/]+)\/review$/);
   if (membershipReviewMatch && request.method === 'POST') {
-    if (!['owner', 'supervisor'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation managers can review access requests.' });
+    if (!['owner', 'supervisor', 'manager'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation managers can review access requests.' });
     const reviewBody = await readJson(request);
     const clientKey = request.headers['idempotency-key'] || null;
     const opBody = { membershipId: membershipReviewMatch[1], ...reviewBody };
@@ -3341,18 +3387,36 @@ async function handleApi(request, response, url) {
           if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
           const active = store.timeEntries.find((entry) => entry.membershipId === user.id && !entry.clockedOutAt);
           if (!active) { const err = new Error('You are not clocked in.'); err.statusCode = 409; throw err; }
-          active.clockedOutAt = new Date().toISOString();
+          const shiftEndMs = computeScheduledShiftEndMs(user, new Date(active.clockedInAt).getTime());
+          const allowEarlyOverride = body.verificationMode === 'supervisor_override';
+          if (Date.now() < shiftEndMs && !allowEarlyOverride) {
+            const err = new Error('Clock-out is locked until your shift ends.');
+            err.statusCode = 403;
+            throw err;
+          }
+          const cappedOutMs = body.verificationMode === 'auto_shift_end' ? Math.min(Date.now(), shiftEndMs) : Date.now();
+          active.clockedOutAt = new Date(cappedOutMs).toISOString();
           if (body.verificationMode) {
             active.clockOutVerificationMode = body.verificationMode;
-            active.clockOutDetails = body.verificationMode === 'gate_qr' ? 'Exit Gate QR Verified' : 'GPS Exit Snapshot Verified';
+            active.clockOutDetails = body.verificationMode === 'auto_shift_end'
+              ? 'Auto Clock-Out at Scheduled Shift End'
+              : body.verificationMode === 'gate_qr' ? 'Exit Gate QR Verified' : 'GPS Exit Snapshot Verified';
           }
           await saveStore(store);
           return { statusCode: 200, result: demoTimeSummary(user, store) };
         }
         const q = client || { query: (sql, vals) => query(sql, vals) };
-        const activeEntry = (await q.query('select id from time_entries where membership_id = $1 and clocked_out_at is null for update', [user.id])).rows[0];
+        const activeEntry = (await q.query('select id, clocked_in_at from time_entries where membership_id = $1 and clocked_out_at is null for update', [user.id])).rows[0];
         if (!activeEntry) { const err = new Error('You are not clocked in.'); err.statusCode = 409; throw err; }
-        await q.query('update time_entries set clocked_out_at = now() where id = $1', [activeEntry.id]);
+        const shiftEndMs = computeScheduledShiftEndMs(user, new Date(activeEntry.clocked_in_at).getTime());
+        const allowEarlyOverride = body.verificationMode === 'supervisor_override';
+        if (Date.now() < shiftEndMs && !allowEarlyOverride) {
+          const err = new Error('Clock-out is locked until your shift ends.');
+          err.statusCode = 403;
+          throw err;
+        }
+        const cappedOutIso = new Date(body.verificationMode === 'auto_shift_end' ? Math.min(Date.now(), shiftEndMs) : Date.now()).toISOString();
+        await q.query('update time_entries set clocked_out_at = $1 where id = $2', [cappedOutIso, activeEntry.id]);
         return { statusCode: 200, result: await timeSummary(user) };
       });
       if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
@@ -3572,7 +3636,7 @@ async function getUserRewards(user, store) {
       weeklyQuests,
       careerRoadmap10Year,
       redemptionShop,
-      ledger: rw.ledger.slice().reverse(),
+      ledger: (rw.ledger || []).slice().reverse(),
       redemptions: rw.redemptions || []
     });
   }
@@ -7393,7 +7457,7 @@ const server = createServer((request, response) => {
         response.destroy();
       }
     } else {
-      console.error('Request failed:', error.message);
+      console.error('Request failed:', error.stack || error.message);
       if (!response.headersSent) {
         sendJson(response, 500, { error: 'The request could not be completed. Please try again.' });
       } else {
