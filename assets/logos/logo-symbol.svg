@@ -1,27 +1,75 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="100%" height="100%">
   <defs>
-    <linearGradient id="sr-c1-teal" x1="10" y1="20" x2="90" y2="100" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0a3d39"/>
-      <stop offset="0.6" stop-color="#0d524d"/>
-      <stop offset="1" stop-color="#10b981"/>
+    <!-- Premium Industrial Substrate Gradient -->
+    <linearGradient id="srBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a1526"/>
+      <stop offset="50%" stop-color="#0c1a30"/>
+      <stop offset="100%" stop-color="#07101f"/>
     </linearGradient>
-    <linearGradient id="sr-c1-glow" x1="40" y1="20" x2="110" y2="80" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#34d399"/>
-      <stop offset="1" stop-color="#059669"/>
+
+    <!-- Vibrant Emerald Relay Beam -->
+    <linearGradient id="srEmeraldBeam" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
     </linearGradient>
-    <filter id="sr-c1-shadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0a3d39" flood-opacity="0.2"/>
+
+    <!-- Electric Cyan Sapphire Beam -->
+    <linearGradient id="srSapphireBeam" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <!-- Core Handover Node Glow -->
+    <linearGradient id="srNodeCore" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+
+    <!-- Subtle Drop Shadow for Woven Overlap -->
+    <filter id="srWovenShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.45"/>
     </filter>
   </defs>
-  <g filter="url(#sr-c1-shadow)">
-    <!-- Base track arc (outgoing shift baton passage) -->
-    <path d="M30 72 C22 52 36 30 58 30 C76 30 90 42 90 60 C90 78 74 90 56 90 C42 90 32 82 28 72" 
-          stroke="url(#sr-c1-teal)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- Overlapping interlock arc (incoming shift handover relay) -->
-    <path d="M42 42 C54 26 82 24 92 46 C100 64 88 84 68 84 C54 84 46 76 42 66" 
-          stroke="url(#sr-c1-glow)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
-    <!-- Relay Node Checkpoints -->
-    <circle cx="68" cy="84" r="5.5" fill="#10b981" stroke="#ffffff" stroke-width="2.5"/>
-    <circle cx="58" cy="30" r="4.5" fill="#0d524d" stroke="#ffffff" stroke-width="2"/>
+
+  <!-- Precision Squircle Substrate Container -->
+  <rect x="12" y="12" width="296" height="296" rx="64" fill="url(#srBgGrad)" stroke="#1e293b" stroke-width="2"/>
+  <rect x="22" y="22" width="276" height="276" rx="54" fill="none" stroke="#38bdf8" stroke-opacity="0.12" stroke-width="1.5"/>
+
+  <!-- Corner Biometric Target Alignment Brackets (Inspired by Image 2 & 3) -->
+  <path d="M 52 76 L 52 52 L 76 52" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7"/>
+  <path d="M 268 76 L 268 52 L 244 52" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7"/>
+  <path d="M 52 244 L 52 268 L 76 268" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7"/>
+  <path d="M 268 244 L 268 268 L 244 268" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7"/>
+
+  <!-- Centered Woven Geometric Baton Cross (Inspired by User Inspiration Image 1) -->
+  <!-- Centered at (160, 160) with 45-degree woven diagonal track pairs -->
+  <g transform="translate(160, 160)" filter="url(#srWovenShadow)">
+    <!-- Diagonal Pair 1: Top-Left to Bottom-Right Primary Relay Track (Emerald) -->
+    <!-- Upper Left Inflow Beam 1 -->
+    <rect x="-82" y="-52" width="68" height="18" rx="6" transform="rotate(45 -48 -43)" fill="url(#srEmeraldBeam)"/>
+    <!-- Upper Left Inflow Beam 2 (Parallel) -->
+    <rect x="-62" y="-72" width="68" height="18" rx="6" transform="rotate(45 -28 -63)" fill="url(#srEmeraldBeam)"/>
+
+    <!-- Lower Right Outflow Beam 1 -->
+    <rect x="14" y="34" width="68" height="18" rx="6" transform="rotate(45 48 43)" fill="url(#srEmeraldBeam)"/>
+    <!-- Lower Right Outflow Beam 2 (Parallel) -->
+    <rect x="-6" y="54" width="68" height="18" rx="6" transform="rotate(45 28 63)" fill="url(#srEmeraldBeam)"/>
+
+    <!-- Diagonal Pair 2: Top-Right to Bottom-Left Counter Relay Track (Sapphire) -->
+    <!-- Upper Right Inflow Beam 1 -->
+    <rect x="14" y="-52" width="68" height="18" rx="6" transform="rotate(-45 48 -43)" fill="url(#srSapphireBeam)"/>
+    <!-- Upper Right Inflow Beam 2 (Parallel) -->
+    <rect x="-6" y="-72" width="68" height="18" rx="6" transform="rotate(-45 28 -63)" fill="url(#srSapphireBeam)"/>
+
+    <!-- Lower Left Outflow Beam 1 -->
+    <rect x="-82" y="34" width="68" height="18" rx="6" transform="rotate(-45 -48 43)" fill="url(#srSapphireBeam)"/>
+    <!-- Lower Left Outflow Beam 2 (Parallel) -->
+    <rect x="-62" y="54" width="68" height="18" rx="6" transform="rotate(-45 -28 63)" fill="url(#srSapphireBeam)"/>
+
+    <!-- Central Diamond Handover Relay Core (Interlocking Precision Keyhole Node) -->
+    <polygon points="0,-22 22,0 0,22 -22,0" fill="#0c1a30" stroke="url(#srEmeraldBeam)" stroke-width="3"/>
+    <!-- Inner Radiant Shift Node -->
+    <circle cx="0" cy="0" r="7" fill="url(#srNodeCore)"/>
+    <circle cx="0" cy="0" r="3" fill="#0a1526"/>
   </g>
 </svg>

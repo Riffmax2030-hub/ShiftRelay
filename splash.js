@@ -22,7 +22,7 @@
   function hideSplash() {
     if (!splashEl) return;
     splashEl.classList.add('fade-out');
-    setTimeout(() => splashEl.remove(), 600);
+    setTimeout(() => splashEl.remove(), 280);
   }
 
   function showEntry() {
@@ -80,7 +80,7 @@
 
   // -- Entry buttons -----------------------------------------------------------
   document.getElementById('entry-btn-start')?.addEventListener('click', () => {
-    openModal('demo-request');
+    openModal('gate-station');
   });
 
   document.getElementById('entry-btn-signin')?.addEventListener('click', () => {
@@ -279,7 +279,7 @@
                 <strong style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.name || 'Unknown'}</strong>
                 <span class="sr-demo-role-pill ${badgeClass}">${roleBadge}</span>
               </div>
-              <small style="display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.title || u.role || 'Frontline Specialist'} • Dangote Ops</small>
+              <small style="display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.title || u.role || 'Frontline Specialist'} • Riffmax Tech</small>
             </div>
           </div>
           <svg class="sr-demo-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
@@ -298,33 +298,8 @@
       showEntry();
     });
 
-    // Play soft welcome synth tone if context is ready
-    try {
-      const audioClass = window.AudioContext || window.webkitAudioContext;
-      if (audioClass) {
-        const ctx = new audioClass();
-        if (ctx.state === 'running') {
-          const now = ctx.currentTime;
-          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-            gain.gain.setValueAtTime(0.001, now + idx * 0.08);
-            gain.gain.exponentialRampToValueAtTime(0.15, now + idx * 0.08 + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 0.5);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(now + idx * 0.08);
-            osc.stop(now + idx * 0.08 + 0.55);
-          });
-        }
-      }
-    } catch (_) {}
-
-    // Allow full brand reveal animation to unfold (approx 2.2 seconds)
-    if (document.getElementById('sr-splash')) {
-      await new Promise(resolve => setTimeout(resolve, 2200));
-    }
+    // Instant Professional Logo Loading: Zero sound, zero artificial delay
+    // Session check fires immediately with smooth visual fade
 
     try {
       const [sessionRes, usersRes, configRes] = await Promise.all([

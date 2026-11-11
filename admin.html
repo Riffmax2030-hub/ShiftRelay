@@ -529,55 +529,63 @@
 
     <div class="auth-right-form">
       <div class="auth-card">
-        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald); margin-bottom:6px;">
-          SELECT CLEARANCE TIER TO SIGN IN
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald); margin-bottom:6px; letter-spacing:0.05em;">
+          CORPORATE SSO &amp; RBAC GATEWAY
         </div>
         <h2 style="font-family:'Outfit',sans-serif; font-size:24px; font-weight:800; margin-bottom:6px;">
-          Admin Block Authentication
+          Enterprise Admin Sign In
         </h2>
-        <p style="font-size:13px; color:var(--text-slate);">
-          Select your clearance role below to enter the console:
+        <p style="font-size:13px; color:var(--text-slate); margin-bottom:18px;">
+          Clearance tier and permissions are enforced server-side from your corporate directory account.
         </p>
 
-        <div class="role-tier-grid" id="login-role-grid">
-          <button type="button" class="role-tier-btn selected" data-role="owner_root" onclick="window.selectLoginAdminRole('owner_root')">
-            <span class="tag" style="color:#fbbf24;">★ OWNER ONLY (ROOT)</span>
-            <strong>Founder / Sovereign Owner</strong>
-            <span>Full Treasury, Final Approvals, Email Engine &amp; Hosting</span>
-          </button>
-
-          <button type="button" class="role-tier-btn" data-role="onboarding_admin" onclick="window.selectLoginAdminRole('onboarding_admin')">
-            <span class="tag" style="color:var(--emerald);">DEPT 01 // ONBOARDING</span>
-            <strong>Adaeze Obi (Onboarding)</strong>
-            <span>Company Setup, CSV Roster &amp; Gate QR/NFC Posters</span>
-          </button>
-
-          <button type="button" class="role-tier-btn" data-role="ops_support_admin" onclick="window.selectLoginAdminRole('ops_support_admin')">
-            <span class="tag" style="color:var(--sky);">DEPT 02 // OPS SUPPORT</span>
-            <strong>Tunde Bakare (Support)</strong>
-            <span>Rectification Receipts (RECT-*), Email Station &amp; Leads</span>
-          </button>
-
-          <button type="button" class="role-tier-btn" data-role="finance_admin" onclick="window.selectLoginAdminRole('finance_admin')">
-            <span class="tag" style="color:var(--indigo);">DEPT 03 // FINANCE AUDIT</span>
-            <strong>Chukwudi Eze (Finance)</strong>
-            <span>PenCom/PAYE Statutory Audit (Routes to Owner)</span>
-          </button>
-        </div>
-
-        <form onsubmit="window.handleAdminLogin(event)">
+        <form id="adm-login-form" onsubmit="window.handleAdminLogin(event)">
           <div style="margin-bottom:14px;">
-            <label class="lbl-sm">Admin Security Passcode</label>
-            <input type="password" id="adm-passcode-input" class="adm-input" value="ShiftRelay@Admin2026!" required />
-            <div style="font-size:11.5px; color:var(--text-dim); margin-top:4px;">
-              Default Master Key pre-filled: <code>ShiftRelay@Admin2026!</code>
-            </div>
+            <label class="lbl-sm" for="adm-email-input">Corporate Work Email</label>
+            <input type="email" id="adm-email-input" class="adm-input" autocomplete="username" placeholder="name@shiftrelay.com" required />
           </div>
 
-          <div id="adm-login-err" style="display:none; color:var(--rose); font-size:12.5px; margin-bottom:12px; font-weight:600;"></div>
+          <div style="margin-bottom:14px;">
+            <label class="lbl-sm" for="adm-password-input">Password</label>
+            <input type="password" id="adm-password-input" class="adm-input" autocomplete="current-password" placeholder="Enter your admin password" required />
+          </div>
 
-          <button type="submit" class="btn-emerald" style="width:100%; justify-content:center; padding:13px;">
-            Unlock Admin Command Console →
+          <div id="adm-login-err" style="display:none; color:var(--rose); font-size:12.5px; margin-bottom:12px; font-weight:600; background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.28); padding:10px 12px; border-radius:9px;"></div>
+
+          <button type="submit" id="adm-login-submit" class="btn-emerald" style="width:100%; justify-content:center; padding:13px;">
+            Sign In to Admin Console →
+          </button>
+
+          <div style="display:flex; align-items:center; gap:10px; margin:16px 0 12px;">
+            <div style="flex:1; height:1px; background:var(--border-hairline);"></div>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--text-dim);">OR ENTERPRISE FEDERATION</span>
+            <div style="flex:1; height:1px; background:var(--border-hairline);"></div>
+          </div>
+
+          <button type="button" id="adm-sso-btn" class="btn-ghost" style="width:100%; justify-content:center; padding:11px;" onclick="window.handleEnterpriseSsoClick()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Continue with Corporate SSO (Entra ID / Okta)</span>
+          </button>
+          <div id="adm-sso-status" style="font-size:11.5px; color:var(--text-dim); margin-top:8px; text-align:center;">
+            Checking corporate directory federation...
+          </div>
+        </form>
+
+        <form id="adm-mfa-form" style="display:none;" onsubmit="window.handleAdminMfaVerify(event)">
+          <div style="padding:12px 14px; border-radius:10px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); margin-bottom:16px;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald); font-weight:700;">STEP 2 // TOTP AUTHENTICATOR CHALLENGE</div>
+            <div style="font-size:12.5px; color:var(--text-slate); margin-top:4px;">Enter the 6-digit verification code from your authenticator app for <strong id="adm-mfa-email"></strong>.</div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <label class="lbl-sm" for="adm-mfa-code">6-Digit Authenticator Code</label>
+            <input type="text" id="adm-mfa-code" class="adm-input" inputmode="numeric" pattern="\d{6}" maxlength="6" placeholder="000000" style="font-family:'JetBrains Mono',monospace; font-size:18px; letter-spacing:0.25em; text-align:center;" required />
+          </div>
+          <div id="adm-mfa-err" style="display:none; color:var(--rose); font-size:12.5px; margin-bottom:12px; font-weight:600;"></div>
+          <button type="submit" class="btn-emerald" style="width:100%; justify-content:center; padding:13px; margin-bottom:10px;">
+            Verify Code &amp; Unlock Session →
+          </button>
+          <button type="button" class="btn-ghost" style="width:100%; justify-content:center;" onclick="window.cancelMfaStep()">
+            ← Back to Email &amp; Password
           </button>
         </form>
       </div>
@@ -657,12 +665,15 @@
           </div>
         </div>
 
-        <div class="role-switcher-bar">
-          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-dim);">TEST ROLE VIEW:</span>
-          <button type="button" class="role-chip owner-chip active" data-switch-role="owner_root" onclick="window.setAdminActiveRole('owner_root')">★ Owner (Me)</button>
-          <button type="button" class="role-chip" data-switch-role="onboarding_admin" onclick="window.setAdminActiveRole('onboarding_admin')">Onboarding Worker</button>
-          <button type="button" class="role-chip" data-switch-role="ops_support_admin" onclick="window.setAdminActiveRole('ops_support_admin')">Support Worker</button>
-          <button type="button" class="role-chip" data-switch-role="finance_admin" onclick="window.setAdminActiveRole('finance_admin')">Finance Worker</button>
+        <div class="role-switcher-bar" id="adm-clearance-bar">
+          <span class="chip emerald" id="adm-locked-role-chip" style="font-family:'JetBrains Mono',monospace;">SERVER RBAC VERIFIED</span>
+          <div id="adm-owner-preview-bar" style="display:none; align-items:center; gap:6px;">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-dim);">UI PREVIEW:</span>
+            <button type="button" class="role-chip owner-chip active" data-switch-role="owner_root" onclick="window.setAdminActiveRole('owner_root')">Owner (Me)</button>
+            <button type="button" class="role-chip" data-switch-role="onboarding_admin" onclick="window.setAdminActiveRole('onboarding_admin')">Onboarding</button>
+            <button type="button" class="role-chip" data-switch-role="ops_support_admin" onclick="window.setAdminActiveRole('ops_support_admin')">Support</button>
+            <button type="button" class="role-chip" data-switch-role="finance_admin" onclick="window.setAdminActiveRole('finance_admin')">Finance</button>
+          </div>
         </div>
       </header>
 
@@ -751,6 +762,38 @@
               </table>
             </div>
           </div>
+
+          <div class="panel-card" style="border-color:rgba(16,185,129,0.28);">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">ZERO-TRUST SESSION &amp; 2FA POSTURE</span>
+                <h2>Your Enterprise Account Security</h2>
+                <p style="font-size:13px; color:var(--text-slate);">
+                  Signed in as <strong id="sec-user-email"></strong> &bull; Session cookie protected with <code>HttpOnly; SameSite=Strict</code> and 30-min idle lock.
+                </p>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <span id="sec-mfa-badge" class="chip amber">2FA NOT ENROLLED</span>
+                <button type="button" id="sec-btn-mfa-setup" class="btn-emerald" onclick="window.beginMfaEnrollment()">Enable 2FA Authenticator</button>
+                <button type="button" class="btn-ghost" style="color:var(--rose);" onclick="window.revokeMyAdminSessions()">Revoke Sessions</button>
+              </div>
+            </div>
+
+            <div id="sec-mfa-enroll-box" style="display:none; background:rgba(15,23,42,0.85); border:1px solid var(--border-subtle); border-radius:12px; padding:16px; margin-top:12px;">
+              <div style="font-size:13px; font-weight:700; margin-bottom:8px;">Authenticator Setup (Google Authenticator / 1Password / Authy)</div>
+              <p style="font-size:12.5px; color:var(--text-slate); margin-bottom:10px;">
+                Add this Base32 TOTP key manually in your authenticator app or open the <code>otpauth://</code> URI, then confirm with the 6-digit code below:
+              </p>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                <code id="sec-mfa-secret" style="font-size:14px; font-weight:700; color:var(--emerald); padding:8px 12px; background:rgba(16,185,129,0.1); border-radius:8px;"></code>
+                <code id="sec-mfa-uri" style="font-size:11px; color:var(--sky); word-break:break-all;"></code>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <input type="text" id="sec-mfa-verify-code" class="adm-input" maxlength="6" placeholder="Enter 6-digit code" style="max-width:190px; font-family:'JetBrains Mono',monospace;" />
+                <button type="button" class="btn-emerald" onclick="window.confirmMfaEnrollment()">Confirm &amp; Activate 2FA</button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- VIEW 2: OWNER-ONLY SOVEREIGN VAULT -->
@@ -836,6 +879,33 @@
                     </tr>
                   </thead>
                   <tbody id="owner-staff-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel-card" style="border-color:rgba(56,189,248,0.28);">
+              <div class="panel-head">
+                <div>
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">IMMUTABLE TELEMETRY LEDGER</span>
+                  <h2>Enterprise Admin Audit Trail</h2>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <button type="button" class="btn-ghost" onclick="window.refreshAuditLogs()">Refresh Trail</button>
+                  <button type="button" class="btn-ghost" style="color:var(--rose);" onclick="window.revokeAllGlobalSessions()">Revoke All Active Sessions</button>
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table class="adm-table">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Actor</th>
+                      <th>Event</th>
+                      <th>Outcome</th>
+                      <th>Source IP</th>
+                    </tr>
+                  </thead>
+                  <tbody id="owner-audit-tbody"></tbody>
                 </table>
               </div>
             </div>
@@ -1022,7 +1092,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
                 </thead>
                 <tbody>
                   <tr>
-                    <td><strong>Dangote Packaging Ltd</strong><div style="font-size:11.5px; color:var(--text-slate);">Ikeja &amp; Apapa Plants</div></td>
+                    <td><strong>Riffmax Technology Limited</strong><div style="font-size:11.5px; color:var(--text-slate);">Ikeja &amp; Apapa Plants</div></td>
                     <td>4,820h Verified</td>
                     <td>₦14,820,000</td>
                     <td>₦2,667,600</td>
@@ -1262,125 +1332,54 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         return origFetch(url, options);
       };
     }
-    let adminToken = sessionStorage.getItem('sr_admin_token') || '';
-    let currentAdminRole = sessionStorage.getItem('sr_admin_role') || 'owner_root';
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    let currentAdminUser = null;
+    let currentAdminRole = '';
+    let previewAdminRole = '';
+    let adminSessionEpoch = 0;
+    let pendingMfaChallenge = '';
+    let authStatusMeta = null;
     let cachedTenants = [];
     let cachedLeads = [];
+    let cachedApprovals = [];
+    let cachedAdminStaff = [];
+    let cachedRectifications = [];
+    let cachedAuditLogs = [];
 
     const ADMIN_ROLE_PROFILES = {
       owner_root: {
-        badge: '★ OWNER ROOT',
-        title: 'ACTIVE SESSION: FOUNDER / SOVEREIGN OWNER (ALL PERMISSIONS UNLOCKED)',
-        desc: 'Exclusive access to Owner Sovereign Vault, Master Approvals, SaaS MRR, Email Auto-Station & Hosting Partitioning.',
+        badge: 'OWNER ROOT',
+        title: 'ACTIVE SESSION: FOUNDER / SOVEREIGN OWNER (ROOT CLEARANCE)',
+        desc: 'Exclusive access to Owner Sovereign Vault, Master Approvals, Staff Governance, and Security Audit Logs.',
         workerName: 'Founder & Sovereign Owner'
       },
       onboarding_admin: {
         badge: 'DEPT 01 // ONBOARDING',
-        title: 'ACTIVE SESSION: ADAEZE OBI — ONBOARDING & IMPLEMENTATION SPECIALIST',
-        desc: 'Scoped to Tenant Onboarding Wizard, CSV Roster Imports & Gate NFC Posters. Owner Vault is locked.',
-        workerName: 'Adaeze Obi (Onboarding Admin)'
+        title: 'ACTIVE SESSION: ONBOARDING & IMPLEMENTATION SPECIALIST',
+        desc: 'Scoped to Tenant Onboarding Wizard, CSV Roster Imports & Gate NFC Posters. Owner Vault is server-locked.',
+        workerName: 'Onboarding Specialist'
       },
       ops_support_admin: {
         badge: 'DEPT 02 // OPS SUPPORT',
-        title: 'ACTIVE SESSION: TUNDE BAKARE — OPERATIONS & RECTIFICATION SUPPORT',
-        desc: 'Scoped to Worker Rectification Receipts (SR-REC-*), Email Auto-Station & Inbound Demo Leads. Owner Vault is locked.',
-        workerName: 'Tunde Bakare (Support Admin)'
+        title: 'ACTIVE SESSION: OPERATIONS & RECTIFICATION SUPPORT',
+        desc: 'Scoped to Worker Rectification Receipts (SR-REC-*), Email Auto-Station & Inbound Demo Leads. Owner Vault is server-locked.',
+        workerName: 'Support Specialist'
       },
       finance_admin: {
         badge: 'DEPT 03 // FINANCE AUDIT',
-        title: 'ACTIVE SESSION: CHUKWUDI EZE — FINANCE & STATUTORY COMPLIANCE AUDITOR',
+        title: 'ACTIVE SESSION: FINANCE & STATUTORY COMPLIANCE AUDITOR',
         desc: 'Scoped to Payroll Runs & PenCom/PAYE Statutory Schedules. Final Treasury Release requires Owner Root approval.',
-        workerName: 'Chukwudi Eze (Finance Auditor)'
+        workerName: 'Finance Auditor'
       }
     };
-
-    const ownerApprovals = [
-      {
-        id: 'APPR-901',
-        by: 'Adaeze Obi (Onboarding Admin)',
-        summary: 'Activate Production Tenant: Dangote Packaging Ikeja Phase 2 (180 NFC Cards + 2 Gate Tablets)',
-        impact: 'PEPM Contract: ₦450,000/mo',
-        status: 'PENDING OWNER SIGN-OFF'
-      },
-      {
-        id: 'APPR-902',
-        by: 'Chukwudi Eze (Finance Auditor)',
-        summary: 'Release Statutory Payroll & PenCom Remittance Batch (Dangote Packaging Ltd)',
-        impact: 'Treasury Batch: ₦14,820,000',
-        status: 'PENDING OWNER SIGN-OFF'
-      },
-      {
-        id: 'APPR-903',
-        by: 'Tunde Bakare (Support Admin)',
-        summary: 'Approve Rectification Receipt SR-REC-482109 (Salary Bank & PenCom RSA Update for Kemi Adebayo)',
-        impact: 'Identity & Payout Override',
-        status: 'PENDING OWNER SIGN-OFF'
-      },
-      {
-        id: 'APPR-904',
-        by: 'Adaeze Obi (Onboarding Admin)',
-        summary: 'Issue Gate Tablet Master Key (SR-GATE-8841) for Flour Mills Tin Can Hub Gate B',
-        impact: '2-Layer Hardware Security Key',
-        status: 'PENDING OWNER SIGN-OFF'
-      }
-    ];
-
-    const adminStaffMembers = [
-      {
-        name: 'Adaeze Obi',
-        email: 'onboarding@shiftrelay.com',
-        role: 'Onboarding & Implementation Specialist',
-        modules: 'Tenant Wizard, CSV Roster, Gate QR/NFC Posters',
-        restriction: 'New Tenant Billing Activation & Hardware Waivers',
-        status: 'ACTIVE'
-      },
-      {
-        name: 'Tunde Bakare',
-        email: 'support@shiftrelay.com',
-        role: 'Operations & Rectification Support Officer',
-        modules: 'Rectification Receipts, Email Auto-Station, Demo Leads',
-        restriction: 'Identity/Bank Payout Changes & Contract Edits',
-        status: 'ACTIVE'
-      },
-      {
-        name: 'Chukwudi Eze',
-        email: 'finance@shiftrelay.com',
-        role: 'Finance & Statutory Compliance Auditor',
-        modules: 'Payroll Audit, PenCom/PAYE/NHF/NSITF Schedules',
-        restriction: 'Final Treasury Batch Disbursement Sign-Off',
-        status: 'ACTIVE'
-      }
-    ];
-
-    const defaultRectifications = [
-      {
-        id: 'SR-REC-482109',
-        name: 'Kemi Adebayo',
-        email: 'kemi.adebayo@dangote.com',
-        category: 'Bank Account / Wallet Details Update',
-        details: 'Requested update of PenCom RSA PIN to PEN1004928172 and Zenith Bank NUBAN verification.',
-        status: 'VERIFIED BY SUPPORT • IN OWNER QUEUE',
-        createdAt: new Date(Date.now() - 3600 * 1000 * 5).toISOString()
-      },
-      {
-        id: 'SR-REC-482514',
-        name: 'Ibrahim Musa',
-        email: 'ibrahim.m@flourmills.com',
-        category: 'Gate NFC / Geofence Clock-In Dispute',
-        details: 'Gate B tablet power cycle during 18:02 shift handover; supervisor confirmed physical presence.',
-        status: 'OPEN FOR SUPPORT AUDIT',
-        createdAt: new Date(Date.now() - 3600 * 1000 * 2).toISOString()
-      },
-      {
-        id: 'SR-REC-482990',
-        name: 'Blessing Okafor',
-        email: 'b.okafor@ekoatlantic.com',
-        category: 'Missing or Incorrect Shift Hours',
-        details: 'Completed 4hr coworker shift swap on Sunday; requesting attendance log sync before payday.',
-        status: 'OPEN FOR SUPPORT AUDIT',
-        createdAt: new Date(Date.now() - 3600 * 1000).toISOString()
-      }
-    ];
 
     const defaultEmailStationLogs = [
       {
@@ -1390,47 +1389,24 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         subject: '2-Layer Gate Tablet Verification Code [482910] — Ikeja Main Gate',
         source: 'Gate Tablet Login (SR-GATE-1040)',
         status: 'DELIVERED'
-      },
-      {
-        time: new Date(Date.now() - 1000 * 60 * 28).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        from: 'support@shiftrelay.com',
-        to: 'kemi.adebayo@dangote.com',
-        subject: 'Official Rectification Receipt #SR-REC-482109 Stamped & Logged',
-        source: 'In-App Support & Records Desk',
-        status: 'DELIVERED'
-      },
-      {
-        time: new Date(Date.now() - 1000 * 60 * 15).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        from: 'finance@shiftrelay.com',
-        to: 'cfo@flourmills.com',
-        subject: 'Monthly Statutory Payroll & PenCom Remittance Schedule Ready',
-        source: 'Statutory Finance Audit Engine',
-        status: 'DELIVERED'
-      },
-      {
-        time: new Date(Date.now() - 1000 * 60 * 6).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        from: 'onboarding@shiftrelay.com',
-        to: 'k.adeyemi@company.com',
-        subject: 'ShiftRelay Enterprise Walkthrough Confirmation & Architecture Pack',
-        source: 'shiftrelay.com Demo Request',
-        status: 'DELIVERED'
       }
     ];
 
-    function getCombinedRectificationReceipts() {
-      let appReceipts = [];
-      try {
-        appReceipts = JSON.parse(localStorage.getItem('shiftrelay-rectification-receipts') || '[]');
-      } catch (_) {}
-      const seen = new Set();
-      const merged = [];
-      [...appReceipts, ...defaultRectifications].forEach(r => {
-        if (r && r.id && !seen.has(r.id)) {
-          seen.add(r.id);
-          merged.push(r);
-        }
+    async function admFetch(url, options = {}) {
+      const reqEpoch = adminSessionEpoch;
+      const res = await fetch(url, {
+        ...options,
+        credentials: 'same-origin'
       });
-      return merged;
+      if (res.status === 401 && currentAdminUser && reqEpoch === adminSessionEpoch) {
+        adminSessionEpoch++;
+        currentAdminUser = null;
+        currentAdminRole = '';
+        document.getElementById('console-root').classList.remove('active');
+        document.getElementById('auth-barrier').style.display = 'grid';
+        showToast('Admin session expired. Please sign in again.');
+      }
+      return res;
     }
 
     function getEmailStationLogs() {
@@ -1462,30 +1438,65 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       window.__admToastTimer = setTimeout(() => { t.style.display = 'none'; }, 3800);
     }
 
-    window.selectLoginAdminRole = function (roleKey) {
-      currentAdminRole = roleKey;
-      document.querySelectorAll('#login-role-grid .role-tier-btn').forEach(btn => {
-        btn.classList.toggle('selected', btn.getAttribute('data-role') === roleKey);
-      });
+    async function loadAdminAuthCapabilities() {
+      const ssoStatusEl = document.getElementById('adm-sso-status');
+      const ssoBtn = document.getElementById('adm-sso-btn');
+      try {
+        const res = await fetch('/api/admin/auth/status');
+        if (!res.ok) return;
+        authStatusMeta = await res.json();
+        if (ssoStatusEl) {
+          if (authStatusMeta.sso && authStatusMeta.sso.configured) {
+            ssoStatusEl.textContent = `Connected IdP: ${authStatusMeta.sso.provider}`;
+            ssoStatusEl.style.color = 'var(--emerald)';
+          } else {
+            ssoStatusEl.textContent = 'Corporate OIDC/SAML ready — set ADMIN_OIDC_ISSUER & CLIENT_ID to enable SSO button.';
+          }
+        }
+        if (ssoBtn && (!authStatusMeta.sso || !authStatusMeta.sso.configured)) {
+          ssoBtn.style.opacity = '0.78';
+        }
+      } catch (_) {}
+    }
+
+    window.handleEnterpriseSsoClick = function () {
+      if (authStatusMeta && authStatusMeta.sso && authStatusMeta.sso.configured && authStatusMeta.sso.issuer) {
+        showToast('Redirecting to corporate identity provider...');
+        return;
+      }
+      showToast('Corporate SSO (OIDC/SAML) requires ADMIN_OIDC_ISSUER and ADMIN_OIDC_CLIENT_ID configured on the server.');
     };
 
     window.handleAdminLogin = async function (e) {
       e.preventDefault();
-      const pass = document.getElementById('adm-passcode-input').value.trim();
+      const email = document.getElementById('adm-email-input').value.trim();
+      const password = document.getElementById('adm-password-input').value;
       const errEl = document.getElementById('adm-login-err');
       if (errEl) errEl.style.display = 'none';
 
       try {
-        const res = await fetch('/api/admin/auth', {
+        const res = await fetch('/api/admin/auth/login', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ passcode: pass })
+          body: JSON.stringify({ email, password })
         });
         const data = await res.json();
-        if (!res.ok || !data.token) throw new Error(data.error || 'Invalid Admin Passcode');
-        adminToken = data.token;
-        sessionStorage.setItem('sr_admin_token', adminToken);
-        sessionStorage.setItem('sr_admin_role', currentAdminRole);
+        if (!res.ok) throw new Error(data.error || 'Authentication failed');
+
+        if (data.mfaRequired) {
+          pendingMfaChallenge = data.challengeToken;
+          document.getElementById('adm-mfa-email').textContent = data.email || email;
+          document.getElementById('adm-login-form').style.display = 'none';
+          document.getElementById('adm-mfa-form').style.display = 'block';
+          document.getElementById('adm-mfa-code').focus();
+          return;
+        }
+
+        currentAdminUser = data.user;
+        currentAdminRole = data.role;
+        previewAdminRole = data.role;
+        document.getElementById('adm-password-input').value = '';
         enterAdminConsole();
       } catch (err) {
         if (errEl) {
@@ -1495,45 +1506,118 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       }
     };
 
+    window.handleAdminMfaVerify = async function (e) {
+      e.preventDefault();
+      const code = document.getElementById('adm-mfa-code').value.trim();
+      const errEl = document.getElementById('adm-mfa-err');
+      if (errEl) errEl.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/auth/mfa/verify', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ challengeToken: pendingMfaChallenge, code })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'MFA verification failed');
+        pendingMfaChallenge = '';
+        currentAdminUser = data.user;
+        currentAdminRole = data.role;
+        previewAdminRole = data.role;
+        document.getElementById('adm-mfa-form').style.display = 'none';
+        document.getElementById('adm-login-form').style.display = 'block';
+        document.getElementById('adm-password-input').value = '';
+        document.getElementById('adm-mfa-code').value = '';
+        enterAdminConsole();
+      } catch (err) {
+        if (errEl) {
+          errEl.textContent = err.message;
+          errEl.style.display = 'block';
+        }
+      }
+    };
+
+    window.cancelMfaStep = function () {
+      pendingMfaChallenge = '';
+      document.getElementById('adm-mfa-form').style.display = 'none';
+      document.getElementById('adm-login-form').style.display = 'block';
+    };
+
+    function updateSecurityPostureUi() {
+      if (!currentAdminUser) return;
+      const emailEl = document.getElementById('sec-user-email');
+      if (emailEl) emailEl.textContent = `${currentAdminUser.fullName} (${currentAdminUser.email})`;
+      const badge = document.getElementById('sec-mfa-badge');
+      const setupBtn = document.getElementById('sec-btn-mfa-setup');
+      const mfaOn = Boolean(currentAdminUser.mfaEnabled);
+      if (badge) {
+        badge.textContent = mfaOn ? '2FA TOTP ACTIVE' : '2FA NOT ENROLLED';
+        badge.className = `chip ${mfaOn ? 'emerald' : 'amber'}`;
+      }
+      if (setupBtn) {
+        setupBtn.textContent = mfaOn ? 'Rotate 2FA Key' : 'Enable 2FA Authenticator';
+      }
+    }
+
     function enterAdminConsole() {
+      adminSessionEpoch++;
       document.getElementById('auth-barrier').style.display = 'none';
       document.getElementById('console-root').classList.add('active');
+      const previewBar = document.getElementById('adm-owner-preview-bar');
+      const lockedChip = document.getElementById('adm-locked-role-chip');
+      const isRoot = currentAdminRole === 'owner_root';
+      if (previewBar) previewBar.style.display = isRoot ? 'inline-flex' : 'none';
+      if (lockedChip) {
+        lockedChip.textContent = `CLEARANCE LOCKED: ${String(currentAdminRole || '').toUpperCase()}`;
+      }
+      updateSecurityPostureUi();
       window.setAdminActiveRole(currentAdminRole, true);
+      window.switchAdminView('overview');
       refreshAdminData();
     }
 
-    window.logoutAdminConsole = function () {
-      adminToken = '';
-      sessionStorage.removeItem('sr_admin_token');
+    window.logoutAdminConsole = async function () {
+      adminSessionEpoch++;
+      currentAdminUser = null;
+      currentAdminRole = '';
+      previewAdminRole = '';
+      try {
+        await fetch('/api/admin/auth/logout', { method: 'POST', credentials: 'same-origin' });
+      } catch (_) {}
       document.getElementById('console-root').classList.remove('active');
       document.getElementById('auth-barrier').style.display = 'grid';
     };
 
     window.setAdminActiveRole = function (roleKey, isInitial) {
-      currentAdminRole = roleKey;
-      sessionStorage.setItem('sr_admin_role', roleKey);
-      const prof = ADMIN_ROLE_PROFILES[roleKey] || ADMIN_ROLE_PROFILES.owner_root;
+      // Only a verified owner_root session can toggle UI preview views
+      const effectiveViewRole = currentAdminRole === 'owner_root' ? roleKey : currentAdminRole;
+      previewAdminRole = effectiveViewRole;
+      const prof = ADMIN_ROLE_PROFILES[effectiveViewRole] || ADMIN_ROLE_PROFILES.ops_support_admin;
 
       document.getElementById('sidebar-role-badge').textContent = prof.badge;
-      document.getElementById('topbar-clearance-title').textContent = prof.title;
+      document.getElementById('topbar-clearance-title').textContent =
+        currentAdminUser ? `${prof.title} — ${currentAdminUser.fullName}` : prof.title;
       document.getElementById('topbar-clearance-desc').textContent = prof.desc;
       const rw = document.getElementById('restricted-worker-name');
-      if (rw) rw.textContent = prof.workerName;
+      if (rw) rw.textContent = currentAdminUser ? `${currentAdminUser.fullName} (${currentAdminRole})` : prof.workerName;
 
       document.querySelectorAll('.role-chip').forEach(c => {
-        c.classList.toggle('active', c.getAttribute('data-switch-role') === roleKey);
+        c.classList.toggle('active', c.getAttribute('data-switch-role') === effectiveViewRole);
       });
 
-      const isOwner = roleKey === 'owner_root';
-      document.getElementById('owner-restricted-banner').style.display = isOwner ? 'none' : 'block';
-      document.getElementById('owner-vault-unlocked').style.display = isOwner ? 'block' : 'none';
+      const showOwnerVault = currentAdminRole === 'owner_root' && effectiveViewRole === 'owner_root';
+      document.getElementById('owner-restricted-banner').style.display = showOwnerVault ? 'none' : 'block';
+      document.getElementById('owner-vault-unlocked').style.display = showOwnerVault ? 'block' : 'none';
 
       if (!isInitial) {
-        if (roleKey === 'onboarding_admin') window.switchAdminView('onboarding');
-        else if (roleKey === 'ops_support_admin') window.switchAdminView('rectifications');
-        else if (roleKey === 'finance_admin') window.switchAdminView('finance');
+        if (effectiveViewRole === 'onboarding_admin') window.switchAdminView('onboarding');
+        else if (effectiveViewRole === 'ops_support_admin') window.switchAdminView('rectifications');
+        else if (effectiveViewRole === 'finance_admin') window.switchAdminView('finance');
         else window.switchAdminView('owner-vault');
-        showToast('Switched console clearance to: ' + prof.workerName);
+        if (currentAdminRole === 'owner_root') {
+          showToast('UI preview switched to: ' + prof.badge + ' (server session remains owner_root)');
+        }
       }
     };
 
@@ -1546,130 +1630,280 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       });
     };
 
+    window.beginMfaEnrollment = async function () {
+      try {
+        const res = await admFetch('/api/admin/mfa/setup', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not initialize MFA');
+        document.getElementById('sec-mfa-secret').textContent = data.secret;
+        document.getElementById('sec-mfa-uri').textContent = data.otpauthUri;
+        document.getElementById('sec-mfa-enroll-box').style.display = 'block';
+      } catch (err) {
+        showToast('MFA error: ' + err.message);
+      }
+    };
+
+    window.confirmMfaEnrollment = async function () {
+      const code = document.getElementById('sec-mfa-verify-code').value.trim();
+      if (!code) return showToast('Enter the 6-digit authenticator code first.');
+      try {
+        const res = await admFetch('/api/admin/mfa/enable', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Verification failed');
+        if (currentAdminUser) currentAdminUser.mfaEnabled = true;
+        document.getElementById('sec-mfa-enroll-box').style.display = 'none';
+        document.getElementById('sec-mfa-verify-code').value = '';
+        updateSecurityPostureUi();
+        if (currentAdminRole === 'owner_root') await window.refreshAuditLogs();
+        showToast('2FA TOTP Authenticator activated for your admin account.');
+      } catch (err) {
+        showToast('MFA activation error: ' + err.message);
+      }
+    };
+
+    window.revokeMyAdminSessions = async function () {
+      try {
+        const res = await admFetch('/api/admin/sessions/revoke-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ allUsers: false })
+        });
+        if (res.ok) {
+          currentAdminUser = null;
+          currentAdminRole = '';
+          document.getElementById('console-root').classList.remove('active');
+          document.getElementById('auth-barrier').style.display = 'grid';
+          showToast('All your active admin sessions were revoked.');
+        }
+      } catch (_) {}
+    };
+
+    window.revokeAllGlobalSessions = async function () {
+      try {
+        const res = await admFetch('/api/admin/sessions/revoke-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ allUsers: true })
+        });
+        if (res.ok) {
+          currentAdminUser = null;
+          currentAdminRole = '';
+          document.getElementById('console-root').classList.remove('active');
+          document.getElementById('auth-barrier').style.display = 'grid';
+          showToast('Revoked ALL admin sessions globally.');
+        } else {
+          const d = await res.json();
+          showToast(d.error || 'Owner Root clearance required.');
+        }
+      } catch (_) {}
+    };
+
+    window.refreshAuditLogs = async function () {
+      if (currentAdminRole !== 'owner_root') return;
+      try {
+        const res = await admFetch('/api/admin/audit-logs?limit=50');
+        if (!res.ok) return;
+        const data = await res.json();
+        cachedAuditLogs = data.logs || [];
+        const tbody = document.getElementById('owner-audit-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = cachedAuditLogs.map(l => `
+          <tr>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-slate);">${escapeHtml(new Date(l.createdAt).toLocaleString())}</td>
+            <td><strong>${escapeHtml(l.actorEmail || 'anonymous')}</strong><div style="font-size:11px; color:var(--text-slate);">${escapeHtml(l.actorRole || '')}</div></td>
+            <td><code>${escapeHtml(l.eventType)}</code></td>
+            <td><span class="chip ${l.outcome === 'SUCCESS' ? 'emerald' : l.outcome === 'DENIED' ? 'rose' : 'amber'}">${escapeHtml(l.outcome)}</span></td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:11.5px;">${escapeHtml(l.ipAddress || '')}</td>
+          </tr>
+        `).join('');
+      } catch (_) {}
+    };
+
     async function refreshAdminData() {
-      renderOwnerApprovals();
-      renderAdminStaffTable();
-      renderRectificationTable();
+      if (!currentAdminUser) return;
+      const myEpoch = adminSessionEpoch;
       renderEmailStationTable();
 
-      const headers = { 'Authorization': 'Bearer ' + adminToken };
       try {
-        const [ovRes, tenRes, leadRes] = await Promise.all([
-          fetch('/api/admin/overview', { headers }),
-          fetch('/api/admin/tenants', { headers }),
-          fetch('/api/admin/demo-requests', { headers })
-        ]);
-        if (ovRes.ok) {
+        const calls = [
+          admFetch('/api/admin/overview'),
+          admFetch('/api/admin/tenants'),
+          admFetch('/api/admin/demo-requests'),
+          admFetch('/api/admin/approvals'),
+          admFetch('/api/admin/rectifications')
+        ];
+        if (currentAdminRole === 'owner_root') {
+          calls.push(admFetch('/api/admin/staff'));
+          calls.push(admFetch('/api/admin/audit-logs?limit=50'));
+        }
+        const results = await Promise.all(calls);
+        if (myEpoch !== adminSessionEpoch || !currentAdminUser) return;
+        const [ovRes, tenRes, leadRes, appRes, recRes, staffRes, auditRes] = results;
+
+        if (ovRes && ovRes.ok) {
           const ov = await ovRes.json();
           if (ov.stats) {
             document.getElementById('kpi-total-tenants').textContent = ov.stats.totalTenants;
             document.getElementById('kpi-total-workers').textContent = ov.stats.totalFrontlineWorkers;
           }
         }
-        if (tenRes.ok) {
+        if (tenRes && tenRes.ok) {
           const td = await tenRes.json();
           cachedTenants = td.tenants || [];
           renderTenantsTable();
         }
-        if (leadRes.ok) {
+        if (leadRes && leadRes.ok) {
           const ld = await leadRes.json();
-          cachedLeads = ld.leads || [];
+          cachedLeads = ld.requests || ld.leads || [];
           renderLeadsTable();
+        }
+        if (appRes && appRes.ok) {
+          const ad = await appRes.json();
+          cachedApprovals = ad.approvals || [];
+          renderOwnerApprovals();
+        }
+        if (recRes && recRes.ok) {
+          const rd = await recRes.json();
+          cachedRectifications = rd.rectifications || [];
+          renderRectificationTable();
+        }
+        if (staffRes && staffRes.ok) {
+          const sd = await staffRes.json();
+          cachedAdminStaff = sd.staff || [];
+          renderAdminStaffTable();
+        }
+        if (auditRes && auditRes.ok) {
+          const aud = await auditRes.json();
+          cachedAuditLogs = aud.logs || [];
+          const tbody = document.getElementById('owner-audit-tbody');
+          if (tbody) {
+            tbody.innerHTML = cachedAuditLogs.map(l => `
+              <tr>
+                <td style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-slate);">${escapeHtml(new Date(l.createdAt).toLocaleString())}</td>
+                <td><strong>${escapeHtml(l.actorEmail || 'anonymous')}</strong><div style="font-size:11px; color:var(--text-slate);">${escapeHtml(l.actorRole || '')}</div></td>
+                <td><code>${escapeHtml(l.eventType)}</code></td>
+                <td><span class="chip ${l.outcome === 'SUCCESS' ? 'emerald' : l.outcome === 'DENIED' ? 'rose' : 'amber'}">${escapeHtml(l.outcome)}</span></td>
+                <td style="font-family:'JetBrains Mono',monospace; font-size:11.5px;">${escapeHtml(l.ipAddress || '')}</td>
+              </tr>
+            `).join('');
+          }
         }
       } catch (_) {}
     }
 
     function renderOwnerApprovals() {
       const tbody = document.getElementById('owner-approval-tbody');
-      const pendingCount = ownerApprovals.filter(a => a.status.includes('PENDING')).length;
+      const pendingCount = cachedApprovals.filter(a => String(a.status).includes('PENDING')).length;
       document.getElementById('kpi-pending-approvals').textContent = pendingCount;
       document.getElementById('nav-badge-approvals').textContent = pendingCount;
       const vc = document.getElementById('owner-vault-pending-count');
       if (vc) vc.textContent = pendingCount;
       if (!tbody) return;
 
-      tbody.innerHTML = ownerApprovals.map((item, idx) => {
-        const isPending = item.status.includes('PENDING');
+      tbody.innerHTML = cachedApprovals.map((item) => {
+        const isPending = String(item.status).includes('PENDING');
         return `
           <tr>
-            <td><code style="color:var(--emerald); font-weight:700;">${item.id}</code></td>
-            <td><strong>${item.by}</strong></td>
-            <td>${item.summary}</td>
-            <td><span class="chip amber">${item.impact}</span></td>
-            <td><span class="chip ${isPending ? 'amber' : 'emerald'}">${item.status}</span></td>
+            <td><code style="color:var(--emerald); font-weight:700;">${escapeHtml(item.id)}</code></td>
+            <td><strong>${escapeHtml(item.by)}</strong></td>
+            <td>${escapeHtml(item.summary)}</td>
+            <td><span class="chip amber">${escapeHtml(item.impact)}</span></td>
+            <td><span class="chip ${isPending ? 'amber' : 'emerald'}">${escapeHtml(item.status)}</span></td>
             <td>
-              ${isPending ? `
+              ${isPending && currentAdminRole === 'owner_root' ? `
                 <div style="display:flex; gap:6px;">
-                  <button type="button" class="btn-emerald" style="padding:6px 11px; font-size:11.5px;" onclick="window.ownerDecideApproval(${idx}, 'APPROVED & EXECUTED BY OWNER')">✓ Approve</button>
-                  <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:11.5px; color:var(--rose);" onclick="window.ownerDecideApproval(${idx}, 'RETURNED BY OWNER')">✕ Return</button>
+                  <button type="button" class="btn-emerald" style="padding:6px 11px; font-size:11.5px;" onclick="window.ownerDecideApproval('${escapeHtml(item.id)}', 'APPROVED & EXECUTED BY OWNER')">Approve</button>
+                  <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:11.5px; color:var(--rose);" onclick="window.ownerDecideApproval('${escapeHtml(item.id)}', 'RETURNED BY OWNER')">Return</button>
                 </div>
-              ` : `<span style="font-size:12px; color:var(--text-slate);">Signed off by Owner</span>`}
+              ` : `<span style="font-size:12px; color:var(--text-slate);">${isPending ? 'Owner Root required' : 'Recorded on ledger'}</span>`}
             </td>
           </tr>
         `;
       }).join('');
     }
 
-    window.ownerDecideApproval = function (idx, decision) {
+    window.ownerDecideApproval = async function (approvalId, decision) {
       if (currentAdminRole !== 'owner_root') {
-        showToast('Only the Founder / Sovereign Owner can sign off on Master Approvals.');
+        showToast('Server Forbidden: Only the Founder / Sovereign Owner can approve requests.');
         return;
       }
-      const item = ownerApprovals[idx];
-      if (!item) return;
-      item.status = decision;
-      renderOwnerApprovals();
-      pushEmailStationLog({
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        from: 'owner-vault@shiftrelay.com',
-        to: 'operations@shiftrelay.com',
-        subject: `Owner Sign-Off Recorded: ${item.id} (${decision})`,
-        source: 'Owner Sovereign Vault',
-        status: 'DELIVERED'
-      });
-      showToast(`Owner Root Decision: ${item.id} → ${decision}`);
+      try {
+        const res = await admFetch(`/api/admin/approvals/${encodeURIComponent(approvalId)}/decide`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ decision })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not record decision');
+        await refreshAdminData();
+        showToast(`Owner Root Decision Recorded: ${approvalId} -> ${decision}`);
+      } catch (err) {
+        showToast('Approval error: ' + err.message);
+      }
     };
 
     function renderAdminStaffTable() {
       const tbody = document.getElementById('owner-staff-tbody');
       if (!tbody) return;
-      tbody.innerHTML = adminStaffMembers.map((s, idx) => `
+      tbody.innerHTML = cachedAdminStaff.map((s) => `
         <tr>
-          <td><strong>${s.name}</strong><div style="font-size:11.5px; color:var(--text-slate);">${s.email}</div></td>
-          <td><span class="chip cyan">${s.role}</span></td>
-          <td style="font-size:12.5px;">${s.modules}</td>
-          <td style="font-size:12.5px; color:#fbbf24;">${s.restriction}</td>
-          <td><span class="chip ${s.status === 'ACTIVE' ? 'emerald' : 'rose'}">${s.status}</span></td>
+          <td><strong>${escapeHtml(s.fullName)}</strong><div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(s.email)} ${s.mfaEnabled ? '• 2FA' : ''}</div></td>
+          <td><span class="chip cyan">${escapeHtml(s.role)}</span></td>
+          <td style="font-size:12.5px;">${escapeHtml(s.modules)}</td>
+          <td style="font-size:12.5px; color:#fbbf24;">${escapeHtml(s.restriction)}</td>
+          <td><span class="chip ${s.status === 'ACTIVE' ? 'emerald' : 'rose'}">${escapeHtml(s.status)}</span></td>
           <td>
-            <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.toggleStaffStatus(${idx})">
-              ${s.status === 'ACTIVE' ? 'Freeze Access' : 'Restore Access'}
-            </button>
+            ${currentAdminUser && s.id === currentAdminUser.id
+              ? '<span style="font-size:11.5px; color:var(--text-dim);">Current Session</span>'
+              : `<button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.toggleStaffStatus('${escapeHtml(s.id)}', '${s.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'}')">
+                  ${s.status === 'ACTIVE' ? 'Freeze Access' : 'Restore Access'}
+                </button>`
+            }
           </td>
         </tr>
       `).join('');
     }
 
-    window.toggleStaffStatus = function (idx) {
-      if (!adminStaffMembers[idx]) return;
-      adminStaffMembers[idx].status = adminStaffMembers[idx].status === 'ACTIVE' ? 'SUSPENDED BY OWNER' : 'ACTIVE';
-      renderAdminStaffTable();
-      showToast('Updated clearance for ' + adminStaffMembers[idx].name);
+    window.toggleStaffStatus = async function (staffId, nextStatus) {
+      try {
+        const res = await admFetch(`/api/admin/staff/${encodeURIComponent(staffId)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: nextStatus })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not update staff access');
+        await refreshAdminData();
+        showToast('Updated admin account status to: ' + nextStatus);
+      } catch (err) {
+        showToast('Staff governance error: ' + err.message);
+      }
     };
 
-    window.promptAddAdminWorker = function () {
-      const name = prompt('Enter new Admin Worker Full Name:', 'Ngozi Okafor');
-      if (!name) return;
-      const role = prompt('Assign Department Role (Onboarding / Support / Finance):', 'Onboarding Specialist');
-      adminStaffMembers.push({
-        name,
-        email: name.toLowerCase().replace(/\s+/g, '.') + '@shiftrelay.com',
-        role: role || 'Operations Specialist',
-        modules: 'Assigned Department Queue Only',
-        restriction: 'All Final Approvals Routed to Owner Root',
-        status: 'ACTIVE'
-      });
-      renderAdminStaffTable();
-      showToast('Provisioned separated Admin Worker: ' + name);
+    window.promptAddAdminWorker = async function () {
+      const fullName = prompt('Enter new Admin Staff Full Name:', 'Ngozi Okafor');
+      if (!fullName) return;
+      const email = prompt('Enter corporate email (@shiftrelay.com):', fullName.toLowerCase().replace(/\s+/g, '.') + '@shiftrelay.com');
+      if (!email) return;
+      const role = prompt('Assign role key (onboarding_admin | ops_support_admin | finance_admin):', 'onboarding_admin');
+      if (!role) return;
+      try {
+        const res = await admFetch('/api/admin/staff', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName, email, role })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not create admin user');
+        await refreshAdminData();
+        showToast(`Created ${data.staff.email} (${data.staff.role}).${data.temporaryPassword ? ' Temp Password: ' + data.temporaryPassword : ''}`);
+      } catch (err) {
+        showToast('Provision error: ' + err.message);
+      }
     };
 
     function renderTenantsTable() {
@@ -1711,10 +1945,41 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       }).join('');
     }
 
+    window.openEditTenantModal = async function (tenantId) {
+      const tenant = cachedTenants.find(t => String(t.id) === String(tenantId));
+      if (!tenant) return showToast('Tenant record not found.');
+      const nextName = prompt('Trading / Company Name:', tenant.tradingName || tenant.legalName || tenant.name || '');
+      if (nextName === null) return;
+      const nextSite = prompt('Primary Hub / Gate Name:', tenant.hubName || tenant.siteName || '');
+      if (nextSite === null) return;
+      const nextRadiusRaw = prompt('Geofence Radius (meters):', String(tenant.hubRadius || tenant.radiusMeters || 120));
+      if (nextRadiusRaw === null) return;
+      try {
+        const res = await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tradingName: nextName.trim() || tenant.tradingName,
+            legalName: nextName.trim() || tenant.legalName,
+            hubName: nextSite.trim() || tenant.hubName,
+            hubRadius: Number(nextRadiusRaw) || Number(tenant.hubRadius) || 120
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not update tenant');
+        await refreshAdminData();
+        showToast(`Updated tenant configuration for ${nextName.trim() || tenantId}.`);
+      } catch (err) {
+        showToast('Tenant update error: ' + err.message);
+      }
+    };
+
     window.handleCreateTenant = async function (e) {
       e.preventDefault();
+      const companyName = document.getElementById('ob-company-name').value.trim();
       const payload = {
-        name: document.getElementById('ob-company-name').value.trim(),
+        legalName: companyName,
+        name: companyName,
         industry: document.getElementById('ob-industry').value,
         adminName: document.getElementById('ob-admin-name').value.trim(),
         adminEmail: document.getElementById('ob-admin-email').value.trim(),
@@ -1724,26 +1989,19 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         longitude: Number(document.getElementById('ob-lng').value) || 3.3792
       };
       try {
-        const res = await fetch('/api/admin/tenants', {
+        const res = await admFetch('/api/admin/tenants', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to provision tenant');
 
-        ownerApprovals.unshift({
-          id: 'APPR-' + Math.floor(910 + Math.random() * 80),
-          by: ADMIN_ROLE_PROFILES[currentAdminRole].workerName,
-          summary: `Activate Newly Onboarded Tenant: ${payload.name} (${payload.siteName})`,
-          impact: 'New Enterprise Contract & Gate Key',
-          status: 'PENDING OWNER SIGN-OFF'
-        });
         pushEmailStationLog({
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           from: 'onboarding@shiftrelay.com',
           to: payload.adminEmail,
-          subject: `Welcome to ShiftRelay — Gate Code & Owner OTP Setup for ${payload.name}`,
+          subject: `Welcome to ShiftRelay — Gate Code & Owner OTP Setup for ${companyName}`,
           source: 'Onboarding Wizard',
           status: 'DELIVERED'
         });
@@ -1773,9 +2031,9 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       }).filter(e => e.name);
 
       try {
-        const res = await fetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/employees/bulk`, {
+        const res = await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/employees/bulk`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ employees })
         });
         const data = await res.json();
@@ -1796,74 +2054,86 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
     };
 
     function renderRectificationTable() {
-      const list = getCombinedRectificationReceipts();
+      const list = cachedRectifications || [];
       document.getElementById('nav-badge-rects').textContent = list.length;
       const tbody = document.getElementById('adm-rectifications-tbody');
       if (!tbody) return;
-      tbody.innerHTML = list.map((r, idx) => `
+      tbody.innerHTML = list.map((r) => `
         <tr>
-          <td><code style="color:var(--sky); font-weight:700;">${r.id}</code></td>
-          <td><strong>${r.name || r.worker || 'Frontline Staff'}</strong><div style="font-size:11.5px; color:var(--text-slate);">${r.email}</div></td>
-          <td><strong>${r.category}</strong></td>
-          <td style="font-size:12.5px; color:#cbd5e1; max-width:340px;">${r.details}</td>
-          <td><span class="chip ${String(r.status).includes('RESOLVED') ? 'emerald' : 'cyan'}">${r.status}</span></td>
+          <td><code style="color:var(--sky); font-weight:700;">${escapeHtml(r.id)}</code></td>
+          <td><strong>${escapeHtml(r.name || r.worker || 'Frontline Staff')}</strong><div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(r.email)}</div></td>
+          <td><strong>${escapeHtml(r.category)}</strong></td>
+          <td style="font-size:12.5px; color:#cbd5e1; max-width:340px;">${escapeHtml(r.details)}</td>
+          <td><span class="chip ${String(r.status).includes('RESOLVED') ? 'emerald' : 'cyan'}">${escapeHtml(r.status)}</span></td>
           <td>
             <div style="display:flex; gap:6px;">
-              <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.escalateRectificationToOwner('${r.id}')">Escalate to Owner</button>
-              <button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.resolveRectificationTicket('${r.id}')">Resolve &amp; Email</button>
+              <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.escalateRectificationToOwner('${escapeHtml(r.id)}')">Escalate to Owner</button>
+              <button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.resolveRectificationTicket('${escapeHtml(r.id)}')">Resolve &amp; Email</button>
             </div>
           </td>
         </tr>
       `).join('');
     }
 
-    window.syncAppRectificationReceipts = function (notify) {
-      renderRectificationTable();
-      if (notify) showToast('Synced latest Worker Rectification Receipts from Mobile App!');
+    window.syncAppRectificationReceipts = async function (notify) {
+      await refreshAdminData();
+      if (notify) showToast('Synced latest Worker Rectification Receipts from server!');
     };
 
-    window.escalateRectificationToOwner = function (recId) {
-      const list = getCombinedRectificationReceipts();
-      const target = list.find(x => x.id === recId);
+    window.escalateRectificationToOwner = async function (recId) {
+      const target = (cachedRectifications || []).find(x => x.id === recId);
       if (!target) return;
-      target.status = 'ESCALATED TO OWNER VAULT';
-      try { localStorage.setItem('shiftrelay-rectification-receipts', JSON.stringify(list)); } catch (_) {}
-      ownerApprovals.unshift({
-        id: 'APPR-' + Math.floor(920 + Math.random() * 70),
-        by: ADMIN_ROLE_PROFILES[currentAdminRole].workerName,
-        summary: `Approve Rectification Receipt ${target.id} (${target.category} for ${target.name || target.email})`,
-        impact: 'Verified Record Override',
-        status: 'PENDING OWNER SIGN-OFF'
-      });
-      renderRectificationTable();
-      renderOwnerApprovals();
-      showToast(`Escalated ${target.id} to Owner Sovereign Approval Queue.`);
+      try {
+        const resRec = await admFetch(`/api/admin/rectifications/${encodeURIComponent(recId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'ESCALATED TO OWNER VAULT' })
+        });
+        if (!resRec.ok) throw new Error('Failed to escalate rectification');
+        await admFetch('/api/admin/approvals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            summary: `Approve Rectification Receipt ${target.id} (${target.category} for ${target.name || target.email})`,
+            impact: 'Verified Record Override'
+          })
+        });
+        await refreshAdminData();
+        showToast(`Escalated ${target.id} to Owner Sovereign Approval Queue.`);
+      } catch (err) {
+        showToast('Escalation error: ' + err.message);
+      }
     };
 
-    window.resolveRectificationTicket = function (recId) {
-      const list = getCombinedRectificationReceipts();
-      const target = list.find(x => x.id === recId);
+    window.resolveRectificationTicket = async function (recId) {
+      const target = (cachedRectifications || []).find(x => x.id === recId);
       if (!target) return;
-      target.status = 'RESOLVED • RECEIPT EMAILED';
-      try { localStorage.setItem('shiftrelay-rectification-receipts', JSON.stringify(list)); } catch (_) {}
-      pushEmailStationLog({
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        from: 'support@shiftrelay.com',
-        to: target.email,
-        subject: `Resolved: Official Rectification Receipt #${target.id} (${target.category})`,
-        source: 'Support Desk Resolution',
-        status: 'DELIVERED'
-      });
-      renderRectificationTable();
-      showToast(`Resolved ${target.id} & dispatched confirmation via Email Auto-Station!`);
+      try {
+        const res = await admFetch(`/api/admin/rectifications/${encodeURIComponent(recId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'RESOLVED • RECEIPT EMAILED' })
+        });
+        if (!res.ok) throw new Error('Failed to resolve ticket');
+        pushEmailStationLog({
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          from: 'support@shiftrelay.com',
+          to: target.email,
+          subject: `Resolved: Official Rectification Receipt #${target.id} (${target.category})`,
+          source: 'Support Desk Resolution',
+          status: 'DELIVERED'
+        });
+        await refreshAdminData();
+        showToast(`Resolved ${target.id} & recorded status on server!`);
+      } catch (err) {
+        showToast('Resolve error: ' + err.message);
+      }
     };
 
     async function renderEmailStationTable() {
       let logs = getEmailStationLogs();
       try {
-        const res = await fetch('/api/admin/emails', {
-          headers: { 'Authorization': 'Bearer ' + adminToken }
-        });
+        const res = await admFetch('/api/admin/emails');
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.emails) && data.emails.length > 0) {
@@ -1879,15 +2149,15 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       if (!tbody) return;
       tbody.innerHTML = logs.map(l => {
         const urlMatch = (l.html || l.text || '').match(/https?:\/\/[^\s"'>]+/);
-        const linkHtml = urlMatch ? `<br><a href="${urlMatch[0]}" target="_blank" style="font-size:11px; color:#38bdf8; text-decoration:underline;">Open Activation Link ↗</a>` : '';
+        const linkHtml = urlMatch ? `<br><a href="${escapeHtml(urlMatch[0])}" target="_blank" style="font-size:11px; color:#38bdf8; text-decoration:underline;">Open Activation Link ↗</a>` : '';
         return `
           <tr>
-            <td style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-slate);">${l.time || 'Just now'}</td>
-            <td><code style="color:var(--emerald);">${l.from || 'engine@shiftrelay.tech'}</code></td>
-            <td><strong>${l.to}</strong></td>
-            <td>${l.subject}${linkHtml}</td>
-            <td><span class="chip cyan">${l.source || 'Email Engine'}</span></td>
-            <td><span class="chip emerald">${l.status || 'DELIVERED'}</span></td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-slate);">${escapeHtml(l.time || 'Just now')}</td>
+            <td><code style="color:var(--emerald);">${escapeHtml(l.from || 'engine@shiftrelay.tech')}</code></td>
+            <td><strong>${escapeHtml(l.to)}</strong></td>
+            <td>${escapeHtml(l.subject)}${linkHtml}</td>
+            <td><span class="chip cyan">${escapeHtml(l.source || 'Email Engine')}</span></td>
+            <td><span class="chip emerald">${escapeHtml(l.status || 'DELIVERED')}</span></td>
           </tr>
         `;
       }).join('');
@@ -1915,22 +2185,29 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       showToast(`Saved Email Auto-Station configuration for ${domain}!`);
     };
 
-    window.submitPayrollBatchForOwnerApproval = function () {
-      ownerApprovals.unshift({
-        id: 'APPR-' + Math.floor(940 + Math.random() * 50),
-        by: ADMIN_ROLE_PROFILES[currentAdminRole].workerName,
-        summary: 'Final Release: Multi-Tenant Statutory Payroll & PenCom/PAYE Schedule (₦30,910,000 Gross)',
-        impact: 'Treasury Batch: ₦30,910,000',
-        status: 'PENDING OWNER SIGN-OFF'
-      });
-      renderOwnerApprovals();
-      showToast('Audited statutory payroll batch submitted to Owner Sovereign Vault!');
+    window.submitPayrollBatchForOwnerApproval = async function () {
+      try {
+        const res = await admFetch('/api/admin/approvals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            summary: 'Final Release: Multi-Tenant Statutory Payroll & PenCom/PAYE Schedule (₦30,910,000 Gross)',
+            impact: 'Treasury Batch: ₦30,910,000'
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not submit batch');
+        await refreshAdminData();
+        showToast('Audited statutory payroll batch submitted to Owner Sovereign Vault!');
+      } catch (err) {
+        showToast('Payroll submission error: ' + err.message);
+      }
     };
 
     window.exportAdminStatutoryCsv = function () {
       const csv = [
         'Tenant,VerifiedHours,GrossPayNGN,PenComEmployee8Pct,PenComEmployer10Pct,PAYETax,NHF2_5Pct,NSITF1Pct,NetDisbursementNGN',
-        '"Dangote Packaging Ltd",4820,14820000,1185600,1482000,889200,370500,148200,12480500',
+        '"Riffmax Technology Limited",4820,14820000,1185600,1482000,889200,370500,148200,12480500',
         '"Flour Mills Logistics",3190,9640000,771200,964000,578400,241000,96400,8120400',
         '"Eko Atlantic Facility Ops",2140,6450000,516000,645000,387000,161250,64500,5439250'
       ].join('\n');
@@ -1978,7 +2255,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
               </tr>
             </thead>
             <tbody>
-              <tr><td>Dangote Packaging Ltd</td><td>4,820 hrs</td><td>₦14,820,000</td><td>₦2,667,600</td><td>₦1,407,900</td><td><strong>₦12,480,500</strong></td></tr>
+              <tr><td>Riffmax Technology Limited</td><td>4,820 hrs</td><td>₦14,820,000</td><td>₦2,667,600</td><td>₦1,407,900</td><td><strong>₦12,480,500</strong></td></tr>
               <tr><td>Flour Mills Logistics</td><td>3,190 hrs</td><td>₦9,640,000</td><td>₦1,735,200</td><td>₦915,800</td><td><strong>₦8,120,400</strong></td></tr>
               <tr><td>Eko Atlantic Facility Ops</td><td>2,140 hrs</td><td>₦6,450,000</td><td>₦1,161,000</td><td>₦612,750</td><td><strong>₦5,439,250</strong></td></tr>
             </tbody>
@@ -2000,11 +2277,11 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       }
       tbody.innerHTML = cachedLeads.map((l, idx) => `
         <tr>
-          <td style="font-size:12px; color:var(--text-slate);">${new Date(l.createdAt).toLocaleString()}</td>
-          <td><strong>${l.companyName}</strong></td>
-          <td>${l.fullName}</td>
-          <td><div>${l.workEmail}</div><div style="font-size:11.5px; color:var(--text-slate);">${l.phone || ''}</div></td>
-          <td><span class="chip cyan">${l.headcount || '50-200'} • ${l.industry || 'Enterprise'}</span></td>
+          <td style="font-size:12px; color:var(--text-slate);">${escapeHtml(new Date(l.createdAt).toLocaleString())}</td>
+          <td><strong>${escapeHtml(l.companyName)}</strong></td>
+          <td>${escapeHtml(l.fullName)}</td>
+          <td><div>${escapeHtml(l.workEmail)}</div><div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(l.phone || '')}</div></td>
+          <td><span class="chip cyan">${escapeHtml(l.headcount || '50-200')} • ${escapeHtml(l.industry || 'Enterprise')}</span></td>
           <td><button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.convertLeadToOnboarding(${idx})">Convert to Onboarding →</button></td>
         </tr>
       `).join('');
@@ -2046,7 +2323,22 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       w.document.close();
     };
 
-    if (adminToken) enterAdminConsole();
+    async function bootstrapAdminSession() {
+      await loadAdminAuthCapabilities();
+      try {
+        const res = await admFetch('/api/admin/session');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.ok && data.user) {
+          currentAdminUser = data.user;
+          currentAdminRole = data.role;
+          previewAdminRole = data.role;
+          enterAdminConsole();
+        }
+      } catch (_) {}
+    }
+
+    bootstrapAdminSession();
   </script>
 </body>
 </html>

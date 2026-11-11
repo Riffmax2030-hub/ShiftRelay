@@ -17,9 +17,17 @@ const databaseUrl = process.env.DATABASE_URL;
 
 function createPool(url) {
   if (!url) return null;
+  const isLocal = url.includes('localhost') || url.includes('127.0.0.1');
+  const needsSsl =
+    !isLocal &&
+    (url.includes('render.com') ||
+      url.includes('supabase') ||
+      url.includes('neon.tech') ||
+      url.includes('sslmode=') ||
+      process.env.DATABASE_SSL === 'true');
   const p = new Pool({
     connectionString: url,
-    ssl: url.includes('render.com') ? { rejectUnauthorized: false } : undefined,
+    ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
     connectionTimeoutMillis: 5000
   });
   p.on('error', (err) => {
@@ -338,6 +346,87 @@ const schema = `
   );
   create index if not exists idx_idempotency_keys_lookup on idempotency_keys(membership_id, organisation_id, operation, client_key);
   create index if not exists idx_idempotency_keys_expiry on idempotency_keys(expires_at);
+  create table if not exists app_kv_store (
+    store_key varchar(64) primary key,
+    data jsonb not null default '{}'::jsonb,
+    updated_at timestamptz not null default now()
+  );
+  create table if not exists admin_users (
+    id uuid primary key,
+    email text not null unique,
+    full_name text not null,
+    role varchar(32) not null,
+    title text,
+    department text,
+    modules text,
+    restriction text,
+    password_hash text not null,
+    mfa_enabled boolean not null default false,
+    mfa_secret text,
+    mfa_recovery_hashes jsonb not null default '[]'::jsonb,
+    status varchar(24) not null default 'ACTIVE',
+    failed_attempts integer not null default 0,
+    locked_until timestamptz,
+    last_login_at timestamptz,
+    created_at timestamptz not null default now()
+  );
+  create table if not exists admin_sessions (
+    token_hash text primary key,
+    admin_user_id uuid not null references admin_users(id) on delete cascade,
+    role varchar(32) not null,
+    mfa_verified boolean not null default false,
+    step_up_until timestamptz,
+    ip_address text,
+    user_agent text,
+    expires_at timestamptz not null,
+    idle_expires_at timestamptz not null,
+    revoked_at timestamptz,
+    created_at timestamptz not null default now()
+  );
+  create index if not exists idx_admin_sessions_user on admin_sessions(admin_user_id, revoked_at, expires_at);
+  create table if not exists admin_mfa_challenges (
+    challenge_id text primary key,
+    admin_user_id uuid not null references admin_users(id) on delete cascade,
+    expires_at timestamptz not null,
+    created_at timestamptz not null default now()
+  );
+  create table if not exists admin_audit_logs (
+    id uuid primary key default gen_random_uuid(),
+    actor_admin_id uuid references admin_users(id) on delete set null,
+    actor_email text,
+    actor_role varchar(32),
+    event_type varchar(64) not null,
+    target_type varchar(64),
+    target_id text,
+    ip_address text,
+    user_agent text,
+    outcome varchar(24) not null,
+    details jsonb not null default '{}'::jsonb,
+    created_at timestamptz not null default now()
+  );
+  create index if not exists idx_admin_audit_logs_created on admin_audit_logs(created_at desc);
+  create table if not exists admin_approvals (
+    id varchar(32) primary key,
+    requested_by_admin_id uuid references admin_users(id) on delete set null,
+    requested_by_name text not null,
+    summary text not null,
+    impact text,
+    status varchar(48) not null default 'PENDING OWNER SIGN-OFF',
+    decided_by_admin_id uuid references admin_users(id) on delete set null,
+    decided_at timestamptz,
+    created_at timestamptz not null default now()
+  );
+  create table if not exists rectification_receipts (
+    id varchar(32) primary key,
+    worker_name text not null,
+    worker_email text not null,
+    category text not null,
+    details text not null,
+    status varchar(48) not null default 'OPEN FOR SUPPORT AUDIT',
+    updated_by_admin_id uuid references admin_users(id) on delete set null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+  );
 `;
 
 export function databaseConfigured() {

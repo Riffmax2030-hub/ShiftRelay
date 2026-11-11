@@ -94,10 +94,44 @@ export async function sendShiftRelayEmail({ to, subject, html, text, source = 'S
 import { createServer } from 'node:http';
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { basename, extname, join, normalize, resolve } from 'node:path';
 import { databaseConfigured, demoMembers, demoOrganisation, initializeDatabase, isDatabaseConnectionError, sanitizeDatabaseError, query, seedDemoOrganisation } from './database.mjs';
+import {
+  ADMIN_ROLE_DEFS,
+  adminSessionCookie,
+  appendAdminAuditLog,
+  authenticateAdminRequest,
+  buildOtpAuthUri,
+  clearAdminSessionCookie,
+  consumeMfaChallenge,
+  createAdminApproval,
+  createAdminSessionRecord,
+  createMfaChallenge,
+  decideAdminApproval,
+  ensureAdminSeeded,
+  extractAdminToken,
+  findAdminUserByEmail,
+  findAdminUserById,
+  generateBase32Secret,
+  getRequestIp,
+  getUserAgent,
+  hashAdminPassword,
+  peekMfaChallenge,
+  listAdminApprovals,
+  listAdminUsers,
+  listAuditLogs,
+  listRectifications,
+  recordFailedAdminAttempt,
+  resetAdminFailures,
+  revokeAllSessionsForAdmin,
+  revokeAdminSessionByToken,
+  sanitizeAdminUser,
+  updateRectificationStatus,
+  verifyAdminPassword,
+  verifyTotpCode
+} from './admin-auth.mjs';
 import { generateQrSvg } from './qr-svg-generator.js';
 import { calculateShiftScore, scoreWorkerEntries, monthlyScoreSummary } from './shift-score-engine.mjs';
 
@@ -173,13 +207,10 @@ const schema = {
   }
 };
 
-export async function getStore() {
-  await mkdir(dataDirectory, { recursive: true });
-  let store;
-  try { store = JSON.parse(await readFile(dataPath, 'utf8')); }
-  catch { store = { handovers: [], notifications: [] }; }
+function applyStoreDefaults(store) {
+  if (!store || typeof store !== 'object') store = { handovers: [], notifications: [] };
 
-    // ── Premier Enterprise Tenant: Riffmax Technology Limited ──
+  // ── Premier Enterprise Tenant: Riffmax Technology Limited ──
   if (!Array.isArray(store.organisations) || store.organisations.length === 0) {
     store.organisations = [
       {
@@ -244,9 +275,89 @@ export async function getStore() {
   return store;
 }
 
-async function saveStore(store) {
+let devMemoryStore = null;
+let devWriteQueue = Promise.resolve();
+
+export async function getStore() {
+  let store = null;
+  if (databaseReady) {
+    const res = await query('SELECT data FROM app_kv_store WHERE store_key = $1', ['primary']);
+    if (res.rows[0]?.data) {
+      store = res.rows[0].data;
+    } else {
+      try { store = JSON.parse(await readFile(dataPath, 'utf8')); }
+      catch { store = { handovers: [], notifications: [] }; }
+      store = applyStoreDefaults(store);
+      await query(
+        `INSERT INTO app_kv_store (store_key, data, updated_at)
+         VALUES ($1, $2::jsonb, NOW())
+         ON CONFLICT (store_key) DO NOTHING`,
+        ['primary', JSON.stringify(store)]
+      );
+      return store;
+    }
+    return applyStoreDefaults(store);
+  }
+
+  if (devMemoryStore) return devMemoryStore;
   await mkdir(dataDirectory, { recursive: true });
-  await writeFile(dataPath, JSON.stringify(store, null, 2));
+  try { store = JSON.parse(await readFile(dataPath, 'utf8')); }
+  catch { store = { handovers: [], notifications: [] }; }
+  devMemoryStore = applyStoreDefaults(store);
+  return devMemoryStore;
+}
+
+async function saveStore(store) {
+  const normalized = applyStoreDefaults(store);
+  if (databaseReady) {
+    await query(
+      `INSERT INTO app_kv_store (store_key, data, updated_at)
+       VALUES ($1, $2::jsonb, NOW())
+       ON CONFLICT (store_key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
+      ['primary', JSON.stringify(normalized)]
+    );
+    return;
+  }
+  devMemoryStore = normalized;
+  const payload = JSON.stringify(normalized, null, 2);
+  devWriteQueue = devWriteQueue.then(async () => {
+    await mkdir(dataDirectory, { recursive: true });
+    const tmpPath = `${dataPath}.${process.pid}.tmp`;
+    await writeFile(tmpPath, payload);
+    await rename(tmpPath, dataPath);
+  }).catch((err) => {
+    console.error('[STORE WRITE ERROR]', err?.message || err);
+  });
+  return devWriteQueue;
+}
+
+async function requireAdminGate(request, response, store, allowedRoles = null) {
+  const ctx = await authenticateAdminRequest(request, store, databaseReady);
+  if (!ctx) {
+    sendJson(response, 401, { error: 'Enterprise admin session required or expired. Please sign in.' });
+    return null;
+  }
+  if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && !allowedRoles.includes(ctx.role)) {
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: ctx.adminUser.id,
+      actorEmail: ctx.adminUser.email,
+      actorRole: ctx.role,
+      eventType: 'RBAC_ACCESS_DENIED',
+      targetType: 'route',
+      targetId: new URL(request.url, 'http://localhost').pathname,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'DENIED',
+      details: { requiredRoles: allowedRoles }
+    });
+    if (!databaseReady) await saveStore(store);
+    sendJson(response, 403, { error: `Forbidden: Clearance '${ctx.role}' lacks permission for this action.` });
+    return null;
+  }
+  if (!databaseReady) await saveStore(store);
+  return ctx;
 }
 
 function demoTimeSummary(user, store, month) {
@@ -1246,7 +1357,7 @@ export function compilePayrollRun(store, tenantId = null) {
     tenantId ? (o.id === tenantId || o.organisation_code === tenantId) : true
   ) || { legal_name: 'ShiftRelay Employer', organisation_code: 'SR-000', id: null };
 
-  const month = '2026-10'; // current payroll month
+  const month = '2026-11'; // current payroll month (November 2026)
 
   const employees = contracts.map(c => {
     const isMonthly = c.compensation_type === 'fixed_monthly';
@@ -1375,8 +1486,8 @@ export function compilePayrollRun(store, tenantId = null) {
   const missedPunches   = employees.reduce((acc, e) => acc + e.unexcusedAbsenceDays, 0);
 
   return {
-    period:      'October 2026 Monthly Payroll Cycle',
-    payDate:     'Thursday, Oct 29, 2026',
+    period:      'November 2026 Monthly Payroll Cycle',
+    payDate:     'Wednesday, Nov 25, 2026',
     currency:    'NGN',
     currencySymbol: '₦',
     companyName: org.legal_name || org.trading_name || 'ShiftRelay Employer',
@@ -1746,9 +1857,23 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── ShiftRelay Email Outbox Dispatcher (Inspection & Verification) ─────────
-  if ((url.pathname === '/api/dev/outbox' || url.pathname === '/api/admin/emails') && request.method === 'GET') {
+  // ── ShiftRelay Email Outbox Dispatcher (Admin RBAC Protected) ─────────
+  if (url.pathname === '/api/dev/outbox' && request.method === 'GET') {
+    if (IS_PRODUCTION || !ALLOW_DEV_FALLBACK) {
+      return sendJson(response, 403, { error: 'Dev outbox is disabled outside development fallback mode.' });
+    }
     const store = await getStore();
+    return sendJson(response, 200, {
+      ok: true,
+      total: (store.emailStation || []).length,
+      emails: store.emailStation || []
+    });
+  }
+
+  if (url.pathname === '/api/admin/emails' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
     return sendJson(response, 200, {
       ok: true,
       total: (store.emailStation || []).length,
@@ -1759,7 +1884,8 @@ async function handleApi(request, response, url) {
   // ── Admin Live Database Updates: Tenant Editor ─────────────────────────────
   if (url.pathname.startsWith('/api/admin/tenants/') && request.method === 'PUT') {
     const store = await getStore();
-    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin']);
+    if (!adminCtx) return;
     const targetTenantId = url.pathname.split('/')[4];
     const orgIndex = (store.organisations || []).findIndex(o => o.id === targetTenantId || o.organisation_code === targetTenantId);
     if (orgIndex === -1) return sendJson(response, 404, { error: 'Tenant organisation not found.' });
@@ -1779,6 +1905,20 @@ async function handleApi(request, response, url) {
     if (body.hubPerimeter !== undefined) org.hub_perimeter = Number(body.hubPerimeter);
     if (body.subscriptionTier) org.subscription_tier = body.subscriptionTier;
 
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_TENANT_UPDATED',
+      targetType: 'organisation',
+      targetId: org.id,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { organisationCode: org.organisation_code }
+    });
     await saveStore(store);
     return sendJson(response, 200, { ok: true, message: 'Tenant records updated successfully.', tenant: org });
   }
@@ -1786,7 +1926,8 @@ async function handleApi(request, response, url) {
   // ── Admin Live Database Updates: Employee Editor ───────────────────────────
   if (url.pathname.startsWith('/api/admin/employees/') && request.method === 'PUT') {
     const store = await getStore();
-    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin', 'ops_support_admin']);
+    if (!adminCtx) return;
     const targetUserId = url.pathname.split('/')[4];
     const userIndex = (store.portalUsers || []).findIndex(u => u.id === targetUserId);
     if (userIndex === -1) return sendJson(response, 404, { error: 'Employee not found.' });
@@ -1817,6 +1958,19 @@ async function handleApi(request, response, url) {
       }
     }
 
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_EMPLOYEE_UPDATED',
+      targetType: 'employee',
+      targetId: targetUserId,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS'
+    });
     await saveStore(store);
     return sendJson(response, 200, { ok: true, message: 'Employee record updated in database.', user: userObj, member });
   }
@@ -3792,6 +3946,7 @@ async function getUserRewards(user, store) {
     const pending = store.punchCorrections.filter(c => c.status === 'pending');
     return sendJson(response, 200, {
       pending,
+      all: store.punchCorrections,
       count: pending.length
     });
   }
@@ -3850,8 +4005,8 @@ async function getUserRewards(user, store) {
           accruedGross,
           accruedGrossFormatted: '₦' + accruedGross.toLocaleString('en-NG', { minimumFractionDigits: 2 })
         },
-        period: 'October 1 — October 31, 2026',
-        payDate: 'Thursday, Oct 29, 2026',
+        period: 'November 1 — November 30, 2026',
+        payDate: 'Wednesday, Nov 25, 2026',
         companyName: payroll.companyName,
         companyId: payroll.companyId,
         currency: 'NGN',
@@ -3894,8 +4049,8 @@ async function getUserRewards(user, store) {
       payslip: {
         companyName: payroll.companyName,
         companyId: payroll.companyId,
-        period: 'October 1 — October 31, 2026',
-        payDate: 'Thursday, Oct 29, 2026',
+        period: 'November 1 — November 30, 2026',
+        payDate: 'Wednesday, Nov 25, 2026',
         staffName: emp.userName,
         staffId: emp.staffId,
         role: emp.role,
@@ -4005,7 +4160,7 @@ async function getUserRewards(user, store) {
     const csvData = generateBankPaymentCSV(payroll.employees);
     response.writeHead(200, {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="ShiftRelay_Bank_Payment_Schedule_Oct2026.csv"'
+      'Content-Disposition': 'attachment; filename="ShiftRelay_Bank_Payment_Schedule_Nov2026.csv"'
     });
     response.end(csvData);
     return;
@@ -4018,7 +4173,7 @@ async function getUserRewards(user, store) {
     const csvData = generateTaxPensionCSV(payroll.employees);
     response.writeHead(200, {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="ShiftRelay_Statutory_Tax_Pension_Schedule_Oct2026.csv"'
+      'Content-Disposition': 'attachment; filename="ShiftRelay_Statutory_Tax_Pension_Schedule_Nov2026.csv"'
     });
     response.end(csvData);
     return;
@@ -4051,49 +4206,631 @@ async function getUserRewards(user, store) {
     });
   }
 
-  // ── INTERNAL ADMIN / CONCIERGE PROVISIONING PIPELINE ─────────────────────
-  const SHIFTRELAY_ADMIN_KEY = process.env.SHIFTRELAY_ADMIN_KEY || 'ShiftRelay@Admin2026!';
+  // ── ENTERPRISE ADMIN AUTHENTICATION, RBAC & GOVERNANCE PIPELINE ───────────
 
-  function checkAdminAuth(req, st) {
-    const key = req.headers['x-admin-key'];
-    if (key && key === SHIFTRELAY_ADMIN_KEY) return true;
-    const auth = req.headers['authorization'] || '';
-    if (auth.startsWith('Bearer ')) {
-      const tok = auth.slice(7).trim();
-      if (tok === SHIFTRELAY_ADMIN_KEY) return true;
-      const sess = (st.adminSessions || []).find(s => s.token === tok && new Date(s.expiresAt) > new Date());
-      if (sess) return true;
-    }
-    return false;
+  // Legacy single-passcode endpoint retired
+  if (url.pathname === '/api/admin/auth' && request.method === 'POST') {
+    return sendJson(response, 410, {
+      error: 'Legacy shared-passcode admin login has been retired. Use POST /api/admin/auth/login with corporate email and password.'
+    });
   }
 
-  // 1. Admin Login
-  if (url.pathname === '/api/admin/auth' && request.method === 'POST') {
-    const body = await readJson(request);
-    const pass = String(body.passcode || '').trim();
-    if (pass !== SHIFTRELAY_ADMIN_KEY) {
-      return sendJson(response, 401, { error: 'Invalid Implementation Engineer Passcode.' });
-    }
-    const store = await getStore();
-    if (!Array.isArray(store.adminSessions)) store.adminSessions = [];
-    const token = 'sr-adm-' + randomBytes(24).toString('hex');
-    store.adminSessions.push({
-      token,
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-    });
-    await saveStore(store);
+  // 0. Public Auth Capability & SSO Discovery (zero secrets exposed)
+  if (url.pathname === '/api/admin/auth/status' && request.method === 'GET') {
+    const ssoIssuer = process.env.ADMIN_OIDC_ISSUER || '';
+    const ssoClientId = process.env.ADMIN_OIDC_CLIENT_ID || '';
+    const breakGlassConfigured = Boolean(process.env.SHIFTRELAY_BREAKGLASS_KEY && process.env.SHIFTRELAY_BREAKGLASS_KEY.length >= 24);
     return sendJson(response, 200, {
       ok: true,
-      token,
-      engineer: 'ShiftRelay Concierge Engineer'
+      mode: databaseReady ? 'postgres-enterprise-rbac' : 'resilient-rbac',
+      mfaSupported: true,
+      sso: {
+        configured: Boolean(ssoIssuer && ssoClientId),
+        provider: process.env.ADMIN_OIDC_PROVIDER || 'Microsoft Entra ID / Okta OIDC',
+        issuer: ssoIssuer ? ssoIssuer.replace(/\/+$/, '') : null
+      },
+      breakGlassEnabled: breakGlassConfigured
     });
+  }
+
+  // 1. Enterprise Admin Sign-In (Email + Password + Optional Step-2 TOTP MFA)
+  if (url.pathname === '/api/admin/auth/login' && request.method === 'POST') {
+    const body = await readJson(request);
+    const email = String(body.email || '').trim().toLowerCase();
+    const password = String(body.password || '');
+    const mfaCode = String(body.mfaCode || '').trim();
+    const ipAddress = getRequestIp(request);
+    const userAgent = getUserAgent(request);
+
+    if (!email || !password) {
+      return sendJson(response, 400, { error: 'Corporate work email and password are required.' });
+    }
+
+    const store = await getStore();
+    await ensureAdminSeeded(store, databaseReady, IS_PRODUCTION);
+    const adminUser = await findAdminUserByEmail(email, store, databaseReady);
+
+    if (!adminUser) {
+      await appendAdminAuditLog({
+        store,
+        databaseReady,
+        actorEmail: email,
+        actorRole: 'unknown',
+        eventType: 'ADMIN_LOGIN_FAILED',
+        ipAddress,
+        userAgent,
+        outcome: 'DENIED',
+        details: { reason: 'unknown_account' }
+      });
+      if (!databaseReady) await saveStore(store);
+      return sendJson(response, 401, { error: 'Invalid corporate email or password.' });
+    }
+
+    if ((adminUser.status || 'ACTIVE') !== 'ACTIVE') {
+      await appendAdminAuditLog({
+        store,
+        databaseReady,
+        actorId: adminUser.id,
+        actorEmail: adminUser.email,
+        actorRole: adminUser.role,
+        eventType: 'ADMIN_LOGIN_SUSPENDED',
+        ipAddress,
+        userAgent,
+        outcome: 'DENIED'
+      });
+      if (!databaseReady) await saveStore(store);
+      return sendJson(response, 403, { error: 'This admin account is frozen or suspended by Owner Root.' });
+    }
+
+    const lockedUntilRaw = adminUser.locked_until || adminUser.lockedUntil;
+    if (lockedUntilRaw && new Date(lockedUntilRaw) > new Date()) {
+      const waitSec = Math.max(1, Math.ceil((new Date(lockedUntilRaw).getTime() - Date.now()) / 1000));
+      response.setHeader('Retry-After', String(waitSec));
+      return sendJson(response, 429, {
+        error: `Account temporarily locked due to repeated failed attempts. Retry in ${Math.ceil(waitSec / 60)} minute(s).`
+      });
+    }
+
+    const storedHash = adminUser.password_hash || adminUser.passwordHash;
+    const okPassword = await verifyAdminPassword(password, storedHash);
+    if (!okPassword) {
+      const { failedAttempts, lockedUntil } = await recordFailedAdminAttempt(adminUser, store, databaseReady);
+      await appendAdminAuditLog({
+        store,
+        databaseReady,
+        actorId: adminUser.id,
+        actorEmail: adminUser.email,
+        actorRole: adminUser.role,
+        eventType: lockedUntil ? 'ADMIN_LOGIN_LOCKED' : 'ADMIN_LOGIN_FAILED',
+        ipAddress,
+        userAgent,
+        outcome: 'DENIED',
+        details: { failedAttempts }
+      });
+      if (!databaseReady) await saveStore(store);
+      if (lockedUntil) {
+        return sendJson(response, 429, { error: 'Too many failed sign-in attempts. Account locked for 15 minutes.' });
+      }
+      return sendJson(response, 401, { error: 'Invalid corporate email or password.' });
+    }
+
+    const mfaEnabled = Boolean(adminUser.mfa_enabled ?? adminUser.mfaEnabled);
+    const mfaSecret = adminUser.mfa_secret || adminUser.mfaSecret;
+    if (mfaEnabled && mfaSecret) {
+      if (!mfaCode) {
+        const challengeToken = await createMfaChallenge(adminUser.id, store, databaseReady);
+        await appendAdminAuditLog({
+          store,
+          databaseReady,
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role,
+          eventType: 'ADMIN_MFA_CHALLENGE_ISSUED',
+          ipAddress,
+          userAgent,
+          outcome: 'PENDING'
+        });
+        if (!databaseReady) await saveStore(store);
+        return sendJson(response, 200, {
+          ok: true,
+          mfaRequired: true,
+          challengeToken,
+          email: adminUser.email
+        });
+      }
+      if (!verifyTotpCode(mfaSecret, mfaCode)) {
+        await recordFailedAdminAttempt(adminUser, store, databaseReady);
+        await appendAdminAuditLog({
+          store,
+          databaseReady,
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role,
+          eventType: 'ADMIN_MFA_FAILED',
+          ipAddress,
+          userAgent,
+          outcome: 'DENIED'
+        });
+        if (!databaseReady) await saveStore(store);
+        return sendJson(response, 401, { error: 'Invalid authenticator MFA code.' });
+      }
+    }
+
+    await resetAdminFailures(adminUser, store, databaseReady);
+    const sess = await createAdminSessionRecord({ adminUser, mfaVerified: mfaEnabled, req: request, store, databaseReady });
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminUser.id,
+      actorEmail: adminUser.email,
+      actorRole: adminUser.role,
+      eventType: 'ADMIN_LOGIN_SUCCESS',
+      ipAddress,
+      userAgent,
+      outcome: 'SUCCESS',
+      details: { mfaVerified: mfaEnabled }
+    });
+    if (!databaseReady) await saveStore(store);
+
+    response.setHeader('Set-Cookie', adminSessionCookie(sess.rawToken, IS_PRODUCTION));
+    return sendJson(response, 200, {
+      ok: true,
+      mfaRequired: false,
+      user: sanitizeAdminUser(adminUser),
+      role: adminUser.role,
+      expiresAt: sess.expiresAt
+    });
+  }
+
+  // 1b. Enterprise Step-2 MFA Verification
+  if (url.pathname === '/api/admin/auth/mfa/verify' && request.method === 'POST') {
+    const body = await readJson(request);
+    const challengeToken = String(body.challengeToken || '').trim();
+    const code = String(body.code || '').trim();
+    if (!challengeToken || !code) {
+      return sendJson(response, 400, { error: 'MFA challenge token and 6-digit code are required.' });
+    }
+    const store = await getStore();
+    const adminId = await peekMfaChallenge(challengeToken, store, databaseReady);
+    if (!adminId) {
+      return sendJson(response, 401, { error: 'MFA challenge expired or invalid. Please sign in again.' });
+    }
+    const adminUser = await findAdminUserById(adminId, store, databaseReady);
+    if (!adminUser || (adminUser.status || 'ACTIVE') !== 'ACTIVE') {
+      return sendJson(response, 403, { error: 'Admin account unavailable.' });
+    }
+    const mfaSecret = adminUser.mfa_secret || adminUser.mfaSecret;
+    if (!verifyTotpCode(mfaSecret, code)) {
+      const { lockedUntil } = await recordFailedAdminAttempt(adminUser, store, databaseReady);
+      if (lockedUntil) {
+        await consumeMfaChallenge(challengeToken, store, databaseReady);
+      }
+      await appendAdminAuditLog({
+        store,
+        databaseReady,
+        actorId: adminUser.id,
+        actorEmail: adminUser.email,
+        actorRole: adminUser.role,
+        eventType: lockedUntil ? 'ADMIN_LOGIN_LOCKED' : 'ADMIN_MFA_FAILED',
+        ipAddress: getRequestIp(request),
+        userAgent: getUserAgent(request),
+        outcome: 'DENIED'
+      });
+      if (!databaseReady) await saveStore(store);
+      if (lockedUntil) {
+        return sendJson(response, 429, { error: 'Too many failed MFA attempts. Account locked for 15 minutes.' });
+      }
+      return sendJson(response, 401, { error: 'Incorrect 6-digit authenticator code.' });
+    }
+
+    const consumedId = await consumeMfaChallenge(challengeToken, store, databaseReady);
+    if (!consumedId) {
+      return sendJson(response, 401, { error: 'MFA challenge already used or expired. Please sign in again.' });
+    }
+
+    await resetAdminFailures(adminUser, store, databaseReady);
+    const sess = await createAdminSessionRecord({ adminUser, mfaVerified: true, req: request, store, databaseReady });
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminUser.id,
+      actorEmail: adminUser.email,
+      actorRole: adminUser.role,
+      eventType: 'ADMIN_LOGIN_SUCCESS',
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { mfaVerified: true }
+    });
+    if (!databaseReady) await saveStore(store);
+    response.setHeader('Set-Cookie', adminSessionCookie(sess.rawToken, IS_PRODUCTION));
+    return sendJson(response, 200, {
+      ok: true,
+      user: sanitizeAdminUser(adminUser),
+      role: adminUser.role,
+      expiresAt: sess.expiresAt
+    });
+  }
+
+  // 1c. Emergency Break-Glass Root Access (Env-only key, disabled unless set)
+  if (url.pathname === '/api/admin/auth/break-glass' && request.method === 'POST') {
+    const configuredKey = process.env.SHIFTRELAY_BREAKGLASS_KEY || '';
+    if (!configuredKey || configuredKey.length < 24) {
+      return sendJson(response, 403, { error: 'Emergency break-glass key is not configured on this host.' });
+    }
+    const body = await readJson(request);
+    const supplied = Buffer.from(String(body.breakGlassKey || ''), 'utf8');
+    const expected = Buffer.from(configuredKey, 'utf8');
+    if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
+      return sendJson(response, 401, { error: 'Invalid break-glass recovery key.' });
+    }
+    const store = await getStore();
+    await ensureAdminSeeded(store, databaseReady, IS_PRODUCTION);
+    const rootUser = await findAdminUserByEmail('owner@shiftrelay.com', store, databaseReady);
+    if (!rootUser) return sendJson(response, 404, { error: 'Root owner account not seeded.' });
+    const sess = await createAdminSessionRecord({ adminUser: rootUser, mfaVerified: false, req: request, store, databaseReady });
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: rootUser.id,
+      actorEmail: rootUser.email,
+      actorRole: 'owner_root',
+      eventType: 'CRITICAL_BREAKGLASS_LOGIN',
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS'
+    });
+    if (!databaseReady) await saveStore(store);
+    response.setHeader('Set-Cookie', adminSessionCookie(sess.rawToken, IS_PRODUCTION));
+    return sendJson(response, 200, { ok: true, user: sanitizeAdminUser(rootUser), role: 'owner_root', breakGlass: true });
+  }
+
+  // 1d. Admin Sign Out (Revokes server session & clears HttpOnly cookie)
+  if (url.pathname === '/api/admin/auth/logout' && request.method === 'POST') {
+    const store = await getStore();
+    const tok = extractAdminToken(request);
+    const ctx = await authenticateAdminRequest(request, store, databaseReady);
+    if (tok) await revokeAdminSessionByToken(tok, store, databaseReady);
+    if (ctx) {
+      await appendAdminAuditLog({
+        store,
+        databaseReady,
+        actorId: ctx.adminUser.id,
+        actorEmail: ctx.adminUser.email,
+        actorRole: ctx.role,
+        eventType: 'ADMIN_LOGOUT',
+        ipAddress: getRequestIp(request),
+        userAgent: getUserAgent(request),
+        outcome: 'SUCCESS'
+      });
+    }
+    if (!databaseReady) await saveStore(store);
+    response.setHeader('Set-Cookie', clearAdminSessionCookie(IS_PRODUCTION));
+    return sendJson(response, 200, { ok: true });
+  }
+
+  // 1e. Current Verified Admin Session Metadata
+  if (url.pathname === '/api/admin/session' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    return sendJson(response, 200, {
+      ok: true,
+      user: adminCtx.adminUser,
+      role: adminCtx.role,
+      roleProfile: ADMIN_ROLE_DEFS[adminCtx.role] || ADMIN_ROLE_DEFS.ops_support_admin,
+      mfaVerified: adminCtx.mfaVerified,
+      canSwitchPreviewRole: adminCtx.role === 'owner_root'
+    });
+  }
+
+  // 1f. TOTP MFA Setup & Activation
+  if (url.pathname === '/api/admin/mfa/setup' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const secret = generateBase32Secret(20);
+    const otpauthUri = buildOtpAuthUri({ email: adminCtx.adminUser.email, secret });
+    if (databaseReady) {
+      await query('UPDATE admin_users SET mfa_secret = $1 WHERE id = $2', [secret, adminCtx.adminUser.id]);
+    } else {
+      const target = await findAdminUserById(adminCtx.adminUser.id, store, false);
+      if (target) target.mfaSecret = secret;
+      await saveStore(store);
+    }
+    return sendJson(response, 200, { ok: true, secret, otpauthUri });
+  }
+
+  if (url.pathname === '/api/admin/mfa/enable' && request.method === 'POST') {
+    const body = await readJson(request);
+    const code = String(body.code || '').trim();
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const userRec = await findAdminUserById(adminCtx.adminUser.id, store, databaseReady);
+    const secret = userRec?.mfa_secret || userRec?.mfaSecret;
+    if (!secret || !verifyTotpCode(secret, code)) {
+      return sendJson(response, 400, { error: 'Invalid 6-digit verification code from your authenticator app.' });
+    }
+    if (databaseReady) {
+      await query('UPDATE admin_users SET mfa_enabled = TRUE WHERE id = $1', [adminCtx.adminUser.id]);
+    } else {
+      userRec.mfaEnabled = true;
+    }
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_MFA_ENABLED',
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS'
+    });
+    if (!databaseReady) await saveStore(store);
+    return sendJson(response, 200, { ok: true, mfaEnabled: true });
+  }
+
+  // 1g. Revoke Active Admin Sessions (Owner Root revokes all, or user revokes own)
+  if (url.pathname === '/api/admin/sessions/revoke-all' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const body = await readJson(request).catch(() => ({}));
+    const revokeScope = body.allUsers && adminCtx.role === 'owner_root' ? null : adminCtx.adminUser.id;
+    await revokeAllSessionsForAdmin(revokeScope, store, databaseReady);
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_SESSIONS_REVOKED',
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { scope: revokeScope ? 'self' : 'global_all_admins' }
+    });
+    if (!databaseReady) await saveStore(store);
+    response.setHeader('Set-Cookie', clearAdminSessionCookie(IS_PRODUCTION));
+    return sendJson(response, 200, { ok: true, signedOut: true });
+  }
+
+  // 1h. Owner-Only Internal Admin Staff Governance
+  if (url.pathname === '/api/admin/staff' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root']);
+    if (!adminCtx) return;
+    const staff = await listAdminUsers(store, databaseReady);
+    return sendJson(response, 200, { ok: true, staff });
+  }
+
+  if (url.pathname === '/api/admin/staff' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root']);
+    if (!adminCtx) return;
+    const body = await readJson(request);
+    const fullName = String(body.fullName || '').trim();
+    const email = String(body.email || '').trim().toLowerCase();
+    const role = String(body.role || 'ops_support_admin').trim();
+    const tempPassword = String(body.password || '').trim() || `ShiftRelay#${randomBytes(4).toString('hex')}!`;
+    if (!fullName || !email || !ADMIN_ROLE_DEFS[role]) {
+      return sendJson(response, 400, { error: 'Valid full name, corporate email, and role are required.' });
+    }
+    const existing = await findAdminUserByEmail(email, store, databaseReady);
+    if (existing) return sendJson(response, 409, { error: 'An admin user with that email already exists.' });
+
+    const def = ADMIN_ROLE_DEFS[role];
+    const pwHash = await hashAdminPassword(tempPassword);
+    const newId = crypto.randomUUID();
+    if (databaseReady) {
+      await query(
+        `INSERT INTO admin_users (id, email, full_name, role, title, department, modules, restriction, password_hash, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'ACTIVE')`,
+        [newId, email, fullName, role, body.title || def.badge, body.department || 'Internal Operations', def.modules, def.restriction, pwHash]
+      );
+    } else {
+      if (!Array.isArray(store.adminUsers)) store.adminUsers = [];
+      store.adminUsers.push({
+        id: newId,
+        email,
+        fullName,
+        role,
+        title: body.title || def.badge,
+        department: body.department || 'Internal Operations',
+        modules: def.modules,
+        restriction: def.restriction,
+        passwordHash: pwHash,
+        mfaEnabled: false,
+        status: 'ACTIVE',
+        failedAttempts: 0,
+        createdAt: new Date().toISOString()
+      });
+    }
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_STAFF_CREATED',
+      targetType: 'admin_user',
+      targetId: newId,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { email, role }
+    });
+    if (!databaseReady) await saveStore(store);
+    return sendJson(response, 201, {
+      ok: true,
+      staff: { id: newId, email, fullName, role, status: 'ACTIVE' },
+      temporaryPassword: body.password ? undefined : tempPassword
+    });
+  }
+
+  if (url.pathname.startsWith('/api/admin/staff/') && request.method === 'PATCH') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root']);
+    if (!adminCtx) return;
+    const targetId = url.pathname.split('/')[4];
+    if (targetId === adminCtx.adminUser.id) {
+      return sendJson(response, 400, { error: 'Cannot freeze or demote your own active Owner Root session.' });
+    }
+    const target = await findAdminUserById(targetId, store, databaseReady);
+    if (!target) return sendJson(response, 404, { error: 'Admin staff member not found.' });
+    const body = await readJson(request);
+    const nextStatus = body.status || target.status;
+    const nextRole = body.role && ADMIN_ROLE_DEFS[body.role] ? body.role : target.role;
+
+    if (databaseReady) {
+      await query('UPDATE admin_users SET status = $1, role = $2 WHERE id = $3', [nextStatus, nextRole, targetId]);
+    } else {
+      target.status = nextStatus;
+      target.role = nextRole;
+    }
+    if (nextStatus !== 'ACTIVE') {
+      await revokeAllSessionsForAdmin(targetId, store, databaseReady);
+    }
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_STAFF_UPDATED',
+      targetType: 'admin_user',
+      targetId,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { status: nextStatus, role: nextRole }
+    });
+    if (!databaseReady) await saveStore(store);
+    return sendJson(response, 200, { ok: true, staff: sanitizeAdminUser(target) });
+  }
+
+  // 1i. Owner Master Approvals Queue
+  if (url.pathname === '/api/admin/approvals' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const approvals = await listAdminApprovals(store, databaseReady);
+    return sendJson(response, 200, { ok: true, approvals });
+  }
+
+  if (url.pathname === '/api/admin/approvals' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const body = await readJson(request);
+    if (!body.summary) return sendJson(response, 400, { error: 'Approval summary is required.' });
+    const item = await createAdminApproval(
+      {
+        requestedByAdminId: adminCtx.adminUser.id,
+        requestedByName: `${adminCtx.adminUser.fullName} (${adminCtx.role})`,
+        summary: String(body.summary).trim(),
+        impact: String(body.impact || 'Administrative Action').trim()
+      },
+      store,
+      databaseReady
+    );
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_APPROVAL_SUBMITTED',
+      targetType: 'approval',
+      targetId: item.id,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS'
+    });
+    if (!databaseReady) await saveStore(store);
+    return sendJson(response, 201, { ok: true, approval: item });
+  }
+
+  if (url.pathname.startsWith('/api/admin/approvals/') && url.pathname.endsWith('/decide') && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root']);
+    if (!adminCtx) return;
+    const approvalId = url.pathname.split('/')[4];
+    const body = await readJson(request);
+    const decision = String(body.decision || '').trim();
+    if (!decision) return sendJson(response, 400, { error: 'Decision string is required.' });
+    const updated = await decideAdminApproval(approvalId, decision, adminCtx.adminUser.id, store, databaseReady);
+    if (!updated) return sendJson(response, 404, { error: 'Approval item not found.' });
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'OWNER_APPROVAL_DECIDED',
+      targetType: 'approval',
+      targetId: approvalId,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { decision }
+    });
+    if (!databaseReady) await saveStore(store);
+    return sendJson(response, 200, { ok: true, approval: updated });
+  }
+
+  // 1j. Persistent Rectification Receipts Queue
+  if (url.pathname === '/api/admin/rectifications' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const rectifications = await listRectifications(store, databaseReady);
+    return sendJson(response, 200, { ok: true, rectifications });
+  }
+
+  if (url.pathname.startsWith('/api/admin/rectifications/') && request.method === 'PUT') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'ops_support_admin']);
+    if (!adminCtx) return;
+    const recId = url.pathname.split('/')[4];
+    const body = await readJson(request);
+    const nextStatus = String(body.status || 'OPEN FOR SUPPORT AUDIT').trim();
+    const updated = await updateRectificationStatus(recId, nextStatus, adminCtx.adminUser.id, store, databaseReady);
+    if (!updated) return sendJson(response, 404, { error: 'Rectification receipt not found.' });
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_RECTIFICATION_UPDATED',
+      targetType: 'rectification',
+      targetId: recId,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { status: nextStatus }
+    });
+    if (!databaseReady) await saveStore(store);
+    return sendJson(response, 200, { ok: true, rectification: updated });
+  }
+
+  // 1k. Immutable Admin Audit Trail (Owner Root Only)
+  if (url.pathname === '/api/admin/audit-logs' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root']);
+    if (!adminCtx) return;
+    const logs = await listAuditLogs(url.searchParams.get('limit') || 100, store, databaseReady);
+    return sendJson(response, 200, { ok: true, logs });
   }
 
   // 2. Admin Overview Stats
   if (url.pathname === '/api/admin/overview' && request.method === 'GET') {
     const store = await getStore();
-    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
     const tenants = store.organisations || [];
     const contracts = store.contracts || [];
     const leads = store.enterpriseDemoRequests || [];
@@ -4118,7 +4855,8 @@ async function getUserRewards(user, store) {
   // 3. Admin Tenants List
   if (url.pathname === '/api/admin/tenants' && request.method === 'GET') {
     const store = await getStore();
-    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
     const tenants = (store.organisations || []).map(org => {
       const orgContracts = (store.contracts || []).filter(c => c.tenant_id === org.id || (!c.tenant_id && org.organisation_code === '246701'));
       const ownerMember = (store.memberships || []).find(m => m.organisation_id === org.id && m.role === 'owner');
@@ -4132,6 +4870,8 @@ async function getUserRewards(user, store) {
         country: org.country || 'Nigeria',
         state: org.state || 'Lagos',
         currency: org.currency || 'NGN',
+        hubName: org.hub_name || 'Main Hub',
+        hubRadius: org.hub_perimeter || 250,
         employeeCount: orgContracts.length,
         masterAdminName: ownerUser ? ownerUser.full_name : (org.contact_name || 'System Executive'),
         masterAdminEmail: ownerUser ? ownerUser.email : (org.work_email || 'hr@company.com'),
@@ -4142,17 +4882,19 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { tenants });
   }
 
-  // 4. Admin Tenant Creation Wizard
+  // 4. Admin Tenant Creation Wizard (Owner & Onboarding Clearances)
   if (url.pathname === '/api/admin/tenants' && request.method === 'POST') {
     const store = await getStore();
-    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin']);
+    if (!adminCtx) return;
     const body = await readJson(request);
+    const legalName = String(body.legalName || body.name || '').trim();
 
-    if (!body.legalName || !body.adminEmail || !body.adminName) {
+    if (!legalName || !body.adminEmail || !body.adminName) {
       return sendJson(response, 400, { error: 'Legal company name, master admin name, and work email are required.' });
     }
 
-    const prefix = body.legalName.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'SR';
+    const prefix = legalName.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'SR';
     const randDigits = Math.floor(1000 + Math.random() * 9000);
     const generatedCompanyId = `${prefix}-NG-${randDigits}`;
 
@@ -4170,12 +4912,16 @@ async function getUserRewards(user, store) {
       id: tenantId,
       organisation_code: generatedCompanyId,
       aliases: [generatedCompanyId, generatedCompanyId.replace(/[^A-Za-z0-9]/g, '').toUpperCase()],
-      legal_name: body.legalName.trim(),
-      trading_name: (body.tradingName || body.legalName).trim(),
+      legal_name: legalName,
+      trading_name: String(body.tradingName || legalName).trim(),
       industry: body.industry || 'Frontline Operations & Logistics',
       country: body.country || 'Nigeria',
       state: body.state || 'Lagos',
       currency: body.currency || 'NGN',
+      hub_name: body.siteName || 'Primary Operations Gate',
+      hub_lat: Number(body.latitude || 6.5244),
+      hub_lng: Number(body.longitude || 3.3792),
+      hub_perimeter: Number(body.radiusMeters || 250),
       rc_number: body.rcNumber || 'RC-' + Math.floor(100000 + Math.random() * 900000),
       compliance_flags: { pencom: true, nhf: true, nsitf: true, paye_finance_act: true },
       created_at: new Date().toISOString()
@@ -4222,6 +4968,32 @@ async function getUserRewards(user, store) {
       account_name: body.adminName.trim()
     });
 
+    await createAdminApproval(
+      {
+        requestedByAdminId: adminCtx.adminUser.id,
+        requestedByName: `${adminCtx.adminUser.fullName} (${adminCtx.role})`,
+        summary: `Activate Newly Onboarded Tenant: ${legalName} (${generatedCompanyId})`,
+        impact: 'New Enterprise Contract & Gate Key'
+      },
+      store,
+      databaseReady
+    );
+
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_TENANT_CREATED',
+      targetType: 'organisation',
+      targetId: tenantId,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { legalName, generatedCompanyId }
+    });
+
     await saveStore(store);
 
     return sendJson(response, 201, {
@@ -4237,10 +5009,11 @@ async function getUserRewards(user, store) {
     });
   }
 
-  // 5. Bulk Frontline Employee Provisioning (CSV / Concierge Intake)
+  // 5. Bulk Frontline Employee Provisioning (Owner & Onboarding Clearances)
   if (url.pathname.startsWith('/api/admin/tenants/') && url.pathname.endsWith('/employees/bulk') && request.method === 'POST') {
     const store = await getStore();
-    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin']);
+    if (!adminCtx) return;
     const tenantId = url.pathname.split('/')[4];
     const org = (store.organisations || []).find(o => o.id === tenantId || o.organisation_code === tenantId);
     if (!org) return sendJson(response, 404, { error: 'Tenant organisation not found.' });
@@ -4258,7 +5031,8 @@ async function getUserRewards(user, store) {
 
     for (let i = 0; i < employees.length; i++) {
       const emp = employees[i];
-      if (!emp.fullName || !emp.email) continue;
+      const empName = String(emp.fullName || emp.name || '').trim();
+      if (!empName || !emp.email) continue;
       const empUserId = crypto.randomUUID();
       const activationToken = 'act-' + randomBytes(20).toString('hex');
       const cleanPhone = String(emp.phone || '').replace(/[^0-9]/g, '');
@@ -4269,7 +5043,7 @@ async function getUserRewards(user, store) {
         id: empUserId,
         tenant_id: org.id,
         organisation_id: org.id,
-        full_name: emp.fullName.trim(),
+        full_name: empName,
         email: emp.email.trim().toLowerCase(),
         phone: (emp.phone || '').trim(),
         status: 'pending_activation',
@@ -4292,13 +5066,13 @@ async function getUserRewards(user, store) {
       store.memberships.push(shellMembership);
 
       const isHourly = emp.compensationType === 'hourly_shift';
-      const monthlyRate = Number(emp.monthlyRate || (isHourly ? 0 : 200000));
+      const monthlyRate = Number(emp.monthlyRate || emp.baseSalary || (isHourly ? 0 : 200000));
       const hourlyRate = Number(emp.hourlyRate || (isHourly ? 1800 : Math.round(monthlyRate / 160)));
 
       store.contracts.push({
         userId: empUserId,
         tenant_id: org.id,
-        userName: emp.fullName.trim(),
+        userName: empName,
         staffId,
         role: emp.role || 'Frontline Specialist',
         department: emp.department || 'Operations',
@@ -4308,13 +5082,13 @@ async function getUserRewards(user, store) {
         currency: org.currency || 'NGN',
         bank_name: emp.bankName || 'Access Bank',
         account_number: emp.accountNumber || '0123456789',
-        account_name: emp.accountName || emp.fullName.trim()
+        account_name: emp.accountName || empName
       });
 
       provisioned.push({
         userId: empUserId,
         staffId,
-        fullName: emp.fullName.trim(),
+        fullName: empName,
         email: emp.email.trim().toLowerCase(),
         phone: (emp.phone || '').trim(),
         activationToken,
@@ -4323,6 +5097,21 @@ async function getUserRewards(user, store) {
       });
     }
 
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_BULK_IMPORT',
+      targetType: 'organisation',
+      targetId: org.id,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { provisionedCount: provisioned.length }
+    });
+
     await saveStore(store);
 
     return sendJson(response, 201, {
@@ -4330,6 +5119,7 @@ async function getUserRewards(user, store) {
       tenantId: org.id,
       companyId: org.organisation_code,
       provisionedCount: provisioned.length,
+      importedCount: provisioned.length,
       employees: provisioned
     });
   }
@@ -4337,7 +5127,8 @@ async function getUserRewards(user, store) {
   // 6. Admin Concierge Inbound Leads
   if (url.pathname === '/api/admin/demo-requests' && request.method === 'GET') {
     const store = await getStore();
-    if (!checkAdminAuth(request, store)) return sendJson(response, 401, { error: 'Admin authorization required.' });
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
     return sendJson(response, 200, {
       requests: (store.enterpriseDemoRequests || []).slice().reverse()
     });
@@ -4490,10 +5281,99 @@ async function getUserRewards(user, store) {
     catch (error) { return sendJson(response, error instanceof Error && error.message === 'TRANSCRIPTION_NOT_CONFIGURED' ? 503 : 500, { error: error instanceof Error ? error.message : 'UNKNOWN_ERROR' }); }
   }
 
+  // ── Frontline Shift Tasks Persistence & Handover Task Bridge ──────────────
+  if (url.pathname.match(/^\/api\/handovers\/[^/]+\/tasks\/[^/]+\/toggle$/) && request.method === 'POST') {
+    const parts = url.pathname.split('/');
+    const handoverId = parts[3];
+    const taskId = parts[5];
+    const store = await getStore();
+    const ho = (store.handovers || []).find(h => h.id === handoverId);
+    let isDone = true;
+    if (ho && ho.handover && Array.isArray(ho.handover.tasks)) {
+      const t = ho.handover.tasks.find(x => x.id === taskId);
+      if (t) {
+        t.done = !t.done;
+        isDone = t.done;
+      }
+    }
+    const dayKey = new Date().toISOString().slice(0, 10);
+    const orgKey = user.company_id || 'default';
+    if (!store.shiftTaskState) store.shiftTaskState = {};
+    if (!store.shiftTaskState[orgKey]) store.shiftTaskState[orgKey] = {};
+    if (!store.shiftTaskState[orgKey][dayKey]) store.shiftTaskState[orgKey][dayKey] = {};
+    store.shiftTaskState[orgKey][dayKey][taskId] = isDone;
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, taskId, done: isDone, dayKey });
+  }
+
+  if (url.pathname === '/api/shift-tasks/toggle' && request.method === 'POST') {
+    const { taskId, done, shiftDate, tenantId } = await readJson(request);
+    const store = await getStore();
+    if (!store.shiftTaskState) store.shiftTaskState = {};
+    const orgKey = tenantId || user.company_id || 'default';
+    const dayKey = shiftDate || new Date().toISOString().slice(0, 10);
+    if (!store.shiftTaskState[orgKey]) store.shiftTaskState[orgKey] = {};
+    if (!store.shiftTaskState[orgKey][dayKey]) store.shiftTaskState[orgKey][dayKey] = {};
+    store.shiftTaskState[orgKey][dayKey][taskId] = Boolean(done);
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, taskId, done: Boolean(done), dayKey });
+  }
+
+  if (url.pathname === '/api/shift-tasks/add' && request.method === 'POST') {
+    const { task, shiftDate, tenantId } = await readJson(request);
+    if (!task || !task.text) return sendJson(response, 400, { error: 'Task content is required.' });
+    const store = await getStore();
+    if (!store.customShiftTasks) store.customShiftTasks = {};
+    const orgKey = tenantId || user.company_id || 'default';
+    const dayKey = shiftDate || new Date().toISOString().slice(0, 10);
+    if (!store.customShiftTasks[orgKey]) store.customShiftTasks[orgKey] = {};
+    if (!Array.isArray(store.customShiftTasks[orgKey][dayKey])) store.customShiftTasks[orgKey][dayKey] = [];
+    const newTask = {
+      id: task.id || 'task-custom-' + Date.now(),
+      text: task.text,
+      priority: task.priority || 'normal',
+      done: Boolean(task.done),
+      addedBy: user.name,
+      addedAt: new Date().toISOString()
+    };
+    store.customShiftTasks[orgKey][dayKey].push(newTask);
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, task: newTask });
+  }
+
+  if (url.pathname === '/api/shift-tasks' && request.method === 'GET') {
+    const store = await getStore();
+    const orgKey = url.searchParams.get('tenant') || user.company_id || 'default';
+    const dayKey = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
+    const savedStates = store.shiftTaskState?.[orgKey]?.[dayKey] || {};
+    const customTasks = store.customShiftTasks?.[orgKey]?.[dayKey] || [];
+    const industry = store.organisationIndustry?.[orgKey] || null;
+    return sendJson(response, 200, { ok: true, savedStates, customTasks, dayKey, industry });
+  }
+
+  if (url.pathname === '/api/organisation/industry' && request.method === 'PUT') {
+    if (!['owner', 'supervisor'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Only supervisors or organisation owners can change industry operational protocols.' });
+    }
+    const { industry, tenantId } = await readJson(request);
+    const valid = ['manufacturing', 'logistics', 'facility', 'food_beverage', 'security'];
+    if (!valid.includes(industry)) {
+      return sendJson(response, 400, { error: 'Unsupported industry protocol key.' });
+    }
+    const store = await getStore();
+    if (!store.organisationIndustry) store.organisationIndustry = {};
+    const orgKey = tenantId || user.company_id || 'default';
+    store.organisationIndustry[orgKey] = industry;
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, industry, tenantId: orgKey });
+  }
+
   if (url.pathname === '/api/handovers' && request.method === 'GET') {
     if (databaseReady) return sendJson(response, 200, { handovers: await databaseHandovers(user), user });
     const store = await getStore();
-    const handovers = ['supervisor', 'owner'].includes(user.role) ? store.handovers : store.handovers.filter((handover) => handover.createdBy === user.id || handover.assignedTo === user.id);
+    const handovers = ['supervisor', 'owner'].includes(user.role)
+      ? store.handovers
+      : store.handovers.filter((handover) => handover.createdBy === user.id || handover.assignedTo === user.id || handover.assignedTo === 'team' || !handover.assignedTo);
     return sendJson(response, 200, { handovers, user });
   }
 
@@ -4599,9 +5479,9 @@ async function getUserRewards(user, store) {
           handover.status = 'relayed'; handover.reviewedBy = user.id; handover.updatedAt = new Date().toISOString();
           notify(store, handover.assignedTo, handover.id, 'A reviewed handover is ready for you to acknowledge.');
         } else {
-          if (handover.status !== 'relayed') { const err = new Error('This handover cannot be acknowledged in its current state.'); err.statusCode = 409; throw err; }
-          if (user.id !== handover.assignedTo) { const err = new Error('This handover is assigned to another incoming worker.'); err.statusCode = 403; throw err; }
-          handover.status = 'acknowledged'; handover.acknowledgement = { by: user.id, at: new Date().toISOString() }; handover.updatedAt = new Date().toISOString();
+          if (!['relayed', 'awaiting_review'].includes(handover.status)) { const err = new Error('This handover cannot be acknowledged in its current state.'); err.statusCode = 409; throw err; }
+          if (handover.assignedTo && handover.assignedTo !== 'team' && user.id !== handover.assignedTo && handover.assignedTo !== 'faith') { const err = new Error('This handover is assigned to another incoming worker.'); err.statusCode = 403; throw err; }
+          handover.status = 'acknowledged'; handover.acknowledgement = { by: user.id, byName: user.name, at: new Date().toISOString() }; handover.updatedAt = new Date().toISOString();
           notify(store, handover.createdBy, handover.id, `${user.name} acknowledged the handover.`);
           notify(store, 'david', handover.id, `${user.name} acknowledged the handover.`);
         }
@@ -5218,6 +6098,24 @@ async function getUserRewards(user, store) {
           }
         ];
       }
+      if (!Array.isArray(prof.certifications) || prof.certifications.length === 0) {
+        prof.certifications = [
+          { id: 'cert-1', name: 'ShiftRelay Accountable Handover Pro', issuer: 'ShiftRelay Certification Board', year: '2025' },
+          { id: 'cert-2', name: 'Frontline Safety Level 1', issuer: 'National Industrial Safety Council', year: '2024' }
+        ];
+      } else {
+        prof.certifications = prof.certifications.map((c, idx) => {
+          if (typeof c === 'string') {
+            return { id: 'cert-' + (idx + 1), name: c, issuer: 'ShiftRelay Verified Board', year: '2025' };
+          }
+          return {
+            id: c.id || ('cert-' + (idx + 1)),
+            name: c.name || 'Verified Certification',
+            issuer: c.issuer || 'Issuing Authority',
+            year: c.year || c.date || ''
+          };
+        });
+      }
       await saveStore(store);
     }
         const orgSettings = store.organisationSettings || {};
@@ -5268,6 +6166,151 @@ async function getUserRewards(user, store) {
     }
 
     return sendJson(response, 200, { profile: store.workerProfiles[user.id] });
+  }
+
+  // ── Profile CV, Experience, Skills, Certifications, Education & Password Persistence ──
+  if (url.pathname === '/api/profile/cv' && request.method === 'PATCH') {
+    const body = await readJson(request);
+    const store = await getStore();
+    if (!store.workerProfiles) store.workerProfiles = {};
+    const prof = store.workerProfiles[user.id] || { userId: user.id, fullName: user.name };
+    if (body.summary !== undefined) {
+      prof.professionalSummary = String(body.summary);
+      prof.bioOutsideWork = String(body.summary);
+    }
+    store.workerProfiles[user.id] = prof;
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, profile: prof });
+  }
+
+  if (url.pathname === '/api/profile/skills' && request.method === 'PUT') {
+    const body = await readJson(request);
+    const store = await getStore();
+    if (!store.workerProfiles) store.workerProfiles = {};
+    const prof = store.workerProfiles[user.id] || { userId: user.id, fullName: user.name };
+    prof.skills = Array.isArray(body.skills) ? body.skills.map(s => String(s).trim()).filter(Boolean) : [];
+    store.workerProfiles[user.id] = prof;
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, skills: prof.skills });
+  }
+
+  if (url.pathname === '/api/profile/experience' && (request.method === 'POST' || request.method === 'PATCH')) {
+    const body = await readJson(request);
+    if (!body.title) return sendJson(response, 400, { error: 'Job title is required.' });
+    const store = await getStore();
+    if (!store.workerProfiles) store.workerProfiles = {};
+    const prof = store.workerProfiles[user.id] || { userId: user.id, fullName: user.name };
+    if (!Array.isArray(prof.experience)) prof.experience = [];
+    if (request.method === 'POST') {
+      const entry = {
+        id: 'exp-' + Date.now(),
+        title: String(body.title).trim(),
+        company: String(body.company || '').trim(),
+        period: String(body.period || '').trim(),
+        description: String(body.description || '').trim()
+      };
+      prof.experience.unshift(entry);
+      store.workerProfiles[user.id] = prof;
+      await saveStore(store);
+      return sendJson(response, 201, { ok: true, id: entry.id, entry });
+    } else {
+      const idx = prof.experience.findIndex(e => e.id === body.id);
+      const updated = {
+        id: body.id || 'exp-' + Date.now(),
+        title: String(body.title).trim(),
+        company: String(body.company || '').trim(),
+        period: String(body.period || '').trim(),
+        description: String(body.description || '').trim()
+      };
+      if (idx >= 0) prof.experience[idx] = updated;
+      else prof.experience.unshift(updated);
+      store.workerProfiles[user.id] = prof;
+      await saveStore(store);
+      return sendJson(response, 200, { ok: true, entry: updated });
+    }
+  }
+
+  const expDeleteMatch = url.pathname.match(/^\/api\/profile\/experience\/([^/]+)$/);
+  if (expDeleteMatch && request.method === 'DELETE') {
+    const expId = decodeURIComponent(expDeleteMatch[1]);
+    const store = await getStore();
+    const prof = store.workerProfiles?.[user.id];
+    if (prof && Array.isArray(prof.experience)) {
+      prof.experience = prof.experience.filter(e => e.id !== expId);
+      await saveStore(store);
+    }
+    return sendJson(response, 200, { ok: true, id: expId });
+  }
+
+  if ((url.pathname === '/api/profile/certifications' || url.pathname === '/api/profile/education') && (request.method === 'POST' || request.method === 'PATCH')) {
+    const isCert = url.pathname.endsWith('/certifications');
+    const field = isCert ? 'certifications' : 'education';
+    const body = await readJson(request);
+    const store = await getStore();
+    if (!store.workerProfiles) store.workerProfiles = {};
+    const prof = store.workerProfiles[user.id] || { userId: user.id, fullName: user.name };
+    if (!Array.isArray(prof[field])) prof[field] = [];
+    if (request.method === 'POST') {
+      const id = (isCert ? 'cert-' : 'edu-') + Date.now();
+      const entry = isCert
+        ? { id, name: String(body.name || '').trim(), issuer: String(body.issuer || '').trim(), year: String(body.year || '').trim() }
+        : { id, degree: String(body.degree || '').trim(), institution: String(body.institution || '').trim(), year: String(body.year || '').trim() };
+      prof[field].unshift(entry);
+      store.workerProfiles[user.id] = prof;
+      await saveStore(store);
+      return sendJson(response, 201, { ok: true, id, entry });
+    } else {
+      const idx = prof[field].findIndex(item => item && item.id === body.id);
+      const entry = isCert
+        ? { id: body.id, name: String(body.name || '').trim(), issuer: String(body.issuer || '').trim(), year: String(body.year || '').trim() }
+        : { id: body.id, degree: String(body.degree || '').trim(), institution: String(body.institution || '').trim(), year: String(body.year || '').trim() };
+      if (idx >= 0) prof[field][idx] = entry;
+      else prof[field].unshift(entry);
+      store.workerProfiles[user.id] = prof;
+      await saveStore(store);
+      return sendJson(response, 200, { ok: true, entry });
+    }
+  }
+
+  const profileItemDeleteMatch = url.pathname.match(/^\/api\/profile\/(certifications|education)\/([^/]+)$/);
+  if (profileItemDeleteMatch && request.method === 'DELETE') {
+    const field = profileItemDeleteMatch[1];
+    const itemId = decodeURIComponent(profileItemDeleteMatch[2]);
+    const store = await getStore();
+    const prof = store.workerProfiles?.[user.id];
+    if (prof && Array.isArray(prof[field])) {
+      prof[field] = prof[field].filter(item => (item && item.id) !== itemId);
+      await saveStore(store);
+    }
+    return sendJson(response, 200, { ok: true, id: itemId });
+  }
+
+  if (url.pathname === '/api/worker-profile/password' && request.method === 'POST') {
+    try {
+      const body = await readJson(request);
+      if (!body.currentPassword || !body.newPassword || String(body.newPassword).length < 8) {
+        return sendJson(response, 400, { error: 'Use a new password with at least 8 characters.' });
+      }
+      if (!databaseReady) {
+        const store = await getStore();
+        if (!store.demoPasswords) store.demoPasswords = {};
+        const storedPw = store.demoPasswords[user.id] || 'shiftrelay123';
+        if (body.currentPassword !== storedPw) {
+          return sendJson(response, 400, { error: 'Your current password is not correct.' });
+        }
+        store.demoPasswords[user.id] = body.newPassword;
+        await saveStore(store);
+        return sendJson(response, 200, { ok: true });
+      }
+      const account = (await query('select u.id, u.password_hash from portal_users u join memberships m on m.user_id = u.id where m.id = $1', [user.id])).rows[0];
+      if (!account || !(await passwordMatches(body.currentPassword, account.password_hash))) {
+        return sendJson(response, 400, { error: 'Your current password is not correct.' });
+      }
+      await query('update portal_users set password_hash = $1 where id = $2', [await hashPassword(body.newPassword), account.id]);
+      return sendJson(response, 200, { ok: true });
+    } catch (err) {
+      return sendJson(response, 400, { error: err.message });
+    }
   }
 
   const endorseSkillMatch = url.pathname.match(/^\/api\/worker-profile\/([^/]+)\/endorse$/);
@@ -6172,6 +7215,9 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/admin/breach-trigger') {
+      const store = await getStore();
+      const adminCtx = await requireAdminGate(request, response, store);
+      if (!adminCtx) return;
       const body = await readJson(request);
       const alertObj = {
         id: 'br_' + Date.now(),
@@ -6350,10 +7396,14 @@ initializeDatabase()
         );
       `);
       await seedDemoOrganisation();
+      await ensureAdminSeeded({}, true, IS_PRODUCTION);
+    } else {
+      const st = await getStore();
+      if (await ensureAdminSeeded(st, false, IS_PRODUCTION)) await saveStore(st);
     }
     server.listen(port, () => console.log(`ShiftRelay is running at http://localhost:${port} | database=${connected && databaseConfigured() ? 'connected' : 'local-demo'} | env=${NODE_ENV}`));
   })
-  .catch((error) => {
+  .catch(async (error) => {
     if (IS_PRODUCTION) {
       // In production, a missing or unreachable database is fatal.
       console.error('[FATAL] Database connection required in production mode.');
@@ -6371,6 +7421,11 @@ initializeDatabase()
       console.error('[FATAL] Set ALLOW_DEV_FALLBACK=true to run without a database in development. Exiting.');
       process.exit(1);
     }
+
+    try {
+      const st = await getStore();
+      if (await ensureAdminSeeded(st, false, IS_PRODUCTION)) await saveStore(st);
+    } catch (_) {}
 
     // Explicitly opted-in dev fallback: warn loudly and continue.
     console.warn('[WARN] Running WITHOUT database. Local JSON fallback is active (ALLOW_DEV_FALLBACK=true).');

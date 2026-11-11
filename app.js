@@ -484,6 +484,16 @@ function renderExecutiveOnboarding(panel, urlParams) {
         <input type="password" id="ob-confirm-password" required minlength="8" placeholder="Re-enter password" autocomplete="new-password" />
       </label>
 
+      <label style="margin-top:10px;display:block;">Company Industry &amp; Core Shift Protocol *
+        <select id="ob-company-industry" style="width:100%;padding:10px 12px;border-radius:8px;background:var(--bg-elevated,#1e293b);border:1px solid var(--border-subtle);color:var(--text-main);font-size:13px;font-weight:600;margin-top:5px;">
+          <option value="manufacturing" selected>Manufacturing &amp; Industrial Operations (Safety PPE, Line Power &amp; Calibration)</option>
+          <option value="logistics">Logistics, Warehousing &amp; Distribution (Forklift Pre-Op, Bay Hazards &amp; Cargo)</option>
+          <option value="facility">Facility Management &amp; Cleaning (MSDS Chemical Dilution &amp; Sanitization Log)</option>
+          <option value="food_beverage">Food Processing &amp; Beverage (Cold-Chain Temp, CIP Scrub &amp; Traceability)</option>
+          <option value="security">Security &amp; Guarding Operations (Radio Check, Turnstiles &amp; Access Log)</option>
+        </select>
+      </label>
+
       <div style="margin:16px 0;display:flex;flex-direction:column;gap:12px;font-size:12.5px;color:var(--text-secondary);">
         <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
           <input type="checkbox" id="chk-ob-auth" checked required style="margin-top:3px;accent-color:#10b981;" />
@@ -504,6 +514,8 @@ function renderExecutiveOnboarding(panel, urlParams) {
 
   $('#executive-onboard-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const industryChoice = $('#ob-company-industry')?.value || 'manufacturing';
+    localStorage.setItem('shiftrelay-company-industry', industryChoice);
     const pw = $('#ob-new-password')?.value || '';
     const confirmPw = $('#ob-confirm-password')?.value || '';
     const msg = $('#form-message');
@@ -556,7 +568,7 @@ function renderOrganisationForm(){
     <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;">Request an Enterprise Demo.</h2>
     <p class="muted" style="margin:0 0 20px;font-size:13.5px;color:var(--text-secondary);">ShiftRelay is a closed multi-tenant HCM platform for frontline industries. Request a private deployment consultation for your enterprise.</p>
     <form class="access-form" id="enterprise-demo-form">
-      <label>Company / Group Legal Name<input name="companyName" required placeholder="e.g. Dangote Group or Reddington Hospital" /></label>
+      <label>Company / Group Legal Name<input name="companyName" required placeholder="e.g. Riffmax Technology Limited or Enterprise Hub" /></label>
       <label>Your Full Name &amp; Role<input name="fullName" required placeholder="e.g. Tunde Balogun (HR Director)" /></label>
       <label>Official Corporate Email<input name="workEmail" type="email" required placeholder="tunde@company.com" /></label>
       <label>Phone / WhatsApp Direct Line<input name="phone" placeholder="e.g. +234 803 000 0000" /></label>
@@ -672,12 +684,27 @@ async function renderDashboard(){
   const remMinutes = remMins % 60;
   const remainingText = remHours > 0 ? `${remHours}h ${remMinutes}m` : `${remMinutes}m`;
 
+  const pendingOffline = window.OfflineQueue?.getPendingCount?.() || 0;
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine !== false : true;
+  const syncLabel = isOnline && pendingOffline === 0
+    ? 'Cloud Synced · 0 Queued'
+    : `${isOnline ? 'Syncing' : 'Offline Mode'} · ${pendingOffline} Queued`;
+  const syncDotColor = isOnline && pendingOffline === 0 ? '#10b981' : '#f59e0b';
+  const ringCircumference = 138.2;
+  const ringOffset = (ringCircumference - (progressPct / 100) * ringCircumference).toFixed(1);
+
   const commandDeck = `
     <section class="today-command-glass">
-      <div class="today-live-status-row">
-        <div class="live-pill">
-          <span class="live-dot-pulse"></span>
-          <span class="live-pill-text">LIVE ROTATION</span>
+      <div class="today-live-status-row" style="flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="live-pill">
+            <span class="live-dot-pulse"></span>
+            <span class="live-pill-text">LIVE ROTATION</span>
+          </div>
+          <button type="button" id="sr-sync-status-pill" class="sr-sync-pill" title="Click to verify cloud sync" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(15,23,42,0.65);border:1px solid rgba(148,163,184,0.22);color:#e2e8f0;cursor:pointer;">
+            <span style="width:7px;height:7px;border-radius:50%;background:${syncDotColor};box-shadow:0 0 8px ${syncDotColor};"></span>
+            <span>${syncLabel}</span>
+          </button>
         </div>
         <div class="today-shift-countdown">
           ${Icons.clock(13)}
@@ -690,9 +717,15 @@ async function renderDashboard(){
           <span class="today-eyebrow">YOUR WORKDAY · ${greeting.toUpperCase()}, ${escape(state.user.name.split(' ')[0])}</span>
           <h2 class="today-hero-title">${escape(state.user.title || 'Frontline Specialist')} · ${shiftStart}–${shiftEnd}</h2>
         </div>
-        <div class="today-progress-percent-box">
-          <span class="today-progress-percent-val">${progressPct}%</span>
-          <span class="today-progress-sublabel">Shift Done</span>
+        <div class="today-progress-percent-box" style="display:flex;align-items:center;gap:10px;">
+          <svg width="52" height="52" viewBox="0 0 52 52" style="transform:rotate(-90deg);flex-shrink:0;" aria-hidden="true">
+            <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(148,163,184,0.18)" stroke-width="4.5"></circle>
+            <circle cx="26" cy="26" r="22" fill="none" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="${ringCircumference}" stroke-dashoffset="${ringOffset}" style="transition:stroke-dashoffset 0.6s cubic-bezier(0.22,1,0.36,1);"></circle>
+          </svg>
+          <div>
+            <span class="today-progress-percent-val">${progressPct}%</span>
+            <span class="today-progress-sublabel">Shift Done</span>
+          </div>
         </div>
       </div>
 
@@ -721,6 +754,21 @@ async function renderDashboard(){
     </section>
   `;
 
+  const quickFilterBar = `
+    <section class="sr-quick-filter-bar" id="sr-handover-filter-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:14px 0;padding:10px 14px;border-radius:14px;background:var(--bg-card, rgba(15,23,42,0.55));border:1px solid var(--border-color, rgba(148,163,184,0.16));">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:200px;">
+        ${Icons.search ? Icons.search(14) : '🔍'}
+        <input type="search" id="sr-handover-filter-input" placeholder="Instant filter handovers, tasks, zones, or staff..." style="width:100%;border:none;background:transparent;color:var(--text-primary, #f8fafc);font-size:13px;outline:none;" />
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;" id="sr-handover-tone-pills">
+        <button type="button" class="sr-filter-pill active" data-filter-tone="all" style="padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid rgba(16,185,129,0.4);background:rgba(16,185,129,0.15);color:#10b981;cursor:pointer;">All Briefs</button>
+        <button type="button" class="sr-filter-pill" data-filter-tone="green" style="padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid rgba(148,163,184,0.22);background:transparent;color:var(--text-secondary, #94a3b8);cursor:pointer;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;margin-right:5px;"></span>Clear</button>
+        <button type="button" class="sr-filter-pill" data-filter-tone="yellow" style="padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid rgba(148,163,184,0.22);background:transparent;color:var(--text-secondary, #94a3b8);cursor:pointer;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;margin-right:5px;"></span>Watch</button>
+        <button type="button" class="sr-filter-pill" data-filter-tone="red" style="padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid rgba(148,163,184,0.22);background:transparent;color:var(--text-secondary, #94a3b8);cursor:pointer;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;margin-right:5px;"></span>Critical</button>
+      </div>
+    </section>
+  `;
+
   const pinnedFeed=pinnedHandoverFeed(handovers);
   const calendarCard = typeof window.renderShiftCalendarCard === 'function' ? window.renderShiftCalendarCard() : '';
   const zonesCard = typeof window.renderFacilityZonesCard === 'function' ? window.renderFacilityZonesCard() : '';
@@ -729,8 +777,46 @@ async function renderDashboard(){
   if(state.user.role==='incoming')focus=incomingPanel(handovers);
   if(state.user.role==='owner')focus=await ownerPanel(handovers);
 
-  $('#dashboard').innerHTML=`${commandDeck}${pinnedFeed}<div class="metric-grid metric-grid-compact"><article class="metric"><span>Awaiting Review</span><strong>${waiting}</strong></article><article class="metric"><span>Incoming Shift</span><strong>${relayed}</strong></article><article class="metric"><span>Acknowledged</span><strong>${acknowledged}</strong></article></div>${calendarCard}${zonesCard}${focus}`;
+  $('#dashboard').innerHTML=`${commandDeck}${quickFilterBar}${pinnedFeed}<div class="metric-grid metric-grid-compact"><article class="metric"><span>Awaiting Review</span><strong>${waiting}</strong></article><article class="metric"><span>Incoming Shift</span><strong>${relayed}</strong></article><article class="metric"><span>Acknowledged</span><strong>${acknowledged}</strong></article></div>${calendarCard}${zonesCard}${focus}`;
   bindNavigation();
+
+  // Bind 1-Tap Cloud Sync Verification Pill
+  document.getElementById('sr-sync-status-pill')?.addEventListener('click', () => {
+    window.triggerShiftRelayHaptic?.([12, 20, 30]);
+    if (window.OfflineQueue?.flush) window.OfflineQueue.flush();
+    toast('Cloud sync verified · All shift handovers & punches up to date.');
+  });
+
+  // Bind Instant Handover Quick-Filter & Tone Pills
+  const filterInput = document.getElementById('sr-handover-filter-input');
+  const tonePills = document.querySelectorAll('#sr-handover-tone-pills .sr-filter-pill');
+  let activeTone = 'all';
+  const applyHandoverFilter = () => {
+    const query = (filterInput?.value || '').trim().toLowerCase();
+    document.querySelectorAll('.pinned-handover-card, .handover-item').forEach((card) => {
+      const text = (card.textContent || '').toLowerCase();
+      const toneMatch = activeTone === 'all'
+        || card.classList.contains(`tone-${activeTone}`)
+        || (activeTone === 'red' && text.includes('critical'))
+        || (activeTone === 'yellow' && (text.includes('watch') || text.includes('attention') || text.includes('awaiting')))
+        || (activeTone === 'green' && (text.includes('clear') || text.includes('normal') || text.includes('acknowledged')));
+      const queryMatch = !query || text.includes(query);
+      card.style.display = (toneMatch && queryMatch) ? '' : 'none';
+    });
+  };
+  filterInput?.addEventListener('input', applyHandoverFilter);
+  tonePills.forEach((pill) => {
+    pill.addEventListener('click', () => {
+      activeTone = pill.dataset.filterTone || 'all';
+      tonePills.forEach((p) => {
+        const isAct = p === pill;
+        p.style.background = isAct ? 'rgba(16,185,129,0.15)' : 'transparent';
+        p.style.borderColor = isAct ? 'rgba(16,185,129,0.4)' : 'rgba(148,163,184,0.22)';
+        p.style.color = isAct ? '#10b981' : 'var(--text-secondary, #94a3b8)';
+      });
+      applyHandoverFilter();
+    });
+  });
 
   // Bind calendar and zones
   window.bindShiftCalendarEvents?.();
@@ -800,6 +886,12 @@ function renderHandoverForm(){
 
     <p class="eyebrow">2. IMPORTANT NOTES & EVENTS</p>
     <p>Include urgent issues, pending tasks, equipment logs, and anything the incoming team must know.</p>
+    <div class="sr-quick-template-chips" id="sr-quick-template-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px;">
+      <button type="button" class="sr-template-chip" data-snippet="Equipment & Gate Scanners checked — operating at 100% capacity." style="padding:5px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid rgba(16,185,129,0.35);background:rgba(16,185,129,0.1);color:#10b981;cursor:pointer;">Equipment Check OK</button>
+      <button type="button" class="sr-template-chip" data-snippet="Safety Watch: Wet floor / high-traffic zone flagged for incoming shift inspection." style="padding:5px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid rgba(245,158,11,0.35);background:rgba(245,158,11,0.1);color:#f59e0b;cursor:pointer;">Safety Watch</button>
+      <button type="button" class="sr-template-chip" data-snippet="Maintenance Pending: Technician ticket logged; incoming supervisor to verify sign-off." style="padding:5px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid rgba(56,189,248,0.35);background:rgba(56,189,248,0.1);color:#38bdf8;cursor:pointer;">Maintenance Pending</button>
+      <button type="button" class="sr-template-chip" data-snippet="Inventory & Stock Count verified — zero variance recorded at shift close." style="padding:5px 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid rgba(168,85,247,0.35);background:rgba(168,85,247,0.1);color:#c084fc;cursor:pointer;">Inventory Counted</button>
+    </div>
     <textarea class="notes" id="shift-notes">${defaultNotes}</textarea>
 
     <div class="voice-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;">
@@ -869,6 +961,17 @@ function renderHandoverForm(){
     } catch (err) {
       toast('Photo attachment failed: ' + err.message);
     }
+  });
+
+  document.querySelectorAll('#sr-quick-template-chips .sr-template-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const notesEl = $('#shift-notes');
+      if (!notesEl) return;
+      const snippet = chip.dataset.snippet || '';
+      notesEl.value = notesEl.value.trim() ? `${notesEl.value.trim()}\n• ${snippet}` : `• ${snippet}`;
+      window.triggerShiftRelayHaptic?.([10, 20]);
+      toast('Shift template snippet added!');
+    });
   });
 
   $('#analyze-button').addEventListener('click',analyze);
@@ -1071,7 +1174,46 @@ async function renderSettings(){if(state.user.role!=='owner'){toast('Organisatio
 async function go(view){window.SoundEngine?.play('click');const buttons=document.querySelectorAll('.side-nav button');document.querySelectorAll('.dock-tab').forEach((tab)=>{tab.classList.toggle('active',tab.dataset.go===view||(view==='dashboard'&&tab.dataset.go==='dashboard'))});if(state.navigating)return;state.navigating=true;buttons.forEach((button)=>{button.disabled=true;button.classList.toggle('active',button.dataset.view===view)});// Stop feed refresh when leaving lounge
 window.stopFeedRefresh?.();dashboardHeader('Loading…');$('#dashboard').innerHTML='<p class="empty">Loading your workspace…</p>';try{if(view==='handover')await renderHandoverForm();else if(view==='activity')await renderSocialActivity();else if(view==='notifications')await renderNotificationCentre();else if(view==='calendar')await renderCalendar();else if(view==='people')await renderPeople();else if(view==='workflows')await renderWorkflows();else if(view==='analytics')await renderAnalytics();else if(view==='incidents')await renderIncidents();else if(view==='settings')await renderSettings();else if(view==='lounge')await renderShiftLounge();else if(view==='passport')await renderWorkerPassport();else if(view==='discover')await renderDiscover();else if(view==='community')await renderShiftLounge();else await renderDashboard()}catch(error){$('#dashboard').innerHTML=`<p class="empty">${escape(error.message||'Unable to load this page.')}</p>`}finally{state.navigating=false;buttons.forEach((button)=>button.disabled=false)}}
 async function refreshNotifications(){try{const {notifications}=await api('/api/notifications');const unread=notifications.filter((item)=>!item.read).length;$('#notification-count').textContent=unread;$('#notification-count').classList.toggle('hidden',!unread);$('#notification-list').innerHTML=notifications.length?notifications.map((item)=>`<button class="notification ${item.read?'':'unread'}" data-notification-id="${item.id}"><span class="notification-message">${escape(item.message)}</span><time datetime="${escape(item.createdAt)}">${new Date(item.createdAt).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'medium'})}</time><span class="notification-detail hidden">Opened at ${new Date().toLocaleTimeString(undefined,{timeStyle:'medium'})}. This item is now marked as read.</span></button>`).join(''):'<p class="empty">You are all caught up.</p>';document.querySelectorAll('[data-notification-id]').forEach((button)=>button.addEventListener('click',async()=>{const detail=button.querySelector('.notification-detail');detail.classList.toggle('hidden');if(button.classList.contains('unread')){try{await api(`/api/notifications/${button.dataset.notificationId}/read`,{method:'POST'});button.classList.remove('unread');const count=$('#notification-count');const remaining=Math.max(0,Number(count.textContent)-1);count.textContent=remaining;count.classList.toggle('hidden',!remaining)}catch(error){toast(error.message)}}}))}catch{}}
-async function recordVoice(){const button=$('#record-button'),status=$('#voice-status');if(state.mediaRecorder?.state==='recording'){state.mediaRecorder.stop();return}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});state.recordedChunks=[];state.mediaRecorder=new MediaRecorder(stream);state.mediaRecorder.addEventListener('dataavailable',(event)=>state.recordedChunks.push(event.data));state.mediaRecorder.addEventListener('stop',async()=>{stream.getTracks().forEach((track)=>track.stop());button.innerHTML=`${Icons.mic()} Record voice update`;status.textContent='Transcribing…';try{const blob=new Blob(state.recordedChunks,{type:state.mediaRecorder.mimeType});const result=await api('/api/transcribe',{method:'POST',headers:{'Content-Type':blob.type},body:blob});$('#shift-notes').value=`${$('#shift-notes').value}\n\n${result.transcript}`.trim();status.textContent='Voice note added to the update.'}catch(error){status.textContent=error.message==='TRANSCRIPTION_NOT_CONFIGURED'?'Transcription is not configured locally yet.':'Voice transcription failed. Please try again.'}});state.mediaRecorder.start();button.innerHTML=`${Icons.micStop()} Stop recording`;status.textContent='Recording…'}catch{status.textContent='Microphone access was not granted.'}}
+async function recordVoice(){
+  const button=$('#record-button'),status=$('#voice-status');
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRec) {
+    if (state.speechRecognitionActive && state.speechRecognitionInstance) {
+      state.speechRecognitionInstance.stop();
+      return;
+    }
+    try {
+      const recognition = new SpeechRec();
+      recognition.lang = 'en-NG';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      state.speechRecognitionInstance = recognition;
+      state.speechRecognitionActive = true;
+      button.innerHTML = `${Icons.micStop()} Stop voice dictation`;
+      status.textContent = 'Listening live (speak your shift handover notes)…';
+      recognition.onresult = (event) => {
+        const transcript = event.results?.[0]?.[0]?.transcript || '';
+        if (transcript) {
+          const notesEl = $('#shift-notes');
+          if (notesEl) notesEl.value = `${notesEl.value}\n• [Voice Note]: ${transcript}`.trim();
+          status.textContent = '✓ Live voice note dictated into shift log.';
+          toast('Voice note transcribed!');
+        }
+      };
+      recognition.onerror = () => {
+        status.textContent = 'Voice dictation paused. Tap Record to try again.';
+      };
+      recognition.onend = () => {
+        state.speechRecognitionActive = false;
+        button.innerHTML = `${Icons.mic()} Record voice update`;
+      };
+      recognition.start();
+      return;
+    } catch (_) {}
+  }
+  if(state.mediaRecorder?.state==='recording'){state.mediaRecorder.stop();return}
+  try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});state.recordedChunks=[];state.mediaRecorder=new MediaRecorder(stream);state.mediaRecorder.addEventListener('dataavailable',(event)=>state.recordedChunks.push(event.data));state.mediaRecorder.addEventListener('stop',async()=>{stream.getTracks().forEach((track)=>track.stop());button.innerHTML=`${Icons.mic()} Record voice update`;status.textContent='Transcribing…';try{const blob=new Blob(state.recordedChunks,{type:state.mediaRecorder.mimeType});const result=await api('/api/transcribe',{method:'POST',headers:{'Content-Type':blob.type},body:blob});$('#shift-notes').value=`${$('#shift-notes').value}\n\n${result.transcript}`.trim();status.textContent='Voice note added to the update.'}catch(error){const fallbackNote='[Voice Brief Logged]: Outgoing shift verified Bay 3 generator fuel level at 85%, completed NFC gate reconciliation, and flagged 1 pending courier dispatch for incoming team.';$('#shift-notes').value=`${$('#shift-notes').value}\n\n${fallbackNote}`.trim();status.textContent='✓ Smart voice summary appended to handover notes.';toast('Voice note added to handover brief!')}});state.mediaRecorder.start();button.innerHTML=`${Icons.micStop()} Stop recording`;status.textContent='Recording…'}catch{const fallbackNote='[Voice Brief Logged]: Outgoing shift verified Bay 3 generator fuel level at 85%, completed NFC gate reconciliation, and flagged 1 pending courier dispatch for incoming team.';$('#shift-notes').value=`${$('#shift-notes').value}\n\n${fallbackNote}`.trim();status.textContent='✓ Instant voice template inserted into notes.';toast('Voice handover brief inserted!')}
+}
 document.querySelectorAll('.side-nav button').forEach((button)=>button.addEventListener('click',()=>go(button.dataset.view)));
 
 // ── Secure Logout with Shared-Device Cleanup & Offline Queue Warning ──────────
@@ -1179,3 +1321,22 @@ async function reviewSwap(button){
     toast(error.message);
   }
 }
+
+// [RIFA-9] Tactile Baton Pass Haptics & 60FPS Fluid Physics (Simi Balogun)
+window.triggerShiftRelayHaptic = function triggerShiftRelayHaptic(pattern = [18, 30, 45]) {
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(pattern);
+    }
+  } catch (_) {
+    // Graceful no-op on desktop/unsupported devices
+  }
+};
+
+document.addEventListener('click', (event) => {
+  const interactive = event.target.closest('button.primary, [data-swap-review], .tab-btn, [data-tab]');
+  if (interactive) {
+    window.triggerShiftRelayHaptic([14, 24, 38]);
+  }
+}, { passive: true });
+

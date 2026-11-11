@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="icon" href="icon.svg?v=130" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icon.svg?v=130" />
+    <link rel="icon" href="icon.svg?v=141" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg?v=141" />
     <meta name="theme-color" content="#102033" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -44,7 +44,7 @@
     <link rel="stylesheet" href="swap-review.css" />
     <link rel="stylesheet" href="me-profile.css" />
     <link rel="stylesheet" href="shiftrelay-v3.css" />
-    <link rel="stylesheet" href="splash.css?v=130" />
+    <link rel="stylesheet" href="splash.css?v=141" />
     <link rel="stylesheet" href="offline-queue.css" />
     <link rel="stylesheet" href="signature-pad.css" />
     <link rel="stylesheet" href="chat-engine.css" />
@@ -59,16 +59,16 @@
     <link rel="stylesheet" href="facility-switcher.css" />
     <link rel="stylesheet" href="emergency-broadcast.css" />
     <link rel="stylesheet" href="live-translation.css" />
-    <link rel="stylesheet" href="phase1-shell.css?v=130" />
+    <link rel="stylesheet" href="phase1-shell.css?v=141" />
     <link rel="stylesheet" href="sr-premium.css" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v130' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v141' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v130');
+              localStorage.setItem('sr_restored_build', 'v141');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { r.update(); });
@@ -87,49 +87,20 @@
     <!-- ======================================================
          SPLASH SCREEN — auto-removed after session check
          ====================================================== -->
+    <!-- Clean Professional Logo Loading (Zero Delays, No Sound, No Rotation) -->
     <div id="sr-splash" role="status" aria-live="polite" aria-label="ShiftRelay loading">
-      <!-- Cosmic Ambient Mesh, Aurora Nebula & Rotating Astrology Orbital Rings -->
-      <div class="sr-splash-mesh-bg"></div>
-      <div class="sr-splash-radial-glow"></div>
-      <div class="sr-splash-aurora-wave"></div>
-      <div class="sr-splash-orbit-system" aria-hidden="true">
-        <div class="sr-splash-orbit-ring sr-orbit-1"></div>
-        <div class="sr-splash-orbit-ring sr-orbit-2"></div>
-        <div class="sr-splash-orbit-ring sr-orbit-3"></div>
-      </div>
-
-      <!-- Cinematic Brand Reveal Stage -->
-      <div class="sr-splash-brand-stage" id="sr-splash-stage">
-        <!-- Logo Row: Standalone Iconic 3D "S" with Liquid Aura Halo -->
-        <div class="sr-splash-logo-row">
-          <div class="sr-splash-s-mark" id="sr-splash-s-mark">
-            <span class="sr-splash-s-aura"></span>
-            <img src="assets/logos/logo-iconic-s-mark.svg?v=130" alt="ShiftRelay S Mark" width="90" height="110" />
+      <div class="sr-splash-clean-stage" id="sr-splash-stage">
+        <div class="sr-splash-brand-lockup">
+          <img src="icon.svg?v=145" class="sr-splash-brand-icon" alt="ShiftRelay" width="96" height="96" />
+          <div class="sr-splash-brand-text">
+            <span class="sr-splash-brand-shift">SHIFT</span><span class="sr-splash-brand-relay">RELAY</span>
           </div>
-
-          <!-- Remaining words emerging from behind the S -->
-          <div class="sr-splash-unveil-text" id="sr-splash-unveil-text">
-            <div class="sr-splash-wordmark">
-              <span class="sr-splash-suffix" style="background:linear-gradient(135deg,#1AD079 0%,#34d399 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">SHIFT</span><span class="sr-splash-relay" style="background:linear-gradient(135deg,#f8fafc 0%,#cbd5e1 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">RELAY</span>
-            </div>
-            <span class="sr-splash-tagline">COSMIC SHIFT PULSE &bull; WORKFORCE OS</span>
-          </div>
+          <span class="sr-splash-tagline">WORKFORCE SHIFT OS</span>
         </div>
-
-        <!-- Liquid Energy Scanline -->
-        <div class="sr-splash-laser-line" id="sr-splash-laser-line"></div>
-
-        <!-- System Online Telemetry Pill -->
-        <div class="sr-splash-status-row">
-          <span class="sr-splash-pulse-dot"></span>
-          <span class="sr-splash-status-text">SYNCHRONIZING BIOMETRIC SHIFT PULSE</span>
+        <div class="sr-splash-progress-track">
+          <div class="sr-splash-progress-fill"></div>
         </div>
       </div>
-
-      <!-- Fast Skip button -->
-      <button type="button" class="sr-splash-skip-btn" id="sr-splash-skip-btn" aria-label="Skip to Login">
-        <span>Skip</span> &rarr;
-      </button>
     </div>
 
     <!-- ======================================================
@@ -142,7 +113,7 @@
           <span class="sr-entry-badge-pulse"></span>
           <span>Frontline OS</span>
         </div>
-        <img src="icon.svg?v=130" class="entry-icon-ring" alt="ShiftRelay" width="80" height="80" />
+        <img src="icon.svg?v=145" class="entry-icon-ring" alt="ShiftRelay" width="80" height="80" />
         <h1 class="entry-headline">Every shift.<br><em class="sr-headline-gradient">Accounted for.</em></h1>
         <p class="entry-sub">Shift work, simplified.</p>
         <div class="entry-pills">
@@ -166,7 +137,7 @@
             <span>Live Shift Operational Roster</span>
           </div>
           <div class="sr-telemetry-details">
-            <span>Dangote Logistics Pilot: <strong>142 Verified Timecards</strong></span>
+            <span>Riffmax Technology Limited: <strong>142 Verified Timecards</strong></span>
             <span class="sr-telemetry-sep">•</span>
             <span style="color:#059669;font-weight:700;">₦0.00 Variance</span>
           </div>
@@ -175,12 +146,12 @@
 
       <div class="entry-bottom">
         <button class="entry-btn-primary" id="entry-btn-signin" type="button">
-          <span>Sign In</span>
+          <span>Staff Sign In</span>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </button>
         <button class="entry-btn-secondary" id="entry-btn-start" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
-          <span>Request Demo</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>Gate Station Kiosk</span>
         </button>
         <p class="entry-legal">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:3px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
@@ -197,7 +168,7 @@
         <div class="sr-sheet-handle"></div>
         <div class="sr-sheet-header">
           <div style="display:flex;align-items:center;gap:10px;">
-            <img src="icon.svg?v=130" width="24" height="24" style="border-radius:6px;" alt="" />
+            <img src="icon.svg?v=145" width="24" height="24" style="border-radius:6px;" alt="" />
             <h3 style="margin:0;font-size:18px;font-weight:800;letter-spacing:-0.02em;">ShiftRelay</h3>
           </div>
           <button type="button" id="sr-modal-close" aria-label="Close" style="background:transparent;border:none;padding:6px;cursor:pointer;color:#64748b;border-radius:6px;">
@@ -210,13 +181,9 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <span>Sign In</span>
           </button>
-          <button class="sr-sheet-tab" data-tab="demo-request" type="button">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
-            <span>Request Demo</span>
-          </button>
           <button class="sr-sheet-tab" data-tab="demo" type="button">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span>Role Drive</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Team Switch</span>
           </button>
           <button class="sr-sheet-tab" data-tab="gate-station" type="button">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -245,7 +212,7 @@
               </div>
               <input name="companyId" required autocomplete="organization" value="246701" placeholder="e.g. 246701 or DAN-NG-4011" class="sr-input-monospace" />
               <div class="sr-input-hint-row">
-                <span>Default Pilot: <strong class="sr-tenant-tag">Dangote Logistics (Nigeria)</strong></span>
+                <span>Organisation: <strong class="sr-tenant-tag">Riffmax Technology Limited</strong></span>
                 <span>Code: 246701</span>
               </div>
             </label>
@@ -281,7 +248,7 @@
 
             <label>
               <span>Company / Group Legal Name</span>
-              <input name="companyName" required placeholder="e.g. Dangote Group or Reddington Hospital" />
+              <input name="companyName" required placeholder="e.g. Riffmax Technology Limited or Enterprise Hub" />
             </label>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
@@ -332,7 +299,7 @@
 
         <!-- Demo pane -->
         <div class="sr-sheet-pane sr-demo-section" data-pane="demo" style="display:none">
-          <p style="font-size:13px;color:#64748b;margin:0 0 14px;line-height:1.5;">Try ShiftRelay instantly as a demo user. No password needed.</p>
+          <p style="font-size:13px;color:#64748b;margin:0 0 14px;line-height:1.5;">Select your assigned Riffmax Technology staff profile to open your shift workspace:</p>
           <div class="sr-demo-roles" id="sr-demo-role-list"></div>
         </div>
 
@@ -340,7 +307,7 @@
         <div class="sr-sheet-pane" data-pane="gate-station" style="display:none">
           <form class="sr-sheet-form" id="sr-sheet-gate-terminal-form">
             <div style="background:rgba(13,148,136,0.06);border:1px solid rgba(13,148,136,0.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;">
-              <span style="font-size:24px;">🔒</span>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               <div style="font-size:12px;color:var(--text-main);line-height:1.4;">
                 <strong>Gate Terminal Pairing (2-Layer Security)</strong><br>
                 <span style="color:var(--text-muted);">Pairs this tablet as an authorized facility muster station. Locks out personal logins and enables high-speed NFC &amp; QR attendance scanning.</span>
@@ -364,7 +331,7 @@
               </label>
               <label style="margin:0;">
                 <span>Registered Admin Email</span>
-                <input name="gateAdminEmail" id="sr-gate-admin-email" type="email" required value="owner@shiftrelay.demo" placeholder="admin@company.com" />
+                <input name="gateAdminEmail" id="sr-gate-admin-email" type="email" required value="sherif@riffmax.tech" placeholder="admin@company.com" />
               </label>
             </div>
 
@@ -400,7 +367,7 @@
       <nav class="landing-navbar" aria-label="Main Navigation">
         <div class="landing-nav-inner">
           <a class="landing-brand" href="#" aria-label="ShiftRelay Home">
-            <img src="icon.svg?v=130" alt="" width="32" height="32" />
+            <img src="icon.svg?v=145" alt="" width="32" height="32" />
             <span>ShiftRelay</span>
           </a>
           <div class="landing-nav-actions">
@@ -411,7 +378,7 @@
               Enterprise Sign In
             </a>
             <a href="#landing-portal-anchor" class="primary" id="nav-btn-start" style="min-height:36px;padding:6px 16px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;text-decoration:none;">
-              Request Enterprise Demo
+              Launch Shift Workspace
             </a>
           </div>
         </div>
@@ -422,7 +389,7 @@
         <div class="landing-hero-content">
           <div class="landing-badge-chip">
             <span class="badge-dot-live"></span>
-            <span>Enterprise Frontline HCM &amp; Time System</span>
+            <span>Enterprise Frontline Operations &amp; Time System</span>
           </div>
           <h1 class="landing-hero-title">Frontline Operations. Verified Timecards &amp; Payroll Dispatch.</h1>
           <p class="landing-hero-desc">
@@ -431,12 +398,12 @@
 
           <div class="landing-cta-row">
             <a href="#landing-portal-anchor" class="primary btn-hero-start" id="btn-hero-get-started" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;">
-              <span>Request Demo</span>
+              <span>Launch Shift Workspace</span>
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </a>
             <a href="#landing-portal-anchor" class="secondary btn-hero-demo" id="btn-hero-try-demo" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-              <span>Instant Role Drive</span>
+              <span>Quick Staff Access</span>
             </a>
           </div>
 
@@ -505,14 +472,14 @@
       <footer class="landing-footer">
         <div class="landing-footer-inner">
           <div class="footer-brand-row">
-            <a class="footer-brand" href="#"><img src="icon.svg?v=130" alt="" width="26" height="26" /><span>ShiftRelay</span></a>
+            <a class="footer-brand" href="#"><img src="icon.svg?v=145" alt="" width="26" height="26" /><span>ShiftRelay</span></a>
             <p class="footer-tagline">Closed frontline workforce operating system and enterprise HCM platform.</p>
           </div>
           <div class="footer-links-grid">
             <div class="footer-link-col">
               <h4>Platform Access</h4>
               <a href="#landing-portal-anchor" data-access="signin">Enterprise Sign In</a>
-              <a href="#landing-portal-anchor" data-access="demo-request">Request Enterprise Demo</a>
+              <a href="#landing-portal-anchor" data-access="demo-request">Facility Registration</a>
               <a href="pricing.html">Enterprise Licensing</a>
             </div>
             <div class="footer-link-col">
@@ -557,7 +524,7 @@
         <header class="app-header">
           <div class="header-brand-row">
             <a class="brand-mark" href="#" aria-label="ShiftRelay home">
-              <img src="icon.svg?v=130" alt="" width="28" height="28" />
+              <img src="icon.svg?v=145" alt="" width="28" height="28" />
             </a>
             <div class="header-user-pill" id="header-user-pill">
               <span class="avatar" id="header-avatar">AO</span>
@@ -706,6 +673,7 @@
     </div>
 
     <div class="toast hidden" id="toast"></div>
+    <script src="lucide-symbols.js?v=141"></script>
     <script src="icons.js"></script>
     <script src="language.js"></script>
     <script src="language-pack.js"></script>
@@ -745,8 +713,8 @@
     <script src="facility-switcher.js"></script>
     <script src="emergency-broadcast.js"></script>
     <script src="live-translation.js"></script>
-    <script src="phase1-shell.js?v=130"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=130',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script src="phase1-shell.js?v=141"></script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=141',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 

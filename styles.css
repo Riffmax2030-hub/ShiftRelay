@@ -2377,3 +2377,35 @@ label.checkbox input {
     font-weight: 700;
   }
 }
+
+/* ==========================================================================
+   [RIFA-7 & RIFA-9] 2026 Web3 Bento Glassmorphism Token System & 60FPS Physics
+   Lead UI/UX: Kelechi Nnamdi | Motion & Haptics: Simi Balogun
+   Tenant: Riffmax Technology Limited (RIF-2026)
+   ========================================================================== */
+:root {
+  --sr-glass-bg: rgba(10, 15, 29, 0.72);
+  --sr-glass-elevated: rgba(15, 23, 42, 0.84);
+  --sr-glass-border: rgba(0, 229, 153, 0.22);
+  --sr-emerald-accent: #00E599;
+  --sr-sunlight-fg: #F8FAFC;
+  --sr-spring-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --sr-spring-duration: 140ms;
+}
+
+.bento-card,
+.handover-item,
+.stat-card {
+  transition:
+    transform var(--sr-spring-duration) var(--sr-spring-ease),
+    box-shadow var(--sr-spring-duration) var(--sr-spring-ease),
+    border-color var(--sr-spring-duration) var(--sr-spring-ease);
+  will-change: transform;
+}
+
+.bento-card:active,
+button.primary:active,
+button.secondary:active {
+  transform: scale(0.985);
+}
+

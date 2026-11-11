@@ -661,6 +661,12 @@ body:has(#sr-app-shell) .app-header,
   border: 1px solid var(--sr-status-green-border);
 }
 
+.sr-status-pill.completed {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
 .sr-status-pill.inactive {
   background: var(--sr-bg-subtle);
   color: var(--sr-text-muted);
@@ -4273,6 +4279,12 @@ select:focus {
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15) !important;
 }
 
+.sr-status-pill.completed {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
 /* Pulse dot — stronger animation */
 .sr-pulse-dot {
   width: 8px !important;
@@ -5669,6 +5681,12 @@ textarea:focus-visible {
   color: #34d399 !important;
   border: 1px solid rgba(16, 185, 129, 0.35) !important;
   box-shadow: none !important;
+}
+
+.sr-status-pill.completed {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
 [data-theme="dark"] .sr-status-pill.pending {
@@ -7815,6 +7833,11 @@ textarea:focus-visible {
   box-shadow: 0 0 6px #25D366;
 }
 
+.sr-header-active-dot.offduty {
+  background: #64748b !important;
+  box-shadow: none !important;
+}
+
 /* ── Floating Smart Generative AI Beacon (Mid-Bottom Right) ── */
 .sr-floating-ai-beacon {
   position: fixed;
@@ -9321,4 +9344,648 @@ textarea:focus-visible {
   flex-shrink: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   [RIFA-18 / RIFA-20 / RIFA-22] LEVEL 1 PRODUCTION UX: 5-TAB THUMB ZONE &
+   "LESS AND BIGGER" LAYMAN-SIMPLE CONTROLS (Kelechi Nnamdi & Simi Balogun)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.sr-mobile-dock {
+  grid-template-columns: repeat(5, 1fr) !important;
+  height: 68px !important;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+.sr-mobile-dock .sr-dock-item {
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  gap: 4px !important;
+  border-radius: 12px !important;
+}
+
+.sr-mobile-dock .sr-dock-item.active {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #10b981 !important;
+}
+
+.sr-sidebar .sr-nav-btn {
+  min-height: 48px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  padding: 12px 16px !important;
+  border-radius: 12px !important;
+}
+
+.sr-btn-primary,
+.sr-sheet-submit {
+  min-height: 48px !important;
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   [RIFA-23 / RIFA-24] PHASE 2 DEEP-PAGE UX: MOBILE HEADER DE-COLLISION,
+   SUPERVISOR MODE SUB-BAR & DRAG-AND-DROP SHIFT CALENDAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .sr-context-pill {
+    display: none !important;
+  }
+}
+
+.sr-sup-mobile-mode-bar {
+  display: none;
+  background: var(--sr-bg-card);
+  border-bottom: 1px solid var(--sr-border-subtle);
+  padding: 8px 14px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .sr-header .sr-sup-mode-switcher {
+    display: none !important;
+  }
+  .sr-sup-mobile-mode-bar {
+    display: flex !important;
+  }
+}
+
+.sr-search-input-wrap {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.sr-search-input-wrap svg {
+  position: absolute !important;
+  left: 13px !important;
+  pointer-events: none !important;
+  color: var(--sr-text-muted) !important;
+}
+
+.sr-search-input {
+  padding-left: 40px !important;
+}
+
+/* Drag-and-Drop Roster & Calendar Grid */
+.sr-dnd-staff-dock {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 12px 4px 14px;
+  scrollbar-width: thin;
+}
+
+.sr-dnd-worker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--sr-bg-card);
+  border: 1.5px solid var(--sr-border-medium, #cbd5e1);
+  border-radius: 12px;
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+  transition: all 0.16s ease;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+.sr-dnd-worker-chip:hover,
+.sr-dnd-worker-chip.selected-worker {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.18);
+}
+
+.sr-dnd-worker-chip:active {
+  cursor: grabbing;
+}
+
+.sr-dnd-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .sr-dnd-cal-grid {
+    gap: 4px;
+  }
+}
+
+.sr-dnd-cal-weekday {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--sr-text-muted);
+  padding: 6px 0;
+}
+
+.sr-dnd-cal-day {
+  min-height: 92px;
+  background: var(--sr-bg-card);
+  border: 1.5px solid var(--sr-border-subtle);
+  border-radius: 10px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.15s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .sr-dnd-cal-day {
+    min-height: 76px;
+    padding: 4px;
+  }
+}
+
+.sr-dnd-cal-day:hover {
+  border-color: #38bdf8;
+}
+
+.sr-dnd-cal-day.drag-over {
+  border: 2px dashed #10b981 !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.sr-dnd-shift-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 5px;
+  border-radius: 5px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sidebar Sticky Footer & Quick Session Controls ([RIFA-35]) */
+.sr-sidebar-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--sr-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sr-nav-signout {
+  color: #ef4444 !important;
+  transition: all 0.18s ease;
+}
+
+.sr-nav-signout:hover {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+}
+
+@media (max-width: 480px) {
+  .sr-signout-text {
+    display: none;
+  }
+  #sr-shell-signout {
+    padding: 0 8px !important;
+  }
+}
+
+
+
+
+/* ── World-Class Reactive Shift Tasks with Styled Checkbox in Front ── */
+.sr-task-section {
+  padding: 18px 20px;
+}
+
+.sr-task-industry-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sr-task-counter-pill {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sr-text-secondary);
+  background: var(--sr-bg-card-subtle);
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--sr-border-subtle);
+}
+
+.sr-task-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--sr-bg-card-subtle);
+  border: 1px solid var(--sr-border-subtle);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 48px;
+  margin-bottom: 8px;
+  user-select: none;
+}
+
+.sr-task-item:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: var(--sr-bg-card);
+  transform: translateY(-1px);
+}
+
+.sr-task-item.done {
+  background: rgba(16, 185, 129, 0.04);
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+.sr-task-item.done .sr-task-text {
+  color: var(--sr-text-muted);
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+/* Custom Checkbox In Front */
+.sr-task-check-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sr-task-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.sr-custom-check-box {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--sr-border-strong, #64748b);
+  background: var(--sr-bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  color: transparent;
+}
+
+.sr-task-item:hover .sr-custom-check-box {
+  border-color: #10b981;
+}
+
+.sr-task-checkbox:checked + .sr-custom-check-box {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+  transform: scale(1.05);
+}
+
+.sr-check-svg {
+  stroke: currentColor;
+  transition: transform 0.15s ease;
+}
+
+.sr-task-checkbox:checked + .sr-custom-check-box .sr-check-svg {
+  transform: scale(1.1);
+}
+
+.sr-task-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sr-task-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--sr-text-main);
+  line-height: 1.4;
+  transition: color 0.15s ease;
+}
+
+.sr-task-urgent-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  padding: 3px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.sr-task-normal-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sr-text-muted);
+  background: var(--sr-bg-subtle);
+  border: 1px solid var(--sr-border-subtle);
+  padding: 3px 7px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Header Brand Link Precision Styling */
+.sr-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.sr-brand-link img {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.sr-brand-text {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.sr-brand-shift {
+  color: #10b981;
+}
+
+.sr-brand-relay {
+  color: var(--sr-text-main);
+}
+
+
+/* ── Rewards UX: Punctuality Streak Meter ── */
+.sr-streak-card {
+  background: var(--sr-bg-card);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(16, 185, 129, 0.04) 100%);
+}
+
+.sr-streak-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sr-streak-flame-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.sr-streak-days-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.sr-streak-day-node {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  border: 1.5px solid var(--sr-border-subtle);
+  background: var(--sr-bg-subtle);
+  color: var(--sr-text-muted);
+  transition: all 0.2s ease;
+}
+
+.sr-streak-day-node.active-done {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+}
+
+.sr-streak-day-node.active-today {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  animation: srPulse 2s infinite ease-in-out;
+}
+
+/* ── Rewards Merit Badges Showcase ── */
+.sr-merit-badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.sr-merit-badge-card {
+  background: var(--sr-bg-card);
+  border: 1px solid var(--sr-border-subtle);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.sr-merit-badge-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.sr-merit-badge-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Payslip Official Nigerian Seal Box ── */
+.sr-payslip-stamp-seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1.5px dashed #10b981;
+  color: #10b981;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── Mobile (360px–640px) Header, Switch Tabs & Payroll KPI Fit ── */
+@media (max-width: 640px) {
+  .sr-main-content {
+    padding: 14px 12px calc(var(--sr-dock-height) + env(safe-area-inset-bottom, 0px) + 24px);
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .sr-page-wrap {
+    padding: 6px 0 40px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sr-comp-switch {
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .sr-comp-switch::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sr-comp-option {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .sr-demo-menu {
+    width: min(300px, calc(100vw - 20px));
+    max-width: calc(100vw - 20px);
+  }
+}
+
+@media (max-width: 540px) {
+  .sr-header {
+    padding: 0 10px;
+    gap: 6px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sr-header-left {
+    gap: 6px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .sr-brand-link img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .sr-brand-text {
+    display: none;
+  }
+
+  .sr-header-right {
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .sr-demo-pill {
+    height: 32px;
+    padding: 0 9px;
+    font-size: 11.5px;
+    gap: 4px;
+  }
+
+  .sr-header .sr-icon-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .sr-user-avatar-pill {
+    padding: 3px 7px 3px 3px;
+    gap: 5px;
+  }
+
+  .sr-header-avatar-circle {
+    width: 26px;
+    height: 26px;
+    font-size: 10.5px;
+  }
+
+  .sr-header-user-firstname,
+  .sr-signout-text {
+    display: none;
+  }
+
+  #sr-shell-signout {
+    min-height: 32px !important;
+    padding: 0 9px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .sr-stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .sr-stat-box {
+    min-width: 0;
+    padding: 12px;
+    overflow: hidden;
+  }
+
+  .sr-stat-val {
+    font-size: clamp(14.5px, 4.2vw, 19px) !important;
+    line-height: 1.25;
+    word-break: break-word;
+  }
 }

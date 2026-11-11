@@ -1,26 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 80" width="380" height="80" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 160" width="100%" height="100%">
   <defs>
-    <linearGradient id="sr-wm-teal" x1="10" y1="10" x2="60" y2="70" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0a3d39"/>
-      <stop offset="0.6" stop-color="#0d524d"/>
-      <stop offset="1" stop-color="#10b981"/>
+    <linearGradient id="srLogoEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
     </linearGradient>
-    <linearGradient id="sr-wm-glow" x1="30" y1="15" x2="70" y2="55" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#34d399"/>
-      <stop offset="1" stop-color="#059669"/>
+    <linearGradient id="srLogoSapphire" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
     </linearGradient>
   </defs>
-  <!-- Symbol -->
-  <g transform="translate(4, 2) scale(0.62)">
-    <path d="M30 72 C22 52 36 30 58 30 C76 30 90 42 90 60 C90 78 74 90 56 90 C42 90 32 82 28 72" 
-          stroke="url(#sr-wm-teal)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M42 42 C54 26 82 24 92 46 C100 64 88 84 68 84 C54 84 46 76 42 66" 
-          stroke="url(#sr-wm-glow)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
-    <circle cx="68" cy="84" r="6" fill="#10b981" stroke="#ffffff" stroke-width="2.5"/>
-    <circle cx="58" cy="30" r="5" fill="#0d524d" stroke="#ffffff" stroke-width="2"/>
+
+  <!-- Woven Relay Mark on the Left (Centered at x=80, y=80) -->
+  <g transform="translate(80, 80) scale(0.65)">
+    <!-- Corner Alignment Brackets -->
+    <path d="M -90 -55 L -90 -90 L -55 -90" fill="none" stroke="#10b981" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M 90 -55 L 90 -90 L 55 -90" fill="none" stroke="#38bdf8" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M -90 55 L -90 90 L -55 90" fill="none" stroke="#38bdf8" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M 90 55 L 90 90 L 55 90" fill="none" stroke="#10b981" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- Woven Beams -->
+    <rect x="-82" y="-52" width="68" height="18" rx="6" transform="rotate(45 -48 -43)" fill="url(#srLogoEmerald)"/>
+    <rect x="-62" y="-72" width="68" height="18" rx="6" transform="rotate(45 -28 -63)" fill="url(#srLogoEmerald)"/>
+    <rect x="14" y="34" width="68" height="18" rx="6" transform="rotate(45 48 43)" fill="url(#srLogoEmerald)"/>
+    <rect x="-6" y="54" width="68" height="18" rx="6" transform="rotate(45 28 63)" fill="url(#srLogoEmerald)"/>
+
+    <rect x="14" y="-52" width="68" height="18" rx="6" transform="rotate(-45 48 -43)" fill="url(#srLogoSapphire)"/>
+    <rect x="-6" y="-72" width="68" height="18" rx="6" transform="rotate(-45 28 -63)" fill="url(#srLogoSapphire)"/>
+    <rect x="-82" y="34" width="68" height="18" rx="6" transform="rotate(-45 -48 43)" fill="url(#srLogoSapphire)"/>
+    <rect x="-62" y="54" width="68" height="18" rx="6" transform="rotate(-45 -28 63)" fill="url(#srLogoSapphire)"/>
+
+    <!-- Central Relay Core -->
+    <polygon points="0,-22 22,0 0,22 -22,0" fill="#0f172a" stroke="url(#srLogoEmerald)" stroke-width="3"/>
+    <circle cx="0" cy="0" r="7" fill="#ffffff"/>
+    <circle cx="0" cy="0" r="3" fill="#0f172a"/>
   </g>
-  <!-- Typography (Light Theme) -->
-  <text x="88" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif" font-size="34" font-weight="800" letter-spacing="-0.03em" fill="#0f172a">
-    Shift<tspan fill="#10b981">Relay</tspan>
-  </text>
+
+  <!-- Precision Wordmark Typography (Inspired by User Images 1, 3 & 4) -->
+  <g transform="translate(170, 102)">
+    <!-- "SHIFT" in Bold Industrial Emerald -->
+    <text x="0" y="0" font-family="'Inter', system-ui, -apple-system, sans-serif" font-size="64" font-weight="900" letter-spacing="-0.03em" fill="#10b981">SHIFT</text>
+    <!-- "RELAY" in Deep Modern Slate/Cyan with Custom Spacing -->
+    <text x="210" y="0" font-family="'Inter', system-ui, -apple-system, sans-serif" font-size="64" font-weight="800" letter-spacing="-0.02em" fill="#38bdf8">RELAY</text>
+  </g>
+  <!-- Sub-Tagline -->
+  <text x="172" y="132" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="700" letter-spacing="0.16em" fill="#94a3b8" text-transform="uppercase">WORKFORCE SHIFT OS &bull; INDUSTRIAL CONTINUITY</text>
 </svg>

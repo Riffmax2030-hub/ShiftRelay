@@ -1657,3 +1657,85 @@
   0%, 100% { transform: scale(0.92); opacity: 0.75; }
   50% { transform: scale(1.22); opacity: 1; }
 }
+
+
+/* ── Clean Professional Logo Loading Stage (Zero Rotating Rings, Pure Brand) ── */
+.sr-splash-clean-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  animation: srSplashFadeIn 0.35s ease-out forwards;
+}
+
+@keyframes srSplashFadeIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.sr-splash-brand-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.sr-splash-brand-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.sr-splash-brand-text {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sr-splash-brand-shift {
+  color: #10b981;
+}
+
+.sr-splash-brand-relay {
+  color: #f8fafc;
+}
+
+.sr-splash-progress-track {
+  width: 140px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+
+.sr-splash-progress-fill {
+  height: 100%;
+  width: 45%;
+  background: linear-gradient(90deg, #10b981 0%, #38bdf8 100%);
+  border-radius: 99px;
+  animation: srSplashProgressGlide 1.2s infinite ease-in-out;
+}
+
+@keyframes srSplashProgressGlide {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  100% { transform: translateX(250%); }
+}
+
+#sr-splash {
+  background: #0a1526 !important;
+}
+
+#sr-splash.fade-out {
+  opacity: 0 !important;
+  transition: opacity 0.28s ease-out !important;
+  pointer-events: none !important;
+}
