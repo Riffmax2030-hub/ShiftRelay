@@ -1538,26 +1538,49 @@
     return { balance, recentText };
   }
 
-  function recordStarActivity(starsAdded, actionLabel, uniqueKey = null) {
+  async function recordStarActivity(starsAdded, actionLabel, uniqueKey = null) {
     const cur = getStarActivityState();
     const today = new Date().toISOString().slice(0, 10);
+    const user = getUser();
+    const userPrefix = user?.id ? (user.id + '_') : '';
     
-    // Check one-time or daily reward cap
-    if (uniqueKey) {
+    // Normalize uniqueKey to be user-scoped so switching accounts or editing doesn't duplicate
+    const scopedKey = uniqueKey ? (uniqueKey.startsWith(userPrefix) ? uniqueKey : (userPrefix + uniqueKey)) : null;
+
+    // Check one-time or daily reward cap locally
+    if (scopedKey) {
       const awardedRewards = JSON.parse(localStorage.getItem('sr_awarded_rewards') || '{}');
-      if (awardedRewards[uniqueKey]) {
-        console.log('[Reward Guard] Reward already claimed for:', uniqueKey);
-        return { balance: cur.balance, recentText: cur.recentText, alreadyAwarded: true };
+      if (awardedRewards[scopedKey]) {
+        console.log('[Reward Guard] Reward already claimed locally for:', scopedKey);
+        return { balance: cur.balance, recentText: cur.recentText, alreadyAwarded: true, starsAdded: 0 };
       }
-      awardedRewards[uniqueKey] = { date: today, timestamp: Date.now() };
+      awardedRewards[scopedKey] = { date: today, timestamp: Date.now() };
       localStorage.setItem('sr_awarded_rewards', JSON.stringify(awardedRewards));
     }
 
-    const nextBalance = cur.balance + (starsAdded || 25);
+    let nextBalance = cur.balance + (starsAdded || 25);
+    try {
+      const res = await fetch('/api/rewards/record-activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionLabel, uniqueKey: scopedKey, stars: starsAdded || 25 })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.alreadyAwarded) {
+          console.log('[Reward Guard] Server verified reward already awarded for:', scopedKey);
+          return { balance: cur.balance, recentText: cur.recentText, alreadyAwarded: true, starsAdded: 0 };
+        }
+        if (typeof data.starsBalance === 'number') {
+          nextBalance = data.starsBalance;
+        }
+      }
+    } catch (_) {}
+
     const nextText = `+${starsAdded || 25} PTS earned · ${actionLabel}`;
     localStorage.setItem('sr_star_balance', String(nextBalance));
     localStorage.setItem('sr_recent_star_event', nextText);
-    return { balance: nextBalance, recentText: nextText, alreadyAwarded: false };
+    return { balance: nextBalance, recentText: nextText, alreadyAwarded: false, starsAdded: starsAdded || 25 };
   }
 
   // ── 2. Polished Worker Today Screen ─────────────────────────────────────────
@@ -2095,7 +2118,8 @@
             sprayShineEffect(document.getElementById('sr-clock-card'));
             setTimeout(() => renderWorkerToday(true), 420);
           } catch (err) {
-            recordStarActivity(25, 'Offline Biometric Clock-In');
+            const todayKey = 'clockin_' + new Date().toISOString().slice(0, 10);
+            await recordStarActivity(25, 'Offline Biometric Clock-In', todayKey);
             SRAudio.playClockIn();
             setTimeout(() => renderWorkerToday(true), 420);
           }
@@ -2125,7 +2149,8 @@
       // Bind Gate QR Scanner chip
       document.getElementById('sr-btn-scan-gate-qr')?.addEventListener('click', () => {
         openGateQrScannerModal(tenantId, siteName, async () => {
-          recordStarActivity(25, 'Gate QR Verified Clock-In');
+          const todayKey = 'clockin_' + new Date().toISOString().slice(0, 10);
+          await recordStarActivity(25, 'Gate QR Verified Clock-In', todayKey);
           await renderWorkerToday(true);
         });
       });
@@ -2227,10 +2252,11 @@
               progBar.style.width = pct + '%';
             }
 
-            // Haptic & Reward Feedback
+            // Haptic & Reward Feedback with Anti-Farming Task Key
             if (isChecked) {
               triggerVibration([25, 15, 30]);
-              recordStarActivity(5, 'Task Verified: ' + taskId);
+              const taskKey = 'task_' + new Date().toISOString().slice(0, 10) + '_' + taskId;
+              await recordStarActivity(5, 'Task Verified: ' + taskId, taskKey);
               if (done === total) {
                 showToast('✓ All shift safety & operational tasks verified for this rotation!', 'success');
               }
@@ -7771,7 +7797,12 @@
             body: JSON.stringify({ avatarUrl: savedUrl })
           });
           if (saveRes.ok) {
-            showToast('Profile picture updated successfully.', 'success');
+            const avRes = await recordStarActivity(50, 'Profile Avatar Uploaded', 'lifetime_milestone_avatar');
+            if (!avRes.alreadyAwarded) {
+              showToast('Profile picture updated (+50 PTS first-time bonus!)', 'success');
+            } else {
+              showToast('Profile picture updated successfully.', 'success');
+            }
           }
         } catch (err) {
           console.error('Failed to save profile picture:', err);
@@ -7949,7 +7980,12 @@
             });
             if (!res.ok) throw new Error('Save failed');
             originalText = newText;
-            showToast('Summary updated.', 'success');
+            const sumRes = await recordStarActivity(40, 'Professional Summary Added', 'lifetime_milestone_summary');
+            if (!sumRes.alreadyAwarded) {
+              showToast('Summary updated (+40 PTS first-time bonus!)', 'success');
+            } else {
+              showToast('Summary updated.', 'success');
+            }
           } catch (e) {
             showToast('Could not save. Try again.', 'error');
             summaryEl.innerText = originalText;
@@ -8369,7 +8405,13 @@
               newForm.insertAdjacentHTML('beforebegin', itemHtml);
               [nameKey, sub1Key, yearKey].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
               newForm.style.display = 'none';
-              showToast('Added.', 'success');
+              const milestoneKey = 'lifetime_milestone_' + (type === 'cert' ? 'certification' : 'education');
+              const rewardRes = await recordStarActivity(50, (type === 'cert' ? 'Professional Certification Added' : 'Education Credential Added'), milestoneKey);
+              if (!rewardRes.alreadyAwarded) {
+                showToast((type === 'cert' ? 'Certification' : 'Education') + ' added (+50 PTS first-time milestone bonus!)', 'success');
+              } else {
+                showToast((type === 'cert' ? 'Certification' : 'Education') + ' added.', 'success');
+              }
             } catch (err) {
               showToast('Could not add.', 'error');
             } finally {
@@ -8557,7 +8599,12 @@
           });
           if (res.ok) {
             modalEl.remove();
-            showToast('Certification added.', 'success');
+            const certReward = await recordStarActivity(50, 'Professional Certification Added', 'lifetime_milestone_certification');
+            if (!certReward.alreadyAwarded) {
+              showToast('Certification added (+50 PTS first-time milestone bonus!)', 'success');
+            } else {
+              showToast('Certification added.', 'success');
+            }
             await renderWorkerMe();
           }
         } catch (err) {
@@ -8620,7 +8667,12 @@
           });
           if (res.ok) {
             modalEl.remove();
-            showToast('Education added.', 'success');
+            const eduReward = await recordStarActivity(50, 'Education Credential Added', 'lifetime_milestone_education');
+            if (!eduReward.alreadyAwarded) {
+              showToast('Education added (+50 PTS first-time milestone bonus!)', 'success');
+            } else {
+              showToast('Education added.', 'success');
+            }
             await renderWorkerMe();
           }
         } catch (err) {
@@ -8672,7 +8724,12 @@
           });
           if (res.ok) {
             modalEl.remove();
-            showToast('Skills updated.', 'success');
+            const skillReward = await recordStarActivity(30, 'Core Skills Profiled', 'lifetime_milestone_skills');
+            if (!skillReward.alreadyAwarded) {
+              showToast('Skills updated (+30 PTS first-time milestone bonus!)', 'success');
+            } else {
+              showToast('Skills updated.', 'success');
+            }
             await renderWorkerMe();
           }
         } catch (err) {
@@ -13143,6 +13200,8 @@
           const data = await res.json().catch(() => ({}));
           const reply = data.answer || data.response || data.message || 'Thank you for contacting ShiftRelay Support. Our frontline operations team has received your message and will follow up promptly.';
           appendSupportBubble('bot', reply);
+          const chatKey = 'chat_consult_' + new Date().toISOString().slice(0, 10);
+          await recordStarActivity(20, 'Chat Consultation Completed', chatKey);
         } catch (_) {
           appendSupportBubble('bot', 'Your message has been received by ShiftRelay Support. Our team will review your inquiry shortly.');
         }
@@ -13266,7 +13325,8 @@
         const d = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(d.error || `Server error ${res.status}`);
         closeModal();
-        recordStarActivity(10, 'Offered Shift Swap to Team');
+        const offerKey = 'swap_offer_' + new Date().toISOString().slice(0, 10);
+        await recordStarActivity(10, 'Offered Shift Swap to Team', offerKey);
         showToast('Shift swap offer posted to your team coworkers!', 'success');
         teamSwapFilter = 'all';
         await renderOpenShiftMarketplace();
@@ -13353,7 +13413,8 @@
         localMatch.target_name = user?.name || 'Team Coworker';
         localMatch.claimed_by_id = user?.id;
         saveLocalSwaps(localSwaps);
-        recordStarActivity(20, 'Claimed Team Coworker Shift Swap');
+        const claimKey = 'swap_claim_' + swapId;
+        await recordStarActivity(20, 'Claimed Team Coworker Shift Swap', claimKey);
         SRAudio.playClockIn();
         showToast('Shift claimed from coworker! Sent to supervisor for final sign-off.', 'success');
         await renderOpenShiftMarketplace();
@@ -13367,7 +13428,8 @@
         });
         const d = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
-        recordStarActivity(20, 'Claimed Team Coworker Shift Swap');
+        const claimKey = 'swap_claim_' + swapId;
+        await recordStarActivity(20, 'Claimed Team Coworker Shift Swap', claimKey);
         SRAudio.playClockIn();
         showToast('Shift swap claimed! Awaiting supervisor approval.', 'success');
         await renderOpenShiftMarketplace();

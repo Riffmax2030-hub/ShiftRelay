@@ -3707,6 +3707,11 @@ async function getUserRewards(user, store) {
       currentTenureYears: 2.5,
       hireDate: '2024-05-15',
       claimedQuests: ['quest-profile'],
+      claimedKeys: [
+        'lifetime_milestone_profile_' + user.id,
+        'lifetime_milestone_education_' + user.id,
+        'lifetime_milestone_certification_' + user.id
+      ],
       redemptions: [],
       ledger: [
         { id: 'tx-seed-1', type: 'earn', title: 'Full Frontline Profile Setup & Verification', stars: 300, timestamp: new Date(Date.now() - 3 * 86400000).toISOString() },
@@ -3717,6 +3722,9 @@ async function getUserRewards(user, store) {
       ]
     };
     await saveStore(store);
+  }
+  if (!Array.isArray(store.rewards[user.id].claimedKeys)) {
+    store.rewards[user.id].claimedKeys = [];
   }
   return store.rewards[user.id];
 }
@@ -3894,6 +3902,55 @@ async function getUserRewards(user, store) {
       redemptionShop,
       ledger: (rw.ledger || []).slice().reverse(),
       redemptions: rw.redemptions || []
+    });
+  }
+
+  // ── Anti-Farming Idempotent Reward Activity Logger ───────────────────────
+  if (url.pathname === '/api/rewards/record-activity' && request.method === 'POST') {
+    const { actionLabel, uniqueKey, stars } = await readJson(request);
+    if (!actionLabel) return sendJson(response, 400, { error: 'Action label is required.' });
+
+    const store = await getStore();
+    const rw = await getUserRewards(user, store);
+    if (!Array.isArray(rw.claimedKeys)) rw.claimedKeys = [];
+
+    // Anti-farming verification: duplicate uniqueKey rejection
+    if (uniqueKey) {
+      if (rw.claimedKeys.includes(uniqueKey)) {
+        console.log(`[REWARD GUARD] Blocked duplicate farm attempt for key: ${uniqueKey} (User: ${user.id})`);
+        return sendJson(response, 200, {
+          ok: true,
+          alreadyAwarded: true,
+          starsAdded: 0,
+          starsBalance: rw.starsBalance,
+          message: 'Reward already claimed for this rotation or milestone.'
+        });
+      }
+      rw.claimedKeys.push(uniqueKey);
+    }
+
+    const starsToAdd = Math.max(0, Math.min(Number(stars) || 25, 100)); // Capped max 100 PTS per event
+    rw.starsBalance += starsToAdd;
+    rw.coinsBalance += starsToAdd;
+    rw.lifetimeEarned += starsToAdd;
+
+    const tx = {
+      id: 'tx-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      type: 'earn',
+      title: actionLabel,
+      stars: starsToAdd,
+      uniqueKey: uniqueKey || null,
+      timestamp: new Date().toISOString()
+    };
+    rw.ledger.push(tx);
+    await saveStore(store);
+
+    return sendJson(response, 200, {
+      ok: true,
+      alreadyAwarded: false,
+      starsAdded: starsToAdd,
+      starsBalance: rw.starsBalance,
+      message: `+${starsToAdd} PTS earned · ${actionLabel}`
     });
   }
 
