@@ -624,10 +624,18 @@ function login(user){
   const entryEl=document.getElementById('sr-entry');if(entryEl){entryEl.style.display='none';}
   const modalEl=document.getElementById('sr-login-modal');if(modalEl){modalEl.classList.remove('open');}
   setApiStatus();
+
+  // Exclusively mount Phase1Shell Modern Cockpit (never flash legacy cards)
   if(window.Phase1Shell?.mount){
     window.Phase1Shell.mount();
-  }else if(typeof renderDashboard==='function'){
-    renderDashboard();
+  } else {
+    const checkShell = setInterval(() => {
+      if (window.Phase1Shell?.mount) {
+        clearInterval(checkShell);
+        window.Phase1Shell.mount();
+      }
+    }, 16);
+    setTimeout(() => clearInterval(checkShell), 4000);
   }
   refreshNotifications();
   window.connectTeamRealtime?.();
@@ -673,6 +681,9 @@ function pinnedHandoverFeed(handovers){
 }
 
 async function renderDashboard(){
+  if (window.Phase1Shell?.mount) {
+    return window.Phase1Shell.mount();
+  }
   dashboardHeader('Dashboard');
   const handovers=await getHandovers();
   const waiting=handovers.filter((item)=>item.status==='awaiting_review').length;

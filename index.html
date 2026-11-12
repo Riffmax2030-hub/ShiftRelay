@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="icon" href="icon.svg?v=148" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icon.svg?v=148" />
+    <link rel="icon" href="icon.svg?v=150" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg?v=150" />
     <meta name="theme-color" content="#102033" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -19,19 +19,19 @@
     <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="bento-ui.css" />
     <link rel="stylesheet" href="dark-mode.css" />
-    <link rel="stylesheet" href="splash.css?v=148" />
+    <link rel="stylesheet" href="splash.css?v=150" />
     <link rel="stylesheet" href="offline-queue.css" />
     <link rel="stylesheet" href="me-profile.css" />
-    <link rel="stylesheet" href="phase1-shell.css?v=148" />
+    <link rel="stylesheet" href="phase1-shell.css?v=150" />
     <link rel="stylesheet" href="sr-premium.css" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v148' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v150' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v148');
+              localStorage.setItem('sr_restored_build', 'v150');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { r.update(); });
@@ -410,9 +410,11 @@
     <script src="icons.js"></script>
     <script src="language.js"></script>
     <script src="language-pack.js"></script>
-    <script src="app.js?v=148"></script>
+    <script src="app.js?v=150"></script>
     <script src="biometrics.js"></script>
-    <script src="splash.js?v=148"></script>
+    <script type="module" src="qr-svg-generator.js?v=150"></script>
+    <script src="phase1-shell.js?v=150"></script>
+    <script src="splash.js?v=150"></script>
     <script src="notifications.js"></script>
    <script src="profile.js"></script>
    <script src="checklists.js"></script>
@@ -445,9 +447,7 @@
     <script src="facility-switcher.js"></script>
     <script src="emergency-broadcast.js"></script>
     <script src="live-translation.js"></script>
-    <script type="module" src="qr-svg-generator.js?v=148"></script>
-    <script src="phase1-shell.js?v=148"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=148',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=150',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 

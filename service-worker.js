@@ -1,8 +1,8 @@
-const CACHE = 'shiftrelay-v148-instant';
+const CACHE = 'shiftrelay-v150-live';
 const CORE_SHELL_ASSETS = [
   '/',
   '/index.html',
-  '/icon.svg?v=148'
+  '/icon.svg?v=150'
 ];
 
 self.addEventListener('install', (event) => {
@@ -72,7 +72,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Static assets (JS/CSS/images): Stale-while-revalidate for instant response
+  // 4. Code & Dynamic Application Logic (.js, .css, .html, .json): Always Network-First
+  // Prevents outdated code flash on page refresh while providing instant offline fallback
+  const isCodeAsset = ['.js', '.css', '.html', '.json'].some(ext => url.pathname.endsWith(ext) || url.pathname.includes(ext + '?'));
+  if (isCodeAsset) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // 5. Static media/images/fonts: Stale-while-revalidate for instant visual load
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const networkFetch = fetch(event.request)

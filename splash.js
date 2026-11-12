@@ -261,10 +261,8 @@
           window._srLoginCallback(currentUser);
         }
       } else {
-        setTimeout(() => {
-          hideSplash();
-          openLoginScreen(true);
-        }, 700);
+        hideSplash();
+        openLoginScreen(true);
       }
     } catch (_) {
       hideSplash();
