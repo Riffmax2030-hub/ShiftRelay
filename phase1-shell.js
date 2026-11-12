@@ -7404,10 +7404,6 @@
                 </h2>
                 <div class="sr-cv-hero-headline" id="sr-me-display-role">${escapeHtml(roleDisplay)}</div>
                 <div class="sr-cv-hero-meta-chips">
-                  <span class="sr-cv-meta-chip status-avail">
-                    <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399;"></span>
-                    Available for Remote &amp; Shift Duty
-                  </span>
                   <span class="sr-cv-meta-chip">${escapeHtml(orgName)}</span>
                   <span class="sr-cv-meta-chip">${escapeHtml(deptName)}</span>
                   <span class="sr-cv-meta-chip">ID: <strong style="color:#ffffff;">${escapeHtml(staffCode)}</strong></span>
@@ -7428,9 +7424,9 @@
           </div>
         </div>
 
-        <!-- Bento Grid Row 1: Scannable Work ID Pass + Remote & Shift Performance Bento -->
+        <!-- Section: Digital ID & Operational Reliability Grid (Side-by-Side) -->
         <div class="sr-bento-grid">
-          <!-- Bento Col 1: Official Scannable Barcode Pass (Span 6) -->
+          <!-- Left: Official Scannable Digital ID & Gate Pass (Span 6) -->
           <div class="sr-bento-card sr-barcode-pass-card sr-bento-span-6">
             <div class="sr-bento-card-header" style="border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:12px;">
               <div style="display:flex;align-items:center;gap:8px;">
@@ -7465,7 +7461,7 @@
             </div>
           </div>
 
-          <!-- Bento Col 2: Performance & Reliability Bento (Span 6) -->
+          <!-- Right: Workers Operational Reliability (Span 6) -->
           <div class="sr-bento-card sr-bento-span-6">
             <div class="sr-bento-card-header">
               <h3 class="sr-bento-card-title">
@@ -7501,94 +7497,52 @@
           </div>
         </div>
 
-        <!-- Bento Grid Row 2: Professional Summary & Skills -->
-        <div class="sr-bento-grid">
-          <!-- Professional Summary Card (Span 7) -->
-          <div class="sr-bento-card sr-bento-span-7">
-            <div class="sr-bento-card-header">
-              <h3 class="sr-bento-card-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-                <span>Professional Summary</span>
-              </h3>
-              <button type="button" class="sr-cv-inline-edit-btn" id="sr-btn-edit-summary" title="Edit Summary">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-              </button>
-            </div>
-
-            <div id="sr-cv-summary-content" class="sr-cv-summary-text" contenteditable="true" data-placeholder="Click to write your professional summary..." style="line-height:1.6;font-size:13.5px;color:var(--sr-text-main);padding:10px 12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);border-radius:12px;min-height:70px;">${escapeHtml(summaryText)}</div>
-
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-              <span id="sr-summary-hint" style="font-size:11.5px;color:var(--sr-text-muted);">Click text above to edit inline, or tap the pencil icon.</span>
-              <div id="sr-summary-actions" style="display:none;gap:8px;justify-content:flex-end;margin-left:auto;">
-                <button type="button" id="sr-summary-cancel" class="sr-btn sr-btn-secondary" style="font-size:12px;min-height:30px;padding:0 12px;">Cancel</button>
-                <button type="button" id="sr-summary-save" class="sr-btn sr-btn-primary" style="font-size:12px;min-height:30px;padding:0 14px;">Save Summary</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Verified Skills Card (Span 5) -->
-          <div class="sr-bento-card sr-bento-span-5">
-            <div class="sr-bento-card-header">
-              <h3 class="sr-bento-card-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                <span>Core Competencies &amp; Skills</span>
-              </h3>
-              <button type="button" class="sr-cv-inline-edit-btn" id="sr-btn-edit-skills" title="Bulk Edit Skills">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-              </button>
-            </div>
-
-            <div id="sr-cv-skills-list" class="sr-cv-tags-wrap" style="display:flex;flex-wrap:wrap;gap:8px;">
-              ${skills.map(s => `<span class="sr-cv-skill-tag" data-skill="${escapeHtml(s)}">${escapeHtml(s)}<button type="button" class="sr-skill-remove" aria-label="Remove skill" title="Remove">&times;</button></span>`).join('')}
-            </div>
-
-            <div class="sr-skill-input-wrap" style="margin-top:4px;position:relative;">
-              <input type="text" id="sr-skill-typeahead" class="sr-form-input" placeholder="+ Add a skill (e.g. Forklift Operation, SOP Adherence)..." autocomplete="off" />
-              <div id="sr-skill-dropdown" class="sr-skill-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,0.14);max-height:220px;overflow-y:auto;margin-top:4px;"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bento Grid Row 3: Statutory Payroll & Remittance Clearances (Span 12) -->
+        <!-- Section: Professional Summary (Full Width) -->
         <div class="sr-bento-card sr-bento-span-12">
           <div class="sr-bento-card-header">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="width:30px;height:30px;border-radius:8px;background:rgba(16,185,129,0.12);color:#10b981;display:inline-flex;align-items:center;justify-content:center;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-              </span>
-              <div>
-                <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Statutory Compliance &amp; Remittance Records</h3>
-                <div style="font-size:11.5px;color:var(--sr-text-muted);">Employer &amp; Banking Integration Visuals &bull; Remittance Handled by Finance Department</div>
-              </div>
-            </div>
-            <span class="sr-status-pill active" style="font-size:10.5px;">GAPS &bull; NIBSS Verified</span>
+            <h3 class="sr-bento-card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+              <span>Professional Summary</span>
+            </h3>
+            <button type="button" class="sr-cv-inline-edit-btn" id="sr-btn-edit-summary" title="Edit Summary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </button>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
-            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Salary Settlement Bank</div>
-              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">Guaranty Trust Bank (GTBank)</div>
-              <div style="font-size:12px;color:#059669;font-weight:700;margin-top:2px;">Acct: **** 4821 &bull; Active Direct Deposit</div>
-            </div>
-            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">PenCom Pension RSA</div>
-              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">Stanbic IBTC Pension</div>
-              <div style="font-size:12px;color:var(--sr-text-muted);font-weight:700;margin-top:2px;">PIN: PEN1004829104</div>
-            </div>
-            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">PAYE Tax Identification</div>
-              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">FIRS / LIRS Statutory</div>
-              <div style="font-size:12px;color:var(--sr-text-muted);font-weight:700;margin-top:2px;">TIN: 9482019-NG</div>
-            </div>
-            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Health Insurance NHIS</div>
-              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">Hygeia HMO Enterprise</div>
-              <div style="font-size:12px;color:#059669;font-weight:700;margin-top:2px;">Policy: HYG-88201-OP</div>
+          <div id="sr-cv-summary-content" class="sr-cv-summary-text" contenteditable="true" data-placeholder="Click to write your professional summary..." style="line-height:1.6;font-size:13.5px;color:var(--sr-text-main);padding:12px 14px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);border-radius:12px;min-height:70px;">${escapeHtml(summaryText)}</div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <span id="sr-summary-hint" style="font-size:11.5px;color:var(--sr-text-muted);">Click text above to edit inline, or tap the pencil icon.</span>
+            <div id="sr-summary-actions" style="display:none;gap:8px;justify-content:flex-end;margin-left:auto;">
+              <button type="button" id="sr-summary-cancel" class="sr-btn sr-btn-secondary" style="font-size:12px;min-height:30px;padding:0 12px;">Cancel</button>
+              <button type="button" id="sr-summary-save" class="sr-btn sr-btn-primary" style="font-size:12px;min-height:30px;padding:0 14px;">Save Summary</button>
             </div>
           </div>
         </div>
 
-        <!-- Bento Grid Row 4: Professional Experience Timeline (Span 12) -->
+        <!-- Section: Core Competencies & Skills (Full Width) -->
+        <div class="sr-bento-card sr-bento-span-12">
+          <div class="sr-bento-card-header">
+            <h3 class="sr-bento-card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span>Core Competencies &amp; Skills</span>
+            </h3>
+            <button type="button" class="sr-cv-inline-edit-btn" id="sr-btn-edit-skills" title="Bulk Edit Skills">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </button>
+          </div>
+
+          <div id="sr-cv-skills-list" class="sr-cv-tags-wrap" style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${skills.map(s => `<span class="sr-cv-skill-tag" data-skill="${escapeHtml(s)}">${escapeHtml(s)}<button type="button" class="sr-skill-remove" aria-label="Remove skill" title="Remove">&times;</button></span>`).join('')}
+          </div>
+
+          <div class="sr-skill-input-wrap" style="margin-top:6px;position:relative;">
+            <input type="text" id="sr-skill-typeahead" class="sr-form-input" placeholder="+ Add a skill (e.g. Forklift Operation, SOP Adherence, Cold Chain Routine)..." autocomplete="off" />
+            <div id="sr-skill-dropdown" class="sr-skill-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,0.14);max-height:220px;overflow-y:auto;margin-top:4px;"></div>
+          </div>
+        </div>
+
+        <!-- Section: Professional Experience Timeline (Full Width) -->
         <div class="sr-bento-card sr-bento-span-12">
           <div class="sr-bento-card-header">
             <h3 class="sr-bento-card-title">
@@ -7651,155 +7605,146 @@
           </div>
         </div>
 
-        <!-- Bento Grid Row 5: Education & Certifications (Span 6 + Span 6) -->
-        <div class="sr-bento-grid">
-          <!-- Education Bento (Span 6) -->
-          <div class="sr-bento-card sr-bento-span-6">
-            <div class="sr-bento-card-header">
-              <h3 class="sr-bento-card-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-                <span>Education &amp; Academics</span>
-              </h3>
-              <button type="button" id="sr-btn-add-edu" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <span>Add Education</span>
-              </button>
-            </div>
-
-            <div id="sr-cv-edu-list" class="sr-cv-grid">
-              ${educations.map((edu, idx) => {
-                const eduId = edu.id || ('edu-' + (idx + 1));
-                return `
-                <div class="sr-cv-card-item" data-edu-id="${escapeHtml(eduId)}">
-                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-                    <p class="sr-cv-card-name" style="flex:1;margin:0;">${escapeHtml(edu.degree || '')}</p>
-                    <button type="button" class="sr-cv-inline-edit-btn" data-edu-edit="${escapeHtml(eduId)}" title="Edit education"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-                  </div>
-                  <p class="sr-cv-card-meta"><span>${escapeHtml(edu.institution || '')}</span><span>${escapeHtml(edu.year || '')}</span></p>
-                  <div class="sr-cv-inline-form" id="sr-edu-edit-${escapeHtml(eduId)}" style="display:none;margin-top:10px;">
-                    <input type="text" class="sr-form-input" name="edu-name" value="${escapeHtml(edu.degree || '')}" placeholder="Degree / Diploma *" style="margin-bottom:6px;" />
-                    <input type="text" class="sr-form-input" name="edu-sub1" value="${escapeHtml(edu.institution || '')}" placeholder="Institution" style="margin-bottom:6px;" />
-                    <input type="text" class="sr-form-input" name="edu-year" value="${escapeHtml(edu.year || '')}" placeholder="Year" style="margin-bottom:8px;" />
-                    <div style="display:flex;gap:6px;justify-content:flex-end;">
-                      <button type="button" class="sr-btn sr-btn-danger sr-edu-delete" data-edu-id="${escapeHtml(eduId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Delete</button>
-                      <button type="button" class="sr-btn sr-btn-secondary sr-edu-cancel" style="font-size:11px;min-height:26px;padding:0 8px;">Cancel</button>
-                      <button type="button" class="sr-btn sr-btn-primary sr-edu-save" data-edu-id="${escapeHtml(eduId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Save</button>
-                    </div>
-                  </div>
-                </div>
-                `;
-              }).join('')}
-
-              <div id="sr-edu-new-form" class="sr-cv-card-item sr-cv-new-entry" style="display:none;grid-column:1/-1;">
-                <div style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);margin-bottom:6px;">Add Education</div>
-                <input type="text" id="sr-new-edu-degree" class="sr-form-input" placeholder="Degree or Course Name *" style="margin-bottom:6px;" />
-                <input type="text" id="sr-new-edu-institution" class="sr-form-input" placeholder="School / Institution" style="margin-bottom:6px;" />
-                <input type="text" id="sr-new-edu-year" class="sr-form-input" placeholder="Graduation Year (e.g. 2021)" style="margin-bottom:8px;" />
-                <div style="display:flex;gap:6px;justify-content:flex-end;">
-                  <button type="button" id="sr-new-edu-cancel" class="sr-btn sr-btn-secondary" style="font-size:11.5px;min-height:28px;padding:0 10px;">Cancel</button>
-                  <button type="button" id="sr-new-edu-save" class="sr-btn sr-btn-primary" style="font-size:11.5px;min-height:28px;padding:0 12px;">Add</button>
-                </div>
-              </div>
-            </div>
+        <!-- Section: Education & Academics (Full Width) -->
+        <div class="sr-bento-card sr-bento-span-12">
+          <div class="sr-bento-card-header">
+            <h3 class="sr-bento-card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              <span>Education &amp; Academics</span>
+            </h3>
+            <button type="button" id="sr-btn-add-edu" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Add Education</span>
+            </button>
           </div>
 
-          <!-- Certifications Bento (Span 6) -->
-          <div class="sr-bento-card sr-bento-span-6">
-            <div class="sr-bento-card-header">
-              <h3 class="sr-bento-card-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
-                <span>Certifications &amp; Licenses</span>
-              </h3>
-              <button type="button" id="sr-btn-add-cert" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <span>Add Certification</span>
-              </button>
-            </div>
-
-            <div id="sr-cv-cert-list" class="sr-cv-grid">
-              ${certifications.map((c, idx) => {
-                const certId = c.id || ('cert-' + (idx + 1));
-                return `
-                <div class="sr-cv-card-item" data-cert-id="${escapeHtml(certId)}">
-                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-                    <p class="sr-cv-card-name" style="flex:1;margin:0;">${escapeHtml(c.name || 'Certification')}</p>
-                    <button type="button" class="sr-cv-inline-edit-btn" data-cert-edit="${escapeHtml(certId)}" title="Edit certification"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-                  </div>
-                  <p class="sr-cv-card-meta"><span>${escapeHtml(c.issuer || '')}</span><span>${escapeHtml(c.year || '')}</span></p>
-                  <div class="sr-cv-inline-form" id="sr-cert-edit-${escapeHtml(certId)}" style="display:none;margin-top:10px;">
-                    <input type="text" class="sr-form-input" name="cert-name" value="${escapeHtml(c.name || '')}" placeholder="Certification Name *" style="margin-bottom:6px;" />
-                    <input type="text" class="sr-form-input" name="cert-sub1" value="${escapeHtml(c.issuer || '')}" placeholder="Issuing Organisation" style="margin-bottom:6px;" />
-                    <input type="text" class="sr-form-input" name="cert-year" value="${escapeHtml(c.year || '')}" placeholder="Issued Year" style="margin-bottom:8px;" />
-                    <div style="display:flex;gap:6px;justify-content:flex-end;">
-                      <button type="button" class="sr-btn sr-btn-danger sr-cert-delete" data-cert-id="${escapeHtml(certId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Delete</button>
-                      <button type="button" class="sr-btn sr-btn-secondary sr-cert-cancel" style="font-size:11px;min-height:26px;padding:0 8px;">Cancel</button>
-                      <button type="button" class="sr-btn sr-btn-primary sr-cert-save" data-cert-id="${escapeHtml(certId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Save</button>
-                    </div>
+          <div id="sr-cv-edu-list" class="sr-cv-grid">
+            ${educations.map((edu, idx) => {
+              const eduId = edu.id || ('edu-' + (idx + 1));
+              return `
+              <div class="sr-cv-card-item" data-edu-id="${escapeHtml(eduId)}">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                  <p class="sr-cv-card-name" style="flex:1;margin:0;">${escapeHtml(edu.degree || '')}</p>
+                  <button type="button" class="sr-cv-inline-edit-btn" data-edu-edit="${escapeHtml(eduId)}" title="Edit education"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+                </div>
+                <p class="sr-cv-card-meta"><span>${escapeHtml(edu.institution || '')}</span><span>${escapeHtml(edu.year || '')}</span></p>
+                <div class="sr-cv-inline-form" id="sr-edu-edit-${escapeHtml(eduId)}" style="display:none;margin-top:10px;">
+                  <input type="text" class="sr-form-input" name="edu-name" value="${escapeHtml(edu.degree || '')}" placeholder="Degree / Diploma *" style="margin-bottom:6px;" />
+                  <input type="text" class="sr-form-input" name="edu-sub1" value="${escapeHtml(edu.institution || '')}" placeholder="Institution" style="margin-bottom:6px;" />
+                  <input type="text" class="sr-form-input" name="edu-year" value="${escapeHtml(edu.year || '')}" placeholder="Year" style="margin-bottom:8px;" />
+                  <div style="display:flex;gap:6px;justify-content:flex-end;">
+                    <button type="button" class="sr-btn sr-btn-danger sr-edu-delete" data-edu-id="${escapeHtml(eduId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Delete</button>
+                    <button type="button" class="sr-btn sr-btn-secondary sr-edu-cancel" style="font-size:11px;min-height:26px;padding:0 8px;">Cancel</button>
+                    <button type="button" class="sr-btn sr-btn-primary sr-edu-save" data-edu-id="${escapeHtml(eduId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Save</button>
                   </div>
                 </div>
-                `;
-              }).join('')}
+              </div>
+              `;
+            }).join('')}
 
-              <div id="sr-cert-new-form" class="sr-cv-card-item sr-cv-new-entry" style="display:none;grid-column:1/-1;">
-                <div style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);margin-bottom:6px;">Add Certification</div>
-                <input type="text" id="sr-new-cert-name" class="sr-form-input" placeholder="Certification Name *" style="margin-bottom:6px;" />
-                <input type="text" id="sr-new-cert-issuer" class="sr-form-input" placeholder="Issuing Body (e.g. NEBOSH, ISO)" style="margin-bottom:6px;" />
-                <input type="text" id="sr-new-cert-year" class="sr-form-input" placeholder="Year (e.g. 2025)" style="margin-bottom:8px;" />
-                <div style="display:flex;gap:6px;justify-content:flex-end;">
-                  <button type="button" id="sr-new-cert-cancel" class="sr-btn sr-btn-secondary" style="font-size:11.5px;min-height:28px;padding:0 10px;">Cancel</button>
-                  <button type="button" id="sr-new-cert-save" class="sr-btn sr-btn-primary" style="font-size:11.5px;min-height:28px;padding:0 12px;">Add</button>
-                </div>
+            <div id="sr-edu-new-form" class="sr-cv-card-item sr-cv-new-entry" style="display:none;grid-column:1/-1;">
+              <div style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);margin-bottom:6px;">Add Education</div>
+              <input type="text" id="sr-new-edu-degree" class="sr-form-input" placeholder="Degree or Course Name *" style="margin-bottom:6px;" />
+              <input type="text" id="sr-new-edu-institution" class="sr-form-input" placeholder="School / Institution" style="margin-bottom:6px;" />
+              <input type="text" id="sr-new-edu-year" class="sr-form-input" placeholder="Graduation Year (e.g. 2021)" style="margin-bottom:8px;" />
+              <div style="display:flex;gap:6px;justify-content:flex-end;">
+                <button type="button" id="sr-new-edu-cancel" class="sr-btn sr-btn-secondary" style="font-size:11.5px;min-height:28px;padding:0 10px;">Cancel</button>
+                <button type="button" id="sr-new-edu-save" class="sr-btn sr-btn-primary" style="font-size:11.5px;min-height:28px;padding:0 12px;">Add</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Bento Grid Row 6: Workspace Theme, Preferences & Session Logout (Span 12) -->
+        <!-- Section: Certifications & Licenses (Full Width) -->
         <div class="sr-bento-card sr-bento-span-12">
-          <h3 style="margin:0 0 12px;font-size:15px;font-weight:800;color:var(--sr-text-main);">Workspace Controls &amp; Session Security</h3>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div>
-                <div style="font-size:13px;font-weight:700;color:var(--sr-text-main);">Display Theme</div>
-                <div style="font-size:11.5px;color:var(--sr-text-muted);">High-Glare Daylight / Night Shift</div>
-              </div>
-              <button type="button" id="sr-profile-theme-btn" class="sr-btn sr-btn-secondary" style="min-height:34px !important;padding:0 12px;font-size:12px;font-weight:800;">
-                Toggle Theme
-              </button>
-            </div>
+          <div class="sr-bento-card-header">
+            <h3 class="sr-bento-card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+              <span>Certifications &amp; Licenses</span>
+            </h3>
+            <button type="button" id="sr-btn-add-cert" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Add Certification</span>
+            </button>
+          </div>
 
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div>
-                <div style="font-size:13px;font-weight:700;color:var(--sr-text-main);">Preferences &amp; Security</div>
-                <div style="font-size:11.5px;color:var(--sr-text-muted);">Alerts, notifications, passwords</div>
+          <div id="sr-cv-cert-list" class="sr-cv-grid">
+            ${certifications.map((c, idx) => {
+              const certId = c.id || ('cert-' + (idx + 1));
+              return `
+              <div class="sr-cv-card-item" data-cert-id="${escapeHtml(certId)}">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                  <p class="sr-cv-card-name" style="flex:1;margin:0;">${escapeHtml(c.name || 'Certification')}</p>
+                  <button type="button" class="sr-cv-inline-edit-btn" data-cert-edit="${escapeHtml(certId)}" title="Edit certification"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+                </div>
+                <p class="sr-cv-card-meta"><span>${escapeHtml(c.issuer || '')}</span><span>${escapeHtml(c.year || '')}</span></p>
+                <div class="sr-cv-inline-form" id="sr-cert-edit-${escapeHtml(certId)}" style="display:none;margin-top:10px;">
+                  <input type="text" class="sr-form-input" name="cert-name" value="${escapeHtml(c.name || '')}" placeholder="Certification Name *" style="margin-bottom:6px;" />
+                  <input type="text" class="sr-form-input" name="cert-sub1" value="${escapeHtml(c.issuer || '')}" placeholder="Issuing Organisation" style="margin-bottom:6px;" />
+                  <input type="text" class="sr-form-input" name="cert-year" value="${escapeHtml(c.year || '')}" placeholder="Issued Year" style="margin-bottom:8px;" />
+                  <div style="display:flex;gap:6px;justify-content:flex-end;">
+                    <button type="button" class="sr-btn sr-btn-danger sr-cert-delete" data-cert-id="${escapeHtml(certId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Delete</button>
+                    <button type="button" class="sr-btn sr-btn-secondary sr-cert-cancel" style="font-size:11px;min-height:26px;padding:0 8px;">Cancel</button>
+                    <button type="button" class="sr-btn sr-btn-primary sr-cert-save" data-cert-id="${escapeHtml(certId)}" style="font-size:11px;min-height:26px;padding:0 8px;">Save</button>
+                  </div>
+                </div>
               </div>
-              <button type="button" id="sr-profile-settings-btn" class="sr-btn sr-btn-primary" style="min-height:34px !important;padding:0 12px;font-size:12px;font-weight:800;">
-                Open Settings
-              </button>
-            </div>
+              `;
+            }).join('')}
 
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);">
-              <div>
-                <div style="font-size:13px;font-weight:700;color:#ef4444;">Session Security</div>
-                <div style="font-size:11.5px;color:var(--sr-text-muted);">Sign out of your ShiftRelay personnel session</div>
+            <div id="sr-cert-new-form" class="sr-cv-card-item sr-cv-new-entry" style="display:none;grid-column:1/-1;">
+              <div style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);margin-bottom:6px;">Add Certification</div>
+              <input type="text" id="sr-new-cert-name" class="sr-form-input" placeholder="Certification Name *" style="margin-bottom:6px;" />
+              <input type="text" id="sr-new-cert-issuer" class="sr-form-input" placeholder="Issuing Body (e.g. NEBOSH, ISO)" style="margin-bottom:6px;" />
+              <input type="text" id="sr-new-cert-year" class="sr-form-input" placeholder="Year (e.g. 2025)" style="margin-bottom:8px;" />
+              <div style="display:flex;gap:6px;justify-content:flex-end;">
+                <button type="button" id="sr-new-cert-cancel" class="sr-btn sr-btn-secondary" style="font-size:11.5px;min-height:28px;padding:0 10px;">Cancel</button>
+                <button type="button" id="sr-new-cert-save" class="sr-btn sr-btn-primary" style="font-size:11.5px;min-height:28px;padding:0 12px;">Add</button>
               </div>
-              <button type="button" class="sr-btn sr-btn-danger" id="sr-btn-me-signout" style="min-height:34px !important;padding:0 14px;font-size:12px;font-weight:800;background:#dc2626;color:#ffffff;border:none;cursor:pointer;">
-                Log Out
-              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Statutory Compliance & Remittance Records (At Bottom After CV Infos) -->
+        <div class="sr-bento-card sr-bento-span-12">
+          <div class="sr-bento-card-header">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="width:30px;height:30px;border-radius:8px;background:rgba(16,185,129,0.12);color:#10b981;display:inline-flex;align-items:center;justify-content:center;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              </span>
+              <div>
+                <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Statutory Compliance &amp; Remittance Records</h3>
+                <div style="font-size:11.5px;color:var(--sr-text-muted);">Employer &amp; Banking Integration Visuals &bull; Remittance Handled by Finance Department</div>
+              </div>
+            </div>
+            <span class="sr-status-pill active" style="font-size:10.5px;">GAPS &bull; NIBSS Verified</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
+            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Salary Settlement Bank</div>
+              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">Guaranty Trust Bank (GTBank)</div>
+              <div style="font-size:12px;color:#059669;font-weight:700;margin-top:2px;">Acct: **** 4821 &bull; Active Direct Deposit</div>
+            </div>
+            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">PenCom Pension RSA</div>
+              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">Stanbic IBTC Pension</div>
+              <div style="font-size:12px;color:var(--sr-text-muted);font-weight:700;margin-top:2px;">PIN: PEN1004829104</div>
+            </div>
+            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">PAYE Tax Identification</div>
+              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">FIRS / LIRS Statutory</div>
+              <div style="font-size:12px;color:var(--sr-text-muted);font-weight:700;margin-top:2px;">TIN: 9482019-NG</div>
+            </div>
+            <div style="padding:14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <div style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Health Insurance NHIS</div>
+              <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-top:4px;">Hygeia HMO Enterprise</div>
+              <div style="font-size:12px;color:#059669;font-weight:700;margin-top:2px;">Policy: HYG-88201-OP</div>
             </div>
           </div>
         </div>
       </div>
     `;
-
-    document.getElementById('sr-profile-theme-btn')?.addEventListener('click', () => {
-      toggleThemeAction();
-      renderWorkerMe();
-    });
-
-    document.getElementById('sr-profile-settings-btn')?.addEventListener('click', () => {
-      mountShell('settings');
-    });
 
     // ── Bind Profile Picture Upload ─────────────────────────────────────────
     const avatarInput = document.getElementById('sr-avatar-file-input');
