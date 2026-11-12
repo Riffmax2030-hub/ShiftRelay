@@ -7742,6 +7742,14 @@
               <div style="font-size:12px;color:#059669;font-weight:700;margin-top:2px;">Policy: HYG-88201-OP</div>
             </div>
           </div>
+
+          <div style="margin-top:16px;padding-top:12px;border-top:1px dashed var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <span style="font-size:11.5px;color:var(--sr-text-muted);">Master Regulatory Framework: NDPA 2023 &bull; PITA 2011 &bull; PenCom PRA 2014 &bull; ₦0.00 Variance Guaranteed</span>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-profile-view-terms" style="font-size:12px;padding:6px 14px;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span>View Terms of Service &amp; Statutory SLA</span>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -7750,45 +7758,13 @@
     const avatarInput = document.getElementById('sr-avatar-file-input');
     const changeAvatarBtn = document.getElementById('sr-btn-change-avatar');
 
-    // Bind Export CV Dossier
+    // Bind Export CV Dossier -> High-Tech Print-Ready PDF & Document Viewer
     document.getElementById('sr-btn-export-cv')?.addEventListener('click', () => {
-      const certLines = certifications.map(c => {
-        if (typeof c === 'string') return `* ${c}`;
-        return `* ${c.name || 'Certification'}${c.issuer ? ' (' + c.issuer + ')' : ''}${c.year || c.date ? ' - ' + (c.year || c.date) : ''}`;
-      }).join('\n');
-      const eduLines = educations.map(edu => `* ${edu.degree} - ${edu.institution} (${edu.year})`).join('\n');
-      const skillsLine = skills.join(', ');
+      openCvDossierModal();
+    });
 
-      const text = `=====================================================
-SHIFTRELAY VERIFIED PERSONNEL QUALIFICATION DOSSIER
-=====================================================
-Name: ${user.name || 'Specialist'}
-Role: ${roleDisplay}
-Unit / Department: ${deptName}
-Employee Code: ${staffCode}
-Reliability Score: 99.4% On-Time Shift Attendance
-Work Email: ${workEmail}
-
---- PROFESSIONAL SUMMARY ---
-${summaryText}
-
---- INDUSTRIAL STATIONS & EXPERIENCE ---
-${experiences.map(e => `* ${e.title} | ${e.company} (${e.period})\n  ${e.description}`).join('\n\n')}
-
---- VERIFIED CERTIFICATIONS & LICENSES ---
-${certLines}
-
---- EDUCATION & APPRENTICESHIP ---
-${eduLines}
-
---- TECHNICAL COMPETENCIES ---
-${skillsLine}
-
-Verification Authority: ShiftRelay Identity & Shift Command System
-Issued on: ${new Date().toISOString()}
-=====================================================`;
-      downloadFile(text, `ShiftRelay_CV_${(user.name||'specialist').replace(/\s+/g,'_')}.txt`, 'text/plain;charset=utf-8;');
-      showToast('Verified CV dossier downloaded successfully!');
+    document.getElementById('sr-btn-profile-view-terms')?.addEventListener('click', () => {
+      openTermsOfServiceModal();
     });
 
     // Clicking avatar tap zone directly opens file selector
@@ -10725,6 +10701,394 @@ Issued on: ${new Date().toISOString()}
     });
   }
 
+  // ── 1. High-Tech Interactive Terms of Service & Compliance Form Modal ──
+  function openTermsOfServiceModal() {
+    const existing = document.getElementById('sr-terms-modal');
+    if (existing) existing.remove();
+
+    const modalHtml = `
+      <div id="sr-terms-modal" class="sr-audit-modal-backdrop" style="position:fixed;inset:0;background:rgba(2,6,23,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;justify-content:center;align-items:flex-start;padding:24px;overflow-y:auto;">
+        <div class="sr-audit-sheet" style="background:#ffffff;color:#0f172a;max-width:880px;width:100%;border-radius:14px;padding:36px;box-shadow:0 25px 70px rgba(0,0,0,0.5);margin:auto;position:relative;">
+          
+          <!-- Top Action Bar -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:2px solid #e2e8f0;margin-bottom:24px;" class="sr-no-print">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg, #059669 0%, #047857 100%);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;">§</span>
+              <div>
+                <strong style="font-size:15px;color:#0f172a;display:block;">ShiftRelay Master Terms of Service &amp; Statutory SLA</strong>
+                <small style="color:#64748b;font-size:11.5px;">Official Document Instrument · Ref: SR-TOS-2026-REV4</small>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <a href="/api/reports/terms-of-service" target="_blank" class="sr-btn sr-btn-secondary" style="font-size:12px;padding:6px 14px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                Open Fullscreen
+              </a>
+              <button type="button" class="sr-btn sr-btn-primary" onclick="window.print()" style="font-size:12px;padding:6px 14px;display:inline-flex;align-items:center;gap:4px;">
+                🖨️ Print / Save PDF
+              </button>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-close-terms" style="font-size:12px;padding:6px 14px;">
+                Close
+              </button>
+            </div>
+          </div>
+
+          <!-- Document Header -->
+          <div style="text-align:center;padding-bottom:20px;border-bottom:1px solid #e2e8f0;margin-bottom:24px;">
+            <span style="display:inline-block;padding:4px 12px;background:#ecfdf5;color:#059669;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
+              Enterprise SaaS &amp; Statutory Compliance Charter
+            </span>
+            <h1 style="font-size:22px;font-weight:900;color:#0f2744;margin:4px 0 6px;letter-spacing:-0.02em;">
+              SHIFTRELAY TECHNOLOGIES LIMITED
+            </h1>
+            <p style="font-size:12.5px;color:#64748b;margin:0;">
+              Riffmax Technology Limited (RC 7392819) · Master Subscription, Geofenced Telemetry &amp; Statutory Remittance Agreement
+            </p>
+          </div>
+
+          <!-- Document Metadata Grid -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:10px;background:#f8fafc;padding:14px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:24px;font-size:12px;">
+            <div><span style="color:#64748b;display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;">Effective Date</span><strong>November 1, 2026</strong></div>
+            <div><span style="color:#64748b;display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;">Jurisdiction</span><strong>Federal Republic of Nigeria</strong></div>
+            <div><span style="color:#64748b;display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;">Statutory Basis</span><strong>PITA 2011 · PRA 2014 · NDPA 2023</strong></div>
+            <div><span style="color:#64748b;display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;">Arbitration</span><strong>Lagos Court of Arbitration (LCA)</strong></div>
+          </div>
+
+          <!-- Legal Clauses Container (Scrollable) -->
+          <div style="font-size:13px;line-height:1.65;color:#334155;max-height:55vh;overflow-y:auto;padding-right:12px;border-bottom:1px solid #e2e8f0;padding-bottom:20px;">
+            <div style="margin-bottom:20px;">
+              <h3 style="font-size:13.5px;font-weight:800;color:#0f2744;text-transform:uppercase;margin-bottom:6px;">
+                1. Scope of Platform, B2B Multi-Tenant Segregation &amp; Licensing
+              </h3>
+              <p style="margin:0 0 6px;">
+                1.1. ShiftRelay provides an enterprise-grade operational operating system for shift rostering, biometric gate muster tracking, accountable handovers, and statutory payroll aggregation. Access is strictly provisioned through authorized employer subscription agreements.
+              </p>
+              <p style="margin:0;">
+                1.2. <strong>Tenant Isolation:</strong> Client personnel profiles, work schedules, geolocation muster points, and salary records are cryptographically partitioned using Row-Level Security (RLS). ShiftRelay maintains a zero-commercialization guarantee: employee data is never monetized, traded, or shared across tenant boundaries.
+              </p>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <h3 style="font-size:13.5px;font-weight:800;color:#0f2744;text-transform:uppercase;margin-bottom:6px;">
+                2. Rotating Biometric Gate QR Nonces &amp; Muster Geofence Boundary
+              </h3>
+              <p style="margin:0 0 6px;">
+                2.1. Attendance validation is executed via dynamically rotating 60-second HMAC QR nonces generated at facility gate terminals. Replay attacks, photographed codes, or stale tokens are rejected automatically with permanent tamper logging.
+              </p>
+              <p style="margin:0;">
+                2.2. Muster verification verifies the employee's physical presence within the registered 10-meter geofenced perimeter. Punches logged outside authorized muster boundaries require supervisor review and appear itemized on daily shift exception logs.
+              </p>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <h3 style="font-size:13.5px;font-weight:800;color:#0f2744;text-transform:uppercase;margin-bottom:6px;">
+                3. Nigerian Statutory Tax, Pension &amp; Remittance Governance
+              </h3>
+              <p style="margin:0 0 6px;">
+                3.1. All gross-to-net salary compilations strictly enforce Nigerian statutory fiscal law:
+              </p>
+              <ul style="padding-left:18px;margin:0 0 6px;">
+                <li><strong>Personal Income Tax Act (PITA 2011 as amended):</strong> Consolidated Relief Allowance (higher of ₦200,000/yr or 1% gross, plus 20% gross) with progressive brackets (7% to 24%).</li>
+                <li><strong>Pension Reform Act 2014:</strong> Mandatory 8% Employee deduction and 10% Employer contribution remitted to licensed Pension Fund Administrators (PFAs).</li>
+                <li><strong>Employees' Compensation Act (ECA 2010):</strong> 1% NSITF payroll liability borne 100% by the Employer with zero deduction from worker take-home earnings.</li>
+              </ul>
+              <p style="margin:0;">
+                3.2. <strong>₦0.00 Variance Guarantee:</strong> Every monthly cycle reconciles attendance timestamps against payroll disbursement files to ₦0.00 variance before transmission to commercial bank processing desks.
+              </p>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <h3 style="font-size:13.5px;font-weight:800;color:#0f2744;text-transform:uppercase;margin-bottom:6px;">
+                4. Nigeria Data Protection Act (NDPA 2023) Safeguards &amp; Privacy Rights
+              </h3>
+              <p style="margin:0;">
+                Personal data is processed strictly on the lawful basis of frontline contract execution. Every worker possesses the statutory right to view their punch logs, contest discrepancies, submit rectification requests to shift supervisors, and request deletion of non-statutory records pursuant to NDPA standards.
+              </p>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <h3 style="font-size:13.5px;font-weight:800;color:#0f2744;text-transform:uppercase;margin-bottom:6px;">
+                5. Strict CBN Regulatory Boundary: Zero Digital Wallets or Lending
+              </h3>
+              <p style="margin:0;">
+                ShiftRelay is strictly enterprise workforce and compliance software. ShiftRelay does not hold client funds, does not operate digital wallets, does not extend salary advances, and charges zero interest or financing fees. All funds are settled directly by the employer's authorized commercial bank via NIBSS.
+              </p>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <h3 style="font-size:13.5px;font-weight:800;color:#0f2744;text-transform:uppercase;margin-bottom:6px;">
+                6. 99.98% Service Level Agreement (SLA) &amp; Offline Continuity
+              </h3>
+              <p style="margin:0;">
+                ShiftRelay maintains 99.98% platform availability. Remote gate devices feature local encrypted offline buffering, ensuring frontline operations continue seamlessly during internet disruptions with automatic cloud replay upon reconnection.
+              </p>
+            </div>
+
+            <div>
+              <h3 style="font-size:13.5px;font-weight:800;color:#0f2744;text-transform:uppercase;margin-bottom:6px;">
+                7. Dispute Resolution &amp; Governing Law
+              </h3>
+              <p style="margin:0;">
+                This Agreement is governed by the laws of the Federal Republic of Nigeria. Unresolved disputes shall be submitted to binding arbitration administered by the Lagos Court of Arbitration (LCA).
+              </p>
+            </div>
+          </div>
+
+          <!-- Bottom Form Actions & Acknowledgement Checkbox -->
+          <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;" class="sr-no-print">
+            <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#334155;cursor:pointer;">
+              <input type="checkbox" id="sr-terms-ack-chk" checked style="width:16px;height:16px;accent-color:#059669;" />
+              <span>I have read, understood, and accept the Terms of Service &amp; Statutory SLA</span>
+            </label>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-confirm-terms" style="font-size:12.5px;padding:8px 18px;">
+                ✓ Acknowledge &amp; Continue
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('sr-btn-close-terms')?.addEventListener('click', () => {
+      document.getElementById('sr-terms-modal')?.remove();
+    });
+    document.getElementById('sr-btn-confirm-terms')?.addEventListener('click', () => {
+      document.getElementById('sr-terms-modal')?.remove();
+      if (typeof window.Phase1Shell?.showToast === 'function') {
+        window.Phase1Shell.showToast('Terms of Service and Statutory SLA acknowledged.');
+      }
+    });
+  }
+
+  // ── 2. High-Tech Worker Professional CV Dossier Modal ───────────────────
+  function openCvDossierModal() {
+    const existing = document.getElementById('sr-cv-modal');
+    if (existing) existing.remove();
+
+    const modalHtml = `
+      <div id="sr-cv-modal" class="sr-audit-modal-backdrop" style="position:fixed;inset:0;background:rgba(2,6,23,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;justify-content:center;align-items:flex-start;padding:24px;overflow-y:auto;">
+        <div class="sr-audit-sheet" style="background:#ffffff;color:#0f172a;max-width:940px;width:100%;border-radius:14px;padding:32px;box-shadow:0 25px 70px rgba(0,0,0,0.5);margin:auto;position:relative;">
+          
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:2px solid #e2e8f0;margin-bottom:20px;" class="sr-no-print">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="width:34px;height:34px;border-radius:8px;background:#0f172a;color:#00f5a0;display:inline-flex;align-items:center;justify-content:center;font-weight:900;">ID</span>
+              <div>
+                <strong style="font-size:15px;color:#0f172a;display:block;">Verified Professional Qualification Dossier</strong>
+                <small style="color:#64748b;font-size:11.5px;">ShiftRelay Sovereign Identity &amp; Attendance Backed</small>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <a href="/api/reports/worker-cv" target="_blank" class="sr-btn sr-btn-secondary" style="font-size:12px;padding:6px 14px;text-decoration:none;">
+                Fullscreen View
+              </a>
+              <button type="button" class="sr-btn sr-btn-primary" onclick="window.print()" style="font-size:12px;padding:6px 14px;">
+                🖨️ Print / Save PDF
+              </button>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-close-cv" style="font-size:12px;padding:6px 14px;">
+                Close
+              </button>
+            </div>
+          </div>
+
+          <iframe src="/api/reports/worker-cv" style="width:100%;height:70vh;border:1px solid #cbd5e1;border-radius:8px;"></iframe>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('sr-btn-close-cv')?.addEventListener('click', () => {
+      document.getElementById('sr-cv-modal')?.remove();
+    });
+  }
+
+  // ── 3. High-Tech Executive Statutory Remittance Ledger Modal ─────────────
+  function openPayrollLedgerModal() {
+    const existing = document.getElementById('sr-ledger-modal');
+    if (existing) existing.remove();
+
+    const modalHtml = `
+      <div id="sr-ledger-modal" class="sr-audit-modal-backdrop" style="position:fixed;inset:0;background:rgba(2,6,23,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;justify-content:center;align-items:flex-start;padding:24px;overflow-y:auto;">
+        <div class="sr-audit-sheet" style="background:#ffffff;color:#0f172a;max-width:980px;width:100%;border-radius:14px;padding:32px;box-shadow:0 25px 70px rgba(0,0,0,0.5);margin:auto;position:relative;">
+          
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:2px solid #e2e8f0;margin-bottom:20px;" class="sr-no-print">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="width:34px;height:34px;border-radius:8px;background:#059669;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-weight:900;">₦</span>
+              <div>
+                <strong style="font-size:15px;color:#0f172a;display:block;">Executive Statutory Remittance Ledger</strong>
+                <small style="color:#64748b;font-size:11.5px;">PenCom 8%+10% · PAYE Tax · NSITF 1% · ₦0.00 Variance Guaranteed</small>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <a href="/api/reports/payroll-ledger" target="_blank" class="sr-btn sr-btn-secondary" style="font-size:12px;padding:6px 14px;text-decoration:none;">
+                Fullscreen View
+              </a>
+              <button type="button" class="sr-btn sr-btn-primary" onclick="window.print()" style="font-size:12px;padding:6px 14px;">
+                🖨️ Print / Save PDF
+              </button>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-close-ledger" style="font-size:12px;padding:6px 14px;">
+                Close
+              </button>
+            </div>
+          </div>
+
+          <iframe src="/api/reports/payroll-ledger" style="width:100%;height:70vh;border:1px solid #cbd5e1;border-radius:8px;"></iframe>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('sr-btn-close-ledger')?.addEventListener('click', () => {
+      document.getElementById('sr-ledger-modal')?.remove();
+    });
+  }
+
+  // ── 4. High-Tech Email Testing & Automated Newsletter Dispatch Lab ──────
+  function openEmailTestingLabModal() {
+    const existing = document.getElementById('sr-email-lab-modal');
+    if (existing) existing.remove();
+
+    const modalHtml = `
+      <div id="sr-email-lab-modal" class="sr-audit-modal-backdrop" style="position:fixed;inset:0;background:rgba(2,6,23,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;justify-content:center;align-items:flex-start;padding:24px;overflow-y:auto;">
+        <div class="sr-audit-sheet" style="background:#090f1d;color:#f8fafc;max-width:960px;width:100%;border-radius:16px;padding:28px;box-shadow:0 25px 70px rgba(0,0,0,0.6);margin:auto;border:1px solid #1e293b;">
+          
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:1px solid #1e293b;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg, #00f5a0 0%, #00d287 100%);color:#03180f;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;">✉</span>
+              <div>
+                <h3 style="margin:0;font-size:17px;font-weight:800;color:#ffffff;">ShiftRelay Enterprise Email &amp; Automated Newsletter Lab</h3>
+                <small style="color:#94a3b8;font-size:12px;">High-Tech Rebranded Email Servicing · Single-Click CTA &amp; Security Nonce Trace</small>
+              </div>
+            </div>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-close-lab" style="font-size:12px;padding:6px 14px;">Close</button>
+          </div>
+
+          <!-- Controls Grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Select Email Template</label>
+              <select id="sr-lab-template-sel" style="width:100%;padding:10px 12px;background:#0d182b;color:#ffffff;border:1px solid #1e293b;border-radius:8px;font-size:13.5px;">
+                <option value="activation">1. Account Activation / Invite (Single CTA + Unbroken Link)</option>
+                <option value="reset">2. Password Reset / Security Verification (30m Expiry)</option>
+                <option value="handover">3. Shift Handover Brief (Supervisor Sign-off)</option>
+                <option value="payroll">4. Executive Statutory Remittance Digest (₦0.00 Variance)</option>
+                <option value="newsletter" selected>5. Automated Weekly Operational Newsletter (Progress Digest)</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:6px;">Recipient Email Address</label>
+              <div style="display:flex;gap:8px;">
+                <input type="email" id="sr-lab-email-inp" value="sherifolaide2030@gmail.com" style="flex:1;padding:10px 12px;background:#0d182b;color:#ffffff;border:1px solid #1e293b;border-radius:8px;font-size:13.5px;" />
+                <button type="button" class="sr-btn sr-btn-primary" id="sr-lab-send-btn" style="padding:0 18px;font-size:13px;white-space:nowrap;">
+                  Send Live Test
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Automation Trigger Card -->
+          <div style="background:#0d182b;border:1px solid rgba(0,245,160,0.25);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+              <strong style="color:#00f5a0;font-size:13.5px;display:block;">⚡ Weekly Newsletter Automation Engine</strong>
+              <small style="color:#94a3b8;font-size:12px;">Aggregates weekly verified hours (1,420h), punctuality rate (99.4%), and ₦0.00 variance into automated Sunday dispatch.</small>
+            </div>
+            <button type="button" class="sr-btn sr-btn-primary" id="sr-lab-run-weekly-btn" style="background:linear-gradient(135deg, #00f5a0 0%, #06b6d4 100%);color:#03180f;font-weight:800;font-size:12.5px;padding:8px 18px;">
+              Dispatch Weekly Digest to All Members
+            </button>
+          </div>
+
+          <!-- Live Email Preview Frame -->
+          <div style="border:1px solid #1e293b;border-radius:10px;overflow:hidden;background:#050a14;">
+            <div style="padding:10px 16px;background:#0d182b;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:#94a3b8;font-weight:600;">High-Tech Bulletproof Preview (600px Responsive Canvas)</span>
+              <a id="sr-lab-open-ext" href="/api/emails/preview?type=newsletter" target="_blank" style="font-size:12px;color:#38bdf8;text-decoration:none;">Open in Full Browser Tab ↗</a>
+            </div>
+            <iframe id="sr-lab-preview-frame" src="/api/emails/preview?type=newsletter" style="width:100%;height:50vh;border:none;background:#050a14;"></iframe>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const sel = document.getElementById('sr-lab-template-sel');
+    const frame = document.getElementById('sr-lab-preview-frame');
+    const openExt = document.getElementById('sr-lab-open-ext');
+    const sendBtn = document.getElementById('sr-lab-send-btn');
+    const emailInp = document.getElementById('sr-lab-email-inp');
+    const weeklyBtn = document.getElementById('sr-lab-run-weekly-btn');
+
+    sel?.addEventListener('change', () => {
+      const type = sel.value;
+      frame.src = `/api/emails/preview?type=${type}`;
+      openExt.href = `/api/emails/preview?type=${type}`;
+    });
+
+    sendBtn?.addEventListener('click', async () => {
+      const to = emailInp?.value?.trim();
+      if (!to) { alert('Please enter a valid recipient email.'); return; }
+      const type = sel.value;
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Sending...';
+
+      try {
+        const res = await fetch('/api/emails/test-send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to, type })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          if (typeof window.Phase1Shell?.showToast === 'function') {
+            window.Phase1Shell.showToast(`Test email (${type}) sent successfully to ${to}!`);
+          } else {
+            alert(`Test email (${type}) dispatched successfully to ${to}`);
+          }
+        } else {
+          alert('Failed to dispatch test email: ' + (data.error || 'Server error'));
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send Live Test';
+      }
+    });
+
+    weeklyBtn?.addEventListener('click', async () => {
+      weeklyBtn.disabled = true;
+      weeklyBtn.textContent = 'Compiling & Dispatching...';
+      try {
+        const res = await fetch('/api/newsletter/dispatch-weekly', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: emailInp?.value?.trim() })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          if (typeof window.Phase1Shell?.showToast === 'function') {
+            window.Phase1Shell.showToast('Automated Weekly Operational Newsletter dispatched to workforce leadership!');
+          } else {
+            alert('Weekly newsletter dispatched successfully!');
+          }
+        }
+      } catch (err) {
+        alert('Failed: ' + err.message);
+      } finally {
+        weeklyBtn.disabled = false;
+        weeklyBtn.textContent = 'Dispatch Weekly Digest to All Members';
+      }
+    });
+
+    document.getElementById('sr-btn-close-lab')?.addEventListener('click', () => {
+      document.getElementById('sr-email-lab-modal')?.remove();
+    });
+  }
+
   // ──  Native PWA Installation Banner ───────────────────────────────────────
   let _deferredPrompt = null;
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -10779,6 +11143,10 @@ Issued on: ${new Date().toISOString()}
   window.Phase1Shell = {
     mount: mountShell,
     startInvestorTour,
+    openTermsOfServiceModal,
+    openCvDossierModal,
+    openPayrollLedgerModal,
+    openEmailTestingLabModal,
     openGeofenceCertificateModal,
     downloadAttendanceTimesheetCsv,
     downloadPayrollBatchCsv,
@@ -10820,6 +11188,15 @@ Issued on: ${new Date().toISOString()}
   if (getUser()) {
     mountShell();
   }
+
+  // Global delegation: Intercept any Terms of Service link in-app and open PDF-style modal
+  document.addEventListener('click', function(e) {
+    const termsLink = e.target.closest('a[href*="terms.html"], [data-action="open-terms"], .sr-terms-link');
+    if (termsLink && typeof openTermsOfServiceModal === 'function') {
+      e.preventDefault();
+      openTermsOfServiceModal();
+    }
+  });
 
   // ── PHASE 6: Timesheets, Time Away, Earnings, Open Shifts, Assistant, Compliance ──────────────
 
@@ -12666,6 +13043,10 @@ Issued on: ${new Date().toISOString()}
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-export-payroll-ledger" style="font-size:12.5px;padding:8px 14px;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <span>Remittance Ledger (PDF)</span>
+            </button>
             <a href="/api/payroll/export-bank-csv" download class="sr-btn sr-btn-secondary" id="sr-btn-export-bank-csv" style="font-size:12.5px;padding:8px 14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               <span>Bank Disbursement CSV</span>
@@ -12674,6 +13055,10 @@ Issued on: ${new Date().toISOString()}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               <span>Statutory CSV</span>
             </a>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-open-email-lab" style="font-size:12.5px;padding:8px 14px;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <span>Email &amp; Newsletter Lab</span>
+            </button>
           </div>
         </div>
 
@@ -12831,6 +13216,14 @@ Issued on: ${new Date().toISOString()}
 
     // Hook Print Audit -> Dedicated Printable Monthly Payment Data & Statutory Sheet
     const printAuditBtn = document.getElementById('sr-btn-print-audit');
+    document.getElementById('sr-btn-export-payroll-ledger')?.addEventListener('click', () => {
+      openPayrollLedgerModal();
+    });
+
+    document.getElementById('sr-btn-open-email-lab')?.addEventListener('click', () => {
+      openEmailTestingLabModal();
+    });
+
     if (printAuditBtn) {
       printAuditBtn.addEventListener('click', () => {
         const w = window.open('', '_blank', 'width=940,height=880');
