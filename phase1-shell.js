@@ -2223,7 +2223,7 @@
             box.dispatchEvent(new Event('change'));
           });
 
-          box.addEventListener('change', () => {
+          box.addEventListener('change', async () => {
             const taskId = box.dataset.taskId;
             const isChecked = box.checked;
             item.classList.toggle('done', isChecked);
@@ -2609,6 +2609,7 @@
 
       const companyName = user.organisation_name || 'Riffmax Technology';
       const siteName = user.department || 'Operations Management Unit';
+      const roleTitle = user.title || (user.role === 'owner' ? 'Organisation Owner' : 'Shift Supervisor');
       const supActiveEntry = timeData.active || (timeData.entries || []).find(e => !e.clocked_out_at && e.membership_id === user.id) || (localStorage.getItem('sr_sup_active_shift') ? JSON.parse(localStorage.getItem('sr_sup_active_shift')) : null);
       const isSupClockedIn = Boolean(supActiveEntry);
       const supClockedInTime = supActiveEntry ? (supActiveEntry.clocked_in_at || supActiveEntry.clockedInAt) : null;
@@ -2617,9 +2618,12 @@
       const html = `
         <!-- Distinct Company vs Site Context Banner with 2-Layer Dashboard Switcher -->
         <div class="sr-context-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-          <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Company: ${escapeHtml(companyName)}</span>
-            <span class="sr-context-banner-site">Scope: <strong>${escapeHtml(siteName)}</strong></span>
+          <div class="sr-context-banner-text" style="cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
+            <span class="sr-context-banner-company" style="font-weight:700;display:flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
+              ${escapeHtml(companyName)}
+            </span>
+            <span class="sr-context-banner-site">${escapeHtml(siteName)} &bull; <strong style="color:#0d9488;">${escapeHtml(roleTitle)}</strong></span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <!-- 2-Layer Executive vs Shift Operations Switcher -->
@@ -3228,6 +3232,7 @@
   }
 
   // ── 4. Authorised Workplace & Staff Context Pop-out Modal ───────────────────
+  window.openShiftRelayContextModal = openContextModal;
   function openContextModal() {
     document.getElementById('sr-context-modal')?.remove();
 
@@ -4235,10 +4240,13 @@
     const pendingBaton = liveItems.find(i => i.status === 'relayed') || liveItems[0];
 
     container.innerHTML = `
-      <div class="sr-context-banner" style="margin-bottom:14px;">
+      <div class="sr-context-banner" style="margin-bottom:14px;cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
         <div class="sr-context-banner-text">
-          <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Riffmax Technology Limited')}</span>
-          <span class="sr-context-banner-site">Station: <strong>${escapeHtml(user.department || 'Operations Floor')}</strong></span>
+          <span class="sr-context-banner-company" style="font-weight:700;display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
+            ${escapeHtml(user.organisation_name || 'Riffmax Technology Limited')}
+          </span>
+          <span class="sr-context-banner-site">${escapeHtml(user.department || 'Backend Infrastructure')} &bull; <strong style="color:#0d9488;">${escapeHtml(user.title || user.role)}</strong></span>
         </div>
         <span class="sr-context-banner-badge">SHIFT BATON</span>
       </div>
@@ -4765,10 +4773,13 @@
       const completedItems = handovers.filter(h => h.status !== 'awaiting_review');
 
       const html = `
-        <div class="sr-context-banner">
+        <div class="sr-context-banner" style="cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Riffmax Technology')}</span>
-            <span class="sr-context-banner-site">Scope: <strong>${escapeHtml(user.department || 'Operations Leadership')}</strong></span>
+            <span class="sr-context-banner-company" style="font-weight:700;display:flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
+              ${escapeHtml(user.organisation_name || 'Riffmax Technology')}
+            </span>
+            <span class="sr-context-banner-site">${escapeHtml(user.department || 'Operations Leadership')} &bull; <strong style="color:#0d9488;">${escapeHtml(user.title || user.role)}</strong></span>
           </div>
           <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
         </div>
@@ -4982,9 +4993,10 @@
         { id: `sr-s-${ym}-03`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-11`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-11T06:00:00.000Z`, ends_at: `${ym}-11T14:00:00.000Z`, station: 'Gate Station A', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
         { id: `sr-s-${ym}-04`, membership_id: '00000000-0000-4000-8000-000000000003', worker_name: 'Babatunde Adeleke', department: 'Frontend Engineering', date: `${ym}-12`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-12T06:00:00.000Z`, ends_at: `${ym}-12T14:00:00.000Z`, station: 'Main Production Floor', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
         { id: `sr-s-${ym}-05`, membership_id: '00000000-0000-4000-8000-000000000002', worker_name: 'Olaide Emmanuela', department: 'Operations & Delivery', date: `${ym}-12`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-12T06:00:00.000Z`, ends_at: `${ym}-12T14:00:00.000Z`, station: 'Operations Command Deck', rotation: 'Morning Shift', status: 'scheduled', is_shift_supervisor: true, supervisor_name: 'Sherif Akanmu' },
-        { id: `sr-s-${ym}-06`, membership_id: '00000000-0000-4000-8000-000000000006', worker_name: 'Kelechi Nnamdi', department: 'Product & UX', date: `${ym}-13`, start_time: '14:00', end_time: '22:00', starts_at: `${ym}-13T14:00:00.000Z`, ends_at: `${ym}-13T22:00:00.000Z`, station: 'Dispatch & Packaging Bay', rotation: 'Afternoon Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-07`, membership_id: '00000000-0000-4000-8000-000000000003', worker_name: 'Babatunde Adeleke', department: 'Frontend Engineering', date: `${ym}-14`, start_time: '14:00', end_time: '22:00', starts_at: `${ym}-14T14:00:00.000Z`, ends_at: `${ym}-14T22:00:00.000Z`, station: 'Operations Command Deck', rotation: 'Afternoon Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-08`, membership_id: '00000000-0000-4000-8000-000000000007', worker_name: 'Simi Balogun', department: 'Brand & Design', date: `${ym}-15`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-15T06:00:00.000Z`, ends_at: `${ym}-15T14:00:00.000Z`, station: 'Main Production Floor', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' }
+        { id: `sr-s-${ym}-06`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-13`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-13T06:00:00.000Z`, ends_at: `${ym}-13T14:00:00.000Z`, station: 'Infrastructure Hub Bay', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
+        { id: `sr-s-${ym}-07`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-14`, start_time: '14:00', end_time: '22:00', starts_at: `${ym}-14T14:00:00.000Z`, ends_at: `${ym}-14T22:00:00.000Z`, station: 'High-Availability Relay Station', rotation: 'Afternoon Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
+        { id: `sr-s-${ym}-08`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-16`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-16T06:00:00.000Z`, ends_at: `${ym}-16T14:00:00.000Z`, station: 'Gate Station A', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
+        { id: `sr-s-${ym}-09`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-18`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-18T06:00:00.000Z`, ends_at: `${ym}-18T14:00:00.000Z`, station: 'Core Infrastructure Bay', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' }
       ];
       all = [...(Array.isArray(all) ? all : []), ...seeded];
       try { localStorage.setItem(storageKey, JSON.stringify(all)); } catch (_) {}
@@ -5077,7 +5089,89 @@
         </div>`;
     }).join('');
 
-    return stripHtml + cardsHtml;
+    const teamPartnersHtml = `
+      <div style="padding:16px;background:var(--sr-bg-card-subtle);border-top:1px solid var(--sr-border-subtle);border-bottom:1px solid var(--sr-border-subtle);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:26px;height:26px;border-radius:8px;background:rgba(16,185,129,0.12);color:#10b981;display:inline-flex;align-items:center;justify-content:center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--sr-text-main);">Shift Roster Partners &amp; Handover Relay</span>
+          </div>
+          <span class="sr-status-pill active" style="font-size:10px;">Facility Verified</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;">
+          <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:9px;background:rgba(13,148,136,0.12);color:#0d9488;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;">BA</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);">Babatunde Adeleke</div>
+              <div style="font-size:11px;color:var(--sr-text-muted);">Lead Frontend Architect &bull; Morning Relay</div>
+            </div>
+            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;" title="Active on duty"></span>
+          </div>
+          <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:9px;background:rgba(2,132,199,0.12);color:#0284c7;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;">CO</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);">Chidinma Okonjo</div>
+              <div style="font-size:11px;color:var(--sr-text-muted);">Mobile Native Lead &bull; Afternoon Handover</div>
+            </div>
+            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;" title="Scheduled today"></span>
+          </div>
+          <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:9px;background:rgba(245,158,11,0.12);color:#d97706;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;">OE</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);">Olaide Emmanuela</div>
+              <div style="font-size:11px;color:var(--sr-text-muted);">Operations Lead &bull; Shift Supervisor</div>
+            </div>
+            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;" title="Shift Supervisor Active"></span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const openShiftsDeskHtml = `
+      <div style="padding:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:26px;height:26px;border-radius:8px;background:rgba(245,158,11,0.14);color:#d97706;display:inline-flex;align-items:center;justify-content:center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+            <span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--sr-text-main);">Open Shift Overtime &amp; Marketplace Opportunities</span>
+          </div>
+          <button type="button" class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('open-shifts')" style="min-height:30px;padding:0 10px;font-size:11.5px;font-weight:700;">
+            Browse All Open Shifts &rarr;
+          </button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;">
+          <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">Weekend Core Systems Coverage</span>
+                <span class="sr-badge" style="background:rgba(16,185,129,0.12);color:#10b981;font-size:10px;font-weight:800;">+₦24,000</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--sr-text-muted);">Saturday &bull; 06:00 – 14:00 WAT &bull; Backend Bay</div>
+            </div>
+            <button type="button" class="sr-btn sr-btn-primary" onclick="window.Phase1Shell.mount('open-shifts')" style="min-height:32px;padding:0 12px;font-size:11.5px;font-weight:700;white-space:nowrap;">
+              Claim Shift
+            </button>
+          </div>
+          <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card);border:1px solid rgba(2,132,199,0.3);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">Sunday Evening High-Availability Relay</span>
+                <span class="sr-badge" style="background:rgba(2,132,199,0.12);color:#0284c7;font-size:10px;font-weight:800;">+₦28,000</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--sr-text-muted);">Sunday &bull; 14:00 – 22:00 WAT &bull; Operations Hub</div>
+            </div>
+            <button type="button" class="sr-btn sr-btn-primary" onclick="window.Phase1Shell.mount('open-shifts')" style="min-height:32px;padding:0 12px;font-size:11.5px;font-weight:700;white-space:nowrap;background:#0284c7;">
+              Claim Shift
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return stripHtml + cardsHtml + teamPartnersHtml + openShiftsDeskHtml;
   }
 
   function renderLeaveTab(requests, tz) {
@@ -6376,10 +6470,13 @@
       }
 
       container.innerHTML = `
-        <div class="sr-context-banner">
+        <div class="sr-context-banner" style="cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
           <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Riffmax Technology')}</span>
-            <span class="sr-context-banner-site">Site: <strong>${escapeHtml(user.department || 'Operations')}</strong></span>
+            <span class="sr-context-banner-company" style="font-weight:700;display:flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
+              ${escapeHtml(user.organisation_name || 'Riffmax Technology')}
+            </span>
+            <span class="sr-context-banner-site">${escapeHtml(user.department || 'Operations')} &bull; <strong style="color:#0d9488;">${escapeHtml(user.title || user.role)}</strong></span>
           </div>
           <span class="sr-context-banner-badge">${allMembers.length} Members</span>
         </div>
@@ -6674,10 +6771,13 @@
     }
 
     container.innerHTML = `
-      <div class="sr-context-banner" style="margin-bottom:14px;">
+      <div class="sr-context-banner" style="margin-bottom:14px;cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
         <div class="sr-context-banner-text">
-          <span class="sr-context-banner-company">Company: ${escapeHtml(user.organisation_name || 'Riffmax Technology Limited')}</span>
-          <span class="sr-context-banner-site">Floor Queue: <strong>${escapeHtml(user.department || 'Operations & Delivery')}</strong></span>
+          <span class="sr-context-banner-company" style="font-weight:700;display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
+            ${escapeHtml(user.organisation_name || 'Riffmax Technology Limited')}
+          </span>
+          <span class="sr-context-banner-site">${escapeHtml(user.department || 'Operations & Delivery')} &bull; <strong style="color:#0d9488;">${escapeHtml(user.title || user.role)}</strong></span>
         </div>
         <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
       </div>
@@ -11991,9 +12091,87 @@
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
               <div style="display:flex;align-items:center;gap:7px;">
                 <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 8px #f59e0b;display:inline-block;"></span>
-                <span style="font-size:11px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:var(--sr-text-main);">ShiftRelay Activity Rewards</span>
+                <span style="font-size:11px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:var(--sr-text-main);">ShiftRelay Operational Merit & Activity Rewards</span>
               </div>
-              <span style="font-size:10.5px;padding:3px 10px;background:rgba(16,185,129,0.12);color:#10b981;border-radius:99px;font-weight:700;border:1px solid rgba(16,185,129,0.25);">PTS 1 Coin = ₦1.00 Cash</span>
+              <span style="font-size:10.5px;padding:3px 10px;background:rgba(16,185,129,0.12);color:#10b981;border-radius:99px;font-weight:700;border:1px solid rgba(16,185,129,0.25);">1 Star = ₦1.00 Direct Cash Equivalent</span>
+            </div>
+
+            <!-- Career Progression & Rank Tier -->
+            <div style="background:var(--sr-bg-card);border:1px solid rgba(13,148,136,0.28);border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 4px 20px rgba(0,0,0,0.18);">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <div style="width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,#0d9488,#10b981);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(16,185,129,0.35);flex-shrink:0;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                  </div>
+                  <div>
+                    <div style="font-size:10.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--sr-text-muted);">Frontline Personnel Career Grade</div>
+                    <div style="font-size:15px;font-weight:800;color:var(--sr-text-main);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                      <span>Level 4 &bull; Shift Specialist</span>
+                      <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(13,148,136,0.16);color:#0d9488;font-weight:700;border:1px solid rgba(13,148,136,0.3);">Top 5% Facility Standing</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:11px;color:var(--sr-text-muted);">Promotion Target: <strong>Level 5 Veteran</strong></div>
+                  <div style="font-size:13px;font-family:'JetBrains Mono',monospace;font-weight:700;color:#10b981;margin-top:2px;">2,450 / 3,000 XP</div>
+                </div>
+              </div>
+              <div style="margin-top:12px;">
+                <div style="height:6px;background:var(--sr-bg-subtle);border-radius:99px;overflow:hidden;">
+                  <div style="height:100%;width:81.6%;background:linear-gradient(90deg,#0d9488,#10b981);border-radius:99px;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--sr-text-muted);margin-top:5px;">
+                  <span>Lvl 4: 2,000 XP</span>
+                  <span style="color:#0ea5e9;font-weight:600;">550 XP to Next Promotion</span>
+                  <span style="color:#10b981;font-weight:700;">Lvl 5: 3,000 XP</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Collectible Merit Insignias -->
+            <div style="margin-bottom:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--sr-text-muted);">Verified Operational Insignias</span>
+                <span style="font-size:10.5px;color:var(--sr-primary);font-weight:700;background:rgba(13,148,136,0.12);padding:2px 8px;border-radius:99px;">4 of 4 Badges Unlocked</span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;">
+                <!-- Badge 1: Punctuality Champion -->
+                <div style="background:var(--sr-bg-card);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);">
+                  <div style="width:36px;height:36px;border-radius:50%;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(245,158,11,0.2);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  </div>
+                  <div style="font-size:11.5px;font-weight:800;color:var(--sr-text-main);line-height:1.2;">Punctual Sentinel</div>
+                  <div style="font-size:10px;color:var(--sr-text-muted);margin-top:2px;">99.4% On-Time Record</div>
+                  <div style="font-size:9.5px;font-weight:700;color:#f59e0b;margin-top:5px;background:rgba(245,158,11,0.1);border-radius:4px;padding:1px 5px;display:inline-block;">Gold Tier</div>
+                </div>
+                <!-- Badge 2: Zero-Incident Sentinel -->
+                <div style="background:var(--sr-bg-card);border:1px solid rgba(16,185,129,0.25);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);">
+                  <div style="width:36px;height:36px;border-radius:50%;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(16,185,129,0.2);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                  </div>
+                  <div style="font-size:11.5px;font-weight:800;color:var(--sr-text-main);line-height:1.2;">Zero Incident</div>
+                  <div style="font-size:10px;color:var(--sr-text-muted);margin-top:2px;">0 Safety Violations</div>
+                  <div style="font-size:9.5px;font-weight:700;color:#10b981;margin-top:5px;background:rgba(16,185,129,0.1);border-radius:4px;padding:1px 5px;display:inline-block;">Pristine Safety</div>
+                </div>
+                <!-- Badge 3: 100-Relay Master -->
+                <div style="background:var(--sr-bg-card);border:1px solid rgba(14,165,233,0.25);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);">
+                  <div style="width:36px;height:36px;border-radius:50%;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.3);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(14,165,233,0.2);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+                  </div>
+                  <div style="font-size:11.5px;font-weight:800;color:var(--sr-text-main);line-height:1.2;">Relay Master</div>
+                  <div style="font-size:10px;color:var(--sr-text-muted);margin-top:2px;">142 Verified Handovers</div>
+                  <div style="font-size:9.5px;font-weight:700;color:#0ea5e9;margin-top:5px;background:rgba(14,165,233,0.1);border-radius:4px;padding:1px 5px;display:inline-block;">100+ Relays</div>
+                </div>
+                <!-- Badge 4: Geofence Guardian -->
+                <div style="background:var(--sr-bg-card);border:1px solid rgba(168,85,247,0.25);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);">
+                  <div style="width:36px;height:36px;border-radius:50%;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(168,85,247,0.2);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  </div>
+                  <div style="font-size:11.5px;font-weight:800;color:var(--sr-text-main);line-height:1.2;">Geofence Sentinel</div>
+                  <div style="font-size:10px;color:var(--sr-text-muted);margin-top:2px;">100% Perimeter Lock</div>
+                  <div style="font-size:9.5px;font-weight:700;color:#a855f7;margin-top:5px;background:rgba(168,85,247,0.1);border-radius:4px;padding:1px 5px;display:inline-block;">GPS Verified</div>
+                </div>
+              </div>
             </div>
 
             <!-- Coin Balance Card -->
@@ -12005,24 +12183,25 @@
                     <span id="sr-rwd-balance" style="font-size:34px;font-weight:900;color:#f59e0b;font-family:'JetBrains Mono',monospace;">0</span>
                     <span style="font-size:14px;color:var(--sr-text-muted);font-weight:600;">Stars</span>
                   </div>
-                  <div style="font-size:12px;color:var(--sr-text-muted);margin-top:3px;">PTS 1 Star = ₦1.00 · <span id="sr-rwd-naira-equiv" style="color:#10b981;font-weight:700;">₦0.00</span> cash value</div>
+                  <div style="font-size:12px;color:var(--sr-text-muted);margin-top:3px;">1 Star = ₦1.00 &bull; <span id="sr-rwd-naira-equiv" style="color:#10b981;font-weight:700;">₦0.00</span> cash value</div>
                 </div>
-                <button id="sr-rwd-cashout-btn" disabled style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:12px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;opacity:0.5;transition:opacity .2s,transform .15s;white-space:nowrap;">
-                  PTS Exchange Cash
+                <button id="sr-rwd-cashout-btn" disabled style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:12px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;opacity:0.5;transition:opacity .2s,transform .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  <span>Exchange Stars for Cash</span>
                 </button>
               </div>
 
               <!-- Coin Progress Bar -->
               <div style="margin-top:14px;">
                 <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--sr-text-muted);margin-bottom:5px;">
-                  <span>Progress to ₦3,000 gift</span>
+                  <span>Progress to ₦3,000 Direct Disbursement</span>
                   <span id="sr-rwd-pct" style="font-weight:700;color:#f59e0b;">0%</span>
                 </div>
                 <div style="height:8px;background:var(--sr-bg-subtle);border-radius:99px;overflow:hidden;">
                   <div id="sr-rwd-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#f59e0b,#10b981);border-radius:99px;transition:width 0.9s cubic-bezier(0.16,1,0.3,1);"></div>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--sr-text-muted);margin-top:4px;">
-                  <span>0PTS</span><span>1,500PTS</span><span style="color:#f59e0b;font-weight:700;">3,000PTS → ₦3,000</span>
+                  <span>0 Stars</span><span>1,500 Stars</span><span style="color:#f59e0b;font-weight:700;">3,000 Stars &rarr; ₦3,000 Direct Transfer</span>
                 </div>
               </div>
             </div>
@@ -12331,25 +12510,37 @@
       const actEl = document.getElementById('sr-rwd-activities');
       if (actEl) {
         const activities = [
-          { label: 'Clock In (GPS verified)',   coin: 25,  done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-clockin' && q.claimed) },
-          { label: 'Complete all tasks',        coin: 20,  done: false },
-          { label: 'Push Relay',                coin: 30,  done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-handover' && q.claimed) },
-          { label: 'Clock Out (on schedule)',   coin: 25,  done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-clockout' && q.claimed) },
-          { label: 'Profile photo uploaded',    coin: 50,  done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-profile' && (q.progress||0) >= 35) },
-          { label: 'Cover photo uploaded',      coin: 50,  done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-profile' && (q.progress||0) >= 70) },
-          { label: 'Chat consultation',         coin: 20,  done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-ai' && q.claimed) },
+          { label: 'Clock In (GPS verified)', coin: 25, done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-clockin' && q.claimed), isMilestone: false },
+          { label: 'Complete all shift duties', coin: 20, done: false, isMilestone: false },
+          { label: 'Push Handover Relay', coin: 30, done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-handover' && q.claimed), isMilestone: false },
+          { label: 'Clock Out (on schedule)', coin: 25, done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-clockout' && q.claimed), isMilestone: false },
+          { label: 'Profile Photo Verified (Lifetime Cap)', coin: 50, done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-profile' && (q.progress||0) >= 35), isMilestone: true },
+          { label: 'Cover Photo Verified (Lifetime Cap)', coin: 50, done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-profile' && (q.progress||0) >= 70), isMilestone: true },
+          { label: 'Higher Education Verified (Lifetime Cap)', coin: 50, done: true, isMilestone: true },
+          { label: 'Industry Certification Verified (Lifetime Cap)', coin: 50, done: true, isMilestone: true },
+          { label: 'Support & AI Desk Consultation Relay', coin: 20, done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-ai' && q.claimed), isMilestone: false },
         ];
         actEl.innerHTML = activities.map(a => `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--sr-bg-subtle);border-radius:9px;border:1px solid ${a.done ? 'rgba(16,185,129,0.25)' : 'var(--sr-border-subtle)'};">
-            <div style="display:flex;align-items:center;gap:9px;">
-              <span style="display:inline-flex;align-items:center;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--sr-bg-subtle);border-radius:10px;border:1px solid ${a.done ? 'rgba(16,185,129,0.22)' : 'var(--sr-border-subtle)'};">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="display:inline-flex;align-items:center;flex-shrink:0;">
                 ${a.done
-                  ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="12" cy="12" r="4" fill="#10b981"/></svg>'
-                  : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.35;"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>'}
+                  ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.4"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+                  : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.35;"><rect width="18" height="18" x="3" y="3" rx="4"/></svg>'}
               </span>
-              <span style="font-size:13px;color:${a.done ? 'var(--sr-text-muted)' : 'var(--sr-text-main)'};${a.done ? 'text-decoration:line-through;' : ''}">${escapeHtml(a.label)}</span>
+              <div>
+                <span style="font-size:13px;color:${a.done ? 'var(--sr-text-muted)' : 'var(--sr-text-main)'};font-weight:${a.done ? '500' : '600'};">${escapeHtml(a.label)}</span>
+                ${a.isMilestone ? '<div style="font-size:10px;color:var(--sr-text-muted);margin-top:1px;">1x Non-Farmable Security Rule &bull; Duplicate-Proof</div>' : ''}
+              </div>
             </div>
-            <span style="font-size:12px;font-weight:700;color:${a.done ? '#10b981' : '#f59e0b'};${a.done ? '' : ''}">+${a.coin}PTS</span>
+            <div>
+              ${a.done
+                ? `<span style="font-size:10.5px;padding:3px 9px;border-radius:99px;background:rgba(16,185,129,0.12);color:#10b981;border:1px solid rgba(16,185,129,0.25);font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    ${a.isMilestone ? 'Claimed (Anti-Farming Locked)' : 'Claimed'}
+                   </span>`
+                : `<span style="font-size:12.5px;font-weight:800;color:#f59e0b;font-family:'JetBrains Mono',monospace;">+${a.coin} PTS</span>`}
+            </div>
           </div>
         `).join('');
       }
@@ -12406,15 +12597,19 @@
           ledgerEl.innerHTML = '<div style="font-size:12.5px;color:var(--sr-text-muted);padding:8px 0;">No activity yet — start earning stars by clocking in!</div>';
         } else {
           ledgerEl.innerHTML = ledger.map(tx => `
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--sr-bg-subtle);border-radius:8px;">
-              <div style="display:flex;align-items:center;gap:9px;">
-                <span style="font-size:14px;">${tx.type === 'earn' ? '⬆️' : 'PTS'}</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--sr-bg-subtle);border-radius:10px;border:1px solid var(--sr-border-subtle);">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="width:28px;height:28px;border-radius:8px;background:${tx.type === 'earn' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)'};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  ${tx.type === 'earn'
+                    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>'
+                    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>'}
+                </span>
                 <div>
                   <div style="font-size:12.5px;color:var(--sr-text-main);font-weight:600;">${escapeHtml(tx.title)}</div>
                   <div style="font-size:11px;color:var(--sr-text-muted);">${new Date(tx.timestamp).toLocaleDateString()}</div>
                 </div>
               </div>
-              <span style="font-size:13px;font-weight:800;color:${tx.type === 'earn' ? '#10b981' : '#f59e0b'};">${tx.type === 'earn' ? '+' : ''}${tx.stars}PTS</span>
+              <span style="font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${tx.type === 'earn' ? '#10b981' : '#f59e0b'};">${tx.type === 'earn' ? '+' : ''}${tx.stars} PTS</span>
             </div>
           `).join('');
         }
@@ -12438,7 +12633,9 @@
           </button>
 
           <div style="text-align:center;margin-bottom:22px;">
-            <div style="font-size:46px;margin-bottom:6px;">PTS</div>
+            <div style="width:52px;height:52px;border-radius:14px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(245,158,11,0.25);">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
             <h3 style="margin:0;font-size:17px;font-weight:800;color:var(--sr-text-main);">Exchange Stars for Cash</h3>
             <p style="margin:5px 0 0;font-size:12.5px;color:var(--sr-text-muted);">This cash is paid directly by ShiftRelay, not your employer.</p>
           </div>
@@ -12447,8 +12644,8 @@
           <div style="background:var(--sr-bg-subtle);border-radius:12px;padding:14px 18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <div>
               <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--sr-text-muted);font-weight:700;">Exchanging</div>
-              <div style="font-size:22px;font-weight:900;color:#f59e0b;font-family:'JetBrains Mono',monospace;">${cost.toLocaleString()}PTS</div>
-              <div style="font-size:11px;color:var(--sr-text-muted);">Balance after: ${remaining.toLocaleString()}PTS</div>
+              <div style="font-size:22px;font-weight:900;color:#f59e0b;font-family:'JetBrains Mono',monospace;">${cost.toLocaleString()} PTS</div>
+              <div style="font-size:11px;color:var(--sr-text-muted);">Balance after: ${remaining.toLocaleString()} PTS</div>
             </div>
             <div style="text-align:right;">
               <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--sr-text-muted);font-weight:700;">You receive</div>
@@ -12507,12 +12704,14 @@
           if (!res.ok) throw new Error(result.error || 'Exchange failed');
 
           el.innerHTML = `
-            <div style="background:var(--sr-bg-card);border-radius:20px;padding:36px 28px;text-align:center;max-width:420px;width:100%;box-shadow:0 24px 48px rgba(0,0,0,0.5);">
-              <div style="font-size:54px;margin-bottom:10px;"></div>
+            <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:20px;padding:36px 28px;text-align:center;max-width:420px;width:100%;box-shadow:0 24px 48px rgba(0,0,0,0.5);">
+              <div style="width:56px;height:56px;border-radius:50%;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(16,185,129,0.3);">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
               <h3 style="margin:0 0 8px;font-size:18px;font-weight:800;color:var(--sr-text-main);">Exchange Successful!</h3>
               <p style="font-size:13px;color:var(--sr-text-muted);margin:0 0 18px;">${nairaVal} is on its way to your account.</p>
               <div style="background:var(--sr-bg-subtle);border-radius:10px;padding:12px 18px;margin-bottom:18px;text-align:left;">
-                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--sr-text-muted);font-weight:700;margin-bottom:4px;">Voucher Code</div>
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--sr-text-muted);font-weight:700;margin-bottom:4px;">Disbursement Reference</div>
                 <div style="font-size:15px;font-weight:800;color:var(--sr-primary);font-family:'JetBrains Mono',monospace;">${result.redemption?.voucherCode || 'SR-PENDING'}</div>
               </div>
               <button onclick="document.getElementById('sr-cashout-modal-root').remove();window.Phase1Shell.mount('earnings');"

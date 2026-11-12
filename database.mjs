@@ -7,7 +7,7 @@ function loadEnvironment() {
   try {
     for (const entry of readFileSync('.env', 'utf8').split(/\r?\n/)) {
       const match = entry.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (match && !process.env[match[1]]) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
+      if (match && !(match[1] in process.env)) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
     }
   } catch {}
 }
@@ -441,9 +441,17 @@ export async function verifyDatabaseConnection() {
 
 export async function initializeDatabase() {
   if (!pool) return false;
-  await verifyDatabaseConnection();
-  await pool.query(schema);
-  return true;
+  try {
+    await verifyDatabaseConnection();
+    await pool.query(schema);
+    return true;
+  } catch (err) {
+    if (isDatabaseConnectionError(err)) {
+      console.warn('[DATABASE] Could not connect to remote PostgreSQL database (' + (err.code || err.message) + '). Falling back to resilient local store.');
+      return false;
+    }
+    throw err;
+  }
 }
 
 export function isDatabaseConnectionError(error) {
@@ -536,7 +544,7 @@ export const demoMembers = [
 ];
 
 // Matches Riffmax2026! using ShiftRelay's scrypt format (salt:hex). Override via SHIFTRELAY_DEMO_MEMBER_PASS.
-const DEFAULT_DEMO_MEMBER_PASSWORD_HASH = '7b31e66ba6e49c68372e58d0a00829d3:a5e2489fa6f3841ee9c8099bf3425c808ebd1ae72ac18fd7d188eb9a2daf728198fa664db814cbd38b16b81a6ad7f2edf39bf0ecbfd8a4863931aeaf1c35d96a';
+export const DEFAULT_DEMO_MEMBER_PASSWORD_HASH = '7b31e66ba6e49c68372e58d0a00829d3:a5e2489fa6f3841ee9c8099bf3425c808ebd1ae72ac18fd7d188eb9a2daf728198fa664db814cbd38b16b81a6ad7f2edf39bf0ecbfd8a4863931aeaf1c35d96a';
 
 async function resolveDemoMemberPasswordHash() {
   const override = String(process.env.SHIFTRELAY_DEMO_MEMBER_PASS || '').trim();
