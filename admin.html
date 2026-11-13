@@ -1027,7 +1027,7 @@
               </div>
               <div>
                 <label class="lbl-sm">Provisioning Mode</label>
-                <input type="text" class="adm-input" value="Mobile App + Encrypted DESFire NFC Badge UID" readonly />
+                <input type="text" class="adm-input" value="Mobile App + Staff ID Card (Colleague Peer Scan, Zero Kiosk Hardware)" readonly />
               </div>
             </div>
             <div style="margin-bottom:14px;">
@@ -1927,7 +1927,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         const adminEmail = t.masterAdminEmail || t.adminEmail || t.work_email || 'sherif@riffmax.tech';
         const siteName = t.hubName || t.siteName || 'Riffmax Engineering Hub (Victoria Island)';
         const radius = t.hubRadius || t.hub_perimeter || 120;
-        const staffCount = t.employeeCount || t.workerCount || 12;
+        const staffCount = Number(t.employeeCount ?? t.workerCount ?? 0);
 
         return `
           <tr>
@@ -1942,10 +1942,10 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
             <td>
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 <button type="button" class="btn-emerald" style="padding:4px 9px; font-size:11px;" onclick="window.openEditTenantModal('${t.id}')">
-                  ✏ Edit Tenant
+                  Edit Tenant
                 </button>
                 <button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="window.printGatePoster('${companyName.replace(/'/g, '')}', '${companyCode}', '${siteName.replace(/'/g, '')}')">
-                  🖨 Gate Poster
+                  ID Check-In Guide
                 </button>
               </div>
             </td>
@@ -2372,19 +2372,19 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       w.document.write(`
         <!DOCTYPE html>
         <html>
-        <head><title>Gate QR & NFC Poster — ${companyName}</title></head>
+        <head><title>Staff ID Check-In Guide — ${companyName}</title></head>
         <body style="background:#050912;color:#f8fafc;font-family:sans-serif;text-align:center;padding:48px;">
           <div style="border:2px solid #00f5a0;border-radius:24px;padding:40px;max-width:520px;margin:0 auto;background:#0a1224;">
             <img src="/assets/logos/logo-brand-motion.svg?v=130" style="width:64px;height:64px;border-radius:14px;" />
             <h1 style="margin:14px 0 4px;">${companyName}</h1>
-            <p style="color:#94a3b8;">${siteName} • 2-Layer Gate Tablet &amp; NFC Checkpoint</p>
+            <p style="color:#94a3b8;">${siteName} &middot; Peer Mobile ID Card Clock-In (Zero Hardware Kiosk)</p>
             <div style="font-family:monospace;font-size:28px;color:#00f5a0;padding:12px 24px;border:1px dashed #00f5a0;border-radius:12px;display:inline-block;margin:18px 0;">${gateCode}</div>
             <p style="font-size:14px;color:#cbd5e1;line-height:1.6;">
-              1. Gate Tablet requires <strong>${gateCode}</strong> + Owner Email OTP.<br/>
-              2. Smartphone workers scan the 60-second rotating Gate QR.<br/>
-              3. Non-phone workers tap their encrypted ShiftRelay NFC ID Card.
+              1. Smartphone staff clock in directly in the app and verify GPS perimeter.<br/>
+              2. Colleagues without a smartphone present their issued Staff ID Card.<br/>
+              3. Any teammate uses &ldquo;Scan Colleague ID Card&rdquo; once daily; auto clock-out handles shift end.
             </p>
-            <button onclick="window.print()" style="margin-top:20px;padding:11px 22px;background:#00f5a0;color:#02120b;border:none;border-radius:8px;font-weight:800;cursor:pointer;">Print Gate Poster</button>
+            <button onclick="window.print()" style="margin-top:20px;padding:11px 22px;background:#00f5a0;color:#02120b;border:none;border-radius:8px;font-weight:800;cursor:pointer;">Print Check-In Guide</button>
           </div>
         </body>
         </html>

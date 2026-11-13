@@ -1278,13 +1278,7 @@
 
   // ── 1. Mount Application Shell ──────────────────────────────────────────────
   async function mountShell(activeView = null) {
-    const terminalConfig = JSON.parse(localStorage.getItem('shiftrelay-terminal-config') || 'null');
-    if (terminalConfig?.active || activeView === 'kiosk') {
-      document.getElementById('app-view')?.classList.remove('hidden');
-      document.getElementById('login-view')?.classList.add('hidden');
-      await renderGateKioskView();
-      return;
-    }
+    try { localStorage.removeItem('shiftrelay-terminal-config'); } catch (_) {}
 
     const user = getUser();
     if (!user) return;
@@ -1295,7 +1289,8 @@
     const isSupervisor = isSupervisorAccount && supervisorModePref !== 'worker';
     const isManager = isExecutive || isSupervisor;
     const defaultView = isExecutive ? 'analytics' : (isSupervisor ? 'overview' : 'today');
-    let view = activeView || defaultView;
+    let openScannerAfterMount = activeView === 'kiosk' || activeView === 'gate-kiosk';
+    let view = openScannerAfterMount ? defaultView : (activeView || defaultView);
     // Prevent cross-role view mismatch while allowing Supervisor Dual-Mode (Worker ⇄ Supervisor)
     if (!isManager && (view === 'overview' || view === 'payroll' || view === 'analytics' || view === 'approvals')) {
       view = 'today';
@@ -1304,9 +1299,9 @@
     } else if (isExecutive && view === 'today') {
       view = 'analytics';
     }
-    if (view === 'gate-kiosk') view = 'kiosk';
     if (view === 'timeaway-leave') view = 'time-away';
     currentActiveView = view;
+    window._srOpenScannerAfterMount = openScannerAfterMount;
 
     const activeProfile = getUserIndustryProfile(user);
     user.industryProfile = activeProfile;
@@ -1538,7 +1533,7 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span>3. Workforce</span>
               </button>
-              <button class="sr-nav-btn ${(view === 'schedule' || view === 'kiosk') ? 'active' : ''}" data-sr-view="schedule">
+              <button class="sr-nav-btn ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                 <span>4. Operations</span>
               </button>
@@ -1643,7 +1638,7 @@
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
               <span class="sr-dock-label">Workforce</span>
             </button>
-            <button class="sr-dock-item ${(view === 'schedule' || view === 'kiosk') ? 'active' : ''}" data-sr-view="schedule">
+            <button class="sr-dock-item ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
               <span class="sr-dock-label">Operations</span>
             </button>
@@ -1930,8 +1925,6 @@
       await renderWorkerToday();
     } else if (view === 'overview') {
       await renderManagerOverview();
-    } else if (view === 'kiosk') {
-      await renderGateKioskView();
     } else if (view === 'handovers') {
       if (isManager) {
         await renderManagerHandovers();
@@ -1978,59 +1971,73 @@
       // Bridge smoothly to existing sub-views for Schedule, Settings
       await bridgeExistingView(view);
     }
+
+    if (window._srOpenScannerAfterMount) {
+      window._srOpenScannerAfterMount = false;
+      openPeerIdScannerModal(user.company_id || user.organisation_id, user.hub_name || '', () => {
+        if (typeof refreshActiveScreen === 'function') refreshActiveScreen(false);
+      });
+    }
   }
 
   async function navigate(viewName) {
     return await mountShell(viewName);
   }
 
-  // ── 1.9 Dual-Mode Attendance: Site Gate QR Scanner Modal ──────────────────────
-  function openGateQrScannerModal(tenantId, siteName, onClockInSuccess) {
+  // ── 1.9 Colleague ID Card Clock-In Scanner (No Hardware Kiosk Needed) ─────
+  function openPeerIdScannerModal(tenantId, siteName, onClockInSuccess) {
     document.getElementById('sr-qr-scanner-modal')?.remove();
+
+    const activeUser = getUser() || {};
+    const resolvedSite = siteName || activeUser.hub_name || getUserIndustryProfile(activeUser).defaultHubName || 'Main Operations Hub';
 
     const backdrop = document.createElement('div');
     backdrop.id = 'sr-qr-scanner-modal';
     backdrop.className = 'sr-modal-backdrop';
-    backdrop.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:9999;';
+    backdrop.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:9999;padding:14px;';
     backdrop.innerHTML = `
-      <div class="sr-modal-card" style="max-width:440px;width:92%;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,0.3);overflow:hidden;" role="dialog" aria-modal="true" aria-label="Gate Entrance Scanner">
-        <div class="sr-modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);">
+      <div class="sr-modal-card" style="max-width:480px;width:100%;max-height:92vh;display:flex;flex-direction:column;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,0.35);overflow:hidden;" role="dialog" aria-modal="true" aria-label="Colleague ID Card Clock-In">
+        <div class="sr-modal-header" style="display:flex;justify-content:space-between;align-items:flex-start;padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);flex-shrink:0;">
           <div>
-            <h3 style="margin:0;font-size:16px;display:flex;align-items:center;gap:6px;color:var(--sr-text-main);font-weight:700;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-              Gate Entrance Scanner
+            <h3 style="margin:0;font-size:16px;display:flex;align-items:center;gap:8px;color:var(--sr-text-main);font-weight:800;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/><path d="M20 14v3h-3"/><path d="M14 20h6"/></svg>
+              Colleague ID Card Clock-In
             </h3>
-            <p style="margin:3px 0 0;font-size:12px;color:var(--sr-text-muted);">Point camera at physical Gate Entrance poster</p>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--sr-text-muted);line-height:1.4;">
+              Scan a colleague&rsquo;s Staff ID card once for today&rsquo;s shift. Auto clock-out closes shifts automatically at shift end.
+            </p>
           </div>
-          <button type="button" class="sr-icon-btn" id="sr-btn-close-scanner" aria-label="Close" style="background:transparent;border:none;cursor:pointer;color:var(--sr-text-muted);">
+          <button type="button" class="sr-icon-btn" id="sr-btn-close-scanner" aria-label="Close" style="background:transparent;border:none;cursor:pointer;color:var(--sr-text-muted);padding:4px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
-        <div class="sr-modal-body" style="padding:18px 20px;">
+        <div class="sr-modal-body" style="padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
           <!-- Viewfinder container -->
-          <div style="position:relative;width:100%;height:250px;background:#090d16;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+          <div style="position:relative;width:100%;height:190px;background:#090d16;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <video id="sr-scanner-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>
-            
-            <!-- Targeting reticle with laser line -->
-            <div style="position:absolute;width:170px;height:170px;border:2px dashed rgba(16,185,129,0.8);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.5);pointer-events:none;">
+            <div style="position:absolute;width:146px;height:146px;border:2px dashed rgba(16,185,129,0.85);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.48);pointer-events:none;">
               <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#10b981;box-shadow:0 0 10px #10b981;animation:srScanLine 2s ease-in-out infinite;"></div>
             </div>
-            
-            <div id="sr-scanner-status" style="position:absolute;bottom:10px;left:10px;right:10px;background:rgba(15,23,42,0.85);color:#fff;font-size:12px;padding:6px 12px;border-radius:6px;text-align:center;">
-              Align camera with Gate Entrance QR poster
+            <div id="sr-scanner-status" style="position:absolute;bottom:8px;left:10px;right:10px;background:rgba(15,23,42,0.86);color:#f8fafc;font-size:11.5px;padding:6px 10px;border-radius:6px;text-align:center;">
+              Align colleague&rsquo;s ID card QR or Code-128 barcode
             </div>
           </div>
 
-          <!-- Fallback direct check-in for devices without camera or blocked permissions -->
-          <div style="margin-top:14px;padding:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);border-radius:10px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span style="font-size:12px;font-weight:600;color:var(--sr-text-muted);">Station Gate Access</span>
-              <span style="font-size:10px;padding:2px 6px;background:var(--sr-status-green-bg);color:var(--sr-status-green-text);border-radius:4px;font-weight:700;">OFFICIAL GATE</span>
+          <div id="sr-peer-scan-result" style="display:none;padding:12px 14px;border-radius:10px;font-size:12.5px;line-height:1.45;"></div>
+
+          <!-- Staff ID Code Entry / Roster Filter -->
+          <div style="padding:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);border-radius:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
+              <span style="font-size:12px;font-weight:700;color:var(--sr-text-main);">Verify by Staff ID Card Code or Roster</span>
+              <span style="font-size:10.5px;color:var(--sr-text-muted);">${escapeHtml(resolvedSite)}</span>
             </div>
-            <button type="button" class="sr-btn sr-btn-secondary sr-btn-block" id="sr-btn-confirm-muster" style="font-size:13px;padding:9px;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Confirm Gate 01 Arrival (${escapeHtml(siteName || getUserIndustryProfile(getUser()).defaultHubName)})</span>
-            </button>
+            <form id="sr-peer-id-form" style="display:flex;gap:8px;">
+              <input type="text" id="sr-peer-staff-id-input" class="sr-input" placeholder="e.g. RIF-0023 or colleague name..." autocomplete="off" style="flex:1;min-width:0;padding:8px 11px;font-size:13px;border:1px solid var(--sr-border-medium);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);" />
+              <button type="submit" class="sr-btn sr-btn-primary" id="sr-peer-submit-id-btn" style="padding:8px 14px;font-size:12.5px;font-weight:700;white-space:nowrap;">Clock In</button>
+            </form>
+            <div id="sr-peer-directory-list" style="margin-top:10px;max-height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:12px;color:var(--sr-text-muted);padding:8px 4px;">Loading approved staff directory&hellip;</div>
+            </div>
           </div>
         </div>
       </div>
@@ -2040,13 +2047,12 @@
 
     let stream = null;
     let scanActive = true;
+    let cachedMembers = [];
 
     const cleanup = () => {
       scanActive = false;
       if (stream) {
-        try {
-          stream.getTracks().forEach(t => t.stop());
-        } catch (e) {}
+        try { stream.getTracks().forEach(t => t.stop()); } catch (_) {}
         stream = null;
       }
       backdrop.remove();
@@ -2055,80 +2061,166 @@
     document.getElementById('sr-btn-close-scanner')?.addEventListener('click', cleanup);
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cleanup(); });
 
-    const handleClockIn = async (payload) => {
+    const normalizePayload = (raw) => {
+      const str = String(raw || '').trim();
+      if (!str) return '';
+      const idLineMatch = str.match(/Staff ID:\s*([^\r\n]+)/i);
+      if (idLineMatch) return idLineMatch[1].trim();
+      return str;
+    };
+
+    const getQuickGps = () => new Promise((resolveGps) => {
+      if (!navigator.geolocation) return resolveGps(null);
+      const timer = setTimeout(() => resolveGps(null), 1000);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          clearTimeout(timer);
+          resolveGps({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy });
+        },
+        () => { clearTimeout(timer); resolveGps(null); },
+        { enableHighAccuracy: true, timeout: 900, maximumAge: 60000 }
+      );
+    });
+
+    const showResultBanner = (type, title, detail) => {
+      const box = document.getElementById('sr-peer-scan-result');
+      if (!box) return;
+      const styles = type === 'success'
+        ? 'background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);color:#047857;'
+        : type === 'warning'
+        ? 'background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);color:#b45309;'
+        : 'background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#b91c1c;';
+      box.style.cssText = 'display:block;padding:11px 14px;border-radius:10px;font-size:12.5px;line-height:1.45;' + styles;
+      box.innerHTML = `<div style="font-weight:800;margin-bottom:2px;">${escapeHtml(title)}</div><div>${escapeHtml(detail)}</div>`;
+    };
+
+    const handlePeerClockIn = async (rawPayload) => {
+      const cleanPayload = normalizePayload(rawPayload);
+      if (!cleanPayload) return;
       scanActive = false;
       const statusEl = document.getElementById('sr-scanner-status');
-      if (statusEl) statusEl.textContent = 'Verifying Gate QR token...';
+      if (statusEl) statusEl.textContent = 'Recording colleague clock-in...';
       try {
+        const coords = await getQuickGps();
         if (!navigator.onLine) {
-          // Offline air-gapped queueing
           const offlineItem = {
-            id: 'punch_' + Date.now(),
-            endpoint: '/api/time-entries/clock-in',
+            id: 'peer_punch_' + Date.now(),
+            endpoint: '/api/time-entries/peer-card-scan',
             method: 'POST',
-            body: { verificationMode: 'gate_qr', qrPayload: payload, offlineTimestamp: new Date().toISOString() },
+            body: { badgePayload: cleanPayload, coords, offlineTimestamp: new Date().toISOString() },
             timestamp: new Date().toISOString(),
             status: 'pending_sync',
-            description: 'Gate QR Clock-In (Air-gapped)'
+            description: `Colleague ID Clock-In (${cleanPayload})`
           };
           const existing = JSON.parse(localStorage.getItem('shiftrelay_offline_punches') || '[]');
           existing.push(offlineItem);
           localStorage.setItem('shiftrelay_offline_punches', JSON.stringify(existing));
-          cleanup();
-          alert('Air-Gapped Offline Mode: Gate arrival verified & stored on device!\n\nYour attendance timestamp is locked and will automatically sync when connectivity restores.');
-          onClockInSuccess();
+          showResultBanner('success', 'Saved Offline for Sync', `Recorded ${cleanPayload} offline. Will sync automatically when back online.`);
+          if (typeof onClockInSuccess === 'function') onClockInSuccess();
+          setTimeout(() => { scanActive = true; }, 1200);
           return;
         }
 
-        const res = await fetch('/api/time-entries/clock-in', {
+        const res = await fetch('/api/time-entries/peer-card-scan', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Idempotency-Key': 'idem_gate_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
+            'Idempotency-Key': 'idem_peer_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
           },
-          body: JSON.stringify({
-            verificationMode: 'gate_qr',
-            qrPayload: payload
-          })
+          body: JSON.stringify({ badgePayload: cleanPayload, coords })
         });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Gate QR verification failed');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'ID verification failed');
+
+        if (data.alreadyClockedIn) {
+          showResultBanner('warning', `${data.worker?.userName || 'Colleague'} (${data.worker?.staffId || cleanPayload}) Already Clocked In`, data.message || 'One clock-in per daily shift is already active.');
+          if (statusEl) statusEl.textContent = 'Already clocked in today · Auto clock-out active';
+        } else {
+          SRAudio.playClockIn();
+          triggerVibration([70, 50, 100]);
+          showResultBanner('success', `${data.worker?.userName || 'Colleague'} (${data.worker?.staffId || cleanPayload}) Clocked In`, data.message || 'Shift started · Auto clock-out active at shift end.');
+          if (statusEl) statusEl.textContent = `Clocked in: ${data.worker?.staffId || cleanPayload} · Ready for next card`;
+          // Update local row in modal immediately
+          const hit = cachedMembers.find(m => m.id === data.worker?.membershipId || m.staffId === data.worker?.staffId);
+          if (hit) hit.onShift = true;
+          renderRosterList(document.getElementById('sr-peer-staff-id-input')?.value || '');
         }
-        cleanup();
-        SRAudio.playClockIn();
-        triggerVibration([70, 50, 100]);
-        sprayShineEffect(document.getElementById('sr-clock-card'));
-        onClockInSuccess();
+        if (typeof showToast === 'function') showToast(data.message || 'Colleague attendance verified.', data.alreadyClockedIn ? 'info' : 'success');
+        if (typeof onClockInSuccess === 'function') await onClockInSuccess(data);
+        setTimeout(() => { scanActive = true; }, 1400);
       } catch (err) {
-        if (!navigator.onLine || err.message?.includes('fetch')) {
-          const offlineItem = {
-            id: 'punch_' + Date.now(),
-            endpoint: '/api/time-entries/clock-in',
-            method: 'POST',
-            body: { verificationMode: 'gate_qr', qrPayload: payload, offlineTimestamp: new Date().toISOString() },
-            timestamp: new Date().toISOString(),
-            status: 'pending_sync',
-            description: 'Gate QR Clock-In (Network drop)'
-          };
-          const existing = JSON.parse(localStorage.getItem('shiftrelay_offline_punches') || '[]');
-          existing.push(offlineItem);
-          localStorage.setItem('shiftrelay_offline_punches', JSON.stringify(existing));
-          cleanup();
-          alert('Network dropped: Gate punch recorded offline on device.\n\nAttendance locked and will sync upon reconnection.');
-          onClockInSuccess();
-          return;
-        }
+        showResultBanner('error', 'Verification Failed', err.message || 'Could not clock in staff ID.');
         if (statusEl) statusEl.textContent = 'Error: ' + err.message;
-        alert(err.message);
         scanActive = true;
       }
     };
 
-    document.getElementById('sr-btn-confirm-muster')?.addEventListener('click', () => {
-      const hubFallback = getUserIndustryProfile(getUser()).defaultHubName;
-      const defaultPayload = `SHIFTRELAY:GATE:${tenantId || 'RIF-2026'}:${siteName || hubFallback}:GATE-01`;
-      handleClockIn(defaultPayload);
+    const renderRosterList = (filterText = '') => {
+      const listEl = document.getElementById('sr-peer-directory-list');
+      if (!listEl) return;
+      const needle = String(filterText || '').trim().toLowerCase();
+      const eligible = cachedMembers.filter(m => m.status === 'active');
+      const matches = needle
+        ? eligible.filter(m =>
+            (m.name && m.name.toLowerCase().includes(needle)) ||
+            (m.staffId && m.staffId.toLowerCase().includes(needle)) ||
+            (m.department && m.department.toLowerCase().includes(needle)) ||
+            (m.title && m.title.toLowerCase().includes(needle))
+          )
+        : eligible;
+
+      if (matches.length === 0) {
+        listEl.innerHTML = `<div style="font-size:12px;color:var(--sr-text-muted);padding:10px 4px;text-align:center;">No matching approved staff found.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = matches.map(m => {
+        const onShift = Boolean(m.onShift);
+        const shiftEnd = m.shift_end || '14:00';
+        return `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);">
+            <div style="min-width:0;flex:1;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--sr-primary);">${escapeHtml(m.staffId || '')}</span>
+                <strong style="font-size:12.5px;color:var(--sr-text-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(m.name)}</strong>
+              </div>
+              <div style="font-size:11px;color:var(--sr-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(m.title || '')} &middot; ${escapeHtml(m.department || '')}</div>
+            </div>
+            ${onShift ? `
+              <span style="font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;white-space:nowrap;">On Shift &middot; Auto ${escapeHtml(shiftEnd)}</span>
+            ` : `
+              <button type="button" class="sr-btn sr-btn-secondary sr-peer-quick-clock-btn" data-staff-id="${escapeHtml(m.staffId || m.id)}" style="padding:5px 10px;min-height:28px;font-size:11.5px;font-weight:700;white-space:nowrap;border-color:rgba(13,148,136,0.35);color:var(--sr-primary);">Clock In</button>
+            `}
+          </div>
+        `;
+      }).join('');
+
+      listEl.querySelectorAll('.sr-peer-quick-clock-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          btn.disabled = true;
+          handlePeerClockIn(btn.dataset.staffId);
+        });
+      });
+    };
+
+    // Load live roster for quick colleague ID lookup
+    fetch('/api/directory')
+      .then(r => r.ok ? r.json() : { members: [] })
+      .then(d => {
+        cachedMembers = d.members || [];
+        renderRosterList(document.getElementById('sr-peer-staff-id-input')?.value || '');
+      })
+      .catch(() => {
+        const listEl = document.getElementById('sr-peer-directory-list');
+        if (listEl) listEl.innerHTML = `<div style="font-size:12px;color:var(--sr-text-muted);padding:8px;">Enter a Staff ID code above (e.g. RIF-0023) or scan ID card QR.</div>`;
+      });
+
+    const inputEl = document.getElementById('sr-peer-staff-id-input');
+    inputEl?.addEventListener('input', () => renderRosterList(inputEl.value));
+    document.getElementById('sr-peer-id-form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = inputEl?.value?.trim();
+      if (val) handlePeerClockIn(val);
     });
 
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -2140,40 +2232,37 @@
             video.srcObject = s;
             video.play().catch(() => {});
           }
-
           if ('BarcodeDetector' in window) {
-            const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+            const detector = new window.BarcodeDetector({ formats: ['qr_code', 'code_128'] });
             const scanLoop = async () => {
               if (!scanActive) return;
               if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
                 try {
                   const codes = await detector.detect(video);
-                  if (codes.length > 0) {
-                    const rawVal = codes[0].rawValue;
-                    if (rawVal && rawVal.startsWith('SHIFTRELAY:GATE:')) {
-                      handleClockIn(rawVal);
-                      return;
-                    }
+                  if (codes.length > 0 && codes[0].rawValue) {
+                    handlePeerClockIn(codes[0].rawValue);
+                    return;
                   }
-                } catch (e) {}
+                } catch (_) {}
               }
               if (scanActive) requestAnimationFrame(scanLoop);
             };
             requestAnimationFrame(scanLoop);
           } else {
             const statusEl = document.getElementById('sr-scanner-status');
-            if (statusEl) statusEl.textContent = 'Camera active. Tap "Confirm Gate Arrival" or align QR.';
+            if (statusEl) statusEl.textContent = 'Camera active. Align ID card QR/barcode or tap colleague below.';
           }
         })
-        .catch(err => {
+        .catch(() => {
           const statusEl = document.getElementById('sr-scanner-status');
-          if (statusEl) statusEl.textContent = 'Camera access restricted. Use "Confirm Gate Arrival" below.';
+          if (statusEl) statusEl.textContent = 'Camera unavailable. Enter Staff ID or select colleague below.';
         });
     } else {
       const statusEl = document.getElementById('sr-scanner-status');
-      if (statusEl) statusEl.textContent = 'Camera not supported. Use "Confirm Gate Arrival" below.';
+      if (statusEl) statusEl.textContent = 'Enter Staff ID or select colleague from roster below.';
     }
   }
+  const openGateQrScannerModal = openPeerIdScannerModal;
 
   // ── Star Activity Helper (1-Line Recent Star Strip across Worker & Supervisor) ──
   function getStarActivityState() {
@@ -2475,6 +2564,10 @@
 
           ${isClockedIn ? `
             <div class="sr-clock-mode-chips">
+              <button type="button" class="sr-clock-chip-btn" id="sr-btn-scan-peer-id" style="border-color:rgba(13,148,136,0.35);color:var(--sr-primary);" title="Scan a colleague's Staff ID card to clock them in once per day">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
+                <span>Scan Colleague ID Card</span>
+              </button>
               <button type="button" class="sr-clock-chip-btn" id="sr-btn-station-help" style="border-color:rgba(59,130,246,0.3);color:#2563eb;" title="Signal supervisor for temporary relief or station coverage">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span>Request Relief</span>
@@ -2486,9 +2579,9 @@
             </div>
           ` : `
             <div class="sr-clock-mode-chips">
-              <button type="button" class="sr-clock-chip-btn" id="sr-btn-scan-gate-qr" title="Scan NFC or QR code at workplace access terminal">
+              <button type="button" class="sr-clock-chip-btn" id="sr-btn-scan-peer-id" style="border-color:rgba(13,148,136,0.35);color:var(--sr-primary);" title="Scan a colleague's Staff ID card to clock them in once per day">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-                <span>Gate QR Scan</span>
+                <span>Scan Colleague ID Card</span>
               </button>
             </div>
           `}
@@ -2736,11 +2829,9 @@
         }
       });
 
-      // Bind Gate QR Scanner chip
-      document.getElementById('sr-btn-scan-gate-qr')?.addEventListener('click', () => {
-        openGateQrScannerModal(tenantId, siteName, async () => {
-          const todayKey = 'clockin_' + new Date().toISOString().slice(0, 10);
-          await recordStarActivity(25, 'Gate QR Verified Clock-In', todayKey);
+      // Bind Colleague ID Card Clock-In Scanner chip
+      document.getElementById('sr-btn-scan-peer-id')?.addEventListener('click', () => {
+        openPeerIdScannerModal(tenantId, siteName, async () => {
           await renderWorkerToday(true);
         });
       });
@@ -2906,259 +2997,14 @@
     }
   }
 
-  // ── 3B. Gate Kiosk View (For Workers WITHOUT a Phone) ────────────────────
+  // ── 3B. Legacy Kiosk View Redirect -> Colleague Mobile ID Scanner ──────────
   async function renderGateKioskView() {
-    const terminalConfig = JSON.parse(localStorage.getItem('shiftrelay-terminal-config') || 'null') || {
-      companyName: 'Riffmax Technology Limited',
-      siteName: 'Main Facility Gate 01',
-      companyId: 'RIF-2026',
-      masterPin: '1234'
-    };
-
-    const container = document.getElementById('dashboard') || document.getElementById('sr-content-area');
-    if (!container) return;
-
-    // Hide any standard shell headers or navigation bars if running in terminal mode
-    document.querySelector('.sr-header')?.style.setProperty('display', 'none', 'important');
-    document.querySelector('.sr-sidebar')?.style.setProperty('display', 'none', 'important');
-    document.querySelector('.sr-mobile-dock')?.style.setProperty('display', 'none', 'important');
-
-    const terminalHtml = `
-      <div id="sr-gate-terminal-root" class="sr-gate-terminal-root">
-        <!-- Top Terminal Bar -->
-        <header class="sr-terminal-header">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <img src="icon.svg?v=140" width="34" height="34" alt="" />
-            <div>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <h1 style="margin:0;font-size:17px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">${escapeHtml(terminalConfig.companyName)}</h1>
-                <span class="sr-terminal-badge-live">LIVE TERMINAL</span>
-              </div>
-              <small style="color:#94a3b8;font-size:12.5px;">${escapeHtml(terminalConfig.siteName)} &middot; ID: ${escapeHtml(terminalConfig.companyId)}</small>
-            </div>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div id="sr-terminal-clock" class="sr-terminal-clock">16:45:00</div>
-            <!-- Admin Lockout Exit Button -->
-            <button type="button" class="sr-terminal-lock-btn" id="sr-btn-terminal-unlock" title="Admin Security Lockout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              <span>Exit Terminal</span>
-            </button>
-          </div>
-        </header>
-
-        <!-- Main Tap Zone Container -->
-        <div class="sr-terminal-main">
-          <div class="sr-terminal-card">
-            <!-- Pulsing NFC Radar Waves -->
-            <div class="sr-nfc-radar-wrap">
-              <div class="sr-nfc-pulse-wave wave-1"></div>
-              <div class="sr-nfc-pulse-wave wave-2"></div>
-              <div class="sr-nfc-pulse-wave wave-3"></div>
-              <div class="sr-nfc-icon-center">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><line x1="6" x2="10" y1="15" y2="15"/></svg>
-              </div>
-            </div>
-
-            <h2 style="font-size:24px;font-weight:800;color:var(--sr-text-main,#f8fafc);margin:0 0 6px;">Tap Smart Card or Scan Badge</h2>
-            <p style="font-size:14px;color:var(--sr-text-muted,#94a3b8);margin:0 0 22px;line-height:1.45;">
-              Hold physical NFC badge against tablet or present dynamic QR code. Zero touch required.
-            </p>
-
-            <!-- Quick Tap Frontline Simulation Cards -->
-            <div style="margin-bottom:20px;">
-              <span style="font-size:12px;font-weight:700;color:var(--sr-text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:8px;">1-Tap Worker Card Reader</span>
-              <div class="sr-kiosk-chip-row" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-                <button type="button" class="sr-kiosk-nfc-chip" data-badge="RIF-003" data-name="Babatunde Adeleke" data-role="Senior Shift Supervisor">
-                  <span class="sr-nfc-dot"></span>
-                  <strong>Babatunde (RIF-003)</strong>
-                </button>
-                <button type="button" class="sr-kiosk-nfc-chip" data-badge="RIF-004" data-name="Chidinma Okonjo" data-role="Operations Specialist">
-                  <span class="sr-nfc-dot"></span>
-                  <strong>Chidinma (RIF-004)</strong>
-                </button>
-                <button type="button" class="sr-kiosk-nfc-chip" data-badge="RIF-005" data-name="Tariq Al-Hassan" data-role="Line Maintenance Lead">
-                  <span class="sr-nfc-dot"></span>
-                  <strong>Tariq (RIF-005)</strong>
-                </button>
-              </div>
-            </div>
-
-            <!-- Manual Staff ID Fallback Form -->
-            <form id="sr-terminal-manual-form" style="display:flex;gap:8px;max-width:380px;margin:0 auto;">
-              <input type="text" id="sr-terminal-badge-input" placeholder="Or enter Staff ID..." class="sr-input-monospace" style="flex:1;height:44px;border:1.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:#fff;border-radius:10px;padding:0 12px;font-size:14px;font-weight:700;text-transform:uppercase;" />
-              <button type="submit" class="sr-btn sr-btn-primary" style="height:44px;padding:0 16px;font-size:13.5px;font-weight:700;">Punch</button>
-            </form>
-
-            <!-- Dynamic Punch Result Card -->
-            <div id="sr-terminal-punch-result" class="sr-terminal-result-card" style="display:none;"></div>
-          </div>
-        </div>
-
-        <!-- Terminal Status Bar -->
-        <footer class="sr-terminal-footer">
-          <div>Hub: ${escapeHtml(getUser()?.hub_name || getUserIndustryProfile(getUser()).defaultHubName)} (Gate 01 Verified)</div>
-          <div>Tamper-Proof Keystore Active &middot; Offline Queuing Active</div>
-        </footer>
-      </div>
-
-      <!-- Admin Lockout Exit Modal -->
-      <div id="sr-terminal-exit-modal" class="sr-audit-modal-backdrop" style="display:none;">
-        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.15);border-radius:16px;max-width:400px;width:100%;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,0.6);position:relative;color:#fff;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <div style="width:40px;height:40px;border-radius:50%;background:rgba(239,68,68,0.15);color:#ef4444;display:flex;align-items:center;justify-content:center;font-size:20px;"></div>
-            <div>
-              <h3 style="margin:0;font-size:16px;font-weight:800;color:#fff;">Admin Terminal Lockout</h3>
-              <small style="color:#94a3b8;">Deactivation requires Master PIN</small>
-            </div>
-          </div>
-          <p style="font-size:13px;color:#94a3b8;line-height:1.45;margin:0 0 16px;">
-            This terminal is actively recording shifts. Guards and workers cannot exit. Enter facility Master PIN to deactivate:
-          </p>
-          <div style="margin-bottom:18px;">
-            <input type="password" id="sr-terminal-exit-pin" maxlength="4" placeholder="••••" class="sr-input-monospace" style="width:100%;height:48px;font-size:22px;letter-spacing:8px;text-align:center;font-weight:800;border:1.5px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:#fff;border-radius:10px;" />
-            <small style="display:block;margin-top:6px;color:#94a3b8;font-size:11.5px;">Setup Master PIN: <strong>1234</strong></small>
-            <div id="sr-terminal-pin-error" style="display:none;color:#ef4444;font-size:12px;font-weight:700;margin-top:6px;">Incorrect Master PIN. Access Denied.</div>
-          </div>
-          <div style="display:flex;gap:10px;justify-content:flex-end;">
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-exit">Cancel</button>
-            <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-confirm-exit" style="background:#ef4444;border-color:#ef4444;">Deactivate Terminal</button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    container.innerHTML = terminalHtml;
-
-    // Clock Interval
-    function updateClock() {
-      const el = document.getElementById('sr-terminal-clock');
-      if (el) el.textContent = new Date().toLocaleTimeString([], { hour12: false });
-    }
-    updateClock();
-    const clockTimer = setInterval(updateClock, 1000);
-
-    // Punch Execution Engine
-    async function executeKioskPunch(badgeCode, workerName, workerRole) {
-      const resultBox = document.getElementById('sr-terminal-punch-result');
-      if (!resultBox) return;
-
-      resultBox.style.display = 'block';
-      resultBox.className = 'sr-terminal-result-card processing';
-      resultBox.innerHTML = '<span style="font-weight:700;">Validating NFC Card...</span>';
-
-      try {
-        const res = await fetch('/api/time-entries/kiosk-badge-scan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ badgePayload: badgeCode })
-        });
-        const data = await res.json().catch(() => ({}));
-
-        const isClockIn = data.actionTaken !== 'clock-out';
-        const staffName = data.contract?.userName || workerName || 'Worker';
-        const staffRole = data.contract?.role || workerRole || 'Frontline Specialist';
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        if (isClockIn) {
-          SRAudio.playClockIn();
-          sprayShineEffect(resultBox);
-          triggerVibration([100, 50, 100]);
-        } else {
-          SRAudio.playClockOut();
-          triggerVibration([150, 100, 150]);
-        }
-
-        resultBox.className = 'sr-terminal-result-card ' + (isClockIn ? 'success-in' : 'success-out');
-        resultBox.innerHTML = `
-          <div style="display:flex;align-items:center;gap:12px;">
-            <div style="width:44px;height:44px;border-radius:50%;background:#ffffff;color:#10b981;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-              IN
-            </div>
-            <div>
-              <div style="font-size:16px;font-weight:800;color:#ffffff;">
-                ${isClockIn ? 'CLOCKED IN · ' + escapeHtml(staffName) : 'CLOCKED OUT · ' + escapeHtml(staffName)}
-              </div>
-              <div style="font-size:12.5px;color:rgba(255,255,255,0.9);margin-top:2px;">
-                ${isClockIn ? 'Shift Started at ' + timeStr + ' &middot; Geofence 100% In Perimeter' : 'Shift Complete &middot; 8.0 hrs Banked &middot; +50 PTS ShiftCoins Rewarded'}
-              </div>
-            </div>
-          </div>
-        `;
-
-        // Auto reset in 2.4 seconds for next worker in line
-        setTimeout(() => {
-          if (resultBox) {
-            resultBox.style.display = 'none';
-          }
-        }, 2400);
-
-      } catch (err) {
-        resultBox.className = 'sr-terminal-result-card error';
-        resultBox.innerHTML = '<span style="color:#ffffff;font-weight:700;">Punch recorded locally in offline queue.</span>';
-        setTimeout(() => { if (resultBox) resultBox.style.display = 'none'; }, 2200);
-      }
-    }
-
-    // Bind demo NFC card tap chips
-    container.querySelectorAll('.sr-kiosk-nfc-chip').forEach(btn => {
-      btn.addEventListener('click', () => {
-        executeKioskPunch(btn.dataset.badge, btn.dataset.name, btn.dataset.role);
-      });
-    });
-
-    // Bind manual form
-    document.getElementById('sr-terminal-manual-form')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const code = document.getElementById('sr-terminal-badge-input')?.value.trim();
-      if (code) {
-        executeKioskPunch(code, 'Staff Member', 'Frontline Specialist');
-        document.getElementById('sr-terminal-badge-input').value = '';
-      }
-    });
-
-    // Native Web NFC Sensor Listener (if supported on tablet)
-    if ('NDEFReader' in window) {
-      try {
-        const ndef = new NDEFReader();
-        ndef.scan().then(() => {
-          ndef.onreading = (event) => {
-            const serial = event.serialNumber || 'NFC-STAFF-CARD';
-            executeKioskPunch(serial, 'NFC Badge Holder', 'Frontline Specialist');
-          };
-        }).catch(() => {});
-      } catch (_) {}
-    }
-
-    // Admin Lockout Exit Modal Bindings
-    const exitModal = document.getElementById('sr-terminal-exit-modal');
-    document.getElementById('sr-btn-terminal-unlock')?.addEventListener('click', () => {
-      if (exitModal) exitModal.style.display = 'flex';
-      const pinInput = document.getElementById('sr-terminal-exit-pin');
-      if (pinInput) { pinInput.value = ''; pinInput.focus(); }
-      const err = document.getElementById('sr-terminal-pin-error');
-      if (err) err.style.display = 'none';
-    });
-
-    document.getElementById('sr-btn-cancel-exit')?.addEventListener('click', () => {
-      if (exitModal) exitModal.style.display = 'none';
-    });
-
-    document.getElementById('sr-btn-confirm-exit')?.addEventListener('click', () => {
-      const pin = document.getElementById('sr-terminal-exit-pin')?.value.trim();
-      const expectedPin = terminalConfig.masterPin || '1234';
-      if (pin === expectedPin) {
-        localStorage.removeItem('shiftrelay-terminal-config');
-        clearInterval(clockTimer);
-        showToast('Terminal deactivated by Administrator.', 'info');
-        window.location.reload();
-      } else {
-        SRAudio.playErrorBuzz();
-        triggerVibration([200, 100, 200]);
-        const err = document.getElementById('sr-terminal-pin-error');
-        if (err) err.style.display = 'block';
-      }
+    try { localStorage.removeItem('shiftrelay-terminal-config'); } catch (_) {}
+    const user = getUser();
+    if (!user) return;
+    await mountShell(isManagerRole(user.role) ? 'overview' : 'today');
+    openPeerIdScannerModal(user.company_id || user.organisation_id, user.hub_name || '', () => {
+      if (typeof refreshActiveScreen === 'function') refreshActiveScreen(false);
     });
   }
 
@@ -3176,13 +3022,15 @@
     `;
 
     try {
-      // Parallel fetch of actionable manager metrics
-      const [pendingRes, handoversRes, timeRes, leaveRes, announcementsRes] = await Promise.all([
+      // Parallel fetch of actionable manager metrics, live directory roster, and payroll summary
+      const [pendingRes, handoversRes, timeRes, leaveRes, announcementsRes, dirRes, payrollRes] = await Promise.all([
         fetch('/api/memberships/pending').catch(() => null),
         fetch('/api/handovers').catch(() => null),
         fetch('/api/time-entries').catch(() => null),
         user.role === 'owner' ? fetch('/api/leave-requests').catch(() => null) : Promise.resolve(null),
-        fetch('/api/announcements').catch(() => null)
+        fetch('/api/announcements').catch(() => null),
+        fetch('/api/directory').catch(() => null),
+        user.role === 'owner' ? fetch('/api/payroll/summary').catch(() => null) : Promise.resolve(null)
       ]);
 
       const pendingData = pendingRes && pendingRes.ok ? await pendingRes.json() : { requests: [], workflows: [] };
@@ -3190,10 +3038,22 @@
       const timeData = timeRes && timeRes.ok ? await timeRes.json() : { entries: [] };
       const leaveData = leaveRes && leaveRes.ok ? await leaveRes.json() : { requests: [] };
       const announcementsData = announcementsRes && announcementsRes.ok ? await announcementsRes.json() : { announcements: [] };
+      const dirData = dirRes && dirRes.ok ? await dirRes.json() : { members: [], summary: null };
+      const payrollData = payrollRes && payrollRes.ok ? await payrollRes.json() : { payroll: null };
 
       const accessRequests = pendingData.requests || [];
       const handoversAwaitingRelay = (handoversData.handovers || []).filter(h => h.status === 'awaiting_review');
-      const activeHeadcount = (timeData.entries || []).filter(e => !e.clocked_out_at).length;
+      const allDirMembers = (dirData.members || []).filter(m => m.status === 'active');
+      const liveOnShiftMembers = allDirMembers.filter(m => m.onShift);
+      const totalApprovedStaff = dirData.summary?.totalApproved ?? allDirMembers.length;
+      const activeHeadcount = dirData.summary?.onShiftCount ?? liveOnShiftMembers.length;
+      const payrollObj = payrollData.payroll || null;
+      const payrollEmployees = payrollObj?.employees || [];
+      const payrollWorkerCount = payrollObj?.summary?.employeeCount ?? payrollEmployees.length ?? totalApprovedStaff;
+      const payrollTotalNet = Number(payrollObj?.summary?.totalNet || 0);
+      const payrollVerifiedHours = Math.round(payrollEmployees.reduce((s, e) => s + Number(e.regularHours || 0) + Number(e.overtimeHours || 0), 0) * 10) / 10;
+      const fmtNairaExact = (n) => '₦' + Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const fmtNairaCompact = (n) => '₦' + Number(n || 0).toLocaleString('en-NG');
       const pendingLeave = (leaveData.requests || []).filter(r => r.status === 'pending');
       const activeAnnouncements = announcementsData.announcements || [];
 
@@ -3215,7 +3075,15 @@
             </span>
             <span class="sr-context-banner-site">${escapeHtml(siteName)} &bull; <strong style="color:#0d9488;">${escapeHtml(roleTitle)}</strong></span>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap:wrap;">
+            <button class="sr-btn sr-btn-secondary" id="sr-btn-refresh-overview" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;" title="Refresh live shift operations">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              <span>Refresh</span>
+            </button>
+            <button class="sr-btn sr-btn-secondary" id="sr-sup-scan-peer-btn" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;border-color:rgba(13,148,136,0.35);color:var(--sr-primary);" title="Scan a non-smartphone worker's ID card">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
+              <span>Scan Staff ID</span>
+            </button>
             <!-- 2-Layer Executive vs Shift Operations Switcher -->
             <button class="sr-btn sr-btn-secondary" id="sr-btn-toggle-executive-view" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Corporate Executive Analytics Layer">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
@@ -3258,7 +3126,7 @@
             <div><span style="color:var(--sr-text-muted);">Shift Lead:</span> <strong style="color:var(--sr-text-main);">${escapeHtml(user.name)}</strong></div>
             <div><span style="color:var(--sr-text-muted);">${escapeHtml(getUserIndustryProfile(user).telemetryLabel)}:</span> <strong style="color:#10b981;">${escapeHtml(getUserIndustryProfile(user).telemetryValue)}</strong></div>
             <div><span style="color:var(--sr-text-muted);">Site Perimeter:</span> <strong style="color:#10b981;">Geofence Active</strong></div>
-            <div><span style="color:var(--sr-text-muted);">Terminal Kiosk:</span> <strong style="color:var(--sr-text-main);">Gate 01 Online</strong></div>
+            <div><span style="color:var(--sr-text-muted);">Check-In Mode:</span> <strong style="color:var(--sr-text-main);">Mobile + Peer ID Scan</strong></div>
           </div>
         </div>
 
@@ -3278,7 +3146,7 @@
           </span>
         </div>
 
-        <!-- Metric Action Tiles (Real Data Only — No Mock Counters) -->
+        <!-- Metric Action Tiles (Real Unified Roster Data Only) -->
         <div class="sr-metric-grid">
           <div class="sr-metric-tile ${accessRequests.length > 0 ? 'highlight' : ''}">
             <span>Access Requests</span>
@@ -3293,22 +3161,22 @@
           </div>
 
           <div class="sr-metric-tile highlight">
-            <span>Active Staff</span>
-            <strong>${activeHeadcount > 0 ? activeHeadcount : 3}</strong>
-            <small style="color:var(--sr-text-muted);font-size:11.5px;">Live on Site</small>
+            <span>Approved Staff</span>
+            <strong>${totalApprovedStaff}</strong>
+            <small style="color:var(--sr-text-muted);font-size:11.5px;">${activeHeadcount} On Shift Now</small>
           </div>
 
           ${user.role === 'owner' ? `
             <div class="sr-metric-tile">
               <span>Payroll Batch</span>
-              <strong style="color:#10b981;">₦1,065,000</strong>
-              <small style="color:var(--sr-text-muted);font-size:11.5px;">Verified Ready</small>
+              <strong style="color:#10b981;">${fmtNairaCompact(payrollTotalNet)}</strong>
+              <small style="color:var(--sr-text-muted);font-size:11.5px;">${payrollWorkerCount} Workers Ready</small>
             </div>
           ` : `
             <div class="sr-metric-tile">
-              <span>Exceptions</span>
-              <strong style="color:#f59e0b;">1 Flagged</strong>
-              <small style="color:var(--sr-text-muted);font-size:11.5px;">Auxiliary Gate</small>
+              <span>Active Floor</span>
+              <strong style="color:#0d9488;">${activeHeadcount} / ${totalApprovedStaff}</strong>
+              <small style="color:var(--sr-text-muted);font-size:11.5px;">Auto Clock-Out Active</small>
             </div>
           `}
 
@@ -3321,78 +3189,56 @@
           ` : ''}
         </div>
 
-        <!-- 1. Live Shift Roster & Geofence Verification Cockpit -->
+        <!-- 1. Live Shift Roster & Colleague ID Verification Cockpit -->
         <section class="sr-card" aria-label="Live Roster Presence" style="border-top: 3px solid var(--sr-primary);">
           <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <div style="display:flex;align-items:center;gap:10px;">
               <span class="sr-pulse-dot"></span>
               <h3 style="margin:0;">Live Roster Presence</h3>
             </div>
-            <span class="sr-badge-certified">3 On Shift</span>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="sr-badge-certified">${activeHeadcount} On Shift &middot; ${totalApprovedStaff} Approved</span>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-view-team-roster" style="padding:4px 10px;min-height:28px;font-size:11.5px;">Full List (${totalApprovedStaff})</button>
+            </div>
           </div>
 
-          <div class="sr-live-roster-list" style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
-            <!-- Worker 1: Babatunde Adeleke (Verified on Site) -->
-            <div class="sr-review-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--sr-bg-card-subtle);border-radius:10px;border:1px solid var(--sr-border-subtle);flex-wrap:wrap;gap:10px;">
-              <div style="display:flex;align-items:center;gap:12px;">
-                <div style="width:36px;height:36px;border-radius:50%;background:rgba(13,148,136,0.15);color:var(--sr-primary);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px;">BA</div>
-                <div>
-                  <div style="font-size:14px;font-weight:700;color:var(--sr-text-main);display:flex;align-items:center;gap:6px;">
-                    Babatunde Adeleke
-                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;" title="Active"></span>
+          <div class="sr-live-roster-list" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+            ${liveOnShiftMembers.length > 0 ? liveOnShiftMembers.slice(0, 8).map(m => {
+              const ini = (m.name || 'S').split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+              const inTime = m.clockedInAt ? new Date(m.clockedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+              const modeText = m.verificationMode === 'colleague_card_scan'
+                ? `Peer ID Scan${m.scannedByName ? ' by ' + m.scannedByName : ''}`
+                : (m.verificationMode === 'gps_snapshot' ? 'GPS Perimeter Verified' : 'Mobile App Clock-In');
+              return `
+                <div class="sr-review-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:10px;border:1px solid var(--sr-border-subtle);flex-wrap:wrap;gap:10px;">
+                  <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="width:34px;height:34px;border-radius:50%;background:rgba(13,148,136,0.15);color:var(--sr-primary);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px;">${escapeHtml(ini)}</div>
+                    <div>
+                      <div style="font-size:13.5px;font-weight:700;color:var(--sr-text-main);display:flex;align-items:center;gap:6px;">
+                        <span>${escapeHtml(m.staffId || '')}</span>
+                        <span>&middot;</span>
+                        <span>${escapeHtml(m.name)}</span>
+                        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;" title="On Shift"></span>
+                      </div>
+                      <small style="color:var(--sr-text-muted);font-size:11.5px;">${escapeHtml(m.title)} &middot; In: ${escapeHtml(inTime)} &middot; Auto-out: ${escapeHtml(m.shift_end || '14:00')}</small>
+                    </div>
                   </div>
-                  <small style="color:var(--sr-text-muted);font-size:12px;">Lead Frontend Architect &middot; In: 06:00 AM (4h 15m logged)</small>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span class="sr-attendance-badge gps-valid" style="padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:600;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.25);">
-                  Within Perimeter (0m drift)
-                </span>
-                <span class="sr-badge-certified" style="font-size:11px;">Certified</span>
-              </div>
-            </div>
-
-            <!-- Worker 2: Chidinma Okonjo (Gate QR Verified) -->
-            <div class="sr-review-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--sr-bg-card-subtle);border-radius:10px;border:1px solid var(--sr-border-subtle);flex-wrap:wrap;gap:10px;">
-              <div style="display:flex;align-items:center;gap:12px;">
-                <div style="width:36px;height:36px;border-radius:50%;background:rgba(59,130,246,0.15);color:#3b82f6;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px;">CO</div>
-                <div>
-                  <div style="font-size:14px;font-weight:700;color:var(--sr-text-main);display:flex;align-items:center;gap:6px;">
-                    Chidinma Okonjo
-                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;" title="Active"></span>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="sr-attendance-badge gps-valid" style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(16,185,129,0.1);color:#059669;border:1px solid rgba(16,185,129,0.25);">
+                      ${escapeHtml(modeText)}
+                    </span>
                   </div>
-                  <small style="color:var(--sr-text-muted);font-size:12px;">Mobile Native Lead &middot; In: 06:15 AM (3h 45m logged)</small>
                 </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span class="sr-attendance-badge qr" style="padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:600;background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid rgba(59,130,246,0.25);">
-                  Gate QR Verified
-                </span>
-                <span class="sr-badge-certified" style="font-size:11px;">Certified</span>
-              </div>
-            </div>
-
-            <!-- Worker 3: Tariq Al-Hassan (Geofence Exception with 1-Click Supervisor Override) -->
-            <div id="sr-worker-row-tunde" class="sr-review-item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--sr-bg-card-subtle);border-radius:10px;border:1px solid var(--sr-border-subtle);flex-wrap:wrap;gap:10px;">
-              <div style="display:flex;align-items:center;gap:12px;">
-                <div style="width:36px;height:36px;border-radius:50%;background:rgba(245,158,11,0.15);color:#f59e0b;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px;">TA</div>
+              `;
+            }).join('') : `
+              <div style="padding:18px 14px;background:var(--sr-bg-card-subtle);border-radius:10px;border:1px dashed var(--sr-border-medium);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
                 <div>
-                  <div style="font-size:14px;font-weight:700;color:var(--sr-text-main);display:flex;align-items:center;gap:6px;">
-                    Tariq Al-Hassan
-                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;" title="Active"></span>
-                  </div>
-                  <small style="color:var(--sr-text-muted);font-size:12px;">Senior Systems Engineer &middot; In: 07:45 AM (2h 15m logged)</small>
+                  <div style="font-size:13px;font-weight:700;color:var(--sr-text-main);">0 active floor punches right now</div>
+                  <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">All ${totalApprovedStaff} approved personnel are currently off-shift or scheduled for incoming rotation. Staff can clock in on mobile or via a colleague&rsquo;s ID card scan.</div>
                 </div>
+                <button type="button" class="sr-btn sr-btn-secondary" id="sr-empty-floor-scan-btn" style="font-size:12px;padding:7px 12px;">Scan Colleague ID</button>
               </div>
-              <div id="sr-tunde-action-cell" style="display:flex;align-items:center;gap:8px;">
-                <span class="sr-attendance-badge gps-flagged" style="padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:600;background:rgba(245,158,11,0.1);color:#d97706;border:1px solid rgba(245,158,11,0.25);">
-                  Drift 45m (Auxiliary Gate)
-                </span>
-                <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-override-tunde" style="padding:4px 12px;font-size:12px;min-height:30px;color:var(--sr-primary);border-color:var(--sr-primary);">
-                  Override
-                </button>
-              </div>
-            </div>
+            `}
           </div>
         </section>
 
@@ -3402,23 +3248,23 @@
             <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
               <div>
                 <h3 style="margin:0;font-size:16px;">Verified Shift Payroll</h3>
-                <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Biometric &amp; geofence-verified shifts ready for batch payout</p>
+                <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Live roster &amp; verified attendance ready for batch disbursement</p>
               </div>
-              <span class="sr-badge-certified" id="sr-payroll-batch-badge">5 Verified</span>
+              <span class="sr-badge-certified" id="sr-payroll-batch-badge">${payrollWorkerCount} Verified</span>
             </div>
 
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;margin:16px 0;">
               <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
                 <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Eligible Staff</span>
-                <div style="font-size:20px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">5 Workers</div>
+                <div style="font-size:20px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">${payrollWorkerCount} Workers</div>
               </div>
               <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
                 <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Verified Hours</span>
-                <div style="font-size:20px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">172.5 hrs</div>
+                <div style="font-size:20px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">${payrollVerifiedHours} hrs</div>
               </div>
               <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
                 <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Net Batch Total</span>
-                <div style="font-size:20px;font-weight:800;color:var(--sr-primary);margin-top:2px;">₦1,065,000.00</div>
+                <div style="font-size:20px;font-weight:800;color:var(--sr-primary);margin-top:2px;">${fmtNairaExact(payrollTotalNet)}</div>
               </div>
             </div>
 
@@ -3448,7 +3294,7 @@
                   <span style="width:34px;height:34px;border-radius:8px;background:rgba(16,185,129,0.15);color:#10b981;display:flex;align-items:center;justify-content:center;font-weight:700;">H1</span>
                   <div>
                     <strong style="font-size:13.5px;color:var(--sr-text-main);">Morning Shift to Afternoon Shift Handover</strong>
-                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Main inverter bank at 98% &middot; Gate 1 terminal verified &middot; Babatunde Adeleke</div>
+                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Main inverter bank at 98% &middot; Peer mobile ID verified &middot; Babatunde Adeleke</div>
                   </div>
                 </div>
                 <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-view-handovers-shortcut" style="padding:4px 12px;font-size:12px;min-height:30px;color:var(--sr-primary);border-color:var(--sr-primary);">
@@ -3742,22 +3588,14 @@
         });
       });
 
-      // Bind Broadcast Notice modals
-      // ── Geofence Exception Supervisor Override Binding ─────────────────
-      document.getElementById('sr-btn-override-tunde')?.addEventListener('click', () => {
-        const cell = document.getElementById('sr-tunde-action-cell');
-        if (cell) {
-          SRAudio.playClockIn();
-          triggerVibration([50, 50, 100]);
-          cell.innerHTML = `
-            <span class="sr-attendance-badge gps-valid" style="padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:600;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.25);">
-              Supervisor Certified Override
-            </span>
-            <span class="sr-badge-certified" style="font-size:11px;">Approved</span>
-          `;
-          showToast('Geofence exception for Tariq Al-Hassan approved.', 'success');
-        }
+      document.getElementById('sr-btn-refresh-overview')?.addEventListener('click', () => {
+        renderManagerOverview();
+        if (typeof showToast === 'function') showToast('Floor metrics refreshed.', 'success');
       });
+      const openOverviewPeerScanner = () => openPeerIdScannerModal(user.company_id || user.organisation_id, user.hub_name || '', () => renderManagerOverview());
+      document.getElementById('sr-sup-scan-peer-btn')?.addEventListener('click', openOverviewPeerScanner);
+      document.getElementById('sr-empty-floor-scan-btn')?.addEventListener('click', openOverviewPeerScanner);
+      document.getElementById('sr-btn-view-team-roster')?.addEventListener('click', () => navigate('team'));
 
       // ── 1-Click Batch Payroll Disbursement Binding ───────────────────────
     document.getElementById('sr-btn-view-handovers-shortcut')?.addEventListener('click', () => {
@@ -3769,9 +3607,11 @@
         if (!btn) return;
         btn.disabled = true;
         btn.innerHTML = '<span>Processing Disbursal...</span>';
-        
+
         try {
-          await new Promise(r => setTimeout(r, 600));
+          const res = await fetch('/api/payroll/dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Payroll dispatch failed');
           SRAudio.playClockIn();
           sprayShineEffect(btn);
           triggerVibration([100, 50, 150]);
@@ -3783,10 +3623,11 @@
             badge.style.background = 'rgba(16,185,129,0.15)';
             badge.style.color = '#10b981';
           }
-          showToast('₦1,065,000.00 successfully authorized for 5 worker accounts!', 'success');
-        } catch (_) {
+          showToast(`${fmtNairaExact(data.dispatch?.totalNetPay || payrollTotalNet)} authorized for ${data.dispatch?.totalEmployees || payrollWorkerCount} staff accounts!`, 'success');
+        } catch (err) {
           btn.disabled = false;
           btn.textContent = 'Retry Batch Authorize';
+          showToast(err.message || 'Could not authorize batch.', 'error');
         }
       });
 
@@ -6745,29 +6586,6 @@
       } else {
         container.innerHTML = '<div class="sr-card"><h3>Schedule</h3><p>Your calendar schedule is up to date.</p></div>';
       }
-    } else if (viewName === 'team') {
-      try {
-        const res = await fetch('/api/directory');
-        const data = res.ok ? await res.json() : { directory: [] };
-        container.innerHTML = `
-          <div class="sr-card">
-            <h3 style="margin:0 0 14px;">Facility Team Directory</h3>
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              ${(data.directory || []).map(u => `
-                <div class="sr-review-item">
-                  <div>
-                    <strong>${escapeHtml(u.name)}</strong>
-                    <small>${escapeHtml(u.title || u.role)} · ${escapeHtml(u.email || '')}</small>
-                  </div>
-                  <span class="sr-status-pill ${u.status === 'active' ? 'active' : 'inactive'}">${escapeHtml(u.status || 'active')}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      } catch (err) {
-        container.innerHTML = `<div class="sr-card"><p>${escapeHtml(err.message)}</p></div>`;
-      }
     } else if (viewName === 'me') {
       await renderWorkerMe();
     } else if (viewName === 'settings') {
@@ -6896,6 +6714,9 @@
       }
       const data = await dirRes.json();
       const allMembers = data.members || [];
+      const activeMembers = allMembers.filter(m => m.status === 'active');
+      const onShiftMembers = activeMembers.filter(m => m.onShift);
+      const uniqueDepts = Array.from(new Set(allMembers.map(m => m.department).filter(Boolean)));
 
       let pendingRequests = [];
       if (pendingRes && pendingRes.ok) {
@@ -6909,17 +6730,14 @@
         if (query !== undefined) teamSearchQuery = query;
         const q = (teamSearchQuery || '').toLowerCase().trim();
         const filtered = allMembers.filter(m => {
-          if (teamDeptFilter !== 'all') {
-            const d = (m.department || '').toLowerCase();
-            const r = (m.role || '').toLowerCase();
-            const t = (m.title || '').toLowerCase();
-            if (teamDeptFilter === 'ops' && !d.includes('operation') && !d.includes('production') && !t.includes('operator') && !t.includes('technician')) return false;
-            if (teamDeptFilter === 'eng' && !d.includes('engineering') && !d.includes('systems') && !d.includes('tech') && !t.includes('engineer')) return false;
-            if (teamDeptFilter === 'sup' && r !== 'supervisor' && r !== 'owner' && !t.includes('lead') && !t.includes('supervisor')) return false;
-            if (teamDeptFilter === 'qual' && !d.includes('quality') && !d.includes('safety') && !t.includes('inspector') && !t.includes('safety')) return false;
+          if (teamDeptFilter === '__on_shift__') {
+            if (!m.onShift) return false;
+          } else if (teamDeptFilter !== 'all') {
+            if ((m.department || '') !== teamDeptFilter) return false;
           }
           if (!q) return true;
           return (m.name && m.name.toLowerCase().includes(q)) ||
+                 (m.staffId && m.staffId.toLowerCase().includes(q)) ||
                  (m.title && m.title.toLowerCase().includes(q)) ||
                  (m.department && m.department.toLowerCase().includes(q)) ||
                  (m.role && m.role.toLowerCase().includes(q)) ||
@@ -6934,84 +6752,89 @@
 
         if (filtered.length === 0) {
           listContainer.innerHTML = `
-            <div class="sr-empty-state" style="grid-column: 1 / -1;">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/></svg>
-              <p>${q ? `No staff members found matching "${escapeHtml(q)}".` : 'No team members found for this organisation.'}</p>
+            <div class="sr-empty-state" style="padding:28px 16px;">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/></svg>
+              <p>${q ? `No staff members found matching "${escapeHtml(q)}".` : 'No team members found in this filter.'}</p>
             </div>
           `;
           return;
         }
 
-        listContainer.innerHTML = filtered.map(m => {
+        const headerHtml = `
+          <div class="sr-team-list-head" role="row">
+            <span>Staff ID</span>
+            <span>Personnel</span>
+            <span>Position / Title</span>
+            <span>Department</span>
+            <span>Shift</span>
+            <span>Status</span>
+            ${isOwner ? '<span style="text-align:right;">Actions</span>' : ''}
+          </div>
+        `;
+
+        const rowsHtml = filtered.map(m => {
           const initials = (m.name || 'U').split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
           const roleLabel = {
-            owner: 'Organisation Owner',
+            owner: 'Owner',
             supervisor: 'Shift Supervisor',
-            outgoing: 'Outgoing Specialist',
-            incoming: 'Incoming Specialist',
-            worker: 'Frontline Worker'
+            manager: 'Manager',
+            outgoing: 'Outgoing Lead',
+            incoming: 'Incoming Lead',
+            worker: 'Staff'
           }[m.role] || (m.role ? m.role.toUpperCase() : 'Staff');
 
           const isRevoked = m.status === 'revoked';
           const statusClass = (m.status || 'active').toLowerCase();
-          const statusText = m.status === 'pending_approval' ? 'Pending Approval' : (isRevoked ? 'Revoked' : (m.status || 'Active'));
-
-          const shiftTime = (m.shift_start && m.shift_end)
-            ? `${m.shift_start} – ${m.shift_end}`
-            : 'Standard Shift';
+          const statusText = m.status === 'pending_approval' ? 'Pending' : (isRevoked ? 'Revoked' : (m.status || 'Active'));
+          const staffCode = m.staffId || ('RIF-' + String(m.id || '').slice(-4));
+          const shiftTime = (m.shift_start && m.shift_end) ? `${String(m.shift_start).slice(0,5)} – ${String(m.shift_end).slice(0,5)}` : '06:00 – 14:00';
 
           return `
-            <article class="sr-team-card ${isRevoked ? 'sr-team-card-revoked' : ''}" data-member-id="${m.id}" style="${isRevoked ? 'opacity: 0.7; filter: grayscale(0.5);' : ''}">
-              <div class="sr-team-card-header">
-                <div class="sr-team-avatar" aria-hidden="true" style="${isRevoked ? 'background: #64748b;' : ''}">${escapeHtml(initials)}</div>
-                <div class="sr-team-info">
-                  <h4 class="sr-team-name">${escapeHtml(m.name || 'Team Member')}</h4>
-                  <p class="sr-team-title">${escapeHtml(m.title || roleLabel)}</p>
+            <div class="sr-team-row-item ${isRevoked ? 'sr-team-row-revoked' : ''}" data-member-id="${m.id}" role="row">
+              <div>
+                <span class="sr-team-id-code">${escapeHtml(staffCode)}</span>
+              </div>
+              <div class="sr-team-person-cell">
+                <div class="sr-team-avatar-sm" aria-hidden="true" style="${isRevoked ? 'background:#64748b;' : ''}">${escapeHtml(initials)}</div>
+                <div class="sr-team-person-meta">
+                  <div class="sr-team-name">
+                    <span>${escapeHtml(m.name || 'Staff Member')}</span>
+                    ${m.onShift ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;flex-shrink:0;" title="On Shift Now"></span>' : ''}
+                  </div>
+                  <span class="sr-team-email">${escapeHtml(m.email || '')}</span>
                 </div>
               </div>
-              <div class="sr-team-details">
-                <div class="sr-team-row">
-                  <span class="sr-team-row-label">Role</span>
-                  <span class="sr-team-row-val">${escapeHtml(roleLabel)}</span>
-                </div>
-                <div class="sr-team-row">
-                  <span class="sr-team-row-label">Department / Unit</span>
-                  <span class="sr-team-row-val">${escapeHtml(m.department || user.department || 'Operations')}</span>
-                </div>
-                <div class="sr-team-row">
-                  <span class="sr-team-row-label">Shift Hours</span>
-                  <span class="sr-team-row-val">${escapeHtml(shiftTime)}</span>
-                </div>
-                <div class="sr-team-row">
-                  <span class="sr-team-row-label">Membership Status</span>
-                  <span class="sr-status-pill ${statusClass}">${escapeHtml(statusText)}</span>
-                </div>
+              <div class="sr-team-cell-text">
+                ${escapeHtml(m.title || roleLabel)}
+                <span class="sr-team-cell-sub">${escapeHtml(roleLabel)}</span>
               </div>
-
+              <div class="sr-team-cell-text">
+                ${escapeHtml(m.department || 'Operations')}
+              </div>
+              <div class="sr-team-cell-text">
+                ${escapeHtml(shiftTime)}
+                <span class="sr-team-cell-sub">${m.onShift ? 'On Shift' : 'Auto Clock-Out'}</span>
+              </div>
+              <div>
+                <span class="sr-status-pill ${statusClass}">${escapeHtml(statusText)}</span>
+              </div>
               ${isOwner ? `
-                <div class="sr-team-card-footer" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--p-border); display: flex; justify-content: space-between; align-items: center;">
+                <div class="sr-team-actions-cell">
                   ${m.id === user.id ? `
-                    <span style="font-size: 11.5px; color: var(--p-teal); font-weight: 600;">Active Account (You)</span>
-                    <span class="sr-badge sr-badge-info" style="font-size: 11px;">Sole Primary Owner</span>
+                    <span style="font-size:11px;color:var(--sr-primary);font-weight:700;">Owner</span>
                   ` : isRevoked ? `
-                    <span style="font-size: 11.5px; color: var(--p-text-3);">Access Revoked</span>
-                    <span class="sr-badge sr-badge-neutral" style="font-size: 11px;">Deactivated</span>
+                    <span style="font-size:11px;color:var(--sr-text-muted);">Deactivated</span>
                   ` : `
-                    <div style="display:flex;align-items:center;gap:6px;width:100%;justify-content:space-between;">
-                      <button type="button" class="sr-btn sr-btn-primary sr-btn-send-invite" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-email="${escapeHtml(m.email || '')}" style="min-height: 28px; padding: 0 10px; font-size: 11.5px; background: var(--p-teal); color: #fff; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                        <span>Invite</span>
-                      </button>
-                      <button type="button" class="sr-btn sr-btn-danger sr-btn-revoke-member" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-title="${escapeHtml(m.title || roleLabel)}" style="min-height: 28px; padding: 0 8px; font-size: 11.5px; background: transparent; color: var(--p-red); border: 1px solid var(--p-red-border); border-radius: 6px; cursor: pointer;">
-                        Revoke
-                      </button>
-                    </div>
+                    <button type="button" class="sr-btn sr-btn-primary sr-btn-send-invite" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-email="${escapeHtml(m.email || '')}" style="min-height:26px;padding:0 7px;font-size:10.5px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;">Invite</button>
+                    <button type="button" class="sr-btn sr-btn-revoke-member" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-title="${escapeHtml(m.title || roleLabel)}" style="min-height:26px;padding:0 7px;font-size:10.5px;font-weight:600;background:rgba(239,68,68,0.08);color:#dc2626;border:1px solid rgba(239,68,68,0.35);border-radius:6px;">Revoke</button>
                   `}
                 </div>
               ` : ''}
-            </article>
+            </div>
           `;
         }).join('');
+
+        listContainer.innerHTML = `<div class="sr-team-list-wrap ${isOwner ? '' : 'sr-team-row-no-actions'}" role="table" aria-label="Approved Workforce List">${headerHtml}<div class="sr-team-list-rows">${rowsHtml}</div></div>`;
 
         // Bind Enable & Send Invite buttons
         listContainer.querySelectorAll('.sr-btn-send-invite').forEach(btn => {
@@ -7136,38 +6959,111 @@
         ` : ''}
 
         <section class="sr-card" aria-label="Team Directory">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+            <div>
+              <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Workforce Roster (${activeMembers.length} Approved Staff)</h3>
+              <div style="font-size:12px;color:var(--sr-text-muted);">${onShiftMembers.length} on shift now &bull; Listed directory with Staff IDs</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-refresh-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                <span>Refresh</span>
+              </button>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-scan-id-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;border-color:rgba(13,148,136,0.35);color:var(--sr-primary);">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
+                <span>Scan ID Card</span>
+              </button>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-print-ids-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                <span>Staff ID Cards</span>
+              </button>
+            </div>
+          </div>
+
           <div class="sr-search-bar">
             <div class="sr-search-input-wrap">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="search" id="sr-team-search" class="sr-search-input" placeholder="Search by name, role, title, or department..." value="${escapeHtml(teamSearchQuery)}" aria-label="Search team members" />
+              <input type="search" id="sr-team-search" class="sr-search-input" placeholder="Search by Staff ID, name, title, email, or department..." value="${escapeHtml(teamSearchQuery)}" aria-label="Search team members" />
             </div>
-            <span class="sr-search-count" id="sr-team-count">${allMembers.length} staff</span>
+            <span class="sr-search-count" id="sr-team-count">${allMembers.length} of ${allMembers.length} staff</span>
           </div>
 
-          <!-- Unit / Department Filter Pills -->
+          <!-- Dynamic Department Filter Pills -->
           <div style="display:flex;align-items:center;gap:6px;padding:6px 0 14px;overflow-x:auto;scrollbar-width:none;flex-wrap:wrap;">
             <button type="button" class="sr-team-filter-pill active" data-dept-filter="all" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:99px;border:1.5px solid var(--sr-primary);background:rgba(16,185,129,0.1);color:var(--sr-primary);cursor:pointer;">
               All Staff (${allMembers.length})
             </button>
-            <button type="button" class="sr-team-filter-pill" data-dept-filter="ops" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:99px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;">
-              Operations Floor
+            <button type="button" class="sr-team-filter-pill" data-dept-filter="__on_shift__" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:99px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;">
+              On Shift Now (${onShiftMembers.length})
             </button>
-            <button type="button" class="sr-team-filter-pill" data-dept-filter="eng" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:99px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;">
-              Engineering &amp; Systems
-            </button>
-            <button type="button" class="sr-team-filter-pill" data-dept-filter="sup" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:99px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;">
-              Shift Supervisors
-            </button>
-            <button type="button" class="sr-team-filter-pill" data-dept-filter="qual" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:99px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;">
-              Safety &amp; Quality
-            </button>
+            ${uniqueDepts.map(dept => `
+              <button type="button" class="sr-team-filter-pill" data-dept-filter="${escapeHtml(dept)}" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:99px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;">
+                ${escapeHtml(dept)}
+              </button>
+            `).join('')}
           </div>
 
-          <div class="sr-team-grid" id="sr-team-list-container"></div>
+          <div id="sr-team-list-container"></div>
         </section>
       `;
 
       filterAndRender(teamSearchQuery);
+
+      document.getElementById('sr-team-refresh-btn')?.addEventListener('click', () => {
+        renderTeamScreen();
+        if (typeof showToast === 'function') showToast('Workforce roster refreshed.', 'success');
+      });
+      document.getElementById('sr-team-scan-id-btn')?.addEventListener('click', () => {
+        openPeerIdScannerModal(user.company_id || user.organisation_id, user.hub_name || '', () => renderTeamScreen());
+      });
+      document.getElementById('sr-team-print-ids-btn')?.addEventListener('click', () => {
+        const companyCode = user.company_id || 'RIF-2026';
+        const companyTitle = user.organisation_name || 'Riffmax Technology Limited';
+        const cardsMarkup = activeMembers.map(m => {
+          const code = m.staffId || ('RIF-' + String(m.id || '').slice(-4));
+          const payload = `SHIFTRELAY:ID:${companyCode}:${code}`;
+          const qr = (typeof window.generateQrSvg === 'function') ? window.generateQrSvg(payload, 92) : '';
+          return `
+            <div style="border:1.5px solid #cbd5e1;border-radius:12px;padding:12px;background:#ffffff;color:#0f172a;display:flex;align-items:center;justify-content:space-between;gap:12px;break-inside:avoid;">
+              <div style="min-width:0;">
+                <div style="font-size:9.5px;font-weight:800;color:#0d9488;text-transform:uppercase;letter-spacing:0.06em;">${escapeHtml(companyTitle)}</div>
+                <div style="font-size:14px;font-weight:800;margin:3px 0 2px;">${escapeHtml(m.name)}</div>
+                <div style="font-size:11px;color:#475569;">${escapeHtml(m.title)}</div>
+                <div style="font-size:10.5px;color:#64748b;margin-top:2px;">${escapeHtml(m.department)}</div>
+                <div style="margin-top:6px;display:inline-block;padding:2px 8px;border-radius:5px;background:#f1f5f9;border:1px solid #cbd5e1;font-family:monospace;font-size:11px;font-weight:700;color:#0f172a;">ID: ${escapeHtml(code)}</div>
+              </div>
+              <div style="flex-shrink:0;text-align:center;">
+                ${qr}
+                <div style="font-size:8.5px;color:#64748b;font-weight:700;margin-top:2px;">SCAN TO CLOCK IN</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        const idModal = document.createElement('div');
+        idModal.id = 'sr-print-id-cards-modal';
+        idModal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        idModal.innerHTML = `
+          <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;max-width:860px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;gap:12px;">
+              <div>
+                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Printable Staff ID Cards (${activeMembers.length} Approved Personnel)</h3>
+                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">Print &amp; issue physical ID cards so colleagues can scan non-smartphone workers into shift once daily.</div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button type="button" class="sr-btn sr-btn-primary" id="sr-print-ids-now-btn" style="padding:7px 14px;font-size:12px;">Print Sheet</button>
+                <button type="button" class="sr-btn sr-btn-secondary" id="sr-print-ids-close-btn" style="padding:7px 12px;font-size:12px;">Close</button>
+              </div>
+            </div>
+            <div style="padding:16px 20px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;">
+              ${cardsMarkup}
+            </div>
+          </div>
+        `;
+        document.body.appendChild(idModal);
+        idModal.querySelector('#sr-print-ids-close-btn')?.addEventListener('click', () => idModal.remove());
+        idModal.addEventListener('click', (e) => { if (e.target === idModal) idModal.remove(); });
+        idModal.querySelector('#sr-print-ids-now-btn')?.addEventListener('click', () => window.print());
+      });
 
       // Bind department filter pills
       container.querySelectorAll('[data-dept-filter]').forEach(pill => {
@@ -8122,8 +8018,10 @@
       ? `<img src="${escapeHtml(profile.avatarUrl)}" alt="${escapeHtml(user.name)}" class="sr-me-avatar-img" id="sr-me-avatar-display" />`
       : `<div class="sr-me-avatar-fallback" id="sr-me-avatar-display">${escapeHtml(initials)}</div>`;
 
-    const staffCode = user.employee_code || ('RIF-2026-' + String(user.id || '003').slice(-3));
-    const qrPayload = `SHIFTRELAY VERIFIED ID\nStaff Name: ${user.name || 'Specialist'}\nStaff ID: ${staffCode}\nCompany: ${orgName}\nDepartment: ${deptName}\nRole: ${roleDisplay}\nStatus: VERIFIED ACTIVE`;
+    const rawSuffix = String(user.id || '0001').slice(-4).padStart(4, '0');
+    const staffCode = user.staffId || user.employee_code || ('RIF-' + rawSuffix);
+    const orgCode = user.company_id || 'RIF-2026';
+    const qrPayload = `SHIFTRELAY:ID:${orgCode}:${staffCode}`;
     const qrSvg = (typeof window !== 'undefined' && typeof window.generateQrSvg === 'function')
       ? window.generateQrSvg(qrPayload, 128)
       : (typeof generateQrSvg === 'function' ? generateQrSvg(qrPayload, 128) : '');
@@ -8181,8 +8079,8 @@
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </span>
                 <div>
-                  <div style="font-size:14px;font-weight:800;color:#ffffff;">Digital ID &amp; Gate Pass</div>
-                  <div style="font-size:11px;color:#94a3b8;">ISO/IEC 18004 2D QR + GS1 Code-128 Barcode</div>
+                  <div style="font-size:14px;font-weight:800;color:#ffffff;">Official Staff ID Card</div>
+                  <div style="font-size:11px;color:#94a3b8;">Scannable by Colleague Phone &bull; Code-128 &amp; 2D QR</div>
                 </div>
               </div>
               <span style="padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#34d399;font-size:10.5px;font-weight:800;letter-spacing:0.04em;">VERIFIED ACTIVE</span>
@@ -8203,7 +8101,7 @@
             </div>
 
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;color:#94a3b8;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
-              <span>Facility Gate: <strong>All Turnstiles Clear</strong></span>
+              <span>Check-In: <strong>Peer Mobile ID Scan &bull; Auto Clock-Out</strong></span>
               <span style="color:#34d399;font-weight:700;">NIBSS &amp; PenCom Compliant</span>
             </div>
           </div>
@@ -10828,7 +10726,7 @@
             <div style="display:flex;flex-direction:column;gap:10px;">
               <button class="sr-btn sr-btn-secondary" id="sr-btn-launch-kiosk" style="display:flex;align-items:center;gap:8px;justify-content:flex-start;padding:12px 16px;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h3v3H7z"/><path d="M14 7h3v3h-3z"/></svg>
-                <span>Launch Gate QR Kiosk</span>
+                <span>Open Colleague ID Card Scanner</span>
               </button>
               ${user.role === 'owner' ? `
                 <button class="sr-btn sr-btn-secondary" id="sr-btn-launch-org-settings" style="display:flex;align-items:center;gap:8px;justify-content:flex-start;padding:12px 16px;">
@@ -10925,7 +10823,11 @@
     });
 
     // ── Admin Quick Tools ──────────────────────────────────────────────
-    document.getElementById('sr-btn-launch-kiosk')?.addEventListener('click', () => navigate('kiosk'));
+    document.getElementById('sr-btn-launch-kiosk')?.addEventListener('click', () => {
+      openPeerIdScannerModal(user?.company_id || user?.organisation_id, user?.hub_name || '', () => {
+        if (typeof refreshActiveScreen === 'function') refreshActiveScreen(false);
+      });
+    });
     document.getElementById('sr-btn-launch-org-settings')?.addEventListener('click', () => renderOwnerSettings());
 
     // ── Sign Out ───────────────────────────────────────────────────────
@@ -13504,126 +13406,35 @@
     try {
       const res = await fetch('/api/payroll/summary');
       if (res.ok) {
-        payroll = await res.json();
+        const json = await res.json();
+        payroll = json?.payroll || json;
       }
     } catch (_) {}
 
-    if (!payroll || !Array.isArray(payroll.employees) || payroll.employees.length === 0 || !payroll.summary?.totalGross) {
-      payroll = {
-        period: 'November 2026',
-        companyName: 'Riffmax Technology Limited',
-        companyId: '246701',
-        summary: {
-          totalNetFormatted: '₦10,718,400.00',
-          totalGrossFormatted: '₦13,920,000.00',
-          totalStatutoryFormatted: '₦3,201,600.00',
-          verifiedShiftsCount: 194,
-          employeeCount: 194,
-          totalGross: 13920000
-        },
-        employees: [
-          {
-            userId: '00000000-0000-4000-8000-000000000003',
-            userName: 'Babatunde Adeleke',
-            staffId: 'RIF-STF-003',
-            role: 'Lead Frontend Architect',
-            compensation_type: 'fixed_monthly',
-            bank_name: 'Guaranty Trust Bank (GTBank)',
-            account_number: '0123456789',
-            regularHours: 168,
-            overtimeHours: 12,
-            absenceDays: 0,
-            absenceDeduction: 0,
-            formatted: {
-              grossTotal: '₦485,000.00',
-              pensionEmployee: '₦36,000.00',
-              payeTax: '₦38,500.00',
-              netPay: '₦410,500.00'
-            }
-          },
-          {
-            userId: '00000000-0000-4000-8000-000000000002',
-            userName: 'Olaide Emmanuela',
-            staffId: 'RIF-STF-002',
-            role: 'Operations Lead & Shift Supervisor',
-            compensation_type: 'fixed_monthly',
-            bank_name: 'Access Bank PLC',
-            account_number: '0694821034',
-            regularHours: 176,
-            overtimeHours: 16,
-            absenceDays: 0,
-            absenceDeduction: 0,
-            formatted: {
-              grossTotal: '₦620,000.00',
-              pensionEmployee: '₦44,000.00',
-              payeTax: '₦52,000.00',
-              netPay: '₦524,000.00'
-            }
-          },
-          {
-            userId: '00000000-0000-4000-8000-000000000004',
-            userName: 'Kelechi Nnamdi',
-            staffId: 'RIF-STF-004',
-            role: 'Principal Systems & Shift Architect',
-            compensation_type: 'fixed_monthly',
-            bank_name: 'Zenith Bank PLC',
-            account_number: '2089143201',
-            regularHours: 168,
-            overtimeHours: 8,
-            absenceDays: 0,
-            absenceDeduction: 0,
-            formatted: {
-              grossTotal: '₦540,000.00',
-              pensionEmployee: '₦40,000.00',
-              payeTax: '₦44,200.00',
-              netPay: '₦455,800.00'
-            }
-          },
-          {
-            userId: '00000000-0000-4000-8000-000000000005',
-            userName: 'Simi Balogun',
-            staffId: 'RIF-STF-005',
-            role: 'Brand & Product Experience Lead',
-            compensation_type: 'fixed_monthly',
-            bank_name: 'Guaranty Trust Bank (GTBank)',
-            account_number: '0244891023',
-            regularHours: 160,
-            overtimeHours: 6,
-            absenceDays: 0,
-            absenceDeduction: 0,
-            formatted: {
-              grossTotal: '₦430,000.00',
-              pensionEmployee: '₦32,000.00',
-              payeTax: '₦31,800.00',
-              netPay: '₦366,200.00'
-            }
-          },
-          {
-            userId: '00000000-0000-4000-8000-000000000006',
-            userName: 'Tariq Al-Hassan',
-            staffId: 'RIF-STF-006',
-            role: 'Reliability & Security Specialist',
-            compensation_type: 'hourly_shift',
-            bank_name: 'United Bank for Africa (UBA)',
-            account_number: '2109483712',
-            regularHours: 164,
-            overtimeHours: 14,
-            absenceDays: 0,
-            absenceDeduction: 0,
-            formatted: {
-              grossTotal: '₦465,000.00',
-              pensionEmployee: '₦34,400.00',
-              payeTax: '₦35,900.00',
-              netPay: '₦394,700.00'
-            }
-          }
-        ]
-      };
+    if (!payroll || !Array.isArray(payroll.employees)) {
+      container.innerHTML = `
+        <div class="sr-card" style="text-align:center;padding:36px 24px;">
+          <h3 style="margin:0 0 8px;">Unable to load payroll ledger</h3>
+          <p style="margin:0 0 16px;color:var(--sr-text-muted);font-size:13px;">Check server connection and try again to load verified workforce payroll.</p>
+          <button type="button" class="sr-btn sr-btn-primary" onclick="window.Phase1Shell?.renderPushToFinance?.()">Retry</button>
+        </div>
+      `;
+      return;
     }
 
-    const summary = payroll.summary || {};
+    const fmtNaira = (n) => '₦' + Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const rawSummary = payroll.summary || {};
     const employees = payroll.employees || [];
-    const dispatch = payroll.lastPayrollDispatch || null;
+    const summary = {
+      ...rawSummary,
+      employeeCount: rawSummary.employeeCount ?? employees.length,
+      verifiedShiftsCount: rawSummary.verifiedShiftsCount ?? 0,
+      missedPunchesResolved: rawSummary.missedPunchesResolved ?? 0,
+      totalNetFormatted: rawSummary.totalNetFormatted || fmtNaira(rawSummary.totalNet ?? employees.reduce((s, e) => s + Number(e.netPay || 0), 0)),
+      totalGrossFormatted: rawSummary.totalGrossFormatted || fmtNaira(rawSummary.totalGross ?? employees.reduce((s, e) => s + Number(e.grossPay || 0), 0)),
+      totalStatutoryFormatted: rawSummary.totalStatutoryFormatted || fmtNaira(rawSummary.totalDeductions ?? employees.reduce((s, e) => s + Number(e.totalStatutoryDeductions || 0), 0))
+    };
+    const dispatch = payroll.dispatched || payroll.lastPayrollDispatch || null;
 
     container.innerHTML = `
       <div class="sr-page-wrap">
@@ -13664,15 +13475,15 @@
               <span class="sr-stat-label" style="margin:0;font-size:11.5px;">Net Pay</span>
               <span class="sr-finance-dispatch-badge" style="padding:2px 8px;font-size:10px;">Bank-Ready</span>
             </div>
-            <span class="sr-stat-val" style="color:var(--sr-primary);font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;">${summary.totalNetFormatted || '₦0.00'}</span>
+            <span class="sr-stat-val" style="color:var(--sr-primary);font-size:clamp(14px,1.25vw,17px);font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-0.04em;white-space:nowrap;">${summary.totalNetFormatted || '₦0.00'}</span>
             <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">Disbursement via GAPS / Access Switch</div>
           </div>
           <div class="sr-stat-box" style="border-top:3px solid #3b82f6;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
               <span class="sr-stat-label" style="margin:0;font-size:11.5px;">Gross</span>
-              <span style="font-size:10.5px;color:var(--sr-text-muted);font-weight:600;">${summary.verifiedShiftsCount || 142} Shifts</span>
+              <span style="font-size:10.5px;color:var(--sr-text-muted);font-weight:600;">${summary.verifiedShiftsCount} Shifts</span>
             </div>
-            <span class="sr-stat-val" style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;">${summary.totalGrossFormatted || '₦0.00'}</span>
+            <span class="sr-stat-val" style="font-size:clamp(14px,1.25vw,17px);font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-0.04em;white-space:nowrap;">${summary.totalGrossFormatted || '₦0.00'}</span>
             <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">Base Salaries + Verified OT Hours</div>
           </div>
           <div class="sr-stat-box" style="border-top:3px solid #d97706;">
@@ -13680,7 +13491,7 @@
               <span class="sr-stat-label" style="margin:0;font-size:11.5px;">Deductions</span>
               <span style="font-size:10px;padding:2px 8px;background:rgba(217,119,6,0.12);color:var(--sr-status-yellow-text);border-radius:99px;font-weight:700;">PenCom + PAYE</span>
             </div>
-            <span class="sr-stat-val" style="color:var(--sr-status-yellow-text);font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;">${summary.totalStatutoryFormatted || '₦0.00'}</span>
+            <span class="sr-stat-val" style="color:var(--sr-status-yellow-text);font-size:clamp(14px,1.25vw,17px);font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-0.04em;white-space:nowrap;">${summary.totalStatutoryFormatted || '₦0.00'}</span>
             <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">Finance Act 2020 Compliant</div>
           </div>
           <div class="sr-stat-box" style="border-top:3px solid #10b981;">
@@ -13688,8 +13499,8 @@
               <span class="sr-stat-label" style="margin:0;font-size:11.5px;">Staff</span>
               <span style="font-size:10px;padding:2px 8px;background:rgba(16,185,129,0.12);color:var(--sr-status-green-text);border-radius:99px;font-weight:700;">100% Verified</span>
             </div>
-            <span class="sr-stat-val" style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;">${summary.employeeCount || 0}</span>
-            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">0 Missed Clock Punches</div>
+            <span class="sr-stat-val" style="font-size:clamp(14px,1.25vw,17px);font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-0.04em;white-space:nowrap;">${summary.employeeCount || 0}</span>
+            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">${summary.missedPunchesResolved || 0} Open Punches</div>
           </div>
         </div>
 
@@ -13734,68 +13545,55 @@
           </div>
 
           <div style="overflow-x:auto;">
-            <table class="sr-ts-table" style="width:100%;font-size:13px;">
+            <table class="sr-ts-table sr-payroll-table" style="width:100%;font-size:12px;">
               <thead>
                 <tr>
                   <th>Staff</th>
-                  <th>Contract</th>
                   <th>Bank</th>
                   <th>Hours</th>
                   <th>Gross</th>
-                  <th>PenCom</th>
-                  <th>PAYE</th>
+                  <th>PenCom / PAYE</th>
                   <th>Net</th>
-                  <th style="text-align:right;">Actions</th>
+                  <th style="text-align:right;">Edit</th>
                 </tr>
               </thead>
               <tbody>
                 ${employees.map(emp => `
                   <tr>
                     <td>
-                      <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg, #0d9488, #059669);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0;">
+                      <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                        <span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg, #0d9488, #059669);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:800;flex-shrink:0;">
                           ${emp.userName.split(' ').map(n=>n[0]).join('')}
                         </span>
-                        <div>
-                          <div style="font-weight:700;color:var(--sr-text-main);font-size:13.5px;">${escapeHtml(emp.userName)}</div>
-                          <div style="font-size:11px;color:var(--sr-text-muted);"><strong style="font-family:'JetBrains Mono',monospace;color:var(--sr-text-main);">${escapeHtml(emp.staffId)}</strong> • ${escapeHtml(emp.role)}</div>
+                        <div style="min-width:0;">
+                          <div style="font-weight:700;color:var(--sr-text-main);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">${escapeHtml(emp.userName)}</div>
+                          <div style="font-size:10.5px;color:var(--sr-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;"><strong style="font-family:'JetBrains Mono',monospace;color:var(--sr-text-main);">${escapeHtml(emp.staffId)}</strong> &bull; ${escapeHtml(emp.compensation_type === 'fixed_monthly' ? 'Fixed' : 'Hourly')}</div>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <span class="sr-badge" style="${emp.compensation_type === 'fixed_monthly' ? 'background:#e0f2fe;color:#0369a1;' : 'background:var(--sr-status-yellow-bg);color:var(--sr-status-yellow-text);'}">
-                        ${emp.compensation_type === 'fixed_monthly' ? 'Fixed Monthly' : 'Hourly Shift'}
-                      </span>
+                      <div style="font-size:11.5px;color:var(--sr-text-main);white-space:nowrap;">${escapeHtml(emp.bank_name)}</div>
+                      <div style="font-size:10.5px;color:var(--sr-text-muted);font-family:monospace;">${escapeHtml(emp.account_number)}</div>
                     </td>
-                    <td>
-                      <div style="font-size:12px;color:var(--sr-text-main);">${escapeHtml(emp.bank_name)}</div>
-                      <div style="font-size:11px;color:var(--sr-text-muted);font-family:monospace;">${escapeHtml(emp.account_number)}</div>
+                    <td style="white-space:nowrap;">
+                      <div style="font-size:11.5px;">${emp.regularHours}h${emp.overtimeHours > 0 ? ` <span style="color:var(--sr-primary);font-weight:700;">+${emp.overtimeHours}h OT</span>` : ''}</div>
+                      ${emp.absenceDeduction > 0 ? `<div style="font-size:10.5px;color:#dc2626;">-${emp.absenceDays}d abs</div>` : `<div style="font-size:10px;color:var(--sr-primary);font-weight:600;">Peer / GPS</div>`}
                     </td>
-                    <td>
-                      <div>${emp.regularHours}h reg</div>
-                      ${emp.overtimeHours > 0 ? `<div style="font-size:11px;color:var(--sr-primary);font-weight:600;">+${emp.overtimeHours}h OT</div>` : ''}
-                      ${emp.absenceDeduction > 0 ? `<div style="font-size:11px;color:#dc2626;">-${emp.absenceDays}d absence</div>` : ''}
-                      <div style="font-size:10px;color:var(--sr-primary);display:inline-flex;align-items:center;gap:3px;margin-top:3px;background:#ecfdf5;padding:1px 5px;border-radius:4px;border:1px solid #a7f3d0;font-weight:600;">
-                        ✓ QR / GPS Verified
-                      </div>
-                    </td>
-                    <td style="font-weight:600;color:var(--sr-text-main);">
+                    <td style="font-weight:600;color:var(--sr-text-main);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11.5px;">
                       ${emp.formatted.grossTotal}
                     </td>
-                    <td style="color:var(--sr-status-yellow-text);">
-                      -${emp.formatted.pensionEmployee}
+                    <td style="white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px;">
+                      <div style="color:var(--sr-status-yellow-text);">Pen -${emp.formatted.pensionEmployee}</div>
+                      <div style="color:#ef4444;">PAYE -${emp.formatted.payeTax}</div>
                     </td>
-                    <td style="color:#ef4444;">
-                      -${emp.formatted.payeTax}
-                    </td>
-                    <td>
-                      <div style="display:inline-block;padding:5px 12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;font-weight:800;color:#166534;font-size:13.5px;font-family:'JetBrains Mono',monospace;letter-spacing:-0.01em;">
+                    <td style="white-space:nowrap;">
+                      <div style="display:inline-block;padding:4px 8px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:7px;font-weight:800;color:#166534;font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:-0.02em;">
                         ${emp.formatted.netPay}
                       </div>
                     </td>
-                    <td style="text-align:right;">
-                      <button class="sr-btn sr-btn-secondary sr-btn-edit-contract" data-user-id="${emp.userId}" style="font-size:12px;padding:5px 11px;display:inline-flex;align-items:center;gap:5px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <td style="text-align:right;white-space:nowrap;">
+                      <button class="sr-btn sr-btn-secondary sr-btn-edit-contract" data-user-id="${emp.userId}" style="font-size:11px;padding:4px 8px;display:inline-flex;align-items:center;gap:4px;">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                         <span>Edit</span>
                       </button>
                     </td>
@@ -14744,7 +14542,7 @@
             </button>
             <button type="button" class="sr-btn sr-btn-primary" id="sr-gov-open-kiosk" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-              <span>Gate QR Terminal</span>
+              <span>Colleague ID Scanner</span>
             </button>
           </div>
         </div>
@@ -14780,7 +14578,8 @@
       navigate('settings');
     });
     document.getElementById('sr-gov-open-kiosk')?.addEventListener('click', () => {
-      navigate('kiosk');
+      const activeU = getUser() || {};
+      openPeerIdScannerModal(activeU.company_id || activeU.organisation_id, activeU.hub_name || '', () => renderComplianceGoals());
     });
   }
 
@@ -15233,8 +15032,8 @@
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
                 <div style="display:flex;align-items:center;gap:6px;">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-                  <span style="font-size:12px;font-weight:600;color:var(--sr-text-main);">Access QR Muster</span>
-                  <span style="font-size:10px;background:var(--sr-status-green-bg);color:var(--sr-status-green-text);padding:1px 6px;border-radius:3px;font-weight:700;">ZERO BATTERY</span>
+                  <span style="font-size:12px;font-weight:600;color:var(--sr-text-main);">Colleague ID Card Scan</span>
+                  <span style="font-size:10px;background:var(--sr-status-green-bg);color:var(--sr-status-green-text);padding:1px 6px;border-radius:3px;font-weight:700;">NO KIOSK COST</span>
                 </div>
                 <span style="font-size:13px;font-weight:700;color:var(--sr-primary);">${attendance.gateQrPercent}% · ${fmt(attendance.gateQrCount)}</span>
               </div>

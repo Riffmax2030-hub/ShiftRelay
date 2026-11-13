@@ -258,36 +258,98 @@ function applyStoreDefaults(store) {
     ];
   }
 
+  const demoById = new Map(demoMembers.map(m => [m.id, m]));
   if (!Array.isArray(store.contracts) || store.contracts.length === 0) {
-    const riffmaxStaff = [
-      { id: '00000000-0000-4000-8000-000000000001', name: 'Sherif Akanmu', role: 'Managing Director & CEO', dept: 'Executive Operations', salary: 1200000 },
-      { id: '00000000-0000-4000-8000-000000000002', name: 'Olaide Emmanuela', role: 'Operations Lead & Shift Supervisor', dept: 'Operations Leadership', salary: 750000 },
-      { id: '00000000-0000-4000-8000-000000000003', name: 'Babatunde Adeleke', role: 'Lead Frontend Systems Engineer', dept: 'Engineering Core', salary: 650000 },
-      { id: '00000000-0000-4000-8000-000000000004', name: 'Chidinma Okonjo', role: 'Lead Mobile Native Engineer', dept: 'Mobile Engineering', salary: 600000 },
-      { id: '00000000-0000-4000-8000-000000000005', name: 'Tariq Al-Hassan', role: 'Principal Distributed Backend Engineer', dept: 'Cloud & Infrastructure', salary: 650000 },
-      { id: '00000000-0000-4000-8000-000000000006', name: 'Ngozi Eze', role: 'Lead QA & Security Specialist', dept: 'Quality & Security', salary: 550000 },
-      { id: '00000000-0000-4000-8000-000000000007', name: 'Farouk Bello', role: 'DevOps & Site Reliability Engineer', dept: 'Cloud & Infrastructure', salary: 580000 },
-      { id: '00000000-0000-4000-8000-000000000008', name: 'Folake Balogun', role: 'Product Operations & Compliance Lead', dept: 'Product & Regulatory', salary: 540000 },
-      { id: '00000000-0000-4000-8000-000000000009', name: 'Kelechi Nnamdi', role: 'Lead UI/UX Systems Designer', dept: 'Design & Experience', salary: 520000 },
-      { id: '00000000-0000-4000-8000-000000000010', name: 'Zainab Abubakar', role: 'Customer Success & Field Ops Lead', dept: 'Customer Operations', salary: 480000 },
-      { id: '00000000-0000-4000-8000-000000000011', name: 'Damilola Fashola', role: 'Data Platform & Analytics Engineer', dept: 'Engineering Core', salary: 520000 },
-      { id: '00000000-0000-4000-8000-000000000012', name: 'Ibrahim Yusuf', role: 'Systems Integrations Specialist', dept: 'Integrations & API', salary: 500000 }
-    ];
-    store.contracts = riffmaxStaff.map((staff, i) => ({
+    store.contracts = demoMembers.map((staff) => ({
+      id: staff.id,
       userId: staff.id,
-      tenant_id: '00000000-0000-4000-8000-000000000100',
+      user_id: staff.id,
+      tenant_id: demoOrganisation.id,
+      organisation_id: demoOrganisation.id,
       userName: staff.name,
-      staffId: `RIF-${String(i + 1).padStart(4, '0')}`,
-      role: staff.role,
-      department: staff.dept,
+      staffId: staff.staffId,
+      role: staff.title,
+      job_title: staff.title,
+      department: staff.department,
       compensation_type: 'fixed_monthly',
-      monthly_rate: staff.salary,
-      hourly_rate: Math.round(staff.salary / 160),
+      rate_type: 'monthly',
+      monthly_rate: staff.grossPay,
+      monthly_salary: staff.grossPay,
+      hourly_rate: Math.round(staff.grossPay / 160),
       currency: 'NGN',
-      bank_name: 'Guaranty Trust Bank (GTBank)',
-      account_number: '012' + String(1000000 + i),
-      account_name: staff.name
+      bank_name: staff.bank || 'GTBank',
+      account_number: staff.account,
+      account_name: staff.name,
+      status: 'active'
     }));
+  } else {
+    // Deduplicate and normalize any mixed legacy + DB-shaped contracts by (orgId + userId)
+    const deduped = new Map();
+    const usersById = new Map((store.portalUsers || []).map(u => [u.id, u]));
+    for (const raw of store.contracts) {
+      const uid = raw.userId || raw.user_id || raw.id;
+      const org = raw.tenant_id || raw.organisation_id || demoOrganisation.id;
+      if (!uid) continue;
+      const key = `${org}:${uid}`;
+      const dm = demoById.get(uid);
+      const pu = usersById.get(uid);
+      const prev = deduped.get(key) || {};
+      const rate = Number(raw.monthly_rate ?? raw.monthly_salary ?? prev.monthly_rate ?? dm?.grossPay ?? 0);
+      deduped.set(key, {
+        ...prev,
+        ...raw,
+        id: prev.id || raw.id || uid,
+        userId: uid,
+        user_id: uid,
+        tenant_id: org,
+        organisation_id: org,
+        userName: raw.userName || prev.userName || pu?.full_name || dm?.name || 'Staff Member',
+        staffId: raw.staffId || prev.staffId || dm?.staffId || ('RIF-' + String(uid).slice(-4)),
+        role: raw.role || raw.job_title || prev.role || dm?.title || 'Staff Specialist',
+        department: raw.department || prev.department || dm?.department || 'Operations',
+        compensation_type: raw.compensation_type || prev.compensation_type || (raw.rate_type === 'hourly' ? 'hourly' : 'fixed_monthly'),
+        monthly_rate: rate,
+        monthly_salary: rate,
+        hourly_rate: Number(raw.hourly_rate || prev.hourly_rate || (rate > 0 ? Math.round(rate / 160) : 1500)),
+        currency: raw.currency || prev.currency || 'NGN',
+        bank_name: raw.bank_name || prev.bank_name || dm?.bank || 'GTBank',
+        account_number: raw.account_number || prev.account_number || dm?.account || '0000000000',
+        account_name: raw.account_name || prev.account_name || raw.userName || pu?.full_name || dm?.name || 'Staff Member',
+        status: raw.status || prev.status || 'active'
+      });
+    }
+    // Ensure all 24 canonical Riffmax approved staff exist in Riffmax contracts when Riffmax org is present
+    const hasRiffmax = (store.organisations || []).some(o => o.id === demoOrganisation.id);
+    if (hasRiffmax) {
+      for (const staff of demoMembers) {
+        const key = `${demoOrganisation.id}:${staff.id}`;
+        if (!deduped.has(key)) {
+          deduped.set(key, {
+            id: staff.id,
+            userId: staff.id,
+            user_id: staff.id,
+            tenant_id: demoOrganisation.id,
+            organisation_id: demoOrganisation.id,
+            userName: staff.name,
+            staffId: staff.staffId,
+            role: staff.title,
+            job_title: staff.title,
+            department: staff.department,
+            compensation_type: 'fixed_monthly',
+            rate_type: 'monthly',
+            monthly_rate: staff.grossPay,
+            monthly_salary: staff.grossPay,
+            hourly_rate: Math.round(staff.grossPay / 160),
+            currency: 'NGN',
+            bank_name: staff.bank || 'GTBank',
+            account_number: staff.account,
+            account_name: staff.name,
+            status: 'active'
+          });
+        }
+      }
+    }
+    store.contracts = Array.from(deduped.values());
   }
   if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
   return store;
@@ -1543,11 +1605,48 @@ export function calculateNigerianStatutory(grossSalary) {
 }
 
 export function compilePayrollRun(store, tenantId = null) {
-  // ── Filter contracts by tenant when specified ──────────────────────────────
+  // ── Filter & deduplicate contracts by tenant + userId ──────────────────────
   const allContracts = store.contracts || [];
-  const contracts = tenantId
-    ? allContracts.filter(c => c.tenant_id === tenantId || c.organisation_id === tenantId)
+  const rawContracts = tenantId
+    ? allContracts.filter(c => (c.tenant_id || c.organisation_id) === tenantId)
     : allContracts;
+  const usersById = new Map((store.portalUsers || []).map(u => [u.id, u]));
+  const membershipsByUid = new Map((store.memberships || []).map(m => [m.user_id || m.id, m]));
+  const demoById = new Map(demoMembers.map(m => [m.id, m]));
+
+  const dedupedContracts = new Map();
+  for (const raw of rawContracts) {
+    const uid = raw.userId || raw.user_id || raw.id;
+    const orgKey = raw.tenant_id || raw.organisation_id || tenantId || demoOrganisation.id;
+    if (!uid) continue;
+    const key = `${orgKey}:${uid}`;
+    const prev = dedupedContracts.get(key) || {};
+    const pu = usersById.get(uid);
+    const dm = demoById.get(uid);
+    const membership = membershipsByUid.get(uid);
+    if (membership && membership.organisation_id === orgKey && membership.status === 'revoked') {
+      dedupedContracts.delete(key);
+      continue;
+    }
+    const rate = Number(raw.monthly_rate ?? raw.monthly_salary ?? prev.monthly_rate ?? dm?.grossPay ?? 0);
+    dedupedContracts.set(key, {
+      ...prev,
+      ...raw,
+      userId: uid,
+      tenant_id: orgKey,
+      userName: raw.userName || prev.userName || pu?.full_name || dm?.name || 'Staff Member',
+      staffId: raw.staffId || prev.staffId || membership?.staff_code || dm?.staffId || ('SR-' + String(uid).slice(-4).toUpperCase()),
+      role: raw.role || raw.job_title || prev.role || membership?.title || dm?.title || 'Staff Specialist',
+      department: raw.department || prev.department || membership?.department || dm?.department || 'Operations',
+      compensation_type: raw.compensation_type || prev.compensation_type || (raw.rate_type === 'hourly' ? 'hourly' : 'fixed_monthly'),
+      monthly_rate: rate,
+      hourly_rate: Number(raw.hourly_rate || prev.hourly_rate || (rate > 0 ? Math.round(rate / 160) : 1500)),
+      bank_name: raw.bank_name || prev.bank_name || dm?.bank || 'GTBank',
+      account_number: raw.account_number || prev.account_number || dm?.account || '0000000000',
+      account_name: raw.account_name || prev.account_name || raw.userName || pu?.full_name || dm?.name || 'Staff Member'
+    });
+  }
+  const contracts = Array.from(dedupedContracts.values());
   const org = (store.organisations || []).find(o =>
     tenantId ? (o.id === tenantId || o.organisation_code === tenantId) : true
   ) || { legal_name: 'ShiftRelay Employer', organisation_code: 'SR-000', id: null };
@@ -1587,12 +1686,6 @@ export function compilePayrollRun(store, tenantId = null) {
     if (completedEntries.length === 0) {
       regularHours  = isMonthly ? 160 : 80;
       overtimeHours = 0;
-      // Legacy per-worker demo overrides (Dangote workers before live data)
-      if (c.userName === 'Amina Otieno' || c.userId === '00000000-0000-4000-8000-000000000011') {
-        regularHours = 80; overtimeHours = 11;
-      } else if (c.userName === 'Aaron Glover' || c.userId === 'demo-aaron') {
-        regularHours = 76; overtimeHours = 6;
-      }
     }
 
     // Unexcused absence days = missed punches (open entries)
@@ -2733,12 +2826,217 @@ async function handleApi(request, response, url) {
     return sendJson(response, 200, { avatarDataUrl: avatar, profile: store.workerProfiles[user.id] });
   }
 
+async function getOrganisationRosterState(user) {
+  const orgId = user?.organisation_id || demoOrganisation.id;
+  if (!databaseReady) {
+    const store = await getStore();
+    if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
+    const nowMs = Date.now();
+    let swept = false;
+    const contractsByUid = new Map();
+    for (const c of (store.contracts || [])) {
+      const uid = c.userId || c.user_id || c.id;
+      const cOrg = c.tenant_id || c.organisation_id || orgId;
+      if (uid && cOrg === orgId) contractsByUid.set(uid, c);
+    }
+    const usersById = new Map((store.portalUsers || []).map(u => [u.id, u]));
+    const memberMap = new Map();
+
+    const addOrMergeMember = (entry) => {
+      const key = entry.user_id || entry.email?.toLowerCase() || entry.id;
+      const prev = memberMap.get(key) || {};
+      const dm = demoMembers.find(d => d.id === key || d.id === entry.id || (entry.email && d.email.toLowerCase() === entry.email.toLowerCase()));
+      const contract = contractsByUid.get(key) || contractsByUid.get(entry.id) || {};
+      const pu = usersById.get(key) || {};
+      const role = entry.role || prev.role || dm?.role || 'worker';
+      const shiftStart = entry.shift_start || prev.shift_start || (role === 'incoming' ? '14:00' : '06:00');
+      const shiftEnd = entry.shift_end || prev.shift_end || (role === 'incoming' ? '22:00' : '14:00');
+      memberMap.set(key, {
+        id: entry.id || prev.id || dm?.id || key,
+        user_id: entry.user_id || prev.user_id || entry.id || dm?.id || key,
+        staffId: entry.staff_code || entry.staffId || prev.staffId || contract.staffId || dm?.staffId || ('SR-' + String(key).slice(-4).toUpperCase()),
+        name: entry.name || pu.full_name || prev.name || dm?.name || contract.userName || 'Staff Member',
+        email: entry.email || pu.email || prev.email || dm?.email || '',
+        role,
+        title: entry.title || prev.title || dm?.title || contract.role || 'Staff Specialist',
+        department: entry.department || prev.department || dm?.department || contract.department || 'Operations',
+        status: entry.status || prev.status || 'active',
+        time_zone: entry.time_zone || prev.time_zone || 'Africa/Lagos',
+        shift_start: shiftStart,
+        shift_end: shiftEnd,
+        grossPay: Number(contract.monthly_rate ?? contract.monthly_salary ?? dm?.grossPay ?? 0),
+        onShift: false,
+        clockedInAt: null,
+        verificationMode: null,
+        scannedByName: null
+      });
+    };
+
+    if (orgId === demoOrganisation.id) {
+      for (const dm of demoMembers) {
+        addOrMergeMember({
+          id: dm.id,
+          user_id: dm.id,
+          staff_code: dm.staffId,
+          name: dm.name,
+          email: dm.email,
+          role: dm.role,
+          title: dm.title,
+          department: dm.department,
+          status: 'active'
+        });
+      }
+    }
+
+    for (const m of (store.memberships || [])) {
+      if (m.organisation_id !== orgId) continue;
+      const pu = usersById.get(m.user_id) || {};
+      addOrMergeMember({
+        id: m.id,
+        user_id: m.user_id,
+        staff_code: m.staff_code,
+        name: pu.full_name || m.name,
+        email: pu.email || m.email,
+        role: m.role,
+        title: m.title,
+        department: m.department,
+        status: m.status || 'active',
+        shift_start: m.shift_start,
+        shift_end: m.shift_end
+      });
+    }
+
+    const memberByIdOrUid = new Map();
+    for (const m of memberMap.values()) {
+      memberByIdOrUid.set(m.id, m);
+      memberByIdOrUid.set(m.user_id, m);
+    }
+
+    // Sweep expired shifts for all members in this org so onShift counts are exact
+    for (const t of store.timeEntries) {
+      if (t.clockedOutAt) continue;
+      const m = memberByIdOrUid.get(t.membershipId);
+      if (!m) continue;
+      const endMs = computeScheduledShiftEndMs(m, new Date(t.clockedInAt).getTime());
+      if (nowMs >= endMs) {
+        t.clockedOutAt = new Date(endMs).toISOString();
+        t.clockOutVerificationMode = 'auto_shift_end';
+        t.clockOutDetails = 'Auto Clock-Out at Scheduled Shift End';
+        swept = true;
+      } else if (m.status === 'active') {
+        m.onShift = true;
+        m.clockedInAt = t.clockedInAt;
+        m.verificationMode = t.verificationMode || 'standard';
+        m.scannedByName = t.scannedByName || null;
+      }
+    }
+    if (swept) await saveStore(store);
+
+    const members = Array.from(memberMap.values()).sort((a, b) =>
+      String(a.staffId || '').localeCompare(String(b.staffId || ''), undefined, { numeric: true })
+    );
+    const activeMembers = members.filter(m => m.status === 'active');
+    const onShiftCount = activeMembers.filter(m => m.onShift).length;
+    return {
+      members,
+      store,
+      summary: {
+        totalApproved: activeMembers.length,
+        onShiftCount,
+        offShiftCount: Math.max(0, activeMembers.length - onShiftCount),
+        pendingCount: members.filter(m => m.status === 'pending').length,
+        revokedCount: members.filter(m => m.status === 'revoked').length
+      }
+    };
+  }
+
+  // PostgreSQL mode
+  const rowsRes = await query(
+    `select m.id, m.user_id, m.staff_code, u.full_name as name, u.email, u.time_zone, m.role, m.title, m.department, m.status, m.shift_start, m.shift_end
+     from memberships m
+     join portal_users u on u.id = m.user_id
+     where m.organisation_id = $1
+     order by coalesce(m.staff_code, u.full_name), u.full_name`,
+    [orgId]
+  );
+  const openRes = await query(
+    `select id, membership_id, clocked_in_at, note from time_entries where organisation_id = $1 and clocked_out_at is null`,
+    [orgId]
+  );
+  const memberById = new Map();
+  const demoById = new Map(demoMembers.map(d => [d.id, d]));
+  const store = await getStore();
+  const contractsByUid = new Map((store.contracts || []).filter(c => (c.tenant_id || c.organisation_id) === orgId).map(c => [c.userId || c.user_id, c]));
+
+  const members = rowsRes.rows.map((r) => {
+    const dm = demoById.get(r.user_id) || demoById.get(r.id);
+    const contract = contractsByUid.get(r.user_id) || contractsByUid.get(r.id) || {};
+    const m = {
+      id: r.id,
+      user_id: r.user_id,
+      staffId: r.staff_code || dm?.staffId || contract.staffId || ('SR-' + String(r.user_id).slice(-4).toUpperCase()),
+      name: r.name,
+      email: r.email,
+      role: r.role,
+      title: r.title,
+      department: r.department || 'Operations',
+      status: r.status || 'active',
+      time_zone: r.time_zone || 'Africa/Lagos',
+      shift_start: r.shift_start || (r.role === 'incoming' ? '14:00' : '06:00'),
+      shift_end: r.shift_end || (r.role === 'incoming' ? '22:00' : '14:00'),
+      grossPay: Number(contract.monthly_rate ?? contract.monthly_salary ?? dm?.grossPay ?? 0),
+      onShift: false,
+      clockedInAt: null,
+      verificationMode: null,
+      scannedByName: null
+    };
+    memberById.set(m.id, m);
+    return m;
+  });
+
+  const nowMs = Date.now();
+  for (const row of openRes.rows) {
+    const m = memberById.get(row.membership_id);
+    if (!m) continue;
+    const endMs = computeScheduledShiftEndMs(m, new Date(row.clocked_in_at).getTime());
+    if (nowMs >= endMs) {
+      await query('update time_entries set clocked_out_at = $1 where id = $2 and clocked_out_at is null', [new Date(endMs).toISOString(), row.id]);
+    } else if (m.status === 'active') {
+      m.onShift = true;
+      m.clockedInAt = row.clocked_in_at;
+      const note = String(row.note || '');
+      m.verificationMode = note.includes('Colleague ID Card') ? 'colleague_card_scan' : 'standard';
+    }
+  }
+  const activeMembers = members.filter(m => m.status === 'active');
+  const onShiftCount = activeMembers.filter(m => m.onShift).length;
+  return {
+    members,
+    store,
+    summary: {
+      totalApproved: activeMembers.length,
+      onShiftCount,
+      offShiftCount: Math.max(0, activeMembers.length - onShiftCount),
+      pendingCount: members.filter(m => m.status === 'pending').length,
+      revokedCount: members.filter(m => m.status === 'revoked').length
+    }
+  };
+}
+
   if (url.pathname === '/api/analytics' && request.method === 'GET') {
     if (!['owner', 'manager', 'workforce_admin', 'supervisor'].includes(user.role)) return sendJson(response, 403, { error: 'Executive analytics requires manager or owner access.' });
     const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
+    const { members, store, summary: rosterSummary } = await getOrganisationRosterState(user);
+    const activeMembers = members.filter(m => m.status === 'active');
+    const payroll = compilePayrollRun(store, user.organisation_id);
+    const orgEntries = (store.timeEntries || []).filter(e =>
+      (!e.organisationId || e.organisationId === user.organisation_id) &&
+      activeMembers.some(m => m.id === e.membershipId || m.user_id === e.membershipId)
+    );
+
     const tenant = {
-      companyId: user.company_id || 'RIF-2026',
-      companyName: user.company_name || user.organisation_name || 'Riffmax Technology Limited',
+      companyId: user.company_id || payroll.companyId || 'RIF-2026',
+      companyName: user.company_name || user.organisation_name || payroll.companyName || 'Riffmax Technology Limited',
       hubName: user.hub_name || profile.defaultHubName,
       industry: user.industry || profile.label,
       industryKey: profile.key,
@@ -2747,52 +3045,101 @@ async function handleApi(request, response, url) {
       reportPeriod: new Date().toLocaleDateString('en-NG', { month: 'long', year: 'numeric' }),
       generatedAt: new Date().toISOString()
     };
-    const headcount = { totalRoster: 248, activeOnShift: 194, absentToday: 12, onLeave: 7, pendingApproval: 5 };
+
+    const totalRoster = rosterSummary.totalApproved;
+    const activeOnShift = rosterSummary.onShiftCount;
+    const absentToday = rosterSummary.offShiftCount;
+    const pendingApprovals = (store.adminApprovals || []).filter(a => a.status === 'pending').length + rosterSummary.pendingCount;
+    const headcount = { totalRoster, activeOnShift, absentToday, onLeave: 0, pendingApproval: pendingApprovals };
+
+    const totalPunches = orgEntries.length;
+    const peerOrQrPunches = orgEntries.filter(e => ['colleague_card_scan', 'kiosk_badge_scan', 'gate_qr'].includes(e.verificationMode)).length;
+    const gpsPunches = orgEntries.filter(e => e.verificationMode === 'gps_snapshot').length;
+    const flaggedPunches = orgEntries.filter(e => e.geofenceStatus === 'outside_geofence_flagged').length;
+    const gateQrPercent = totalPunches > 0 ? Math.round((peerOrQrPunches / totalPunches) * 100) : 0;
+    const gpsSnapshotPercent = totalPunches > 0 ? Math.round((gpsPunches / totalPunches) * 100) : 0;
+    const attendanceRatePercent = totalRoster > 0 && activeOnShift > 0
+      ? Math.round((activeOnShift / totalRoster) * 1000) / 10
+      : (totalPunches > 0 ? 100 : 0);
+
     const attendance = {
-      attendanceRatePercent: 96.8,
-      punctualityRatePercent: 94.5,
-      totalPunches: 194,
-      gateQrCount: 132,
-      gateQrPercent: 68,
-      gpsSnapshotCount: 62,
-      gpsSnapshotPercent: 32,
-      outOfBoundsFlagged: 0,
-      lateArrivals: 11,
-      earlyDepartures: 3
+      attendanceRatePercent,
+      punctualityRatePercent: totalPunches > 0 ? Math.max(0, Math.round(((totalPunches - flaggedPunches) / totalPunches) * 1000) / 10) : 100,
+      totalPunches,
+      gateQrCount: peerOrQrPunches,
+      gateQrPercent,
+      gpsSnapshotCount: gpsPunches,
+      gpsSnapshotPercent,
+      outOfBoundsFlagged: flaggedPunches,
+      lateArrivals: 0,
+      earlyDepartures: 0
     };
+
+    const totalRegularHours = payroll.employees.reduce((s, e) => s + Number(e.regularHours || 0), 0);
+    const totalOvertimeHours = payroll.employees.reduce((s, e) => s + Number(e.overtimeHours || 0), 0);
+    const overtimeSpendNgn = payroll.employees.reduce((s, e) => s + Number(e.overtimePay || 0), 0);
     const hoursAndOvertime = {
-      totalHours: 1552,
-      regularHours: 1408,
-      overtimeHours: 144,
-      overtimeSpendNgn: 432000,
-      avgHoursPerWorker: 8.0,
-      complianceRate: 99.2
+      totalHours: Math.round(totalRegularHours + totalOvertimeHours),
+      regularHours: Math.round(totalRegularHours),
+      overtimeHours: Math.round(totalOvertimeHours * 10) / 10,
+      overtimeSpendNgn: Math.round(overtimeSpendNgn),
+      avgHoursPerWorker: totalRoster > 0 ? Math.round(((totalRegularHours + totalOvertimeHours) / totalRoster) * 10) / 10 : 0,
+      complianceRate: totalPunches > 0 ? Math.max(0, Math.round(((totalPunches - flaggedPunches) / totalPunches) * 1000) / 10) : 100
     };
+
+    const totalGross = Number(payroll.summary?.totalGross || 0);
+    const totalPensionEmployee = payroll.employees.reduce((s, e) => s + Number(e.pensionEmployee || 0), 0);
+    const totalPensionEmployer = payroll.employees.reduce((s, e) => s + Number(e.pensionEmployer || 0), 0);
+    const totalNhf = payroll.employees.reduce((s, e) => s + Number(e.nhf || 0), 0);
+    const totalNsitf = payroll.employees.reduce((s, e) => s + Number(e.nsitf || 0), 0);
+    const monthlyBudgetNgn = totalGross > 0 ? Math.ceil((totalGross * 1.1) / 100000) * 100000 : 15000000;
     const payrollBurn = {
-      monthlyGrossBurnNgn: 13920000,
-      monthlyBudgetNgn: 15000000,
-      budgetUtilizationPercent: 92.8,
-      penComEmployeeNgn: 1113600,
-      penComEmployerNgn: 1392000,
-      penComTotalNgn: 2505600,
-      payeTaxNgn: 1071840,
-      nsitfNgn: 139200,
-      nhfNgn: 348000,
-      nsitfAndNhfNgn: 487200,
-      netDisbursementNgn: 10355760,
-      statusLabel: 'Awaiting Finance Desk Approval',
-      payrollMonth: new Date().toLocaleDateString('en-NG', { month: 'long', year: 'numeric' })
+      monthlyGrossBurnNgn: totalGross,
+      monthlyBudgetNgn,
+      budgetUtilizationPercent: monthlyBudgetNgn > 0 ? Math.round((totalGross / monthlyBudgetNgn) * 1000) / 10 : 0,
+      penComEmployeeNgn: Math.round(totalPensionEmployee),
+      penComEmployerNgn: Math.round(totalPensionEmployer),
+      penComTotalNgn: Math.round(totalPensionEmployee + totalPensionEmployer),
+      payeTaxNgn: Math.round(payroll.summary?.totalPAYE || 0),
+      nsitfNgn: Math.round(totalNsitf),
+      nhfNgn: Math.round(totalNhf),
+      nsitfAndNhfNgn: Math.round(totalNsitf + totalNhf),
+      netDisbursementNgn: Math.round(payroll.summary?.totalNet || 0),
+      statusLabel: payroll.dispatched ? 'Dispatched to Finance Desk' : 'Awaiting Finance Desk Approval',
+      payrollMonth: payroll.period || new Date().toLocaleDateString('en-NG', { month: 'long', year: 'numeric' })
     };
-    const unitBreakdown = Array.isArray(profile.units) && profile.units.length > 0
-      ? profile.units
-      : INDUSTRY_PROFILES.operations.units;
+
+    // Build dynamic Operating Unit breakdown from actual approved staff grouped by department
+    const deptBuckets = new Map();
+    const payrollByUid = new Map(payroll.employees.map(e => [e.userId, e]));
+    for (const m of activeMembers) {
+      const dept = m.department || 'Operations';
+      if (!deptBuckets.has(dept)) deptBuckets.set(dept, { unit: dept, headcount: 0, onShift: 0, overtimeHours: 0 });
+      const b = deptBuckets.get(dept);
+      b.headcount += 1;
+      if (m.onShift) b.onShift += 1;
+      const pe = payrollByUid.get(m.user_id) || payrollByUid.get(m.id);
+      if (pe) b.overtimeHours += Number(pe.overtimeHours || 0);
+    }
+    const unitBreakdown = Array.from(deptBuckets.values()).map(b => {
+      const attPct = b.onShift > 0 ? Math.round((b.onShift / b.headcount) * 1000) / 10 : 100;
+      return {
+        unit: b.unit,
+        headcount: b.headcount,
+        onShift: b.onShift,
+        attendancePercent: attPct,
+        overtimeHours: Math.round(b.overtimeHours * 10) / 10,
+        status: b.overtimeHours > 20 ? 'Review Needed' : 'On Track'
+      };
+    });
+
     const statutory = {
       penComPercent: 18,
-      payePercent: 7.7,
+      payePercent: totalGross > 0 ? Math.round(((payrollBurn.payeTaxNgn / totalGross) * 1000)) / 10 : 7.7,
       nsitfPercent: 1.0,
       nhfPercent: 2.5,
       remittanceDueDate: (() => { const d = new Date(); d.setDate(14); d.setMonth(d.getMonth() + 1); return d.toISOString().split('T')[0]; })(),
-      remittanceStatus: 'Pending Month-End',
+      remittanceStatus: payroll.dispatched ? 'Queued for Remittance' : 'Pending Month-End',
       sectorTaxBreakdown: profile.taxAndStatutory || []
     };
     return sendJson(response, 200, {
@@ -3472,42 +3819,8 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/directory' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Directory is available for authenticated organisation accounts.' });
-    if (!databaseReady) {
-      const store = await getStore();
-      const statusMap = new Map();
-      const extraMembers = [];
-      if (Array.isArray(store.memberships)) {
-        store.memberships.forEach(m => {
-          if (m.organisation_id === user.organisation_id) {
-            statusMap.set(m.id, m.status);
-            if (!demoMembers.some(dm => dm.id === m.id) && m.status === 'active') {
-              const u = (store.portalUsers || []).find(user => user.id === m.user_id) || {};
-              extraMembers.push({
-                id: m.id,
-                name: u.full_name || m.name || 'Staff Member',
-                email: u.email || '',
-                role: m.role || 'worker',
-                title: m.title || 'Staff Specialist',
-                department: m.department || 'Operations',
-                status: 'active',
-                time_zone: 'UTC',
-                shift_start: '08:00',
-                shift_end: '16:00'
-              });
-            }
-          }
-        });
-      }
-      const baseMembers = demoMembers.map((member) => ({
-        ...member,
-        time_zone: 'UTC',
-        status: statusMap.get(member.id) || 'active',
-        shift_start: member.role === 'incoming' ? '14:00' : '06:00',
-        shift_end: member.role === 'incoming' ? '22:00' : '14:00'
-      }));
-      return sendJson(response, 200, { members: [...baseMembers, ...extraMembers] });
-    }
-    const members = await query(`select m.id, u.full_name as name, u.email, u.time_zone, m.role, m.title, m.department, m.status, m.shift_start, m.shift_end from memberships m join portal_users u on u.id = m.user_id where m.organisation_id = $1 order by u.full_name`, [user.organisation_id]); return sendJson(response, 200, { members: members.rows });
+    const { members, summary } = await getOrganisationRosterState(user);
+    return sendJson(response, 200, { members, summary });
   }
   if (url.pathname === '/api/incidents' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Incident reporting is available for authenticated organisation accounts.' });
@@ -3642,81 +3955,198 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── Kiosk / Guard Mode: Scan Physical Worker Badge QR/Barcode ───────────
-  // POST /api/time-entries/kiosk-badge-scan
-  // Body: { badgePayload: "SR:STAFF:FMN-0101" or "FMN-0101" or staffId, action?: 'auto'|'clock-in'|'clock-out' }
-  if (url.pathname === '/api/time-entries/kiosk-badge-scan' && request.method === 'POST') {
-    const store = await getStore();
+  // ── Peer Mobile ID Card Clock-In Scanner (Zero Hardware Kiosk Needed) ─────
+  // POST /api/time-entries/peer-card-scan (and backwards-compatible /api/time-entries/kiosk-badge-scan)
+  // Colleague scans a non-smartphone worker's printed/digital Staff ID card once per day.
+  // Auto clock-out closes the shift at scheduled shift end.
+  if ((url.pathname === '/api/time-entries/peer-card-scan' || url.pathname === '/api/time-entries/kiosk-badge-scan') && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'ID card clock-in requires an authenticated organisation account.' });
     const body = await readJson(request).catch(() => ({}));
-    const rawBadge = String(body.badgePayload || body.badgeCode || '').trim();
-    if (!rawBadge) return sendJson(response, 400, { error: 'Badge code or QR payload is required.' });
+    const rawPayload = String(body.badgePayload || body.badgeCode || body.staffId || body.memberId || '').trim();
+    if (!rawPayload) return sendJson(response, 400, { error: 'Staff ID card QR payload or Staff ID code is required.' });
 
-    // Clean payload: extracts staffId e.g. "SR:STAFF:FMN-0101" -> "FMN-0101"
-    const staffId = rawBadge.includes(':') ? rawBadge.split(':').pop().trim() : rawBadge;
+    // Supported formats: "SHIFTRELAY:ID:RIF-2026:RIF-0023", "SR:STAFF:RIF-0023", "RIF-0023", UUID, or email
+    let extractedCode = rawPayload;
+    if (rawPayload.includes(':')) {
+      const parts = rawPayload.split(':').map(s => s.trim()).filter(Boolean);
+      extractedCode = parts[parts.length - 1] || rawPayload;
+    }
+    const lookupNeedle = extractedCode.toLowerCase();
 
-    // Resolve contract/worker by staffId or userId or name across this organization
-    const orgId = user.organisation_id || (store.organisations?.[0]?.id);
-    const contract = (store.contracts || []).find(c => 
-      (c.staffId && c.staffId.toLowerCase() === staffId.toLowerCase()) ||
-      (c.userId && c.userId.toLowerCase() === staffId.toLowerCase()) ||
-      (c.userName && c.userName.toLowerCase() === staffId.toLowerCase())
+    const { members, store } = await getOrganisationRosterState(user);
+    const targetMember = members.find(m =>
+      (m.staffId && m.staffId.toLowerCase() === lookupNeedle) ||
+      (m.id && m.id.toLowerCase() === lookupNeedle) ||
+      (m.user_id && m.user_id.toLowerCase() === lookupNeedle) ||
+      (m.email && m.email.toLowerCase() === lookupNeedle) ||
+      (m.name && m.name.toLowerCase() === lookupNeedle)
     );
 
-    if (!contract) {
-      return sendJson(response, 404, { 
-        error: `Unrecognized badge ID: "${staffId}". Worker not found in directory.` 
+    if (!targetMember) {
+      return sendJson(response, 404, {
+        error: `Unrecognized Staff ID: "${extractedCode}". Member not found in this organisation.`
+      });
+    }
+    if (targetMember.status !== 'active') {
+      return sendJson(response, 403, {
+        error: `${targetMember.name} (${targetMember.staffId}) has membership status "${targetMember.status}" and cannot clock in.`
       });
     }
 
-    if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
-    const activeEntry = store.timeEntries.find(e => e.membershipId === contract.userId && !e.clockedOutAt);
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const orgId = user.organisation_id;
+    const org = (store.organisations || []).find(o => o.id === orgId) || {};
+    const orgProfile = resolveIndustryProfile(org.industryKey || org.industry, org.trading_name || org.legal_name);
+    const hubName = org.hub_name || orgProfile.defaultHubName || 'Main Operations Hub';
 
-    const now = new Date().toISOString();
-    let actionTaken = 'clock-in';
-    let timeRecord;
-
-    if (activeEntry) {
-      // Worker is currently in -> Clock them out
-      activeEntry.clockedOutAt = now;
-      activeEntry.clockOutVerificationMode = 'kiosk_badge_scan';
-      activeEntry.clockOutDetails = `Kiosk ID Badge Scanned at Gate (${user.name || 'Security'})`;
-      actionTaken = 'clock-out';
-      timeRecord = activeEntry;
-    } else {
-      // Worker is off shift -> Clock them in
-      const newEntry = {
-        id: crypto.randomUUID(),
-        organisationId: contract.tenant_id || contract.organisation_id || orgId,
-        membershipId: contract.userId,
-        clockedInAt: now,
-        clockedOutAt: null,
-        note: `Kiosk Badge Punch (${contract.staffId})`,
-        verificationMode: 'kiosk_badge_scan',
-        verificationDetails: `Kiosk ID Badge Verified at Gate (${user.name || 'Security'})`,
-        geofenceStatus: 'verified_on_site',
-        distanceMeters: 0,
-        siteName: 'Gate Kiosk Station'
-      };
-      store.timeEntries.unshift(newEntry);
-      actionTaken = 'clock-in';
-      timeRecord = newEntry;
+    // Evaluate GPS geofence if scanner mobile device attached coordinates
+    let geofenceStatus = 'verified_via_peer_scan';
+    let distanceMeters = 0;
+    const scannerLabel = `${user.name || 'Colleague'} (${user.role || 'staff'})`;
+    let verificationDetails = `Colleague ID Card Scan by ${scannerLabel} · ${hubName}`;
+    if (body.coords && body.coords.latitude && body.coords.longitude) {
+      const hubLat = org.hub_lat || 6.4312;
+      const hubLng = org.hub_lng || 3.4244;
+      const perimeterMeters = org.hub_perimeter || 250;
+      distanceMeters = calculateHaversineDistanceMeters(Number(body.coords.latitude), Number(body.coords.longitude), hubLat, hubLng);
+      if (distanceMeters <= perimeterMeters + 15) {
+        geofenceStatus = 'within_geofence';
+        verificationDetails = `Colleague ID Card Scan by ${scannerLabel} · GPS ${distanceMeters}m from ${hubName}`;
+      } else {
+        geofenceStatus = 'outside_geofence_flagged';
+        const distStr = distanceMeters >= 1000 ? `${(distanceMeters / 1000).toFixed(1)} km` : `${distanceMeters}m`;
+        verificationDetails = `Colleague ID Card Scan by ${scannerLabel} · Flagged GPS ${distStr} outside ${hubName}`;
+      }
     }
 
-    await saveStore(store);
+    if (!databaseReady) {
+      if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
+      const activeEntry = store.timeEntries.find(e =>
+        (e.membershipId === targetMember.id || e.membershipId === targetMember.user_id) && !e.clockedOutAt
+      );
+      if (activeEntry) {
+        const scheduledEndMs = computeScheduledShiftEndMs(targetMember, new Date(activeEntry.clockedInAt).getTime());
+        const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
+        return sendJson(response, 200, {
+          ok: true,
+          alreadyClockedIn: true,
+          action: 'already-clocked-in',
+          verificationMode: activeEntry.verificationMode || 'colleague_card_scan',
+          worker: {
+            userId: targetMember.user_id,
+            membershipId: targetMember.id,
+            userName: targetMember.name,
+            staffId: targetMember.staffId,
+            role: targetMember.title,
+            department: targetMember.department
+          },
+          clockedInAt: activeEntry.clockedInAt,
+          scheduledClockOutAt,
+          verifiedBy: { membershipId: user.id, name: user.name },
+          message: `${targetMember.name} (${targetMember.staffId}) is already clocked in today. Auto clock-out runs at ${targetMember.shift_end || 'shift end'}.`
+        });
+      }
+
+      const scheduledEndMs = computeScheduledShiftEndMs(targetMember, now.getTime());
+      const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
+      const newEntry = {
+        id: crypto.randomUUID(),
+        organisationId: orgId,
+        membershipId: targetMember.id,
+        clockedInAt: nowIso,
+        clockedOutAt: null,
+        scheduledClockOutAt,
+        note: `Colleague ID Card Clock-In (${targetMember.staffId})`,
+        verificationMode: 'colleague_card_scan',
+        verificationDetails,
+        scannedByMembershipId: user.id,
+        scannedByName: user.name || 'Colleague',
+        geofenceStatus,
+        distanceMeters,
+        siteName: hubName,
+        coords: body.coords || null
+      };
+      store.timeEntries.unshift(newEntry);
+      await saveStore(store);
+      broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-in' });
+
+      return sendJson(response, 200, {
+        ok: true,
+        alreadyClockedIn: false,
+        action: 'clock-in',
+        verificationMode: 'colleague_card_scan',
+        worker: {
+          userId: targetMember.user_id,
+          membershipId: targetMember.id,
+          userName: targetMember.name,
+          staffId: targetMember.staffId,
+          role: targetMember.title,
+          department: targetMember.department
+        },
+        clockedInAt: nowIso,
+        scheduledClockOutAt,
+        geofenceStatus,
+        verifiedBy: { membershipId: user.id, name: user.name },
+        message: `${targetMember.name} (${targetMember.staffId}) clocked in by ${user.name}. Auto clock-out scheduled at ${targetMember.shift_end || 'shift end'}.`
+      });
+    }
+
+    // PostgreSQL mode
+    const existingOpen = (await query(
+      'select id, clocked_in_at from time_entries where membership_id = $1 and clocked_out_at is null limit 1',
+      [targetMember.id]
+    )).rows[0];
+
+    if (existingOpen) {
+      const scheduledEndMs = computeScheduledShiftEndMs(targetMember, new Date(existingOpen.clocked_in_at).getTime());
+      return sendJson(response, 200, {
+        ok: true,
+        alreadyClockedIn: true,
+        action: 'already-clocked-in',
+        verificationMode: 'colleague_card_scan',
+        worker: {
+          userId: targetMember.user_id,
+          membershipId: targetMember.id,
+          userName: targetMember.name,
+          staffId: targetMember.staffId,
+          role: targetMember.title,
+          department: targetMember.department
+        },
+        clockedInAt: existingOpen.clocked_in_at,
+        scheduledClockOutAt: new Date(scheduledEndMs).toISOString(),
+        verifiedBy: { membershipId: user.id, name: user.name },
+        message: `${targetMember.name} (${targetMember.staffId}) is already clocked in today. Auto clock-out runs at ${targetMember.shift_end || 'shift end'}.`
+      });
+    }
+
+    const scheduledEndMs = computeScheduledShiftEndMs(targetMember, now.getTime());
+    const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
+    await query(
+      'insert into time_entries (id, organisation_id, membership_id, clocked_in_at, note) values ($1, $2, $3, $4, $5)',
+      [crypto.randomUUID(), orgId, targetMember.id, nowIso, verificationDetails]
+    );
+    await audit(orgId, user.id, 'peer_card_clock_in', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) clocked in via colleague ID card scan.`);
+    broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-in' });
 
     return sendJson(response, 200, {
       ok: true,
-      action: actionTaken,
+      alreadyClockedIn: false,
+      action: 'clock-in',
+      verificationMode: 'colleague_card_scan',
       worker: {
-        userId: contract.userId,
-        userName: contract.userName,
-        staffId: contract.staffId,
-        role: contract.role,
-        department: contract.department,
-        avatar: contract.avatar || null
+        userId: targetMember.user_id,
+        membershipId: targetMember.id,
+        userName: targetMember.name,
+        staffId: targetMember.staffId,
+        role: targetMember.title,
+        department: targetMember.department
       },
-      timestamp: now,
-      message: `${contract.userName} (${contract.staffId}) ${actionTaken === 'clock-in' ? 'Clocked In' : 'Clocked Out'} Successfully.`
+      clockedInAt: nowIso,
+      scheduledClockOutAt,
+      geofenceStatus,
+      verifiedBy: { membershipId: user.id, name: user.name },
+      message: `${targetMember.name} (${targetMember.staffId}) clocked in by ${user.name}. Auto clock-out scheduled at ${targetMember.shift_end || 'shift end'}.`
     });
   }
 
@@ -4757,7 +5187,7 @@ async function getUserRewards(user, store) {
   // ── Push to Finance: Dispatch to Accounts Desk ─────────────────────────────
   if (url.pathname === '/api/payroll/dispatch' && request.method === 'POST') {
     const store = await getStore();
-    const payroll = compilePayrollRun(store);
+    const payroll = compilePayrollRun(store, user.organisation_id || null);
     const dispatchRecord = {
       period: payroll.period,
       dispatchedAt: new Date().toISOString(),
@@ -5479,7 +5909,16 @@ async function getUserRewards(user, store) {
     const adminCtx = await requireAdminGate(request, response, store);
     if (!adminCtx) return;
     const tenants = (store.organisations || []).map(org => {
-      const orgContracts = (store.contracts || []).filter(c => c.tenant_id === org.id || (!c.tenant_id && org.organisation_code === '246701'));
+      const uniqueStaff = new Set();
+      for (const c of (store.contracts || [])) {
+        if ((c.tenant_id || c.organisation_id) === org.id) uniqueStaff.add(c.userId || c.user_id || c.id);
+      }
+      for (const m of (store.memberships || [])) {
+        if (m.organisation_id === org.id && m.status === 'active') uniqueStaff.add(m.user_id || m.id);
+      }
+      if (org.id === demoOrganisation.id && uniqueStaff.size < demoMembers.length) {
+        for (const dm of demoMembers) uniqueStaff.add(dm.id);
+      }
       const ownerMember = (store.memberships || []).find(m => m.organisation_id === org.id && m.role === 'owner');
       const ownerUser = ownerMember ? (store.portalUsers || []).find(u => u.id === ownerMember.user_id) : null;
       const orgProfile = resolveIndustryProfile(org.industryKey || org.industry, org.trading_name || org.legal_name);
@@ -5495,7 +5934,7 @@ async function getUserRewards(user, store) {
         currency: org.currency || 'NGN',
         hubName: org.hub_name || orgProfile.defaultHubName || 'Main Hub',
         hubRadius: org.hub_perimeter || 250,
-        employeeCount: orgContracts.length,
+        employeeCount: uniqueStaff.size,
         masterAdminName: ownerUser ? ownerUser.full_name : (org.contact_name || 'System Executive'),
         masterAdminEmail: ownerUser ? ownerUser.email : (org.work_email || 'hr@company.com'),
         complianceFlags: org.compliance_flags || { pencom: true, nhf: true, nsitf: true, paye: true },
@@ -6191,7 +6630,7 @@ async function getUserRewards(user, store) {
           id: 'notif-demo-3',
           recipientId: user.id,
           category: 'attendance',
-          message: `Gate QR Check-in verified at ${notifHub} (Gate 01) — 0% battery usage.`,
+          message: `Colleague ID Card Check-in verified at ${notifHub} — zero kiosk hardware used.`,
           read: true,
           createdAt: new Date(Date.now() - 7200000).toISOString()
         },

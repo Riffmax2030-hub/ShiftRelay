@@ -111,6 +111,7 @@ const schema = `
   alter table memberships add column if not exists shift_start time;
   alter table memberships add column if not exists shift_end time;
   alter table memberships add column if not exists shift_days jsonb not null default '[]'::jsonb;
+  alter table memberships add column if not exists staff_code varchar(32);
   create table if not exists time_entries (
     id uuid primary key,
     organisation_id uuid not null references organisations(id) on delete cascade,
@@ -536,11 +537,30 @@ export const demoOrganisation = {
 };
 
 export const demoMembers = [
-  { id: '00000000-0000-4000-8000-000000000001', name: 'Sherif Akanmu', email: 'sherif@riffmax.tech', role: 'owner', title: 'Managing Director & CEO', department: 'Executive Directorate' },
-  { id: '00000000-0000-4000-8000-000000000002', name: 'Olaide Emmanuela', email: 'olaide@riffmax.tech', role: 'supervisor', title: 'Operations Lead & Shift Supervisor', department: 'Operations & Delivery' },
-  { id: '00000000-0000-4000-8000-000000000003', name: 'Babatunde Adeleke', email: 'babatunde@riffmax.tech', role: 'outgoing', title: 'Lead Frontend Architect', department: 'Frontend Engineering' },
-  { id: '00000000-0000-4000-8000-000000000004', name: 'Chidinma Okonjo', email: 'chidinma@riffmax.tech', role: 'incoming', title: 'Mobile Native Lead', department: 'Mobile Engineering' },
-  { id: '00000000-0000-4000-8000-000000000005', name: 'Tariq Al-Hassan', email: 'tariq@riffmax.tech', role: 'worker', title: 'Senior Distributed Systems Engineer', department: 'Backend Infrastructure' }
+  { id: '00000000-0000-4000-8000-000000000001', staffId: 'RIF-0001', name: 'Sherif Akanmu', email: 'sherif@riffmax.tech', role: 'owner', title: 'Managing Director & CEO', department: 'Executive Directorate', bank: 'GTBank', account: '0121000001', grossPay: 1200000 },
+  { id: '00000000-0000-4000-8000-000000000002', staffId: 'RIF-0002', name: 'Olaide Emmanuela', email: 'olaide@riffmax.tech', role: 'supervisor', title: 'Chief Operating Officer & Shift Supervisor', department: 'Operations Leadership', bank: 'GTBank', account: '0121000002', grossPay: 750000 },
+  { id: '00000000-0000-4000-8000-000000000003', staffId: 'RIF-0003', name: 'Babatunde Adeleke', email: 'babatunde@riffmax.tech', role: 'outgoing', title: 'Lead Frontend Systems Engineer', department: 'Engineering Core', bank: 'GTBank', account: '0121000003', grossPay: 650000 },
+  { id: '00000000-0000-4000-8000-000000000004', staffId: 'RIF-0004', name: 'Chidinma Okonjo', email: 'chidinma@riffmax.tech', role: 'incoming', title: 'Lead Mobile Native Engineer', department: 'Engineering Core', bank: 'GTBank', account: '0121000004', grossPay: 600000 },
+  { id: '00000000-0000-4000-8000-000000000005', staffId: 'RIF-0005', name: 'Tariq Al-Hassan', email: 'tariq@riffmax.tech', role: 'worker', title: 'Principal Distributed Backend Engineer', department: 'Engineering Core', bank: 'GTBank', account: '0121000005', grossPay: 650000 },
+  { id: '00000000-0000-4000-8000-000000000006', staffId: 'RIF-0006', name: 'Ngozi Eze', email: 'ngozi@riffmax.tech', role: 'worker', title: 'Lead QA & Security Specialist', department: 'Engineering Core', bank: 'GTBank', account: '0121000006', grossPay: 550000 },
+  { id: '00000000-0000-4000-8000-000000000007', staffId: 'RIF-0007', name: 'Farouk Bello', email: 'farouk@riffmax.tech', role: 'worker', title: 'DevOps & Site Reliability Engineer', department: 'Engineering Core', bank: 'GTBank', account: '0121000007', grossPay: 580000 },
+  { id: '00000000-0000-4000-8000-000000000008', staffId: 'RIF-0008', name: 'Folake Balogun', email: 'folake@riffmax.tech', role: 'worker', title: 'Product Regulatory & Labor Law Specialist', department: 'Legal & Regulatory Compliance', bank: 'GTBank', account: '0121000008', grossPay: 540000 },
+  { id: '00000000-0000-4000-8000-000000000009', staffId: 'RIF-0009', name: 'Kelechi Nnamdi', email: 'kelechi@riffmax.tech', role: 'worker', title: 'Lead UI/UX Systems Designer', department: 'Branding & Creative Design', bank: 'GTBank', account: '0121000009', grossPay: 520000 },
+  { id: '00000000-0000-4000-8000-000000000010', staffId: 'RIF-0010', name: 'Zainab Abubakar', email: 'zainab@riffmax.tech', role: 'worker', title: 'Customer Success & Field Ops Lead', department: 'Advertising & Growth Marketing', bank: 'GTBank', account: '0121000010', grossPay: 480000 },
+  { id: '00000000-0000-4000-8000-000000000011', staffId: 'RIF-0011', name: 'Damilola Fashola', email: 'damilola@riffmax.tech', role: 'worker', title: 'Data Platform & Payroll Telemetry Engineer', department: 'Human Resources & People Ops', bank: 'GTBank', account: '0121000011', grossPay: 520000 },
+  { id: '00000000-0000-4000-8000-000000000012', staffId: 'RIF-0012', name: 'Ibrahim Yusuf', email: 'ibrahim@riffmax.tech', role: 'worker', title: 'Systems Integrations Specialist', department: 'Engineering Core', bank: 'GTBank', account: '0121000012', grossPay: 500000 },
+  { id: '00000000-0000-4000-8000-000000000013', staffId: 'RIF-0013', name: 'Adanna Adeleke', email: 'adanna@riffmax.tech', role: 'worker', title: 'Brand Identity & Visual Director', department: 'Branding & Creative Design', bank: 'GTBank', account: '0121000013', grossPay: 540000 },
+  { id: '00000000-0000-4000-8000-000000000014', staffId: 'RIF-0014', name: 'Simi Balogun', email: 'simi@riffmax.tech', role: 'worker', title: 'Motion Media & Interactive Onboarding Designer', department: 'Branding & Creative Design', bank: 'GTBank', account: '0121000014', grossPay: 490000 },
+  { id: '00000000-0000-4000-8000-000000000015', staffId: 'RIF-0015', name: 'Tunde Bakare', email: 'tunde@riffmax.tech', role: 'worker', title: 'Head of Growth Marketing & Acquisition', department: 'Advertising & Growth Marketing', bank: 'GTBank', account: '0121000015', grossPay: 560000 },
+  { id: '00000000-0000-4000-8000-000000000016', staffId: 'RIF-0016', name: 'Amara Okeke', email: 'amara@riffmax.tech', role: 'worker', title: 'Brand Storyteller & Content Marketing Lead', department: 'Advertising & Growth Marketing', bank: 'GTBank', account: '0121000016', grossPay: 480000 },
+  { id: '00000000-0000-4000-8000-000000000017', staffId: 'RIF-0017', name: 'Femi Otedola-Coker', email: 'femi@riffmax.tech', role: 'worker', title: 'Head of Strategic Finance & Investor Relations', department: 'Business Strategy & Investor Relations', bank: 'GTBank', account: '0121000017', grossPay: 620000 },
+  { id: '00000000-0000-4000-8000-000000000018', staffId: 'RIF-0018', name: 'Chidinma Kalu', email: 'kalu@riffmax.tech', role: 'worker', title: 'Enterprise Commercial & B2B Partnerships Lead', department: 'Business Strategy & Investor Relations', bank: 'GTBank', account: '0121000018', grossPay: 550000 },
+  { id: '00000000-0000-4000-8000-000000000019', staffId: 'RIF-0019', name: 'Barrister Yetunde Williams', email: 'yetunde@riffmax.tech', role: 'worker', title: 'General Counsel & Data Protection Officer', department: 'Legal & Regulatory Compliance', bank: 'GTBank', account: '0121000019', grossPay: 650000 },
+  { id: '00000000-0000-4000-8000-000000000020', staffId: 'RIF-0020', name: 'Blessing Nwachukwu', email: 'blessing@riffmax.tech', role: 'worker', title: 'Head of People & Talent Operations', department: 'Human Resources & People Ops', bank: 'GTBank', account: '0121000020', grossPay: 520000 },
+  { id: '00000000-0000-4000-8000-000000000021', staffId: 'RIF-0021', name: 'Emeka Obinna', email: 'emeka@riffmax.tech', role: 'worker', title: 'Facilities & Workplace Infrastructure Manager', department: 'Facilities & Workplace Security', bank: 'GTBank', account: '0121000021', grossPay: 450000 },
+  { id: '00000000-0000-4000-8000-000000000022', staffId: 'RIF-0022', name: 'Sergeant Musa Danjuma', email: 'musa@riffmax.tech', role: 'worker', title: 'Chief Physical Security Officer & Hub Access Guard', department: 'Facilities & Workplace Security', bank: 'GTBank', account: '0121000022', grossPay: 420000 },
+  { id: '00000000-0000-4000-8000-000000000023', staffId: 'RIF-0023', name: 'Suleiman Bello', email: 'suleiman@riffmax.tech', role: 'worker', title: 'Shift Security Guard (Perimeter Patrol)', department: 'Facilities & Workplace Security', bank: 'GTBank', account: '0121000023', grossPay: 350000 },
+  { id: '00000000-0000-4000-8000-000000000024', staffId: 'RIF-0024', name: 'Chioma Anyanwu', email: 'chioma@riffmax.tech', role: 'worker', title: 'Office Concierge & Frontline Hospitality Lead', department: 'Facilities & Workplace Security', bank: 'GTBank', account: '0121000024', grossPay: 380000 }
 ];
 
 // Matches Riffmax2026! using ShiftRelay's scrypt format (salt:hex). Override via SHIFTRELAY_DEMO_MEMBER_PASS.
@@ -580,8 +600,14 @@ export async function seedDemoOrganisation() {
       );
     }
     await query(
-      'insert into memberships (id, organisation_id, user_id, site_id, role, title, department, status) values ($1, $2, $3, $4, $5, $6, $7, $8) on conflict (organisation_id, user_id) do update set status = \'active\'',
-      [member.id, demoOrganisation.id, userId, demoOrganisation.siteId, member.role, member.title, member.department, 'active']
+      `insert into memberships (id, organisation_id, user_id, site_id, role, title, department, staff_code, status)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       on conflict (organisation_id, user_id) do update
+       set status = case when memberships.status = 'revoked' then 'revoked' else 'active' end,
+           staff_code = coalesce(memberships.staff_code, excluded.staff_code),
+           title = coalesce(nullif(memberships.title, ''), excluded.title),
+           department = coalesce(nullif(memberships.department, ''), excluded.department)`,
+      [member.id, demoOrganisation.id, userId, demoOrganisation.siteId, member.role, member.title, member.department, member.staffId, 'active']
     );
   }
 }
