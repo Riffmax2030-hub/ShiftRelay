@@ -259,7 +259,7 @@
       <a href="/website.html" class="nav-pill">shiftrelay.com Home</a>
       <a href="/terms.html" class="nav-pill active">Terms of Service</a>
       <a href="/privacy.html" class="nav-pill">Privacy &amp; NDPR Policy</a>
-      <a href="/" class="nav-pill">Mobile &amp; Gate App</a>
+      <a href="/" class="nav-pill">Open App</a>
       <a href="/website.html#demo-modal" class="nav-pill primary">Request a Demo</a>
     </nav>
   </header>
@@ -269,7 +269,7 @@
       <div class="legal-badge">MASTER SAAS SUBSCRIPTION &amp; APPLICATION TERMS</div>
       <h1>Terms of Service &amp; Enterprise Platform Agreement</h1>
       <p style="color: var(--text-muted); max-width: 780px;">
-        These Terms of Service ("Agreement") govern access to and use of the ShiftRelay Enterprise Workforce, Gate Kiosk, NFC Badge, Shift Handover, and Statutory Payroll Platform operated by ShiftRelay Technologies Ltd ("ShiftRelay") across <strong>shiftrelay.com</strong> and the ShiftRelay Mobile &amp; Gate Tablet Applications.
+        These Terms of Service ("Agreement") govern access to and use of the ShiftRelay Enterprise Workforce, Digital Staff ID, Colleague Peer Scanning, Auto Clock-Out, Shift Handover, and Statutory Payroll Platform operated by Riffmax Technology Limited ("ShiftRelay") across <strong>shiftrelay.com</strong> and the ShiftRelay Mobile Application.
       </p>
       <div class="legal-meta">
         <div><strong>Document Reference:</strong> SR-LEGAL-TOS-2026.4</div>
@@ -290,8 +290,8 @@
         <div class="toc-title">Clauses &amp; Schedule</div>
         <ul class="toc-list">
           <li><a href="#clause-1">01. Scope &amp; Concierge B2B Model</a></li>
-          <li><a href="#clause-2">02. Multi-Role &amp; Gate Kiosk Security</a></li>
-          <li><a href="#clause-3">03. Biometric, Geofence &amp; NFC Attendance</a></li>
+          <li><a href="#clause-2">02. Multi-Role &amp; Digital ID Security</a></li>
+          <li><a href="#clause-3">03. Colleague ID Scan &amp; Auto Clock-Out</a></li>
           <li><a href="#clause-4">04. Team Shift Swaps &amp; Handovers</a></li>
           <li><a href="#clause-5">05. Statutory Payroll &amp; Tax Disclaimers</a></li>
           <li><a href="#clause-6">06. Rectification Receipts &amp; Audits</a></li>
@@ -313,23 +313,23 @@
         </article>
 
         <article id="clause-2" class="clause-card">
-          <span class="clause-num">CLAUSE 02 // ACCESS CONTROL &amp; GATE TABLETS</span>
-          <h2>Multi-Role Authentication &amp; 2-Layer Gate Tablet Security</h2>
+          <span class="clause-num">CLAUSE 02 // ACCESS CONTROL &amp; DIGITAL STAFF ID</span>
+          <h2>Multi-Role Authentication &amp; Digital Staff ID Verification</h2>
           <p>
-            The ShiftRelay application dynamically adapts its interface based on device profile and authenticated role (Frontline Worker, Shift Supervisor, Executive/Owner, or Dedicated Gate Attendance Tablet).
+            The ShiftRelay application dynamically adapts its interface based on device profile and authenticated role (Frontline Worker, Shift Supervisor, or Executive/Owner), eliminating dedicated hardware kiosk purchases.
           </p>
           <ul>
-            <li><strong>2-Layer Gate Kiosk Lock:</strong> Tablets deployed at factory or facility gates require (i) the Company Unique Gate Code and (ii) a real-time 6-digit Verification Code dispatched to the registered Owner/Admin email address.</li>
-            <li><strong>Tamper Prevention:</strong> Exiting or logging out of a Gate Kiosk mode requires re-verification by the organization's Owner or Authorized Administrator.</li>
-            <li><strong>Encrypted NFC &amp; Rotating QR:</strong> Gate Tablets generate 60-second rotating cryptographic TOTP QR codes and read MIFARE DESFire EV3 encrypted NFC employee badges to prevent buddy-punching or photocopy spoofing.</li>
+            <li><strong>Onboarded Digital Staff ID Cards:</strong> Following employer onboarding, every worker is issued a cryptographic digital Staff ID Card tied to their tenant Organization Code and employee credential.</li>
+            <li><strong>Colleague Peer ID Scanning:</strong> Workers without personal smartphones can clock in once per shift through an authenticated colleague's built-in ShiftRelay ID Scanner, requiring no shared kiosk tablet.</li>
+            <li><strong>Single-Shift Enforcement &amp; Auto Clock-Out:</strong> Clock-in occurs once per shift with server-enforced automated shift-end clock-out and immutable audit logs preventing buddy-punching or duplicate punches.</li>
           </ul>
         </article>
 
         <article id="clause-3" class="clause-card">
           <span class="clause-num">CLAUSE 03 // ATTENDANCE TELEMETRY</span>
-          <h2>Biometric Water-Pulse Clock-In, GPS Geofencing &amp; Offline Sync</h2>
+          <h2>Mobile Biometric Clock-In, Peer Scan &amp; Offline Sync</h2>
           <p>
-            By clocking in via the ShiftRelay Mobile App or Gate Kiosk, Users and Customer Organizations acknowledge that ShiftRelay records cryptographically signed attendance timestamps, GPS perimeter validation at the moment of punch, or NFC/QR physical presence tokens.
+            By clocking in via the ShiftRelay Mobile App or through a verified colleague's peer Staff ID scanner, Users and Customer Organizations acknowledge that ShiftRelay records cryptographically signed attendance timestamps, GPS perimeter validation at the moment of punch, or colleague scan attestation tokens.
           </p>
           <ul>
             <li><strong>Actual vs. Scheduled Hours:</strong> Attendance logs record actual verified clock-in and clock-out events separately from scheduled shift rosters.</li>
@@ -372,7 +372,7 @@
           <span class="clause-num">CLAUSE 07 // SERVICE LEVEL &amp; BILLING</span>
           <h2>Enterprise Subscription Fees, Uptime SLA &amp; Governing Law</h2>
           <p>
-            Enterprise tenants are billed on a Per-Employee-Per-Month (PEPM) subscription basis plus applicable one-time implementation and NFC badge provisioning fees as specified in the executed Enterprise Order Form. ShiftRelay maintains a 99.95% monthly uptime commitment with offline-first local punch queueing. This Agreement is governed by the laws of the Federal Republic of Nigeria.
+            Enterprise tenants are billed on a Per-Employee-Per-Month (PEPM) subscription basis as specified in the executed Enterprise Order Form, with zero proprietary kiosk or hardware purchase obligations. ShiftRelay maintains a 99.95% monthly uptime commitment with offline-first local punch queueing. This Agreement is governed by the laws of the Federal Republic of Nigeria.
           </p>
         </article>
       </div>

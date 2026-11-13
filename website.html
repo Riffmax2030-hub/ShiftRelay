@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ShiftRelay | Enterprise Workforce, Gate NFC & Automated Statutory Payroll OS</title>
-  <meta name="description" content="ShiftRelay is the enterprise workforce operating system for verified shift handovers, 2-layer NFC/QR gate attendance, team shift swaps, and automated Nigerian statutory payroll." />
+  <title>ShiftRelay | Digital Staff ID, Peer Attendance & Automated Statutory Payroll OS</title>
+  <meta name="description" content="ShiftRelay is the enterprise workforce operating system for Digital Staff ID clock-ins, Colleague Peer ID scanning, auto clock-out, verified shift handovers, team swaps, and automated statutory payroll." />
   <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -30,7 +30,7 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: var(--bg-canvas);
@@ -623,6 +623,42 @@
       margin-bottom: 9px;
     }
     .footer-col a:hover { color: var(--emerald); }
+
+    .bento-full-card {
+      grid-column: span 12;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 28px;
+      align-items: center;
+    }
+    .bento-grid > *, .hero-split > *, .cinema-grid > *, .conversion-split > *, .stk-panel > * {
+      min-width: 0;
+    }
+    .yt-16-9.has-placeholder {
+      padding-bottom: 0;
+      min-height: 290px;
+      display: flex;
+    }
+    .yt-16-9.has-placeholder #sr-showcase-placeholder {
+      position: relative !important;
+      width: 100%;
+    }
+    @media (max-width: 860px) {
+      .bento-full-card { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .site-navbar { padding: 12px 14px; }
+      .navbar-inner { gap: 10px; }
+      .brand-wordmark { font-size: 18px; }
+      .nav-cta-cluster .btn-outline { display: none; }
+      .container { padding: 48px 16px; }
+      .hero-proof-grid { grid-template-columns: 1fr; gap: 12px; }
+      .cinema-card, .conversion-box, .bento-cell, .stk-panel { padding: 20px; border-radius: 18px; }
+      .roi-metrics-grid, .social-links-grid { grid-template-columns: 1fr !important; }
+      .arch-window-bar { flex-wrap: wrap; }
+      .arch-window-body { padding: 16px; }
+      .corp-footer { padding: 44px 16px 28px; }
+    }
   </style>
 </head>
 <body>
@@ -643,7 +679,7 @@
       <nav class="nav-center-links">
         <a href="#platform-bento">Platform Architecture</a>
         <a href="#how-it-works">How It Works</a>
-        <a href="#video-showcase">YouTube Product Tour</a>
+        <a href="#video-showcase">Product Showcase</a>
         <a href="#hosting-architecture">Cloud &amp; Email Engine</a>
         <a href="#legal-center">Legal &amp; Terms</a>
       </nav>
@@ -663,7 +699,7 @@
       <div>
         <div class="changelog-pill">
           <span class="changelog-dot"></span>
-          <span>SHIFTRELAY OS v4.8 • BIOMETRIC, GATE NFC &amp; STATUTORY PAYROLL</span>
+          <span>SHIFTRELAY OS v1.0 • DIGITAL STAFF ID, PEER SCAN &amp; STATUTORY PAYROLL</span>
         </div>
 
         <h1 class="hero-h1">
@@ -671,15 +707,16 @@
         </h1>
 
         <p class="hero-lead">
-          ShiftRelay eliminates ghost workers, buddy-punching, and manual payroll reconciliation. Engineered for industrial plants, logistics fleets, healthcare, and corporate facilities with 2-layer Gate Tablets, encrypted NFC ID cards, and 1-click PenCom &amp; PAYE compliance.
+          ShiftRelay eliminates ghost workers, buddy-punching, and manual payroll reconciliation. Engineered for technology teams, transportation fleets, restaurants, fuel stations, farms, healthcare, and industrial enterprises with Digital Staff ID cards, Colleague Peer ID scanning, auto clock-out, and 1-click PenCom &amp; PAYE compliance.
         </p>
 
         <div class="hero-actions">
           <a href="#demo-request-section" class="btn-primary-emerald" style="padding:13px 26px; font-size:14px;">
             Book an Enterprise Demo →
           </a>
-          <a href="#video-showcase" class="btn-outline" style="padding:13px 22px; font-size:14px;">
-            ▶ Watch YouTube App Tour
+          <a href="#video-showcase" class="btn-outline" style="padding:13px 22px; font-size:14px; display:inline-flex; align-items:center; gap:8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+            <span>Explore Product Showcase</span>
           </a>
           <a href="#how-it-works" class="btn-outline" style="padding:13px 20px; font-size:14px;">
             How It Works
@@ -689,11 +726,11 @@
         <div class="hero-proof-grid">
           <div class="proof-item">
             <strong>99.98%</strong>
-            <span>Geofence, Biometric &amp; Gate NFC Verification</span>
+            <span>Geofence, Biometric &amp; Peer ID Verification</span>
           </div>
           <div class="proof-item">
-            <strong>60s TOTP</strong>
-            <span>Rotating Gate QR + Encrypted DESFire EV3 Badges</span>
+            <strong>₦0 Hardware</strong>
+            <span>Digital Staff ID Cards + Colleague Mobile Scan</span>
           </div>
           <div class="proof-item">
             <strong>100% Auto</strong>
@@ -708,7 +745,7 @@
           <div class="window-dots"><i></i><i></i><i></i></div>
           <div class="window-tabs">
             <button type="button" class="win-tab active" data-pane="pane-mobile" onclick="window.switchHeroPane('pane-mobile')">01. Mobile Clock</button>
-            <button type="button" class="win-tab" data-pane="pane-gate" onclick="window.switchHeroPane('pane-gate')">02. Gate NFC Kiosk</button>
+            <button type="button" class="win-tab" data-pane="pane-peer" onclick="window.switchHeroPane('pane-peer')">02. Peer ID Scanner</button>
             <button type="button" class="win-tab" data-pane="pane-payroll" onclick="window.switchHeroPane('pane-payroll')">03. Statutory Payroll</button>
             <button type="button" class="win-tab" data-pane="pane-email" onclick="window.switchHeroPane('pane-email')">04. Email Station</button>
           </div>
@@ -748,35 +785,35 @@
             </div>
           </div>
 
-          <!-- Pane 2: Gate Kiosk Tablet (2-Layer Auth + Encrypted NFC Card) -->
-          <div class="arch-pane" id="pane-gate">
+          <!-- Pane 2: Colleague Peer ID Card Clock-In + Auto Clock-Out -->
+          <div class="arch-pane" id="pane-peer">
             <div class="mock-row" style="margin-bottom:14px;">
               <div>
-                <div style="font-size:12px; color:var(--text-secondary);">DEDICATED GATE TABLET MODE • 2-LAYER LOCK</div>
-                <strong style="font-size:17px;">60s Authenticator QR + DESFire NFC Badge Tap</strong>
+                <div style="font-size:12px; color:var(--text-secondary);">COLLEAGUE PEER ID SCANNER • ₦0 KIOSK COST</div>
+                <strong style="font-size:17px;">Digital Staff ID Card + Once-Per-Shift Scan</strong>
               </div>
-              <span class="mono-tag">SR-GATE-1040</span>
+              <span class="mono-tag">AUTO CLOCK-OUT ON</span>
             </div>
 
             <div class="mock-card" style="display:grid; grid-template-columns:110px 1fr; gap:16px; align-items:center;">
               <div style="width:100px; height:100px; border-radius:12px; background:#fff; color:#050912; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:800; font-size:11px; border:3px solid var(--emerald);">
-                <div>[ TOTP QR ]</div>
-                <div style="color:#059669; margin-top:4px;">Rotates: 48s</div>
+                <div>[ ID CARD ]</div>
+                <div style="color:#059669; margin-top:4px;">Once / Shift</div>
               </div>
               <div>
-                <strong style="font-size:14px; display:block; margin-bottom:4px;">No Smartphone? Tap Encrypted NFC ID Card</strong>
+                <strong style="font-size:14px; display:block; margin-bottom:4px;">No Smartphone? Clock In via a Colleague's App</strong>
                 <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:8px;">
-                  Built-in MIFARE DESFire EV3 chip inside the staff ID card—never washes off like printed QR stickers.
+                  Every onboarded worker gets a signed Digital Staff ID Card. Colleagues scan the ID card inside ShiftRelay to clock them in—zero kiosk tablets needed.
                 </p>
                 <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--emerald);">
-                  ✓ Last NFC Tap: Musa Danjuma (SR-NFC-8841) • 07:54:12
+                  ✓ Peer ID Scan: Musa Danjuma (RIF-0018) • 07:54:12
                 </div>
               </div>
             </div>
 
             <div class="mock-card">
               <div style="font-size:12.5px; color:var(--text-secondary);">
-                <strong style="color:var(--text-primary);">2-Layer Gate Tablet Security:</strong> Logging in or exiting Kiosk mode requires the Company Gate Code + a 6-digit OTP sent to the Owner's registered email.
+                <strong style="color:var(--text-primary);">Automated Shift-End Clock-Out:</strong> ShiftRelay enforces one clock-in per shift and triggers automated clock-out when the rostered shift ends.
               </div>
             </div>
           </div>
@@ -900,16 +937,16 @@
       <!-- Cell 2 (Span 5) -->
       <article class="bento-cell span-5">
         <div>
-          <span class="mono-tag" style="color:var(--sky); border-color:var(--border-cyan); background:rgba(56,189,248,0.1);">GATE HARDWARE &amp; NFC</span>
-          <h3>2-Layer Gate Tablet &amp; Encrypted DESFire NFC Cards</h3>
+          <span class="mono-tag" style="color:var(--sky); border-color:var(--border-cyan); background:rgba(56,189,248,0.1);">ZERO-HARDWARE ATTENDANCE</span>
+          <h3>Digital Staff ID Cards &amp; Colleague Peer Scan</h3>
           <p>
-            Deploy any standard Android/iPad tablet at your facility gate. Our 2-layer login (Company Code + Owner Email OTP) locks the tablet into a 60-second rotating QR generator and encrypted NFC card reader—eliminating washed-off printed QR stickers.
+            Onboard every team member with a signed Digital Staff ID Card. Staff with smartphones clock in directly, while workers without smartphones scan once per shift via a colleague's mobile phone—eliminating gate tablets and NFC hardware costs.
           </p>
         </div>
         <div class="bento-spec-list">
-          <span class="spec-chip">MIFARE DESFire EV3</span>
-          <span class="spec-chip">60s TOTP QR Code</span>
-          <span class="spec-chip">Owner OTP Logout Lock</span>
+          <span class="spec-chip">Digital Staff IDs</span>
+          <span class="spec-chip">Colleague Peer Scan</span>
+          <span class="spec-chip">Auto Clock-Out</span>
         </div>
       </article>
 
@@ -959,7 +996,7 @@
       </article>
 
       <!-- Cell 6 (Span 12) -->
-      <article class="bento-cell" style="grid-column: span 12; display:grid; grid-template-columns: 1.2fr 0.8fr; gap:28px; align-items:center;">
+      <article class="bento-cell bento-full-card">
         <div>
           <span class="mono-tag">NIGERIAN STATUTORY &amp; TREASURY ENGINE</span>
           <h3>Automated Gross-to-Net Payroll, PenCom, PAYE &amp; Monthly Payment Printouts</h3>
@@ -1000,7 +1037,7 @@
       <button type="button" class="stk-btn active" data-stk="stk-owner" onclick="window.switchStakeholder('stk-owner')">01. Company Owner / CFO</button>
       <button type="button" class="stk-btn" data-stk="stk-supervisor" onclick="window.switchStakeholder('stk-supervisor')">02. Shift Supervisor</button>
       <button type="button" class="stk-btn" data-stk="stk-worker" onclick="window.switchStakeholder('stk-worker')">03. Frontline Worker</button>
-      <button type="button" class="stk-btn" data-stk="stk-gate" onclick="window.switchStakeholder('stk-gate')">04. Gate Tablet &amp; NFC Card</button>
+      <button type="button" class="stk-btn" data-stk="stk-peer" onclick="window.switchStakeholder('stk-peer')">04. Peer ID Card Scan</button>
     </div>
 
     <div class="stk-panel active" id="stk-owner">
@@ -1068,39 +1105,59 @@
       </div>
     </div>
 
-    <div class="stk-panel" id="stk-gate">
+    <div class="stk-panel" id="stk-peer">
       <div>
-        <span class="mono-tag">GATE KIOSK &amp; NFC BADGE WORKFLOW</span>
-        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Zero-Phone Attendance with Encrypted NFC ID Cards</h3>
+        <span class="mono-tag">PEER ID SCAN &amp; AUTO CLOCK-OUT WORKFLOW</span>
+        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Zero-Phone Attendance with Digital Staff ID Cards</h3>
         <p style="color:var(--text-secondary); font-size:15px; margin-bottom:18px;">
-          The same ShiftRelay app detects when it is running on a Gate Tablet. Once unlocked with the Company Code and Owner Email OTP, it stays locked to the Gate Scanner screen where workers tap their NFC ID card or scan the 60-second rotating QR code.
+          Every onboarded worker receives a Digital Staff ID Card in ShiftRelay. Workers without smartphones simply have an onboarded colleague scan their Staff ID Card once per shift inside the ShiftRelay mobile app—and Auto Clock-Out handles shift completion automatically.
         </p>
       </div>
       <div class="mock-card" style="margin:0;">
-        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#fde68a; margin-bottom:10px;">GATE TABLET SECURITY PROTOCOL</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#fde68a; margin-bottom:10px;">PEER SCAN &amp; AUTO CLOCK-OUT PROTOCOL</div>
         <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
-          <li>Enter Company Unique Gate Code (`SR-GATE-*`) + Admin Email.</li>
-          <li>Approve 6-digit verification code sent via Email Auto-Station.</li>
-          <li>Tablet displays 60-second rotating TOTP QR + NFC tap reader.</li>
-          <li>Workers tap encrypted DESFire NFC badge to clock in/out in 0.3s.</li>
-          <li>Exiting Kiosk mode requires Owner/Admin verification code.</li>
+          <li>Employer onboards company roster and issues signed Digital Staff ID Cards.</li>
+          <li>On-site colleague opens Peer ID Scanner inside the ShiftRelay mobile app.</li>
+          <li>Scans worker's Staff ID Card (or verifies Employee ID) to clock in once per shift.</li>
+          <li>Supervisor list view updates live with peer-verified timestamp and audit badge.</li>
+          <li>Auto Clock-Out closes open shifts automatically when the shift window completes.</li>
         </ol>
       </div>
     </div>
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       4. YOUTUBE PRODUCT WALKTHROUGH CINEMA (EDITABLE LINK)
+       4. PRODUCT WALKTHROUGH SHOWCASE (CONFIGURABLE CHANNEL SLOT)
        ═══════════════════════════════════════════════════════════════════════ -->
   <section class="container" id="video-showcase">
     <div class="cinema-card">
       <div class="cinema-grid">
         <div>
-          <div class="yt-16-9">
+          <div class="yt-16-9 has-placeholder" id="sr-video-stage">
+            <div id="sr-showcase-placeholder" style="position:absolute; inset:0; padding:28px; display:flex; flex-direction:column; justify-content:space-between; background:radial-gradient(circle at top right, rgba(0,245,160,0.16), transparent 55%), linear-gradient(155deg, #091326 0%, #050912 100%);">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                <span class="mono-tag">LIVE ARCHITECTURE PREVIEW</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">SHIFTRELAY OS v1.0</span>
+              </div>
+              <div>
+                <h3 style="font-family:'Outfit',sans-serif; font-size:22px; font-weight:800; line-height:1.2; margin-bottom:10px;">
+                  Worker App · Supervisor Dual-Mode · Executive Treasury
+                </h3>
+                <p style="font-size:13px; color:var(--text-secondary); line-height:1.5; max-width:460px;">
+                  Industry-aware workflows for Technology, Manufacturing, Logistics, Restaurants, Fuel Stations, Agriculture, and Healthcare—with Digital Staff IDs, Peer Scan, Auto Clock-Out, and PenCom/PAYE reporting.
+                </p>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                <span class="spec-chip">Digital Staff ID</span>
+                <span class="spec-chip">Peer ID Scan</span>
+                <span class="spec-chip">Auto Clock-Out</span>
+                <span class="spec-chip">PenCom &amp; PAYE Export</span>
+              </div>
+            </div>
             <iframe
               id="sr-youtube-iframe"
-              src="https://www.youtube.com/embed/M7lc1UVf-VE?rel=0&modestbranding=1"
               title="ShiftRelay Enterprise Platform Walkthrough"
+              style="display:none;"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowfullscreen>
             </iframe>
@@ -1108,33 +1165,33 @@
         </div>
 
         <div>
-          <span class="section-eyebrow">VIDEO SHOWCASE</span>
+          <span class="section-eyebrow">PRODUCT SHOWCASE</span>
           <h2 style="font-family:'Outfit',sans-serif; font-size:30px; font-weight:800; line-height:1.15; margin-bottom:14px;">
-            Watch the ShiftRelay App, Gate Scanner &amp; Payroll Walkthrough
+            See the ShiftRelay App, Peer ID Scanner &amp; Payroll Engine
           </h2>
           <p style="color:var(--text-secondary); font-size:14.5px; margin-bottom:22px;">
-            See how Frontline Workers, Shift Supervisors, Gate Tablets, and Company Owners operate in real time—from reactive biometric clock-in to printing monthly statutory payment sheets.
+            Explore how Frontline Workers, Shift Supervisors, Colleague Peer Scanners, and Company Owners operate in real time—from reactive biometric &amp; ID card clock-in to printing monthly statutory payment sheets.
           </p>
 
           <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
-            <a id="sr-youtube-external-btn" href="https://www.youtube.com/watch?v=M7lc1UVf-VE" target="_blank" rel="noopener" class="btn-primary-emerald">
-              Watch on YouTube ↗
+            <a id="sr-youtube-external-btn" href="#demo-request-section" class="btn-primary-emerald">
+              Request Live Walkthrough →
             </a>
             <button type="button" class="btn-outline" onclick="document.getElementById('sr-yt-Input').focus()">
-              Edit YouTube Link
+              Paste Walkthrough Video URL
             </button>
           </div>
 
           <div style="padding:16px; border-radius:14px; background:rgba(255,255,255,0.03); border:1px solid var(--border-hairline);">
             <label for="sr-yt-Input" style="display:block; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky); margin-bottom:8px;">
-              YOUTUBE VIDEO LINK (READY FOR YOUR FINAL CHANNEL URL):
+              CUSTOM YOUTUBE WALKTHROUGH URL (OPTIONAL):
             </label>
             <div style="display:flex; gap:8px;">
-              <input type="url" id="sr-yt-Input" value="https://www.youtube.com/watch?v=M7lc1UVf-VE" style="flex:1; padding:9px 12px; border-radius:8px; background:#050912; border:1px solid var(--border-hairline); color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px;" />
+              <input type="url" id="sr-yt-Input" placeholder="https://www.youtube.com/watch?v=your-video-id" value="" style="flex:1; padding:9px 12px; border-radius:8px; background:#050912; border:1px solid var(--border-hairline); color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px;" />
               <button type="button" class="btn-primary-emerald" style="padding:9px 14px;" onclick="window.updateShowcaseYoutubeUrl()">Save</button>
             </div>
             <div id="sr-yt-saved-toast" style="display:none; color:var(--emerald); font-size:12px; margin-top:6px;">
-              ✓ YouTube video link updated!
+              ✓ Walkthrough video link updated!
             </div>
           </div>
         </div>
@@ -1150,7 +1207,7 @@
       <span class="section-eyebrow">PRODUCTION CLOUD &amp; EMAIL INFRASTRUCTURE</span>
       <h2>Partitioned for Enterprise Hosting &amp; Automated Email Routing</h2>
       <p>
-        ShiftRelay is architected into clean, isolated deployment surfaces with a built-in <strong>Email Auto-Station Engine</strong> for support receipts, gate OTPs, and statutory payroll dispatches.
+        ShiftRelay is architected into clean, isolated deployment surfaces with a built-in <strong>Email Auto-Station Engine</strong> for support receipts, security OTPs, and statutory payroll dispatches.
       </p>
     </div>
 
@@ -1165,9 +1222,9 @@
 
       <div class="partition-card">
         <span class="partition-domain" style="color:var(--sky);">app.shiftrelay.com</span>
-        <h3 style="font-size:17px; font-weight:700; margin-bottom:6px;">Role-Aware Mobile &amp; Gate App</h3>
+        <h3 style="font-size:17px; font-weight:700; margin-bottom:6px;">Role-Aware Mobile Workspace</h3>
         <p style="font-size:13px; color:var(--text-secondary);">
-          Single PWA binary that detects device profile—serving Workers, Supervisors, and Owners on mobile, and locking into QR/NFC Kiosk mode on Gate Tablets.
+          Single PWA serving Workers, Supervisors, Executives, and built-in Colleague Peer ID Card scanning—eliminating dedicated hardware kiosks.
         </p>
       </div>
 
@@ -1183,7 +1240,7 @@
         <span class="partition-domain" style="color:#c4b5fd;">mail.shiftrelay.com</span>
         <h3 style="font-size:17px; font-weight:700; margin-bottom:6px;">Email Auto-Station Engine</h3>
         <p style="font-size:13px; color:var(--text-secondary);">
-          Automated transactional dispatch for `support@`, `onboarding@`, `finance@`, and `gate-otp@shiftrelay.com` (Rectification Receipts, 2-Layer OTPs, Payslips).
+          Automated transactional dispatch for `support@`, `onboarding@`, `finance@`, and `security@shiftrelay.com` (Rectification Receipts, Security OTPs, Payslips).
         </p>
       </div>
     </div>
@@ -1228,7 +1285,7 @@
           <input type="range" id="sr-roi-shifts" min="1" max="4" step="1" value="3" oninput="window.updateShiftRelayROI()" style="width:100%; accent-color:var(--sky); cursor:pointer;" />
         </div>
 
-        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px;">
+        <div class="roi-metrics-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px;">
           <div class="mock-card" style="margin:0; text-align:center; padding:14px 10px;">
             <div style="font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">HOURS RECLAIMED</div>
             <div id="sr-roi-hours" style="font-size:22px; font-weight:800; color:#fff; margin-top:4px;">540 hrs/mo</div>
@@ -1244,7 +1301,10 @@
         </div>
 
         <div style="padding:12px 14px; border-radius:12px; background:rgba(0,245,160,0.08); border:1px solid var(--border-emerald); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-          <span style="font-size:12.5px; color:#e2e8f0;">🎁 <strong>Sunday Launch Offer:</strong> 30-Day Free Enterprise Pilot + Free NFC Gate Setup</span>
+          <span style="font-size:12.5px; color:#e2e8f0; display:inline-flex; align-items:center; gap:7px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3Z"/></svg>
+            <span><strong>Sunday Launch Offer:</strong> 30-Day Free Enterprise Pilot + Zero Hardware Cost Setup</span>
+          </span>
           <a href="#demo-request-section" class="btn-primary-emerald" style="padding:8px 14px; font-size:12px;">Claim Sunday Pilot →</a>
         </div>
       </div>
@@ -1260,7 +1320,7 @@
             Follow our official business accounts for frontline operations tips, live facility rollouts, and Sunday product drops:
           </p>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+          <div class="social-links-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
             <a href="https://www.linkedin.com/company/riffmax-technology-limited" target="_blank" rel="noopener" class="mock-card" style="margin:0; text-decoration:none; color:inherit; display:block;">
               <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--sky);">LINKEDIN OFFICIAL</div>
               <strong style="font-size:14px;">/company/riffmax-tech</strong>
@@ -1279,7 +1339,7 @@
             <a href="https://www.tiktok.com/@shiftrelay" target="_blank" rel="noopener" class="mock-card" style="margin:0; text-decoration:none; color:inherit; display:block;">
               <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#fde68a;">TIKTOK &amp; YOUTUBE</div>
               <strong style="font-size:14px;">@shiftrelay</strong>
-              <div style="font-size:11.5px; color:var(--text-secondary);">60s Shift Handover &amp; NFC Demos</div>
+              <div style="font-size:11.5px; color:var(--text-secondary);">60s Shift Handover &amp; Peer Scan Demos</div>
             </a>
           </div>
         </div>
@@ -1287,10 +1347,11 @@
         <div style="padding:14px; border-radius:12px; background:rgba(255,255,255,0.03); border:1px solid var(--border-hairline);">
           <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald); margin-bottom:6px;">SUNDAY VIRAL LAUNCH ANNOUNCEMENT</div>
           <p id="sr-launch-post-copy" style="font-size:12px; color:#cbd5e1; margin-bottom:10px; line-height:1.45;">
-            🚀 Introducing ShiftRelay by Riffmax Technology Limited! No more buried WhatsApp voice notes or paper logbooks at shift change. Voice-to-text AI handovers, 0.3s NFC gate attendance &amp; PenCom/PAYE payroll in one OS. Claim your 30-day free pilot at shiftrelay.com #ShiftRelay #FutureOfWork
+            Introducing ShiftRelay by Riffmax Technology Limited! No more buried WhatsApp voice notes or paper logbooks at shift change. Voice-to-text AI handovers, Digital Staff ID &amp; Peer Scan attendance, auto clock-out, and PenCom/PAYE payroll in one OS. Claim your 30-day free pilot at shiftrelay.com #ShiftRelay #FutureOfWork
           </p>
-          <button type="button" class="btn-outline" id="sr-copy-launch-post-btn" onclick="window.copySundayLaunchPost()" style="width:100%; justify-content:center; font-size:12px; padding:8px 12px;">
-            📋 Copy Sunday Launch Post for Social Media
+          <button type="button" class="btn-outline" id="sr-copy-launch-post-btn" onclick="window.copySundayLaunchPost()" style="width:100%; justify-content:center; font-size:12px; padding:8px 12px; display:inline-flex; align-items:center; gap:7px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span id="sr-copy-launch-post-label">Copy Sunday Launch Post for Social Media</span>
           </button>
         </div>
       </div>
@@ -1348,8 +1409,12 @@
             <div class="inp-group">
               <label>Industry Sector</label>
               <select id="demo-industry">
+                <option value="Technology & Software">Technology &amp; Software</option>
                 <option value="Manufacturing & Industrial">Manufacturing &amp; Industrial</option>
-                <option value="Logistics & Supply Chain">Logistics &amp; Supply Chain</option>
+                <option value="Logistics & Transportation">Logistics &amp; Transportation</option>
+                <option value="Restaurants & Quick-Service Food">Restaurants &amp; Quick-Service Food</option>
+                <option value="Fuel Stations & Energy Retail">Fuel Stations &amp; Energy Retail</option>
+                <option value="Agriculture & Agribusiness">Agriculture &amp; Agribusiness</option>
                 <option value="Hospitality & Facility Management">Hospitality &amp; Facility Management</option>
                 <option value="Healthcare & Clinical">Healthcare &amp; Clinical</option>
               </select>
@@ -1357,8 +1422,8 @@
           </div>
 
           <div class="inp-group">
-            <label>Facility &amp; Hardware Notes (Gate Tablets, NFC Cards, Statutory Payroll)</label>
-            <textarea id="demo-notes" rows="3" placeholder="Tell us about your shift structure, gate checkpoints, or payroll requirements..."></textarea>
+            <label>Facility &amp; Workforce Notes (Shift Structure, Staff IDs, Statutory Payroll)</label>
+            <textarea id="demo-notes" rows="3" placeholder="Tell us about your team workflows, Digital Staff ID rollout, or payroll requirements..."></textarea>
           </div>
 
           <button type="submit" class="btn-primary-emerald" id="demo-submit-btn" style="width:100%; justify-content:center; padding:14px;">
@@ -1382,9 +1447,9 @@
 
           <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
             <div class="mock-card" style="margin:0;">
-              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">01 // ONBOARDING &amp; GATE HARDWARE DESK</div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">01 // ONBOARDING &amp; IMPLEMENTATION DESK</div>
               <strong style="font-size:15px;">onboarding@shiftrelay.com</strong>
-              <div style="font-size:12.5px; color:var(--text-secondary);">Tenant setup, CSV roster imports &amp; DESFire NFC card provisioning</div>
+              <div style="font-size:12.5px; color:var(--text-secondary);">Tenant setup, CSV roster imports &amp; Digital Staff ID provisioning</div>
             </div>
 
             <div class="mock-card" style="margin:0;">
@@ -1404,7 +1469,7 @@
         <div id="legal-center" style="padding:18px; border-radius:14px; background:rgba(255,255,255,0.03); border:1px solid var(--border-hairline);">
           <div style="font-size:13px; font-weight:700; margin-bottom:6px;">Unified Legal Documents (Linked with Mobile App)</div>
           <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:12px;">
-            Review our Terms of Service, Gate Kiosk Security Charter, and NDPA Biometric Privacy Policy:
+            Review our Terms of Service, Digital ID Security Charter, and NDPA Biometric Privacy Policy:
           </p>
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <a href="/terms.html" class="btn-outline" style="font-size:12px; padding:7px 13px;">Terms of Service →</a>
@@ -1429,7 +1494,7 @@
           </div>
         </a>
         <p style="font-size:13px; color:var(--text-secondary); max-width:320px;">
-          ShiftRelay Technologies Ltd. Enterprise shift handovers, biometric &amp; NFC gate attendance, and automated statutory payroll.
+          Riffmax Technology Limited. Enterprise shift handovers, Digital Staff ID &amp; peer attendance, auto clock-out, and automated statutory payroll.
         </p>
       </div>
 
@@ -1437,7 +1502,7 @@
         <h4>Platform</h4>
         <a href="#platform-bento">Bento Architecture</a>
         <a href="#how-it-works">How It Works</a>
-        <a href="#video-showcase">YouTube Walkthrough</a>
+        <a href="#video-showcase">Product Showcase</a>
         <a href="#hosting-architecture">Cloud &amp; Email Auto-Station</a>
       </div>
 
@@ -1445,21 +1510,21 @@
         <h4>Legal &amp; Compliance</h4>
         <a href="/terms.html">Terms of Service &amp; SLA</a>
         <a href="/privacy.html">Privacy &amp; NDPR Policy</a>
-        <a href="/terms.html#clause-2">2-Layer Gate Kiosk Terms</a>
+        <a href="/terms.html#clause-2">Digital ID &amp; Peer Scan Terms</a>
         <a href="/terms.html#clause-5">PenCom &amp; PAYE Charter</a>
       </div>
 
       <div class="footer-col">
         <h4>Portals</h4>
         <a href="/admin">Sovereign &amp; Staff Web Admin</a>
-        <a href="/">Provisioned Mobile / Gate App</a>
+        <a href="/">Open ShiftRelay Web &amp; Mobile App</a>
         <a href="#demo-request-section">Request an Enterprise Demo</a>
         <a href="#contact-desk">Contact Enterprise Desk</a>
       </div>
     </div>
 
     <div style="max-width:1320px; margin:40px auto 0; padding-top:24px; border-top:1px solid var(--border-hairline); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:12.5px; color:var(--text-muted);">
-      <span>© 2026 ShiftRelay Technologies Ltd (shiftrelay.com). All rights reserved.</span>
+      <span>© 2026 Riffmax Technology Limited (shiftrelay.com). All rights reserved.</span>
       <span>ISO/IEC 27001 • NDPA 2023 • PenCom PRA 2014 Compliant</span>
     </div>
   </footer>
@@ -1485,11 +1550,10 @@
       });
     };
 
-    // 3. Configurable YouTube URL
-    const DEFAULT_YOUTUBE_VIDEO_URL = 'https://www.youtube.com/watch?v=M7lc1UVf-VE';
+    // 3. Configurable YouTube URL (Optional Embed Over Architecture Preview)
     function toYoutubeEmbed(rawUrl) {
       const s = String(rawUrl || '').trim();
-      if (!s) return 'https://www.youtube.com/embed/M7lc1UVf-VE?rel=0&modestbranding=1';
+      if (!s) return '';
       let id = '';
       try {
         const u = new URL(s);
@@ -1500,19 +1564,44 @@
         const m = s.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/);
         if (m) id = m[1];
       }
-      return id ? ('https://www.youtube.com/embed/' + id + '?rel=0&modestbranding=1') : s;
+      return id ? ('https://www.youtube.com/embed/' + id + '?rel=0&modestbranding=1') : '';
     }
 
     window.updateShowcaseYoutubeUrl = function () {
       const inp = document.getElementById('sr-yt-Input');
+      const stage = document.getElementById('sr-video-stage');
       const iframe = document.getElementById('sr-youtube-iframe');
+      const placeholder = document.getElementById('sr-showcase-placeholder');
       const ext = document.getElementById('sr-youtube-external-btn');
       const msg = document.getElementById('sr-yt-saved-toast');
       if (!inp || !iframe) return;
-      const raw = inp.value.trim() || DEFAULT_YOUTUBE_VIDEO_URL;
-      iframe.src = toYoutubeEmbed(raw);
-      if (ext) ext.href = raw;
-      try { localStorage.setItem('sr_custom_youtube_url', raw); } catch (_) {}
+      const raw = inp.value.trim();
+      const embedUrl = toYoutubeEmbed(raw);
+      if (embedUrl) {
+        iframe.src = embedUrl;
+        iframe.style.display = 'block';
+        if (stage) stage.classList.remove('has-placeholder');
+        if (placeholder) placeholder.style.display = 'none';
+        if (ext) {
+          ext.href = raw;
+          ext.target = '_blank';
+          ext.rel = 'noopener';
+          ext.textContent = 'Watch on YouTube ↗';
+        }
+        try { localStorage.setItem('sr_custom_youtube_url', raw); } catch (_) {}
+      } else {
+        iframe.removeAttribute('src');
+        iframe.style.display = 'none';
+        if (stage) stage.classList.add('has-placeholder');
+        if (placeholder) placeholder.style.display = 'flex';
+        if (ext) {
+          ext.href = '#demo-request-section';
+          ext.removeAttribute('target');
+          ext.removeAttribute('rel');
+          ext.textContent = 'Request Live Walkthrough →';
+        }
+        try { localStorage.removeItem('sr_custom_youtube_url'); } catch (_) {}
+      }
       if (msg) {
         msg.style.display = 'block';
         setTimeout(() => { msg.style.display = 'none'; }, 3500);
@@ -1522,7 +1611,7 @@
     (function loadSavedYt() {
       try {
         const saved = localStorage.getItem('sr_custom_youtube_url');
-        if (saved) {
+        if (saved && saved.trim()) {
           document.getElementById('sr-yt-Input').value = saved;
           window.updateShowcaseYoutubeUrl();
         }
@@ -1551,15 +1640,16 @@
     window.copySundayLaunchPost = function () {
       const text = document.getElementById('sr-launch-post-copy')?.textContent?.trim() || '';
       const btn = document.getElementById('sr-copy-launch-post-btn');
+      const lbl = document.getElementById('sr-copy-launch-post-label');
       if (navigator.clipboard && text) {
         navigator.clipboard.writeText(text).catch(() => {});
       }
-      if (btn) {
-        btn.textContent = '✓ Launch Post Copied! Ready to Paste on LinkedIn, X & Instagram';
+      if (btn && lbl) {
+        lbl.textContent = '✓ Launch Post Copied! Ready to Paste on LinkedIn, X & Instagram';
         btn.style.borderColor = 'var(--emerald)';
         btn.style.color = 'var(--emerald)';
         setTimeout(() => {
-          btn.textContent = '📋 Copy Sunday Launch Post for Social Media';
+          lbl.textContent = 'Copy Sunday Launch Post for Social Media';
           btn.style.borderColor = '';
           btn.style.color = '';
         }, 3500);

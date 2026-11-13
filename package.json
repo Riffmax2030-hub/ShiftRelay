@@ -2,7 +2,7 @@
   "name": "shiftrelay",
   "version": "1.0.0",
   "private": true,
-  "description": "ShiftRelay by Riffmax Technology Limited — Enterprise Shift Handover, Biometric Gate Attendance & Statutory Payroll OS.",
+  "description": "ShiftRelay by Riffmax Technology Limited — Enterprise Shift Handover, Digital Staff ID Attendance & Statutory Payroll OS.",
   "license": "MIT",
   "type": "module",
   "scripts": {

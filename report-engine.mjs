@@ -351,7 +351,7 @@ export function generatePayrollReportHtml(payrollData, org = {}) {
       <div>
         <strong style="font-size:12px;color:var(--brand-navy);text-transform:uppercase;letter-spacing:0.04em;">Legal Statutory Declaration</strong>
         <p style="font-size:11.5px;color:var(--ink-secondary);margin-top:4px;line-height:1.5;">
-          Certified that all hours reflected in this ledger were validated via ShiftRelay biometric gate muster kiosks and geofence verification in compliance with the Personal Income Tax Act (PITA 2011 as amended), Pension Reform Act 2014, and Employees' Compensation Act 2010.
+          Certified that all hours reflected in this ledger were validated via ShiftRelay Mobile ID Card verification (including Colleague Peer ID Scan) and auto clock-out audit logs in compliance with the Personal Income Tax Act (PITA 2011 as amended), Pension Reform Act 2014, and Employees' Compensation Act 2010.
         </p>
       </div>
       <div style="flex-shrink:0;">
@@ -525,14 +525,14 @@ export function generateCvReportHtml(user = {}, profile = {}) {
           <strong style="font-size:13px;color:var(--brand-navy);">Senior Distributed Systems Engineer</strong><br>
           <span style="font-size:11.5px;color:var(--ink-muted);">Riffmax Technology Limited · 2024 – Present</span>
           <p style="font-size:12.5px;color:var(--ink-secondary);margin-top:4px;">
-            Oversees backend multi-region PostgreSQL replication, sub-second biometric gate muster kiosk communications, and statutory payroll aggregation engine for frontline enterprises.
+            Oversees backend multi-region PostgreSQL replication, mobile digital Staff ID verification, Colleague Peer ID scanning workflows, and statutory payroll aggregation for frontline enterprises.
           </p>
         </div>
         <div class="sr-timeline-item">
           <strong style="font-size:13px;color:var(--brand-navy);">Site Reliability &amp; Infrastructure Engineer</strong><br>
           <span style="font-size:11.5px;color:var(--ink-muted);">Sub-Saharan Logistics Core · 2021 – 2024</span>
           <p style="font-size:12.5px;color:var(--ink-secondary);margin-top:4px;">
-            Managed 24/7 port gate terminal communications, GPS muster zone geofencing telemetry, and failover incident response across 3 commercial terminals.
+            Managed 24/7 operational dispatch communications, GPS attendance zone telemetry, and failover incident response across 3 commercial hubs.
           </p>
         </div>
 
@@ -681,7 +681,7 @@ export function generateTermsOfServiceHtml() {
     <div class="sr-legal-section">
       <h2>1. Platform Subscription, Tenant Segregation &amp; Authorized Personnel</h2>
       <p>
-        1.1. <strong>Scope of Service:</strong> ShiftRelay Technologies Limited ("ShiftRelay", "we", "our") licenses the ShiftRelay Frontline OS to the subscribed employer entity ("Client Organization", "Subscriber") for the exclusive management of frontline shift rosters, biometric gate muster attendance, handover briefings, and statutory payroll calculations.
+        1.1. <strong>Scope of Service:</strong> Riffmax Technology Limited ("ShiftRelay", "we", "our") licenses the ShiftRelay Frontline OS to the subscribed employer entity ("Client Organization", "Subscriber") for the exclusive management of frontline shift rosters, mobile digital Staff ID &amp; Colleague Peer Scan attendance, auto clock-out enforcement, handover briefings, and statutory payroll calculations.
       </p>
       <p>
         1.2. <strong>Tenant Segregation:</strong> All employee rosters, timecards, geolocation muster stamps, and salary compensation agreements are segregated using Row-Level Security (RLS) and cryptographically isolated tenant keys. Under no circumstance does ShiftRelay pool, cross-reference, or monetize tenant personnel records.
@@ -690,9 +690,9 @@ export function generateTermsOfServiceHtml() {
 
     <!-- Section 2 -->
     <div class="sr-legal-section">
-      <h2>2. Biometric Gate Attendance &amp; Geofencing Anti-Spoofing Protocols</h2>
+      <h2>2. Digital Staff ID Clock-In, Peer Verification &amp; Auto Clock-Out Protocols</h2>
       <p>
-        2.1. <strong>Rotating Cryptographic QR Nonce:</strong> Gate muster kiosks generate 60-second rotating cryptographic tokens. Any punch attempt utilizing captured photos, video playbacks, or expired tokens is immediately rejected with a permanent audit incident flag.
+        2.1. <strong>Mobile Digital Staff ID &amp; Colleague Peer Scan:</strong> Once onboarded, each staff member is issued a digital Staff ID Card. Workers with smartphones clock in directly via the ShiftRelay mobile app, while workers without smartphones clock in once per shift via an onboarded colleague's peer scanner, with automated shift-end clock-out enforced server-side.
       </p>
       <p>
         2.2. <strong>Muster Perimeter Verification:</strong> GPS coordinates gathered during clock-in are matched against the client facility's registered geofence boundary (accurate to 10 meters). Punches recorded outside authorized operational perimeters are flagged for supervisor exception approval and highlighted on the daily reconciliation sheet.

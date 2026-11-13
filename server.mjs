@@ -4183,7 +4183,7 @@ async function getOrganisationRosterState(user) {
               verificationDetails = `Gate QR Scanned (${payload.slice(0, 32)})`;
               geofenceStatus = 'unverified_gate';
             } else {
-              verificationDetails = `Muster Gate QR Verified (${hubName})`;
+              verificationDetails = `Digital Staff ID Verified (${hubName})`;
               geofenceStatus = 'verified_on_site';
             }
           } else if (verificationMode === 'gps_snapshot' && body.coords && body.coords.latitude) {
@@ -5886,13 +5886,16 @@ async function getUserRewards(user, store) {
     const contracts = store.contracts || [];
     const leads = store.enterpriseDemoRequests || [];
     const payroll = compilePayrollRun(store);
+    const totalGross = Number(payroll.summary?.totalGross || 0);
+    const formattedVolume = '₦' + totalGross.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     return sendJson(response, 200, {
       stats: {
         totalTenants: tenants.length,
-        totalFrontlineWorkers: contracts.length,
+        totalFrontlineWorkers: payroll.summary?.employeeCount ?? contracts.length,
         totalInboundLeads: leads.length,
-        monthlyPayrollVolume: payroll.totalGrossFormatted || '₦0.00',
+        monthlyPayrollVolume: formattedVolume,
+        monthlyPayrollVolumeNgn: totalGross,
         activeCompliances: {
           pencom: true,
           nhf: true,
@@ -6832,7 +6835,7 @@ async function getUserRewards(user, store) {
         {
           id: 'post-1',
           author_id: '00000000-0000-4000-8000-000000000012',
-          author_name: 'David Kariuki',
+          author_name: 'Olaide Emmanuela',
           author_role: 'Shift Supervisor · Operations',
           author_avatar: '/uploads/avatars/avatar-david.jpg',
           author_verified: true,
@@ -6847,7 +6850,7 @@ async function getUserRewards(user, store) {
           liked_by: [],
           saved_by: [],
           comments: [
-            { id: 'c-1-1', author_id: '00000000-0000-4000-8000-000000000011', author_name: 'Amina Otieno', author_role: 'Outgoing Ops', author_avatar: '/uploads/avatars/avatar-amina.jpg', content: 'We pushed hard this week. Thanks for recognising the team, David!', created_at: new Date(now - 1800000).toISOString() },
+            { id: 'c-1-1', author_id: '00000000-0000-4000-8000-000000000011', author_name: 'Amina Otieno', author_role: 'Outgoing Ops', author_avatar: '/uploads/avatars/avatar-amina.jpg', content: 'We pushed hard this week. Thanks for recognising the team, Olaide!', created_at: new Date(now - 1800000).toISOString() },
             { id: 'c-1-2', author_id: '00000000-0000-4000-8000-000000000014', author_name: 'Jordan Lee', author_role: 'Organisation Owner', author_avatar: '/uploads/avatars/avatar-jordan.jpg', content: 'Outstanding performance. This is the standard we set from the top. Keep it going.', created_at: new Date(now - 900000).toISOString() }
           ],
           created_at: new Date(now - 3600000).toISOString()
@@ -6938,7 +6941,7 @@ async function getUserRewards(user, store) {
           saved_by: [],
           comments: [
             { id: 'c-5-1', author_id: '00000000-0000-4000-8000-000000000011', author_name: 'Amina Otieno', author_role: 'Outgoing Ops', author_avatar: '/uploads/avatars/avatar-amina.jpg', content: 'You made it look easy Faith! Knew you would crush it.', created_at: new Date(now - 36000000).toISOString() },
-            { id: 'c-5-2', author_id: '00000000-0000-4000-8000-000000000012', author_name: 'David Kariuki', author_role: 'Shift Supervisor', author_avatar: '/uploads/avatars/avatar-david.jpg', content: '7-day streak on your first solo lead role. Massive. Well done.', created_at: new Date(now - 34200000).toISOString() }
+            { id: 'c-5-2', author_id: '00000000-0000-4000-8000-000000000012', author_name: 'Olaide Emmanuela', author_role: 'Shift Supervisor', author_avatar: '/uploads/avatars/avatar-david.jpg', content: '7-day streak on your first solo lead role. Massive. Well done.', created_at: new Date(now - 34200000).toISOString() }
           ],
           created_at: new Date(now - 43200000).toISOString()
         },
@@ -8170,8 +8173,8 @@ const server = createServer((request, response) => {
       const body = await readJson(request);
       const workerId = String(body.workerId || body.membershipId || 'wrk-01').trim();
       const workerName = String(body.workerName || 'Frontline Specialist').trim();
-      const reason = String(body.reason || 'Gate Biometric / Geofence Supervisor Verification').trim();
-      const zone = String(body.zone || 'Primary Operations Gate A').trim();
+      const reason = String(body.reason || 'Supervisor Staff ID / Colleague Verification').trim();
+      const zone = String(body.zone || 'Primary Operations Zone A').trim();
       const auditHash = 'OVR-' + createHash('sha256').update(workerId + ':' + Date.now() + ':' + reason).digest('hex').slice(0, 12).toUpperCase();
       return sendJson(response, 200, {
         ok: true,
@@ -8182,7 +8185,7 @@ const server = createServer((request, response) => {
         reason,
         auditHash,
         approvedAt: new Date().toISOString(),
-        message: 'Supervisor gate override cryptographically signed (' + auditHash + ').'
+        message: 'Supervisor attendance verification cryptographically signed (' + auditHash + ').'
       });
     }
 

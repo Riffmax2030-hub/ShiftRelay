@@ -5451,18 +5451,20 @@
     } catch (_) {}
 
     if (!Array.isArray(all) || !all.some(s => String(s.date || '').startsWith(ym))) {
-      const stationDefault = getUserIndustryProfile(user).zones?.[0]?.name || user.department || 'Operations Desk';
-      const stationSecond = getUserIndustryProfile(user).zones?.[1]?.name || 'Service & Support Desk';
+      const user = getUser() || {};
+      const profile = getUserIndustryProfile(user);
+      const stationDefault = profile.zones?.[0]?.name || user.department || 'Operations Desk';
+      const stationSecond = profile.zones?.[1]?.name || 'Service & Support Desk';
       const seeded = [
         { id: `sr-s-${ym}-01`, membership_id: '00000000-0000-4000-8000-000000000003', worker_name: 'Babatunde Adeleke', department: 'Frontend Engineering', date: `${ym}-10`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-10T06:00:00.000Z`, ends_at: `${ym}-10T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
         { id: `sr-s-${ym}-02`, membership_id: '00000000-0000-4000-8000-000000000004', worker_name: 'Chidinma Okonjo', department: 'Mobile Engineering', date: `${ym}-10`, start_time: '14:00', end_time: '22:00', starts_at: `${ym}-10T14:00:00.000Z`, ends_at: `${ym}-10T22:00:00.000Z`, station: stationSecond, rotation: 'Afternoon Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
         { id: `sr-s-${ym}-03`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-11`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-11T06:00:00.000Z`, ends_at: `${ym}-11T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
         { id: `sr-s-${ym}-04`, membership_id: '00000000-0000-4000-8000-000000000003', worker_name: 'Babatunde Adeleke', department: 'Frontend Engineering', date: `${ym}-12`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-12T06:00:00.000Z`, ends_at: `${ym}-12T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-05`, membership_id: '00000000-0000-4000-8000-000000000002', worker_name: 'Olaide Emmanuela', department: 'Operations & Delivery', date: `${ym}-12`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-12T06:00:00.000Z`, ends_at: `${ym}-12T14:00:00.000Z`, station: 'Operations Command Deck', rotation: 'Morning Shift', status: 'scheduled', is_shift_supervisor: true, supervisor_name: 'Sherif Akanmu' },
-        { id: `sr-s-${ym}-06`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-13`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-13T06:00:00.000Z`, ends_at: `${ym}-13T14:00:00.000Z`, station: 'Infrastructure Hub Bay', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-07`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-14`, start_time: '14:00', end_time: '22:00', starts_at: `${ym}-14T14:00:00.000Z`, ends_at: `${ym}-14T22:00:00.000Z`, station: 'High-Availability Relay Station', rotation: 'Afternoon Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-08`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-16`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-16T06:00:00.000Z`, ends_at: `${ym}-16T14:00:00.000Z`, station: 'Gate Station A', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-09`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-18`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-18T06:00:00.000Z`, ends_at: `${ym}-18T14:00:00.000Z`, station: 'Core Infrastructure Bay', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' }
+        { id: `sr-s-${ym}-05`, membership_id: '00000000-0000-4000-8000-000000000002', worker_name: 'Olaide Emmanuela', department: 'Operations & Delivery', date: `${ym}-12`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-12T06:00:00.000Z`, ends_at: `${ym}-12T14:00:00.000Z`, station: 'Operations Command Desk', rotation: 'Morning Shift', status: 'scheduled', is_shift_supervisor: true, supervisor_name: 'Sherif Akanmu' },
+        { id: `sr-s-${ym}-06`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-13`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-13T06:00:00.000Z`, ends_at: `${ym}-13T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
+        { id: `sr-s-${ym}-07`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-14`, start_time: '14:00', end_time: '22:00', starts_at: `${ym}-14T14:00:00.000Z`, ends_at: `${ym}-14T22:00:00.000Z`, station: stationSecond, rotation: 'Afternoon Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
+        { id: `sr-s-${ym}-08`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-16`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-16T06:00:00.000Z`, ends_at: `${ym}-16T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
+        { id: `sr-s-${ym}-09`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-18`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-18T06:00:00.000Z`, ends_at: `${ym}-18T14:00:00.000Z`, station: stationSecond, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' }
       ];
       all = [...(Array.isArray(all) ? all : []), ...seeded];
       try { localStorage.setItem(storageKey, JSON.stringify(all)); } catch (_) {}
@@ -10876,53 +10878,49 @@
 
 
 
-  // ──  Interactive 10-Slide Unblurred Role Workflow Demo Engine ──────────────
-  let _tourRole = 'cleaner';
-  let _tourStep = 1;
-
-  const ROLE_DEMO_PERSONAS = {
-    cleaner: {
-      id: 'usr_cleaner_demo',
-      name: 'Babatunde Adeleke',
-      email: 'babatunde@riffmax.tech',
-      role: 'worker',
-      title: 'Lead Frontend Architect',
-      organisation_name: 'Riffmax Technology',
-      site_name: 'Victoria Island Engineering Hub',
-      company_id: 'RIF-2026',
-      stars: 1200
-    },
-    supervisor: {
-      id: 'usr_supervisor_demo',
-      name: 'Olaide Emmanuela',
-      email: 'olaide@riffmax.tech',
-      role: 'supervisor',
-      title: 'Operations Lead & Shift Supervisor',
-      organisation_name: 'Riffmax Technology',
-      site_name: 'Victoria Island Engineering Hub',
-      company_id: 'RIF-2026',
-      stars: 2800
-    },
-    owner: {
-      id: 'usr_owner_demo',
-      name: 'Sherif Akanmu',
-      email: 'sherif@riffmax.tech',
-      role: 'owner',
-      title: 'Managing Director & CEO',
-      organisation_name: 'Riffmax Technology',
-      site_name: 'Corporate HQ (Lagos)',
-      company_id: 'RIF-2026',
-      stars: 5000
-    }
-  };
-
-
-  // ──  Shift Attendance & Geofence Certificate Modal ──────────────────────
-  function openGeofenceCertificateModal() {
+  // ──  Shift Attendance & Geofence Certificate Modal (Live Roster Data) ────
+  async function openGeofenceCertificateModal() {
     const existing = document.getElementById('sr-audit-modal');
     if (existing) existing.remove();
 
+    const activeUser = getUser() || {};
+    const profile = getUserIndustryProfile(activeUser);
     const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    let rosterMembers = [];
+    try {
+      const res = await fetch('/api/directory');
+      if (res.ok) {
+        const d = await res.json();
+        rosterMembers = (d.members || []).filter(m => m.status === 'active');
+      }
+    } catch (_) {}
+
+    const onShiftCount = rosterMembers.filter(m => m.onShift).length;
+    const rowsHtml = rosterMembers.length > 0
+      ? rosterMembers.map(m => {
+          const clockInStr = m.clockedInAt
+            ? new Date(m.clockedInAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+            : (m.shift_start ? String(m.shift_start).slice(0, 5) + ' Sched.' : '06:00 Sched.');
+          const clockOutStr = m.shift_end ? `${String(m.shift_end).slice(0, 5)} Auto-Out` : 'Auto Shift End';
+          const modeLabel = m.verificationMode === 'colleague_card_scan'
+            ? ('Colleague ID Scan' + (m.scannedByName ? ` (${escapeHtml(m.scannedByName)})` : ''))
+            : m.verificationMode === 'gps_snapshot'
+            ? 'GPS Snapshot'
+            : (m.onShift ? 'Verified On-Shift' : 'Rostered / Scheduled');
+          const geoText = m.onShift ? 'Verified Active · Auto Clock-Out' : 'Geofence Enrolled · Standby';
+          return `
+            <tr style="border-bottom:1px solid #e2e8f0;">
+              <td style="padding:9px 6px;font-weight:700;">${escapeHtml(m.name || 'Staff Member')}</td>
+              <td style="padding:9px 6px;color:#0f172a;font-family:monospace;font-weight:600;">${escapeHtml(m.staffId || '')}</td>
+              <td style="padding:9px 6px;">${escapeHtml(m.title || m.department || 'Staff')}</td>
+              <td style="padding:9px 6px;">${escapeHtml(clockInStr)}</td>
+              <td style="padding:9px 6px;">${escapeHtml(clockOutStr)}</td>
+              <td style="padding:9px 6px;color:${m.onShift ? '#059669' : '#475569'};font-weight:600;">${modeLabel}</td>
+              <td style="padding:9px 6px;color:${m.onShift ? '#059669' : '#64748b'};font-weight:700;">${geoText}</td>
+            </tr>
+          `;
+        }).join('')
+      : `<tr><td colspan="7" style="padding:18px;text-align:center;color:#64748b;">No active roster records found for this organisation.</td></tr>`;
 
     const modalHtml = `
       <div id="sr-audit-modal" class="sr-audit-modal-backdrop">
@@ -10932,7 +10930,7 @@
               <img src="icon.svg?v=140" width="36" height="36" alt="" />
               <div>
                 <h2 style="margin:0;font-size:18px;font-weight:800;color:#0f172a;">SHIFT AUDIT &amp; GEOFENCE CERTIFICATE</h2>
-                <small style="color:#64748b;font-size:12px;">ShiftRelay Certified Proof-of-Work Backing Sheet</small>
+                <small style="color:#64748b;font-size:12px;">ShiftRelay Certified Attendance Backing Sheet &middot; ${rosterMembers.length} Approved Staff (${onShiftCount} On Shift)</small>
               </div>
             </div>
             <div style="display:flex;gap:8px;" class="sr-no-print">
@@ -10942,73 +10940,40 @@
           </div>
 
           <div class="sr-audit-meta-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:12px;margin:20px 0;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
-            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Site Code</small><div style="font-weight:700;color:#0f172a;">${escapeHtml(getUser()?.company_id || 'RIF-2026')}</div></div>
-            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Hub Name</small><div style="font-weight:700;color:#0f172a;">${escapeHtml(getUser()?.hub_name || getUserIndustryProfile(getUser()).defaultHubName)}</div></div>
+            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Company Code</small><div style="font-weight:700;color:#0f172a;">${escapeHtml(activeUser.company_id || 'RIF-2026')}</div></div>
+            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Hub Name</small><div style="font-weight:700;color:#0f172a;">${escapeHtml(activeUser.hub_name || profile.defaultHubName)}</div></div>
             <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Audit Date</small><div style="font-weight:700;color:#0f172a;">${nowStr}</div></div>
-            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Sector</small><div style="font-weight:700;color:#0f172a;">${escapeHtml(getUserIndustryProfile(getUser()).shortLabel)}</div></div>
-            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Status</small><div style="font-weight:800;color:#10b981;">✓ 100% GEOFENCE VERIFIED</div></div>
+            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Sector</small><div style="font-weight:700;color:#0f172a;">${escapeHtml(profile.shortLabel)}</div></div>
+            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Roster Coverage</small><div style="font-weight:800;color:#10b981;">${rosterMembers.length} Approved &bull; Zero Kiosk Cost</div></div>
           </div>
 
-          <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:20px;">
-            <thead>
-              <tr style="border-bottom:2px solid #cbd5e1;text-align:left;color:#475569;">
-                <th style="padding:8px 6px;">Staff Name</th>
-                <th style="padding:8px 6px;">Staff ID</th>
-                <th style="padding:8px 6px;">Role</th>
-                <th style="padding:8px 6px;">Clock In</th>
-                <th style="padding:8px 6px;">Clock Out</th>
-                <th style="padding:8px 6px;">Verified Mode</th>
-                <th style="padding:8px 6px;">Geofence Accuracy</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:10px 6px;font-weight:700;">Babatunde Adeleke</td>
-                <td style="padding:10px 6px;color:#64748b;">SR-0101</td>
-                <td style="padding:10px 6px;">Lead Specialist</td>
-                <td style="padding:10px 6px;">06:00 AM</td>
-                <td style="padding:10px 6px;">02:00 PM</td>
-                <td style="padding:10px 6px;color:#10b981;font-weight:600;">Muster Gate QR</td>
-                <td style="padding:10px 6px;color:#10b981;font-weight:700;">0m (On-Premise)</td>
-              </tr>
-              <tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:10px 6px;font-weight:700;">Chidinma Okonjo</td>
-                <td style="padding:10px 6px;color:#64748b;">SR-0102</td>
-                <td style="padding:10px 6px;">Operations Analyst</td>
-                <td style="padding:10px 6px;">06:18 AM</td>
-                <td style="padding:10px 6px;">02:18 PM</td>
-                <td style="padding:10px 6px;color:#10b981;font-weight:600;">Muster Gate QR</td>
-                <td style="padding:10px 6px;color:#10b981;font-weight:700;">0m (On-Premise)</td>
-              </tr>
-              <tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:10px 6px;font-weight:700;">Tariq Al-Hassan</td>
-                <td style="padding:10px 6px;color:#64748b;">SR-0103</td>
-                <td style="padding:10px 6px;">Shift Coordinator</td>
-                <td style="padding:10px 6px;">06:00 AM</td>
-                <td style="padding:10px 6px;">02:00 PM</td>
-                <td style="padding:10px 6px;color:#10b981;font-weight:600;">Muster Gate QR</td>
-                <td style="padding:10px 6px;color:#10b981;font-weight:700;">0m (On-Premise)</td>
-              </tr>
-              <tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:10px 6px;font-weight:700;">Simi Balogun</td>
-                <td style="padding:10px 6px;color:#64748b;">SR-0105</td>
-                <td style="padding:10px 6px;">Quality &amp; Systems Lead</td>
-                <td style="padding:10px 6px;">07:45 AM</td>
-                <td style="padding:10px 6px;">05:45 PM</td>
-                <td style="padding:10px 6px;color:#10b981;font-weight:600;">GPS Snapshot</td>
-                <td style="padding:10px 6px;color:#10b981;font-weight:700;">Gate B (Supervisor Certified)</td>
-              </tr>
-            </tbody>
-          </table>
+          <div style="max-height:52vh;overflow-y:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px;">
+              <thead>
+                <tr style="border-bottom:2px solid #cbd5e1;text-align:left;color:#475569;position:sticky;top:0;background:#fff;">
+                  <th style="padding:8px 6px;">Staff Name</th>
+                  <th style="padding:8px 6px;">Staff ID</th>
+                  <th style="padding:8px 6px;">Role</th>
+                  <th style="padding:8px 6px;">Clock In</th>
+                  <th style="padding:8px 6px;">Auto Clock-Out</th>
+                  <th style="padding:8px 6px;">Verification Mode</th>
+                  <th style="padding:8px 6px;">Perimeter Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+          </div>
 
-          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:30px;padding-top:16px;border-top:1px dashed #cbd5e1;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:24px;padding-top:16px;border-top:1px dashed #cbd5e1;">
             <div>
-              <div style="font-size:11.5px;color:#64748b;">Verification Hash: <strong>SHA256:7f89c02d1a4e9b...</strong></div>
-              <div style="font-size:11.5px;color:#64748b;margin-top:2px;">Issued under ShiftRelay Frontline Enterprise SLA</div>
+              <div style="font-size:11.5px;color:#64748b;">Issued By: <strong>${escapeHtml(activeUser.organisation_name || 'Riffmax Technology Limited')}</strong></div>
+              <div style="font-size:11.5px;color:#64748b;margin-top:2px;">ShiftRelay Colleague ID Scan &amp; GPS Telemetry Audit SLA</div>
             </div>
             <div style="text-align:right;">
               <div style="font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#0f172a;">[SIGNED DIGITALLY]</div>
-              <div style="font-size:11.5px;color:#64748b;">David Kariuki · Shift Supervisor</div>
+              <div style="font-size:11.5px;color:#64748b;">${escapeHtml(activeUser.name || 'Shift Supervisor')} &middot; ${escapeHtml(activeUser.title || activeUser.role || 'Operations Lead')}</div>
             </div>
           </div>
         </div>
@@ -11021,53 +10986,120 @@
     });
   }
 
-  // ──  Shift Attendance & Timesheet Audit CSV Downloader ────────────────────
-  function downloadAttendanceTimesheetCsv() {
-    const profile = getUserIndustryProfile(getUser());
-    const st0 = profile.zones?.[0]?.name || 'Core Operations';
-    const st1 = profile.zones?.[1]?.name || 'Support Desk';
+  // ──  Shift Attendance & Timesheet Audit CSV Downloader (Live Data) ──────
+  async function downloadAttendanceTimesheetCsv() {
+    const activeUser = getUser() || {};
+    const supervisorName = activeUser.name || 'Shift Supervisor';
+    const profile = getUserIndustryProfile(activeUser);
+    const defaultHub = activeUser.hub_name || profile.defaultHubName || 'Main Operations Hub';
     const today = new Date().toISOString().slice(0, 10);
-    const headers = ['Staff_ID', 'Full_Name', 'Department', 'Station', 'Shift_Date', 'Clock_In_WAT', 'Clock_Out_WAT', 'Regular_Hours', 'Overtime_Hours', 'Geofence_Verified', 'Supervisor_Signoff'];
-    const rows = [
-      ['SR-0101', 'Babatunde Adeleke', 'Operations', st0, today, '06:01 AM', '02:04 PM', '8.0', '0.0', 'YES (Gate Verified)', 'Olaide Emmanuela'],
-      ['SR-0102', 'Chidinma Okonjo', 'Core Ops', st1, today, '05:58 AM', '02:15 PM', '8.0', '0.25', 'YES (Gate Verified)', 'Olaide Emmanuela'],
-      ['SR-0103', 'Tariq Al-Hassan', 'Coordination', st0, today, '06:05 AM', '02:00 PM', '8.0', '0.0', 'YES (Gate Verified)', 'Olaide Emmanuela'],
-      ['SR-0104', 'Aisha Bello', 'Security', 'Main Access Gate', today, '05:50 AM', '02:02 PM', '8.0', '0.0', 'YES (Gate Verified)', 'Olaide Emmanuela'],
-      ['SR-0105', 'Simi Balogun', 'Quality & Systems', st1, today, '05:55 AM', '02:30 PM', '8.0', '0.5', 'YES (Gate Verified)', 'Olaide Emmanuela']
-    ];
+    const csvCell = (val) => '"' + String(val ?? '').replace(/"/g, '""') + '"';
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    let members = [];
+    let payrollEmployees = new Map();
+    try {
+      const [dirRes, payRes] = await Promise.all([
+        fetch('/api/directory'),
+        fetch('/api/payroll/summary')
+      ]);
+      if (dirRes.ok) {
+        const d = await dirRes.json();
+        members = (d.members || []).filter(m => m.status === 'active');
+      }
+      if (payRes.ok) {
+        const p = await payRes.json();
+        const emps = (p.payroll || p)?.employees || [];
+        emps.forEach(e => payrollEmployees.set(e.userId, e));
+      }
+    } catch (_) {}
+
+    const headers = ['Staff_ID', 'Full_Name', 'Department', 'Role', 'Site_Hub', 'Shift_Date', 'Shift_Window', 'Regular_Hours', 'Overtime_Hours', 'Presence_Status', 'Verification_Mode', 'Supervisor_Signoff'];
+    const rows = members.map(m => {
+      const pay = payrollEmployees.get(m.user_id || m.id) || {};
+      const windowStr = `${String(m.shift_start || '06:00').slice(0, 5)} - ${String(m.shift_end || '14:00').slice(0, 5)} (Auto Clock-Out)`;
+      const modeStr = m.verificationMode === 'colleague_card_scan'
+        ? `Colleague ID Scan${m.scannedByName ? ' by ' + m.scannedByName : ''}`
+        : m.verificationMode === 'gps_snapshot'
+        ? 'Mobile GPS Snapshot'
+        : (m.onShift ? 'Verified Active' : 'Rostered / Standby');
+      return [
+        m.staffId || '',
+        m.name || 'Staff Member',
+        m.department || 'Operations',
+        m.title || m.role || 'Staff',
+        defaultHub,
+        today,
+        windowStr,
+        pay.regularHours ?? 160,
+        pay.overtimeHours ?? 0,
+        m.onShift ? 'ON_SHIFT' : 'ROSTERED_ACTIVE',
+        modeStr,
+        supervisorName
+      ];
+    });
+
+    const csvText = [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `shiftrelay-shift-attendance-${today}.csv`);
+    link.href = url;
+    link.download = `shiftrelay-shift-attendance-${today}.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    showToast('Shift attendance timesheet audit CSV exported.', 'success');
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (typeof showToast === 'function') showToast(`Exported ${rows.length} verified staff records to CSV.`, 'success');
   }
 
-  // ──  Batch Payroll Ledger CSV Downloader ──────────────────────────────────
-  function downloadPayrollBatchCsv() {
-    const profile = getUserIndustryProfile(getUser());
-    const headers = ['Staff_ID', 'Full_Name', 'Department', 'Role', 'Verified_Hours', 'Hourly_Rate_NGN', 'Gross_Pay_NGN', 'PAYE_Tax_NGN', 'PenCom_Pension_NGN', 'Net_Disbursed_NGN', 'Bank_Name', 'Account_Number', 'Disbursal_Status'];
-    const rows = [
-      ['SR-0101', 'Babatunde Adeleke', 'Operations', 'Lead Specialist', '172.5', '1350', '232875.00', '21191.62', '21191.62', '190491.75', 'Zenith Bank', '2034567890', 'VERIFIED_BATCH_PAID'],
-      ['SR-0102', 'Chidinma Okonjo', profile.shortLabel, 'Shift Analyst', '168.0', '1625', '273000.00', '24843.00', '24843.00', '223314.00', 'Access Bank', '0123456789', 'VERIFIED_BATCH_PAID'],
-      ['SR-0103', 'Tariq Al-Hassan', 'Coordination', 'Shift Coordinator', '160.0', '1500', '240000.00', '21840.00', '21840.00', '196320.00', 'Zenith Bank', '2034567890', 'VERIFIED_BATCH_PAID'],
-      ['SR-0104', 'Aisha Bello', 'Compliance', 'Compliance Specialist', '160.0', '1219', '195040.00', '17748.64', '17748.64', '159542.72', 'GTBank', '0198765432', 'VERIFIED_BATCH_PAID'],
-      ['SR-0105', 'Simi Balogun', 'Quality & Systems', 'Systems Lead', '180.0', '2000', '360000.00', '32760.00', '32760.00', '294480.00', 'UBA', '2078901234', 'VERIFIED_BATCH_PAID']
-    ];
+  // ──  Batch Payroll Ledger CSV Downloader (Live Server Data) ─────────────
+  async function downloadPayrollBatchCsv() {
+    const today = new Date().toISOString().slice(0, 10);
+    const csvCell = (val) => '"' + String(val ?? '').replace(/"/g, '""') + '"';
+    let employees = [];
+    let companyId = getUser()?.company_id || 'RIF-2026';
+    try {
+      const res = await fetch('/api/payroll/summary');
+      if (res.ok) {
+        const json = await res.json();
+        const payroll = json?.payroll || json;
+        employees = payroll?.employees || [];
+        if (payroll?.companyId) companyId = payroll.companyId;
+      }
+    } catch (_) {}
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    if (employees.length === 0) {
+      if (typeof showToast === 'function') showToast('Unable to load live payroll rows for CSV export.', 'error');
+      return;
+    }
+
+    const headers = ['Staff_ID', 'Full_Name', 'Department', 'Role', 'Regular_Hours', 'Overtime_Hours', 'Gross_Pay_NGN', 'PAYE_Tax_NGN', 'PenCom_Employee_NGN', 'Net_Pay_NGN', 'Bank_Name', 'Account_Number', 'Status'];
+    const rows = employees.map(e => [
+      e.staffId || '',
+      e.userName || 'Staff Member',
+      e.department || 'Operations',
+      e.role || 'Staff',
+      e.regularHours ?? 0,
+      e.overtimeHours ?? 0,
+      Number(e.grossPay || 0).toFixed(2),
+      Number(e.payeTax || 0).toFixed(2),
+      Number(e.pensionEmployee || 0).toFixed(2),
+      Number(e.netPay || 0).toFixed(2),
+      e.bank_name || '',
+      e.account_number || '',
+      'VERIFIED_PAYROLL_ROW'
+    ]);
+
+    const csvText = [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'shiftrelay-batch-payroll-oct2026.csv');
+    link.href = url;
+    link.download = `shiftrelay-batch-payroll-${companyId.toLowerCase()}-${today.slice(0, 7)}.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    showToast('Batch payroll CSV ledger downloaded successfully.', 'success');
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (typeof showToast === 'function') showToast(`Downloaded ${rows.length} payroll records (${companyId}).`, 'success');
   }
 
   // ──  Daily Handover & Turnover Log Modal ──────────────────────────────────
@@ -11154,8 +11186,9 @@
               <a href="/api/reports/terms-of-service" target="_blank" class="sr-btn sr-btn-secondary" style="font-size:12px;padding:6px 14px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
                 Open Fullscreen
               </a>
-              <button type="button" class="sr-btn sr-btn-primary" onclick="window.print()" style="font-size:12px;padding:6px 14px;display:inline-flex;align-items:center;gap:4px;">
-                🖨️ Print / Save PDF
+              <button type="button" class="sr-btn sr-btn-primary" onclick="window.print()" style="font-size:12px;padding:6px 14px;display:inline-flex;align-items:center;gap:5px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                <span>Print / Save PDF</span>
               </button>
               <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-close-terms" style="font-size:12px;padding:6px 14px;">
                 Close
@@ -11191,7 +11224,7 @@
                 1. Scope of Platform, B2B Multi-Tenant Segregation &amp; Licensing
               </h3>
               <p style="margin:0 0 6px;">
-                1.1. ShiftRelay provides an enterprise-grade operational operating system for shift rostering, biometric gate muster tracking, accountable handovers, and statutory payroll aggregation. Access is strictly provisioned through authorized employer subscription agreements.
+                1.1. ShiftRelay provides an enterprise-grade operational platform for shift rostering, mobile &amp; colleague Staff ID card clock-in tracking, automated shift-end clock-out, accountable handovers, and statutory payroll aggregation. Access is strictly provisioned through authorized employer subscription agreements.
               </p>
               <p style="margin:0;">
                 1.2. <strong>Tenant Isolation:</strong> Client personnel profiles, work schedules, geolocation muster points, and salary records are cryptographically partitioned using Row-Level Security (RLS). ShiftRelay maintains a zero-commercialization guarantee: employee data is never monetized, traded, or shared across tenant boundaries.
@@ -11200,13 +11233,13 @@
 
             <div style="margin-bottom:20px;">
               <h3 style="font-size:13.5px;font-weight:800;color:#0f2744;text-transform:uppercase;margin-bottom:6px;">
-                2. Rotating Biometric Gate QR Nonces &amp; Muster Geofence Boundary
+                2. Colleague ID Card Clock-In, Auto Clock-Out &amp; Geofence Perimeter
               </h3>
               <p style="margin:0 0 6px;">
-                2.1. Attendance validation is executed via dynamically rotating 60-second HMAC QR nonces generated at facility gate terminals. Replay attacks, photographed codes, or stale tokens are rejected automatically with permanent tamper logging.
+                2.1. Authorized personnel with smartphones clock in directly via the ShiftRelay mobile app or scan an issued Staff ID card (QR / Code-128) on behalf of a colleague without a smartphone once per daily shift. Every peer scan logs the verifying colleague&rsquo;s identity alongside duplicate same-shift protection, while server-side auto clock-out closes active shifts cleanly at scheduled shift end without requiring dedicated gate kiosk hardware.
               </p>
               <p style="margin:0;">
-                2.2. Muster verification verifies the employee's physical presence within the registered 10-meter geofenced perimeter. Punches logged outside authorized muster boundaries require supervisor review and appear itemized on daily shift exception logs.
+                2.2. Perimeter verification validates location coordinates when available against the client facility&rsquo;s registered geofence boundary. Punches recorded outside authorized boundaries appear flagged on daily supervisor exception logs.
               </p>
             </div>
 
@@ -11250,7 +11283,7 @@
                 6. 99.98% Service Level Agreement (SLA) &amp; Offline Continuity
               </h3>
               <p style="margin:0;">
-                ShiftRelay maintains 99.98% platform availability. Remote gate devices feature local encrypted offline buffering, ensuring frontline operations continue seamlessly during internet disruptions with automatic cloud replay upon reconnection.
+                ShiftRelay maintains 99.98% platform availability. Authorized mobile devices include local encrypted offline buffering, ensuring peer Staff ID scans and shift attendance continue seamlessly during connectivity disruptions with automatic cloud replay upon reconnection.
               </p>
             </div>
 

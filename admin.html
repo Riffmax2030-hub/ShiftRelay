@@ -482,7 +482,7 @@
         </a>
         <div style="display:flex; gap:8px;">
           <a href="/website.html" class="btn-ghost">shiftrelay.com</a>
-          <a href="/" class="btn-ghost">Mobile &amp; Gate App</a>
+          <a href="/" class="btn-ghost">Mobile Workspace</a>
         </div>
       </div>
 
@@ -505,7 +505,7 @@
           </div>
           <div class="arch-matrix-row">
             <span>01. Onboarding Specialist</span>
-            <span class="chip emerald">Tenant Wizard + NFC Roster</span>
+            <span class="chip emerald">Tenant Wizard + ID Cards</span>
           </div>
           <div class="arch-matrix-row">
             <span>02. Support &amp; Rectification Desk</span>
@@ -620,7 +620,7 @@
           <span>01 • Tenant Onboarding</span>
         </button>
         <button type="button" class="adm-nav-btn" data-view="tenants" onclick="window.switchAdminView('tenants')">
-          <span>02 • Tenants &amp; Gate NFC</span>
+          <span>02 • Tenants &amp; Staff IDs</span>
           <span class="badge-count" id="nav-badge-tenants">0</span>
         </button>
         <button type="button" class="adm-nav-btn" data-view="rectifications" onclick="window.switchAdminView('rectifications')">
@@ -647,7 +647,7 @@
 
       <div style="border-top:1px solid var(--border-hairline); padding-top:14px; display:flex; flex-direction:column; gap:7px;">
         <a href="/website.html" class="btn-ghost" style="justify-content:center;">Public Site (shiftrelay.com)</a>
-        <a href="/" class="btn-ghost" style="justify-content:center;">Mobile &amp; Gate App</a>
+        <a href="/" class="btn-ghost" style="justify-content:center;">Mobile Workspace</a>
         <button type="button" class="btn-ghost" style="justify-content:center; color:var(--rose);" onclick="window.logoutAdminConsole()">
           Sign Out of Admin Block
         </button>
@@ -685,12 +685,12 @@
             <div class="kpi-tile">
               <div class="lbl">ONBOARDED TENANTS</div>
               <div class="val" id="kpi-total-tenants">3</div>
-              <div class="sub">Isolated Gate &amp; NFC Rosters</div>
+              <div class="sub">Isolated Company Rosters</div>
             </div>
             <div class="kpi-tile">
               <div class="lbl">PROVISIONED WORKERS</div>
               <div class="val" id="kpi-total-workers">42</div>
-              <div class="sub">Mobile + NFC Badge Staff</div>
+              <div class="sub">Mobile + Peer ID Scan Staff</div>
             </div>
             <div class="kpi-tile" style="border-color:var(--border-amber);">
               <div class="lbl" style="color:#fbbf24;">PENDING OWNER APPROVALS</div>
@@ -700,7 +700,7 @@
             <div class="kpi-tile">
               <div class="lbl">EMAIL AUTO-STATION QUEUE</div>
               <div class="val" id="kpi-total-emails" style="color:var(--sky);">5</div>
-              <div class="sub">Receipts, Gate OTPs &amp; Leads</div>
+              <div class="sub">Receipts, Security OTPs &amp; Leads</div>
             </div>
           </div>
 
@@ -739,7 +739,7 @@
                   </tr>
                   <tr>
                     <td><strong>Adaeze Obi</strong><div style="font-size:11.5px; color:var(--emerald);">Onboarding Specialist</div></td>
-                    <td>4-Step Company Onboarding Wizard, Bulk CSV Employee Imports, Gate QR &amp; NFC Posters</td>
+                    <td>4-Step Company Onboarding Wizard, Bulk CSV Employee Imports &amp; Digital Staff ID Cards</td>
                     <td>Locked out of SaaS Treasury &amp; Final Billing Waivers</td>
                     <td>Routes new tenant activation to <strong>Owner Vault</strong></td>
                     <td><button type="button" class="btn-ghost" onclick="window.switchAdminView('onboarding')">Open Queue</button></td>
@@ -824,9 +824,9 @@
                 <div class="sub">Per Active Worker / Month</div>
               </div>
               <div class="kpi-tile">
-                <div class="lbl">NFC CARD &amp; GATE HARDWARE</div>
-                <div class="val">₦4.20M</div>
-                <div class="sub">DESFire EV3 Badges &amp; Kits</div>
+                <div class="lbl">KIOSK HARDWARE SPEND</div>
+                <div class="val">₦0.00</div>
+                <div class="sub">Digital ID Cards &amp; Peer Scan</div>
               </div>
               <div class="kpi-tile">
                 <div class="lbl">AWAITING YOUR SIGN-OFF</div>
@@ -918,7 +918,7 @@
             <div class="panel-head">
               <div>
                 <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">DEPT 01 // ONBOARDING SPECIALIST</span>
-                <h2>Enterprise Client Onboarding &amp; Gate Provisioning Wizard</h2>
+                <h2>Enterprise Client Onboarding &amp; Staff ID Provisioning</h2>
               </div>
               <span class="chip cyan">Auto-Notifies Owner &amp; Email Station</span>
             </div>
@@ -955,14 +955,14 @@
                   <input type="text" id="ob-admin-name" class="adm-input" required placeholder="e.g., Chief Tayo Balogun" />
                 </div>
                 <div>
-                  <label class="lbl-sm">Owner Verification Email (Receives 2-Layer Gate OTPs) *</label>
+                  <label class="lbl-sm">Owner Verification Email (Receives Security OTPs) *</label>
                   <input type="email" id="ob-admin-email" class="adm-input" required placeholder="t.balogun@company.com" />
                 </div>
               </div>
 
               <div class="grid-2">
                 <div>
-                  <label class="lbl-sm">Primary Facility / Gate Checkpoint Name *</label>
+                  <label class="lbl-sm">Primary Facility / Operations Hub Name *</label>
                   <input type="text" id="ob-site-name" class="adm-input" required placeholder="e.g., Agbara Complex Main Gate" />
                 </div>
                 <div>
@@ -982,7 +982,7 @@
                 </div>
               </div>
 
-              <button type="submit" class="btn-emerald">Provision Tenant, Issue Gate Code &amp; Route to Owner →</button>
+              <button type="submit" class="btn-emerald">Provision Tenant, Issue Company Code &amp; Route to Owner →</button>
             </form>
           </div>
         </section>
@@ -992,7 +992,7 @@
           <div class="panel-card">
             <div class="panel-head">
               <div>
-                <h2>Onboarded Enterprise Tenants &amp; 2-Layer Gate Codes</h2>
+                <h2>Onboarded Enterprise Tenants &amp; Company Codes</h2>
               </div>
               <button type="button" class="btn-emerald" onclick="window.switchAdminView('onboarding')">+ Onboard New Enterprise</button>
             </div>
@@ -1001,7 +1001,7 @@
                 <thead>
                   <tr>
                     <th>Organization</th>
-                    <th>2-Layer Gate Code</th>
+                    <th>Company Code</th>
                     <th>Owner OTP Email</th>
                     <th>Primary Site &amp; Geofence</th>
                     <th>Workers</th>
@@ -1016,7 +1016,7 @@
           <div class="panel-card">
             <div class="panel-head">
               <div>
-                <h2>Bulk Employee &amp; Encrypted NFC Badge Import (CSV)</h2>
+                <h2>Bulk Employee &amp; Digital Staff ID Import (CSV)</h2>
                 <p style="font-size:12.5px; color:var(--text-slate);">Format: <code>Full Name, Email, Phone, Role (employee/manager), Department, BaseSalary</code></p>
               </div>
             </div>
@@ -1172,9 +1172,9 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
               <div class="sub">Auto-Routes Worker RECT-* Receipts</div>
             </div>
             <div class="kpi-tile">
-              <div class="lbl">GATE TABLET 2-LAYER OTP</div>
-              <div class="val" style="font-size:18px; color:var(--sky);">gate-otp@shiftrelay.com</div>
-              <div class="sub">6-Digit Kiosk Verification Codes</div>
+              <div class="lbl">SECURITY &amp; TENANT OTP</div>
+              <div class="val" style="font-size:18px; color:var(--sky);">security@shiftrelay.com</div>
+              <div class="sub">6-Digit Tenant Verification Codes</div>
             </div>
             <div class="kpi-tile">
               <div class="lbl">ONBOARDING &amp; CONSULTATION DESK</div>
@@ -1194,7 +1194,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
                 <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">AUTOMATED TRANSACTIONAL DISPATCHER</span>
                 <h2>Email Auto-Station Outbox &amp; Live Dispatch Log</h2>
                 <p style="font-size:13px; color:var(--text-slate);">
-                  Every worker Rectification Receipt, Gate Tablet 2-Layer OTP, and Enterprise Facility Consultation automatically generates and queues a branded transactional email here.
+                  Every worker Rectification Receipt, Security Verification OTP, and Enterprise Facility Consultation automatically generates and queues a branded transactional email here.
                 </p>
               </div>
               <button type="button" class="btn-emerald" onclick="window.triggerTestAutoStationEmail()">
@@ -1393,10 +1393,10 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
     const defaultEmailStationLogs = [
       {
         time: new Date(Date.now() - 1000 * 60 * 42).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        from: 'gate-otp@shiftrelay.com',
-        to: 'ops-director@dangote.com',
-        subject: '2-Layer Gate Tablet Verification Code [482910] — Ikeja Main Gate',
-        source: 'Gate Tablet Login (SR-GATE-1040)',
+        from: 'security@shiftrelay.com',
+        to: 'sherif@riffmax.tech',
+        subject: 'Tenant Security Verification Code [482910] — Riffmax Technology Limited',
+        source: 'Tenant Admin Verification (RIF-2026)',
         status: 'DELIVERED'
       }
     ];
@@ -2111,7 +2111,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           from: 'onboarding@shiftrelay.com',
           to: `${employees.length} Provisioned Workers`,
-          subject: 'Your ShiftRelay Account & Encrypted NFC Badge ID Are Active',
+          subject: 'Your ShiftRelay Account & Digital Staff ID Are Active',
           source: 'Bulk CSV Roster Import',
           status: 'DELIVERED'
         });
@@ -2308,7 +2308,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
           <div class="head">
             <div>
               <h1 style="margin:0; font-size:22px;">ShiftRelay Monthly Payment Data &amp; Statutory Schedule</h1>
-              <p style="margin:4px 0 0; color:#475569; font-size:13px;">Generated from Verified Clock-In / Gate NFC Attendance Logs • November 2026</p>
+              <p style="margin:4px 0 0; color:#475569; font-size:13px;">Generated from Verified Mobile &amp; Peer Staff ID Attendance Logs • November 2026</p>
             </div>
             <button onclick="window.print()" style="padding:10px 18px; background:#10b981; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Print / Save PDF</button>
           </div>
