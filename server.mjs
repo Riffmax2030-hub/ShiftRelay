@@ -152,18 +152,19 @@ import {
   resolveIndustryProfile,
   getIndustryKey
 } from './industry-profiles.mjs';
+import {
+  calculateHaversineDistanceMeters,
+  ensureCardSigningSecret,
+  computeStaffCardSecurityCode,
+  buildStaffCardCredentials,
+  parseStaffCardPayload,
+  verifyStaffCardSecurityCode,
+  resolveOrgGeofenceConfig,
+  verifyStrictLiveGps,
+  applyAutoShiftEndClosure
+} from './attendance-security.mjs';
 
-export function calculateHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
-  const R = 6371e3; // Earth radius in meters
-  const toRad = (deg) => (deg * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c);
-}
+export { calculateHaversineDistanceMeters };
 
 function loadEnvironment() {
   try {
@@ -469,9 +470,7 @@ function demoTimeSummary(user, store, month) {
     if (entry.membershipId === user.id && !entry.clockedOutAt) {
       const endMs = computeScheduledShiftEndMs(user, new Date(entry.clockedInAt).getTime());
       if (nowMs >= endMs) {
-        entry.clockedOutAt = new Date(endMs).toISOString();
-        entry.clockOutVerificationMode = 'auto_shift_end';
-        entry.clockOutDetails = 'Auto Clock-Out at Scheduled Shift End';
+        applyAutoShiftEndClosure(entry, endMs);
         mutated = true;
       }
     }
@@ -495,9 +494,10 @@ function demoTimeSummary(user, store, month) {
     ...activeRaw,
     clocked_in_at: activeRaw.clockedInAt,
     shiftEndAt: new Date(computeScheduledShiftEndMs(user, new Date(activeRaw.clockedInAt).getTime())).toISOString(),
-    verification_mode: activeRaw.verificationMode || 'standard',
+    verification_mode: activeRaw.verificationMode || 'gps_snapshot',
     verification_details: activeRaw.verificationDetails || 'Verified On-Site',
-    geofence_status: activeRaw.geofenceStatus || 'verified_on_site',
+    geofence_status: activeRaw.geofenceStatus || 'within_geofence',
+    presence_verification_status: activeRaw.presenceVerificationStatus || 'active',
     distance_meters: activeRaw.distanceMeters || 0,
     site_name: activeRaw.siteName || user.hub_name || user.industryProfile?.defaultHubName || 'Primary Operations Hub'
   } : null;
@@ -514,6 +514,9 @@ function demoTimeSummary(user, store, month) {
       hours: Math.round(hoursFor(entry) * 10) / 10,
       verification_mode: entry.verificationMode || 'standard',
       verification_details: entry.verificationDetails || 'Verified On-Site',
+      clock_out_verification_mode: entry.clockOutVerificationMode || null,
+      clock_out_details: entry.clockOutDetails || null,
+      presence_verification_status: entry.presenceVerificationStatus || (entry.clockedOutAt ? 'verified' : 'active'),
       geofence_status: entry.geofenceStatus || 'verified_on_site',
       site_name: entry.siteName || user.hub_name || user.industryProfile?.defaultHubName || 'Primary Operations Hub',
       distance_meters: entry.distanceMeters || 0
@@ -731,13 +734,31 @@ function enrichUserWithOrganisation(userObj, store) {
   const rawIndustry = overrideIndustry || matchedOrg?.industry || userObj.industry || settingsIndustry || '';
   const profile = resolveIndustryProfile(rawIndustry, orgName);
 
+  const dm = demoMembers.find((d) =>
+    d.id === userObj.id || d.id === userObj.user_id ||
+    (userObj.email && d.email.toLowerCase() === userObj.email.toLowerCase())
+  );
+  const contract = (store?.contracts || []).find((c) =>
+    (c.userId === userObj.id || c.user_id === userObj.id || c.userId === userObj.user_id) &&
+    (!matchedOrg?.id || (c.tenant_id || c.organisation_id) === matchedOrg.id)
+  );
+  const staffId = userObj.staffId || userObj.staff_code || dm?.staffId || contract?.staffId || ('SR-' + String(userObj.id || userObj.user_id || '0000').slice(-4).toUpperCase());
+  const cardCreds = buildStaffCardCredentials(companyId, staffId, store);
+  const geo = resolveOrgGeofenceConfig(matchedOrg || {}, profile);
+
   return {
     ...userObj,
     organisation_id: userObj.organisation_id || matchedOrg?.id || demoOrganisation.id,
     organisation_name: orgName,
     company_name: legalName,
     company_id: companyId,
-    hub_name: userObj.hub_name || matchedOrg?.hub_name || profile.defaultHubName,
+    staffId,
+    cardVerifyCode: cardCreds.cardVerifyCode,
+    cardQrPayload: cardCreds.cardQrPayload,
+    hub_name: userObj.hub_name || geo.hubName,
+    hub_lat: geo.hubLat,
+    hub_lng: geo.hubLng,
+    hub_perimeter: geo.perimeterMeters,
     industry: rawIndustry || profile.label,
     industryKey: profile.key,
     industryProfile: profile
@@ -751,15 +772,24 @@ async function getUser(request) {
       if (!UUID_REGEX.test(token)) return null;
       try {
         const result = await query(
-          `select m.id, u.id as user_id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id, coalesce(o.trading_name, o.legal_name) as organisation_name, o.legal_name as company_name, o.organisation_code as company_id, o.industry from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id join organisations o on o.id = m.organisation_id where s.id = $1 and s.expires_at > now()`,
+          `select m.id, u.id as user_id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.staff_code, m.organisation_id, coalesce(o.trading_name, o.legal_name) as organisation_name, o.legal_name as company_name, o.organisation_code as company_id, o.industry, o.hub_name, o.hub_lat, o.hub_lng, o.hub_perimeter, o.settings from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id join organisations o on o.id = m.organisation_id where s.id = $1 and s.expires_at > now()`,
           [token]
         );
         if (result.rows[0]?.status === 'active') {
           const row = result.rows[0];
           const profile = resolveIndustryProfile(row.industry, row.organisation_name);
+          const geo = resolveOrgGeofenceConfig(row, profile);
+          const staffId = row.staff_code || ('SR-' + String(row.user_id || row.id).slice(-4).toUpperCase());
+          const cardCreds = buildStaffCardCredentials(row.company_id, staffId);
           return {
             ...row,
-            hub_name: profile.defaultHubName,
+            staffId,
+            cardVerifyCode: cardCreds.cardVerifyCode,
+            cardQrPayload: cardCreds.cardQrPayload,
+            hub_name: geo.hubName,
+            hub_lat: geo.hubLat,
+            hub_lng: geo.hubLng,
+            hub_perimeter: geo.perimeterMeters,
             industry: row.industry || profile.label,
             industryKey: profile.key,
             industryProfile: profile
@@ -1317,14 +1347,28 @@ const wellbeingQuotes = [
 ];
 async function timeSummary(user, month) {
   if (!databaseReady) return demoTimeSummary(user, await getStore(), month);
-  const openRows = await query('select id, clocked_in_at from time_entries where membership_id = $1 and clocked_out_at is null', [user.id]);
+  const openRows = await query('select id, clocked_in_at, verification_mode, note from time_entries where membership_id = $1 and clocked_out_at is null', [user.id]);
   for (const row of openRows.rows) {
     const endMs = computeScheduledShiftEndMs(user, new Date(row.clocked_in_at).getTime());
     if (Date.now() >= endMs) {
-      await query('update time_entries set clocked_out_at = $1 where id = $2 and clocked_out_at is null', [new Date(endMs).toISOString(), row.id]);
+      const isCardScan = row.verification_mode === 'colleague_card_scan' || String(row.note || '').includes('Colleague ID Card');
+      const outMode = isCardScan ? 'auto_shift_end_unverified_card' : 'auto_shift_end';
+      const extraNote = isCardScan
+        ? ' [AUTO_OUT Card Scan - Supervisor Presence Review Required]'
+        : ' [AUTO_OUT Without Verified Exit GPS]';
+      await query(
+        `update time_entries
+         set clocked_out_at = $1,
+             clock_out_verification_mode = $2,
+             clock_out_geofence_status = 'unverified_auto_out',
+             presence_verification_status = 'pending_supervisor_confirm',
+             note = trim(coalesce(note, '') || $3)
+         where id = $4 and clocked_out_at is null`,
+        [new Date(endMs).toISOString(), outMode, extraNote, row.id]
+      );
     }
   }
-  const result = await query(`select id, clocked_in_at, clocked_out_at, note, extract(epoch from (coalesce(clocked_out_at, now()) - clocked_in_at))/3600 as hours from time_entries where membership_id = $1 and clocked_in_at >= date_trunc('month', $2::date) and clocked_in_at < date_trunc('month', $2::date) + interval '1 month' order by clocked_in_at desc`, [user.id, month || new Date().toISOString().slice(0, 7) + '-01']);
+  const result = await query(`select id, clocked_in_at, clocked_out_at, note, verification_mode, geofence_status, presence_verification_status, clock_out_verification_mode, extract(epoch from (coalesce(clocked_out_at, now()) - clocked_in_at))/3600 as hours from time_entries where membership_id = $1 and clocked_in_at >= date_trunc('month', $2::date) and clocked_in_at < date_trunc('month', $2::date) + interval '1 month' order by clocked_in_at desc`, [user.id, month || new Date().toISOString().slice(0, 7) + '-01']);
   const activeRow = result.rows.find((entry) => !entry.clocked_out_at) || null;
   const active = activeRow ? { ...activeRow, shiftEndAt: new Date(computeScheduledShiftEndMs(user, new Date(activeRow.clocked_in_at).getTime())).toISOString() } : null;
   const totalHours = result.rows.reduce((total, entry) => total + Number(entry.hours), 0);
@@ -1383,12 +1427,16 @@ async function signIn(body) {
       const org = orgRes.rows[0];
       if (!org) throw new Error(`Invalid Company ID "${rawCompanyId}". Please check your tenant identifier.`);
 
-      const result = await query(`select u.id as user_id, u.password_hash, u.time_zone, u.country_code, u.avatar_data_url, m.id, u.full_name as name, u.email, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id, coalesce(o.trading_name, o.legal_name) as organisation_name, o.legal_name as company_name, o.industry from portal_users u join memberships m on m.user_id = u.id join organisations o on o.id = m.organisation_id where m.organisation_id = $1 and lower(u.email) = lower($2) order by m.created_at desc limit 1`, [org.id, emailOrUser]);
+      const result = await query(`select u.id as user_id, u.password_hash, u.time_zone, u.country_code, u.avatar_data_url, m.id, m.staff_code, u.full_name as name, u.email, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id, coalesce(o.trading_name, o.legal_name) as organisation_name, o.legal_name as company_name, o.industry, o.hub_name, o.hub_lat, o.hub_lng, o.hub_perimeter, o.settings from portal_users u join memberships m on m.user_id = u.id join organisations o on o.id = m.organisation_id where m.organisation_id = $1 and lower(u.email) = lower($2) order by m.created_at desc limit 1`, [org.id, emailOrUser]);
       const member = result.rows[0];
       if (!member || !(await passwordMatches(body.password, member.password_hash))) throw new Error('Invalid email or password.');
       if (member.status !== 'active') throw new Error('Your workplace access is waiting for approval.');
       const dbProfile = resolveIndustryProfile(member.industry, member.organisation_name);
-      return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name, company_name: member.company_name, company_id: org.organisation_code, hub_name: dbProfile.defaultHubName, industry: member.industry || dbProfile.label, industryKey: dbProfile.key, industryProfile: dbProfile } };
+      const geo = resolveOrgGeofenceConfig(member, dbProfile);
+      const staffId = member.staff_code || ('SR-' + String(member.user_id || member.id).slice(-4).toUpperCase());
+      const storeForSecret = await getStore().catch(() => null);
+      const cardCreds = buildStaffCardCredentials(org.organisation_code, staffId, storeForSecret);
+      return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, staffId, cardVerifyCode: cardCreds.cardVerifyCode, cardQrPayload: cardCreds.cardQrPayload, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name, company_name: member.company_name, company_id: org.organisation_code, hub_name: geo.hubName, hub_lat: geo.hubLat, hub_lng: geo.hubLng, hub_perimeter: geo.perimeterMeters, industry: member.industry || dbProfile.label, industryKey: dbProfile.key, industryProfile: dbProfile } };
     } catch (dbErr) {
       if (ALLOW_DEV_FALLBACK && isDatabaseConnectionError(dbErr)) {
         console.warn('[AUTH FALLBACK] DB connection error during signIn; falling back to local credentials:', dbErr.message);
@@ -1667,20 +1715,35 @@ export function compilePayrollRun(store, tenantId = null) {
     const completedEntries = memberEntries.filter(e => e.clockedOutAt);
     const openPunches      = memberEntries.filter(e => !e.clockedOutAt).length;
 
-    // Calculate hours from live attendance
+    // Calculate verified hours from live attendance (held/auto-out unverified shifts excluded until supervisor confirms)
     let regularHours = 0;
     let overtimeHours = 0;
+    let pendingPresenceReviews = 0;
+    let flaggedEarlyDepartures = 0;
+    let unverifiedShiftHours = 0;
     const STANDARD_DAILY_HOURS = 8;
     const OVERTIME_THRESHOLD   = 8;
     for (const e of completedEntries) {
-      const worked = (new Date(e.clockedOutAt) - new Date(e.clockedInAt)) / 3600000;
-      const reg = Math.min(worked, OVERTIME_THRESHOLD);
-      const ot  = Math.max(0, worked - OVERTIME_THRESHOLD);
+      const worked = Math.max(0, (new Date(e.clockedOutAt) - new Date(e.clockedInAt)) / 3600000);
+      if (e.presenceVerificationStatus === 'pending_supervisor_confirm') {
+        pendingPresenceReviews += 1;
+        unverifiedShiftHours += worked;
+        continue;
+      }
+      let credited = worked;
+      if (e.presenceVerificationStatus === 'flagged_early_departure') {
+        flaggedEarlyDepartures += 1;
+        credited = Math.max(0, Number(e.verifiedHours ?? 0));
+      }
+      const reg = Math.min(credited, OVERTIME_THRESHOLD);
+      const ot  = Math.max(0, credited - OVERTIME_THRESHOLD);
       regularHours  += reg;
       overtimeHours += ot;
     }
     regularHours  = Math.round(regularHours  * 100) / 100;
     overtimeHours = Math.round(overtimeHours * 100) / 100;
+    unverifiedShiftHours = Math.round(unverifiedShiftHours * 100) / 100;
+    const unverifiedShiftHolds = pendingPresenceReviews + flaggedEarlyDepartures;
 
     // Fall back to contract standard hours when no live entries exist yet
     if (completedEntries.length === 0) {
@@ -1699,8 +1762,9 @@ export function compilePayrollRun(store, tenantId = null) {
     const regularPay         = isMonthly ? baseRate : Math.round(regularHours * hourlyRate);
     const overtimePay        = Math.round(overtimeHours * (hourlyRate * 1.5));
     const performanceBonus   = Math.round(regularPay * performanceBonusPct);
+    const heldShiftDays      = isMonthly ? unverifiedShiftHolds : 0;
     const absenceDeduction   = Math.round(
-      (unexcusedAbsenceDays + attendanceDeductionDays) * (isMonthly ? baseRate / 22 : hourlyRate * STANDARD_DAILY_HOURS)
+      (unexcusedAbsenceDays + attendanceDeductionDays + heldShiftDays) * (isMonthly ? baseRate / 22 : hourlyRate * STANDARD_DAILY_HOURS)
     );
     const grossPay           = Math.max(0, Math.round(regularPay + overtimePay + performanceBonus - absenceDeduction));
 
@@ -1720,6 +1784,10 @@ export function compilePayrollRun(store, tenantId = null) {
       regularHours,
       overtimeHours,
       unexcusedAbsenceDays,
+      pendingPresenceReviews,
+      flaggedEarlyDepartures,
+      unverifiedShiftHolds,
+      unverifiedShiftHours,
       completedShifts: completedEntries.length,
       // Shift score integration
       shiftScore:     avgScore,
@@ -1746,7 +1814,7 @@ export function compilePayrollRun(store, tenantId = null) {
       account_number: c.account_number || '0000000000',
       account_name:  c.account_name  || c.userName,
       narration:    `Salary ${month.replace('-', ' ')} ShiftRelay Verified`,
-      status:       'verified_ready',
+      status:       unverifiedShiftHolds > 0 ? 'hold_presence_review' : 'verified_ready',
       formatted: {
         basicSalary:      '₦' + regularPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         overtimeBonus:    '₦' + overtimePay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
@@ -1772,6 +1840,8 @@ export function compilePayrollRun(store, tenantId = null) {
   const totalPAYE       = employees.reduce((acc, e) => acc + e.payeTax, 0);
   const verifiedShifts  = employees.reduce((acc, e) => acc + e.completedShifts, 0);
   const missedPunches   = employees.reduce((acc, e) => acc + e.unexcusedAbsenceDays, 0);
+  const pendingPresenceReviews = employees.reduce((acc, e) => acc + (e.pendingPresenceReviews || 0), 0);
+  const unverifiedShiftHolds   = employees.reduce((acc, e) => acc + (e.unverifiedShiftHolds || 0), 0);
 
   return {
     period:      'November 2026 Monthly Payroll Cycle',
@@ -1790,7 +1860,9 @@ export function compilePayrollRun(store, tenantId = null) {
       totalPension,
       totalPAYE,
       verifiedShiftsCount: verifiedShifts,
-      missedPunchesResolved: missedPunches
+      missedPunchesResolved: missedPunches,
+      pendingPresenceReviews,
+      unverifiedShiftHolds
     },
     employees
   };
@@ -2919,15 +2991,14 @@ async function getOrganisationRosterState(user) {
       if (!m) continue;
       const endMs = computeScheduledShiftEndMs(m, new Date(t.clockedInAt).getTime());
       if (nowMs >= endMs) {
-        t.clockedOutAt = new Date(endMs).toISOString();
-        t.clockOutVerificationMode = 'auto_shift_end';
-        t.clockOutDetails = 'Auto Clock-Out at Scheduled Shift End';
+        applyAutoShiftEndClosure(t, endMs, { gpsVerifiedAtClose: false });
         swept = true;
       } else if (m.status === 'active') {
         m.onShift = true;
         m.clockedInAt = t.clockedInAt;
         m.verificationMode = t.verificationMode || 'standard';
         m.scannedByName = t.scannedByName || null;
+        m.presenceVerificationStatus = t.presenceVerificationStatus || 'active';
       }
     }
     if (swept) await saveStore(store);
@@ -2960,7 +3031,7 @@ async function getOrganisationRosterState(user) {
     [orgId]
   );
   const openRes = await query(
-    `select id, membership_id, clocked_in_at, note from time_entries where organisation_id = $1 and clocked_out_at is null`,
+    `select id, membership_id, clocked_in_at, note, verification_mode, presence_verification_status, scanned_by_name from time_entries where organisation_id = $1 and clocked_out_at is null`,
     [orgId]
   );
   const memberById = new Map();
@@ -2988,7 +3059,8 @@ async function getOrganisationRosterState(user) {
       onShift: false,
       clockedInAt: null,
       verificationMode: null,
-      scannedByName: null
+      scannedByName: null,
+      presenceVerificationStatus: null
     };
     memberById.set(m.id, m);
     return m;
@@ -3000,12 +3072,28 @@ async function getOrganisationRosterState(user) {
     if (!m) continue;
     const endMs = computeScheduledShiftEndMs(m, new Date(row.clocked_in_at).getTime());
     if (nowMs >= endMs) {
-      await query('update time_entries set clocked_out_at = $1 where id = $2 and clocked_out_at is null', [new Date(endMs).toISOString(), row.id]);
+      const isCardScan = row.verification_mode === 'colleague_card_scan' || String(row.note || '').includes('Colleague ID Card');
+      const outMode = isCardScan ? 'auto_shift_end_unverified_card' : 'auto_shift_end';
+      const extraNote = isCardScan
+        ? ' [AUTO_OUT Card Scan - Supervisor Presence Review Required]'
+        : ' [AUTO_OUT Without Verified Exit GPS]';
+      await query(
+        `update time_entries
+         set clocked_out_at = $1,
+             clock_out_verification_mode = $2,
+             clock_out_geofence_status = 'unverified_auto_out',
+             presence_verification_status = 'pending_supervisor_confirm',
+             note = trim(coalesce(note, '') || $3)
+         where id = $4 and clocked_out_at is null`,
+        [new Date(endMs).toISOString(), outMode, extraNote, row.id]
+      );
     } else if (m.status === 'active') {
       m.onShift = true;
       m.clockedInAt = row.clocked_in_at;
       const note = String(row.note || '');
-      m.verificationMode = note.includes('Colleague ID Card') ? 'colleague_card_scan' : 'standard';
+      m.verificationMode = row.verification_mode || (note.includes('Colleague ID Card') ? 'colleague_card_scan' : 'standard');
+      m.scannedByName = row.scanned_by_name || null;
+      m.presenceVerificationStatus = row.presence_verification_status || 'active';
     }
   }
   const activeMembers = members.filter(m => m.status === 'active');
@@ -3822,6 +3910,147 @@ async function getOrganisationRosterState(user) {
     const { members, summary } = await getOrganisationRosterState(user);
     return sendJson(response, 200, { members, summary });
   }
+  if (url.pathname === '/api/team/id-cards' && request.method === 'GET') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    if (!['owner', 'manager', 'workforce_admin', 'supervisor'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Printable Staff ID Security Cards require supervisor or manager access.' });
+    }
+    const { members, store } = await getOrganisationRosterState(user);
+    const org = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
+    const orgCode = String(org.organisation_code || user.company_id || 'RIF-2026').toUpperCase();
+    const cards = members
+      .filter(m => m.status === 'active')
+      .map(m => {
+        const creds = buildStaffCardCredentials(orgCode, m.staffId, store);
+        return {
+          ...m,
+          cardVerifyCode: creds.cardVerifyCode,
+          cardQrPayload: creds.cardQrPayload
+        };
+      });
+    await saveStore(store);
+    return sendJson(response, 200, { companyId: orgCode, cards });
+  }
+  if (url.pathname === '/api/time-entries/presence-reviews' && request.method === 'GET') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    if (!['owner', 'manager', 'workforce_admin', 'supervisor'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Presence verification queue requires supervisor or manager access.' });
+    }
+    const { members, store } = await getOrganisationRosterState(user);
+    const memberById = new Map();
+    for (const m of members) {
+      memberById.set(m.id, m);
+      memberById.set(m.user_id, m);
+    }
+
+    let reviews = [];
+    if (!databaseReady) {
+      reviews = (store.timeEntries || [])
+        .filter(e =>
+          (!e.organisationId || e.organisationId === user.organisation_id) &&
+          e.clockedOutAt &&
+          e.presenceVerificationStatus === 'pending_supervisor_confirm'
+        )
+        .map(e => {
+          const m = memberById.get(e.membershipId) || {};
+          const workedHours = Math.round(Math.max(0, (new Date(e.clockedOutAt) - new Date(e.clockedInAt)) / 3600000) * 100) / 100;
+          return {
+            id: e.id,
+            membershipId: e.membershipId,
+            workerName: m.name || 'Staff Member',
+            staffId: m.staffId || '',
+            department: m.department || 'Operations',
+            role: m.title || 'Staff',
+            clockedInAt: e.clockedInAt,
+            clockedOutAt: e.clockedOutAt,
+            workedHours,
+            verificationMode: e.verificationMode || 'standard',
+            clockOutVerificationMode: e.clockOutVerificationMode || 'auto_shift_end',
+            scannedByName: e.scannedByName || null,
+            flagReason: e.attendanceIntegrityFlag || 'AUTO_OUT_UNVERIFIED_PRESENCE',
+            details: e.clockOutDetails || e.verificationDetails || 'Auto clock-out without verified exit GPS or card exit scan'
+          };
+        });
+    } else {
+      const pgRes = await query(
+        `select t.id, t.membership_id, t.clocked_in_at, t.clocked_out_at, t.verification_mode, t.clock_out_verification_mode, t.scanned_by_name, t.note
+         from time_entries t
+         where t.organisation_id = $1 and t.clocked_out_at is not null and t.presence_verification_status = 'pending_supervisor_confirm'
+         order by t.clocked_out_at desc`,
+        [user.organisation_id]
+      );
+      reviews = pgRes.rows.map(r => {
+        const m = memberById.get(r.membership_id) || {};
+        const workedHours = Math.round(Math.max(0, (new Date(r.clocked_out_at) - new Date(r.clocked_in_at)) / 3600000) * 100) / 100;
+        return {
+          id: r.id,
+          membershipId: r.membership_id,
+          workerName: m.name || 'Staff Member',
+          staffId: m.staffId || '',
+          department: m.department || 'Operations',
+          role: m.title || 'Staff',
+          clockedInAt: r.clocked_in_at,
+          clockedOutAt: r.clocked_out_at,
+          workedHours,
+          verificationMode: r.verification_mode || 'standard',
+          clockOutVerificationMode: r.clock_out_verification_mode || 'auto_shift_end',
+          scannedByName: r.scanned_by_name || null,
+          flagReason: 'AUTO_OUT_UNVERIFIED_PRESENCE',
+          details: r.note || 'Auto clock-out without verified exit presence'
+        };
+      });
+    }
+    return sendJson(response, 200, { ok: true, count: reviews.length, reviews });
+  }
+  const presenceConfirmMatch = url.pathname.match(/^\/api\/time-entries\/([^/]+)\/confirm-presence$/);
+  if (presenceConfirmMatch && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    if (!['owner', 'manager', 'workforce_admin', 'supervisor'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Floor presence confirmation requires supervisor or manager access.' });
+    }
+    const entryId = presenceConfirmMatch[1];
+    const body = await readJson(request).catch(() => ({}));
+    const rawDecision = String(body.decision || 'confirm').toLowerCase();
+    const isConfirmed = ['confirm', 'confirmed', 'approve', 'verified'].includes(rawDecision);
+    const verifiedHours = body.verifiedHours !== undefined ? Math.max(0, Number(body.verifiedHours) || 0) : null;
+
+    if (!databaseReady) {
+      const store = await getStore();
+      const entry = (store.timeEntries || []).find(e => e.id === entryId && (!e.organisationId || e.organisationId === user.organisation_id));
+      if (!entry) return sendJson(response, 404, { error: 'Attendance record not found.' });
+      if (isConfirmed) {
+        entry.presenceVerificationStatus = 'supervisor_confirmed';
+        entry.presenceConfirmedBy = user.name || 'Supervisor';
+        entry.presenceConfirmedAt = new Date().toISOString();
+        entry.clockOutDetails = `Supervisor Confirmed Full Shift (${user.name || 'Supervisor'})`;
+      } else {
+        entry.presenceVerificationStatus = 'flagged_early_departure';
+        entry.earlyDeparture = true;
+        if (verifiedHours !== null) {
+          entry.verifiedHours = verifiedHours;
+        } else {
+          entry.verifiedHours = 0;
+        }
+        entry.presenceConfirmedBy = user.name || 'Supervisor';
+        entry.presenceConfirmedAt = new Date().toISOString();
+        entry.clockOutDetails = `Flagged Unverified Early Departure by ${user.name || 'Supervisor'} (${entry.verifiedHours}h credited)`;
+      }
+      await saveStore(store);
+      return sendJson(response, 200, { ok: true, entry });
+    }
+
+    const newStatus = isConfirmed ? 'supervisor_confirmed' : 'flagged_early_departure';
+    const noteSuffix = isConfirmed
+      ? ` [CONFIRMED BY ${user.name || 'Supervisor'}]`
+      : ` [EARLY DEPARTURE FLAGGED BY ${user.name || 'Supervisor'}]`;
+    const upd = await query(
+      `update time_entries set presence_verification_status = $1, note = COALESCE(note, '') || $2 where id = $3 and organisation_id = $4 returning id`,
+      [newStatus, noteSuffix, entryId, user.organisation_id]
+    );
+    if (!upd.rows[0]) return sendJson(response, 404, { error: 'Attendance record not found.' });
+    await audit(user.organisation_id, user.id, 'presence_review_decided', 'time_entry', entryId, `${newStatus} by ${user.name}`);
+    return sendJson(response, 200, { ok: true, id: entryId, status: newStatus });
+  }
   if (url.pathname === '/api/incidents' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Incident reporting is available for authenticated organisation accounts.' });
     if (!databaseReady) {
@@ -3955,31 +4184,33 @@ async function getOrganisationRosterState(user) {
     });
   }
 
-  // ── Peer Mobile ID Card Clock-In Scanner (Zero Hardware Kiosk Needed) ─────
+  // ── Peer Mobile ID Card Clock-In & Exit Scanner (Zero Hardware Kiosk Needed) ──
   // POST /api/time-entries/peer-card-scan (and backwards-compatible /api/time-entries/kiosk-badge-scan)
-  // Colleague scans a non-smartphone worker's printed/digital Staff ID card once per day.
-  // Auto clock-out closes the shift at scheduled shift end.
+  // Enforces:
+  //   1) Scanner device MUST have verified live high-accuracy GPS inside the site geofence
+  //   2) No self-scanning (scanner cannot scan their own Staff ID card)
+  //   3) Cryptographic 6-char Card Security Code (or signed QR payload) must match card
+  //   4) Duplicate same-day colleague card check-ins blocked (409)
+  //   5) Supports both Check-In and Exit Card Scan so workers without phones prove on-site departure
   if ((url.pathname === '/api/time-entries/peer-card-scan' || url.pathname === '/api/time-entries/kiosk-badge-scan') && request.method === 'POST') {
-    if (!user.organisation_id) return sendJson(response, 400, { error: 'ID card clock-in requires an authenticated organisation account.' });
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'ID card attendance requires an authenticated organisation account.' });
     const body = await readJson(request).catch(() => ({}));
     const rawPayload = String(body.badgePayload || body.badgeCode || body.staffId || body.memberId || '').trim();
+    const explicitSecurityCode = String(body.cardVerifyCode || body.cardSecurityCode || body.securityCode || body.verifyCode || '').trim();
+    const reqActionRaw = String(body.action || body.scanAction || 'clock-in').trim().toLowerCase();
+    const isExitScan = reqActionRaw === 'clock-out' || reqActionRaw === 'clock_out' || reqActionRaw === 'exit' || reqActionRaw === 'check-out';
     if (!rawPayload) return sendJson(response, 400, { error: 'Staff ID card QR payload or Staff ID code is required.' });
 
-    // Supported formats: "SHIFTRELAY:ID:RIF-2026:RIF-0023", "SR:STAFF:RIF-0023", "RIF-0023", UUID, or email
-    let extractedCode = rawPayload;
-    if (rawPayload.includes(':')) {
-      const parts = rawPayload.split(':').map(s => s.trim()).filter(Boolean);
-      extractedCode = parts[parts.length - 1] || rawPayload;
-    }
-    const lookupNeedle = extractedCode.toLowerCase();
+    const parsed = parseStaffCardPayload(rawPayload, explicitSecurityCode);
+    const extractedCode = parsed.staffId || rawPayload;
+    const lookupNeedle = String(extractedCode || '').trim().toLowerCase();
 
     const { members, store } = await getOrganisationRosterState(user);
     const targetMember = members.find(m =>
       (m.staffId && m.staffId.toLowerCase() === lookupNeedle) ||
       (m.id && m.id.toLowerCase() === lookupNeedle) ||
       (m.user_id && m.user_id.toLowerCase() === lookupNeedle) ||
-      (m.email && m.email.toLowerCase() === lookupNeedle) ||
-      (m.name && m.name.toLowerCase() === lookupNeedle)
+      (m.email && m.email.toLowerCase() === lookupNeedle)
     );
 
     if (!targetMember) {
@@ -3992,47 +4223,91 @@ async function getOrganisationRosterState(user) {
         error: `${targetMember.name} (${targetMember.staffId}) has membership status "${targetMember.status}" and cannot clock in.`
       });
     }
+    if (targetMember.id === user.id || (user.user_id && targetMember.user_id === user.user_id)) {
+      return sendJson(response, 403, {
+        error: 'Self-scanning is disabled. Use your personal GPS Clock-In/Out button, or have an on-site colleague scan your physical Staff ID card.',
+        code: 'SELF_SCAN_FORBIDDEN'
+      });
+    }
+
+    const orgId = user.organisation_id;
+    const org = (store.organisations || []).find(o => o.id === orgId) || {};
+    const orgForGps = databaseReady
+      ? ((await query('select id, organisation_code, hub_name, hub_lat, hub_lng, hub_perimeter, settings from organisations where id = $1 limit 1', [orgId])).rows[0] || org)
+      : org;
+    const orgCode = String(orgForGps.organisation_code || org.organisation_code || user.company_id || 'RIF-2026').toUpperCase();
+    const normParsedOrg = String(parsed.orgCode || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    const normExpectedOrg = orgCode.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    if (normParsedOrg && normExpectedOrg && normParsedOrg !== normExpectedOrg && !(normExpectedOrg === 'RIF2026' && ['246701', 'RIFFMAX', 'RIFFMAX01', 'RIF01', 'RIF2026'].includes(normParsedOrg))) {
+      return sendJson(response, 403, {
+        error: 'This Staff ID card belongs to a different organisation.',
+        code: 'ORG_MISMATCH'
+      });
+    }
+
+    if (!verifyStaffCardSecurityCode({ orgCode, staffId: targetMember.staffId, providedCode: parsed.securityCode, storeOrSecret: store })) {
+      return sendJson(response, 403, {
+        error: 'Invalid or missing 6-character Card Security Code. Scan the worker\'s physical Staff ID QR code or enter the SEC code printed on their card.',
+        code: 'INVALID_CARD_SECURITY_CODE'
+      });
+    }
+
+    const orgProfile = resolveIndustryProfile(org.industryKey || org.industry, org.trading_name || org.legal_name);
+    let gpsProof;
+    try {
+      gpsProof = verifyStrictLiveGps(orgForGps, orgProfile, body, {
+        actionLabel: isExitScan ? 'scan colleague exit card' : 'scan colleague ID card',
+        allowOfflineCaptured: true
+      });
+    } catch (gpsErr) {
+      return sendJson(response, gpsErr.statusCode || 403, {
+        error: gpsErr.message,
+        code: gpsErr.errorCode || 'GPS_REQUIRED'
+      });
+    }
 
     const now = new Date();
     const nowIso = now.toISOString();
-    const orgId = user.organisation_id;
-    const org = (store.organisations || []).find(o => o.id === orgId) || {};
-    const orgProfile = resolveIndustryProfile(org.industryKey || org.industry, org.trading_name || org.legal_name);
-    const hubName = org.hub_name || orgProfile.defaultHubName || 'Main Operations Hub';
-
-    // Evaluate GPS geofence if scanner mobile device attached coordinates
-    let geofenceStatus = 'verified_via_peer_scan';
-    let distanceMeters = 0;
+    const todayPrefix = nowIso.slice(0, 10);
+    const hubName = gpsProof.hubName;
     const scannerLabel = `${user.name || 'Colleague'} (${user.role || 'staff'})`;
-    let verificationDetails = `Colleague ID Card Scan by ${scannerLabel} · ${hubName}`;
-    if (body.coords && body.coords.latitude && body.coords.longitude) {
-      const hubLat = org.hub_lat || 6.4312;
-      const hubLng = org.hub_lng || 3.4244;
-      const perimeterMeters = org.hub_perimeter || 250;
-      distanceMeters = calculateHaversineDistanceMeters(Number(body.coords.latitude), Number(body.coords.longitude), hubLat, hubLng);
-      if (distanceMeters <= perimeterMeters + 15) {
-        geofenceStatus = 'within_geofence';
-        verificationDetails = `Colleague ID Card Scan by ${scannerLabel} · GPS ${distanceMeters}m from ${hubName}`;
-      } else {
-        geofenceStatus = 'outside_geofence_flagged';
-        const distStr = distanceMeters >= 1000 ? `${(distanceMeters / 1000).toFixed(1)} km` : `${distanceMeters}m`;
-        verificationDetails = `Colleague ID Card Scan by ${scannerLabel} · Flagged GPS ${distStr} outside ${hubName}`;
-      }
-    }
 
     if (!databaseReady) {
       if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
       const activeEntry = store.timeEntries.find(e =>
         (e.membershipId === targetMember.id || e.membershipId === targetMember.user_id) && !e.clockedOutAt
       );
-      if (activeEntry) {
+
+      if (isExitScan) {
+        if (!activeEntry) {
+          return sendJson(response, 409, {
+            error: `${targetMember.name} (${targetMember.staffId}) does not have an active open shift to clock out.`,
+            code: 'NOT_CLOCKED_IN'
+          });
+        }
         const scheduledEndMs = computeScheduledShiftEndMs(targetMember, new Date(activeEntry.clockedInAt).getTime());
-        const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
+        const earlyDeparture = now.getTime() < scheduledEndMs;
+        activeEntry.clockedOutAt = nowIso;
+        activeEntry.clockOutVerificationMode = 'colleague_card_exit_scan';
+        activeEntry.clockOutGeofenceStatus = 'within_geofence';
+        activeEntry.clockOutDistanceMeters = gpsProof.distanceMeters;
+        activeEntry.clockOutCoords = { latitude: gpsProof.effectiveLat, longitude: gpsProof.effectiveLng, accuracy: gpsProof.accuracy, capturedAt: gpsProof.capturedAt };
+        activeEntry.exitScannedByMembershipId = user.id;
+        activeEntry.exitScannedByName = user.name || 'Colleague';
+        activeEntry.presenceVerificationStatus = 'verified_entry_and_exit';
+        activeEntry.clockOutDetails = `Verified Card Exit Scan by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}`;
+        await saveStore(store);
+        broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-out' }, { organisationId: orgId });
+
         return sendJson(response, 200, {
           ok: true,
-          alreadyClockedIn: true,
-          action: 'already-clocked-in',
+          action: 'clock-out',
+          earlyDeparture,
           verificationMode: activeEntry.verificationMode || 'colleague_card_scan',
+          clockOutVerificationMode: 'colleague_card_exit_scan',
+          presenceVerificationStatus: 'verified_entry_and_exit',
+          geofenceStatus: 'within_geofence',
+          distanceMeters: gpsProof.distanceMeters,
           worker: {
             userId: targetMember.user_id,
             membershipId: targetMember.id,
@@ -4042,12 +4317,33 @@ async function getOrganisationRosterState(user) {
             department: targetMember.department
           },
           clockedInAt: activeEntry.clockedInAt,
-          scheduledClockOutAt,
+          clockedOutAt: nowIso,
           verifiedBy: { membershipId: user.id, name: user.name },
-          message: `${targetMember.name} (${targetMember.staffId}) is already clocked in today. Auto clock-out runs at ${targetMember.shift_end || 'shift end'}.`
+          message: `${targetMember.name} (${targetMember.staffId}) exit verified on-site by ${user.name}${earlyDeparture ? ' (early exit recorded to exact departure time)' : ''}.`
         });
       }
 
+      if (activeEntry) {
+        return sendJson(response, 409, {
+          error: `${targetMember.name} (${targetMember.staffId}) is already clocked in today. Switch the scanner to Exit Card Scan if they are leaving site.`,
+          code: 'ALREADY_CLOCKED_IN'
+        });
+      }
+
+      const duplicateTodayCardScan = store.timeEntries.find(e =>
+        (e.membershipId === targetMember.id || e.membershipId === targetMember.user_id) &&
+        typeof e.clockedInAt === 'string' &&
+        e.clockedInAt.slice(0, 10) === todayPrefix &&
+        e.verificationMode === 'colleague_card_scan'
+      );
+      if (duplicateTodayCardScan) {
+        return sendJson(response, 409, {
+          error: `${targetMember.name} (${targetMember.staffId}) already completed a colleague ID card clock-in today. Duplicate same-day card check-ins are blocked.`,
+          code: 'DUPLICATE_DAILY_CARD_SCAN'
+        });
+      }
+
+      const verificationDetails = `Colleague ID Card Check-In by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}`;
       const scheduledEndMs = computeScheduledShiftEndMs(targetMember, now.getTime());
       const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
       const newEntry = {
@@ -4062,20 +4358,22 @@ async function getOrganisationRosterState(user) {
         verificationDetails,
         scannedByMembershipId: user.id,
         scannedByName: user.name || 'Colleague',
-        geofenceStatus,
-        distanceMeters,
+        geofenceStatus: 'within_geofence',
+        presenceVerificationStatus: 'awaiting_exit_scan',
+        distanceMeters: gpsProof.distanceMeters,
         siteName: hubName,
-        coords: body.coords || null
+        coords: { latitude: gpsProof.effectiveLat, longitude: gpsProof.effectiveLng, accuracy: gpsProof.accuracy, capturedAt: gpsProof.capturedAt }
       };
       store.timeEntries.unshift(newEntry);
       await saveStore(store);
-      broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-in' });
+      broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-in' }, { organisationId: orgId });
 
       return sendJson(response, 200, {
         ok: true,
         alreadyClockedIn: false,
         action: 'clock-in',
         verificationMode: 'colleague_card_scan',
+        presenceVerificationStatus: 'awaiting_exit_scan',
         worker: {
           userId: targetMember.user_id,
           membershipId: targetMember.id,
@@ -4086,25 +4384,51 @@ async function getOrganisationRosterState(user) {
         },
         clockedInAt: nowIso,
         scheduledClockOutAt,
-        geofenceStatus,
+        geofenceStatus: 'within_geofence',
+        distanceMeters: gpsProof.distanceMeters,
         verifiedBy: { membershipId: user.id, name: user.name },
-        message: `${targetMember.name} (${targetMember.staffId}) clocked in by ${user.name}. Auto clock-out scheduled at ${targetMember.shift_end || 'shift end'}.`
+        message: `${targetMember.name} (${targetMember.staffId}) clocked in by ${user.name} (${gpsProof.distanceMeters}m from ${hubName}). Scan their ID card again on exit or confirm presence at shift end.`
       });
     }
 
     // PostgreSQL mode
     const existingOpen = (await query(
-      'select id, clocked_in_at from time_entries where membership_id = $1 and clocked_out_at is null limit 1',
+      'select id, clocked_in_at, verification_mode, note from time_entries where membership_id = $1 and clocked_out_at is null limit 1',
       [targetMember.id]
     )).rows[0];
 
-    if (existingOpen) {
+    if (isExitScan) {
+      if (!existingOpen) {
+        return sendJson(response, 409, {
+          error: `${targetMember.name} (${targetMember.staffId}) does not have an active open shift to clock out.`,
+          code: 'NOT_CLOCKED_IN'
+        });
+      }
       const scheduledEndMs = computeScheduledShiftEndMs(targetMember, new Date(existingOpen.clocked_in_at).getTime());
+      const earlyDeparture = now.getTime() < scheduledEndMs;
+      const exitDetail = `Verified Card Exit Scan by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}`;
+      await query(
+        `update time_entries
+         set clocked_out_at = $1,
+             clock_out_verification_mode = 'colleague_card_exit_scan',
+             clock_out_geofence_status = 'within_geofence',
+             presence_verification_status = 'verified_entry_and_exit',
+             note = trim(coalesce(note, '') || ' | ' || $2)
+         where id = $3 and clocked_out_at is null`,
+        [nowIso, exitDetail, existingOpen.id]
+      );
+      await audit(orgId, user.id, 'peer_card_clock_out', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) exit verified via colleague ID card scan.`);
+      broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-out' }, { organisationId: orgId });
+
       return sendJson(response, 200, {
         ok: true,
-        alreadyClockedIn: true,
-        action: 'already-clocked-in',
-        verificationMode: 'colleague_card_scan',
+        action: 'clock-out',
+        earlyDeparture,
+        verificationMode: existingOpen.verification_mode || 'colleague_card_scan',
+        clockOutVerificationMode: 'colleague_card_exit_scan',
+        presenceVerificationStatus: 'verified_entry_and_exit',
+        geofenceStatus: 'within_geofence',
+        distanceMeters: gpsProof.distanceMeters,
         worker: {
           userId: targetMember.user_id,
           membershipId: targetMember.id,
@@ -4114,26 +4438,48 @@ async function getOrganisationRosterState(user) {
           department: targetMember.department
         },
         clockedInAt: existingOpen.clocked_in_at,
-        scheduledClockOutAt: new Date(scheduledEndMs).toISOString(),
+        clockedOutAt: nowIso,
         verifiedBy: { membershipId: user.id, name: user.name },
-        message: `${targetMember.name} (${targetMember.staffId}) is already clocked in today. Auto clock-out runs at ${targetMember.shift_end || 'shift end'}.`
+        message: `${targetMember.name} (${targetMember.staffId}) exit verified on-site by ${user.name}${earlyDeparture ? ' (early exit recorded to exact departure time)' : ''}.`
       });
     }
 
+    if (existingOpen) {
+      return sendJson(response, 409, {
+        error: `${targetMember.name} (${targetMember.staffId}) is already clocked in today. Switch the scanner to Exit Card Scan if they are leaving site.`,
+        code: 'ALREADY_CLOCKED_IN'
+      });
+    }
+
+    const dupCardPg = (await query(
+      `select id from time_entries where membership_id = $1 and clocked_in_at >= date_trunc('day', now()) and verification_mode = 'colleague_card_scan' limit 1`,
+      [targetMember.id]
+    )).rows[0];
+    if (dupCardPg) {
+      return sendJson(response, 409, {
+        error: `${targetMember.name} (${targetMember.staffId}) already completed a colleague ID card clock-in today. Duplicate same-day card check-ins are blocked.`,
+        code: 'DUPLICATE_DAILY_CARD_SCAN'
+      });
+    }
+
+    const verificationDetails = `Colleague ID Card Check-In by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}`;
     const scheduledEndMs = computeScheduledShiftEndMs(targetMember, now.getTime());
     const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
     await query(
-      'insert into time_entries (id, organisation_id, membership_id, clocked_in_at, note) values ($1, $2, $3, $4, $5)',
-      [crypto.randomUUID(), orgId, targetMember.id, nowIso, verificationDetails]
+      `insert into time_entries (id, organisation_id, membership_id, clocked_in_at, note, verification_mode, geofence_status, distance_meters, presence_verification_status, scanned_by_membership_id, scanned_by_name)
+       values ($1, $2, $3, $4, $5, 'colleague_card_scan', 'within_geofence', $6, 'awaiting_exit_scan', $7, $8)`,
+      [crypto.randomUUID(), orgId, targetMember.id, nowIso, verificationDetails, gpsProof.distanceMeters, user.id, user.name || 'Colleague']
     );
+    await saveStore(store);
     await audit(orgId, user.id, 'peer_card_clock_in', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) clocked in via colleague ID card scan.`);
-    broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-in' });
+    broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-in' }, { organisationId: orgId });
 
     return sendJson(response, 200, {
       ok: true,
       alreadyClockedIn: false,
       action: 'clock-in',
       verificationMode: 'colleague_card_scan',
+      presenceVerificationStatus: 'awaiting_exit_scan',
       worker: {
         userId: targetMember.user_id,
         membershipId: targetMember.id,
@@ -4144,9 +4490,10 @@ async function getOrganisationRosterState(user) {
       },
       clockedInAt: nowIso,
       scheduledClockOutAt,
-      geofenceStatus,
+      geofenceStatus: 'within_geofence',
+      distanceMeters: gpsProof.distanceMeters,
       verifiedBy: { membershipId: user.id, name: user.name },
-      message: `${targetMember.name} (${targetMember.staffId}) clocked in by ${user.name}. Auto clock-out scheduled at ${targetMember.shift_end || 'shift end'}.`
+      message: `${targetMember.name} (${targetMember.staffId}) clocked in by ${user.name} (${gpsProof.distanceMeters}m from ${hubName}). Scan their ID card again on exit or confirm presence at shift end.`
     });
   }
 
@@ -4157,6 +4504,7 @@ async function getOrganisationRosterState(user) {
     try { body = await readJson(request); } catch { body = {}; }
     try {
       const { statusCode, result, replay } = await withIdempotency(user, 'clock-in', clientKey, body, async (client) => {
+        const orgProfile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
         if (!databaseReady) {
           const store = await getStore();
           if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
@@ -4165,54 +4513,10 @@ async function getOrganisationRosterState(user) {
           }
 
           const org = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
-          const hubLat = org.hub_lat || 6.4474;
-          const hubLng = org.hub_lng || 3.3590;
-          const orgProfile = resolveIndustryProfile(org.industryKey || org.industry, org.trading_name || org.legal_name);
-          const hubName = org.hub_name || (org.state ? `${org.state} Operations Hub` : orgProfile.defaultHubName);
-          const perimeterMeters = org.hub_perimeter || 500;
-
-          const verificationMode = body.verificationMode || 'standard';
-          let geofenceStatus = 'verified_on_site';
-          let verificationDetails = 'Standard Attendance Punch';
-          let distanceMeters = 0;
-
-          if (verificationMode === 'gate_qr') {
-            const payload = String(body.qrPayload || '');
-            const cCode = String(org.organisation_code || '').toUpperCase();
-            if (payload && !payload.toUpperCase().includes(cCode)) {
-              verificationDetails = `Gate QR Scanned (${payload.slice(0, 32)})`;
-              geofenceStatus = 'unverified_gate';
-            } else {
-              verificationDetails = `Digital Staff ID Verified (${hubName})`;
-              geofenceStatus = 'verified_on_site';
-            }
-          } else if (verificationMode === 'gps_snapshot' && body.coords && body.coords.latitude) {
-            // Farouk Bello (SRE) - Multi-Sample Consensus & Weather Drift Buffer (Authorized by Executive Director)
-            let effectiveLat = Number(body.coords.latitude);
-            let effectiveLng = Number(body.coords.longitude);
-            if (Array.isArray(body.coordsSamples) && body.coordsSamples.length >= 3) {
-              const sortedLats = body.coordsSamples.map(s => Number(s.latitude)).sort((a,b) => a - b);
-              const sortedLngs = body.coordsSamples.map(s => Number(s.longitude)).sort((a,b) => a - b);
-              effectiveLat = sortedLats[Math.floor(sortedLats.length / 2)];
-              effectiveLng = sortedLngs[Math.floor(sortedLngs.length / 2)];
-            }
-            distanceMeters = calculateHaversineDistanceMeters(effectiveLat, effectiveLng, hubLat, hubLng);
-            const driftMarginMeters = 15; // 15m soft-zone buffer for concrete canopy/weather interference
-            if (distanceMeters <= perimeterMeters) {
-              geofenceStatus = 'within_geofence';
-              verificationDetails = `GPS Verified On-Site (${distanceMeters}m from ${hubName})`;
-            } else if (distanceMeters <= (perimeterMeters + driftMarginMeters)) {
-              geofenceStatus = 'within_geofence';
-              verificationDetails = `GPS Multi-Sample Verified (${distanceMeters}m from ${hubName} · Weather Drift Compensated)`;
-            } else {
-              geofenceStatus = 'outside_geofence_flagged';
-              const distStr = distanceMeters >= 1000 ? `${(distanceMeters / 1000).toFixed(1)} km` : `${distanceMeters}m`;
-              verificationDetails = `⚠️ Flagged: ${distStr} outside approved perimeter`;
-            }
-          } else {
-            verificationDetails = `Workplace Punch (${hubName})`;
-            geofenceStatus = 'verified_on_site';
-          }
+          const gpsProof = verifyStrictLiveGps(org, orgProfile, body, {
+            actionLabel: 'clock in',
+            allowOfflineCaptured: true
+          });
 
           store.timeEntries.unshift({
             id: crypto.randomUUID(),
@@ -4220,29 +4524,39 @@ async function getOrganisationRosterState(user) {
             membershipId: user.id,
             clockedInAt: new Date().toISOString(),
             clockedOutAt: null,
-            note: null,
-            verificationMode,
-            verificationDetails,
-            geofenceStatus,
-            distanceMeters,
-            siteName: hubName,
-            coords: body.coords || null
+            note: body.note || null,
+            verificationMode: 'gps_snapshot',
+            verificationDetails: gpsProof.verificationDetails,
+            geofenceStatus: 'within_geofence',
+            presenceVerificationStatus: 'active',
+            distanceMeters: gpsProof.distanceMeters,
+            siteName: gpsProof.hubName,
+            coords: { latitude: gpsProof.effectiveLat, longitude: gpsProof.effectiveLng, accuracy: gpsProof.accuracy, capturedAt: gpsProof.capturedAt }
           });
           await saveStore(store);
           return { statusCode: 201, result: demoTimeSummary(user, store) };
         }
-        // Use SELECT FOR UPDATE to prevent concurrent double clock-in
+        // PostgreSQL mode: strict live GPS verification required before acquiring clock-in lock
+        const orgRow = (await query('select id, hub_name, hub_lat, hub_lng, hub_perimeter, settings from organisations where id = $1 limit 1', [user.organisation_id])).rows[0] || {};
+        const gpsProof = verifyStrictLiveGps(orgRow, orgProfile, body, {
+          actionLabel: 'clock in',
+          allowOfflineCaptured: true
+        });
         const q = client || { query: (sql, vals) => query(sql, vals) };
         const existing = (await q.query('select id from time_entries where membership_id = $1 and clocked_out_at is null for update', [user.id])).rows[0];
         if (existing) { const err = new Error('You are already clocked in.'); err.statusCode = 409; throw err; }
-        await q.query('insert into time_entries (id, organisation_id, membership_id, clocked_in_at) values ($1,$2,$3,now())', [crypto.randomUUID(), user.organisation_id, user.id]);
+        await q.query(
+          `insert into time_entries (id, organisation_id, membership_id, clocked_in_at, note, verification_mode, geofence_status, distance_meters, presence_verification_status)
+           values ($1,$2,$3,now(),$4,'gps_snapshot','within_geofence',$5,'active')`,
+          [crypto.randomUUID(), user.organisation_id, user.id, gpsProof.verificationDetails, gpsProof.distanceMeters]
+        );
         return { statusCode: 201, result: await timeSummary(user) };
       });
       if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
       return sendJson(response, statusCode, result);
     } catch (err) {
       const code = err.statusCode || 500;
-      return sendJson(response, code, { error: err.message });
+      return sendJson(response, code, { error: err.message, code: err.errorCode || undefined });
     }
   }
   if (url.pathname === '/api/time-entries/clock-out' && request.method === 'POST') {
@@ -4251,48 +4565,138 @@ async function getOrganisationRosterState(user) {
     try { body = await readJson(request); } catch { body = {}; }
     try {
       const { statusCode, result, replay } = await withIdempotency(user, 'clock-out', clientKey, body, async (client) => {
+        const reqMode = String(body.verificationMode || 'gps_snapshot').toLowerCase();
+        const isAutoShiftEnd = reqMode === 'auto_shift_end';
+        const isSupervisorOverride = reqMode === 'supervisor_override';
+        if (isSupervisorOverride && !['owner', 'manager', 'supervisor', 'workforce_admin'].includes(user.role)) {
+          const err = new Error('Supervisor or owner authorization is required to override the shift lock.');
+          err.statusCode = 403;
+          err.errorCode = 'SUPERVISOR_REQUIRED';
+          throw err;
+        }
+        const orgProfile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
+
         if (!databaseReady) {
           const store = await getStore();
           if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
           const active = store.timeEntries.find((entry) => entry.membershipId === user.id && !entry.clockedOutAt);
           if (!active) { const err = new Error('You are not clocked in.'); err.statusCode = 409; throw err; }
           const shiftEndMs = computeScheduledShiftEndMs(user, new Date(active.clockedInAt).getTime());
-          const allowEarlyOverride = body.verificationMode === 'supervisor_override';
-          if (Date.now() < shiftEndMs && !allowEarlyOverride) {
+          if (Date.now() < shiftEndMs && !isSupervisorOverride) {
             const err = new Error('Clock-out is locked until your shift ends.');
             err.statusCode = 403;
             throw err;
           }
-          const cappedOutMs = body.verificationMode === 'auto_shift_end' ? Math.min(Date.now(), shiftEndMs) : Date.now();
-          active.clockedOutAt = new Date(cappedOutMs).toISOString();
-          if (body.verificationMode) {
-            active.clockOutVerificationMode = body.verificationMode;
-            active.clockOutDetails = body.verificationMode === 'auto_shift_end'
-              ? 'Auto Clock-Out at Scheduled Shift End'
-              : body.verificationMode === 'gate_qr' ? 'Exit Gate QR Verified' : 'GPS Exit Snapshot Verified';
+
+          const org = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
+          if (isAutoShiftEnd) {
+            let gpsVerifiedAtClose = false;
+            let offSiteAtClose = false;
+            let gpsDetails = null;
+            if (body.coords && typeof body.coords === 'object') {
+              try {
+                const gpsProof = verifyStrictLiveGps(org, orgProfile, body, { actionLabel: 'verify shift-end location', allowOfflineCaptured: true });
+                gpsVerifiedAtClose = true;
+                gpsDetails = `Auto Clock-Out Verified On-Site (${gpsProof.distanceMeters}m from ${gpsProof.hubName})`;
+                active.clockOutDistanceMeters = gpsProof.distanceMeters;
+                active.clockOutCoords = { latitude: gpsProof.effectiveLat, longitude: gpsProof.effectiveLng, accuracy: gpsProof.accuracy, capturedAt: gpsProof.capturedAt };
+              } catch (gpsErr) {
+                if (gpsErr.errorCode === 'OUTSIDE_GEOFENCE') offSiteAtClose = true;
+              }
+            }
+            applyAutoShiftEndClosure(active, Math.min(Date.now(), shiftEndMs), { gpsVerifiedAtClose, offSiteAtClose, gpsDetails });
+          } else if (isSupervisorOverride) {
+            active.clockedOutAt = new Date().toISOString();
+            active.clockOutVerificationMode = 'supervisor_override';
+            active.clockOutGeofenceStatus = 'supervisor_authorized';
+            active.presenceVerificationStatus = 'supervisor_confirmed';
+            active.clockOutDetails = `Supervisor Override Exit by ${user.name || 'Supervisor'}`;
+          } else {
+            const gpsProof = verifyStrictLiveGps(org, orgProfile, body, {
+              actionLabel: 'clock out',
+              allowOfflineCaptured: true
+            });
+            active.clockedOutAt = new Date().toISOString();
+            active.clockOutVerificationMode = 'gps_snapshot';
+            active.clockOutGeofenceStatus = 'within_geofence';
+            active.clockOutDistanceMeters = gpsProof.distanceMeters;
+            active.clockOutCoords = { latitude: gpsProof.effectiveLat, longitude: gpsProof.effectiveLng, accuracy: gpsProof.accuracy, capturedAt: gpsProof.capturedAt };
+            active.presenceVerificationStatus = active.verificationMode === 'colleague_card_scan'
+              ? 'pending_supervisor_confirm'
+              : 'verified_gps_exit';
+            active.clockOutDetails = `GPS Exit Verified (${gpsProof.distanceMeters}m from ${gpsProof.hubName})`;
           }
           await saveStore(store);
           return { statusCode: 200, result: demoTimeSummary(user, store) };
         }
         const q = client || { query: (sql, vals) => query(sql, vals) };
-        const activeEntry = (await q.query('select id, clocked_in_at from time_entries where membership_id = $1 and clocked_out_at is null for update', [user.id])).rows[0];
+        const activeEntry = (await q.query('select id, clocked_in_at, verification_mode from time_entries where membership_id = $1 and clocked_out_at is null for update', [user.id])).rows[0];
         if (!activeEntry) { const err = new Error('You are not clocked in.'); err.statusCode = 409; throw err; }
         const shiftEndMs = computeScheduledShiftEndMs(user, new Date(activeEntry.clocked_in_at).getTime());
-        const allowEarlyOverride = body.verificationMode === 'supervisor_override';
-        if (Date.now() < shiftEndMs && !allowEarlyOverride) {
+        if (Date.now() < shiftEndMs && !isSupervisorOverride) {
           const err = new Error('Clock-out is locked until your shift ends.');
           err.statusCode = 403;
           throw err;
         }
-        const cappedOutIso = new Date(body.verificationMode === 'auto_shift_end' ? Math.min(Date.now(), shiftEndMs) : Date.now()).toISOString();
-        await q.query('update time_entries set clocked_out_at = $1 where id = $2', [cappedOutIso, activeEntry.id]);
+        const orgRow = (await query('select id, hub_name, hub_lat, hub_lng, hub_perimeter, settings from organisations where id = $1 limit 1', [user.organisation_id])).rows[0] || {};
+        let outMode = reqMode;
+        let outGeoStatus = 'within_geofence';
+        let presenceStatus = 'verified_gps_exit';
+        let extraNote = '';
+        if (isAutoShiftEnd) {
+          let gpsVerified = false;
+          let offSite = false;
+          if (body.coords && typeof body.coords === 'object') {
+            try {
+              const gpsProof = verifyStrictLiveGps(orgRow, orgProfile, body, { actionLabel: 'verify shift-end location', allowOfflineCaptured: true });
+              gpsVerified = true;
+              extraNote = ` [AUTO_OUT Verified On-Site ${gpsProof.distanceMeters}m]`;
+            } catch (gpsErr) {
+              if (gpsErr.errorCode === 'OUTSIDE_GEOFENCE') offSite = true;
+            }
+          }
+          if (activeEntry.verification_mode === 'colleague_card_scan') {
+            outMode = 'auto_shift_end_unverified_card';
+            outGeoStatus = 'unverified_auto_out';
+            presenceStatus = 'pending_supervisor_confirm';
+          } else if (gpsVerified) {
+            outMode = 'auto_shift_end';
+            outGeoStatus = 'within_geofence';
+            presenceStatus = 'verified_on_site_shift_end';
+          } else {
+            outMode = 'auto_shift_end';
+            outGeoStatus = offSite ? 'outside_geofence_auto_out' : 'unverified_auto_out';
+            presenceStatus = 'pending_supervisor_confirm';
+          }
+        } else if (isSupervisorOverride) {
+          outMode = 'supervisor_override';
+          outGeoStatus = 'supervisor_authorized';
+          presenceStatus = 'supervisor_confirmed';
+        } else {
+          const gpsProof = verifyStrictLiveGps(orgRow, orgProfile, body, {
+            actionLabel: 'clock out',
+            allowOfflineCaptured: true
+          });
+          outMode = 'gps_snapshot';
+          outGeoStatus = 'within_geofence';
+          presenceStatus = activeEntry.verification_mode === 'colleague_card_scan' ? 'pending_supervisor_confirm' : 'verified_gps_exit';
+          extraNote = ` [GPS Exit ${gpsProof.distanceMeters}m]`;
+        }
+        const cappedOutIso = new Date(isAutoShiftEnd ? Math.min(Date.now(), shiftEndMs) : Date.now()).toISOString();
+        await q.query(
+          `update time_entries
+           set clocked_out_at = $1, clock_out_verification_mode = $2, clock_out_geofence_status = $3,
+               presence_verification_status = $4, note = COALESCE(note, '') || $5
+           where id = $6`,
+          [cappedOutIso, outMode, outGeoStatus, presenceStatus, extraNote, activeEntry.id]
+        );
         return { statusCode: 200, result: await timeSummary(user) };
       });
       if (replay) response.setHeader('X-Idempotent-Replayed', 'true');
       return sendJson(response, statusCode, result);
     } catch (err) {
       const code = err.statusCode || 500;
-      return sendJson(response, code, { error: err.message });
+      return sendJson(response, code, { error: err.message, code: err.errorCode || undefined });
     }
   }
   if (url.pathname === '/api/wellbeing-quote' && request.method === 'GET') {
@@ -8476,21 +8880,36 @@ export async function processShiftBoundaryAutoClockouts() {
   if (databaseReady && getPool()) {
     try {
       const res = await query(`
-        SELECT t.id, t.membership_id, t.clocked_in_at, m.title, u.email
+        SELECT t.id, t.membership_id, t.clocked_in_at, t.note, t.verification_mode, m.title, m.shift_start, m.shift_end, u.email
         FROM time_entries t
         JOIN memberships m ON t.membership_id = m.id
         JOIN portal_users u ON m.user_id = u.id
         WHERE t.clocked_out_at IS NULL
-          AND t.clocked_in_at < NOW() - INTERVAL '8 hours 15 minutes'
       `);
       for (const row of res.rows || []) {
-        await query(`
-          UPDATE time_entries 
-          SET clocked_out_at = clocked_in_at + INTERVAL '8 hours',
-              note = COALESCE(note, '') || ' [AUTO_CLOCKED_OUT: Shift boundary reached. Zero unapproved overtime.]'
-          WHERE id = $1
-        `, [row.id]);
-        console.log(`[AUTO-CLOCKOUT ENGINE] Auto-closed expired shift for ${row.email} (${row.id})`);
+        const endMs = computeScheduledShiftEndMs(row, new Date(row.clocked_in_at).getTime());
+        if (nowMs >= endMs) {
+          const isCardScan = row.verification_mode === 'colleague_card_scan' || String(row.note || '').includes('Colleague ID Card');
+          const presenceStatus = 'pending_supervisor_confirm';
+          const flagNote = isCardScan
+            ? ' [AUTO_CLOCKED_OUT: Card shift auto-closed without exit scan · Pending supervisor presence review]'
+            : ' [AUTO_CLOCKED_OUT: Shift boundary reached · Pending exit presence confirmation]';
+          await query(`
+            UPDATE time_entries
+            SET clocked_out_at = $1,
+                clock_out_verification_mode = $2,
+                presence_verification_status = $3,
+                note = COALESCE(note, '') || $4
+            WHERE id = $5 AND clocked_out_at IS NULL
+          `, [
+            new Date(endMs).toISOString(),
+            isCardScan ? 'auto_shift_end_unverified_card' : 'auto_shift_end',
+            presenceStatus,
+            flagNote,
+            row.id
+          ]);
+          console.log(`[AUTO-CLOCKOUT ENGINE] Auto-closed expired shift for ${row.email} (${row.id})`);
+        }
       }
     } catch (_) {}
   }
@@ -8498,6 +8917,25 @@ export async function processShiftBoundaryAutoClockouts() {
   try {
     const store = await getStore();
     let updated = false;
+
+    if (Array.isArray(store.timeEntries)) {
+      const memberById = new Map();
+      for (const dm of demoMembers) memberById.set(dm.id, dm);
+      for (const m of (store.memberships || [])) {
+        memberById.set(m.id, m);
+        memberById.set(m.user_id, m);
+      }
+      for (const entry of store.timeEntries) {
+        if (!entry.clockedOutAt && entry.clockedInAt) {
+          const m = memberById.get(entry.membershipId);
+          const endMs = computeScheduledShiftEndMs(m || {}, new Date(entry.clockedInAt).getTime());
+          if (nowMs >= endMs) {
+            applyAutoShiftEndClosure(entry, endMs);
+            updated = true;
+          }
+        }
+      }
+    }
 
     if (Array.isArray(store.timecards)) {
       for (const card of store.timecards) {
@@ -8507,6 +8945,9 @@ export async function processShiftBoundaryAutoClockouts() {
           if (nowMs - inMs >= standardShiftMs + 15 * 60 * 1000) {
             card.clock_out = new Date(inMs + standardShiftMs).toISOString();
             card.auto_clocked_out = true;
+            if (card.verification_mode === 'colleague_card_scan') {
+              card.presence_verification_status = 'pending_supervisor_confirm';
+            }
             card.note = (card.note ? card.note + ' · ' : '') + 'AUTO_CLOCKED_OUT: Shift boundary reached. Zero unapproved overtime.';
             card.hours = Number(card.scheduled_hours) || 8;
             updated = true;
@@ -8518,7 +8959,7 @@ export async function processShiftBoundaryAutoClockouts() {
 
     if (updated) {
       await saveStore(store);
-      broadcastEvent('timecards-updated', { timestamp: now.toISOString() });
+      broadcastEvent('timecards-updated', { timestamp: now.toISOString(), organisationId: demoOrganisation.id });
     }
   } catch (_) {}
 }

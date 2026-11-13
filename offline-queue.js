@@ -136,11 +136,11 @@
           currentQueue = currentQueue.filter(q => q.id !== item.id);
           saveQueue(currentQueue);
           successfulCount++;
-        } else if (response.status === 409) {
-          // Record conflict for transparent user resolution
+        } else if (response.status === 409 || response.status === 400 || response.status === 403 || response.status === 422) {
+          const errPayload = await response.json().catch(() => ({}));
           item.conflict = {
-            status: 409,
-            message: 'Server record was already modified or acknowledged by another colleague.',
+            status: response.status,
+            message: errPayload.error || 'Server rejected this queued action (policy or location check failed).',
             detectedAt: new Date().toISOString()
           };
           saveQueue(currentQueue);

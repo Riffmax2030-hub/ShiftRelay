@@ -83,7 +83,8 @@
     const org = user.organisation_name || 'ShiftRelay Network';
     const staffCode = user.staffId || user.employee_code || ('RIF-' + String(user.id || '0001').slice(-4).padStart(4, '0'));
     const orgCode = user.company_id || 'RIF-2026';
-    const payload = `SHIFTRELAY:ID:${orgCode}:${staffCode}`;
+    const verifyCode = user.cardVerifyCode || '';
+    const payload = user.cardQrPayload || (verifyCode ? `SHIFTRELAY:ID:${orgCode}:${staffCode}:${verifyCode}` : `SHIFTRELAY:ID:${orgCode}:${staffCode}`);
 
     const backdrop = document.createElement('div');
     backdrop.id = 'qr-modal-backdrop';
@@ -91,7 +92,7 @@
     backdrop.innerHTML = `
       <div class="qr-passport-modal-card" role="dialog" aria-modal="true" aria-label="Official Staff ID Card">
         <h3 style="margin:0;font-size:18px;font-weight:800;color:#0d524d;">Official Staff ID Card</h3>
-        <p style="margin:4px 0 0;font-size:12px;color:#64748b;">Scan with a colleague&rsquo;s mobile phone once daily &middot; Auto clock-out active</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#64748b;">Scan on-site with a colleague&rsquo;s GPS-verified phone (entry &amp; exit)</p>
 
         <div class="qr-code-box" id="qr-passport-svg-wrap">
           ${typeof window.generateQrSvg === 'function' ? window.generateQrSvg(payload, 148) : ''}
@@ -100,7 +101,7 @@
         <div style="background:#f8fafc;padding:10px 14px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:14px;font-size:12px;">
           <strong style="display:block;font-size:14px;color:#0f172a;">${escape(name)}</strong>
           <span style="color:#64748b;">${escape(role)} · ${escape(org)}</span>
-          <div style="font-family:monospace;font-size:11px;font-weight:700;color:#0d524d;margin-top:4px;">STAFF ID: ${escape(staffCode)}</div>
+          <div style="font-family:monospace;font-size:11px;font-weight:700;color:#0d524d;margin-top:4px;">STAFF ID: ${escape(staffCode)}${verifyCode ? ` &middot; SEC CODE: ${escape(verifyCode)}` : ''}</div>
         </div>
 
         <button class="primary" id="btn-close-qr-modal" type="button" style="width:100%;">Done</button>

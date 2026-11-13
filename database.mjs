@@ -63,6 +63,10 @@ const schema = `
     created_at timestamptz not null default now()
   );
   alter table organisations add column if not exists settings jsonb not null default '{}'::jsonb;
+  alter table organisations add column if not exists hub_name text;
+  alter table organisations add column if not exists hub_lat double precision;
+  alter table organisations add column if not exists hub_lng double precision;
+  alter table organisations add column if not exists hub_perimeter integer;
   create table if not exists organisation_sites (
     id uuid primary key,
     organisation_id uuid not null references organisations(id) on delete cascade,
@@ -121,6 +125,14 @@ const schema = `
     note text,
     created_at timestamptz not null default now()
   );
+  alter table time_entries add column if not exists verification_mode text;
+  alter table time_entries add column if not exists geofence_status text;
+  alter table time_entries add column if not exists distance_meters integer;
+  alter table time_entries add column if not exists presence_verification_status text;
+  alter table time_entries add column if not exists scanned_by_membership_id uuid;
+  alter table time_entries add column if not exists scanned_by_name text;
+  alter table time_entries add column if not exists clock_out_verification_mode text;
+  alter table time_entries add column if not exists clock_out_geofence_status text;
   create table if not exists quote_reactions (
     quote_key varchar(64) not null,
     membership_id uuid not null references memberships(id) on delete cascade,

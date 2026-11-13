@@ -1996,47 +1996,65 @@
     backdrop.className = 'sr-modal-backdrop';
     backdrop.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:9999;padding:14px;';
     backdrop.innerHTML = `
-      <div class="sr-modal-card" style="max-width:480px;width:100%;max-height:92vh;display:flex;flex-direction:column;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,0.35);overflow:hidden;" role="dialog" aria-modal="true" aria-label="Colleague ID Card Clock-In">
+      <div class="sr-modal-card" style="max-width:480px;width:100%;max-height:92vh;display:flex;flex-direction:column;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,0.35);overflow:hidden;" role="dialog" aria-modal="true" aria-label="Colleague ID Card Verification">
         <div class="sr-modal-header" style="display:flex;justify-content:space-between;align-items:flex-start;padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);flex-shrink:0;">
           <div>
             <h3 style="margin:0;font-size:16px;display:flex;align-items:center;gap:8px;color:var(--sr-text-main);font-weight:800;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/><path d="M20 14v3h-3"/><path d="M14 20h6"/></svg>
-              Colleague ID Card Clock-In
+              Colleague ID Card Scanner
             </h3>
             <p style="margin:4px 0 0;font-size:12px;color:var(--sr-text-muted);line-height:1.4;">
-              Scan a colleague&rsquo;s Staff ID card once for today&rsquo;s shift. Auto clock-out closes shifts automatically at shift end.
+              Requires live on-site GPS + physical Staff ID card QR or 6-char Security Code. Scan both check-in and departure exit.
             </p>
           </div>
           <button type="button" class="sr-icon-btn" id="sr-btn-close-scanner" aria-label="Close" style="background:transparent;border:none;cursor:pointer;color:var(--sr-text-muted);padding:4px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
-        <div class="sr-modal-body" style="padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
+        <div class="sr-modal-body" style="padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
+          <!-- Strict Live GPS Gate Pill -->
+          <div id="sr-scanner-gps-pill" style="padding:8px 12px;border-radius:9px;font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:7px;background:rgba(245,158,11,0.12);color:#b45309;border:1px solid rgba(245,158,11,0.35);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2.5"/></svg>
+            <span id="sr-scanner-gps-text">Acquiring live on-site GPS verification lock...</span>
+          </div>
+
+          <!-- Dual-Action Mode Selector: Check-In vs Exit Verification Scan -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button type="button" class="sr-btn sr-btn-primary" id="sr-scan-mode-in" data-scan-mode="clock-in" style="min-height:34px;font-size:12px;font-weight:700;">Shift Check-In</button>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-scan-mode-out" data-scan-mode="clock-out" style="min-height:34px;font-size:12px;font-weight:700;">Shift Exit Scan</button>
+          </div>
+
           <!-- Viewfinder container -->
-          <div style="position:relative;width:100%;height:190px;background:#090d16;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <div style="position:relative;width:100%;height:170px;background:#090d16;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <video id="sr-scanner-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>
-            <div style="position:absolute;width:146px;height:146px;border:2px dashed rgba(16,185,129,0.85);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.48);pointer-events:none;">
+            <div style="position:absolute;width:136px;height:136px;border:2px dashed rgba(16,185,129,0.85);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.48);pointer-events:none;">
               <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#10b981;box-shadow:0 0 10px #10b981;animation:srScanLine 2s ease-in-out infinite;"></div>
             </div>
             <div id="sr-scanner-status" style="position:absolute;bottom:8px;left:10px;right:10px;background:rgba(15,23,42,0.86);color:#f8fafc;font-size:11.5px;padding:6px 10px;border-radius:6px;text-align:center;">
-              Align colleague&rsquo;s ID card QR or Code-128 barcode
+              Align colleague&rsquo;s signed Staff ID QR code
             </div>
           </div>
 
           <div id="sr-peer-scan-result" style="display:none;padding:12px 14px;border-radius:10px;font-size:12.5px;line-height:1.45;"></div>
 
-          <!-- Staff ID Code Entry / Roster Filter -->
+          <!-- Verified Staff ID + Physical Card Security Code Form -->
           <div style="padding:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);border-radius:12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
-              <span style="font-size:12px;font-weight:700;color:var(--sr-text-main);">Verify by Staff ID Card Code or Roster</span>
+              <span style="font-size:12px;font-weight:700;color:var(--sr-text-main);">Physical Staff ID &amp; Card Security Code</span>
               <span style="font-size:10.5px;color:var(--sr-text-muted);">${escapeHtml(resolvedSite)}</span>
             </div>
-            <form id="sr-peer-id-form" style="display:flex;gap:8px;">
-              <input type="text" id="sr-peer-staff-id-input" class="sr-input" placeholder="e.g. RIF-0023 or colleague name..." autocomplete="off" style="flex:1;min-width:0;padding:8px 11px;font-size:13px;border:1px solid var(--sr-border-medium);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);" />
-              <button type="submit" class="sr-btn sr-btn-primary" id="sr-peer-submit-id-btn" style="padding:8px 14px;font-size:12.5px;font-weight:700;white-space:nowrap;">Clock In</button>
+            <form id="sr-peer-id-form" style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:grid;grid-template-columns:1.25fr 0.9fr;gap:8px;">
+                <input type="text" id="sr-peer-staff-id-input" class="sr-input" placeholder="Staff ID or signed QR..." autocomplete="off" style="min-width:0;padding:8px 11px;font-size:12.5px;border:1px solid var(--sr-border-medium);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);" />
+                <input type="text" id="sr-peer-card-code-input" class="sr-input" placeholder="Card SEC (6 chars)" maxlength="8" autocomplete="off" style="min-width:0;padding:8px 11px;font-size:12.5px;font-family:monospace;text-transform:uppercase;border:1px solid var(--sr-border-medium);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);" />
+              </div>
+              <button type="submit" class="sr-btn sr-btn-primary" id="sr-peer-submit-id-btn" style="padding:9px 14px;font-size:12.5px;font-weight:700;width:100%;">Verify Live GPS &amp; Clock In Card</button>
             </form>
-            <div id="sr-peer-directory-list" style="margin-top:10px;max-height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
-              <div style="font-size:12px;color:var(--sr-text-muted);padding:8px 4px;">Loading approved staff directory&hellip;</div>
+            <div style="margin-top:8px;font-size:11px;color:var(--sr-text-muted);">
+              Roster Status Overview (read-only — scan physical ID card or enter printed Staff ID + SEC code):
+            </div>
+            <div id="sr-peer-directory-list" style="margin-top:6px;max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:12px;color:var(--sr-text-muted);padding:8px 4px;">Loading approved staff status&hellip;</div>
             </div>
           </div>
         </div>
@@ -2048,6 +2066,46 @@
     let stream = null;
     let scanActive = true;
     let cachedMembers = [];
+    let scanAction = 'clock-in';
+
+    const updateScannerGpsPill = (stateType, text) => {
+      const pill = document.getElementById('sr-scanner-gps-pill');
+      const label = document.getElementById('sr-scanner-gps-text');
+      if (!pill || !label) return;
+      label.textContent = text;
+      if (stateType === 'error') {
+        pill.style.background = 'rgba(239,68,68,0.12)';
+        pill.style.color = '#dc2626';
+        pill.style.borderColor = 'rgba(239,68,68,0.35)';
+      } else if (stateType === 'ok') {
+        pill.style.background = 'rgba(16,185,129,0.12)';
+        pill.style.color = '#059669';
+        pill.style.borderColor = 'rgba(16,185,129,0.35)';
+      } else {
+        pill.style.background = 'rgba(245,158,11,0.12)';
+        pill.style.color = '#b45309';
+        pill.style.borderColor = 'rgba(245,158,11,0.35)';
+      }
+    };
+
+    const setScanAction = (mode) => {
+      scanAction = mode === 'clock-out' ? 'clock-out' : 'clock-in';
+      const btnIn = document.getElementById('sr-scan-mode-in');
+      const btnOut = document.getElementById('sr-scan-mode-out');
+      const subBtn = document.getElementById('sr-peer-submit-id-btn');
+      if (btnIn && btnOut) {
+        btnIn.className = scanAction === 'clock-in' ? 'sr-btn sr-btn-primary' : 'sr-btn sr-btn-secondary';
+        btnOut.className = scanAction === 'clock-out' ? 'sr-btn sr-btn-primary' : 'sr-btn sr-btn-secondary';
+      }
+      if (subBtn) {
+        subBtn.textContent = scanAction === 'clock-out'
+          ? 'Verify Live GPS & Scan Exit Card'
+          : 'Verify Live GPS & Clock In Card';
+      }
+    };
+
+    document.getElementById('sr-scan-mode-in')?.addEventListener('click', () => setScanAction('clock-in'));
+    document.getElementById('sr-scan-mode-out')?.addEventListener('click', () => setScanAction('clock-out'));
 
     const cleanup = () => {
       scanActive = false;
@@ -2069,19 +2127,6 @@
       return str;
     };
 
-    const getQuickGps = () => new Promise((resolveGps) => {
-      if (!navigator.geolocation) return resolveGps(null);
-      const timer = setTimeout(() => resolveGps(null), 1000);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          clearTimeout(timer);
-          resolveGps({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy });
-        },
-        () => { clearTimeout(timer); resolveGps(null); },
-        { enableHighAccuracy: true, timeout: 900, maximumAge: 60000 }
-      );
-    });
-
     const showResultBanner = (type, title, detail) => {
       const box = document.getElementById('sr-peer-scan-result');
       if (!box) return;
@@ -2094,29 +2139,71 @@
       box.innerHTML = `<div style="font-weight:800;margin-bottom:2px;">${escapeHtml(title)}</div><div>${escapeHtml(detail)}</div>`;
     };
 
-    const handlePeerClockIn = async (rawPayload) => {
+    // Pre-flight strict GPS check on modal open
+    if (window.ShiftRelayGps?.captureStrictLiveGps) {
+      window.ShiftRelayGps.captureStrictLiveGps({ actionLabel: 'open colleague ID card scanner' })
+        .then((coords) => {
+          updateScannerGpsPill('ok', `On-Site GPS Lock Ready (Accuracy ±${Math.round(coords.accuracy || 10)}m)`);
+        })
+        .catch((gpsErr) => {
+          updateScannerGpsPill('error', gpsErr.message || 'Location access denied — cannot scan colleague IDs without GPS.');
+        });
+    } else {
+      updateScannerGpsPill('error', 'Strict GPS module unavailable.');
+    }
+
+    const handlePeerCardSubmit = async (rawPayload, explicitPin = '') => {
       const cleanPayload = normalizePayload(rawPayload);
+      const cleanPin = String(explicitPin || '').trim().toUpperCase();
       if (!cleanPayload) return;
       scanActive = false;
       const statusEl = document.getElementById('sr-scanner-status');
-      if (statusEl) statusEl.textContent = 'Recording colleague clock-in...';
+      const submitBtn = document.getElementById('sr-peer-submit-id-btn');
+      if (submitBtn) submitBtn.disabled = true;
+      if (statusEl) statusEl.textContent = 'Verifying live device GPS before card check...';
+      updateScannerGpsPill('loading', 'Capturing fresh live GPS reading...');
+
+      let coords = null;
       try {
-        const coords = await getQuickGps();
-        if (!navigator.onLine) {
-          const offlineItem = {
-            id: 'peer_punch_' + Date.now(),
-            endpoint: '/api/time-entries/peer-card-scan',
+        if (!window.ShiftRelayGps?.captureStrictLiveGps) {
+          throw new Error('Strict GPS verification unavailable.');
+        }
+        coords = await window.ShiftRelayGps.captureStrictLiveGps({
+          actionLabel: scanAction === 'clock-out' ? 'scan colleague exit card' : 'scan colleague ID card'
+        });
+        updateScannerGpsPill('ok', `Live GPS Captured (±${Math.round(coords.accuracy || 10)}m) · Verifying with server...`);
+      } catch (gpsErr) {
+        const msg = gpsErr?.message || 'Live GPS access is required before scanning any ID card.';
+        updateScannerGpsPill('error', msg);
+        showResultBanner('error', 'GPS Verification Required', msg);
+        if (statusEl) statusEl.textContent = 'Blocked: Enable location permissions and stay on site.';
+        if (submitBtn) submitBtn.disabled = false;
+        scanActive = true;
+        return;
+      }
+
+      if (statusEl) statusEl.textContent = scanAction === 'clock-out' ? 'Verifying card exit scan...' : 'Verifying signed card & on-site GPS...';
+      try {
+        const bodyPayload = {
+          badgePayload: cleanPayload,
+          cardVerifyCode: cleanPin || undefined,
+          action: scanAction,
+          coords
+        };
+
+        if (!navigator.onLine && window.OfflineQueue?.enqueue) {
+          const idemPeerKey = 'idem_peer_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+          window.OfflineQueue.enqueue('/api/time-entries/peer-card-scan', {
             method: 'POST',
-            body: { badgePayload: cleanPayload, coords, offlineTimestamp: new Date().toISOString() },
-            timestamp: new Date().toISOString(),
-            status: 'pending_sync',
-            description: `Colleague ID Clock-In (${cleanPayload})`
-          };
-          const existing = JSON.parse(localStorage.getItem('shiftrelay_offline_punches') || '[]');
-          existing.push(offlineItem);
-          localStorage.setItem('shiftrelay_offline_punches', JSON.stringify(existing));
-          showResultBanner('success', 'Saved Offline for Sync', `Recorded ${cleanPayload} offline. Will sync automatically when back online.`);
+            headers: {
+              'Content-Type': 'application/json',
+              'Idempotency-Key': idemPeerKey
+            },
+            body: JSON.stringify({ ...bodyPayload, offlineQueued: true })
+          });
+          showResultBanner('success', 'Saved Offline With Verified GPS', `Recorded ${cleanPayload} offline with live GPS timestamp. Will verify & sync on reconnect.`);
           if (typeof onClockInSuccess === 'function') onClockInSuccess();
+          if (submitBtn) submitBtn.disabled = false;
           setTimeout(() => { scanActive = true; }, 1200);
           return;
         }
@@ -2127,31 +2214,41 @@
             'Content-Type': 'application/json',
             'Idempotency-Key': 'idem_peer_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
           },
-          body: JSON.stringify({ badgePayload: cleanPayload, coords })
+          body: JSON.stringify(bodyPayload)
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'ID verification failed');
+        if (!res.ok) throw new Error(data.error || 'ID card & location verification failed');
 
-        if (data.alreadyClockedIn) {
-          showResultBanner('warning', `${data.worker?.userName || 'Colleague'} (${data.worker?.staffId || cleanPayload}) Already Clocked In`, data.message || 'One clock-in per daily shift is already active.');
-          if (statusEl) statusEl.textContent = 'Already clocked in today · Auto clock-out active';
+        if (data.action === 'clock-out') {
+          SRAudio.playClockOut();
+          triggerVibration([100, 50, 150]);
+          showResultBanner(
+            data.earlyDeparture ? 'warning' : 'success',
+            `${data.worker?.userName || 'Colleague'} (${data.worker?.staffId || cleanPayload}) ${data.earlyDeparture ? 'Early Exit Logged' : 'Exit Verified On Site'}`,
+            data.message || 'Shift closed via on-site Staff ID exit scan.'
+          );
+          if (statusEl) statusEl.textContent = `Exit scanned: ${data.worker?.staffId || cleanPayload}`;
+          const hit = cachedMembers.find(m => m.id === data.worker?.membershipId || m.staffId === data.worker?.staffId);
+          if (hit) hit.onShift = false;
         } else {
           SRAudio.playClockIn();
           triggerVibration([70, 50, 100]);
-          showResultBanner('success', `${data.worker?.userName || 'Colleague'} (${data.worker?.staffId || cleanPayload}) Clocked In`, data.message || 'Shift started · Auto clock-out active at shift end.');
-          if (statusEl) statusEl.textContent = `Clocked in: ${data.worker?.staffId || cleanPayload} · Ready for next card`;
-          // Update local row in modal immediately
+          showResultBanner('success', `${data.worker?.userName || 'Colleague'} (${data.worker?.staffId || cleanPayload}) Clocked In`, data.message || 'GPS-verified card scan completed.');
+          if (statusEl) statusEl.textContent = `Clocked in: ${data.worker?.staffId || cleanPayload} · Exit scan required at shift end`;
           const hit = cachedMembers.find(m => m.id === data.worker?.membershipId || m.staffId === data.worker?.staffId);
           if (hit) hit.onShift = true;
-          renderRosterList(document.getElementById('sr-peer-staff-id-input')?.value || '');
         }
-        if (typeof showToast === 'function') showToast(data.message || 'Colleague attendance verified.', data.alreadyClockedIn ? 'info' : 'success');
+        updateScannerGpsPill('ok', `Verified On-Site (${data.distanceMeters ?? 0}m from ${resolvedSite})`);
+        renderRosterList(document.getElementById('sr-peer-staff-id-input')?.value || '');
+        if (typeof showToast === 'function') showToast(data.message || 'Colleague ID scan verified.', 'success');
         if (typeof onClockInSuccess === 'function') await onClockInSuccess(data);
         setTimeout(() => { scanActive = true; }, 1400);
       } catch (err) {
-        showResultBanner('error', 'Verification Failed', err.message || 'Could not clock in staff ID.');
-        if (statusEl) statusEl.textContent = 'Error: ' + err.message;
+        showResultBanner('error', 'Verification Blocked', err.message || 'Could not verify Staff ID card.');
+        if (statusEl) statusEl.textContent = 'Blocked: ' + err.message;
         scanActive = true;
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
       }
     };
 
@@ -2177,6 +2274,7 @@
       listEl.innerHTML = matches.map(m => {
         const onShift = Boolean(m.onShift);
         const shiftEnd = m.shift_end || '14:00';
+        const isSelf = m.id === activeUser.id || m.user_id === activeUser.id;
         return `
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);">
             <div style="min-width:0;flex:1;">
@@ -2186,24 +2284,19 @@
               </div>
               <div style="font-size:11px;color:var(--sr-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(m.title || '')} &middot; ${escapeHtml(m.department || '')}</div>
             </div>
-            ${onShift ? `
-              <span style="font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;white-space:nowrap;">On Shift &middot; Auto ${escapeHtml(shiftEnd)}</span>
+            ${isSelf ? `
+              <span style="font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:99px;background:rgba(100,116,139,0.12);color:#64748b;white-space:nowrap;">You (Use My Shift GPS)</span>
+            ` : onShift ? `
+              <span style="font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;white-space:nowrap;">On Shift &middot; End ${escapeHtml(shiftEnd)}</span>
             ` : `
-              <button type="button" class="sr-btn sr-btn-secondary sr-peer-quick-clock-btn" data-staff-id="${escapeHtml(m.staffId || m.id)}" style="padding:5px 10px;min-height:28px;font-size:11.5px;font-weight:700;white-space:nowrap;border-color:rgba(13,148,136,0.35);color:var(--sr-primary);">Clock In</button>
+              <span style="font-size:10.5px;font-weight:600;padding:4px 8px;border-radius:99px;background:var(--sr-bg-card-subtle);color:var(--sr-text-muted);border:1px solid var(--sr-border-subtle);white-space:nowrap;">Off Shift · Scan Card</span>
             `}
           </div>
         `;
       }).join('');
-
-      listEl.querySelectorAll('.sr-peer-quick-clock-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          btn.disabled = true;
-          handlePeerClockIn(btn.dataset.staffId);
-        });
-      });
     };
 
-    // Load live roster for quick colleague ID lookup
+    // Load live roster status overview (read-only; physical card QR/SEC code required to scan)
     fetch('/api/directory')
       .then(r => r.ok ? r.json() : { members: [] })
       .then(d => {
@@ -2212,15 +2305,17 @@
       })
       .catch(() => {
         const listEl = document.getElementById('sr-peer-directory-list');
-        if (listEl) listEl.innerHTML = `<div style="font-size:12px;color:var(--sr-text-muted);padding:8px;">Enter a Staff ID code above (e.g. RIF-0023) or scan ID card QR.</div>`;
+        if (listEl) listEl.innerHTML = `<div style="font-size:12px;color:var(--sr-text-muted);padding:8px;">Scan colleague Staff ID QR or enter printed Staff ID + SEC code above.</div>`;
       });
 
     const inputEl = document.getElementById('sr-peer-staff-id-input');
+    const pinEl = document.getElementById('sr-peer-card-code-input');
     inputEl?.addEventListener('input', () => renderRosterList(inputEl.value));
     document.getElementById('sr-peer-id-form')?.addEventListener('submit', (e) => {
       e.preventDefault();
       const val = inputEl?.value?.trim();
-      if (val) handlePeerClockIn(val);
+      const pinVal = pinEl?.value?.trim().toUpperCase() || '';
+      if (val) handlePeerCardSubmit(val, pinVal);
     });
 
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -2240,7 +2335,7 @@
                 try {
                   const codes = await detector.detect(video);
                   if (codes.length > 0 && codes[0].rawValue) {
-                    handlePeerClockIn(codes[0].rawValue);
+                    handlePeerCardSubmit(codes[0].rawValue);
                     return;
                   }
                 } catch (_) {}
@@ -2250,16 +2345,16 @@
             requestAnimationFrame(scanLoop);
           } else {
             const statusEl = document.getElementById('sr-scanner-status');
-            if (statusEl) statusEl.textContent = 'Camera active. Align ID card QR/barcode or tap colleague below.';
+            if (statusEl) statusEl.textContent = 'Camera active. Align signed QR or enter Staff ID + Card SEC code below.';
           }
         })
         .catch(() => {
           const statusEl = document.getElementById('sr-scanner-status');
-          if (statusEl) statusEl.textContent = 'Camera unavailable. Enter Staff ID or select colleague below.';
+          if (statusEl) statusEl.textContent = 'Camera unavailable. Enter Staff ID + Card SEC code below (GPS required).';
         });
     } else {
       const statusEl = document.getElementById('sr-scanner-status');
-      if (statusEl) statusEl.textContent = 'Enter Staff ID or select colleague from roster below.';
+      if (statusEl) statusEl.textContent = 'Enter Staff ID + printed 6-char Card SEC code (strict GPS required).';
     }
   }
   const openGateQrScannerModal = openPeerIdScannerModal;
@@ -2506,6 +2601,10 @@
               ${isClockedIn && clockedInTime ? `In · ${new Date(clockedInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : (hasCompletedShiftToday ? 'Today Logged: 8h 00m Verified' : '8h Shift Target')}
             </small>
           </div>
+          <div id="sr-gps-status-pill" style="margin:8px 0 4px;padding:7px 11px;border-radius:9px;font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:7px;background:rgba(13,148,136,0.1);color:#0f766e;border:1px solid rgba(13,148,136,0.25);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2.5"/></svg>
+            <span id="sr-gps-status-text">Strict Live GPS Enforcement Active &bull; Location Access Required</span>
+          </div>
 
           <!-- Advanced Orbital Dial + Rising Water Sphere Timer -->
           <div class="sr-orbital-timer-wrap" id="sr-orbital-timer-wrap">
@@ -2686,6 +2785,38 @@
 
       let autoClockOutInFlight = false;
 
+      const setGpsPillState = (stateType, message) => {
+        const pill = document.getElementById('sr-gps-status-pill');
+        const txt = document.getElementById('sr-gps-status-text');
+        if (!pill || !txt) return;
+        txt.textContent = message;
+        if (stateType === 'error') {
+          pill.style.background = 'rgba(239,68,68,0.12)';
+          pill.style.color = '#dc2626';
+          pill.style.borderColor = 'rgba(239,68,68,0.35)';
+        } else if (stateType === 'loading') {
+          pill.style.background = 'rgba(245,158,11,0.12)';
+          pill.style.color = '#d97706';
+          pill.style.borderColor = 'rgba(245,158,11,0.35)';
+        } else {
+          pill.style.background = 'rgba(13,148,136,0.1)';
+          pill.style.color = '#0f766e';
+          pill.style.borderColor = 'rgba(13,148,136,0.25)';
+        }
+      };
+
+      if (window.ShiftRelayGps?.checkPermissionStatus) {
+        window.ShiftRelayGps.checkPermissionStatus().then((perm) => {
+          if (perm === 'denied' || perm === 'unsupported') {
+            setGpsPillState('error', perm === 'denied'
+              ? 'GPS Blocked — Enable device location to clock in or out'
+              : 'GPS Unavailable on this device — Location required to clock in or out');
+          } else if (perm === 'granted') {
+            setGpsPillState('ok', 'Strict Live GPS Ready · Workplace perimeter enforced');
+          }
+        }).catch(() => {});
+      }
+
       // Helper to execute direct or scheduled auto Clock-Out
       const performWaterClockOut = async (isAuto = false) => {
         if (autoClockOutInFlight) return;
@@ -2699,31 +2830,66 @@
           elapsedInterval = null;
         }
         const waterBtn = document.getElementById('sr-btn-water-clock');
+        const labelEl = document.getElementById('sr-water-btn-label');
         if (waterBtn) {
           waterBtn.disabled = true;
           waterBtn.classList.add('surging');
         }
         try {
-          await fetch('/api/time-entries/clock-out', {
+          let coords = null;
+          if (!isAuto) {
+            setGpsPillState('loading', 'Acquiring live GPS fix to verify exit perimeter...');
+            if (labelEl) labelEl.textContent = 'LOCATING...';
+            if (!window.ShiftRelayGps?.captureStrictLiveGps) {
+              throw new Error('Strict GPS verification module unavailable. Reload app.');
+            }
+            coords = await window.ShiftRelayGps.captureStrictLiveGps({ actionLabel: 'clock out' });
+            setGpsPillState('ok', 'Live GPS Locked · Verifying exit with workplace server...');
+          } else if (window.ShiftRelayGps?.captureStrictLiveGps) {
+            coords = await window.ShiftRelayGps.captureStrictLiveGps({
+              timeoutMs: 3500,
+              actionLabel: 'verify shift-end location'
+            }).catch(() => null);
+          }
+
+          if (labelEl && !isAuto) labelEl.textContent = 'VERIFYING...';
+          const res = await fetch('/api/time-entries/clock-out', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Idempotency-Key': (isAuto ? 'idem_auto_out_' : 'idem_out_') + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
             },
             body: JSON.stringify({
-              verificationMode: isAuto ? 'auto_shift_end' : 'standard',
-              verificationDetails: isAuto ? 'Auto Clock-Out at Scheduled Shift End' : 'Biometric Thumbprint Clock-Out'
+              verificationMode: isAuto ? 'auto_shift_end' : 'gps_snapshot',
+              verificationDetails: isAuto ? 'Auto Clock-Out at Scheduled Shift End' : 'GPS Biometric Clock-Out',
+              coords
             })
           });
-        } catch (_) {}
-        const todayOutKey = 'clockout_' + new Date().toISOString().slice(0, 10);
-        recordStarActivity(15, isAuto ? 'Auto Clock-Out at Shift End' : 'Shift Completed', todayOutKey);
-        SRAudio.playClockOut();
-        triggerVibration([100, 50, 150]);
-        if (isAuto) {
-          showToast('Shift ended — automatically clocked out to prevent overtime.', 'info');
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.error || 'Clock-out rejected by workplace server.');
+          }
+          const todayOutKey = 'clockout_' + new Date().toISOString().slice(0, 10);
+          recordStarActivity(15, isAuto ? 'Auto Clock-Out at Shift End' : 'GPS Exit Verified Shift Completion', todayOutKey);
+          SRAudio.playClockOut();
+          triggerVibration([100, 50, 150]);
+          if (isAuto) {
+            showToast(coords ? 'Shift ended — auto clocked out on site.' : 'Shift ended — auto clocked out (unverified exit flagged for supervisor).', 'info');
+          } else {
+            showToast('GPS Verified: Clocked out cleanly.', 'success');
+          }
+          setTimeout(() => renderWorkerToday(true), 350);
+        } catch (err) {
+          autoClockOutInFlight = false;
+          if (waterBtn) {
+            waterBtn.disabled = false;
+            waterBtn.classList.remove('surging');
+          }
+          if (labelEl) labelEl.textContent = 'CLOCK OUT';
+          const msg = err?.message || 'Live GPS verification failed. Clock-out blocked.';
+          setGpsPillState('error', msg);
+          if (typeof showToast === 'function') showToast(msg, 'error');
         }
-        setTimeout(() => renderWorkerToday(true), 350);
       };
 
       // Start elapsed timer, orbital progress & automatic end-of-shift clock-out
@@ -2767,55 +2933,90 @@
         }
       }
 
-      // Helper to execute Biometric / GPS Clock-In with rising water-fill animation
+      // Helper to execute Strict Live GPS Biometric Clock-In (zero fallback coordinates)
       const performWaterClockIn = async () => {
         const waterBtn = document.getElementById('sr-btn-water-clock');
+        const labelEl = document.getElementById('sr-water-btn-label');
         const clockCard = document.getElementById('sr-clock-card');
-        if (waterBtn) waterBtn.classList.add('surging');
+        if (waterBtn) {
+          waterBtn.disabled = true;
+          waterBtn.classList.add('surging');
+        }
+        if (labelEl) labelEl.textContent = 'LOCATING...';
         if (clockCard) clockCard.classList.add('water-surging');
+        setGpsPillState('loading', 'Acquiring live high-accuracy GPS fix...');
 
-        const sendClockIn = async (coords) => {
-          try {
-            const res = await fetch('/api/time-entries/clock-in', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Idempotency-Key': 'idem_water_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
-              },
-              body: JSON.stringify({
-                verificationMode: 'gps_snapshot',
-                coords: coords || { latitude: 6.4485, longitude: 3.3642, accuracy: 12 }
-              })
-            });
-            if (!res.ok) {
-              const err = await res.json().catch(() => ({}));
-              throw new Error(err.error || 'Clock-in failed');
-            }
-            const todayKey = 'clockin_' + new Date().toISOString().slice(0, 10);
-            const rewardResult = recordStarActivity(25, 'Biometric Water-Pulse Clock-In', todayKey);
-            if (rewardResult.alreadyAwarded && window.toast) {
-              window.toast('Shift attendance logged. (Daily clock-in reward already awarded today)', 'info');
-            }
-            SRAudio.playClockIn();
-            triggerVibration([70, 50, 100]);
-            sprayShineEffect(document.getElementById('sr-clock-card'));
-            setTimeout(() => renderWorkerToday(true), 420);
-          } catch (err) {
-            const todayKey = 'clockin_' + new Date().toISOString().slice(0, 10);
-            await recordStarActivity(25, 'Offline Biometric Clock-In', todayKey);
-            SRAudio.playClockIn();
-            setTimeout(() => renderWorkerToday(true), 420);
+        const resetClockInUi = (errMsg) => {
+          if (waterBtn) {
+            waterBtn.disabled = false;
+            waterBtn.classList.remove('surging');
           }
+          if (clockCard) clockCard.classList.remove('water-surging');
+          if (labelEl) labelEl.textContent = 'CLOCK IN';
+          setGpsPillState('error', errMsg);
+          if (typeof showToast === 'function') showToast(errMsg, 'error');
         };
 
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => sendClockIn({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy }),
-            () => sendClockIn({ latitude: 6.4485, longitude: 3.3642, accuracy: 12 }),
-            { enableHighAccuracy: false, timeout: 2200, maximumAge: 60000 }
-          );
-        } else {
-          await sendClockIn({ latitude: 6.4485, longitude: 3.3642, accuracy: 12 });
+        let coords = null;
+        try {
+          if (!window.ShiftRelayGps?.captureStrictLiveGps) {
+            throw new Error('Strict GPS verification unavailable on this device.');
+          }
+          coords = await window.ShiftRelayGps.captureStrictLiveGps({ actionLabel: 'clock in' });
+          setGpsPillState('ok', 'Live GPS Locked · Verifying workplace perimeter...');
+        } catch (gpsErr) {
+          resetClockInUi(gpsErr?.message || 'Location access is required before you can clock in.');
+          return;
+        }
+
+        if (labelEl) labelEl.textContent = 'VERIFYING...';
+        const idemKey = 'idem_water_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        const payloadObj = {
+          verificationMode: 'gps_snapshot',
+          coords
+        };
+
+        // True offline device with verified satellite GPS fix -> queue strictly with captured GPS
+        if (!navigator.onLine && window.OfflineQueue?.enqueue) {
+          window.OfflineQueue.enqueue('/api/time-entries/clock-in', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Idempotency-Key': idemKey
+            },
+            body: JSON.stringify({ ...payloadObj, offlineQueued: true })
+          });
+          setGpsPillState('ok', 'Offline · Live GPS Clock-In queued for sync upon reconnect.');
+          if (typeof showToast === 'function') showToast('Offline GPS Clock-In queued with verified coordinates.', 'info');
+          if (labelEl) labelEl.textContent = 'QUEUED';
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/time-entries/clock-in', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Idempotency-Key': idemKey
+            },
+            body: JSON.stringify(payloadObj)
+          });
+          const respData = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(respData.error || 'Workplace location verification failed. Clock-in blocked.');
+          }
+          const todayKey = 'clockin_' + new Date().toISOString().slice(0, 10);
+          const rewardResult = recordStarActivity(25, 'GPS Verified Shift Clock-In', todayKey);
+          if (rewardResult.alreadyAwarded && window.toast) {
+            window.toast('Shift attendance logged. (Daily clock-in reward already awarded today)', 'info');
+          }
+          SRAudio.playClockIn();
+          triggerVibration([70, 50, 100]);
+          sprayShineEffect(document.getElementById('sr-clock-card'));
+          setTimeout(() => renderWorkerToday(true), 420);
+        } catch (err) {
+          // Never award offline stars or mask server geofence/policy errors when online!
+          resetClockInUi(err?.message || 'Clock-in rejected. Check live GPS perimeter and retry.');
         }
       };
 
@@ -3022,15 +3223,16 @@
     `;
 
     try {
-      // Parallel fetch of actionable manager metrics, live directory roster, and payroll summary
-      const [pendingRes, handoversRes, timeRes, leaveRes, announcementsRes, dirRes, payrollRes] = await Promise.all([
+      // Parallel fetch of actionable manager metrics, live directory roster, presence reviews, and payroll summary
+      const [pendingRes, handoversRes, timeRes, leaveRes, announcementsRes, dirRes, payrollRes, presenceRes] = await Promise.all([
         fetch('/api/memberships/pending').catch(() => null),
         fetch('/api/handovers').catch(() => null),
         fetch('/api/time-entries').catch(() => null),
         user.role === 'owner' ? fetch('/api/leave-requests').catch(() => null) : Promise.resolve(null),
         fetch('/api/announcements').catch(() => null),
         fetch('/api/directory').catch(() => null),
-        user.role === 'owner' ? fetch('/api/payroll/summary').catch(() => null) : Promise.resolve(null)
+        user.role === 'owner' ? fetch('/api/payroll/summary').catch(() => null) : Promise.resolve(null),
+        fetch('/api/time-entries/presence-reviews').catch(() => null)
       ]);
 
       const pendingData = pendingRes && pendingRes.ok ? await pendingRes.json() : { requests: [], workflows: [] };
@@ -3040,6 +3242,8 @@
       const announcementsData = announcementsRes && announcementsRes.ok ? await announcementsRes.json() : { announcements: [] };
       const dirData = dirRes && dirRes.ok ? await dirRes.json() : { members: [], summary: null };
       const payrollData = payrollRes && payrollRes.ok ? await payrollRes.json() : { payroll: null };
+      const presenceData = presenceRes && presenceRes.ok ? await presenceRes.json() : { reviews: [] };
+      const presenceReviews = Array.isArray(presenceData.reviews) ? presenceData.reviews : [];
 
       const accessRequests = pendingData.requests || [];
       const handoversAwaitingRelay = (handoversData.handovers || []).filter(h => h.status === 'awaiting_review');
@@ -3250,7 +3454,7 @@
                 <h3 style="margin:0;font-size:16px;">Verified Shift Payroll</h3>
                 <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Live roster &amp; verified attendance ready for batch disbursement</p>
               </div>
-              <span class="sr-badge-certified" id="sr-payroll-batch-badge">${payrollWorkerCount} Verified</span>
+              <span class="sr-badge-certified" id="sr-payroll-batch-badge" style="${Number(payrollObj?.summary?.unverifiedShiftHolds || 0) > 0 ? 'background:rgba(245,158,11,0.12);color:#b45309;border-color:rgba(245,158,11,0.35);' : ''}">${Number(payrollObj?.summary?.unverifiedShiftHolds || 0) > 0 ? `${payrollObj.summary.unverifiedShiftHolds} Presence Hold(s)` : `${payrollWorkerCount} Verified`}</span>
             </div>
 
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;margin:16px 0;">
@@ -3454,7 +3658,47 @@
           `}
         </section>
 
-        <!-- Actionable Section 3: Owner-Only Leave Approvals -->
+        <!-- Actionable Section 3: Auto Clock-Out Presence Verification -->
+        <section class="sr-card" id="sr-presence-reviews-card" aria-label="Auto Clock-Out Presence Verification" style="${presenceReviews.length > 0 ? 'border-top: 3px solid #f59e0b;' : ''}">
+          <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <h3>Auto Clock-Out Presence Verification (${presenceReviews.length})</h3>
+            <span class="sr-badge-certified" style="${presenceReviews.length > 0 ? 'background:rgba(245,158,11,0.12);color:#b45309;border-color:rgba(245,158,11,0.35);' : ''}">
+              ${presenceReviews.length > 0 ? `${presenceReviews.length} Held From Payroll` : 'All Auto Clock-Outs Verified'}
+            </span>
+          </div>
+
+          ${presenceReviews.length > 0 ? `
+            <div>
+              ${presenceReviews.map(rev => {
+                const inStr = rev.clockedInAt ? new Date(rev.clockedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                const outStr = rev.clockedOutAt ? new Date(rev.clockedOutAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                return `
+                  <div class="sr-review-item" data-presence-entry-id="${escapeHtml(rev.id)}">
+                    <div class="sr-review-info">
+                      <strong>${escapeHtml(rev.workerName)} (${escapeHtml(rev.staffId || rev.membershipId)})</strong>
+                      <small>${escapeHtml(rev.role || 'Staff')} &middot; ${escapeHtml(inStr)} &rarr; ${escapeHtml(outStr)} (${Number(rev.workedHours || 0)}h) &middot; ${escapeHtml(rev.details || 'No exit scan / exit GPS verified')}</small>
+                    </div>
+                    <div class="sr-review-actions">
+                      <button type="button" class="sr-btn sr-btn-primary" style="min-height:40px;padding:0 14px;font-size:12.5px;" data-action="confirm-presence" data-id="${escapeHtml(rev.id)}">
+                        Confirm Full Shift
+                      </button>
+                      <button type="button" class="sr-btn sr-btn-secondary" style="min-height:40px;padding:0 14px;font-size:12.5px;border-color:rgba(239,68,68,0.4);color:#b91c1c;" data-action="flag-early-presence" data-id="${escapeHtml(rev.id)}">
+                        Flag Left Early
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          ` : `
+            <div class="sr-empty-state">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <p>No unverified auto clock-outs awaiting confirmation.</p>
+            </div>
+          `}
+        </section>
+
+        <!-- Actionable Section 4: Owner-Only Leave Approvals -->
         ${user.role === 'owner' ? `
           <section class="sr-card" aria-label="Leave Requests Review">
             <div class="sr-card-title-row">
@@ -3583,6 +3827,34 @@
             await renderManagerOverview();
           } catch (err) {
             alert(err.message);
+            btn.disabled = false;
+          }
+        });
+      });
+
+      // Bind Auto Clock-Out Presence Verification (Supervisor Confirm / Flag Early Departure)
+      document.querySelectorAll('[data-action="confirm-presence"], [data-action="flag-early-presence"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          const isFlagEarly = btn.dataset.action === 'flag-early-presence';
+          const decision = isFlagEarly ? 'flag_early' : 'confirm';
+          try {
+            const res = await fetch(`/api/time-entries/${encodeURIComponent(btn.dataset.id)}/confirm-presence`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ decision })
+            });
+            const d = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(d.error || 'Presence verification update failed');
+            if (typeof showToast === 'function') {
+              showToast(
+                isFlagEarly ? 'Flagged as unverified early departure (held from full payroll).' : 'Worker presence confirmed and released to payroll.',
+                isFlagEarly ? 'warning' : 'success'
+              );
+            }
+            await renderManagerOverview();
+          } catch (err) {
+            if (typeof showToast === 'function') showToast(err.message || 'Verification update failed', 'error');
             btn.disabled = false;
           }
         });
@@ -7018,12 +7290,28 @@
       document.getElementById('sr-team-scan-id-btn')?.addEventListener('click', () => {
         openPeerIdScannerModal(user.company_id || user.organisation_id, user.hub_name || '', () => renderTeamScreen());
       });
-      document.getElementById('sr-team-print-ids-btn')?.addEventListener('click', () => {
-        const companyCode = user.company_id || 'RIF-2026';
+      document.getElementById('sr-team-print-ids-btn')?.addEventListener('click', async () => {
+        const printBtn = document.getElementById('sr-team-print-ids-btn');
+        if (printBtn) printBtn.disabled = true;
+        let cardMembers = activeMembers;
+        let companyCode = user.company_id || 'RIF-2026';
+        try {
+          const idRes = await fetch('/api/team/id-cards');
+          if (idRes.ok) {
+            const idData = await idRes.json();
+            if (Array.isArray(idData.cards) && idData.cards.length > 0) {
+              cardMembers = idData.cards;
+            }
+            if (idData.companyId) companyCode = idData.companyId;
+          }
+        } catch (_) {} finally {
+          if (printBtn) printBtn.disabled = false;
+        }
         const companyTitle = user.organisation_name || 'Riffmax Technology Limited';
-        const cardsMarkup = activeMembers.map(m => {
+        const cardsMarkup = cardMembers.map(m => {
           const code = m.staffId || ('RIF-' + String(m.id || '').slice(-4));
-          const payload = `SHIFTRELAY:ID:${companyCode}:${code}`;
+          const secCode = m.cardVerifyCode || '';
+          const payload = m.cardQrPayload || (secCode ? `SHIFTRELAY:ID:${companyCode}:${code}:${secCode}` : `SHIFTRELAY:ID:${companyCode}:${code}`);
           const qr = (typeof window.generateQrSvg === 'function') ? window.generateQrSvg(payload, 92) : '';
           return `
             <div style="border:1.5px solid #cbd5e1;border-radius:12px;padding:12px;background:#ffffff;color:#0f172a;display:flex;align-items:center;justify-content:space-between;gap:12px;break-inside:avoid;">
@@ -7032,11 +7320,14 @@
                 <div style="font-size:14px;font-weight:800;margin:3px 0 2px;">${escapeHtml(m.name)}</div>
                 <div style="font-size:11px;color:#475569;">${escapeHtml(m.title)}</div>
                 <div style="font-size:10.5px;color:#64748b;margin-top:2px;">${escapeHtml(m.department)}</div>
-                <div style="margin-top:6px;display:inline-block;padding:2px 8px;border-radius:5px;background:#f1f5f9;border:1px solid #cbd5e1;font-family:monospace;font-size:11px;font-weight:700;color:#0f172a;">ID: ${escapeHtml(code)}</div>
+                <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">
+                  <span style="display:inline-block;padding:2px 8px;border-radius:5px;background:#f1f5f9;border:1px solid #cbd5e1;font-family:monospace;font-size:11px;font-weight:700;color:#0f172a;">ID: ${escapeHtml(code)}</span>
+                  ${secCode ? `<span style="display:inline-block;padding:2px 8px;border-radius:5px;background:#ecfdf5;border:1px solid #6ee7b7;font-family:monospace;font-size:11px;font-weight:800;color:#065f46;">SEC: ${escapeHtml(secCode)}</span>` : ''}
+                </div>
               </div>
               <div style="flex-shrink:0;text-align:center;">
                 ${qr}
-                <div style="font-size:8.5px;color:#64748b;font-weight:700;margin-top:2px;">SCAN TO CLOCK IN</div>
+                <div style="font-size:8.5px;color:#64748b;font-weight:700;margin-top:2px;">SIGNED ON-SITE QR</div>
               </div>
             </div>
           `;
@@ -7048,8 +7339,8 @@
           <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;max-width:860px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
             <div style="padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;gap:12px;">
               <div>
-                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Printable Staff ID Cards (${activeMembers.length} Approved Personnel)</h3>
-                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">Print &amp; issue physical ID cards so colleagues can scan non-smartphone workers into shift once daily.</div>
+                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Printable Staff ID Cards (${cardMembers.length} Approved Personnel)</h3>
+                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">Signed Staff ID cards (QR + Security PIN). Both Check-In and Exit Card Scans require strict on-site GPS verification.</div>
               </div>
               <div style="display:flex;gap:8px;">
                 <button type="button" class="sr-btn sr-btn-primary" id="sr-print-ids-now-btn" style="padding:7px 14px;font-size:12px;">Print Sheet</button>
@@ -8023,7 +8314,8 @@
     const rawSuffix = String(user.id || '0001').slice(-4).padStart(4, '0');
     const staffCode = user.staffId || user.employee_code || ('RIF-' + rawSuffix);
     const orgCode = user.company_id || 'RIF-2026';
-    const qrPayload = `SHIFTRELAY:ID:${orgCode}:${staffCode}`;
+    const cardVerifyCode = user.cardVerifyCode || '';
+    const qrPayload = user.cardQrPayload || (cardVerifyCode ? `SHIFTRELAY:ID:${orgCode}:${staffCode}:${cardVerifyCode}` : `SHIFTRELAY:ID:${orgCode}:${staffCode}`);
     const qrSvg = (typeof window !== 'undefined' && typeof window.generateQrSvg === 'function')
       ? window.generateQrSvg(qrPayload, 128)
       : (typeof generateQrSvg === 'function' ? generateQrSvg(qrPayload, 128) : '');
@@ -8054,6 +8346,7 @@
                   <span class="sr-cv-meta-chip">${escapeHtml(orgName)}</span>
                   <span class="sr-cv-meta-chip">${escapeHtml(deptName)}</span>
                   <span class="sr-cv-meta-chip">ID: <strong style="color:#ffffff;">${escapeHtml(staffCode)}</strong></span>
+                  ${cardVerifyCode ? `<span class="sr-cv-meta-chip">Card Sec: <strong style="color:#34d399;font-family:monospace;">${escapeHtml(cardVerifyCode)}</strong></span>` : ''}
                   <span class="sr-cv-meta-chip">${escapeHtml(workEmail)}</span>
                 </div>
               </div>
@@ -8082,7 +8375,7 @@
                 </span>
                 <div>
                   <div style="font-size:14px;font-weight:800;color:#ffffff;">Official Staff ID Card</div>
-                  <div style="font-size:11px;color:#94a3b8;">Scannable by Colleague Phone &bull; Code-128 &amp; 2D QR</div>
+                  <div style="font-size:11px;color:#94a3b8;">Signed QR &amp; Security Code${cardVerifyCode ? ` (${escapeHtml(cardVerifyCode)})` : ''} &bull; GPS-Locked On-Site Only</div>
                 </div>
               </div>
               <span style="padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#34d399;font-size:10.5px;font-weight:800;letter-spacing:0.04em;">VERIFIED ACTIVE</span>
@@ -8090,20 +8383,20 @@
 
             <div class="sr-barcode-codes-row">
               <!-- Real 2D QR Code Box -->
-              <div class="sr-barcode-qr-box" title="Scan with any smartphone camera to view verified company personnel record">
+              <div class="sr-barcode-qr-box" title="Scan on-site with colleague GPS-locked camera">
                 ${qrSvg}
-                <div style="font-size:9.5px;font-weight:800;color:#0f172a;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;">Scan ID Info</div>
+                <div style="font-size:9.5px;font-weight:800;color:#0f172a;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;">Signed ID QR</div>
               </div>
 
               <!-- Real 1D Code-128 Barcode Box -->
               <div class="sr-barcode-1d-box" title="Scan with any barcode laser scanner">
-                <div style="font-size:9px;font-weight:800;color:#64748b;letter-spacing:0.06em;text-transform:uppercase;">GS1 Code-128 Staff Barcode</div>
+                <div style="font-size:9px;font-weight:800;color:#64748b;letter-spacing:0.06em;text-transform:uppercase;">GS1 Code-128 Staff Barcode${cardVerifyCode ? ` &bull; SEC: ${escapeHtml(cardVerifyCode)}` : ''}</div>
                 ${barcodeSvg}
               </div>
             </div>
 
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;color:#94a3b8;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
-              <span>Check-In: <strong>Peer Mobile ID Scan &bull; Auto Clock-Out</strong></span>
+              <span>Check-In/Exit: <strong>Strict GPS + Card Verification</strong></span>
               <span style="color:#34d399;font-weight:700;">NIBSS &amp; PenCom Compliant</span>
             </div>
           </div>
@@ -10907,7 +11200,9 @@
             : m.verificationMode === 'gps_snapshot'
             ? 'GPS Snapshot'
             : (m.onShift ? 'Verified On-Shift' : 'Rostered / Scheduled');
-          const geoText = m.onShift ? 'Verified Active · Auto Clock-Out' : 'Geofence Enrolled · Standby';
+          const geoText = m.onShift
+            ? (m.presenceVerificationStatus === 'awaiting_exit_scan' ? 'On-Site Entry GPS · Exit Scan Pending' : 'GPS Verified Active')
+            : 'Geofence Enrolled · Standby';
           return `
             <tr style="border-bottom:1px solid #e2e8f0;">
               <td style="padding:9px 6px;font-weight:700;">${escapeHtml(m.name || 'Staff Member')}</td>

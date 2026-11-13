@@ -875,10 +875,21 @@ async function renderMeProfile(targetUserId) {
       const btn = $('#me-clock-btn');
       const wasClockedIn = btn.textContent.trim() === 'Clock Out';
       btn.disabled = true;
-      btn.textContent = wasClockedIn ? 'Clocking out…' : 'Clocking in…';
+      btn.textContent = 'Acquiring Live GPS…';
       try {
-        await api(wasClockedIn ? '/api/time-entries/clock-out' : '/api/time-entries/clock-in', { method: 'POST' });
-        toast(wasClockedIn ? 'Clocked out. Great shift!' : 'Clocked in. Work moves forward.');
+        if (!window.ShiftRelayGps?.captureStrictLiveGps) {
+          throw new Error('Strict GPS module unavailable. Reload app to continue.');
+        }
+        const coords = await window.ShiftRelayGps.captureStrictLiveGps({
+          actionLabel: wasClockedIn ? 'clock out' : 'clock in'
+        });
+        btn.textContent = wasClockedIn ? 'Clocking out…' : 'Clocking in…';
+        await api(wasClockedIn ? '/api/time-entries/clock-out' : '/api/time-entries/clock-in', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ verificationMode: 'gps_snapshot', coords })
+        });
+        toast(wasClockedIn ? 'Clocked out with verified GPS.' : 'Clocked in with verified GPS. Work moves forward.');
         renderMeProfile(targetUserId);
       } catch (err) {
         btn.disabled = false;
