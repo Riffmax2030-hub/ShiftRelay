@@ -146,6 +146,12 @@ import {
   generateCvReportHtml,
   generateTermsOfServiceHtml
 } from './report-engine.mjs';
+import {
+  INDUSTRY_PROFILES,
+  INDUSTRY_OPTIONS,
+  resolveIndustryProfile,
+  getIndustryKey
+} from './industry-profiles.mjs';
 
 export function calculateHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
   const R = 6371e3; // Earth radius in meters
@@ -431,7 +437,7 @@ function demoTimeSummary(user, store, month) {
     verification_details: activeRaw.verificationDetails || 'Verified On-Site',
     geofence_status: activeRaw.geofenceStatus || 'verified_on_site',
     distance_meters: activeRaw.distanceMeters || 0,
-    site_name: activeRaw.siteName || 'Apapa Industrial Terminal'
+    site_name: activeRaw.siteName || user.hub_name || user.industryProfile?.defaultHubName || 'Primary Operations Hub'
   } : null;
 
   return {
@@ -447,7 +453,7 @@ function demoTimeSummary(user, store, month) {
       verification_mode: entry.verificationMode || 'standard',
       verification_details: entry.verificationDetails || 'Verified On-Site',
       geofence_status: entry.geofenceStatus || 'verified_on_site',
-      site_name: entry.siteName || 'Apapa Industrial Terminal',
+      site_name: entry.siteName || user.hub_name || user.industryProfile?.defaultHubName || 'Primary Operations Hub',
       distance_meters: entry.distanceMeters || 0
     }))
   };
@@ -644,6 +650,38 @@ async function createSession(userId, membershipId) {
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function enrichUserWithOrganisation(userObj, store) {
+  if (!userObj) return null;
+  const orgs = Array.isArray(store?.organisations) ? store.organisations : [];
+  const matchedOrg = orgs.find((o) =>
+    (userObj.organisation_id && o.id === userObj.organisation_id) ||
+    (userObj.company_id && o.organisation_code === userObj.company_id)
+  ) || orgs[0] || null;
+
+  const orgName = userObj.organisation_name || matchedOrg?.trading_name || matchedOrg?.legal_name || 'Riffmax Technology';
+  const legalName = userObj.company_name || matchedOrg?.legal_name || orgName;
+  const companyId = userObj.company_id || matchedOrg?.organisation_code || 'RIF-2026';
+  const orgKey = companyId || matchedOrg?.id || 'default';
+  const overrideIndustry = store?.organisationIndustry?.[orgKey] || store?.organisationIndustry?.[matchedOrg?.id];
+  const settingsIndustry = (!userObj.organisation_id || userObj.organisation_id === matchedOrg?.id)
+    ? store?.organisationSettings?.industry
+    : null;
+  const rawIndustry = overrideIndustry || matchedOrg?.industry || userObj.industry || settingsIndustry || '';
+  const profile = resolveIndustryProfile(rawIndustry, orgName);
+
+  return {
+    ...userObj,
+    organisation_id: userObj.organisation_id || matchedOrg?.id || demoOrganisation.id,
+    organisation_name: orgName,
+    company_name: legalName,
+    company_id: companyId,
+    hub_name: userObj.hub_name || matchedOrg?.hub_name || profile.defaultHubName,
+    industry: rawIndustry || profile.label,
+    industryKey: profile.key,
+    industryProfile: profile
+  };
+}
+
 async function getUser(request) {
   const token = sessionId(request);
   if (token) {
@@ -651,10 +689,20 @@ async function getUser(request) {
       if (!UUID_REGEX.test(token)) return null;
       try {
         const result = await query(
-          `select m.id, u.id as user_id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id, coalesce(o.trading_name, o.legal_name) as organisation_name from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id join organisations o on o.id = m.organisation_id where s.id = $1 and s.expires_at > now()`,
+          `select m.id, u.id as user_id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id, coalesce(o.trading_name, o.legal_name) as organisation_name, o.legal_name as company_name, o.organisation_code as company_id, o.industry from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id join organisations o on o.id = m.organisation_id where s.id = $1 and s.expires_at > now()`,
           [token]
         );
-        if (result.rows[0]?.status === 'active') return result.rows[0];
+        if (result.rows[0]?.status === 'active') {
+          const row = result.rows[0];
+          const profile = resolveIndustryProfile(row.industry, row.organisation_name);
+          return {
+            ...row,
+            hub_name: profile.defaultHubName,
+            industry: row.industry || profile.label,
+            industryKey: profile.key,
+            industryProfile: profile
+          };
+        }
         // Invalid, expired, or non-active membership must never fall through to demo auth
         return null;
       } catch (err) {
@@ -664,12 +712,12 @@ async function getUser(request) {
           if (session) {
             const dm = demoMembers.find(m => m.id === session.membershipId || m.id === session.userId);
             if (dm) {
-              return { id: dm.id, user_id: dm.id, name: dm.name, email: dm.email, role: dm.role, title: dm.title, department: dm.department, organisation_id: demoOrganisation.id, status: 'active' };
+              return enrichUserWithOrganisation({ id: dm.id, user_id: dm.id, name: dm.name, email: dm.email, role: dm.role, title: dm.title, department: dm.department, organisation_id: demoOrganisation.id, status: 'active' }, store);
             }
             const member = (store.memberships || []).find((m) => m.id === session.membershipId && m.status === 'active');
             const user = (store.portalUsers || []).find((u) => u.id === session.userId);
             if (member && user) {
-              return { id: member.id, user_id: user.id, name: user.full_name, email: user.email, role: member.role, title: member.title, department: member.department, organisation_id: member.organisation_id, status: member.status };
+              return enrichUserWithOrganisation({ id: member.id, user_id: user.id, name: user.full_name, email: user.email, role: member.role, title: member.title, department: member.department, organisation_id: member.organisation_id, status: member.status }, store);
             }
           }
         }
@@ -682,12 +730,12 @@ async function getUser(request) {
       if (session) {
         const dm = demoMembers.find(m => m.id === session.membershipId || m.id === session.userId);
         if (dm) {
-          return { id: dm.id, user_id: dm.id, name: dm.name, email: dm.email, role: dm.role, title: dm.title, department: dm.department, organisation_id: demoOrganisation.id, status: 'active' };
+          return enrichUserWithOrganisation({ id: dm.id, user_id: dm.id, name: dm.name, email: dm.email, role: dm.role, title: dm.title, department: dm.department, organisation_id: demoOrganisation.id, status: 'active' }, store);
         }
         const member = (store.memberships || []).find((m) => m.id === session.membershipId && m.status === 'active');
         const user = (store.portalUsers || []).find((u) => u.id === session.userId);
         if (member && user) {
-          return { id: member.id, user_id: user.id, name: user.full_name, email: user.email, role: member.role, title: member.title, department: member.department, organisation_id: member.organisation_id, status: member.status };
+          return enrichUserWithOrganisation({ id: member.id, user_id: user.id, name: user.full_name, email: user.email, role: member.role, title: member.title, department: member.department, organisation_id: member.organisation_id, status: member.status }, store);
         }
       }
       return null;
@@ -700,7 +748,10 @@ async function getUser(request) {
     const demoHeader = request.headers['x-shiftrelay-user'];
     if (demoHeader) {
       const demoUser = users.find((user) => user.id === demoHeader);
-      return demoUser ? { ...demoUser, organisation_id: demoOrganisation.id, status: 'active' } : null;
+      if (demoUser) {
+        const store = await getStore().catch(() => null);
+        return enrichUserWithOrganisation({ ...demoUser, organisation_id: demoOrganisation.id, status: 'active' }, store);
+      }
     }
   }
   return null;
@@ -711,7 +762,7 @@ function notify(store, recipientId, handoverId, message) {
 }
 
 async function databaseHandovers(user) {
-  const result = await query(`select wi.id, wi.status, wi.payload, wi.created_at, wi.updated_at, wi.acknowledged_at, wi.created_by_membership_id, wi.assigned_to_membership_id, reviewer.full_name as reviewer_name from work_items wi left join portal_users reviewer on reviewer.id = wi.created_by_membership_id where wi.organisation_id = $1 and ($2 in ('supervisor', 'owner') or wi.created_by_membership_id = $3 or wi.assigned_to_membership_id = $3) order by wi.created_at desc`, [user.organisation_id, user.role, user.id]);
+  const result = await query(`select wi.id, wi.status, wi.payload, wi.created_at, wi.updated_at, wi.acknowledged_at, wi.created_by_membership_id, wi.assigned_to_membership_id, reviewer.full_name as reviewer_name from work_items wi left join portal_users reviewer on reviewer.id = wi.created_by_membership_id where wi.organisation_id = $1 and ($2 in ('supervisor', 'manager', 'owner') or wi.created_by_membership_id = $3 or wi.assigned_to_membership_id = $3) order by wi.created_at desc`, [user.organisation_id, user.role, user.id]);
   return result.rows.map((row) => ({ id: row.id, createdBy: row.created_by_membership_id, assignedTo: row.assigned_to_membership_id, handover: row.payload, status: row.status, acknowledgement: row.acknowledged_at ? { by: row.assigned_to_membership_id, at: row.acknowledged_at } : null, createdAt: row.created_at, updatedAt: row.updated_at, reviewedBy: row.reviewer_name }));
 }
 
@@ -873,7 +924,7 @@ async function updateDatabaseHandover(user, id, action) {
   const item = (await query('select * from work_items where id = $1 and organisation_id = $2', [id, user.organisation_id])).rows[0];
   if (!item) throw new Error('Handover not found.');
   if (action === 'relay') {
-    if (!['supervisor', 'owner'].includes(user.role)) throw new Error('Only a supervisor can approve and relay this handover.');
+    if (!['supervisor', 'manager', 'owner'].includes(user.role)) throw new Error('Only a supervisor, manager, or owner can approve and relay this handover.');
     if (item.status !== 'awaiting_review') throw new Error('This handover cannot be relayed in its current state.');
     await query('update work_items set status = $1, updated_at = now() where id = $2 and organisation_id = $3', ['relayed', id, user.organisation_id]);
     await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, item.assigned_to_membership_id, id, 'A supervisor approved a handover for your shift.']);
@@ -1270,11 +1321,12 @@ async function signIn(body) {
       const org = orgRes.rows[0];
       if (!org) throw new Error(`Invalid Company ID "${rawCompanyId}". Please check your tenant identifier.`);
 
-      const result = await query(`select u.id as user_id, u.password_hash, u.time_zone, u.country_code, u.avatar_data_url, m.id, u.full_name as name, u.email, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id, coalesce(o.trading_name, o.legal_name) as organisation_name from portal_users u join memberships m on m.user_id = u.id join organisations o on o.id = m.organisation_id where m.organisation_id = $1 and lower(u.email) = lower($2) order by m.created_at desc limit 1`, [org.id, emailOrUser]);
+      const result = await query(`select u.id as user_id, u.password_hash, u.time_zone, u.country_code, u.avatar_data_url, m.id, u.full_name as name, u.email, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.organisation_id, coalesce(o.trading_name, o.legal_name) as organisation_name, o.legal_name as company_name, o.industry from portal_users u join memberships m on m.user_id = u.id join organisations o on o.id = m.organisation_id where m.organisation_id = $1 and lower(u.email) = lower($2) order by m.created_at desc limit 1`, [org.id, emailOrUser]);
       const member = result.rows[0];
       if (!member || !(await passwordMatches(body.password, member.password_hash))) throw new Error('Invalid email or password.');
       if (member.status !== 'active') throw new Error('Your workplace access is waiting for approval.');
-      return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name, company_id: org.organisation_code } };
+      const dbProfile = resolveIndustryProfile(member.industry, member.organisation_name);
+      return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name, company_name: member.company_name, company_id: org.organisation_code, hub_name: dbProfile.defaultHubName, industry: member.industry || dbProfile.label, industryKey: dbProfile.key, industryProfile: dbProfile } };
     } catch (dbErr) {
       if (ALLOW_DEV_FALLBACK && isDatabaseConnectionError(dbErr)) {
         console.warn('[AUTH FALLBACK] DB connection error during signIn; falling back to local credentials:', dbErr.message);
@@ -1305,7 +1357,7 @@ async function signIn(body) {
       const sessId = await createSession(demoMember.id, demoMember.id);
       return {
         sessionId: sessId,
-        user: {
+        user: enrichUserWithOrganisation({
           id: demoMember.id,
           name: demoMember.name,
           email: demoMember.email,
@@ -1315,7 +1367,7 @@ async function signIn(body) {
           organisation_id: demoOrganisation.id,
           organisation_name: 'Riffmax Technology',
           company_id: 'RIF-2026'
-        }
+        }, store)
       };
     }
   }
@@ -1332,7 +1384,19 @@ async function signIn(body) {
   if (!user || !(await passwordMatches(body.password, user.password_hash))) throw new Error('Invalid email or password.');
   const member = (store.memberships || []).find((m) => m.user_id === user.id && (!targetOrgId || m.organisation_id === targetOrgId));
   if (!member || member.status !== 'active') throw new Error('Your workplace access is waiting for approval or pending employee activation.');
-  return { sessionId: await createSession(user.id, member.id), user: { id: member.id, name: user.full_name, email: user.email, role: member.role, title: member.title, department: member.department, organisation_id: member.organisation_id, company_id: matchedOrg?.organisation_code || '246701' } };
+  return {
+    sessionId: await createSession(user.id, member.id),
+    user: enrichUserWithOrganisation({
+      id: member.id,
+      name: user.full_name,
+      email: user.email,
+      role: member.role,
+      title: member.title,
+      department: member.department,
+      organisation_id: member.organisation_id,
+      company_id: matchedOrg?.organisation_code || '246701'
+    }, store)
+  };
 }
 
 async function analyseShiftUpdate(notes) {
@@ -1384,7 +1448,11 @@ function generateWorkplaceResponse(question, user) {
 }
 
 async function answerWorkQuestion(question, user) {
-  const instructions = `You are ShiftRelay's workplace assistant. Give a concise, practical, safe answer for a ${user.title || user.role}. Do not invent company policy, medical, legal, HR, or safety rules. Encourage the user to contact their supervisor for urgent, unsafe, or policy-specific matters. Keep the response below 120 words.`;
+  const profile = user.industryProfile || resolveIndustryProfile(user.industryKey || user.industry, user.organisation_name || '');
+  const orgName = user.organisation_name || 'your organisation';
+  const regSummary = (profile.safetyRegulations || []).map(r => `${r.title} (${r.authority || 'Regulator'})`).join('; ');
+  const taxSummary = (profile.taxAndStatutory || []).map(t => `${t.title || t.code} [${t.rate || 'Statutory'}]`).join('; ');
+  const instructions = `You are ShiftRelay's workplace assistant for ${orgName} (${profile.label}). Give a concise, practical, safe answer for a ${user.title || user.role}. Sector regulations: ${regSummary}. Sector tax context: ${taxSummary}. Do not invent company policy, medical, legal, HR, or safety rules. Encourage the user to contact their supervisor for urgent, unsafe, or policy-specific matters. Keep the response below 120 words.`;
   if (process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL) {
     const response = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: process.env.OPENAI_MODEL, instructions, input: question }) });
     if (response.ok) return (await response.json()).output_text;
@@ -1392,22 +1460,25 @@ async function answerWorkQuestion(question, user) {
   }
   if (!process.env.GEMINI_API_KEY) {
     const q = question.toLowerCase();
-    if (q.includes('first aid') || q.includes('certified') || q.includes('certification')) {
-      return 'The employees with an active First Aid certification are: Alice Boyle (Warehouse Lead), Connor Mendoza (Logistics Specialist), and Amina Otieno (Operations Lead). All three have verified Level 2 certifications on file.';
+    if (q.includes('safety') || q.includes('regulation') || q.includes('compliance')) {
+      return `${orgName} (${profile.label}) follows: ${regSummary || 'standard sector safety and workforce governance controls'}. Contact your supervisor for site-specific escalations.`;
     }
-    if (q.includes('alice') || q.includes('boyle')) {
-      return 'Alice Boyle is a Forklift Operator based at Factory 11 - Warehouse - USA. Manager: Karen Cooley. Hire date: Dec 10, 2018 (7.0 years of service). Base pay: $41,600.00/yr ($20.00/hr). Most recent review: Current (Satisfactory). Status: Active frontline member.';
+    if (q.includes('tax') || q.includes('paye') || q.includes('pencom') || q.includes('statutory')) {
+      return `Statutory & tax framework for ${profile.label}: ${taxSummary || 'PAYE, PenCom (8% Emp / 10% Er), NSITF (1%), and NHF (2.5%)'}.`;
+    }
+    if (q.includes('first aid') || q.includes('certified') || q.includes('certification')) {
+      return `Verified First Aid & Safety responders for ${orgName} are tracked in the Team & Governance roster (${profile.shortLabel} operations). Check the Team tab for current on-shift coverage.`;
     }
     if (q.includes('clock') || q.includes('punch') || q.includes('pay') || q.includes('paid') || q.includes('blank')) {
-      return 'If your clock-out is blank or missing, go to your Timesheets tab and tap "Resolve Missed Punch". Enter your actual departure time and submit. Your shift supervisor can authorize the correction immediately so your Friday payroll is never delayed.';
+      return 'If your clock-out is blank or missing, go to your Timesheets tab and tap "Resolve Missed Punch". Enter your actual departure time and submit. Your shift supervisor can authorize the correction immediately so payroll is never delayed.';
     }
     if (q.includes('swap') || q.includes('cover') || q.includes('marketplace')) {
       return 'To request shift cover, open the Schedule tab and click "Offer Shift" or browse the Open Shift Marketplace to claim open shifts. Once accepted, your supervisor will review and authorize.';
     }
     if (q.includes('time off') || q.includes('pto') || q.includes('leave') || q.includes('vacation') || q.includes('sick')) {
-      return 'You can submit Time Away requests from the Time Away tab. Choose your dates and leave type (PTO, Vacation, Sick). Your supervisor can review and approve it directly from their Approvals queue.';
+      return 'You can submit Time Away requests from the Time Away tab. Choose your dates and leave type. Your supervisor can review and approve it directly from their Approvals queue.';
     }
-    return `As a ${user.title || user.role || 'frontline specialist'}, remember to verify critical safety checks before shift handoff. For urgent hazard reports or emergency medical questions, contact your on-duty supervisor directly.`;
+    return `As a ${user.title || user.role || 'team member'} in ${profile.shortLabel} at ${orgName}, verify ${profile.checklistLabel || 'your pre-shift readiness checklist'} before handoff. Contact your on-duty supervisor for urgent escalations.`;
   }
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL || 'gemini-3.5-flash'}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY }, body: JSON.stringify({ systemInstruction: { parts: [{ text: instructions }] }, contents: [{ parts: [{ text: question }] }] }) });
   if (!response.ok) throw new Error(`Assistant request failed with status ${response.status}.`);
@@ -1755,6 +1826,16 @@ async function handleApi(request, response, url) {
     return;
   }
   if (url.pathname === '/api/auth/session' && request.method === 'GET') return user ? sendJson(response, 200, { user }) : sendJson(response, 401, { error: 'Sign in to continue.' });
+  if (url.pathname === '/api/industry-profiles' && request.method === 'GET') {
+    const requested = url.searchParams.get('industry') || '';
+    const profile = requested ? resolveIndustryProfile(requested, '') : null;
+    return sendJson(response, 200, {
+      ok: true,
+      options: INDUSTRY_OPTIONS,
+      profiles: INDUSTRY_PROFILES,
+      resolved: profile
+    });
+  }
   if (url.pathname === '/api/account-deletion-requests' && request.method === 'POST') {
     try {
       const body = await readJson(request); const email = String(body.email || '').trim().toLowerCase();
@@ -2298,12 +2379,21 @@ async function handleApi(request, response, url) {
     if (body.tradingName) org.trading_name = body.tradingName.trim();
     if (body.organisationCode) org.organisation_code = body.organisationCode.trim().toUpperCase();
     if (body.workEmail) org.work_email = body.workEmail.trim().toLowerCase();
-    if (body.industry) org.industry = body.industry.trim();
+    if (body.industry || body.industryKey) {
+      const resolvedProfile = resolveIndustryProfile(body.industryKey || body.industry, org.trading_name || org.legal_name);
+      org.industryKey = resolvedProfile.key;
+      org.industry = resolvedProfile.label;
+      if (store.organisationSettings && (org.id === 'org-riffmax-main' || org.organisation_code === 'RIF-2026')) {
+        store.organisationSettings.industry = resolvedProfile.key;
+      }
+      store.organisationIndustry = resolvedProfile.key;
+    }
     if (body.address) org.address = body.address.trim();
     if (body.hubName) org.hub_name = body.hubName.trim();
     if (body.hubLat !== undefined) org.hub_lat = Number(body.hubLat);
     if (body.hubLng !== undefined) org.hub_lng = Number(body.hubLng);
     if (body.hubPerimeter !== undefined) org.hub_perimeter = Number(body.hubPerimeter);
+    if (body.hubRadius !== undefined) org.hub_perimeter = Number(body.hubRadius);
     if (body.subscriptionTier) org.subscription_tier = body.subscriptionTier;
 
     await appendAdminAuditLog({
@@ -2645,11 +2735,14 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/analytics' && request.method === 'GET') {
     if (!['owner', 'manager', 'workforce_admin', 'supervisor'].includes(user.role)) return sendJson(response, 403, { error: 'Executive analytics requires manager or owner access.' });
-    // Enterprise Executive Intelligence Payload (Nigerian Industrial HCM)
+    const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
     const tenant = {
       companyId: user.company_id || 'RIF-2026',
-      companyName: user.company_name || 'Riffmax Technology Limited',
-      hubName: user.hub_name || 'Riffmax Software Engineering Hub (Lagos)',
+      companyName: user.company_name || user.organisation_name || 'Riffmax Technology Limited',
+      hubName: user.hub_name || profile.defaultHubName,
+      industry: user.industry || profile.label,
+      industryKey: profile.key,
+      industryLabel: profile.shortLabel,
       currency: 'NGN',
       reportPeriod: new Date().toLocaleDateString('en-NG', { month: 'long', year: 'numeric' }),
       generatedAt: new Date().toISOString()
@@ -2690,25 +2783,30 @@ async function handleApi(request, response, url) {
       statusLabel: 'Awaiting Finance Desk Approval',
       payrollMonth: new Date().toLocaleDateString('en-NG', { month: 'long', year: 'numeric' })
     };
-    const unitBreakdown = [
-      { unit: 'Grain Milling',    headcount: 68, attendancePercent: 97.1, overtimeHours: 42, status: 'On Track' },
-      { unit: 'Packaging',        headcount: 54, attendancePercent: 95.8, overtimeHours: 38, status: 'On Track' },
-      { unit: 'Logistics',        headcount: 47, attendancePercent: 98.0, overtimeHours: 28, status: 'On Track' },
-      { unit: 'Quality Assurance',headcount: 31, attendancePercent: 96.3, overtimeHours: 18, status: 'On Track' },
-      { unit: 'Plant Maintenance',headcount: 48, attendancePercent: 95.2, overtimeHours: 18, status: 'Monitor'  }
-    ];
+    const unitBreakdown = Array.isArray(profile.units) && profile.units.length > 0
+      ? profile.units
+      : INDUSTRY_PROFILES.operations.units;
     const statutory = {
       penComPercent: 18,
       payePercent: 7.7,
       nsitfPercent: 1.0,
       nhfPercent: 2.5,
       remittanceDueDate: (() => { const d = new Date(); d.setDate(14); d.setMonth(d.getMonth() + 1); return d.toISOString().split('T')[0]; })(),
-      remittanceStatus: 'Pending Month-End'
+      remittanceStatus: 'Pending Month-End',
+      sectorTaxBreakdown: profile.taxAndStatutory || []
     };
-    if (!databaseReady) {
-      return sendJson(response, 200, { tenant, headcount, attendance, hoursAndOvertime, payrollBurn, unitBreakdown, statutory });
-    }
-    return sendJson(response, 200, { tenant, headcount, attendance, hoursAndOvertime, payrollBurn, unitBreakdown, statutory });
+    return sendJson(response, 200, {
+      tenant,
+      headcount,
+      attendance,
+      hoursAndOvertime,
+      payrollBurn,
+      unitBreakdown,
+      statutory,
+      industryProfile: profile,
+      safetyRegulations: profile.safetyRegulations || [],
+      suggestedIdeas: profile.suggestedIdeas || []
+    });
   }
   if (url.pathname === '/api/attendance/today' && request.method === 'GET') {
     if (!['owner', 'workforce_admin'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners or workforce managers can view attendance.' });
@@ -3137,6 +3235,9 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/shift-swaps' && request.method === 'GET') {
     const store = await getStore();
+    const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
+    const unitA = profile.units?.[0]?.unit || 'Core Operations';
+    const unitB = profile.units?.[1]?.unit || 'Operations Support';
     if (!Array.isArray(store.shiftSwaps)) {
       store.shiftSwaps = [
         {
@@ -3150,7 +3251,7 @@ async function handleApi(request, response, url) {
           swap_type: 'cover',
           shift_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
           shift_time: 'Morning Shift (07:00 - 15:00)',
-          department: 'Grain Milling Unit',
+          department: unitA,
           reason: 'Medical checkup before evening rotation',
           status: 'pending',
           created_at: new Date(Date.now() - 3600000).toISOString()
@@ -3166,7 +3267,7 @@ async function handleApi(request, response, url) {
           swap_type: 'trade',
           shift_date: new Date(Date.now() + 172800000).toISOString().slice(0, 10),
           shift_time: 'Night Shift (23:00 - 07:00)',
-          department: 'Quality Inspection',
+          department: unitB,
           reason: 'Direct swap trade with Amina',
           status: 'claimed',
           created_at: new Date(Date.now() - 7200000).toISOString()
@@ -3174,7 +3275,10 @@ async function handleApi(request, response, url) {
       ];
       await saveStore(store);
     }
-    return sendJson(response, 200, { swaps: store.shiftSwaps });
+    const swaps = profile.key !== 'manufacturing'
+      ? store.shiftSwaps.map(s => /Grain Milling|Main Production Floor|Apapa/i.test(String(s.department || '')) ? { ...s, department: unitA } : s)
+      : store.shiftSwaps;
+    return sendJson(response, 200, { swaps });
   }
 
   if (url.pathname === '/api/shift-swaps/claim' && request.method === 'POST') {
@@ -3254,34 +3358,38 @@ async function handleApi(request, response, url) {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can view settings.' });
     if (!databaseReady) {
       const store = await getStore();
+      const orgRecord = (store.organisations || []).find((o) => o.id === user.organisation_id || o.organisation_code === user.company_id) || store.organisations?.[0] || {};
+      const profile = resolveIndustryProfile(store.organisationSettings?.industry || orgRecord.industry || user.industry, orgRecord.trading_name || orgRecord.legal_name || user.organisation_name);
       if (!store.organisationSettings) {
         store.organisationSettings = {
-          legal_name: 'ShiftRelay Global Demo Organisation',
-          trading_name: 'ShiftRelay Global',
-          industry: 'Operations',
-          country: 'Global',
-          time_zone: 'UTC',
+          legal_name: orgRecord.legal_name || user.company_name || 'Riffmax Technology Limited',
+          trading_name: orgRecord.trading_name || user.organisation_name || 'Riffmax Technology',
+          industry: orgRecord.industry || profile.key,
+          industryKey: profile.key,
+          country: orgRecord.country || 'Nigeria',
+          time_zone: orgRecord.time_zone || 'Africa/Lagos',
           preferred_language: 'en',
           settings: { handoverReminderMinutes: 30, payModel: 'monthly_salaried', disbursementDay: '25', defaultMonthlySalary: 240000 }
         };
         await saveStore(store);
       }
-      return sendJson(response, 200, { organisation: store.organisationSettings });
+      return sendJson(response, 200, { organisation: { ...store.organisationSettings, industryKey: profile.key, industryProfile: profile }, industryOptions: INDUSTRY_OPTIONS });
     }
     const organisation = (await query('select legal_name, trading_name, industry, country, time_zone, preferred_language, settings from organisations where id = $1', [user.organisation_id])).rows[0];
     if (!organisation) return sendJson(response, 404, { error: 'Organisation not found.' });
-    return sendJson(response, 200, { organisation });
+    const dbProfile = resolveIndustryProfile(organisation.industry, organisation.trading_name || organisation.legal_name);
+    return sendJson(response, 200, { organisation: { ...organisation, industryKey: dbProfile.key, industryProfile: dbProfile }, industryOptions: INDUSTRY_OPTIONS });
   }
   if (url.pathname === '/api/organisation/settings' && request.method === 'PUT') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can update settings.' });
     const body = await readJson(request);
 
-    // Validate industry
-    const supportedIndustries = ['Healthcare', 'Logistics', 'Manufacturing', 'Hospitality', 'Retail', 'Security', 'Operations', 'Other'];
-    const industry = String(body.industry || 'Other').trim();
-    if (!supportedIndustries.includes(industry)) {
-      return sendJson(response, 400, { error: `Invalid industry. Supported options: ${supportedIndustries.join(', ')}` });
-    }
+    // Resolve and validate industry across all supported ShiftRelay sectors
+    const rawIndustry = String(body.industry || 'operations').trim();
+    const resolvedProfile = resolveIndustryProfile(rawIndustry, body.tradingName || user.organisation_name || '');
+    const industry = rawIndustry.length > 0 && rawIndustry.length <= 100
+      ? (INDUSTRY_PROFILES[rawIndustry] ? resolvedProfile.label : rawIndustry)
+      : resolvedProfile.label;
 
     // Validate timeZone
     const timeZone = String(body.timeZone || '').trim();
@@ -3313,14 +3421,25 @@ async function handleApi(request, response, url) {
     if (!databaseReady) {
       const store = await getStore();
       if (!store.organisationSettings) store.organisationSettings = {};
+      if (!store.organisationIndustry) store.organisationIndustry = {};
       const payModel = ['monthly_salaried', 'hourly_shift', 'hybrid'].includes(body.payModel) ? body.payModel : (body.settings?.payModel || 'monthly_salaried');
       const disbursementDay = String(body.disbursementDay || body.settings?.disbursementDay || '25');
       const defaultMonthlySalary = Number(body.defaultMonthlySalary || body.settings?.defaultMonthlySalary) > 0 ? Number(body.defaultMonthlySalary || body.settings?.defaultMonthlySalary) : 240000;
       const logoUrl = body.logoUrl || body.logo_url || body.employer_avatar_url || store.organisationSettings?.logo_url || null;
+      const matchedOrg = (store.organisations || []).find((o) => o.id === user.organisation_id || o.organisation_code === user.company_id) || store.organisations?.[0];
+      if (matchedOrg) {
+        if (tradingName) matchedOrg.trading_name = tradingName;
+        matchedOrg.industry = industry;
+        matchedOrg.country = country;
+        matchedOrg.time_zone = timeZone;
+      }
+      const orgKey = user.company_id || matchedOrg?.organisation_code || user.organisation_id || 'default';
+      store.organisationIndustry[orgKey] = resolvedProfile.key;
       store.organisationSettings = {
-        legal_name: store.organisationSettings.legal_name || 'ShiftRelay Global Demo Organisation',
+        legal_name: matchedOrg?.legal_name || store.organisationSettings.legal_name || 'Riffmax Technology Limited',
         trading_name: tradingName,
         industry,
+        industryKey: resolvedProfile.key,
         country,
         time_zone: timeZone,
         preferred_language: language,
@@ -3338,7 +3457,7 @@ async function handleApi(request, response, url) {
         }
       }
       await saveStore(store);
-      return sendJson(response, 200, { ok: true, organisation: store.organisationSettings });
+      return sendJson(response, 200, { ok: true, organisation: { ...store.organisationSettings, industryProfile: resolvedProfile } });
     }
 
     const payModelDb = ['monthly_salaried', 'hourly_shift', 'hybrid'].includes(body.payModel) ? body.payModel : (body.settings?.payModel || 'monthly_salaried');
@@ -3504,7 +3623,8 @@ async function handleApi(request, response, url) {
     if (!org) return sendJson(response, 404, { error: 'Tenant organisation not found.' });
 
     const cCode = org.organisation_code;
-    const hubName = org.state ? `${org.state} Terminal Hub` : 'Apapa Industrial Terminal';
+    const orgProfile = resolveIndustryProfile(org.industry, org.trading_name || org.legal_name);
+    const hubName = org.hub_name || (org.state ? `${org.state} Operations Hub` : orgProfile.defaultHubName);
     const gateId = 'GATE-01';
     const qrPayload = `SHIFTRELAY:GATE:${cCode}:${hubName.replace(/\s+/g, '-')}:${gateId}`;
     const qrSvg = generateQrSvg(qrPayload, 260);
@@ -3617,7 +3737,8 @@ async function handleApi(request, response, url) {
           const org = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
           const hubLat = org.hub_lat || 6.4474;
           const hubLng = org.hub_lng || 3.3590;
-          const hubName = org.hub_name || (org.state ? `${org.state} Terminal Hub` : 'Apapa Industrial Terminal');
+          const orgProfile = resolveIndustryProfile(org.industryKey || org.industry, org.trading_name || org.legal_name);
+          const hubName = org.hub_name || (org.state ? `${org.state} Operations Hub` : orgProfile.defaultHubName);
           const perimeterMeters = org.hub_perimeter || 500;
 
           const verificationMode = body.verificationMode || 'standard';
@@ -3830,7 +3951,7 @@ async function getUserRewards(user, store) {
         target: 1,
         completed: true,
         claimed: rw.claimedQuests.includes('quest-clockin'),
-        premiseLocation: 'Inside Facility Boundary · Bay 4 (Verified GPS)',
+        premiseLocation: (user.industryProfile?.zones?.[0]?.name || user.hub_name || 'Verified Perimeter Boundary') + ' (Verified GPS)',
         badge: 'Verified Entry'
       },
       {
@@ -3843,7 +3964,7 @@ async function getUserRewards(user, store) {
         target: 1,
         completed: true,
         claimed: rw.claimedQuests.includes('quest-clockout'),
-        premiseLocation: 'Exit Gate Scanner Verified · No Unmonitored Overtime',
+        premiseLocation: 'Verified Departure Checkpoint · Scheduled Hours Locked',
         badge: 'Punctual Exit'
       },
       {
@@ -4280,6 +4401,10 @@ async function getUserRewards(user, store) {
     if (userEntries.length === 0) {
       const now = Date.now();
       const dayMs = 86400000;
+      const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
+      const hubLabel = user.hub_name || profile.defaultHubName;
+      const roleLabel = user.title || profile.defaultRoleTitle;
+      const deptLabel = user.department || profile.units?.[0]?.unit || 'Operations';
       userEntries = [
         {
           id: 'te-seed-1',
@@ -4287,9 +4412,9 @@ async function getUserRewards(user, store) {
           membershipId: targetUserId,
           clockedInAt: new Date(now - dayMs - 8.5 * 3600000).toISOString(),
           clockedOutAt: new Date(now - dayMs).toISOString(),
-          facility: 'Factory 10 - Production',
-          department: 'Operations',
-          role: 'Process Technician',
+          facility: hubLabel,
+          department: deptLabel,
+          role: roleLabel,
           note: 'Completed regular shift + handover relay'
         },
         {
@@ -4298,9 +4423,9 @@ async function getUserRewards(user, store) {
           membershipId: targetUserId,
           clockedInAt: new Date(now - 2 * dayMs - 9 * 3600000).toISOString(),
           clockedOutAt: null,
-          facility: 'Factory 10 - Production',
-          department: 'Operations',
-          role: 'Process Technician',
+          facility: hubLabel,
+          department: deptLabel,
+          role: roleLabel,
           note: 'Shift completed - clock-out punch missing'
         },
         {
@@ -4309,9 +4434,9 @@ async function getUserRewards(user, store) {
           membershipId: targetUserId,
           clockedInAt: new Date(now - 3 * dayMs - 8 * 3600000).toISOString(),
           clockedOutAt: new Date(now - 3 * dayMs).toISOString(),
-          facility: 'Factory 10 - Production',
-          department: 'Operations',
-          role: 'Process Technician',
+          facility: hubLabel,
+          department: deptLabel,
+          role: roleLabel,
           note: 'Regular shift'
         }
       ];
@@ -4328,6 +4453,7 @@ async function getUserRewards(user, store) {
       if (outTime) {
         hours = Math.max(0, ((outTime.getTime() - inTime.getTime()) / 3600000)).toFixed(2);
       }
+      const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
       return {
         id: e.id,
         date: inTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
@@ -4336,9 +4462,9 @@ async function getUserRewards(user, store) {
         clockOutTime: outTime ? outTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Blank (Missing)',
         hours: outTime ? Number(hours) : 0,
         status: isMissing ? 'missed_punch' : (isActive ? 'active' : 'authorized'),
-        facility: e.facility || 'Factory 10 - Production',
+        facility: e.facility || user.hub_name || profile.defaultHubName,
         department: e.department || user.department || 'Operations',
-        role: e.role || user.title || 'Frontline Specialist',
+        role: e.role || user.title || profile.defaultRoleTitle,
         correctionPending: store.punchCorrections.some(c => c.timeEntryId === e.id && c.status === 'pending')
       };
     });
@@ -4389,19 +4515,22 @@ async function getUserRewards(user, store) {
     if (!Array.isArray(store.punchCorrections)) store.punchCorrections = [];
     
     if (store.punchCorrections.length === 0) {
+      const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
+      const hubLabel = user.hub_name || profile.defaultHubName;
+      const roleLabel = profile.defaultRoleTitle;
       store.punchCorrections = [
         {
           id: 'pc-seed-1',
           timeEntryId: 'te-seed-2',
           membershipId: '00000000-0000-4000-8000-000000000011',
-          workerName: 'Amina Otieno',
-          role: 'Process Technician (USA)',
-          facility: 'Factory 10 - Production',
+          workerName: 'Chidinma Okonjo',
+          role: roleLabel,
+          facility: hubLabel,
           date: 'Tue, Sep 8, 2026',
           clockIn: '09:00',
           requestedClockOut: '17:30',
           hours: '8.50',
-          reason: 'Badge scanner offline at bay 4 exit',
+          reason: 'Badge scanner sync delayed at main checkpoint',
           status: 'pending',
           createdAt: new Date().toISOString()
         },
@@ -4409,9 +4538,9 @@ async function getUserRewards(user, store) {
           id: 'pc-seed-2',
           timeEntryId: 'te-seed-aaron',
           membershipId: '00000000-0000-4000-8000-000000000012',
-          workerName: 'Aaron Glover',
-          role: 'Process Technician (USA)',
-          facility: 'Factory 10 - Production',
+          workerName: 'Farouk Bello',
+          role: roleLabel,
+          facility: hubLabel,
           date: 'Tue, Sep 8, 2026',
           clockIn: '09:00',
           requestedClockOut: '17:30',
@@ -4424,25 +4553,36 @@ async function getUserRewards(user, store) {
       await saveStore(store);
     }
 
-    const pending = store.punchCorrections.filter(c => c.status === 'pending');
+    const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
+    const sanitizedAll = profile.key !== 'manufacturing'
+      ? store.punchCorrections.map(c => ({
+          ...c,
+          facility: /Factory\s*10|Production/i.test(String(c.facility || '')) ? (user.hub_name || profile.defaultHubName) : c.facility,
+          reason: String(c.reason || '').replace(/bay 4 exit/gi, 'main access checkpoint')
+        }))
+      : store.punchCorrections;
+    const pending = sanitizedAll.filter(c => c.status === 'pending');
     return sendJson(response, 200, {
       pending,
-      all: store.punchCorrections,
+      all: sanitizedAll,
       count: pending.length
     });
   }
 
   // Manager: Authorize Punch Correction
   if (url.pathname === '/api/timesheets/authorize' && request.method === 'POST') {
-    const { correctionId, decision } = await readJson(request);
+    const body = await readJson(request);
+    const correctionId = body.correctionId || body.id;
+    const rawDecision = String(body.decision || body.action || '').toLowerCase();
+    const isApproved = ['approved', 'approve', 'authorized', 'authorize'].includes(rawDecision);
     const store = await getStore();
     const correction = (store.punchCorrections || []).find(c => c.id === correctionId);
     if (!correction) return sendJson(response, 404, { error: 'Correction request not found.' });
-    correction.status = decision === 'approved' ? 'authorized' : 'denied';
+    correction.status = isApproved ? 'authorized' : 'denied';
     correction.authorizedBy = user.name;
     correction.authorizedAt = new Date().toISOString();
 
-    if (decision === 'approved' && Array.isArray(store.timeEntries)) {
+    if (isApproved && Array.isArray(store.timeEntries)) {
       const entry = store.timeEntries.find(e => e.id === correction.timeEntryId);
       if (entry) {
         entry.clockedOutAt = new Date().toISOString();
@@ -5342,16 +5482,18 @@ async function getUserRewards(user, store) {
       const orgContracts = (store.contracts || []).filter(c => c.tenant_id === org.id || (!c.tenant_id && org.organisation_code === '246701'));
       const ownerMember = (store.memberships || []).find(m => m.organisation_id === org.id && m.role === 'owner');
       const ownerUser = ownerMember ? (store.portalUsers || []).find(u => u.id === ownerMember.user_id) : null;
+      const orgProfile = resolveIndustryProfile(org.industryKey || org.industry, org.trading_name || org.legal_name);
       return {
         id: org.id,
         companyId: org.organisation_code,
         legalName: org.legal_name,
         tradingName: org.trading_name || org.legal_name,
-        industry: org.industry || 'Logistics & FMCG',
+        industry: org.industry || orgProfile.label,
+        industryKey: org.industryKey || orgProfile.key,
         country: org.country || 'Nigeria',
         state: org.state || 'Lagos',
         currency: org.currency || 'NGN',
-        hubName: org.hub_name || 'Main Hub',
+        hubName: org.hub_name || orgProfile.defaultHubName || 'Main Hub',
         hubRadius: org.hub_perimeter || 250,
         employeeCount: orgContracts.length,
         masterAdminName: ownerUser ? ownerUser.full_name : (org.contact_name || 'System Executive'),
@@ -5389,17 +5531,19 @@ async function getUserRewards(user, store) {
     if (!Array.isArray(store.memberships)) store.memberships = [];
     if (!Array.isArray(store.contracts)) store.contracts = [];
 
+    const tenantProfile = resolveIndustryProfile(body.industryKey || body.industry, legalName);
     const newOrg = {
       id: tenantId,
       organisation_code: generatedCompanyId,
       aliases: [generatedCompanyId, generatedCompanyId.replace(/[^A-Za-z0-9]/g, '').toUpperCase()],
       legal_name: legalName,
       trading_name: String(body.tradingName || legalName).trim(),
-      industry: body.industry || 'Frontline Operations & Logistics',
+      industry: tenantProfile.label,
+      industryKey: tenantProfile.key,
       country: body.country || 'Nigeria',
       state: body.state || 'Lagos',
       currency: body.currency || 'NGN',
-      hub_name: body.siteName || 'Primary Operations Gate',
+      hub_name: body.siteName || tenantProfile.defaultHubName || 'Primary Operations Hub',
       hub_lat: Number(body.latitude || 6.5244),
       hub_lng: Number(body.longitude || 3.3792),
       hub_perimeter: Number(body.radiusMeters || 250),
@@ -5693,59 +5837,69 @@ async function getUserRewards(user, store) {
     });
   }
 
-  // ── Compliance & Goals Watch ─────────────────────────────────────────────
+  // ── Compliance & Goals Watch (Tailored per Company Industry) ───────────────
   if (url.pathname === '/api/compliance-goals' && request.method === 'GET') {
-    return sendJson(response, 200, {
-      goals: {
-        atRisk: [
-          {
-            id: 'g-1',
-            title: 'Complete Annual Safety Training',
-            progress: 20,
-            dueDate: '30-Nov-2025',
-            status: 'at_risk'
-          },
-          {
-            id: 'g-2',
-            title: 'Renew Processing License',
-            progress: 0,
-            dueDate: '30-Nov-2025',
-            status: 'at_risk'
-          }
-        ],
-        overdue: [
-          {
-            id: 'g-3',
-            title: 'Become Assembly Line Certified',
-            progress: 0,
-            dueDate: '31-Mar-2025',
-            status: 'overdue'
-          },
-          {
-            id: 'g-4',
-            title: 'Create Onboarding Plan for New Hires',
-            progress: 25,
-            dueDate: '15-Apr-2025',
-            status: 'overdue'
-          }
-        ],
-        current: [
-          {
-            id: 'g-5',
-            title: 'ShiftRelay Accountable Handover Pro',
-            progress: 100,
-            dueDate: 'Verified',
-            status: 'completed'
-          },
-          {
-            id: 'g-6',
-            title: 'Frontline Safety & Incident Triage Level 1',
-            progress: 100,
-            dueDate: 'Verified',
-            status: 'completed'
-          }
-        ]
+    const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
+    const regs = Array.isArray(profile.safetyRegulations) ? profile.safetyRegulations : [];
+    const current = [
+      ...regs.filter(r => r.status === 'completed').map((r, i) => ({
+        id: `reg-c-${profile.key}-${i}`,
+        title: r.title,
+        progress: r.progress || 100,
+        dueDate: r.dueDate || 'Continuous',
+        status: 'completed',
+        authority: r.authority
+      })),
+      {
+        id: 'stat-pencom',
+        title: 'PenCom 18% Monthly Pension Remittance Verification (8% Employee + 10% Employer)',
+        progress: 100,
+        dueDate: 'Monthly',
+        status: 'completed',
+        authority: 'National Pension Commission (PenCom)'
+      },
+      {
+        id: 'stat-paye',
+        title: 'Finance Act PAYE Consolidated Relief & State IRS Schedule Audit',
+        progress: 100,
+        dueDate: 'Monthly',
+        status: 'completed',
+        authority: 'LIRS / State Internal Revenue Service'
       }
+    ];
+    const atRisk = [
+      ...regs.filter(r => r.status !== 'completed' && r.status !== 'overdue').map((r, i) => ({
+        id: `reg-r-${profile.key}-${i}`,
+        title: r.title,
+        progress: r.progress || 92,
+        dueDate: r.dueDate || 'Monthly',
+        status: 'at_risk',
+        authority: r.authority
+      })),
+      {
+        id: 'stat-rest',
+        title: 'Nigerian Labour Act 12-Hour Minimum Rest Window Between Shift Rotations',
+        progress: 94,
+        dueDate: 'Ongoing Audit',
+        status: 'at_risk',
+        authority: 'Federal Ministry of Labour & Employment'
+      }
+    ];
+    const overdue = regs.filter(r => r.status === 'overdue').map((r, i) => ({
+      id: `reg-o-${profile.key}-${i}`,
+      title: r.title,
+      progress: r.progress || 40,
+      dueDate: r.dueDate || 'Immediate',
+      status: 'overdue',
+      authority: r.authority
+    }));
+
+    return sendJson(response, 200, {
+      industryKey: profile.key,
+      industryLabel: profile.label,
+      taxAndStatutory: profile.taxAndStatutory || [],
+      suggestedIdeas: profile.suggestedIdeas || [],
+      goals: { atRisk, overdue, current, completed: current, at_risk: atRisk }
     });
   }
 
@@ -5832,21 +5986,43 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, savedStates, customTasks, dayKey, industry });
   }
 
-  if (url.pathname === '/api/organisation/industry' && request.method === 'PUT') {
-    if (!['owner', 'supervisor'].includes(user.role)) {
-      return sendJson(response, 403, { error: 'Only supervisors or organisation owners can change industry operational protocols.' });
+  if (url.pathname === '/api/organisation/industry' && (request.method === 'PUT' || request.method === 'POST')) {
+    if (!['owner', 'supervisor', 'manager'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Only supervisors, managers, or organisation owners can change industry operational protocols.' });
     }
-    const { industry, tenantId } = await readJson(request);
-    const valid = ['manufacturing', 'logistics', 'facility', 'food_beverage', 'security'];
-    if (!valid.includes(industry)) {
+    const body = await readJson(request);
+    const requestedIndustry = body.industryKey || body.industry;
+    const tenantId = body.tenantId;
+    const profile = resolveIndustryProfile(requestedIndustry, '');
+    if (!INDUSTRY_PROFILES[profile.key]) {
       return sendJson(response, 400, { error: 'Unsupported industry protocol key.' });
     }
     const store = await getStore();
     if (!store.organisationIndustry) store.organisationIndustry = {};
-    const orgKey = tenantId || user.company_id || 'default';
-    store.organisationIndustry[orgKey] = industry;
+    const orgKey = tenantId || user.company_id || user.organisation_id || 'default';
+    store.organisationIndustry[orgKey] = profile.key;
+    if (user.organisation_id) {
+      store.organisationIndustry[user.organisation_id] = profile.key;
+    }
+    const matchedOrg = (store.organisations || []).find((o) => o.id === user.organisation_id || o.organisation_code === orgKey) || store.organisations?.[0];
+    if (matchedOrg) {
+      matchedOrg.industry = profile.label;
+      matchedOrg.industryKey = profile.key;
+      if (matchedOrg.organisation_code) store.organisationIndustry[matchedOrg.organisation_code] = profile.key;
+      if (matchedOrg.id) store.organisationIndustry[matchedOrg.id] = profile.key;
+      for (const alias of (matchedOrg.aliases || [])) {
+        store.organisationIndustry[alias] = profile.key;
+      }
+    }
+    if (store.organisationSettings) {
+      store.organisationSettings.industry = profile.label;
+      store.organisationSettings.industryKey = profile.key;
+    }
     await saveStore(store);
-    return sendJson(response, 200, { ok: true, industry, tenantId: orgKey });
+    if (databaseReady && user.organisation_id) {
+      await query('update organisations set industry = $1 where id = $2', [profile.label, user.organisation_id]).catch(() => {});
+    }
+    return sendJson(response, 200, { ok: true, industry: profile.label, industryKey: profile.key, label: profile.label, profile, tenantId: orgKey });
   }
 
   if (url.pathname === '/api/handovers' && request.method === 'GET') {
@@ -5955,9 +6131,9 @@ async function getUserRewards(user, store) {
         const handover = store.handovers.find((item) => item.id === handoverId);
         if (!handover) { const err = new Error('Handover not found.'); err.statusCode = 404; throw err; }
         if (handoverAction === 'relay') {
-          if (user.role !== 'supervisor') { const err = new Error('Only the supervisor can relay a handover.'); err.statusCode = 403; throw err; }
+          if (!['supervisor', 'manager', 'owner'].includes(user.role)) { const err = new Error('Only a supervisor, manager, or owner can approve and relay a handover.'); err.statusCode = 403; throw err; }
           if (handover.status !== 'awaiting_review') { const err = new Error('This handover cannot be relayed in its current state.'); err.statusCode = 409; throw err; }
-          handover.status = 'relayed'; handover.reviewedBy = user.id; handover.updatedAt = new Date().toISOString();
+          handover.status = 'relayed'; handover.reviewedBy = user.name || user.id; handover.updatedAt = new Date().toISOString();
           notify(store, handover.assignedTo, handover.id, 'A reviewed handover is ready for you to acknowledge.');
         } else {
           if (!['relayed', 'awaiting_review'].includes(handover.status)) { const err = new Error('This handover cannot be acknowledged in its current state.'); err.statusCode = 409; throw err; }
@@ -5991,12 +6167,15 @@ async function getUserRewards(user, store) {
     }
     const store = await getStore();
     if (!Array.isArray(store.notifications) || store.notifications.length === 0) {
+      const notifProfile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
+      const notifHub = user.hub_name || notifProfile.defaultHubName || 'Primary Operations Hub';
+      const notifUnit = notifProfile.units?.[0]?.unit || 'Core Operations';
       store.notifications = [
         {
           id: 'notif-demo-1',
           recipientId: user.id,
           category: 'payroll',
-          message: 'October Statutory Payroll & PenCom Remittance Schedule generated (₦13.9M gross volume).',
+          message: 'Monthly Statutory Payroll & PenCom Remittance Schedule generated for ' + (user.organisation_name || 'your organisation') + '.',
           read: false,
           createdAt: new Date(Date.now() - 1800000).toISOString()
         },
@@ -6012,7 +6191,7 @@ async function getUserRewards(user, store) {
           id: 'notif-demo-3',
           recipientId: user.id,
           category: 'attendance',
-          message: 'Gate QR Check-in verified at Apapa Industrial Hub (Gate 01) — 0% battery usage.',
+          message: `Gate QR Check-in verified at ${notifHub} (Gate 01) — 0% battery usage.`,
           read: true,
           createdAt: new Date(Date.now() - 7200000).toISOString()
         },
@@ -6020,7 +6199,7 @@ async function getUserRewards(user, store) {
           id: 'notif-demo-4',
           recipientId: user.id,
           category: 'handovers',
-          message: 'Shift Handover Brief relayed for Grain Milling Unit with 3 priority checklist tasks.',
+          message: `Shift Handover Brief relayed for ${notifUnit} with priority checklist tasks.`,
           read: false,
           createdAt: new Date(Date.now() - 10800000).toISOString()
         },
@@ -6028,7 +6207,7 @@ async function getUserRewards(user, store) {
           id: 'notif-demo-5',
           recipientId: user.id,
           category: 'payroll',
-          message: 'Digital Payslip ready for download: ₦208,400 net pay via Zenith Bank corporate transfer.',
+          message: 'Digital Payslip ready for download and payroll audit review.',
           read: true,
           createdAt: new Date(Date.now() - 86400000).toISOString()
         }
@@ -7543,7 +7722,7 @@ const server = createServer((request, response) => {
         version: '2026.11.v129',
         databaseMode: databaseReady ? 'postgres-primary' : 'local-resilient-store',
         compliance: ['NDPA-2023', 'NITDA-BIOMETRIC', 'PENCOM-PRA-2014', 'FINANCE-ACT-CRA'],
-        industrialZones: ['Ikeja Industrial Estate', 'Apapa Port Complex', 'Lekki Free Zone', 'Kano Sharada Phase II'],
+        operationalZones: ['Victoria Island Tech Hub', 'Ikeja Operations Hub', 'Lekki Service Zone', 'Abuja Regional Hub'],
         timestamp: new Date().toISOString()
       });
     }
@@ -7553,7 +7732,7 @@ const server = createServer((request, response) => {
       const workerId = String(body.workerId || body.membershipId || 'wrk-01').trim();
       const workerName = String(body.workerName || 'Frontline Specialist').trim();
       const reason = String(body.reason || 'Gate Biometric / Geofence Supervisor Verification').trim();
-      const zone = String(body.zone || 'Ikeja Industrial Gate A').trim();
+      const zone = String(body.zone || 'Primary Operations Gate A').trim();
       const auditHash = 'OVR-' + createHash('sha256').update(workerId + ':' + Date.now() + ':' + reason).digest('hex').slice(0, 12).toUpperCase();
       return sendJson(response, 200, {
         ok: true,
@@ -7672,7 +7851,7 @@ const server = createServer((request, response) => {
       });
       const initialEvent = {
         id: 'br_' + Date.now(),
-        zone: 'Apapa Port Terminal B',
+        zone: 'Primary Hub Gate 02',
         severity: 'VERIFIED',
         workerName: 'Bolanle Adeyemi',
         distanceMeters: 4,
@@ -7702,7 +7881,7 @@ const server = createServer((request, response) => {
       const body = await readJson(request);
       const alertObj = {
         id: 'br_' + Date.now(),
-        zone: String(body.zone || 'Ikeja Assembly Line 2'),
+        zone: String(body.zone || 'Operations Zone 2'),
         workerName: String(body.workerName || 'Field Contractor'),
         distanceMeters: Number(body.distanceMeters || 185),
         severity: 'HIGH_PERIMETER_DRIFT',

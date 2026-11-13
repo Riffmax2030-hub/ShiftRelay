@@ -57,28 +57,637 @@
   }
 
   function getUser() {
+    let resolved = null;
     try {
       const demoStored = localStorage.getItem('shiftrelay-demo-persona');
       if (demoStored) {
         const parsed = normalizeDemoUser(JSON.parse(demoStored));
         if (parsed && parsed.role) {
           if (window._srState) window._srState.user = parsed;
-          return parsed;
+          resolved = parsed;
         }
       }
     } catch (_) {}
-    if (window._srState?.user) {
-      return normalizeDemoUser(window._srState.user);
+    if (!resolved && window._srState?.user) {
+      resolved = normalizeDemoUser(window._srState.user);
     }
-    try {
-      const stored = localStorage.getItem('shiftrelay-user-data');
-      if (stored) {
-        const parsed = normalizeDemoUser(JSON.parse(stored));
-        if (parsed && window._srState) window._srState.user = parsed;
-        return parsed;
+    if (!resolved) {
+      try {
+        const stored = localStorage.getItem('shiftrelay-user-data');
+        if (stored) {
+          const parsed = normalizeDemoUser(JSON.parse(stored));
+          if (parsed && window._srState) window._srState.user = parsed;
+          resolved = parsed;
+        }
+      } catch (_) {}
+    }
+    if (resolved) {
+      window._srActiveUser = resolved;
+    }
+    return resolved;
+  }
+
+  let currentActiveView = null;
+
+  const CLIENT_INDUSTRY_PROFILES = {
+    tech: {
+      key: 'tech',
+      label: 'Technology & Software',
+      shortLabel: 'Technology',
+      defaultHubName: 'Victoria Island Engineering Hub',
+      stationPlaceholder: 'e.g. Cloud Ops Desk, Release Bay, Support Pod A',
+      telemetryLabel: 'Service SLA Uptime',
+      telemetryValue: '99.98% (Primary Cloud)',
+      skillsPlaceholder: 'e.g. Incident Triage, CI/CD Release, SRE Runbooks, NDPA Security...',
+      defaultHandoverSummary: 'Morning Handover: Release Window & On-Call Triage Active',
+      defaultHandoverNotes: 'Staging & production health checks green. Pending PR approvals queued for daytime engineering squad. Zero Sev-1 alerts open.',
+      zones: [
+        { id: 'zone_a', name: 'Bay A · Core Systems & Release Desk', type: 'Engineering & Deployments', tasks: ['CI/CD pipeline green check', 'Production error-rate audit'], hasFlag: false },
+        { id: 'zone_b', name: 'Bay B · Cloud NOC & Incident Command', type: 'SRE & Observability', tasks: ['Database failover latency check', 'On-call pager transition sign-off'], hasFlag: false },
+        { id: 'zone_c', name: 'Bay C · QA & AppSec Verification Lab', type: 'Security & Compliance', tasks: ['NDPA access log spot check', 'Staging regression verification'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-tech-sec', text: 'Workstation MFA, VPN Tunnel & SOC 2 Access Check', priority: 'urgent', done: true },
+        { id: 'task-tech-noc', text: 'Cloud Uptime, API Error Budget & Latency Dashboard Review', priority: 'urgent', done: false },
+        { id: 'task-tech-deploy', text: 'Release Window Runbook & Rollback Readiness Sign-Off', priority: 'normal', done: false },
+        { id: 'task-tech-ticket', text: 'Priority Incident Queue & Support Escalation Triage', priority: 'urgent', done: false },
+        { id: 'task-tech-ndpa', text: 'NDPA Data Privacy & Production Audit Log Sweep', priority: 'normal', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'NDPA 2023 & NITDA Data Protection Audit', authority: 'Nigeria Data Protection Commission (NDPC)', status: 'completed', progress: 100, note: 'PII encryption, access expiry & breach logging verified.' },
+        { title: 'SOC 2 / ISO-27001 On-Call Incident SLA & Escalation', authority: 'Information Security Governance', status: 'completed', progress: 98, note: 'Shift handover runbooks and production access logs verified.' },
+        { title: 'Display Screen & Ergonomic Workstation Wellness Standard', authority: 'ISO-9241 / Workplace Health', status: 'at_risk', progress: 92, note: 'Track maximum screen rotation hours for NOC shifts.' }
+      ],
+      taxAndStatutory: [
+        { title: 'NITDA Technology Development Levy (1% Profit Before Tax)', authority: 'FIRS / NITDA Act', rate: '1% PBT (>₦100M turnover)' },
+        { title: 'WHT on Software / Technical Consulting Contracts (5%–10%)', authority: 'FIRS Withholding Tax Regulations 2024', rate: '5% Ind. / 10% Corp.' },
+        { title: 'PAYE, PenCom (18%), NSITF (1%) & NHF (2.5%) Payroll Schedule', authority: 'LIRS / PenCom PRA 2014', rate: 'Monthly Statutory' }
+      ],
+      suggestedIdeas: [
+        'Run automated deployment freeze windows during shift-changeover overlap (05:45–06:15) to avoid orphaned rollbacks.',
+        'Tie On-Call Sev-1 pager acknowledgements directly to automated overtime/comp-time credits.',
+        'Separate engineering squads from contractor support tiers in Payroll & Cost-Center analytics.'
+      ]
+    },
+    restaurant: {
+      key: 'restaurant',
+      label: 'Restaurants & Fast Food',
+      shortLabel: 'QSR & Hospitality Dining',
+      defaultHubName: 'Flagship Kitchen & Dining Hub',
+      stationPlaceholder: 'e.g. Hot Grill Line, Cold Prep, Drive-Thru POS, Dining Floor',
+      telemetryLabel: 'Chiller & Fryer Status',
+      telemetryValue: 'All Units Within Temp Spec',
+      skillsPlaceholder: 'e.g. Food Hygiene Level 2, POS Cashiering, Grill Station, Allergen Prep...',
+      defaultHandoverSummary: 'Opening Kitchen Handover: Walk-In Chiller Log & Prep Complete',
+      defaultHandoverNotes: 'Morning prep trays labeled with FIFO expiry tags. Fryers filtered, POS floats balanced, and allergen prep surface sanitized.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Hot Kitchen & Grill Line', type: 'Culinary Execution', tasks: ['Core cooking probe calibration check', 'Exhaust hood & fire suppression visual check'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · Walk-In Chiller & Prep Station', type: 'HACCP Food Safety', tasks: ['Cold storage temp <= 4C verified', 'FIFO date-dot label audit'], hasFlag: false },
+        { id: 'zone_c', name: 'Zone C · Front Counter, POS & Drive-Thru', type: 'Guest Service', tasks: ['Cash drawer & POS terminal sync', 'Allergen binder readiness check'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-qsr-temp', text: 'Walk-In Chiller & Freezer HACCP Temperature Log Verification', priority: 'urgent', done: true },
+        { id: 'task-qsr-hygiene', text: 'Food Handler Hygiene, Hairnet/Glove & Allergen Station Check', priority: 'urgent', done: false },
+        { id: 'task-qsr-prep', text: 'Par-Level Prep Stock & FIFO Expiry Label Rotation Check', priority: 'normal', done: false },
+        { id: 'task-qsr-pos', text: 'Front Counter POS Cash Float & Kitchen Display Sync', priority: 'urgent', done: false },
+        { id: 'task-qsr-san', text: 'Sanitizer PPM Concentration & Grease Trap / Floor Safety Check', priority: 'normal', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'NAFDAC & HACCP Cold-Chain Temperature Compliance Log', authority: 'NAFDAC / State Health Inspectorate', status: 'completed', progress: 100, note: 'Chiller logs (1°C–4°C) and hot-hold (>63°C) recorded per shift.' },
+        { title: 'Food Handler Medical Fitness & Allergen Cross-Contact Protocol', authority: 'Public Health & Food Safety Act', status: 'completed', progress: 96, note: 'Updated food handler certificates & allergen separation enforced.' },
+        { title: 'Commercial Kitchen Fire Suppression & Hood Degreasing', authority: 'Federal Fire Service / HSE', status: 'at_risk', progress: 91, note: 'Verify Class K extinguisher pin & hood cleaning every cycle.' }
+      ],
+      taxAndStatutory: [
+        { title: 'VAT 7.5% & State Consumption / Hotel Occupancy Tax', authority: 'FIRS / State Internal Revenue Service', rate: '7.5% VAT + 5% State' },
+        { title: 'PAYE, PenCom (18%), NSITF & Service Charge Distribution Audit', authority: 'LIRS / PenCom PRA 2014', rate: 'Monthly Statutory' },
+        { title: 'FIRS Fiscalisation / POS Receipt Tax Reconciliation', authority: 'Finance Act 2024', rate: 'Per Transaction' }
+      ],
+      suggestedIdeas: [
+        'Track pre-rush prep completion 45 minutes before lunch & dinner peaks to eliminate ticket bottlenecks.',
+        'Tie hourly split-shift coverage credits to verified closing-checklist sign-offs.',
+        'Automate food-handler medical expiry reminders 30 days ahead in Staff Governance.'
+      ]
+    },
+    gas_station: {
+      key: 'gas_station',
+      label: 'Gas Stations & Forecourts',
+      shortLabel: 'Fuel Forecourt & Retail',
+      defaultHubName: 'Primary Forecourt & Mart Hub',
+      stationPlaceholder: 'e.g. Pump Island 1–4, Tank Gauging Bay, Lube & Mart',
+      telemetryLabel: 'Underground Tank & ATG',
+      telemetryValue: 'Zero Vapor Leak · Pumps Synced',
+      skillsPlaceholder: 'e.g. Forecourt Dispensing, Tank Dipping, Fire Marshall, POS Shift Close...',
+      defaultHandoverSummary: 'Forecourt Shift Change: Pump Totalisers & Tank Dip Verified',
+      defaultHandoverNotes: 'Morning pump meter readings reconciled against POS card & cash batches. Underground PMS/AGO dip gauges logged with zero water ingress.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Pump Islands (PMS / AGO / DPK)', type: 'Fuel Dispensing', tasks: ['Opening & closing totaliser meter sync', 'Hose nozzle breakaway & grounding check'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · Tank Farm & Ullage Dip Point', type: 'Hydrocarbon Containment', tasks: ['Manual tank dip vs ATG reconciliation', 'Interceptor pit & spill kit readiness'], hasFlag: false },
+        { id: 'zone_c', name: 'Zone C · Forecourt Mart & Cashier Cage', type: 'Settlement & Retail', tasks: ['Safe drop & POS terminal settlement', 'LPG cylinder cage lock & leak test'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-fuel-meter', text: 'Opening Pump Meter Totalisers & Nozzle Pricing Display Check', priority: 'urgent', done: true },
+        { id: 'task-fuel-fire', text: 'DCP Fire Extinguishers, Sand Buckets & Emergency ESD Shut-Off Test', priority: 'urgent', done: false },
+        { id: 'task-fuel-dip', text: 'Underground Tank ATG Level & Water-Finding Paste Dip Verification', priority: 'urgent', done: false },
+        { id: 'task-fuel-cash', text: 'Safe Drop Vault Envelope & POS Settlement Reconciliation', priority: 'normal', done: false },
+        { id: 'task-fuel-ppe', text: 'Forecourt Anti-Static Gear, Traffic Cones & Spill Kit Inspection', priority: 'normal', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'NMDPRA Forecourt Licensing & Fire Marshal ESD Readiness', authority: 'NMDPRA / Federal Fire Service', status: 'completed', progress: 100, note: 'Emergency shut-off, earth bonding, and extinguisher seals verified daily.' },
+        { title: 'Hydrocarbon Spill Containment & Interceptor Pit Inspection', authority: 'NESREA Environmental Standards', status: 'completed', progress: 97, note: 'Zero forecourt runoff contamination and dry spill-kit stocked.' },
+        { title: 'Tank Truck Offloading Vapour Recovery & Grounding', authority: 'NMDPRA Depot & Discharge Rules', status: 'at_risk', progress: 93, note: 'Dual supervisor + driver sign-off required before hose coupling.' }
+      ],
+      taxAndStatutory: [
+        { title: 'Petroleum Product VAT Exemption vs Non-Fuel Mart VAT (7.5%)', authority: 'FIRS VAT Modification Order', rate: 'Exempt Fuel / 7.5% Mart' },
+        { title: 'NMDPRA Annual Station Renewal & State Signage Permits', authority: 'NMDPRA / Local Authority', rate: 'Annual Licence' },
+        { title: 'Attendant PAYE, PenCom & NSITF Hazard Coverage (1%)', authority: 'NSITF ECA / LIRS', rate: 'Monthly Statutory' }
+      ],
+      suggestedIdeas: [
+        'Require mandatory photo/meter-totaliser capture in shift handover before relieving attendants clock out.',
+        'Flag tank variance >0.3% automatically as a Supervisor Escalation alert.',
+        'Schedule off-peak tanker discharge outside morning commuter rush windows.'
+      ]
+    },
+    agriculture: {
+      key: 'agriculture',
+      label: 'Agriculture & Agribusiness',
+      shortLabel: 'Agro & Farm Operations',
+      defaultHubName: 'Primary Farm Estate & Silo Hub',
+      stationPlaceholder: 'e.g. Greenhouse Block B, Irrigation Pump, Silo Intake, Tractor Bay',
+      telemetryLabel: 'Field Irrigation & Cold Room',
+      telemetryValue: 'Drip Pressure & Humidity Nominal',
+      skillsPlaceholder: 'e.g. Agronomy Scouting, Irrigation Ops, Tractor Care, Silo Moisture Log...',
+      defaultHandoverSummary: 'Field Shift Handover: Irrigation Cycle & Silo Moisture Logged',
+      defaultHandoverNotes: 'Morning fertigation schedule completed across Blocks A–C. Grain silo moisture sampling recorded inside safe storage threshold.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Crop Blocks & Greenhouse Bays', type: 'Field Agronomy', tasks: ['Drip pressure & fertigation valve check', 'Pest scouting & leaf log update'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · Post-Harvest Packhouse & Silos', type: 'Storage & Grading', tasks: ['Ambient humidity & grain moisture log', 'Lot traceability crate tagging'], hasFlag: false },
+        { id: 'zone_c', name: 'Zone C · Mechanization & Chemical Store', type: 'Equipment & Agro-Inputs', tasks: ['Agrochemical locked inventory sign-out', 'Tractor fluid & PTO guard inspection'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-agro-irri', text: 'Irrigation Pump Pressure, Reservoir Level & Valve Line Audit', priority: 'urgent', done: true },
+        { id: 'task-agro-chem', text: 'Agrochemical MSDS Storage Lock, Mixing PPE & Re-Entry Window Check', priority: 'urgent', done: false },
+        { id: 'task-agro-tract', text: 'Tractor & Implement Pre-Field ROPS / Hydraulic Safety Check', priority: 'normal', done: false },
+        { id: 'task-agro-silo', text: 'Post-Harvest Cold-Chain / Silo Moisture & Weight Grading Log', priority: 'urgent', done: false },
+        { id: 'task-agro-heat', text: 'Field Crew Hydration Stations & Heat-Stress Break Schedule', priority: 'normal', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'Safe Agrochemical Handling, Storage & Field Re-Entry Interval', authority: 'NAFDAC / Federal Ministry of Agriculture', status: 'completed', progress: 100, note: 'Chemical store dual-lock log and applicator respirator checks complete.' },
+        { title: 'Tractor ROPS, PTO Shielding & Mechanized Field Safety', authority: 'Labour Act Agricultural Safety', status: 'completed', progress: 96, note: 'Operator licenses and pre-field machine checks signed daily.' },
+        { title: 'Post-Harvest Traceability & Aflatoxin Moisture Control', authority: 'SON / Produce Quality Standards', status: 'at_risk', progress: 92, note: 'Monitor silo moisture variance after seasonal rainfall.' }
+      ],
+      taxAndStatutory: [
+        { title: 'Pioneer Status / Agricultural Tax Incentives & VAT-Zero Produce', authority: 'FIRS Finance Act / NIPC', rate: '0% Exempt Basic Produce' },
+        { title: 'Seasonal vs Permanent Farmhand PAYE & NSITF Enrollment', authority: 'State IRS / NSITF', rate: 'Monthly Statutory' },
+        { title: 'Agricultural Cooperative / Input Supply WHT Exemption Checks', authority: 'FIRS WHT Regulations 2024', rate: '0%–2% Qualifying' }
+      ],
+      suggestedIdeas: [
+        'Split field tasks dynamically for early cool-hour spraying (06:00–10:00) vs shaded packhouse grading.',
+        'Use gate QR muster across distant farm perimeter gates without draining worker phone batteries.',
+        'Tag seasonal harvest workers with quick-onboarding piece-rate and overtime guardrails.'
+      ]
+    },
+    transportation: {
+      key: 'transportation',
+      label: 'Transportation & Fleet Operations',
+      shortLabel: 'Fleet & Transit Dispatch',
+      defaultHubName: 'Central Fleet Yard & Dispatch Terminal',
+      stationPlaceholder: 'e.g. Dispatch Desk, Bay 1 Inspection, Route Control, Fuel Card Desk',
+      telemetryLabel: 'Fleet GPS & ELD Compliance',
+      telemetryValue: '100% Driver Hours Compliant',
+      skillsPlaceholder: 'e.g. CDL / Class E License, Pre-Trip Inspection, Waybill Control, ELD...',
+      defaultHandoverSummary: 'Dispatch Handover: Outbound Routes Cleared & ELD Rest Verified',
+      defaultHandoverNotes: 'Morning pre-trip walkarounds signed off for 18 units. Driver rest windows audited at >=11 hours before interstate dispatch.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Pre-Trip Yard & Tire Safety Lane', type: 'Vehicle Readiness', tasks: ['Brake air pressure, lights & tread depth check', 'FRSC speed limiter & reflective triangle audit'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · Fleet Dispatch & Route Control Desk', type: 'Scheduling & Telemetry', tasks: ['Driver rest-hour compliance verification', 'Live GPS geofence & manifest sync'], hasFlag: false },
+        { id: 'zone_c', name: 'Zone C · Fuel Card & Waybill Clearance Gate', type: 'Exit & Chain-of-Custody', tasks: ['Waybill seal numbers & weight slip check', 'Driver breath/fatigue fitness check'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-tr-pretrip', text: 'Pre-Trip Brakes, Tires, Speed Limiter & Lighting Walkaround Sign-Off', priority: 'urgent', done: true },
+        { id: 'task-tr-hos', text: 'Driver Rest-Window (11h Off-Duty) & Driving Limit Fatigue Verification', priority: 'urgent', done: false },
+        { id: 'task-tr-manifest', text: 'Cargo Tie-Down, Axle Load Limit & Digital Waybill Seal Check', priority: 'normal', done: false },
+        { id: 'task-tr-emerg', text: 'Fire Extinguisher, Caution Sign, First-Aid Kit & Tracker Signal Test', priority: 'urgent', done: false },
+        { id: 'task-tr-fuel', text: 'Fuel Card Odometer Capture & Gate Exit Verification', priority: 'normal', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'FRSC Speed Limiter, Roadworthiness & Driver Rest-Hour Cap', authority: 'Federal Road Safety Corps (FRSC)', status: 'completed', progress: 100, note: 'All active commercial units verified within driving-hour ceilings.' },
+        { title: 'Vehicle Daily Pre-Trip Defect Grounding Policy', authority: 'Ministry of Transport / Fleet HSE', status: 'completed', progress: 97, note: 'Vehicles with red-flagged brake or tire faults auto-locked from dispatch.' },
+        { title: 'Night Haulage Escort & High-Risk Corridor Check-In', authority: 'Fleet Security & Compliance', status: 'at_risk', progress: 93, note: 'Enforce 2-hourly beacon check-ins on interstate night corridors.' }
+      ],
+      taxAndStatutory: [
+        { title: 'Freight & Passenger Service VAT Treatment & Waybill Stamp Duties', authority: 'FIRS / Commercial Transport Rules', rate: '7.5% Freight / Exempt Shared Bus' },
+        { title: 'Driver Trip Allowances, Mileage Reimbursements & PAYE Apportionment', authority: 'State IRS / Finance Act', rate: 'Monthly Statutory' },
+        { title: 'Interstate Haulage WHT (2%) & Commercial Fleet Insurance Audits', authority: 'FIRS / NAICOM', rate: 'Per Contract / Renewal' }
+      ],
+      suggestedIdeas: [
+        'Block route dispatch shifts automatically if a driver has under 10 hours rest since last trip clock-out.',
+        'Capture digital defect photos on handover to stop minor tire or brake wear escalating into breakdowns.',
+        'Use 1.5s burst GPS snapshots at loading hubs to track turn-around dwell times cleanly.'
+      ]
+    },
+    healthcare: {
+      key: 'healthcare',
+      label: 'Healthcare & Clinical Operations',
+      shortLabel: 'Clinical & Patient Care',
+      defaultHubName: 'Clinical Operations & Triage Hub',
+      stationPlaceholder: 'e.g. Ward Triage Desk, Pharmacy Dispensary, Lab Wing B',
+      telemetryLabel: 'Clinical Readiness & Vaccine Chiller',
+      telemetryValue: 'Cold-Chain Nominal · Ward Synced',
+      skillsPlaceholder: 'e.g. Triage Support, Patient Handover, Cold-Chain Pharmacy, Infection Control...',
+      defaultHandoverSummary: 'Clinical Shift Changeover: Ward Acuity & Pharmacy Checks Signed',
+      defaultHandoverNotes: 'Controlled drug register balanced. Critical ward observation schedule transitioned cleanly with zero overdue charts.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Patient Triage & Nursing Station', type: 'Clinical Triage', tasks: ['Shift acuity & isolation room brief', 'Emergency crash-cart seal check'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · Pharmacy & Vaccine Cold-Chain', type: 'Medication Safety', tasks: ['Vaccine fridge 2C–8C verification', 'Controlled substance count sign-off'], hasFlag: false },
+        { id: 'zone_c', name: 'Zone C · Clinical Waste & Sterilization', type: 'IPC Compliance', tasks: ['Sharps & biohazard bin pickup check', 'Autoclave cycle log audit'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-hc-ipc', text: 'Infection Prevention Control (IPC), Hand Hygiene & Isolation Ward Check', priority: 'urgent', done: true },
+        { id: 'task-hc-crash', text: 'Emergency Crash Cart Tamper Seal & Defibrillator Readiness Test', priority: 'urgent', done: false },
+        { id: 'task-hc-cold', text: 'Vaccine & Blood Bank Cold-Chain Fridge Temperature Log', priority: 'urgent', done: false },
+        { id: 'task-hc-med', text: 'Controlled Medication Count & Patient Handover Chart Verification', priority: 'normal', done: false },
+        { id: 'task-hc-waste', text: 'Biohazard & Sharps Disposal Segregation Audit', priority: 'normal', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'MDCN / NMCN Licensed Shift Coverage & Patient Handover Safety', authority: 'Federal Ministry of Health / HEFAMAA', status: 'completed', progress: 100, note: 'Qualified shift lead verified on duty across every clinical block.' },
+        { title: 'Biohazard Waste Segregation & Cold-Chain Vaccine Storage', authority: 'NAFDAC / NESREA Medical Waste', status: 'completed', progress: 98, note: 'Color-coded disposal and 2°C–8°C fridge alerts active.' },
+        { title: 'NDPA Sensitive Clinical Data & Chart Access Governance', authority: 'NDPC Health Data Rules', status: 'at_risk', progress: 94, note: 'Auto-lock shared nurse terminals between shift swaps.' }
+      ],
+      taxAndStatutory: [
+        { title: 'Medical Services VAT Exemption vs Non-Exempt Supplies', authority: 'FIRS VAT Act Exempt Schedule', rate: '0% Exempt Medical' },
+        { title: 'Locum Physician / Specialist WHT & Clinical Staff PAYE', authority: 'FIRS / State IRS', rate: '5% Locum / Monthly PAYE' },
+        { title: 'PenCom, NSITF Clinical Hazard Tier & NHIA Employer Statutory', authority: 'PenCom / NHIA / NSITF', rate: 'Monthly Statutory' }
+      ],
+      suggestedIdeas: [
+        'Require digital patient-chart acknowledgement signatures during nursing shift changeovers.',
+        'Monitor consecutive 12-hour clinical rotations to protect diagnostic accuracy and staff wellbeing.',
+        'Auto-flag practicing license renewal deadlines in Staff Governance 60 days ahead.'
+      ]
+    },
+    manufacturing: {
+      key: 'manufacturing',
+      label: 'Manufacturing & Industrial',
+      shortLabel: 'Manufacturing',
+      defaultHubName: 'Primary Manufacturing Complex',
+      stationPlaceholder: 'e.g. Assembly Line 2, Packaging Bay, QA Lab',
+      telemetryLabel: 'Production Line & Safety Systems',
+      telemetryValue: 'Line Guards & E-Stops Active',
+      skillsPlaceholder: 'e.g. Line Calibration, LOTO Safety, Quality Control, Forklift Ops...',
+      defaultHandoverSummary: 'Production Shift Changeover: Line Guards & QA Calibration Cleared',
+      defaultHandoverNotes: 'Machine guards, LOTO boards, and hourly QA batch inspections cleared cleanly for incoming production team.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Receiving & Raw Material Staging', type: 'Inbound Staging', tasks: ['Forklift pre-op check', 'Material batch barcode verification'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · Main Production & Assembly Line', type: 'Manufacturing Floor', tasks: ['Machine guard & E-Stop test', 'Scale & speed calibration audit'], hasFlag: true },
+        { id: 'zone_c', name: 'Zone C · QA Lab & Finished Goods Packaging', type: 'Quality Control', tasks: ['Hourly batch quality sign-off', 'Pallet & shrink-wrap inspection'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-mfg-ppe', text: 'Safety PPE Verification (Steel-toe boots, high-vis vest & eye protection)', priority: 'urgent', done: true },
+        { id: 'task-mfg-power', text: 'Pre-Shift Line Power & Backup Utility Status Check', priority: 'urgent', done: false },
+        { id: 'task-mfg-calib', text: 'Line Speed, Feed & Calibration Verification', priority: 'normal', done: false },
+        { id: 'task-mfg-estop', text: 'Emergency Stop (E-Stop) & Machine Guard Safety Interlock Test', priority: 'urgent', done: false },
+        { id: 'task-mfg-qc', text: 'Batch Quality Standard Sample Inspection (Hourly Shift Log)', priority: 'normal', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'Factories Act LOTO (Lockout-Tagout) & Machine Guarding Compliance', authority: 'Federal Ministry of Labour (Factory Inspectorate)', status: 'completed', progress: 100, note: 'All active assembly lines pass physical interlock & LOTO checks.' },
+        { title: 'Mandatory Industrial PPE Compliance (ISO-45001)', authority: 'Occupational Health & Safety Board', status: 'completed', progress: 98, note: 'Helmet, eye protection, steel-toe boots & hearing PPE verified.' },
+        { title: 'Hazardous Chemical Storage & Noise Decibel Limit Monitoring', authority: 'NESREA / SON Industrial Standards', status: 'at_risk', progress: 92, note: 'Calibrate floor decibel sensors and SDS binder quarterly.' }
+      ],
+      taxAndStatutory: [
+        { title: 'Manufacturing VAT (7.5%), Excise Duties & Raw-Input Credits', authority: 'FIRS / Nigeria Customs Service', rate: '7.5% VAT + Applicable Excise' },
+        { title: 'Industrial Training Fund (ITF 1% Payroll) & NSITF (1%) Remittance', authority: 'ITF / NSITF', rate: '1% Each Statutory' },
+        { title: 'PAYE, PenCom (18%) & Night-Shift Overtime Proration Audit', authority: 'LIRS / PenCom PRA 2014', rate: 'Monthly Statutory' }
+      ],
+      suggestedIdeas: [
+        'Link Lockout-Tagout clearances directly to maintenance handovers before morning line startup.',
+        'Monitor shift overtime peaks by production unit to justify hiring a swing relief pod.',
+        'Track near-miss hazard logs per line zone to eliminate recurring downtime.'
+      ]
+    },
+    logistics: {
+      key: 'logistics',
+      label: 'Logistics & Warehousing',
+      shortLabel: 'Logistics & Warehousing',
+      defaultHubName: 'Central Distribution & Fulfillment Hub',
+      stationPlaceholder: 'e.g. Loading Bay 2, Cold Storage, Inventory Rack C',
+      telemetryLabel: 'Dock Bays & Cold Storage',
+      telemetryValue: 'Dock Locks & Scanners Synced',
+      skillsPlaceholder: 'e.g. Forklift Operation, FIFO Inventory, Manifest Audit, Cold Chain...',
+      defaultHandoverSummary: 'Warehouse Handover: Dock Bays Cleared & Outbound Manifests Synced',
+      defaultHandoverNotes: 'Inbound pallets slotted into FIFO bins. All reach trucks docked for overnight charge and outbound manifests signed off.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Receiving Dock & Staging Bays', type: 'Inbound Logistics', tasks: ['Forklift pre-check', 'Trailer wheel chock lock check'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · High-Bay Racking & Cold Storage', type: 'Inventory Control', tasks: ['Chiller seal check', 'FIFO rotation sign-off'], hasFlag: false },
+        { id: 'zone_c', name: 'Zone C · Outbound Dispatch & Scanning Desk', type: 'Fulfillment', tasks: ['Handheld scanner reconciliation', 'Fire exit aisle clearance check'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-log-forklift', text: 'Forklift & Reach Truck Daily Pre-Op Checklist & Battery Test', priority: 'urgent', done: true },
+        { id: 'task-log-dock', text: 'Loading Dock Leveler & Bay Safety Barrier Visual Inspection', priority: 'urgent', done: false },
+        { id: 'task-log-manifest', text: 'Outbound Cargo Manifest & Handheld Barcode Scanner Audit', priority: 'normal', done: false },
+        { id: 'task-log-pallet', text: 'Pallet Stacking Height & Fire Exit Aisle Clearance Check', priority: 'normal', done: false },
+        { id: 'task-log-chocks', text: 'Trailer Wheel Chocks & Dock Lock Engagement Verification', priority: 'urgent', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'MHE / Forklift Pedestrian Lane Separation & Certified Operator Check', authority: 'OSH / Labour Safety Rules', status: 'completed', progress: 100, note: 'Zero pedestrian-zone violations and valid operator cards.' },
+        { title: 'Warehouse Fire Aisle Clearance & Rack Load Capacity Audit', authority: 'Federal Fire Service', status: 'completed', progress: 97, note: 'High-bay load signs and sprinkler clearance verified daily.' },
+        { title: 'Hazardous Cargo Segregation & Dock-Lock Chock Policy', authority: 'Transport & Warehouse HSE', status: 'at_risk', progress: 94, note: 'Confirm dock-lock amber indicator prior to loading.' }
+      ],
+      taxAndStatutory: [
+        { title: 'Logistics Freight VAT (7.5%) & Haulage WHT Compliance', authority: 'FIRS / State IRS', rate: '7.5% VAT / 2% WHT' },
+        { title: 'PAYE, PenCom (18%), NSITF & Warehouse Shift Allowance Audit', authority: 'LIRS / PenCom', rate: 'Monthly Statutory' },
+        { title: 'ITF 1% Staff Training Levy (5+ Staff or ₦50M Turnover)', authority: 'Industrial Training Fund', rate: '1% Annual Payroll' }
+      ],
+      suggestedIdeas: [
+        'Use gate QR check-ins at loading bays to measure carrier turn-around SLA cleanly.',
+        'Require forklift battery & horn pre-op checklist completion before first shift dispatch.',
+        'Automate open-shift broadcast to certified backup pickers during peak volume spikes.'
+      ]
+    },
+    hospitality: {
+      key: 'hospitality',
+      label: 'Hospitality & Hotels',
+      shortLabel: 'Hospitality & Hotels',
+      defaultHubName: 'Main Hotel & Guest Operations Hub',
+      stationPlaceholder: 'e.g. Front Desk, Housekeeping Floor 3, Concierge, Banquet Hall',
+      telemetryLabel: 'Room Turnaround & Guest SLA',
+      telemetryValue: '98% Rooms Inspected Ready',
+      skillsPlaceholder: 'e.g. Front Desk PMS, Room Turnaround, Guest Relations, Banquet Setup...',
+      defaultHandoverSummary: 'Hospitality Shift Change: VIP Arrivals & Room Turnaround Logged',
+      defaultHandoverNotes: 'Front desk PMS cash/card reconciliation complete. VIP suites cleared by Housekeeping supervision; engineering tickets assigned.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Front Desk & Lobby Concierge', type: 'Guest Check-In', tasks: ['PMS arrival manifest review', 'Keycard encoder & safe float audit'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · Guest Floors & Housekeeping Carts', type: 'Room Turnaround', tasks: ['VIP inspection checklist complete', 'Linen & amenity stock reconciliation'], hasFlag: false },
+        { id: 'zone_c', name: 'Zone C · Banquet, Pool & Engineering', type: 'Facilities & Guest Safety', tasks: ['Pool chlorine/pH test logged', 'Fire exit corridor sweep'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-hosp-pms', text: 'Front Desk Float Reconciliation & VIP Arrival Room Lock Readiness', priority: 'urgent', done: true },
+        { id: 'task-hosp-hk', text: 'Housekeeping Floor Inspection, Chemical Lockup & Linen Inventory', priority: 'urgent', done: false },
+        { id: 'task-hosp-pool', text: 'Pool / Fire Exit Corridor Safety Sweep & Emergency Lighting Check', priority: 'urgent', done: false },
+        { id: 'task-hosp-guest', text: 'Open Guest Maintenance Tickets & Late-Checkout Allocation Review', priority: 'normal', done: false },
+        { id: 'task-hosp-key', text: 'Master Keycard Register & Lost-and-Found Ledger Sign-Off', priority: 'normal', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'Guest Fire Evacuation Readiness & Smoke Detector Compliance', authority: 'Federal Fire Service / NTDC', status: 'completed', progress: 100, note: 'Corridor smoke sensors and master key muster verified daily.' },
+        { title: 'Pool Water Chemistry, Lifeguard Duty & Slip-Safety Standards', authority: 'State Tourism & Public Health Board', status: 'completed', progress: 96, note: 'Daily pH/chlorine readings logged at morning and dusk shifts.' },
+        { title: 'Chemical MSDS Segregation in Housekeeping Trolleys', authority: 'Workplace Health & Safety', status: 'at_risk', progress: 92, note: 'Ensure labeled dilution bottles and locked storage on every floor.' }
+      ],
+      taxAndStatutory: [
+        { title: 'Hospitality VAT (7.5%) & State Hotel Occupancy / Consumption Tax', authority: 'FIRS / State IRS', rate: '7.5% VAT + 5% Consumption' },
+        { title: 'Service Charge Allocation, PAYE & PenCom Statutory Split', authority: 'LIRS / PenCom PRA 2014', rate: 'Monthly Statutory' },
+        { title: 'NTDC Annual Hospitality Premises Licensing Compliance', authority: 'Nigerian Tourism Dev. Authority', rate: 'Annual Licence' }
+      ],
+      suggestedIdeas: [
+        'Sync PMS VIP check-in clusters with staggered housekeeping morning/afternoon split shifts.',
+        'Require master keycard ring sign-over verification during supervisor shift handovers.',
+        'Track guest room turnaround time from checkout punch to room-ready sign-off.'
+      ]
+    },
+    retail: {
+      key: 'retail',
+      label: 'Retail & Commercial Stores',
+      shortLabel: 'Retail & Store Ops',
+      defaultHubName: 'Flagship Retail Store & Cash Desk',
+      stationPlaceholder: 'e.g. Main Checkout Tills, Stockroom, Electronics Aisle',
+      telemetryLabel: 'POS Tills & Shrinkage Control',
+      telemetryValue: 'All Registers Balanced · Zero Variance',
+      skillsPlaceholder: 'e.g. POS Reconciliation, Merchandising, Loss Prevention, Stock Count...',
+      defaultHandoverSummary: 'Store Shift Handover: Cash Till Audits & Shelf Restock Clear',
+      defaultHandoverNotes: 'Morning till floats counted and sealed. High-value cabinet inventory matched POS stock-on-hand with zero variance.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Checkout Tills & Customer Service Desk', type: 'POS & Returns', tasks: ['Blind cash drawer float audit', 'Card terminal batch sync'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · Sales Floor & High-Value Displays', type: 'Merchandising', tasks: ['Shelf price tag & promo accuracy', 'Security tag / cabinet lock check'], hasFlag: false },
+        { id: 'zone_c', name: 'Zone C · Stockroom & Delivery Intake', type: 'Inventory Control', tasks: ['Stockroom fire exit clearance', 'Shrinkage / damage log sign-off'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-ret-till', text: 'Opening POS Register Float Count & Card Terminal Batch Test', priority: 'urgent', done: true },
+        { id: 'task-ret-lock', text: 'High-Value Display Cases & Loss-Prevention EAS Tag Verification', priority: 'urgent', done: false },
+        { id: 'task-ret-price', text: 'Shelf Price-Tag Accuracy, Expiry Markdown & Promo Signage Sweep', priority: 'normal', done: false },
+        { id: 'task-ret-exit', text: 'Stockroom Aisle Ladder Safety & Fire Exit Door Clearance Check', priority: 'urgent', done: false },
+        { id: 'task-ret-close', text: 'Safe Drop Verification & Refund Authorization Audit', priority: 'normal', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'Retail Emergency Exit Clearance & Crowd Safety Rules', authority: 'Federal Fire Service / Consumer Safety', status: 'completed', progress: 100, note: 'Public walkways and stockroom fire doors 100% unobstructed.' },
+        { title: 'Cash Handling, Dual-Key Vault Drop & Night-Closing Buddy Rule', authority: 'Retail Security Standard', status: 'completed', progress: 98, note: 'Mandatory two-person opening and closing lockup enforced.' },
+        { title: 'Safe Stockroom Ladders & Manual Handling Training', authority: 'Workplace Safety Board', status: 'at_risk', progress: 93, note: 'Inspect step-ladders weekly and enforce max lift weight.' }
+      ],
+      taxAndStatutory: [
+        { title: 'Point-of-Sale VAT (7.5%) & Electronic Fiscal Receipt Audit', authority: 'FIRS Finance Act', rate: '7.5% Standard VAT' },
+        { title: 'Commission-Linked Sales PAYE, PenCom & NSITF Remittance', authority: 'State IRS / PenCom', rate: 'Monthly Statutory' },
+        { title: 'Local Signage / Trade Premises Annual Levy Schedule', authority: 'State Signage / Local Council', rate: 'Annual Permit' }
+      ],
+      suggestedIdeas: [
+        'Use blind cash-till handover prompts between morning and closing cashiers to isolate variance immediately.',
+        'Increase weekend part-time coverage windows automatically around 15:00–20:00 peak footfall.',
+        'Require supervisor dual-approval on all POS void/refund adjustments.'
+      ]
+    },
+    facility: {
+      key: 'facility',
+      label: 'Facility & Property Management',
+      shortLabel: 'Facilities & Maintenance',
+      defaultHubName: 'Central Property & Utilities Desk',
+      stationPlaceholder: 'e.g. HVAC Control Room, Concierge Desk, Building Wing B',
+      telemetryLabel: 'Building Utilities & HVAC',
+      telemetryValue: 'Chillers & Elevators Optimal',
+      skillsPlaceholder: 'e.g. HVAC Maintenance, Janitorial QA, Electrical Safety, Vendor Access...',
+      defaultHandoverSummary: 'Facility Shift Handover: Building Utilities & Vendor Logs Cleared',
+      defaultHandoverNotes: 'Chiller plants, elevator emergency intercoms, and contractor permit-to-work passes inspected with zero open urgent tickets.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Lobby Security & Access Desk', type: 'Visitor & Contractor Control', tasks: ['Permit-to-work badge audit', 'Fire alarm panel normal-state check'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · Utilities, HVAC & Backup Power', type: 'Building Engineering', tasks: ['HVAC riser temp & pressure log', 'Backup battery / ATS test check'], hasFlag: false },
+        { id: 'zone_c', name: 'Zone C · Common Areas & Janitorial Pods', type: 'Sanitation & Safety', tasks: ['Restroom & lobby hygiene audit', 'Wet-floor signage & MSDS log'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-fac-msds', text: 'Chemical Dilution & Safety Data Sheet (MSDS) Compliance Check', priority: 'urgent', done: true },
+        { id: 'task-fac-san', text: 'High-Touch Surface Sanitization & Common Area Inspection Log', priority: 'normal', done: false },
+        { id: 'task-fac-hvac', text: 'HVAC Air Handler, Chiller & Utility Alarm Panel Status Check', priority: 'urgent', done: false },
+        { id: 'task-fac-ptw', text: 'Contractor Permit-to-Work (Hot Work / Working at Height) Review', priority: 'urgent', done: false },
+        { id: 'task-fac-waste', text: 'Waste Segregation, Recycling & Janitorial Locker Audit', priority: 'normal', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'Permit-to-Work (Working at Height, Electrical & Confined Space)', authority: 'Workplace HSE / Building Safety Act', status: 'completed', progress: 100, note: 'All external maintenance vendors require signed active work permits.' },
+        { title: 'Chemical MSDS Dilution & Slip/Trip Floor Control', authority: 'Occupational Health & Safety Board', status: 'completed', progress: 96, note: 'Zero unlabeled bottles and mandatory wet-floor signage used.' },
+        { title: 'Fire Alarm Panel, Emergency Lighting & Elevator Rescue Test', authority: 'Federal Fire Service', status: 'at_risk', progress: 93, note: 'Log weekly riser pressure and battery backup load tests.' }
+      ],
+      taxAndStatutory: [
+        { title: 'FM Service Contract VAT (7.5%) & Facility Management WHT (5%–10%)', authority: 'FIRS / State IRS', rate: '7.5% VAT / 5–10% WHT' },
+        { title: 'PAYE, PenCom (18%), NSITF (1%) & Technical Trade Allowance Rules', authority: 'LIRS / PenCom / NSITF', rate: 'Monthly Statutory' },
+        { title: 'Waste Disposal & Environmental Sanitation Levy Compliance', authority: 'State Environmental Protection Agency', rate: 'Annual / Quarterly' }
+      ],
+      suggestedIdeas: [
+        'Require geo-tagged completion checks for each floor wing before facility handovers can close.',
+        'Track preventive maintenance completion ratios alongside corrective emergency tickets.',
+        'Tie third-party contractor sign-in logs to supervisor approvals.'
+      ]
+    },
+    security: {
+      key: 'security',
+      label: 'Security Operations',
+      shortLabel: 'Security & Access Control',
+      defaultHubName: 'Central Security Command Post',
+      stationPlaceholder: 'e.g. Main Perimeter Gate, CCTV Room, South Patrol Route',
+      telemetryLabel: 'Perimeter & CCTV Array',
+      telemetryValue: 'All Cameras Online · Patrols Active',
+      skillsPlaceholder: 'e.g. Access Control, CCTV Monitoring, Incident Response, Fire Watch...',
+      defaultHandoverSummary: 'Security Watch Relief: Perimeter Armed & Key Register Balanced',
+      defaultHandoverNotes: 'Patrol beacons completed 100% on schedule. Visitor logbook and master key safe reconciled across all posts.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Main Access Gate & Visitor Turnstile', type: 'Access Control', tasks: ['Visitor & vehicle badge check', 'Boom barrier & RFID lock test'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · CCTV Monitoring & Dispatch Room', type: 'Command & Telemetry', tasks: ['Camera uptime & blindspot sweep', 'Radio battery & duress test'], hasFlag: false },
+        { id: 'zone_c', name: 'Zone C · Perimeter & Fire Panel Patrol', type: 'Roving Watch', tasks: ['Perimeter lighting & fence check', 'Fire alarm panel & hydrant seal'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-sec-radio', text: 'Handheld Patrol Radio, Flashlight & Body Camera Functional Check', priority: 'urgent', done: true },
+        { id: 'task-sec-gates', text: 'Perimeter Gate Access Controls, Turnstiles & Duress Alarm Test', priority: 'urgent', done: false },
+        { id: 'task-sec-visitor', text: 'Visitor & Contractor Pass Register Reconciliation', priority: 'normal', done: false },
+        { id: 'task-sec-cctv', text: 'CCTV Control Room Camera Coverage & NVR Recording Verification', priority: 'normal', done: false },
+        { id: 'task-sec-fire', text: 'Fire Alarm Panel Normal State & Extinguisher Seal Patrol', priority: 'urgent', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'NSCDC Private Guard Licensing & Guard Duty Handover Standards', authority: 'Nigeria Security & Civil Defence Corps (NSCDC)', status: 'completed', progress: 100, note: 'Licensed guard IDs verified on active roster posts.' },
+        { title: 'Lone-Worker Night Patrol Wellness Check-In Protocol', authority: 'Security Operations HSE', status: 'completed', progress: 97, note: 'Automated hourly check-in countdown alerts active.' },
+        { title: 'NDPA CCTV Retention & Visitor Privacy Register Governance', authority: 'NDPC Privacy Rules', status: 'at_risk', progress: 93, note: 'Restrict NVR playback access and purge visitor registers after 90 days.' }
+      ],
+      taxAndStatutory: [
+        { title: 'Guard Services VAT (7.5%) & Security Contract WHT (5%–10%)', authority: 'FIRS', rate: '7.5% VAT / 5–10% WHT' },
+        { title: 'Guard PAYE, PenCom (18%), NSITF Risk Tier & Uniform Reliefs', authority: 'State IRS / PenCom / NSITF', rate: 'Monthly Statutory' },
+        { title: 'NSCDC Annual Guard Company Practising Renewal', authority: 'NSCDC', rate: 'Annual Licence' }
+      ],
+      suggestedIdeas: [
+        'Use QR patrol checkpoints on handover tours to verify physical perimeter walks.',
+        'Monitor guard rest windows strictly between 12-hour day and night guard rotations.',
+        'Digitize key-safe handover custody signatures between incoming and outgoing post commanders.'
+      ]
+    },
+    operations: {
+      key: 'operations',
+      label: 'General Workforce Operations',
+      shortLabel: 'Workforce Operations',
+      defaultHubName: 'Primary Operations Hub',
+      stationPlaceholder: 'e.g. Main Operations Desk, Service Wing A, Control Station',
+      telemetryLabel: 'Operational Readiness',
+      telemetryValue: 'All Stations Verified & Online',
+      skillsPlaceholder: 'e.g. Shift Coordination, Incident Reporting, Operations Support...',
+      defaultHandoverSummary: 'Morning Handover: Operations Desk & Shift Readiness Verified',
+      defaultHandoverNotes: 'Pre-shift readiness checks verified. Pending follow-ups assigned cleanly to incoming shift leads.',
+      zones: [
+        { id: 'zone_a', name: 'Zone A · Operations Command & Check-In', type: 'Core Operations', tasks: ['Shift roster attendance check', 'Escalation contact verification'], hasFlag: false },
+        { id: 'zone_b', name: 'Zone B · Active Service & Delivery Area', type: 'Execution Floor', tasks: ['Priority SLA items review', 'Equipment & tooling readiness check'], hasFlag: false },
+        { id: 'zone_c', name: 'Zone C · Support & Utilities', type: 'Infrastructure', tasks: ['Safety & emergency exit check', 'Shift log reconciliation'], hasFlag: false }
+      ],
+      tasks: [
+        { id: 'task-ops-1', text: 'Pre-Shift Team Briefing & Priority SLA Review', priority: 'urgent', done: true },
+        { id: 'task-ops-2', text: 'Workstation Readiness, Access & Escalation Route Check', priority: 'urgent', done: false },
+        { id: 'task-ops-3', text: 'Active Ticket / Task Queue Progress Verification', priority: 'normal', done: false },
+        { id: 'task-ops-4', text: 'Workplace Safety, Exit Clearance & Emergency Contact Audit', priority: 'normal', done: false }
+      ],
+      safetyRegulations: [
+        { title: 'Nigerian Labour Act Minimum Rest Window & Working Hours', authority: 'Federal Ministry of Labour & Employment', status: 'completed', progress: 100, note: 'Automated minimum 12-hour rest gap between shifts.' },
+        { title: 'General Occupational Safety & Emergency Evacuation Readiness', authority: 'Workplace Health & Safety', status: 'completed', progress: 98, note: 'Clear evacuation marshals and emergency contact lists posted.' },
+        { title: 'NDPA 2023 Employee Attendance & Biometric Data Governance', authority: 'Nigeria Data Protection Commission', status: 'at_risk', progress: 94, note: 'Role-scoped privacy controls active.' }
+      ],
+      taxAndStatutory: [
+        { title: 'PenCom Contributory Pension (18%: 8% Employee + 10% Employer)', authority: 'National Pension Commission', rate: '18% Qualifying Gross' },
+        { title: 'PAYE Income Tax & Finance Act Consolidated Relief Allowance (CRA)', authority: 'LIRS / State IRS', rate: 'Progressive 7%–24%' },
+        { title: 'NSITF (1% Employer) & NHF (2.5% Basic) Remittances', authority: 'NSITF / FMBN', rate: 'Monthly Statutory' }
+      ],
+      suggestedIdeas: [
+        'Keep digital handovers mandatory between every rotating team so zero customer or operational context drops.',
+        'Monitor shift swap velocity weekly to pinpoint under-staffed windows early.',
+        'Keep timesheet approvals synchronized before monthly payroll lock deadlines.'
+      ]
+    }
+  };
+
+  const CLIENT_INDUSTRY_OPTIONS = [
+    { key: 'tech', label: 'Technology & Software' },
+    { key: 'restaurant', label: 'Restaurants & Fast Food' },
+    { key: 'gas_station', label: 'Gas Stations & Forecourts' },
+    { key: 'agriculture', label: 'Agriculture & Agribusiness' },
+    { key: 'transportation', label: 'Transportation & Fleet Operations' },
+    { key: 'healthcare', label: 'Healthcare & Clinical' },
+    { key: 'manufacturing', label: 'Manufacturing & Industrial' },
+    { key: 'logistics', label: 'Logistics & Warehousing' },
+    { key: 'hospitality', label: 'Hospitality & Hotels' },
+    { key: 'retail', label: 'Retail & Commercial Stores' },
+    { key: 'facility', label: 'Facility & Property Management' },
+    { key: 'security', label: 'Security Operations' },
+    { key: 'operations', label: 'General Workforce Operations' }
+  ];
+
+  function resolveClientIndustryKey(industryInput, orgName) {
+    const raw = String(industryInput || '').trim().toLowerCase();
+    const org = String(orgName || '').trim().toLowerCase();
+    if (raw && CLIENT_INDUSTRY_PROFILES[raw]) return raw;
+    const matchRules = [
+      { key: 'tech', words: ['tech', 'software', 'saas', 'deeptech', 'engineering', 'cloud', 'fintech', 'digital'], short: ['it', 'ai'] },
+      { key: 'restaurant', words: ['restaurant', 'fast food', 'qsr', 'bistro', 'catering', 'kitchen', 'bakery', 'eatery', 'food_beverage', 'food & beverage'] },
+      { key: 'gas_station', words: ['gas station', 'petrol', 'filling station', 'forecourt', 'fuel', 'diesel', 'oil & gas', 'nmdpra'] },
+      { key: 'agriculture', words: ['agric', 'farm', 'agro', 'poultry', 'livestock', 'plantation', 'agribusiness'] },
+      { key: 'transportation', words: ['transport', 'fleet', 'haulage', 'transit', 'bus', 'trucking', 'mobility'] },
+      { key: 'healthcare', words: ['health', 'hospital', 'clinic', 'medical', 'pharmacy'] },
+      { key: 'manufacturing', words: ['manufactur', 'factory', 'plant', 'industrial', 'milling', 'production'] },
+      { key: 'logistics', words: ['logistic', 'warehouse', 'fulfillment', 'supply chain', 'freight', 'cargo'] },
+      { key: 'hospitality', words: ['hospitality', 'hotel', 'resort', 'lodging'] },
+      { key: 'retail', words: ['retail', 'supermarket', 'store', 'commerce', 'mall'] },
+      { key: 'facility', words: ['facility', 'cleaning', 'janitorial', 'maintenance', 'property'] },
+      { key: 'security', words: ['security', 'guard', 'patrol', 'surveillance'] }
+    ];
+    for (const haystack of [raw, org]) {
+      if (!haystack) continue;
+      for (const rule of matchRules) {
+        if (rule.words.some(w => haystack.includes(w))) return rule.key;
+        if (rule.short && rule.short.some(s => new RegExp(`\\b${s}\\b`, 'i').test(haystack))) return rule.key;
       }
-    } catch (_) {}
-    return null;
+    }
+    return org.includes('riffmax') ? 'tech' : 'operations';
+  }
+
+  function getUserIndustryProfile(userObj) {
+    const u = userObj || getUser() || {};
+    if (u.industryProfile && CLIENT_INDUSTRY_PROFILES[u.industryProfile.key]) {
+      return { ...CLIENT_INDUSTRY_PROFILES[u.industryProfile.key], ...u.industryProfile };
+    }
+    const localOverride = (() => { try { return localStorage.getItem('shiftrelay-company-industry'); } catch (_) { return null; } })();
+    const key = resolveClientIndustryKey(u.industryKey || u.industry || localOverride, u.organisation_name || u.company_name);
+    return CLIENT_INDUSTRY_PROFILES[key] || CLIENT_INDUSTRY_PROFILES.operations;
+  }
+
+  async function refreshActiveScreen(showNotice = true) {
+    const refreshBtn = document.getElementById('sr-page-refresh-btn');
+    const topBtn = document.getElementById('sr-shell-refresh');
+    if (refreshBtn) refreshBtn.disabled = true;
+    if (topBtn) topBtn.style.opacity = '0.6';
+    try {
+      const sessRes = await fetch('/api/auth/session').catch(() => null);
+      if (sessRes && sessRes.ok) {
+        const sData = await sessRes.json().catch(() => null);
+        if (sData?.user) {
+          const mergedUser = normalizeDemoUser({ ...(getUser() || {}), ...sData.user });
+          if (window._srState) window._srState.user = mergedUser;
+          window._srActiveUser = mergedUser;
+          try {
+            if (localStorage.getItem('shiftrelay-demo-persona')) {
+              localStorage.setItem('shiftrelay-demo-persona', JSON.stringify(mergedUser));
+            }
+            if (localStorage.getItem('shiftrelay-user-data')) {
+              localStorage.setItem('shiftrelay-user-data', JSON.stringify(mergedUser));
+            }
+            if (mergedUser.industryKey || mergedUser.industryProfile?.key) {
+              localStorage.setItem('shiftrelay-company-industry', mergedUser.industryKey || mergedUser.industryProfile.key);
+            }
+          } catch (_) {}
+        }
+      }
+      if (typeof mountShell === 'function') {
+        await mountShell(currentActiveView);
+      }
+      if (showNotice && typeof showToast === 'function') {
+        showToast('Refreshed from live workspace.', 'success');
+      }
+    } finally {
+      if (refreshBtn) refreshBtn.disabled = false;
+      if (topBtn) topBtn.style.opacity = '';
+    }
   }
 
   // ── Web Audio Synthesizer, Haptics & Cheerleader Shine Spray Engine ───────
@@ -697,6 +1306,13 @@
     }
     if (view === 'gate-kiosk') view = 'kiosk';
     if (view === 'timeaway-leave') view = 'time-away';
+    currentActiveView = view;
+
+    const activeProfile = getUserIndustryProfile(user);
+    user.industryProfile = activeProfile;
+    user.industryKey = activeProfile.key;
+    window._srActiveUser = user;
+    try { localStorage.setItem('shiftrelay-company-industry', activeProfile.key); } catch (_) {}
 
     const appContainer = document.getElementById('dashboard');
     if (!appContainer) return;
@@ -714,9 +1330,9 @@
 
     // Build responsive header HTML
     const companyName = user.organisation_name || user.organisationId || 'Riffmax Technology';
-    const siteName = user.department || user.site_name || 'Main Facility';
+    const siteName = user.hub_name || user.department || user.site_name || activeProfile.defaultHubName;
     const roleTitle = user.title || user.role || 'Member';
-    const deptOrSite = user.department || user.site_name || 'Backend Infrastructure';
+    const deptOrSite = user.department || user.site_name || activeProfile.shortLabel;
     const formattedRole = user.title || (isExecutive ? 'Executive' : isSupervisorAccount ? 'Supervisor' : 'Frontline Specialist');
 
     // Immediate unread count from cache (zero blocking latency)
@@ -812,6 +1428,11 @@
                 <span class="sr-context-pill-site">${escapeHtml(deptOrSite)} · ${escapeHtml(formattedRole)}</span>
               </div>
               <svg class="sr-context-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+
+            <!-- Refresh Page Button -->
+            <button class="sr-icon-btn" id="sr-shell-refresh" aria-label="Refresh view" title="Refresh active view & sync latest state">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             </button>
 
             <!-- Notifications Bell -->
@@ -986,6 +1607,19 @@
           <!-- Main Scrollable Area -->
           <div class="sr-main-scroll-wrap" style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto;">
             <div id="sr-broadcast-banner-slot"></div>
+            <div id="sr-page-refresh-bar" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 18px;border-bottom:1px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--sr-text-muted);">
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:rgba(13,148,136,0.1);color:var(--sr-primary);font-weight:700;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  ${escapeHtml(activeProfile.label)}
+                </span>
+                <span>Synced ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+              <button type="button" id="sr-page-refresh-btn" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:4px 12px;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;" title="Refresh this page to update completed actions and live records">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <span>Refresh</span>
+              </button>
+            </div>
 
             <main class="sr-main-content" id="sr-content-area" role="main" style="flex: 1; overflow-y: visible;">
               <!-- Screen content injected here -->
@@ -1253,6 +1887,16 @@
       });
     });
 
+    document.getElementById('sr-shell-refresh')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      refreshActiveScreen(true);
+    });
+
+    document.getElementById('sr-page-refresh-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      refreshActiveScreen(true);
+    });
+
     document.getElementById('sr-shell-settings')?.addEventListener('click', (e) => {
       e.preventDefault();
       navigate('settings');
@@ -1385,7 +2029,7 @@
             </div>
             <button type="button" class="sr-btn sr-btn-secondary sr-btn-block" id="sr-btn-confirm-muster" style="font-size:13px;padding:9px;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Confirm Gate 01 Arrival (${escapeHtml(siteName || 'Apapa Hub')})</span>
+              <span>Confirm Gate 01 Arrival (${escapeHtml(siteName || getUserIndustryProfile(getUser()).defaultHubName)})</span>
             </button>
           </div>
         </div>
@@ -1482,7 +2126,8 @@
     };
 
     document.getElementById('sr-btn-confirm-muster')?.addEventListener('click', () => {
-      const defaultPayload = `SHIFTRELAY:GATE:${tenantId || 'FLO-NG-6093'}:${siteName || 'Apapa Industrial Hub'}:GATE-01`;
+      const hubFallback = getUserIndustryProfile(getUser()).defaultHubName;
+      const defaultPayload = `SHIFTRELAY:GATE:${tenantId || 'RIF-2026'}:${siteName || hubFallback}:GATE-01`;
       handleClockIn(defaultPayload);
     });
 
@@ -1660,78 +2305,21 @@
         relevantHandover = handovers[0] || null;
       }
 
+      const activeWorkerProfile = getUserIndustryProfile(user);
       const effectiveHandover = relevantHandover || {
         id: 'ho-morning-01',
         status: 'relayed',
         createdAt: new Date().toISOString(),
         handover: {
-          summary: 'Morning Handover: Line 2 Operations & Diesel Generator Active',
+          summary: activeWorkerProfile.defaultHandoverSummary,
           shiftStatus: 'normal',
-          notes: 'Generator switched to primary at 05:45 WAT. Conveyor line calibrated. Clean changeover complete.'
-        }
-      };
-      // Industry-Differentiated Task Catalog (Manufacturing, Logistics, Facility, Food & Security)
-      const INDUSTRY_TASK_SUITES = {
-        manufacturing: {
-          name: 'Manufacturing & Industrial Operations',
-          badge: 'Manufacturing Floor',
-          tasks: [
-            { id: 'task-mfg-ppe', text: 'Safety PPE Verification (Steel-toe boots, high-vis vest & eye protection)', priority: 'urgent', done: true },
-            { id: 'task-mfg-power', text: 'Pre-Shift Line Power & Diesel Generator Fuel Level Check (Line 2)', priority: 'urgent', done: false },
-            { id: 'task-mfg-calib', text: 'Conveyor Speed, Feed Hopper & Scale Calibration Verification', priority: 'normal', done: false },
-            { id: 'task-mfg-estop', text: 'Emergency Stop (E-Stop) & Machine Guard Safety Interlock Test', priority: 'urgent', done: false },
-            { id: 'task-mfg-qc', text: 'Batch Quality Standard Sample Inspection (Hourly Shift Log)', priority: 'normal', done: false }
-          ]
-        },
-        logistics: {
-          name: 'Logistics, Warehousing & Distribution',
-          badge: 'Logistics & Cargo Bay',
-          tasks: [
-            { id: 'task-log-forklift', text: 'Forklift & Reach Truck Daily Pre-Op Checklist & Battery Test', priority: 'urgent', done: true },
-            { id: 'task-log-dock', text: 'Loading Dock Leveler & Bay Safety Barrier Visual Inspection', priority: 'urgent', done: false },
-            { id: 'task-log-manifest', text: 'Outbound Cargo Manifest & Handheld Barcode Scanner Audit', priority: 'normal', done: false },
-            { id: 'task-log-pallet', text: 'Pallet Stacking Height & Fire Exit Aisle Clearance Check', priority: 'normal', done: false },
-            { id: 'task-log-chocks', text: 'Trailer Wheel Chocks & Dock Lock Engagement Verification', priority: 'urgent', done: false }
-          ]
-        },
-        facility: {
-          name: 'Facility Management & Commercial Cleaning',
-          badge: 'Facility Sanitization',
-          tasks: [
-            { id: 'task-fac-msds', text: 'Chemical Dilution & Hazardous Material Safety Data Sheet (MSDS) Review', priority: 'urgent', done: true },
-            { id: 'task-fac-san', text: 'High-Touch Surface Sanitization & Restroom Consumables Log', priority: 'normal', done: false },
-            { id: 'task-fac-color', text: 'Color-Coded Microfiber & Auto-Scrubber Disinfection Sweep', priority: 'normal', done: false },
-            { id: 'task-fac-waste', text: 'Waste Segregation, Recycling & Hazardous Trash Disposal Sign-Off', priority: 'urgent', done: false },
-            { id: 'task-fac-hvac', text: 'Air Handler Filter & Floor Slip Resistance Verification', priority: 'normal', done: false }
-          ]
-        },
-        food_beverage: {
-          name: 'Food Processing, Dairy & Beverage',
-          badge: 'HACCP Food Safety',
-          tasks: [
-            { id: 'task-food-temp', text: 'Cold-Chain Storage Temperature Log & Digital Thermometer Cross-Check', priority: 'urgent', done: true },
-            { id: 'task-food-cip', text: 'Clean-in-Place (CIP) Sanitation Cycle & Personnel Hygiene Scrub', priority: 'urgent', done: false },
-            { id: 'task-food-metal', text: 'Inline Metal Detector / X-Ray Reject Mechanism Challenge Test', priority: 'urgent', done: false },
-            { id: 'task-food-expiry', text: 'Batch Code, Expiry Date & Label Inkjet Legibility Audit', priority: 'normal', done: false },
-            { id: 'task-food-allergen', text: 'Allergen Cross-Contamination Barrier Protocol Sign-Off', priority: 'normal', done: false }
-          ]
-        },
-        security: {
-          name: 'Security, Guarding & Perimeter Access',
-          badge: 'Perimeter Security',
-          tasks: [
-            { id: 'task-sec-radio', text: 'Handheld Patrol Radio & Body Camera Battery Functional Test', priority: 'urgent', done: true },
-            { id: 'task-sec-gates', text: 'Main Perimeter Fence & Automated Turnstile RFID Lock Check', priority: 'urgent', done: false },
-            { id: 'task-sec-visitor', text: 'Visitor & Contractor Vehicle Access Logbook Reconciliation', priority: 'normal', done: false },
-            { id: 'task-sec-cctv', text: 'CCTV Night Vision Camera Coverage & Blindspot Sweep', priority: 'normal', done: false },
-            { id: 'task-sec-fire', text: 'Fire Alarm Panel Normal-State & Extinguisher Pin Audit', priority: 'urgent', done: false }
-          ]
+          notes: activeWorkerProfile.defaultHandoverNotes
         }
       };
 
       const companyName = user.organisation_name || 'Riffmax Technology';
-      const siteName = user.department || 'Operations Unit';
-      const tenantId = user.tenant_id || user.company_id || user.organisation_id || 'FLO-NG-6093';
+      const siteName = user.department || activeWorkerProfile.zones?.[0]?.name || 'Operations Unit';
+      const tenantId = user.tenant_id || user.company_id || user.organisation_id || 'RIF-2026';
       const starState = getStarActivityState();
 
       // Load persistent reactive task state from localStorage + backend database
@@ -1755,8 +2343,8 @@
         const taskRes = await fetch(`/api/shift-tasks?tenant=${encodeURIComponent(tenantId)}&date=${encodeURIComponent(todayIsoDay)}`);
         if (taskRes.ok) {
           const taskData = await taskRes.json();
-          if (taskData?.industry && INDUSTRY_TASK_SUITES[taskData.industry]) {
-            serverIndustry = taskData.industry;
+          if (taskData?.industry && CLIENT_INDUSTRY_PROFILES[resolveClientIndustryKey(taskData.industry, user.organisation_name)]) {
+            serverIndustry = resolveClientIndustryKey(taskData.industry, user.organisation_name);
             localStorage.setItem('shiftrelay-company-industry', serverIndustry);
           }
           if (taskData && taskData.savedStates && typeof taskData.savedStates === 'object') {
@@ -1773,24 +2361,19 @@
         }
       } catch (_) {}
 
-      // Resolve company industry sector for tailored shift tasks
-      const storedIndustry = serverIndustry || localStorage.getItem('shiftrelay-company-industry');
-      const companyOrgName = (user.organisation_name || '').toLowerCase();
-      let activeIndustryKey = storedIndustry || 'manufacturing';
-      if (!storedIndustry) {
-        if (companyOrgName.includes('clean') || companyOrgName.includes('facility')) {
-          activeIndustryKey = 'facility';
-        } else if (companyOrgName.includes('logistic') || companyOrgName.includes('freight') || companyOrgName.includes('transport')) {
-          activeIndustryKey = 'logistics';
-        } else if (companyOrgName.includes('food') || companyOrgName.includes('dairy') || companyOrgName.includes('brew') || companyOrgName.includes('beverage')) {
-          activeIndustryKey = 'food_beverage';
-        } else if (companyOrgName.includes('security') || companyOrgName.includes('guard')) {
-          activeIndustryKey = 'security';
-        } else {
-          activeIndustryKey = 'manufacturing';
-        }
-      }
-      const activeIndustrySuite = INDUSTRY_TASK_SUITES[activeIndustryKey] || INDUSTRY_TASK_SUITES.manufacturing;
+      // Resolve company industry sector for tailored shift tasks (never defaults non-factory orgs to manufacturing)
+      const resolvedKey = resolveClientIndustryKey(
+        serverIndustry || user.industryKey || user.industry || activeWorkerProfile.key,
+        user.organisation_name
+      );
+      const resolvedProfile = CLIENT_INDUSTRY_PROFILES[resolvedKey] || activeWorkerProfile;
+      const activeIndustrySuite = {
+        name: resolvedProfile.label,
+        badge: resolvedProfile.shortLabel,
+        tasks: (Array.isArray(resolvedProfile.tasks) && resolvedProfile.tasks.length)
+          ? resolvedProfile.tasks
+          : CLIENT_INDUSTRY_PROFILES.operations.tasks
+      };
 
       // Merge industry suite with saved states & custom worker-added tasks
       let tasks = activeIndustrySuite.tasks.map(t => ({
@@ -1896,14 +2479,14 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span>Request Relief</span>
               </button>
-              <button type="button" class="sr-clock-chip-btn" id="sr-btn-report-hazard" style="border-color:rgba(239,68,68,0.3);color:#dc2626;" title="Report safety hazard, spill, or machine stoppage">
+              <button type="button" class="sr-clock-chip-btn" id="sr-btn-report-hazard" style="border-color:rgba(239,68,68,0.3);color:#dc2626;" title="Report operational hazard, incident, or urgent issue">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 <span>Report Hazard</span>
               </button>
             </div>
           ` : `
             <div class="sr-clock-mode-chips">
-              <button type="button" class="sr-clock-chip-btn" id="sr-btn-scan-gate-qr" title="Scan NFC or QR code at physical factory gate terminal">
+              <button type="button" class="sr-clock-chip-btn" id="sr-btn-scan-gate-qr" title="Scan NFC or QR code at workplace access terminal">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
                 <span>Gate QR Scan</span>
               </button>
@@ -1930,23 +2513,30 @@
         <!-- Incoming Shift Handover Briefing Card -->
         <section class="sr-card" aria-label="Shift Handover Briefing">
           <div class="sr-card-title-row">
-            <h3>Incoming Shift Briefing</h3>
-            <span class="sr-status-pill ${effectiveHandover.status === 'relayed' ? 'active' : 'inactive'}">${escapeHtml(effectiveHandover.status.replace('_', ' ').toUpperCase())}</span>
+            <h3>${effectiveHandover.status === 'acknowledged' ? 'Shift Briefing Verified' : 'Incoming Shift Briefing'}</h3>
+            <span class="sr-status-pill ${effectiveHandover.status === 'acknowledged' || effectiveHandover.status === 'relayed' ? 'active' : 'inactive'}">${escapeHtml(effectiveHandover.status.replace('_', ' ').toUpperCase())}</span>
           </div>
 
-          <div style="margin-bottom:14px;">
-            <h4 style="margin:0 0 4px;font-size:15px;color:var(--sr-text-main);">${escapeHtml(effectiveHandover.handover?.summary || 'Morning Handover: Line 2 Operations')}</h4>
+          <div style="margin-bottom:${effectiveHandover.status !== 'acknowledged' ? '14px' : '8px'};">
+            <h4 style="margin:0 0 4px;font-size:15px;color:var(--sr-text-main);">${escapeHtml(effectiveHandover.handover?.summary || getUserIndustryProfile(user).defaultHandoverSummary || 'Shift Handoff Readiness Active')}</h4>
             <p style="margin:0 0 6px;font-size:12px;color:var(--sr-text-muted);">
-              From: <strong style="color:var(--sr-text-main);">Babatunde Adeleke</strong> &bull; Priority: <span style="color:#10b981;font-weight:700;">NORMAL</span>
+              From: <strong style="color:var(--sr-text-main);">${escapeHtml(effectiveHandover.handover?.author || effectiveHandover.authorName || 'Babatunde Adeleke')}</strong> &bull; Priority: <span style="color:#10b981;font-weight:700;">NORMAL</span>
             </p>
             <div style="font-size:12.5px;color:var(--sr-text-secondary);background:var(--sr-bg-card-subtle);padding:10px 12px;border-radius:8px;border:1px solid var(--sr-border-subtle);line-height:1.5;">
-              ${escapeHtml(effectiveHandover.handover?.notes || 'Generator switched to primary at 05:45 WAT. Conveyor line calibrated. Clean changeover complete.')}
+              ${escapeHtml(effectiveHandover.handover?.notes || getUserIndustryProfile(user).defaultHandoverNotes || 'All systems checked and ready for active shift coverage.')}
             </div>
           </div>
-          <button class="sr-btn sr-btn-primary sr-btn-block" id="sr-btn-ack-handover" data-id="${effectiveHandover.id}" style="min-height:40px !important;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
-            <span>Take Over Shift</span>
-          </button>
+          ${effectiveHandover.status !== 'acknowledged' ? `
+            <button class="sr-btn sr-btn-primary sr-btn-block" id="sr-btn-ack-handover" data-id="${effectiveHandover.id}" style="min-height:40px !important;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+              <span>Take Over Shift</span>
+            </button>
+          ` : `
+            <div style="font-size:12px;font-weight:700;color:#059669;display:flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Briefing acknowledged &amp; archived in Handover History.</span>
+            </div>
+          `}
         </section>
 
         <!-- Priority Shift Task Checklist (Industry Tailored & Highly Reactive) -->
@@ -1990,7 +2580,7 @@
 
           <!-- Quick Add Impromptu Task Input Bar -->
           <form class="sr-task-quick-add" id="sr-form-add-task" style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--sr-border-subtle);">
-            <input type="text" class="sr-input" id="sr-input-new-task" placeholder="+ Add station task or machine checkpoint..." style="flex:1;min-height:36px;font-size:12.5px;padding:6px 12px;border-radius:8px;" />
+            <input type="text" class="sr-input" id="sr-input-new-task" placeholder="+ Add operational task or shift verification item..." style="flex:1;min-height:36px;font-size:12.5px;padding:6px 12px;border-radius:8px;" />
             <button type="submit" class="sr-btn sr-btn-secondary" style="min-height:36px;padding:0 14px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span>Add</span>
@@ -2408,7 +2998,7 @@
 
         <!-- Terminal Status Bar -->
         <footer class="sr-terminal-footer">
-          <div>Hardware GPS: 6.4474° N, 3.3590° E (Apapa Gate A)</div>
+          <div>Hub: ${escapeHtml(getUser()?.hub_name || getUserIndustryProfile(getUser()).defaultHubName)} (Gate 01 Verified)</div>
           <div>Tamper-Proof Keystore Active &middot; Offline Queuing Active</div>
         </footer>
       </div>
@@ -2650,11 +3240,11 @@
               </span>
               <div>
                 <div style="display:flex;align-items:center;gap:8px;">
-                  <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Floor Command</h3>
+                  <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(getUserIndustryProfile(user).shortLabel)} Operations Command</h3>
                   <span class="sr-status-pill active" style="font-size:10.5px;">Active Duty</span>
                 </div>
                 <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">
-                  Personal attendance is logged via <strong>My Shift</strong> &bull; Supervised Zone: <strong>Main Production Floor A</strong>
+                  Personal attendance is logged via <strong>My Shift</strong> &bull; Supervised Zone: <strong>${escapeHtml(getUserIndustryProfile(user).zones?.[0]?.name || user.department || 'Core Operations Zone')}</strong>
                 </div>
               </div>
             </div>
@@ -2665,9 +3255,9 @@
             </div>
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding-top:10px;border-top:1px solid var(--sr-border-subtle);font-size:12px;">
-            <div><span style="color:var(--sr-text-muted);">Floor Lead:</span> <strong style="color:var(--sr-text-main);">${escapeHtml(user.name)}</strong></div>
-            <div><span style="color:var(--sr-text-muted);">Power Supply:</span> <strong style="color:#10b981;">Diesel Gen 2 (Primary)</strong></div>
-            <div><span style="color:var(--sr-text-muted);">Facility Perimeter:</span> <strong style="color:#10b981;">Geofence Active</strong></div>
+            <div><span style="color:var(--sr-text-muted);">Shift Lead:</span> <strong style="color:var(--sr-text-main);">${escapeHtml(user.name)}</strong></div>
+            <div><span style="color:var(--sr-text-muted);">${escapeHtml(getUserIndustryProfile(user).telemetryLabel)}:</span> <strong style="color:#10b981;">${escapeHtml(getUserIndustryProfile(user).telemetryValue)}</strong></div>
+            <div><span style="color:var(--sr-text-muted);">Site Perimeter:</span> <strong style="color:#10b981;">Geofence Active</strong></div>
             <div><span style="color:var(--sr-text-muted);">Terminal Kiosk:</span> <strong style="color:var(--sr-text-main);">Gate 01 Online</strong></div>
           </div>
         </div>
@@ -3446,7 +4036,7 @@
               <label for="sr-broadcast-input-title" style="display: block; font-size: 12px; font-weight: 700; color: var(--p-text-2); text-transform: uppercase; margin-bottom: 6px;">
                 Announcement Subject / Headline
               </label>
-              <input type="text" id="sr-broadcast-input-title" required class="sr-input" placeholder="e.g. Critical Cold Storage Temperature Warning" style="width: 100%; box-sizing: border-box;" />
+              <input type="text" id="sr-broadcast-input-title" required class="sr-input" placeholder="e.g. Shift Schedule Update or Priority Compliance Notice" style="width: 100%; box-sizing: border-box;" />
             </div>
 
             <!-- Message -->
@@ -4168,33 +4758,48 @@
 
   function getOrSeedLiveHandovers() {
     const key = 'sr_live_handovers_v2';
+    const user = getUser();
+    const profile = getUserIndustryProfile(user);
     let list = [];
     try {
       const raw = localStorage.getItem(key);
       if (raw) list = JSON.parse(raw);
     } catch (_) {}
+
+    // Purge stale legacy factory seed when active company is not manufacturing
+    const hasStaleFactorySeed = Array.isArray(list) && list.some(item =>
+      item && item.id === 'ho-riffmax-101' && profile.key !== 'manufacturing' &&
+      /Main Production Floor|generator fuel|Safety & PPE/i.test(String(item.station || '') + ' ' + String(item.summary || '') + ' ' + String((item.checklist || []).join(' ')))
+    );
+    if (hasStaleFactorySeed) list = [];
+
     if (!Array.isArray(list) || list.length === 0) {
+      const zone0 = profile.zones?.[0]?.name || 'Primary Operations Desk';
+      const zone1 = profile.zones?.[1]?.name || 'Operations Command';
+      const checks = Array.isArray(profile.handoverChecklist) && profile.handoverChecklist.length > 0
+        ? profile.handoverChecklist.slice(0, 3).map(c => c.label || c.title || String(c))
+        : ['Workstation & Queue Clean', 'Access & Credentials Verified', 'Open Tickets Logged'];
       list = [
         {
-          id: 'ho-riffmax-101',
+          id: 'ho-seed-' + profile.key + '-101',
           author: 'Chidinma Okonjo',
           authorRole: 'Outgoing Shift Lead',
-          station: 'Main Production Floor · Bay 2',
+          station: zone0,
           timestamp: 'Today · 05:55 WAT',
           status: 'relayed',
           condition: 'All Systems Normal',
-          summary: 'Inverter bank & main generator fuel verified at 98%. Gate QR muster terminal synced with zero offline queue backlog. Batch #409 ready for morning dispatch.',
-          checklist: ['Workstation Clean & Secured', 'Power & Generator Checked', 'Safety & PPE Verified']
+          summary: profile.defaultHandoverNotes || 'All primary systems verified healthy, access queues clear, and shift handoff notes synced for incoming team.',
+          checklist: checks
         },
         {
-          id: 'ho-riffmax-100',
+          id: 'ho-seed-' + profile.key + '-100',
           author: 'Tariq Al-Hassan',
-          authorRole: 'Backend Infrastructure',
-          station: 'Operations Command Deck',
+          authorRole: 'Operations Specialist',
+          station: zone1,
           timestamp: 'Yesterday · 21:50 WAT',
           status: 'acknowledged',
           condition: 'All Systems Normal',
-          summary: 'Completed evening telemetry sync and verified all 194 active timecards for statutory payroll cut-off.',
+          summary: 'Completed evening shift telemetry sync and verified all active roster timecards for statutory payroll cut-off.',
           checklist: ['Telemetry Synced', 'Zero Open Incidents']
         }
       ];
@@ -4208,6 +4813,7 @@
     const container = document.getElementById('sr-content-area');
     if (!container) return;
 
+    const activeWorkerHoProfile = getUserIndustryProfile(user);
     let backendItems = [];
     try {
       const hoRes = await fetch('/api/handovers');
@@ -4224,7 +4830,7 @@
             fromBackend: true,
             author: h.authorName || ho.author || (h.createdBy === user.id ? user.name : 'Outgoing Shift Lead'),
             authorRole: h.authorRole || 'Shift Specialist',
-            station: ho.station || h.department || user.department || 'Operations Floor',
+            station: ho.station || h.department || user.department || activeWorkerHoProfile.zones?.[0]?.name || 'Operations Desk',
             timestamp: h.createdAt ? new Date(h.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Recent',
             status: h.status === 'acknowledged' ? 'acknowledged' : 'relayed',
             condition: ho.condition || (ho.shiftStatus === 'amber' ? 'Attention Noted' : 'All Systems Normal'),
@@ -4237,7 +4843,10 @@
 
     const cachedItems = getOrSeedLiveHandovers();
     const liveItems = backendItems.length > 0 ? backendItems : cachedItems;
-    const pendingBaton = liveItems.find(i => i.status === 'relayed') || liveItems[0];
+    const pendingBaton = liveItems.find(i => i.status === 'relayed') || null;
+    const historyItems = liveItems.filter(i => !pendingBaton || i.id !== pendingBaton.id);
+    const secondCondLabel = activeWorkerHoProfile.key === 'tech' ? 'Service / Build Flag' : 'Operational Flag';
+    const thirdCondLabel = activeWorkerHoProfile.key === 'tech' ? 'Access / Blocker Note' : 'Resource / Supply Flag';
 
     container.innerHTML = `
       <div class="sr-context-banner" style="margin-bottom:14px;cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
@@ -4246,13 +4855,14 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
             ${escapeHtml(user.organisation_name || 'Riffmax Technology Limited')}
           </span>
-          <span class="sr-context-banner-site">${escapeHtml(user.department || 'Backend Infrastructure')} &bull; <strong style="color:#0d9488;">${escapeHtml(user.title || user.role)}</strong></span>
+          <span class="sr-context-banner-site">${escapeHtml(user.department || activeWorkerHoProfile.departments?.[0] || 'Operations')} &bull; <strong style="color:#0d9488;">${escapeHtml(user.title || user.role)}</strong></span>
         </div>
         <span class="sr-context-banner-badge">SHIFT BATON</span>
       </div>
 
       <!-- Section A: Incoming Shift Baton Card (1-Tap Acknowledge) -->
-      <div class="sr-card" style="margin-bottom:16px;border-left:4px solid ${pendingBaton.status === 'acknowledged' ? '#10b981' : '#0284c7'};">
+      ${pendingBaton ? `
+      <div class="sr-card" style="margin-bottom:16px;border-left:4px solid #0284c7;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="width:32px;height:32px;border-radius:9px;background:rgba(2,132,199,0.12);color:#0284c7;display:inline-flex;align-items:center;justify-content:center;">
@@ -4263,9 +4873,7 @@
               <div style="font-size:11.5px;color:var(--sr-text-muted);">From <strong>${escapeHtml(pendingBaton.author)}</strong> &bull; ${escapeHtml(pendingBaton.timestamp)}</div>
             </div>
           </div>
-          <span class="sr-status-pill ${pendingBaton.status === 'acknowledged' ? 'active' : 'pending'}" id="sr-baton-status-pill">
-            ${pendingBaton.status === 'acknowledged' ? 'Baton Acknowledged' : 'Awaiting Your Takeover'}
-          </span>
+          <span class="sr-status-pill pending" id="sr-baton-status-pill">Awaiting Your Takeover</span>
         </div>
 
         <div style="padding:12px 14px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);font-size:13.5px;line-height:1.55;color:var(--sr-text-main);margin-bottom:12px;">
@@ -4281,37 +4889,44 @@
           `).join('')}
         </div>
 
-        ${pendingBaton.status !== 'acknowledged' ? `
-          <button type="button" id="sr-btn-ack-baton" class="sr-btn sr-btn-primary" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
-            <span>Take Over Shift</span>
-          </button>
-        ` : `
-          <div style="font-size:12.5px;font-weight:700;color:#059669;display:flex;align-items:center;gap:6px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>You have acknowledged and taken over this shift baton.</span>
-          </div>
-        `}
+        <button type="button" id="sr-btn-ack-baton" class="sr-btn sr-btn-primary" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+          <span>Take Over Shift</span>
+        </button>
       </div>
+      ` : `
+      <div class="sr-card" style="margin-bottom:16px;border-left:4px solid #10b981;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="width:34px;height:34px;border-radius:9px;background:rgba(16,185,129,0.12);color:#059669;display:inline-flex;align-items:center;justify-content:center;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <div>
+            <h3 style="margin:0;font-size:14.5px;font-weight:800;color:var(--sr-text-main);">All Caught Up &mdash; Zero Pending Briefings</h3>
+            <div style="font-size:12px;color:var(--sr-text-muted);">Acknowledged handovers move automatically into your Shift Relay History below.</div>
+          </div>
+        </div>
+        <span class="sr-status-pill active">Verified</span>
+      </div>
+      `}
 
       <!-- Section B: Quick 30-Second Outgoing Handover Builder -->
       <div class="sr-card" style="margin-bottom:16px;">
         <h3 style="margin:0 0 4px;font-size:15px;font-weight:800;color:var(--sr-text-main);">Log Outgoing Shift Handover</h3>
-        <p style="margin:0 0 12px;font-size:12px;color:var(--sr-text-muted);">Tap your floor condition and leave a quick note for the next person relieving you.</p>
+        <p style="margin:0 0 12px;font-size:12px;color:var(--sr-text-muted);">Select operational status and leave a structured note for the incoming team.</p>
 
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;" id="sr-ho-condition-group">
           <button type="button" class="sr-ho-cond-btn active" data-cond="All Systems Normal" style="padding:10px 8px;border-radius:10px;border:1.5px solid #10b981;background:rgba(16,185,129,0.12);color:var(--sr-text-main);font-size:11.5px;font-weight:800;cursor:pointer;">
             All Normal
           </button>
-          <button type="button" class="sr-ho-cond-btn" data-cond="Equipment Issue" style="padding:10px 8px;border-radius:10px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);color:var(--sr-text-main);font-size:11.5px;font-weight:800;cursor:pointer;">
-            Equipment Flag
+          <button type="button" class="sr-ho-cond-btn" data-cond="${escapeHtml(secondCondLabel)}" style="padding:10px 8px;border-radius:10px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);color:var(--sr-text-main);font-size:11.5px;font-weight:800;cursor:pointer;">
+            ${escapeHtml(secondCondLabel)}
           </button>
-          <button type="button" class="sr-ho-cond-btn" data-cond="Stock / Material Low" style="padding:10px 8px;border-radius:10px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);color:var(--sr-text-main);font-size:11.5px;font-weight:800;cursor:pointer;">
-            Material Low
+          <button type="button" class="sr-ho-cond-btn" data-cond="${escapeHtml(thirdCondLabel)}" style="padding:10px 8px;border-radius:10px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);color:var(--sr-text-main);font-size:11.5px;font-weight:800;cursor:pointer;">
+            ${escapeHtml(thirdCondLabel)}
           </button>
         </div>
 
-        <textarea id="sr-quick-ho-note" rows="3" placeholder="Write key handover note for the next shift (e.g. Line 2 running smoothly, generator topped up)..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--sr-border-subtle);border-radius:10px;background:var(--sr-bg-card);color:var(--sr-text-main);font-size:13px;font-family:inherit;margin-bottom:12px;"></textarea>
+        <textarea id="sr-quick-ho-note" rows="3" placeholder="${escapeHtml(activeWorkerHoProfile.defaultHandoverNotes || 'Write key handover note for the next shift...')}" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--sr-border-subtle);border-radius:10px;background:var(--sr-bg-card);color:var(--sr-text-main);font-size:13px;font-family:inherit;margin-bottom:12px;"></textarea>
 
         <button type="button" id="sr-btn-submit-quick-ho" class="sr-btn sr-btn-primary" style="width:100%;">
           Submit Handover to Next Shift
@@ -4321,20 +4936,20 @@
       <!-- Section C: Recent Shift Relay History -->
       <div class="sr-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <h3 style="margin:0;font-size:14.5px;font-weight:800;color:var(--sr-text-main);">Recent Shift Relays (${liveItems.length})</h3>
+          <h3 style="margin:0;font-size:14.5px;font-weight:800;color:var(--sr-text-main);">Shift Relay History (${historyItems.length})</h3>
           <span style="font-size:11.5px;color:var(--sr-text-muted);font-weight:600;">Tamper-Evident Log</span>
         </div>
         <div style="display:flex;flex-direction:column;gap:10px;">
-          ${liveItems.map(item => `
+          ${historyItems.length > 0 ? historyItems.map(item => `
             <div style="padding:12px 14px;border-radius:10px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
                 <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(item.author)} &bull; <span style="font-weight:600;color:var(--sr-text-muted);">${escapeHtml(item.station)}</span></span>
-                <span class="sr-status-pill ${item.status === 'acknowledged' ? 'active' : 'pending'}" style="font-size:10.5px;">${escapeHtml(item.condition || 'Logged')}</span>
+                <span class="sr-status-pill ${item.status === 'acknowledged' ? 'active' : 'pending'}" style="font-size:10.5px;">${escapeHtml(item.status === 'acknowledged' ? 'Acknowledged' : (item.condition || 'Logged'))}</span>
               </div>
               <div style="font-size:12.5px;color:var(--sr-text-main);line-height:1.45;">${escapeHtml(item.summary)}</div>
               <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">${escapeHtml(item.timestamp)}</div>
             </div>
-          `).join('')}
+          `).join('') : `<p style="margin:0;font-size:12.5px;color:var(--sr-text-muted);">No historical handovers archived yet.</p>`}
         </div>
       </div>
     `;
@@ -4365,19 +4980,25 @@
         } catch (_) {}
       }
       const list = getOrSeedLiveHandovers();
-      if (list[0]) list[0].status = 'acknowledged';
+      const targetIdx = pendingBaton ? list.findIndex(x => x.id === pendingBaton.id) : 0;
+      if (targetIdx >= 0 && list[targetIdx]) {
+        list[targetIdx].status = 'acknowledged';
+      } else if (list[0]) {
+        list[0].status = 'acknowledged';
+      }
       try { localStorage.setItem('sr_live_handovers_v2', JSON.stringify(list)); } catch (_) {}
       SRAudio.playClockIn();
-      if (typeof window.toast === 'function') window.toast('Incoming shift briefing acknowledged!');
+      if (typeof window.toast === 'function') window.toast('Incoming shift briefing acknowledged and moved to history.');
       await renderWorkerHandovers();
     });
 
     document.getElementById('sr-btn-submit-quick-ho')?.addEventListener('click', async () => {
       const noteEl = document.getElementById('sr-quick-ho-note');
       const submitBtn = document.getElementById('sr-btn-submit-quick-ho');
-      const text = (noteEl?.value || '').trim() || `${selectedCond} — All station checks completed and ready for incoming relief.`;
+      const text = (noteEl?.value || '').trim() || `${selectedCond} — ${activeWorkerHoProfile.defaultHandoverNotes || 'All station checks completed and ready for incoming relief.'}`;
       if (submitBtn) submitBtn.disabled = true;
       let createdId = 'ho-' + Date.now();
+      const primaryChecklistLabel = activeWorkerHoProfile.handoverChecklist?.[0]?.label || 'Shift Readiness Verified';
       try {
         const res = await fetch('/api/handovers', {
           method: 'POST',
@@ -4391,11 +5012,11 @@
             shiftStatus: selectedCond === 'All Systems Normal' ? 'green' : 'amber',
             handover: {
               author: user.name || 'Frontline Specialist',
-              station: user.department || 'Main Production Floor',
+              station: user.department || activeWorkerHoProfile.zones?.[0]?.name || 'Operations Desk',
               condition: selectedCond,
               summary: text
             },
-            tasks: ['Workstation Clean & Secured', selectedCond].map((t, i) => ({
+            tasks: [primaryChecklistLabel, selectedCond].map((t, i) => ({
               id: 't-' + Date.now() + '-' + i,
               text: t,
               done: true
@@ -4412,12 +5033,12 @@
         id: createdId,
         author: user.name || 'Frontline Specialist',
         authorRole: user.title || 'Shift Specialist',
-        station: user.department || 'Main Production Floor',
+        station: user.department || activeWorkerHoProfile.zones?.[0]?.name || 'Operations Desk',
         timestamp: 'Just now · WAT',
         status: 'relayed',
         condition: selectedCond,
         summary: text,
-        checklist: ['Workstation Clean & Secured', selectedCond]
+        checklist: [primaryChecklistLabel, selectedCond]
       });
       try { localStorage.setItem('sr_live_handovers_v2', JSON.stringify(list)); } catch (_) {}
       SRAudio.playClockIn();
@@ -4564,6 +5185,7 @@
             throw new Error(err.error || 'Acknowledgement failed');
           }
           delete btn.dataset.idempotencyKey;
+          if (typeof showToast === 'function') showToast('Shift briefing acknowledged & moved to History.', 'success');
           if (user.role === 'supervisor' || user.role === 'manager' || user.role === 'owner') {
             await renderManagerHandovers();
           } else {
@@ -4581,7 +5203,7 @@
     container.querySelectorAll('[data-action="relay-handover"]').forEach(btn => {
       btn.addEventListener('click', async () => {
         btn.disabled = true;
-        btn.textContent = 'Relaying...';
+        btn.textContent = 'Approving...';
         btn.dataset.idempotencyKey = btn.dataset.idempotencyKey || ('idem_relay_' + btn.dataset.id + '_' + Date.now());
         try {
           const res = await fetch(`/api/handovers/${btn.dataset.id}/relay`, {
@@ -4593,9 +5215,10 @@
           });
           if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.error || 'Relay failed');
+            throw new Error(err.error || 'Approval failed');
           }
           delete btn.dataset.idempotencyKey;
+          if (typeof showToast === 'function') showToast('Handover approved & moved to Completed History.', 'success');
           if (user.role === 'supervisor' || user.role === 'manager' || user.role === 'owner') {
             await renderManagerHandovers();
           } else {
@@ -4604,7 +5227,7 @@
         } catch (err) {
           alert(err.message);
           btn.disabled = false;
-          btn.textContent = 'Approve & Relay Handover';
+          btn.textContent = 'Approve Handover';
         }
       });
     });
@@ -4640,17 +5263,17 @@
 
         <div class="sr-form-group">
           <label class="sr-form-label" for="sr-handover-summary">Shift Summary *</label>
-          <input type="text" id="sr-handover-summary" class="sr-form-input" placeholder="e.g. Day Shift Handover - Emergency Triage Bay 1-4" required />
+          <input type="text" id="sr-handover-summary" class="sr-form-input" placeholder="${escapeHtml(getUserIndustryProfile(user).defaultHandoverSummary)}" required />
         </div>
 
         <div class="sr-form-group">
           <label class="sr-form-label" for="sr-handover-notes">Shift Operational Notes *</label>
-          <textarea id="sr-handover-notes" class="sr-form-textarea" placeholder="Detail ongoing patient status, critical tasks, machine downtime, or handover points..." required></textarea>
+          <textarea id="sr-handover-notes" class="sr-form-textarea" placeholder="${escapeHtml(getUserIndustryProfile(user).defaultHandoverNotes)}" required></textarea>
         </div>
 
         <div class="sr-form-group">
           <label class="sr-form-label" for="sr-handover-tasks">Priority Shift Tasks (one per line)</label>
-          <textarea id="sr-handover-tasks" class="sr-form-textarea" style="min-height:70px;" placeholder="Confirm blood bank cross-match for Bay 4&#10;Restock trauma airway cart in Resus 2"></textarea>
+          <textarea id="sr-handover-tasks" class="sr-form-textarea" style="min-height:70px;" placeholder="${escapeHtml((getUserIndustryProfile(user).tasks || []).slice(0, 2).map(t => t.text).join('\n'))}"></textarea>
         </div>
 
         <div style="display:flex;gap:10px;margin-top:20px;">
@@ -4987,11 +5610,13 @@
     } catch (_) {}
 
     if (!Array.isArray(all) || !all.some(s => String(s.date || '').startsWith(ym))) {
+      const stationDefault = getUserIndustryProfile(user).zones?.[0]?.name || user.department || 'Operations Desk';
+      const stationSecond = getUserIndustryProfile(user).zones?.[1]?.name || 'Service & Support Desk';
       const seeded = [
-        { id: `sr-s-${ym}-01`, membership_id: '00000000-0000-4000-8000-000000000003', worker_name: 'Babatunde Adeleke', department: 'Frontend Engineering', date: `${ym}-10`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-10T06:00:00.000Z`, ends_at: `${ym}-10T14:00:00.000Z`, station: 'Main Production Floor', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-02`, membership_id: '00000000-0000-4000-8000-000000000004', worker_name: 'Chidinma Okonjo', department: 'Mobile Engineering', date: `${ym}-10`, start_time: '14:00', end_time: '22:00', starts_at: `${ym}-10T14:00:00.000Z`, ends_at: `${ym}-10T22:00:00.000Z`, station: 'Operations Command Deck', rotation: 'Afternoon Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-03`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-11`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-11T06:00:00.000Z`, ends_at: `${ym}-11T14:00:00.000Z`, station: 'Gate Station A', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-04`, membership_id: '00000000-0000-4000-8000-000000000003', worker_name: 'Babatunde Adeleke', department: 'Frontend Engineering', date: `${ym}-12`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-12T06:00:00.000Z`, ends_at: `${ym}-12T14:00:00.000Z`, station: 'Main Production Floor', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
+        { id: `sr-s-${ym}-01`, membership_id: '00000000-0000-4000-8000-000000000003', worker_name: 'Babatunde Adeleke', department: 'Frontend Engineering', date: `${ym}-10`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-10T06:00:00.000Z`, ends_at: `${ym}-10T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
+        { id: `sr-s-${ym}-02`, membership_id: '00000000-0000-4000-8000-000000000004', worker_name: 'Chidinma Okonjo', department: 'Mobile Engineering', date: `${ym}-10`, start_time: '14:00', end_time: '22:00', starts_at: `${ym}-10T14:00:00.000Z`, ends_at: `${ym}-10T22:00:00.000Z`, station: stationSecond, rotation: 'Afternoon Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
+        { id: `sr-s-${ym}-03`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-11`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-11T06:00:00.000Z`, ends_at: `${ym}-11T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
+        { id: `sr-s-${ym}-04`, membership_id: '00000000-0000-4000-8000-000000000003', worker_name: 'Babatunde Adeleke', department: 'Frontend Engineering', date: `${ym}-12`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-12T06:00:00.000Z`, ends_at: `${ym}-12T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
         { id: `sr-s-${ym}-05`, membership_id: '00000000-0000-4000-8000-000000000002', worker_name: 'Olaide Emmanuela', department: 'Operations & Delivery', date: `${ym}-12`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-12T06:00:00.000Z`, ends_at: `${ym}-12T14:00:00.000Z`, station: 'Operations Command Deck', rotation: 'Morning Shift', status: 'scheduled', is_shift_supervisor: true, supervisor_name: 'Sherif Akanmu' },
         { id: `sr-s-${ym}-06`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-13`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-13T06:00:00.000Z`, ends_at: `${ym}-13T14:00:00.000Z`, station: 'Infrastructure Hub Bay', rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
         { id: `sr-s-${ym}-07`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-14`, start_time: '14:00', end_time: '22:00', starts_at: `${ym}-14T14:00:00.000Z`, ends_at: `${ym}-14T22:00:00.000Z`, station: 'High-Availability Relay Station', rotation: 'Afternoon Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
@@ -5060,7 +5685,7 @@
         ? `${s.start_time} – ${s.end_time} WAT`
         : `${formatScheduleDate(s.starts_at, tz)} – ${formatScheduleDate(s.ends_at, tz)}`;
       const rotationLabel = s.rotation || 'Assigned Shift';
-      const stationLabel = s.station || 'Main Production Floor';
+      const stationLabel = s.station || getUserIndustryProfile(getUser()).zones?.[0]?.name || 'Core Operations Zone';
       const supLabel = s.supervisor_name || 'Olaide Emmanuela';
 
       return `
@@ -5992,12 +6617,11 @@
             </div>
 
             <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:var(--sr-text-main);margin-bottom:12px;">
-              Duty Post / Facility Station
+              Duty Post / Operational Station
               <select id="sr-dnd-station" style="padding:9px 10px;border:1.5px solid var(--sr-border-subtle);border-radius:8px;font-size:13px;background:var(--sr-bg-card);color:var(--sr-text-main);">
-                <option value="Main Production Floor">Main Production Floor</option>
+                ${(getUserIndustryProfile(getUser()).zones || []).map(z => `<option value="${escapeHtml(z.name)}">${escapeHtml(z.name)}</option>`).join('')}
                 <option value="Operations Command Deck">Operations Command Deck</option>
-                <option value="Gate Station A (Muster Point)">Gate Station A (Muster Point)</option>
-                <option value="Dispatch & Packaging Bay">Dispatch &amp; Packaging Bay</option>
+                <option value="Primary Check-In Gate">Primary Check-In Gate</option>
               </select>
             </label>
 
@@ -6052,7 +6676,7 @@
       const wDept = opt?.dataset?.dept || targetWorker.department || 'Operations';
       const sTime = startInput?.value || '06:00';
       const eTime = endInput?.value || '14:00';
-      const station = document.getElementById('sr-dnd-station')?.value || 'Main Production Floor';
+      const station = document.getElementById('sr-dnd-station')?.value || getUserIndustryProfile(getUser()).zones?.[0]?.name || 'Core Operations Zone';
       const isSup = Boolean(document.getElementById('sr-dnd-is-supervisor')?.checked);
 
       const newShift = {
@@ -6642,14 +7266,21 @@
 
   // ── 8. Unified Floor Approvals Queue: Shift Swaps, Timecard Overrides & Access ([RIFA-28]) ──
   let approvalsTab = 'swaps'; // 'swaps' | 'timecards' | 'access'
+  let approvalsViewMode = 'pending'; // 'pending' | 'history'
 
   function getOrSeedFloorApprovals() {
     const key = 'sr_floor_approvals_v2';
+    const profile = getUserIndustryProfile(getUser());
     let data = null;
     try {
       const raw = localStorage.getItem(key);
       if (raw) data = JSON.parse(raw);
     } catch (_) {}
+    if (data && Array.isArray(data.swaps) && profile.key !== 'manufacturing') {
+      data.swaps = data.swaps.map(s => String(s.station || '').includes('Main Production Floor')
+        ? { ...s, station: profile.zones?.[0]?.name || 'Core Operations Zone' }
+        : s);
+    }
     if (!data || !Array.isArray(data.swaps)) {
       data = {
         swaps: [
@@ -6657,9 +7288,9 @@
             id: 'swap-201',
             requester: 'Babatunde Adeleke',
             reliever: 'Chidinma Okonjo',
-            department: 'Frontend Engineering',
+            department: 'Operations Squad',
             shiftDate: 'Tomorrow · 06:00 – 14:00 WAT',
-            station: 'Main Production Floor',
+            station: profile.zones?.[0]?.name || 'Core Operations Zone',
             reason: 'Scheduled dental checkup — Chidinma confirmed relief coverage.',
             status: 'pending'
           },
@@ -6667,10 +7298,10 @@
             id: 'swap-202',
             requester: 'Tariq Al-Hassan',
             reliever: 'Kelechi Nnamdi',
-            department: 'Backend Infrastructure',
+            department: 'Infrastructure Ops',
             shiftDate: 'Friday, 13 Nov · 14:00 – 22:00 WAT',
-            station: 'Operations Command Deck',
-            reason: 'Server maintenance rotation adjustment.',
+            station: profile.zones?.[1]?.name || 'Operations Command Deck',
+            reason: 'Scheduled rotation adjustment.',
             status: 'pending'
           }
         ],
@@ -6678,7 +7309,7 @@
           {
             id: 'tc-301',
             worker: 'Chidinma Okonjo',
-            department: 'Mobile Engineering',
+            department: 'Operations',
             date: 'Today · 06:08 WAT (+8 mins)',
             verification: 'Verified via Gate QR Poster #A1',
             reason: 'Third Mainland Bridge traffic diversion — reported prior to muster.',
@@ -6687,10 +7318,10 @@
           {
             id: 'tc-302',
             worker: 'Simi Balogun',
-            department: 'Brand & Design',
+            department: 'Product & Design',
             date: 'Yesterday · 14:00 – 23:30 WAT (+1.5 hrs OT)',
             verification: 'GPS Perimeter Verified',
-            reason: 'Extended shift for Level 1 Production launch visual QA.',
+            reason: 'Extended shift for release launch quality verification.',
             status: 'pending'
           }
         ]
@@ -6721,6 +7352,8 @@
     let apiSwaps = [];
     let apiTimecards = [];
     let accessRequests = [];
+    let hasSwapApi = false;
+    let hasTimecardApi = false;
     try {
       const [swapRes, tcRes, pendingRes] = await Promise.all([
         fetch('/api/shift-swaps').catch(() => null),
@@ -6728,27 +7361,29 @@
         fetch('/api/memberships/pending').catch(() => null)
       ]);
       if (swapRes && swapRes.ok) {
+        hasSwapApi = true;
         const sd = await swapRes.json();
         apiSwaps = (Array.isArray(sd.swaps) ? sd.swaps : []).map(sw => ({
           id: sw.id,
           fromBackend: true,
           requester: sw.requester_name || sw.requester || 'Team Member',
           reliever: sw.target_name || sw.reliever || 'Open Shift Pool',
-          department: sw.department || user.department || 'Operations Floor',
-          station: sw.station || sw.facility || user.organisation_name || 'Main Floor',
+          department: sw.department || user.department || getUserIndustryProfile(user).shortLabel,
+          station: sw.station || sw.facility || user.hub_name || getUserIndustryProfile(user).defaultHubName,
           shiftDate: [sw.shift_date, sw.shift_time].filter(Boolean).join(' · ') || 'Upcoming Shift',
           reason: sw.reason || 'Shift relief coverage requested.',
-          status: (sw.status === 'rejected') ? 'declined' : (sw.status === 'claimed' ? 'pending' : (sw.status || 'pending'))
+          status: (sw.status === 'rejected' || sw.status === 'denied') ? 'declined' : (sw.status === 'approved' ? 'approved' : 'pending')
         }));
       }
       if (tcRes && tcRes.ok) {
+        hasTimecardApi = true;
         const td = await tcRes.json();
         const rawList = Array.isArray(td.all) ? td.all : (Array.isArray(td.pending) ? td.pending : []);
         apiTimecards = rawList.map(tc => ({
           id: tc.id,
           fromBackend: true,
           worker: tc.workerName || tc.worker || 'Shift Specialist',
-          department: tc.facility || tc.role || user.department || 'Operations Floor',
+          department: tc.facility || tc.role || user.department || getUserIndustryProfile(user).shortLabel,
           date: [tc.date, tc.clockIn && tc.requestedClockOut ? `${tc.clockIn} – ${tc.requestedClockOut}` : ''].filter(Boolean).join(' · '),
           verification: tc.hours ? `${tc.hours} hrs logged` : 'Punch Correction Verification',
           reason: tc.reason || 'Punch adjustment request',
@@ -6761,14 +7396,20 @@
       }
     } catch (_) {}
 
-    const swapsList = apiSwaps.length > 0 ? apiSwaps : floorData.swaps;
-    const timecardsList = apiTimecards.length > 0 ? apiTimecards : floorData.timecards;
+    const swapsList = hasSwapApi ? apiSwaps : floorData.swaps;
+    const timecardsList = hasTimecardApi ? apiTimecards : floorData.timecards;
     const pendingSwaps = swapsList.filter(s => s.status === 'pending');
+    const historySwaps = swapsList.filter(s => s.status !== 'pending');
     const pendingTimecards = timecardsList.filter(t => t.status === 'pending');
+    const historyTimecards = timecardsList.filter(t => t.status !== 'pending');
 
     if (!['swaps', 'timecards', 'access'].includes(approvalsTab)) {
       approvalsTab = 'swaps';
     }
+
+    const totalHistoryCount = historySwaps.length + historyTimecards.length;
+    const activeSwapsToRender = approvalsViewMode === 'history' ? historySwaps : pendingSwaps;
+    const activeTimecardsToRender = approvalsViewMode === 'history' ? historyTimecards : pendingTimecards;
 
     container.innerHTML = `
       <div class="sr-context-banner" style="margin-bottom:14px;cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
@@ -6797,12 +7438,22 @@
             ${accessRequests.length > 0 ? `<span class="sr-tab-badge">${accessRequests.length}</span>` : ''}
           </button>
         </div>
-        ${(approvalsTab === 'swaps' && pendingSwaps.length > 0) ? `
-          <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-bulk-approve-swaps" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;" title="Approve all pending swaps for upcoming shift">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-            <span>Approve All (${pendingSwaps.length})</span>
-          </button>
-        ` : ''}
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <div style="display:inline-flex;border:1px solid var(--sr-border-subtle);border-radius:999px;padding:2px;background:var(--sr-bg-card-subtle);">
+            <button type="button" data-sr-approval-mode="pending" style="padding:4px 10px;border-radius:999px;border:none;font-size:11.5px;font-weight:700;cursor:pointer;${approvalsViewMode === 'pending' ? 'background:var(--sr-primary);color:#fff;' : 'background:transparent;color:var(--sr-text-muted);'}">
+              Pending Queue
+            </button>
+            <button type="button" data-sr-approval-mode="history" style="padding:4px 10px;border-radius:999px;border:none;font-size:11.5px;font-weight:700;cursor:pointer;${approvalsViewMode === 'history' ? 'background:var(--sr-primary);color:#fff;' : 'background:transparent;color:var(--sr-text-muted);'}">
+              History (${totalHistoryCount})
+            </button>
+          </div>
+          ${(approvalsViewMode === 'pending' && approvalsTab === 'swaps' && pendingSwaps.length > 0) ? `
+            <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-bulk-approve-swaps" style="min-height:32px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;" title="Approve all pending swaps for upcoming shift">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+              <span>Approve All (${pendingSwaps.length})</span>
+            </button>
+          ` : ''}
+        </div>
       </div>
 
       <div id="sr-approval-feedback"></div>
@@ -6813,6 +7464,14 @@
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         approvalsTab = btn.dataset.srApprovalTab;
+        renderApprovalsScreen();
+      });
+    });
+
+    container.querySelectorAll('[data-sr-approval-mode]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        approvalsViewMode = btn.dataset.srApprovalMode;
         renderApprovalsScreen();
       });
     });
@@ -6840,7 +7499,7 @@
       d.swaps.forEach(sw => { if (sw.status === 'pending') sw.status = 'approved'; });
       try { localStorage.setItem('sr_floor_approvals_v2', JSON.stringify(d)); } catch (_) {}
       SRAudio.playClockIn();
-      showApprovalFeedback(`Successfully approved all ${count} pending shift swaps.`);
+      if (typeof showToast === 'function') showToast(`Approved all ${count} shift swaps — moved to History.`, 'success');
       await renderApprovalsScreen();
     });
 
@@ -6848,7 +7507,7 @@
     if (!panel) return;
 
     if (approvalsTab === 'swaps') {
-      panel.innerHTML = swapsList.map(sw => `
+      panel.innerHTML = activeSwapsToRender.length > 0 ? activeSwapsToRender.map(sw => `
         <div class="sr-card" style="margin-bottom:12px;border-left:4px solid ${sw.status === 'approved' ? '#10b981' : sw.status === 'declined' ? '#ef4444' : '#f59e0b'};">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
             <div>
@@ -6870,7 +7529,12 @@
             </div>
           ` : ''}
         </div>
-      `).join('');
+      `).join('') : `
+        <div class="sr-empty-state">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <p>${approvalsViewMode === 'history' ? 'No resolved shift swaps in history yet.' : 'All pending shift swaps cleared! Approved items are archived in History.'}</p>
+        </div>
+      `;
 
       panel.querySelectorAll('[data-swap-decision]').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -6898,20 +7562,20 @@
             try { localStorage.setItem('sr_floor_approvals_v2', JSON.stringify(d)); } catch (_) {}
           }
           SRAudio.playClockIn();
-          showApprovalFeedback(`Shift swap ${dec === 'approved' ? 'approved' : 'declined'}.`);
+          if (typeof showToast === 'function') showToast(`Shift swap ${dec === 'approved' ? 'approved' : 'declined'} — moved to History.`, 'success');
           await renderApprovalsScreen();
         });
       });
     } else if (approvalsTab === 'timecards') {
-      panel.innerHTML = timecardsList.map(tc => `
-        <div class="sr-card" style="margin-bottom:12px;border-left:4px solid ${tc.status === 'approved' ? '#10b981' : '#3b82f6'};">
+      panel.innerHTML = activeTimecardsToRender.length > 0 ? activeTimecardsToRender.map(tc => `
+        <div class="sr-card" style="margin-bottom:12px;border-left:4px solid ${tc.status === 'approved' ? '#10b981' : tc.status === 'declined' ? '#ef4444' : '#3b82f6'};">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
             <div>
               <div style="font-size:14.5px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(tc.worker)}</div>
               <div style="font-size:12px;color:var(--sr-text-muted);">${escapeHtml(tc.department)} &bull; ${escapeHtml(tc.date)}</div>
             </div>
-            <span class="sr-status-pill ${tc.status === 'approved' ? 'active' : 'pending'}">
-              ${tc.status === 'approved' ? 'VERIFIED & LOGGED' : 'NEEDS OVERRIDE'}
+            <span class="sr-status-pill ${tc.status === 'approved' ? 'active' : tc.status === 'declined' ? 'inactive' : 'pending'}">
+              ${tc.status === 'approved' ? 'VERIFIED & LOGGED' : tc.status === 'declined' ? 'DECLINED' : 'NEEDS OVERRIDE'}
             </span>
           </div>
           <div style="padding:10px 12px;border-radius:8px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);font-size:12.5px;color:var(--sr-text-main);margin-bottom:12px;">
@@ -6920,15 +7584,22 @@
           </div>
           ${tc.status === 'pending' ? `
             <div style="display:flex;gap:10px;">
-              <button type="button" class="sr-btn sr-btn-primary" data-tc-approve="${escapeHtml(tc.id)}" style="width:100%;min-height:40px !important;">Approve Timecard</button>
+              <button type="button" class="sr-btn sr-btn-secondary" data-tc-decline="${escapeHtml(tc.id)}" style="flex:1;min-height:40px !important;">Decline</button>
+              <button type="button" class="sr-btn sr-btn-primary" data-tc-approve="${escapeHtml(tc.id)}" style="flex:2;min-height:40px !important;">Approve Timecard</button>
             </div>
           ` : ''}
         </div>
-      `).join('');
+      `).join('') : `
+        <div class="sr-empty-state">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <p>${approvalsViewMode === 'history' ? 'No resolved timecards in history yet.' : 'All timecard exceptions cleared! Approved items are archived in History.'}</p>
+        </div>
+      `;
 
-      panel.querySelectorAll('[data-tc-approve]').forEach(btn => {
+      panel.querySelectorAll('[data-tc-approve],[data-tc-decline]').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const id = btn.dataset.tcApprove;
+          const isApprove = Boolean(btn.dataset.tcApprove);
+          const id = btn.dataset.tcApprove || btn.dataset.tcDecline;
           const target = timecardsList.find(x => x.id === id);
           btn.disabled = true;
           if (target && target.fromBackend) {
@@ -6936,7 +7607,7 @@
               const res = await fetch('/api/timesheets/authorize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ correctionId: id, decision: 'approved' })
+                body: JSON.stringify({ correctionId: id, decision: isApprove ? 'approved' : 'denied' })
               });
               if (!res.ok) throw new Error('Authorization failed');
             } catch (err) {
@@ -6947,11 +7618,11 @@
           } else {
             const d = getOrSeedFloorApprovals();
             const item = d.timecards.find(x => x.id === id);
-            if (item) item.status = 'approved';
+            if (item) item.status = isApprove ? 'approved' : 'declined';
             try { localStorage.setItem('sr_floor_approvals_v2', JSON.stringify(d)); } catch (_) {}
           }
           SRAudio.playClockIn();
-          showApprovalFeedback('Timecard exception verified and synced to payroll.');
+          if (typeof showToast === 'function') showToast(isApprove ? 'Timecard approved — moved to History.' : 'Timecard declined — moved to History.', 'success');
           await renderApprovalsScreen();
         });
       });
@@ -7613,7 +8284,7 @@
           </div>
 
           <div class="sr-skill-input-wrap" style="margin-top:6px;position:relative;">
-            <input type="text" id="sr-skill-typeahead" class="sr-form-input" placeholder="+ Add a skill (e.g. Forklift Operation, SOP Adherence, Cold Chain Routine)..." autocomplete="off" />
+            <input type="text" id="sr-skill-typeahead" class="sr-form-input" placeholder="+ Add a skill (${escapeHtml(getUserIndustryProfile(user).skillsPlaceholder)})" autocomplete="off" />
             <div id="sr-skill-dropdown" class="sr-skill-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,0.14);max-height:220px;overflow-y:auto;margin-top:4px;"></div>
           </div>
         </div>
@@ -8259,23 +8930,31 @@
 
     // ── Skills: typeahead tag input ───────────────────────────────────
     (function bindSkillsInput() {
-      const SKILL_LIBRARY = [
-        'Shift Handover Protocol','Incident Prevention','Team Communication',
-        'Cold Chain Compliance','SOP Adherence','Risk Assessment',
-        'Emergency Response','Quality Control','Inventory Management',
-        'Forklift Operation','Data Entry','Microsoft Excel','SAP ERP',
-        'Customer Service','Leadership','Coaching & Mentoring','Scheduling',
-        'HACCP Compliance','Waste Management','ISO 9001','Health & Safety',
-        'First Aid / CPR','Fire Warden','Logistics Coordination',
-        'Supply Chain Management','Procurement','Vendor Management',
-        'Performance Management','Recruitment','Payroll Processing',
-        'Financial Reporting','Budgeting','Project Management','Agile/Scrum',
-        'Electrical Maintenance','Mechanical Maintenance','HVAC Systems',
-        'Plumbing','Welding','Civil Works','AutoCAD','Network Administration',
-        'Python','JavaScript','Node.js','SQL','Data Analysis','Power BI',
-        'Tableau','Machine Learning','Communication Skills','Negotiation',
-        'Conflict Resolution','Report Writing','Presentation Skills'
+      const skillProfile = getUserIndustryProfile(user);
+      const SECTOR_SKILLS = {
+        tech: ['Cloud Architecture', 'Node.js', 'Python', 'TypeScript', 'PostgreSQL', 'DevOps & CI/CD', 'Kubernetes', 'SOC 2 Compliance', 'Incident Triage', 'System Observability', 'API Security', 'Agile/Scrum'],
+        restaurant: ['Food Safety (HACCP)', 'Kitchen Prep & Line Ops', 'Allergen Control', 'POS Reconciliation', 'Cold Chain Compliance', 'Guest Hospitality', 'Inventory Rotation (FIFO)', 'Sanitation & Hygiene'],
+        gas_station: ['Forecourt Safety', 'Fuel Pump Calibration', 'Tank Wet-Stock Reconciliation', 'Fire & Spill Response', 'POS & Cash Control', 'HSE Compliance', 'LPG Cylinder Handling'],
+        agriculture: ['Crop & Soil Monitoring', 'Agrichemical Handling', 'Post-Harvest Cold Storage', 'Irrigation Management', 'Machinery Preventive Checks', 'Livestock Biosecurity', 'Yield Recordkeeping'],
+        transportation: ['Fleet Dispatch', 'FRSC / DOT Compliance', 'Pre-Trip Vehicle Inspection', 'Route Optimization', 'Load Securement', 'Telematics & GPS Tracking', 'Cargo Chain of Custody'],
+        healthcare: ['Patient Triage Support', 'Infection Control', 'Clinical Documentation', 'Cold Chain Pharmacy', 'HIPAA / NDPA Privacy', 'First Aid / BLS', 'Biohazard Disposal'],
+        logistics: ['Forklift Operation', 'Warehouse WMS', 'Cross-Docking', 'Cycle Counting', 'Fleet Coordination', 'Cold Chain Compliance', 'Load Manifesting'],
+        manufacturing: ['Forklift Operation', 'ISO 9001 Quality Control', 'Preventive Maintenance', 'Lockout/Tagout (LOTO)', 'HACCP Compliance', 'PPE & Floor Safety', 'SOP Adherence']
+      };
+      const baseSkills = [
+        'Shift Handover Protocol', 'Incident Prevention', 'Team Communication',
+        'SOP Adherence', 'Risk Assessment', 'Emergency Response',
+        'Quality Control', 'Data Analysis', 'Microsoft Excel',
+        'Leadership', 'Coaching & Mentoring', 'Scheduling',
+        'Health & Safety', 'First Aid / CPR', 'Fire Warden',
+        'Procurement', 'Vendor Management', 'Performance Management',
+        'Financial Reporting', 'Budgeting', 'Project Management',
+        'Report Writing', 'Presentation Skills', 'Conflict Resolution'
       ];
+      const SKILL_LIBRARY = Array.from(new Set([
+        ...(SECTOR_SKILLS[skillProfile.key] || []),
+        ...baseSkills
+      ]));
 
       const tagsWrap  = document.getElementById('sr-cv-skills-list');
       const input     = document.getElementById('sr-skill-typeahead');
@@ -9020,13 +9699,13 @@
             </div>
 
             <div style="margin-bottom:16px;">
-              <label for="sr-set-industry" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text);margin-bottom:5px;">Industry</label>
+              <label for="sr-set-industry" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text);margin-bottom:5px;">Industry Sector</label>
               <select id="sr-set-industry" class="sr-input" style="width:100%;box-sizing:border-box;">
-                ${['Healthcare','Logistics','Manufacturing','Hospitality','Retail','Security','Operations','Other']
-                  .map(i => `<option value="${i}"${org.industry === i ? ' selected' : ''}>${i}</option>`).join('')}
+                ${CLIENT_INDUSTRY_OPTIONS
+                  .map(o => `<option value="${o.key}"${resolveClientIndustryKey(org.industryKey || org.industry, org.trading_name) === o.key ? ' selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}
               </select>
               <p style="font-size:12px;color:var(--sr-text-muted);margin:4px 0 0;line-height:1.4;">
-                Affects how your roster is labelled. Does not change workflow rules.
+                Tailors your organisation's safety regulations, statutory taxes, workflows, zones, and checklists.
               </p>
             </div>
 
@@ -9211,8 +9890,19 @@
             return;
           }
           loadedSettings = data.organisation || loadedSettings;
+          if (payload.industry) {
+            const nextKey = resolveClientIndustryKey(payload.industry, payload.tradingName || getUser()?.organisation_name);
+            try { localStorage.setItem('shiftrelay-company-industry', nextKey); } catch (_) {}
+            const activeU = getUser();
+            if (activeU) {
+              activeU.industry = payload.industry;
+              activeU.industryKey = nextKey;
+              activeU.industryProfile = CLIENT_INDUSTRY_PROFILES[nextKey] || CLIENT_INDUSTRY_PROFILES.operations;
+              window._srActiveUser = activeU;
+            }
+          }
           clearDirty();
-          showBanner('Settings saved successfully.', true);
+          showBanner('Settings saved successfully & industry workflows updated.', true);
           setTimeout(hideBanner, 3500);
         } catch (err) {
           showFieldErr(err.message || 'Network error. Please try again.');
@@ -9583,8 +10273,8 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </div>
               <div>
-                <strong style="font-size:13.5px;color:var(--sr-text-main);display:block;">Safety First Champion</strong>
-                <span style="font-size:11.5px;color:var(--sr-text-muted);display:block;margin-top:2px;">100% Safety PPE checklist verification</span>
+                <strong style="font-size:13.5px;color:var(--sr-text-main);display:block;">Compliance &amp; Readiness Champion</strong>
+                <span style="font-size:11.5px;color:var(--sr-text-muted);display:block;margin-top:2px;">100% Shift Readiness &amp; Safety Compliance verification</span>
                 <span style="font-size:10px;font-weight:800;color:#3b82f6;margin-top:4px;display:inline-block;">MINTED BADGE</span>
               </div>
             </div>
@@ -10017,11 +10707,10 @@
 
             <div style="margin-top:14px;">
               <select id="sr-settings-industry-select" class="sr-input" style="width:100%;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);color:var(--sr-text-main);cursor:pointer;">
-                <option value="manufacturing" ${(localStorage.getItem('shiftrelay-company-industry') || 'manufacturing') === 'manufacturing' ? 'selected' : ''}>Manufacturing Operations (Safety PPE, Line Power, Calibration)</option>
-                <option value="logistics" ${localStorage.getItem('shiftrelay-company-industry') === 'logistics' ? 'selected' : ''}>Logistics Warehousing Distribution (Forklift Pre-Op, Cargo)</option>
-                <option value="facility" ${localStorage.getItem('shiftrelay-company-industry') === 'facility' ? 'selected' : ''}>Facility Management (MSDS Chemical Dilution, Sanitization)</option>
-                <option value="food_beverage" ${localStorage.getItem('shiftrelay-company-industry') === 'food_beverage' ? 'selected' : ''}>Food Processing (Cold-Chain Temp, Traceability)</option>
-                <option value="security" ${localStorage.getItem('shiftrelay-company-industry') === 'security' ? 'selected' : ''}>Security Operations (Radio Check, Access Log)</option>
+                ${(() => {
+                  const activeKey = getUserIndustryProfile(getUser()).key;
+                  return CLIENT_INDUSTRY_OPTIONS.map(opt => `<option value="${opt.key}" ${activeKey === opt.key ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`).join('');
+                })()}
               </select>
             </div>
           </div>
@@ -10196,15 +10885,26 @@
       const industry = e.target.value;
       localStorage.setItem('shiftrelay-company-industry', industry);
       const u = getUser();
-      const tenantId = u?.tenant_id || u?.company_id || u?.organisation_id || 'FLO-NG-6093';
+      const tenantId = u?.tenant_id || u?.company_id || u?.organisation_id || 'RIF-2026';
       try {
-        await fetch('/api/organisation/industry', {
+        const res = await fetch('/api/organisation/industry', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ industry, tenantId })
         });
+        if (res.ok) {
+          const data = await res.json().catch(() => null);
+          if (u) {
+            u.industryKey = data?.industryKey || industry;
+            u.industry = data?.industry || CLIENT_INDUSTRY_PROFILES[industry]?.label || industry;
+            u.industryProfile = CLIENT_INDUSTRY_PROFILES[u.industryKey] || CLIENT_INDUSTRY_PROFILES.operations;
+            window._srActiveUser = u;
+          }
+        }
       } catch (_) {}
-      showToast('Operational checklist protocol updated to ' + industry.replace('_', ' ').toUpperCase(), 'success');
+      const label = CLIENT_INDUSTRY_PROFILES[industry]?.label || industry.replace(/_/g, ' ').toUpperCase();
+      showToast('Operational checklists, safety rules & analytics updated to ' + label, 'success');
+      await refreshActiveScreen(false);
     });
 
     // ── Notification Toggles ───────────────────────────────────────────
@@ -10340,10 +11040,10 @@
           </div>
 
           <div class="sr-audit-meta-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:12px;margin:20px 0;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
-            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Facility Code</small><div style="font-weight:700;color:#0f172a;">CP-APAPA-01</div></div>
-            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Site Name</small><div style="font-weight:700;color:#0f172a;">Apapa Industrial Mill Gate A</div></div>
+            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Site Code</small><div style="font-weight:700;color:#0f172a;">${escapeHtml(getUser()?.company_id || 'RIF-2026')}</div></div>
+            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Hub Name</small><div style="font-weight:700;color:#0f172a;">${escapeHtml(getUser()?.hub_name || getUserIndustryProfile(getUser()).defaultHubName)}</div></div>
             <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Audit Date</small><div style="font-weight:700;color:#0f172a;">${nowStr}</div></div>
-            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">GPS Center</small><div style="font-weight:700;color:#0f172a;">6.4474° N, 3.3590° E</div></div>
+            <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Sector</small><div style="font-weight:700;color:#0f172a;">${escapeHtml(getUserIndustryProfile(getUser()).shortLabel)}</div></div>
             <div><small style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;">Status</small><div style="font-weight:800;color:#10b981;">✓ 100% GEOFENCE VERIFIED</div></div>
           </div>
 
@@ -10361,40 +11061,40 @@
             </thead>
             <tbody>
               <tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:10px 6px;font-weight:700;">Amara Okafor</td>
-                <td style="padding:10px 6px;color:#64748b;">CP-0101</td>
-                <td style="padding:10px 6px;">Senior Cleaner</td>
+                <td style="padding:10px 6px;font-weight:700;">Babatunde Adeleke</td>
+                <td style="padding:10px 6px;color:#64748b;">SR-0101</td>
+                <td style="padding:10px 6px;">Lead Specialist</td>
                 <td style="padding:10px 6px;">06:00 AM</td>
                 <td style="padding:10px 6px;">02:00 PM</td>
                 <td style="padding:10px 6px;color:#10b981;font-weight:600;">Muster Gate QR</td>
                 <td style="padding:10px 6px;color:#10b981;font-weight:700;">0m (On-Premise)</td>
               </tr>
               <tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:10px 6px;font-weight:700;">Emeka Obi</td>
-                <td style="padding:10px 6px;color:#64748b;">CP-0102</td>
-                <td style="padding:10px 6px;">Forklift Operator</td>
+                <td style="padding:10px 6px;font-weight:700;">Chidinma Okonjo</td>
+                <td style="padding:10px 6px;color:#64748b;">SR-0102</td>
+                <td style="padding:10px 6px;">Operations Analyst</td>
                 <td style="padding:10px 6px;">06:18 AM</td>
                 <td style="padding:10px 6px;">02:18 PM</td>
                 <td style="padding:10px 6px;color:#10b981;font-weight:600;">Muster Gate QR</td>
                 <td style="padding:10px 6px;color:#10b981;font-weight:700;">0m (On-Premise)</td>
               </tr>
               <tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:10px 6px;font-weight:700;">Ngozi Adeyemi</td>
-                <td style="padding:10px 6px;color:#64748b;">CP-0103</td>
-                <td style="padding:10px 6px;">Packaging Line Lead</td>
+                <td style="padding:10px 6px;font-weight:700;">Tariq Al-Hassan</td>
+                <td style="padding:10px 6px;color:#64748b;">SR-0103</td>
+                <td style="padding:10px 6px;">Shift Coordinator</td>
                 <td style="padding:10px 6px;">06:00 AM</td>
                 <td style="padding:10px 6px;">02:00 PM</td>
                 <td style="padding:10px 6px;color:#10b981;font-weight:600;">Muster Gate QR</td>
                 <td style="padding:10px 6px;color:#10b981;font-weight:700;">0m (On-Premise)</td>
               </tr>
               <tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:10px 6px;font-weight:700;">Tunde Fashola</td>
-                <td style="padding:10px 6px;color:#64748b;">CP-0105</td>
-                <td style="padding:10px 6px;">Maintenance Tech</td>
+                <td style="padding:10px 6px;font-weight:700;">Simi Balogun</td>
+                <td style="padding:10px 6px;color:#64748b;">SR-0105</td>
+                <td style="padding:10px 6px;">Quality &amp; Systems Lead</td>
                 <td style="padding:10px 6px;">07:45 AM</td>
                 <td style="padding:10px 6px;">05:45 PM</td>
                 <td style="padding:10px 6px;color:#10b981;font-weight:600;">GPS Snapshot</td>
-                <td style="padding:10px 6px;color:#10b981;font-weight:700;">Aux Gate (Supervisor Certified)</td>
+                <td style="padding:10px 6px;color:#10b981;font-weight:700;">Gate B (Supervisor Certified)</td>
               </tr>
             </tbody>
           </table>
@@ -10421,14 +11121,17 @@
 
   // ──  Shift Attendance & Timesheet Audit CSV Downloader ────────────────────
   function downloadAttendanceTimesheetCsv() {
+    const profile = getUserIndustryProfile(getUser());
+    const st0 = profile.zones?.[0]?.name || 'Core Operations';
+    const st1 = profile.zones?.[1]?.name || 'Support Desk';
     const today = new Date().toISOString().slice(0, 10);
     const headers = ['Staff_ID', 'Full_Name', 'Department', 'Station', 'Shift_Date', 'Clock_In_WAT', 'Clock_Out_WAT', 'Regular_Hours', 'Overtime_Hours', 'Geofence_Verified', 'Supervisor_Signoff'];
     const rows = [
-      ['CP-0101', 'Amara Okafor', 'Operations', 'Bottling Line 1', today, '06:01 AM', '02:04 PM', '8.0', '0.0', 'YES (6.4485, 3.3642)', 'Olaide Emmanuela'],
-      ['CP-0102', 'Emeka Obi', 'Logistics', 'Warehouse Bay B', today, '05:58 AM', '02:15 PM', '8.0', '0.25', 'YES (6.4485, 3.3642)', 'Olaide Emmanuela'],
-      ['CP-0103', 'Ngozi Adeyemi', 'Packaging', 'Box Pack Station 3', today, '06:05 AM', '02:00 PM', '8.0', '0.0', 'YES (6.4485, 3.3642)', 'Olaide Emmanuela'],
-      ['CP-0104', 'Aisha Bello', 'Security', 'Main Gate Post', today, '05:50 AM', '02:02 PM', '8.0', '0.0', 'YES (6.4485, 3.3642)', 'Olaide Emmanuela'],
-      ['CP-0105', 'Tunde Fashola', 'Maintenance', 'Generator Unit 2', today, '05:55 AM', '02:30 PM', '8.0', '0.5', 'YES (6.4485, 3.3642)', 'Olaide Emmanuela']
+      ['SR-0101', 'Babatunde Adeleke', 'Operations', st0, today, '06:01 AM', '02:04 PM', '8.0', '0.0', 'YES (Gate Verified)', 'Olaide Emmanuela'],
+      ['SR-0102', 'Chidinma Okonjo', 'Core Ops', st1, today, '05:58 AM', '02:15 PM', '8.0', '0.25', 'YES (Gate Verified)', 'Olaide Emmanuela'],
+      ['SR-0103', 'Tariq Al-Hassan', 'Coordination', st0, today, '06:05 AM', '02:00 PM', '8.0', '0.0', 'YES (Gate Verified)', 'Olaide Emmanuela'],
+      ['SR-0104', 'Aisha Bello', 'Security', 'Main Access Gate', today, '05:50 AM', '02:02 PM', '8.0', '0.0', 'YES (Gate Verified)', 'Olaide Emmanuela'],
+      ['SR-0105', 'Simi Balogun', 'Quality & Systems', st1, today, '05:55 AM', '02:30 PM', '8.0', '0.5', 'YES (Gate Verified)', 'Olaide Emmanuela']
     ];
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -10444,13 +11147,14 @@
 
   // ──  Batch Payroll Ledger CSV Downloader ──────────────────────────────────
   function downloadPayrollBatchCsv() {
+    const profile = getUserIndustryProfile(getUser());
     const headers = ['Staff_ID', 'Full_Name', 'Department', 'Role', 'Verified_Hours', 'Hourly_Rate_NGN', 'Gross_Pay_NGN', 'PAYE_Tax_NGN', 'PenCom_Pension_NGN', 'Net_Disbursed_NGN', 'Bank_Name', 'Account_Number', 'Disbursal_Status'];
     const rows = [
-      ['CP-0101', 'Amara Okafor', 'Operations', 'Senior Cleaner', '172.5', '1350', '232875.00', '21191.62', '21191.62', '190491.75', 'Zenith Bank', '2034567890', 'VERIFIED_BATCH_PAID'],
-      ['CP-0102', 'Emeka Obi', 'Logistics', 'Forklift Operator', '168.0', '1625', '273000.00', '24843.00', '24843.00', '223314.00', 'Access Bank', '0123456789', 'VERIFIED_BATCH_PAID'],
-      ['CP-0103', 'Ngozi Adeyemi', 'Dispatch', 'Packaging Lead', '160.0', '1500', '240000.00', '21840.00', '21840.00', '196320.00', 'Zenith Bank', '2034567890', 'VERIFIED_BATCH_PAID'],
-      ['CP-0104', 'Aisha Bello', 'Security', 'Security Officer', '160.0', '1219', '195040.00', '17748.64', '17748.64', '159542.72', 'GTBank', '0198765432', 'VERIFIED_BATCH_PAID'],
-      ['CP-0105', 'Tunde Fashola', 'Maintenance', 'Maintenance Tech', '180.0', '2000', '360000.00', '32760.00', '32760.00', '294480.00', 'UBA', '2078901234', 'VERIFIED_BATCH_PAID']
+      ['SR-0101', 'Babatunde Adeleke', 'Operations', 'Lead Specialist', '172.5', '1350', '232875.00', '21191.62', '21191.62', '190491.75', 'Zenith Bank', '2034567890', 'VERIFIED_BATCH_PAID'],
+      ['SR-0102', 'Chidinma Okonjo', profile.shortLabel, 'Shift Analyst', '168.0', '1625', '273000.00', '24843.00', '24843.00', '223314.00', 'Access Bank', '0123456789', 'VERIFIED_BATCH_PAID'],
+      ['SR-0103', 'Tariq Al-Hassan', 'Coordination', 'Shift Coordinator', '160.0', '1500', '240000.00', '21840.00', '21840.00', '196320.00', 'Zenith Bank', '2034567890', 'VERIFIED_BATCH_PAID'],
+      ['SR-0104', 'Aisha Bello', 'Compliance', 'Compliance Specialist', '160.0', '1219', '195040.00', '17748.64', '17748.64', '159542.72', 'GTBank', '0198765432', 'VERIFIED_BATCH_PAID'],
+      ['SR-0105', 'Simi Balogun', 'Quality & Systems', 'Systems Lead', '180.0', '2000', '360000.00', '32760.00', '32760.00', '294480.00', 'UBA', '2078901234', 'VERIFIED_BATCH_PAID']
     ];
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -10470,6 +11174,8 @@
     if (existing) existing.remove();
 
     const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const turnoverUser = getUser();
+    const turnoverProfile = getUserIndustryProfile(turnoverUser);
 
     const modalHtml = `
       <div id="sr-turnover-modal" class="sr-audit-modal-backdrop">
@@ -10478,8 +11184,8 @@
             <div style="display:flex;align-items:center;gap:12px;">
               <img src="icon.svg?v=140" width="36" height="36" alt="" />
               <div>
-                <h2 style="margin:0;font-size:18px;font-weight:800;color:#0f172a;">DAILY SHIFT TURNOVER &amp; SAFETY LOG</h2>
-                <small style="color:#64748b;font-size:12px;">Apapa Industrial Mill · Terminal Handover Brief</small>
+                <h2 style="margin:0;font-size:18px;font-weight:800;color:#0f172a;">DAILY SHIFT TURNOVER &amp; COMPLIANCE LOG</h2>
+                <small style="color:#64748b;font-size:12px;">${escapeHtml(turnoverUser?.hub_name || turnoverProfile.defaultHubName)} &middot; ${escapeHtml(turnoverProfile.shortLabel)} Handover Brief</small>
               </div>
             </div>
             <div style="display:flex;gap:8px;" class="sr-no-print">
@@ -10491,23 +11197,22 @@
           <div style="margin:16px 0;padding:12px;background:#f1f5f9;border-radius:8px;font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
             <span><strong>Date:</strong> ${nowStr}</span>
             <span><strong>Shift:</strong> Morning (06:00 - 14:00)</span>
-            <span><strong>Outgoing Supervisor:</strong> David Kariuki</span>
-            <span><strong>Incoming Supervisor:</strong> Babatunde Adeleke</span>
+            <span><strong>Outgoing Lead:</strong> Olaide Emmanuela</span>
+            <span><strong>Incoming Lead:</strong> Babatunde Adeleke</span>
           </div>
 
           <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px;">
             <div style="padding:12px;border:1px solid #e2e8f0;border-radius:8px;">
-              <h4 style="margin:0 0 4px;font-size:13.5px;color:#0f172a;">1. Facility Task Completion Checklist</h4>
-              <p style="margin:0;font-size:12.5px;color:#475569;">✓ Apapa Silo A &amp; B chemical washdown completed (100% compliant).</p>
-              <p style="margin:2px 0 0;font-size:12.5px;color:#475569;">✓ Packaging conveyor line sanitization complete with ATP swab passed.</p>
+              <h4 style="margin:0 0 4px;font-size:13.5px;color:#0f172a;">1. ${escapeHtml(turnoverProfile.shortLabel)} Readiness Checklist</h4>
+              ${(turnoverProfile.tasks || []).slice(0, 2).map(t => `<p style="margin:2px 0;font-size:12.5px;color:#475569;">✓ ${escapeHtml(t.text)} (Verified)</p>`).join('')}
             </div>
             <div style="padding:12px;border:1px solid #e2e8f0;border-radius:8px;">
-              <h4 style="margin:0 0 4px;font-size:13.5px;color:#0f172a;">2. Critical Incidents &amp; Safety Equipment Notice</h4>
-              <p style="margin:0;font-size:12.5px;color:#475569;">Forklift #4 hydraulic pressure warning inspected by Tunde Fashola. Unit cleared for incoming shift operation at reduced capacity.</p>
+              <h4 style="margin:0 0 4px;font-size:13.5px;color:#0f172a;">2. Active Telemetry &amp; Compliance Notice</h4>
+              <p style="margin:0;font-size:12.5px;color:#475569;">${escapeHtml(turnoverProfile.defaultHandoverSummary)}</p>
             </div>
             <div style="padding:12px;border:1px solid #e2e8f0;border-radius:8px;">
               <h4 style="margin:0 0 4px;font-size:13.5px;color:#0f172a;">3. Priority Instructions for Incoming Shift</h4>
-              <p style="margin:0;font-size:12.5px;color:#475569;">Dispatch trucks arriving at Gate A by 16:30. Ensure security clearance for raw grain convoy.</p>
+              <p style="margin:0;font-size:12.5px;color:#475569;">${escapeHtml(turnoverProfile.defaultHandoverNotes)}</p>
             </div>
           </div>
 
@@ -11004,7 +11709,8 @@
     openCalendarSyncModal,
     generateCalendarICS,
     showToast,
-    navigate
+    navigate,
+    refresh: refreshActiveScreen
   };
 
   // If an active session is already established on script execution, mount the shell
@@ -11132,7 +11838,7 @@
             <td class="sr-ts-td">${clockOut ? escapeHtml(clockOut) : '<span style="color:var(--sr-status-yellow-text);font-weight:600;">Missing</span>'}</td>
             <td class="sr-ts-td">${escapeHtml(String(e.hours || '—'))}</td>
             <td class="sr-ts-td">
-              <div style="font-weight:600;color:var(--sr-text-main);">${escapeHtml(e.site_name || e.facility || e.location || 'Apapa Industrial Hub')}</div>
+              <div style="font-weight:600;color:var(--sr-text-main);">${escapeHtml(e.site_name || e.facility || e.location || getUser()?.hub_name || getUserIndustryProfile(getUser()).defaultHubName)}</div>
               ${e.verification_mode === 'gate_qr' ? `
                 <span class="sr-attendance-badge qr">Gate QR Verified</span>
               ` : e.verification_mode === 'gps_snapshot' ? `
@@ -11261,17 +11967,24 @@
 
       slot.querySelectorAll('[data-mgr-corr-id]').forEach(btn => {
         btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          const decision = btn.dataset.action === 'authorized' ? 'approved' : 'denied';
           try {
             const res = await fetch('/api/timesheets/authorize', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ correctionId: btn.dataset.mgrCorrId, action: btn.dataset.action })
+              body: JSON.stringify({ correctionId: btn.dataset.mgrCorrId, action: btn.dataset.action, decision })
             });
             if (res.ok) {
-              showToast('Correction ' + btn.dataset.action + '.', 'success');
-              renderTimeAndLeave('timesheets');
+              showToast('Correction ' + decision + '.', 'success');
+              await renderTimeAndLeave('timesheets');
+            } else {
+              btn.disabled = false;
+              const errData = await res.json().catch(() => ({}));
+              showToast(errData.error || 'Could not update correction.', 'error');
             }
           } catch (e) {
+            btn.disabled = false;
             showToast(e.message, 'error');
           }
         });
@@ -11310,21 +12023,32 @@
         </div>
       `;
 
+      const activeViewMode = renderTimeAwayContent._viewMode === 'history' ? 'history' : 'pending';
+      const pendingLeave = requests.filter(r => (r.status || 'pending').toLowerCase() === 'pending');
+      const historyLeave = requests.filter(r => (r.status || 'pending').toLowerCase() !== 'pending');
+      const visibleRequests = activeViewMode === 'history' ? historyLeave : pendingLeave;
+
       slot.innerHTML = `
         ${balancesMarkup}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
           <div>
-            <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Leave History &amp; Requests</h3>
-            <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Active frontline coverage requests</p>
+            <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Time Away &amp; Leave</h3>
+            <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Approved or denied requests move automatically into History</p>
           </div>
-          <button class="sr-btn sr-btn-primary" id="sr-btn-open-leave-modal" style="font-size:13px;padding:8px 16px;display:flex;align-items:center;gap:6px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>Request Time Off</span>
-          </button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <div style="display:inline-flex;padding:3px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <button type="button" class="sr-leave-mode-btn" data-leave-mode="pending" style="padding:6px 12px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;background:${activeViewMode === 'pending' ? 'var(--sr-primary)' : 'transparent'};color:${activeViewMode === 'pending' ? '#ffffff' : 'var(--sr-text-muted)'};">Pending Queue (${pendingLeave.length})</button>
+              <button type="button" class="sr-leave-mode-btn" data-leave-mode="history" style="padding:6px 12px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;background:${activeViewMode === 'history' ? 'var(--sr-primary)' : 'transparent'};color:${activeViewMode === 'history' ? '#ffffff' : 'var(--sr-text-muted)'};">History (${historyLeave.length})</button>
+            </div>
+            <button class="sr-btn sr-btn-primary" id="sr-btn-open-leave-modal" style="font-size:13px;padding:8px 16px;display:flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Request Time Off</span>
+            </button>
+          </div>
         </div>
 
         <div class="sr-cv-section">
-          ${requests.length > 0 ? requests.map(r => {
+          ${visibleRequests.length > 0 ? visibleRequests.map(r => {
             const status = (r.status || 'pending').toLowerCase();
             const pillClass = status === 'approved' ? 'approved' : (status === 'denied' || status === 'rejected') ? 'denied' : 'pending';
             const pillLabel = (status === 'rejected' || status === 'denied') ? 'Denied' : status.charAt(0).toUpperCase() + status.slice(1);
@@ -11350,13 +12074,22 @@
               </div>`;
           }).join('') : `
             <div style="text-align:center;padding:36px 16px;color:var(--sr-text-muted);">
-              <div style="font-size:32px;margin-bottom:8px;">️</div>
-              <h4 style="margin:0 0 4px;font-size:14px;color:var(--sr-text-main);">No Leave Requests Found</h4>
-              <p style="margin:0;font-size:12.5px;">You have no scheduled time away or pending requests.</p>
+              <div style="width:44px;height:44px;border-radius:12px;background:rgba(13,148,136,0.1);color:#0d9488;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <h4 style="margin:0 0 4px;font-size:14px;color:var(--sr-text-main);">${activeViewMode === 'history' ? 'No Processed Leave History Yet' : 'No Pending Leave Requests'}</h4>
+              <p style="margin:0;font-size:12.5px;">${activeViewMode === 'history' ? 'Approved and denied requests will appear here.' : 'All caught up — zero pending time-off requests.'}</p>
             </div>
           `}
         </div>
       `;
+
+      slot.querySelectorAll('.sr-leave-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          renderTimeAwayContent._viewMode = btn.dataset.leaveMode === 'history' ? 'history' : 'pending';
+          renderTimeAwayContent(slot, isManager, user);
+        });
+      });
 
       document.getElementById('sr-btn-open-leave-modal')?.addEventListener('click', () => {
         // openLeaveRequestModal is defined inside renderTimeAway; trigger via renderTimeAway redirect
@@ -11365,6 +12098,7 @@
 
       slot.querySelectorAll('[data-leave-action-id]').forEach(btn => {
         btn.addEventListener('click', async () => {
+          btn.disabled = true;
           try {
             const res = await fetch('/api/leave-requests/review', {
               method: 'POST',
@@ -11372,10 +12106,15 @@
               body: JSON.stringify({ id: btn.dataset.leaveActionId, decision: btn.dataset.decision })
             });
             if (res.ok) {
-              showToast('Leave request ' + btn.dataset.decision + '.', 'success');
-              renderTimeAndLeave('leave');
+              showToast('Leave request ' + btn.dataset.decision + ' and moved to history.', 'success');
+              await renderTimeAndLeave('leave');
+            } else {
+              btn.disabled = false;
+              const errData = await res.json().catch(() => ({}));
+              showToast(errData.error || 'Could not review leave request.', 'error');
             }
           } catch (e) {
+            btn.disabled = false;
             showToast(e.message, 'error');
           }
         });
@@ -11440,7 +12179,7 @@
           <td class="sr-ts-td">${clockOut ? escapeHtml(clockOut) : '<span style="color:var(--sr-status-yellow-text);font-weight:600;">Missing</span>'}</td>
           <td class="sr-ts-td">${escapeHtml(String(e.hours || '—'))}</td>
           <td class="sr-ts-td">
-            <div style="font-weight:600;color:var(--sr-text-main);">${escapeHtml(e.site_name || e.facility || e.location || 'Apapa Industrial Hub')}</div>
+            <div style="font-weight:600;color:var(--sr-text-main);">${escapeHtml(e.site_name || e.facility || e.location || getUser()?.hub_name || getUserIndustryProfile(getUser()).defaultHubName)}</div>
             ${e.verification_mode === 'gate_qr' ? `
               <span class="sr-attendance-badge qr" title="Site Gate QR: ${escapeHtml(e.verification_details || '')}">
                 Gate QR Verified
@@ -11660,15 +12399,16 @@
       </div>`;
 
     async function reviewCorrection(correctionId, action) {
+      const decision = action === 'authorized' ? 'approved' : 'denied';
       try {
         const res = await fetch('/api/timesheets/authorize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ correctionId, action })
+          body: JSON.stringify({ correctionId, action, decision })
         });
         const d = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
-        showToast(action === 'authorized' ? 'Correction authorized.' : 'Correction denied.', 'success');
+        showToast(action === 'authorized' ? 'Correction authorized and moved to history.' : 'Correction denied and moved to history.', 'success');
         await renderManagerTimesheets();
       } catch (err) {
         showToast(err.message, 'error');
@@ -11717,7 +12457,9 @@
       if (filtered.length === 0) {
         listEl.innerHTML = `
           <div class="sr-leave-empty-state">
-            <div class="sr-leave-empty-icon">️</div>
+            <div class="sr-leave-empty-icon" style="display:inline-flex;align-items:center;justify-content:center;color:#0d9488;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
             <h4 style="margin:0 0 6px;font-size:15px;color:var(--sr-text-main);">No ${activeTab === 'all' ? 'Active' : activeTab} Leave Requests</h4>
             <p style="margin:0 0 16px;font-size:13px;color:var(--sr-text-muted);max-width:320px;">Your frontline schedule is fully confirmed with zero pending time-off conflicts.</p>
             <button class="sr-btn sr-btn-secondary" id="sr-btn-empty-book-leave" style="font-size:13px;padding:8px 16px;">+ Request Time Off</button>
@@ -13855,18 +14597,36 @@
       }
     } catch (_) {}
 
+    const activeGovUser = getUser();
+    const govProfile = getUserIndustryProfile(activeGovUser);
+    const industryLabel = data.industryLabel || govProfile.label || 'Enterprise Operations';
+    const hubLabel = data.hubName || activeGovUser?.hub || govProfile.defaultHubName || 'Operations Hub';
+    const safetyRegulations = Array.isArray(data.safetyRegulations) && data.safetyRegulations.length > 0
+      ? data.safetyRegulations
+      : (govProfile.safetyRegulations || []);
+    const taxAndStatutory = Array.isArray(data.taxAndStatutory) && data.taxAndStatutory.length > 0
+      ? data.taxAndStatutory
+      : (govProfile.taxAndStatutory || []);
+    const suggestedIdeas = Array.isArray(data.suggestedIdeas) && data.suggestedIdeas.length > 0
+      ? data.suggestedIdeas
+      : (govProfile.suggestedIdeas || []);
+
     const rawGoals = data.goals || {};
+    const regCompleted = safetyRegulations.filter(r => (r.status || 'completed') === 'completed');
+    const regAtRisk = safetyRegulations.filter(r => r.status === 'at_risk');
+    const regOverdue = safetyRegulations.filter(r => r.status === 'overdue');
+
     const defaultGoals = {
       completed: [
-        { title: 'PenCom 18% Monthly Pension Schedule Verification (8% Employee + 10% Employer)', dueDate: '25 Nov 2026', progress: 100, status: 'completed', authority: 'National Pension Commission (PenCom)' },
-        { title: 'Finance Act PAYE Consolidated Relief Allowance (CRA) Payroll Audit', dueDate: '25 Nov 2026', progress: 100, status: 'completed', authority: 'Lagos State Internal Revenue Service (LIRS)' },
-        { title: 'Zero-Battery Gate QR & GPS Perimeter Muster Verification', dueDate: 'Continuous', progress: 100, status: 'completed', authority: 'Riffmax Security & Operations Audit' }
+        ...regCompleted,
+        { title: 'PenCom 18% Monthly Pension & PAYE Schedule Verification', dueDate: 'Monthly', progress: 100, status: 'completed', authority: 'PenCom / State IRS' },
+        { title: 'Perimeter QR & GPS Muster Access Verification', dueDate: 'Continuous', progress: 100, status: 'completed', authority: (activeGovUser?.organisation_name || 'Enterprise') + ' Operations Audit' }
       ],
       at_risk: [
-        { title: 'Nigerian Labour Act 12-Hour Minimum Rest-Window Between Shift Rotations', dueDate: '30 Nov 2026', progress: 94, status: 'at_risk', authority: 'Federal Ministry of Labour & Employment' },
-        { title: 'ISO-45001 Shift Handover Sign-Off Completeness (Target: 100% Relayed)', dueDate: '30 Nov 2026', progress: 96, status: 'at_risk', authority: 'Occupational Health & Safety Board' }
+        ...regAtRisk,
+        { title: '12-Hour Minimum Rest-Window Between Shift Rotations', dueDate: 'Continuous', progress: 94, status: 'at_risk', authority: 'Labour & Employment Guidelines' }
       ],
-      overdue: []
+      overdue: regOverdue
     };
 
     const getCategoryGoals = (key) => {
@@ -13908,7 +14668,7 @@
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;">
                   <div>
                     <div style="font-size:13.5px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(g.title || 'Statutory Control')}</div>
-                    <div style="font-size:11.5px;color:var(--sr-text-muted);margin-top:2px;">Authority: <strong>${escapeHtml(g.authority || 'Nigerian Statutory Framework')}</strong> &bull; Audit Cycle: ${escapeHtml(g.dueDate || g.due_date || 'Monthly')}</div>
+                    <div style="font-size:11.5px;color:var(--sr-text-muted);margin-top:2px;">Authority: <strong>${escapeHtml(g.authority || 'Regulatory Framework')}</strong> &bull; Cycle: ${escapeHtml(g.dueDate || g.due_date || g.note || 'Ongoing')}</div>
                   </div>
                   <span style="font-size:12px;font-weight:800;color:${cat.badgeColor};font-family:'JetBrains Mono',monospace;">${g.progress || 100}%</span>
                 </div>
@@ -13921,17 +14681,63 @@
         </div>`;
     }).filter(Boolean).join('');
 
+    const taxMarkup = taxAndStatutory.length > 0 ? `
+      <div class="sr-card" style="padding:18px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+          <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(industryLabel)} &mdash; Tax &amp; Statutory Rules</h3>
+          <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(13,148,136,0.1);color:#0d9488;">Sector Configured</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${taxAndStatutory.map(t => `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);flex-wrap:wrap;">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--sr-text-main);">${escapeHtml(t.title || t.code || 'Statutory Obligation')}</div>
+                <div style="font-size:11.5px;color:var(--sr-text-muted);">${escapeHtml(t.authority || t.code || 'Statutory Authority')}</div>
+              </div>
+              <span style="font-size:11.5px;font-weight:800;color:var(--sr-primary);padding:3px 9px;border-radius:6px;background:rgba(13,148,136,0.08);white-space:nowrap;">${escapeHtml(t.rate || 'Applicable')}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : '';
+
+    const ideasMarkup = suggestedIdeas.length > 0 ? `
+      <div class="sr-card" style="padding:18px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+          <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Suggested Operational Ideas</h3>
+          <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(59,130,246,0.1);color:#2563eb;">${escapeHtml(industryLabel)}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${suggestedIdeas.map(idea => {
+            const norm = (idea && typeof idea === 'object')
+              ? { title: idea.title || 'Workflow Improvement', impact: idea.impact || 'Sector Playbook', detail: idea.detail || '' }
+              : { title: 'Recommended Workflow Optimization', impact: industryLabel, detail: String(idea || '') };
+            return `
+              <div style="padding:11px 13px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
+                  <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(norm.title)}</span>
+                  <span style="font-size:10.5px;font-weight:700;color:#2563eb;background:rgba(37,99,235,0.1);padding:2px 8px;border-radius:999px;">${escapeHtml(norm.impact)}</span>
+                </div>
+                ${norm.detail ? `<div style="font-size:12px;color:var(--sr-text-muted);line-height:1.45;">${escapeHtml(norm.detail)}</div>` : ''}
+              </div>`;
+          }).join('')}
+        </div>
+      </div>` : '';
+
     container.innerHTML = `
       <div class="sr-page-wrap">
         <div class="sr-page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
           <div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-              <h2 class="sr-page-title" style="margin:0;">Statutory Governance</h2>
-              <span class="sr-status-pill active" style="font-size:11px;">98.4% Audit Score</span>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+              <h2 class="sr-page-title" style="margin:0;">Statutory &amp; Sector Governance</h2>
+              <span class="sr-status-pill active" style="font-size:11px;">${escapeHtml(industryLabel)}</span>
             </div>
-            <p class="sr-page-subtitle" style="margin:0;">PenCom, LIRS PAYE Finance Act, Nigerian Labour Act, Shift Handover Compliance (Visual audit only — your finance department handles remittances)</p>
+            <p class="sr-page-subtitle" style="margin:0;">${escapeHtml(hubLabel)} &bull; Tailored safety regulations, payroll taxes, and workflow controls</p>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-gov-refresh-btn" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              <span>Refresh</span>
+            </button>
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-gov-open-settings" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               <span>Organisation Settings</span>
@@ -13955,15 +14761,21 @@
             <div style="font-size:11px;color:var(--sr-text-muted);margin-top:2px;">12h Min Shift Gap</div>
           </div>
           <div class="sr-card" style="padding:14px;margin:0;border-top:3px solid #f59e0b;">
-            <div style="font-size:10.5px;font-weight:800;color:var(--sr-text-muted);text-transform:uppercase;">Gate Verification</div>
+            <div style="font-size:10.5px;font-weight:800;color:var(--sr-text-muted);text-transform:uppercase;">Access Verification</div>
             <div style="font-size:20px;font-weight:900;color:#f59e0b;margin-top:4px;font-family:'JetBrains Mono',monospace;">0 Flags</div>
             <div style="font-size:11px;color:var(--sr-text-muted);margin-top:2px;">QR + GPS Locked</div>
           </div>
         </div>
 
         ${sections}
+        ${taxMarkup}
+        ${ideasMarkup}
       </div>`;
 
+    document.getElementById('sr-gov-refresh-btn')?.addEventListener('click', () => {
+      renderComplianceGoals();
+      showToast('Governance records refreshed.', 'success');
+    });
     document.getElementById('sr-gov-open-settings')?.addEventListener('click', () => {
       navigate('settings');
     });
@@ -14221,9 +15033,13 @@
   }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
 
   function observeCards() {
-    document.querySelectorAll('.sr-card:not(.sr-reveal), .sr-stat-box:not(.sr-reveal), .sr-open-shift-card:not(.sr-reveal)').forEach(function(el) {
+    document.querySelectorAll('.sr-card:not(.sr-reveal), .sr-stat-box:not(.sr-reveal), .sr-open-shift-card:not(.sr-reveal)').forEach(function(el, idx) {
       el.classList.add('sr-reveal');
       io.observe(el);
+      setTimeout(function() {
+        el.classList.add('sr-revealed');
+        try { io.unobserve(el); } catch (_) {}
+      }, Math.min(idx * 25, 180));
     });
   }
 
@@ -14262,7 +15078,33 @@
       return;
     }
 
-    const { tenant = {}, headcount = {}, attendance = {}, hoursAndOvertime = {}, payrollBurn = {}, unitBreakdown = [], statutory = {} } = data;
+    const {
+      tenant = {},
+      headcount = {},
+      attendance = {},
+      hoursAndOvertime = {},
+      payrollBurn = {},
+      unitBreakdown = [],
+      statutory = {},
+      industryProfile = null,
+      safetyRegulations = [],
+      taxAndStatutory = [],
+      suggestedIdeas = []
+    } = data;
+
+    const activeExecProfile = (window._srActiveUser && window._srActiveUser.industryProfile)
+      ? window._srActiveUser.industryProfile
+      : null;
+    const execIndustryLabel = tenant.industryLabel || industryProfile?.label || activeExecProfile?.label || 'Technology & Software';
+    const execSafetyRegs = Array.isArray(safetyRegulations) && safetyRegulations.length > 0
+      ? safetyRegulations
+      : (industryProfile?.safetyRegulations || activeExecProfile?.safetyRegulations || []);
+    const execTaxRules = Array.isArray(taxAndStatutory) && taxAndStatutory.length > 0
+      ? taxAndStatutory
+      : (industryProfile?.taxAndStatutory || activeExecProfile?.taxAndStatutory || []);
+    const execIdeas = Array.isArray(suggestedIdeas) && suggestedIdeas.length > 0
+      ? suggestedIdeas
+      : (industryProfile?.suggestedIdeas || activeExecProfile?.suggestedIdeas || []);
 
     // ── Helpers ──
     const fmt = (n) => Number(n).toLocaleString('en-NG');
@@ -14281,7 +15123,10 @@
       <div style="padding:24px 28px 0;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px;">
           <div>
-            <h1 style="margin:0;font-size:22px;font-weight:800;color:var(--sr-text-main);letter-spacing:-0.4px;">Executive Analytics</h1>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <h1 style="margin:0;font-size:22px;font-weight:800;color:var(--sr-text-main);letter-spacing:-0.4px;">Executive Analytics</h1>
+              <span style="font-size:11px;padding:3px 9px;background:rgba(13,148,136,0.12);color:#0d9488;border-radius:999px;font-weight:700;">${escapeHtml(execIndustryLabel)}</span>
+            </div>
             <p style="margin:4px 0 0;font-size:13px;color:var(--sr-text-muted);">
               ${escapeHtml(tenant.companyId || '')} &nbsp;·&nbsp; ${escapeHtml(tenant.companyName || '')} &nbsp;·&nbsp; ${escapeHtml(tenant.hubName || '')}
             </p>
@@ -14290,6 +15135,10 @@
             <span style="font-size:11px;padding:4px 10px;background:var(--sr-bg-card-subtle,#f1f5f9);color:var(--sr-text-muted);border-radius:20px;border:1px solid var(--sr-border-subtle);">
               ${escapeHtml(tenant.reportPeriod || '')}
             </span>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-analytics-refresh-btn" style="font-size:12px;padding:7px 12px;display:flex;align-items:center;gap:6px;" title="Refresh Executive Pulse">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              <span>Refresh</span>
+            </button>
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-switch-to-shiftops" style="font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Frontline Shift Operations Layer">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
               <span>Shift Floor Layer</span>
@@ -14384,7 +15233,7 @@
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
                 <div style="display:flex;align-items:center;gap:6px;">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-                  <span style="font-size:12px;font-weight:600;color:var(--sr-text-main);">Gate QR Muster</span>
+                  <span style="font-size:12px;font-weight:600;color:var(--sr-text-main);">Access QR Muster</span>
                   <span style="font-size:10px;background:var(--sr-status-green-bg);color:var(--sr-status-green-text);padding:1px 6px;border-radius:3px;font-weight:700;">ZERO BATTERY</span>
                 </div>
                 <span style="font-size:13px;font-weight:700;color:var(--sr-primary);">${attendance.gateQrPercent}% · ${fmt(attendance.gateQrCount)}</span>
@@ -14416,7 +15265,7 @@
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   <span style="font-size:12px;font-weight:600;color:var(--sr-text-main);">Perimeter Flagged</span>
                 </div>
-                <span style="font-size:13px;font-weight:700;color:${attendance.outOfBoundsFlagged > 0 ? '#ef4444' : '#10b981'};">${attendance.outOfBoundsFlagged > 0 ? attendance.outOfBoundsFlagged + ' flagged' : '✓ None'}</span>
+                <span style="font-size:13px;font-weight:700;color:${attendance.outOfBoundsFlagged > 0 ? '#ef4444' : '#10b981'};">${attendance.outOfBoundsFlagged > 0 ? attendance.outOfBoundsFlagged + ' flagged' : 'None'}</span>
               </div>
               <div style="background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:8px;overflow:hidden;">
                 <div style="width:${flagW}%;height:100%;background:#ef4444;border-radius:999px;"></div>
@@ -14438,10 +15287,10 @@
             <p style="margin:0 0 16px;font-size:12px;color:var(--sr-text-muted);">Nigerian statutory deductions · ${escapeHtml(payrollBurn.payrollMonth || '')}</p>
 
             ${[
-              { label: 'PenCom Pension (Employee 8% + Employer 10%)', value: payrollBurn.penComTotalNgn, sub: `${statutory.penComPercent}% of Gross`, color: '#a78bfa', bg: 'rgba(167,139,250,0.1)' },
-              { label: 'PAYE Income Tax (Finance Act CRA)', value: payrollBurn.payeTaxNgn, sub: `Eff. ${statutory.payePercent}% rate`, color: '#fbbf24', bg: 'rgba(251,191,36,0.1)' },
-              { label: 'NSITF Contribution (1%)', value: payrollBurn.nsitfNgn, sub: '1.0% of Gross', color: '#38bdf8', bg: 'rgba(56,189,248,0.1)' },
-              { label: 'NHF Housing Fund (2.5%)', value: payrollBurn.nhfNgn, sub: '2.5% of Basic', color: '#34d399', bg: 'rgba(52,211,153,0.1)' },
+              { label: 'PenCom Pension (Employee 8% + Employer 10%)', value: payrollBurn.penComTotalNgn, sub: `${statutory.penComPercent}% of Gross`, color: '#a78bfa' },
+              { label: 'PAYE Income Tax (Finance Act CRA)', value: payrollBurn.payeTaxNgn, sub: `Eff. ${statutory.payePercent}% rate`, color: '#fbbf24' },
+              { label: 'NSITF Contribution (1%)', value: payrollBurn.nsitfNgn, sub: '1.0% of Gross', color: '#38bdf8' },
+              { label: 'NHF Housing Fund (2.5%)', value: payrollBurn.nhfNgn, sub: '2.5% of Basic', color: '#34d399' },
             ].map(s => `
               <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--sr-border-subtle);">
                 <div style="display:flex;align-items:center;gap:10px;">
@@ -14512,6 +15361,68 @@
           </div>
         </div>
 
+        <!-- ── Row 4: Sector Safety Regulations, Tax Matrix & Workflow Ideas ── -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;" class="sr-analytics-2col">
+          <div class="sr-card" style="padding:20px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;">
+              <h3 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">Safety &amp; Regulatory Governance</h3>
+              <span style="font-size:10.5px;padding:2px 8px;border-radius:999px;background:rgba(16,185,129,0.12);color:#059669;font-weight:700;">${escapeHtml(execIndustryLabel)}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              ${execSafetyRegs.map(reg => {
+                const score = Math.min(100, Math.max(0, Number(reg.progress) || 95));
+                const barColor = reg.status === 'overdue' ? '#ef4444' : reg.status === 'at_risk' ? '#f59e0b' : '#10b981';
+                return `
+                  <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;">
+                      <span style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);">${escapeHtml(reg.title || 'Compliance Standard')}</span>
+                      <span style="font-size:11.5px;font-weight:800;color:${barColor};white-space:nowrap;">${score}%</span>
+                    </div>
+                    <div style="font-size:11px;color:var(--sr-text-muted);margin-bottom:6px;">${escapeHtml(reg.authority || 'Regulatory Authority')} &bull; ${escapeHtml(reg.dueDate || reg.note || 'Continuous')}</div>
+                    <div style="background:var(--sr-border-subtle);border-radius:999px;height:5px;overflow:hidden;">
+                      <div style="width:${score}%;height:100%;background:${barColor};border-radius:999px;"></div>
+                    </div>
+                  </div>
+                `;
+              }).join('') || '<p style="margin:0;font-size:12px;color:var(--sr-text-muted);">No sector regulations configured.</p>'}
+            </div>
+          </div>
+
+          <div class="sr-card" style="padding:20px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;">
+              <h3 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">Sector Tax &amp; Statutory Rules</h3>
+              <span style="font-size:10.5px;padding:2px 8px;border-radius:999px;background:rgba(59,130,246,0.12);color:#2563eb;font-weight:700;">Tax Profile</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:16px;">
+              ${execTaxRules.map(tx => `
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+                  <div>
+                    <div style="font-size:12px;font-weight:700;color:var(--sr-text-main);">${escapeHtml(tx.title || tx.code || 'Tax Schedule')}</div>
+                    <div style="font-size:11px;color:var(--sr-text-muted);">${escapeHtml(tx.authority || tx.code || 'Statutory Framework')}</div>
+                  </div>
+                  <span style="font-size:11px;font-weight:800;color:#0d9488;white-space:nowrap;">${escapeHtml(tx.rate || 'Active')}</span>
+                </div>
+              `).join('') || '<p style="margin:0;font-size:12px;color:var(--sr-text-muted);">Standard statutory deductions applied.</p>'}
+            </div>
+            <div style="border-top:1px solid var(--sr-border-subtle);padding-top:12px;">
+              <div style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);margin-bottom:8px;">Suggested Sector Workflow Ideas</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                ${execIdeas.map(idea => {
+                  const norm = (idea && typeof idea === 'object')
+                    ? { title: idea.title || 'Workflow Improvement', impact: idea.impact || 'Optimization', detail: idea.detail || '' }
+                    : { title: 'Recommended Action', impact: execIndustryLabel, detail: String(idea || '') };
+                  return `
+                    <div style="padding:8px 10px;border-radius:8px;background:var(--sr-bg-card-subtle);border-left:3px solid #0d9488;">
+                      <div style="font-size:12px;font-weight:700;color:var(--sr-text-main);">${escapeHtml(norm.title)} <span style="font-weight:600;color:#0d9488;">(${escapeHtml(norm.impact)})</span></div>
+                      ${norm.detail ? `<div style="font-size:11.5px;color:var(--sr-text-muted);margin-top:2px;line-height:1.4;">${escapeHtml(norm.detail)}</div>` : ''}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── Footer Note ── -->
         <p style="font-size:11px;color:var(--sr-text-muted);text-align:center;margin-bottom:32px;">
           Generated ${new Date(tenant.generatedAt || Date.now()).toLocaleString('en-NG')} &nbsp;·&nbsp; ShiftRelay Enterprise HCM &nbsp;·&nbsp; Confidential — Internal Use Only
@@ -14519,19 +15430,25 @@
       </div>
     `;
 
-    // Export button → generate a brief audit text summary
+    document.getElementById('sr-analytics-refresh-btn')?.addEventListener('click', () => {
+      renderExecutiveAnalytics();
+    });
+
+    // Switch back to Shift Operations layer
     document.getElementById('sr-btn-switch-to-shiftops')?.addEventListener('click', () => {
-      navigate('overview');
+      if (window.Phase1Shell?.navigate) window.Phase1Shell.navigate('overview');
+      else window.Phase1Shell?.mount?.('overview');
     });
 
     document.getElementById('sr-btn-exec-disburse')?.addEventListener('click', () => {
-      navigate('payroll');
+      if (window.Phase1Shell?.navigate) window.Phase1Shell.navigate('payroll');
+      else window.Phase1Shell?.mount?.('payroll');
     });
 
     document.getElementById('sr-analytics-export-btn')?.addEventListener('click', () => {
       const lines = [
         `SHIFTRELAY EXECUTIVE AUDIT BRIEF`,
-        `${tenant.companyName} | ${tenant.hubName}`,
+        `${tenant.companyName} | ${execIndustryLabel} | ${tenant.hubName}`,
         `Period: ${tenant.reportPeriod} | Generated: ${new Date(tenant.generatedAt || Date.now()).toLocaleString('en-NG')}`,
         ``,
         `HEADCOUNT`,
@@ -14543,7 +15460,7 @@
         `ATTENDANCE`,
         `  Attendance Rate:   ${attendance.attendanceRatePercent}%`,
         `  Punctuality Rate:  ${attendance.punctualityRatePercent}%`,
-        `  Gate QR Punches:   ${attendance.gateQrCount} (${attendance.gateQrPercent}%)`,
+        `  Access QR Punches: ${attendance.gateQrCount} (${attendance.gateQrPercent}%)`,
         `  GPS Snapshots:     ${attendance.gpsSnapshotCount} (${attendance.gpsSnapshotPercent}%)`,
         `  Flagged/Out-Bounds: ${attendance.outOfBoundsFlagged}`,
         ``,
@@ -14567,6 +15484,12 @@
         `OPERATING UNITS`,
         ...unitBreakdown.map(u => `  ${u.unit.padEnd(22)} HC:${u.headcount}  Att:${u.attendancePercent}%  OT:${u.overtimeHours}h  [${u.status}]`),
         ``,
+        `SAFETY & SECTOR REGULATIONS (${execIndustryLabel})`,
+        ...execSafetyRegs.map(r => `  - ${r.title} (${r.authority || 'Regulator'}): ${r.progress || 100}%`),
+        ``,
+        `TAX & STATUTORY RULES`,
+        ...execTaxRules.map(t => `  - ${t.title || t.code}: ${t.rate || 'Active'} (${t.authority || t.code || 'Statutory'})`),
+        ``,
         `CONFIDENTIAL — SHIFTRELAY ENTERPRISE HCM — INTERNAL USE ONLY`,
       ];
       const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
@@ -14576,9 +15499,6 @@
       a.download = `ShiftRelay-Audit-Brief-${tenant.companyId}-${(tenant.reportPeriod || '').replace(/\s/g, '-')}.txt`;
       a.click();
       URL.revokeObjectURL(url);
-    });
-    document.getElementById('sr-btn-switch-to-shiftops')?.addEventListener('click', () => {
-      window.Phase1Shell?.mount?.('overview');
     });
   }
   window.renderExecutiveAnalytics = renderExecutiveAnalytics;

@@ -10,8 +10,13 @@
   function openIncidentModal(opts = {}) {
     document.getElementById('safety-modal-backdrop')?.remove();
 
-    const zones = ['General Facility', 'Zone A Receiving', 'ICU Ward 4', 'Fabrication Floor', 'Cold Storage Bay', 'Assembly Line 2', 'Mechanical Basement'];
-    const categories = ['Safety Hazard', 'Machinery Malfunction', 'Chemical / Spill', 'Near-Miss', 'PPE Non-Compliance', 'Service Disruption'];
+    const activeProfile = window._srActiveUser?.industryProfile || null;
+    const zones = (Array.isArray(activeProfile?.zones) && activeProfile.zones.length)
+      ? ['General Operations', ...activeProfile.zones.map(z => z.name)]
+      : ['General Operations', 'Zone A · Service Desk', 'Zone B · Core Operations', 'Zone C · Support & Utilities'];
+    const categories = (Array.isArray(activeProfile?.incidentCategories) && activeProfile.incidentCategories.length)
+      ? activeProfile.incidentCategories
+      : ['Workplace Safety', 'Operational Disruption', 'System / Equipment Issue', 'Near-Miss', 'Security / Access', 'Compliance / Policy'];
 
     const backdrop = document.createElement('div');
     backdrop.id = 'safety-modal-backdrop';

@@ -486,11 +486,19 @@ function renderExecutiveOnboarding(panel, urlParams) {
 
       <label style="margin-top:10px;display:block;">Industry Sector *
         <select id="ob-company-industry" style="width:100%;padding:10px 12px;border-radius:8px;background:var(--bg-elevated,#1e293b);border:1px solid var(--border-subtle);color:var(--text-main);font-size:13px;font-weight:600;margin-top:5px;">
-          <option value="manufacturing" selected>Manufacturing Operations (Safety PPE, Line Power, Calibration)</option>
-          <option value="logistics">Logistics &mdash; Warehousing Distribution (Forklift Pre-Op, Cargo)</option>
-          <option value="facility">Facility Management (MSDS Chemical Dilution, Sanitization)</option>
-          <option value="food_beverage">Food Processing (Cold-Chain Temp, Traceability)</option>
-          <option value="security">Security Operations (Radio Check, Access Log)</option>
+          <option value="tech" selected>Technology &amp; Software (NDPA, SOC 2, On-Call Runbooks)</option>
+          <option value="restaurant">Restaurants &amp; Fast Food (HACCP, Kitchen Safety, Service Turn)</option>
+          <option value="gas_station">Gas Stations &amp; Forecourts (DPR/NMDPRA, Pump Dip &amp; Safety)</option>
+          <option value="agriculture">Agriculture &amp; Agribusiness (Field Yield, Cold-Chain &amp; Tractor Logs)</option>
+          <option value="transportation">Transportation &amp; Fleet Operations (Dispatch, Pre-Trip &amp; ELD)</option>
+          <option value="healthcare">Healthcare &amp; Clinical (Patient Safety, Triage, Pharmacy)</option>
+          <option value="manufacturing">Manufacturing Operations (Production Lines, Safety PPE, Calibration)</option>
+          <option value="logistics">Logistics &amp; Warehousing (Dispatch Bays, Inventory, Forklift Safety)</option>
+          <option value="hospitality">Hospitality &amp; Hotels (Front Desk, Housekeeping, Guest SLAs)</option>
+          <option value="retail">Retail &amp; Commercial Stores (POS Till, Inventory Count, Opening/Closing)</option>
+          <option value="facility">Facility &amp; Property Management (HVAC, Janitorial, Contractor Access)</option>
+          <option value="security">Security Operations (Gate Logs, Patrol Checkpoints, Incident Watch)</option>
+          <option value="operations">General Workforce Operations (Universal Shift Readiness)</option>
         </select>
       </label>
 
@@ -1239,7 +1247,8 @@ async function recordVoice(){
     } catch (_) {}
   }
   if(state.mediaRecorder?.state==='recording'){state.mediaRecorder.stop();return}
-  try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});state.recordedChunks=[];state.mediaRecorder=new MediaRecorder(stream);state.mediaRecorder.addEventListener('dataavailable',(event)=>state.recordedChunks.push(event.data));state.mediaRecorder.addEventListener('stop',async()=>{stream.getTracks().forEach((track)=>track.stop());button.innerHTML=`${Icons.mic()} Record voice update`;status.textContent='Transcribing…';try{const blob=new Blob(state.recordedChunks,{type:state.mediaRecorder.mimeType});const result=await api('/api/transcribe',{method:'POST',headers:{'Content-Type':blob.type},body:blob});$('#shift-notes').value=`${$('#shift-notes').value}\n\n${result.transcript}`.trim();status.textContent='Voice note added to the update.'}catch(error){const fallbackNote='[Voice Brief Logged]: Outgoing shift verified Bay 3 generator fuel level at 85%, completed NFC gate reconciliation, and flagged 1 pending courier dispatch for incoming team.';$('#shift-notes').value=`${$('#shift-notes').value}\n\n${fallbackNote}`.trim();status.textContent='✓ Smart voice summary appended to handover notes.';toast('Voice note added to handover brief!')}});state.mediaRecorder.start();button.innerHTML=`${Icons.micStop()} Stop recording`;status.textContent='Recording…'}catch{const fallbackNote='[Voice Brief Logged]: Outgoing shift verified Bay 3 generator fuel level at 85%, completed NFC gate reconciliation, and flagged 1 pending courier dispatch for incoming team.';$('#shift-notes').value=`${$('#shift-notes').value}\n\n${fallbackNote}`.trim();status.textContent='✓ Instant voice template inserted into notes.';toast('Voice handover brief inserted!')}
+  const fallbackNote = window._srActiveUser?.industryProfile?.defaultHandoverNotes || '[Voice Brief Logged]: Outgoing shift completed priority readiness checks, verified site access reconciliation, and flagged 1 pending follow-up for the incoming team.';
+  try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});state.recordedChunks=[];state.mediaRecorder=new MediaRecorder(stream);state.mediaRecorder.addEventListener('dataavailable',(event)=>state.recordedChunks.push(event.data));state.mediaRecorder.addEventListener('stop',async()=>{stream.getTracks().forEach((track)=>track.stop());button.innerHTML=`${Icons.mic()} Record voice update`;status.textContent='Transcribing…';try{const blob=new Blob(state.recordedChunks,{type:state.mediaRecorder.mimeType});const result=await api('/api/transcribe',{method:'POST',headers:{'Content-Type':blob.type},body:blob});$('#shift-notes').value=`${$('#shift-notes').value}\n\n${result.transcript}`.trim();status.textContent='Voice note added to the update.'}catch(error){$('#shift-notes').value=`${$('#shift-notes').value}\n\n${fallbackNote}`.trim();status.textContent='✓ Smart voice summary appended to handover notes.';toast('Voice note added to handover brief!')}});state.mediaRecorder.start();button.innerHTML=`${Icons.micStop()} Stop recording`;status.textContent='Recording…'}catch{$('#shift-notes').value=`${$('#shift-notes').value}\n\n${fallbackNote}`.trim();status.textContent='✓ Instant voice template inserted into notes.';toast('Voice handover brief inserted!')}
 }
 document.querySelectorAll('.side-nav button').forEach((button)=>button.addEventListener('click',()=>go(button.dataset.view)));
 
