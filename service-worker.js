@@ -1,8 +1,8 @@
-const CACHE = 'shiftrelay-v152-live';
+const CACHE = 'shiftrelay-v153-live';
 const CORE_SHELL_ASSETS = [
   '/',
   '/index.html',
-  '/icon.svg?v=152'
+  '/icon.svg?v=153'
 ];
 
 self.addEventListener('install', (event) => {

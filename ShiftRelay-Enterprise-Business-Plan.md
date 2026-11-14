@@ -5,7 +5,7 @@
 ---
 
 > **Document Classification:** Confidential — For Investor, Board & Strategic Partner Review  
-> **Version:** 3.0 (Gate-Eradication & Production Architecture Upgrade) | **Date:** November 2026  
+> **Version:** 4.0 (Assisted Clock-In Gate Scanner, Mandatory Live Facial Capture & Production Upgrade) | **Date:** November 2026  
 > **Jurisdiction:** Federal Republic of Nigeria | **Primary Currency:** Nigerian Naira (₦) / USD ($) Reference  
 > **Target Sectors:** Manufacturing, FMCG, Logistics & Ports, Oil & Gas Retail, Healthcare, Hospitality, Facility Ops & Physical Security  
 
@@ -39,9 +39,9 @@
 Across Nigerian factories, warehouses, hospitals, fuel stations, and corporate compounds, employers currently spend **₦2.5M to ₦4.5M+ per multi-gate facility** installing wall-mounted biometric/RFID terminals (such as ZKTeco, Hikvision, or Anviz units). Despite that capital outlay, those wall gadgets only act as **dumb timestamp loggers**. To convert gate punches into monthly salaries, HR teams still walk up with USB flash drives, pull desktop LAN exports, scrub broken spreadsheets for missing exit swipes, cross-check departmental paper books, and manually compute PAYE, PenCom, NHF, and overtime.
 
 ShiftRelay **eliminates both the physical wall hardware and the error-prone Excel bridge**:
-1. **Strict Live GPS Geofencing:** Client-side pre-checks and hard server-side Haversine validation block every off-site, stale, or location-disabled clock-in and clock-out attempt (`GPS_REQUIRED`, `OUTSIDE_GEOFENCE`).
-2. **Distributed Cryptographic Colleague ID Card Verification:** Any authenticated worker physically verified inside the site geofence can scan arriving or departing teammates' cryptographically signed Staff ID Cards (HMAC-SHA256 QR payload or 6-character badge verification code). A single congested gate queue turns into parallel, oil-proof, glove-proof, zero-CapEx verification points—backed optionally by a standard Android phone or tablet at reception for non-smartphone staff.
-3. **Shift-Boundary Auto-Clockout & Payroll Hold Engine:** Un-exited colleague-scanned shifts automatically close at scheduled shift end into **`pending_supervisor_confirm`** status and hold payroll (**`hold_presence_review`**) until a supervisor confirms physical attendance—stopping "clock in once, leave early, collect full pay" fraud.
+1. **Strict Live GPS Geofencing:** Client-side pre-checks and hard server-side Haversine validation verify smartphone staff directly on their own **Clock-In** screen while blocking every off-site, stale, or location-disabled punch (`GPS_REQUIRED`, `OUTSIDE_GEOFENCE`).
+2. **Assisted Clock-In Page Worker ID Scanner + Live Facial Verification:** When a worker arrives without a smartphone or with a dead battery, any verified on-site colleague or supervisor taps **Scan Worker ID & Face** right from the **Clock-In page** to: (a) scan the worker's cryptographically signed **physical Staff ID Card** (QR / Code-128 / Card SEC inside the live GPS perimeter), (b) capture a **mandatory live facial verification photo** matched alongside their profile portrait (`FACIAL_PHOTO_REQUIRED` if omitted), (c) accept the worker's **incoming shift handover briefing and pre-shift safety/operational checklists** on the helper's screen, and (d) close cleanly back to the helper's own shift without cross-session leakage.
+3. **Shift-Boundary Auto-Clockout & Payroll Hold Engine:** Un-exited assisted-scan shifts automatically close at scheduled shift end into **`pending_supervisor_confirm`** status and hold payroll (**`hold_presence_review`**) until a supervisor confirms physical attendance—stopping "clock in once, leave early, collect full pay" fraud.
 4. **Native Nigerian Statutory Payroll Engine:** Verified hours feed directly into hardcoded Finance Act PITA PAYE & CRA, PenCom (8% employee / 10% employer), NHF (2.5% basic), NSITF (1% gross), and ITF (1% employer payroll) schedules, including reverse net-to-gross resolution (`< ₦0.01` precision), casual labor accumulators, and 1.5x/2.0x holiday overtime matrices.
 5. **Structured Operational Handovers & 13 Vertical Blueprints:** Equipment status, safety incidents, dual supervisor/incoming readiness sign-offs, and compliance workflows tailored out-of-the-box for 13 Nigerian industry sectors.
 
@@ -106,25 +106,25 @@ ShiftRelay eliminates physical wall clocks and broken CSV bridges by unifying **
 
 ```
 +------------------------------------------------------------------------------------+
-|                    SHIFTRELAY ENTERPRISE OPERATING SYSTEM (v3.0)                   |
+|                    SHIFTRELAY ENTERPRISE OPERATING SYSTEM (v4.0)                   |
 +------------------------------------------------------------------------------------+
          |                                  |                                |
 [1. CLIENT ENTRY LAYER]           [2. SECURITY & CORE ENGINE]      [3. PERSISTENCE & CI]
 - Offline PWA + Capacitor Mobile  - Tri-Factor Auth (No Public     - PostgreSQL Primary
-- Pre-Flight GPS Guard Engine       Self-Registration Allowed)       (Tenant Store +
-  (gps-guard.js blocks entry      - Server Hard Geofence Gate        time_entries +
-  if location denied/off-site)      (Haversine + Accuracy/Fresh)     user_sessions +
-- Distributed Peer ID Scanner     - HMAC-SHA256 Staff ID Crypto      verified_hours)
-  (Camera QR + 6-Char Verify Code)  + Anti-Self-Scan Enforcement   - GitHub CI Playwright
-- Optional Commodity Guard Tablet - Shift-Boundary Shield (60s)      E2E & Weekly Security
-  (Zero specialized hardware)       + Auto-Out Payroll Hold Queue    Autofix Pipelines
+- Self GPS Clock-In + Assisted      Self-Registration Allowed)       (Tenant Store +
+  Clock-In ID & Live Face Modal   - Server Hard Geofence Gate        time_entries +
+- Handover & Pre-Shift Checklists   (Haversine + Accuracy/Fresh)     user_sessions +
+  Directly in Assisted Flow       - HMAC-SHA256 Physical ID Crypto   verified_hours)
+- Optional Commodity Guard Tablet   + Mandatory Live Facial Photo  - GitHub CI Playwright
+  (Zero specialized hardware)       + Shift-Boundary Shield (60s)    E2E & Weekly Security
+                                    + Auto-Out Payroll Hold Queue    Autofix Pipelines
 ```
 
 ### 4.1 Portal Ecosystem & Access Governance
 - **Public Registration Strictly Disabled:** No open self-signup endpoint (`403` enforced). Every organization (`company_id`, e.g., `RIF-2026`) is provisioned through the secured **Internal Admin Concierge Portal (`admin.html`)** with single-use encrypted email activation tokens (`activate.html`).
 - **Role-Differentiated Operational Workspaces:**
-  - **Worker Mode:** Live Today Shift Hub, Strict GPS Clock-In/Out, Cryptographic Digital Staff ID Card, Verified Earnings & Payslips, Handover Baton Receipts, Peer Shift Swaps, Merit Rewards Wallet, and Operational CV Passport.
-  - **Supervisor Dual-Mode:** Seamless toggle between personal Worker view and Live Floor Supervisor Command (Active Floor Presence, Peer ID Card Scanner Modal, **Auto Clock-Out Presence Review Queue**, Handover Certification Checklists, and Overtime Approvals).
+  - **Worker Mode:** Live Today Shift Hub, Strict GPS Clock-In/Out, **Clock-In Page Assisted Worker ID & Live Face Scanner**, Verified Earnings & Payslips, Handover Baton Receipts, Physical Staff ID Badge Pass, Merit Rewards Wallet, and Operational CV Passport.
+  - **Supervisor Dual-Mode:** Seamless toggle between personal Worker view and Live Floor Supervisor Command (Active Floor Presence, Assisted Worker ID & Facial Verification Scanner, **Auto Clock-Out Presence Review Queue** with live facial thumbnails, Handover Certification Checklists, and Overtime Approvals).
   - **Executive & Finance Command:** Multi-Unit Workforce Analytics, Facility Zones & Safety Governance, Direct Statutory Payroll Ledger Compilation (`Push to Finance Desk`), and Compliance Deadlines.
 
 ---
@@ -141,14 +141,12 @@ Every design choice in ShiftRelay v3.0 directly answers the core security requir
 | **Accuracy Ceiling Guard** | Rejects spoofed/degraded low-precision readings exceeding strict site threshold (`GPS_ACCURACY_TOO_POOR`). | Blocks crude cell-tower spoofing from outside the facility perimeter. |
 | **Server Haversine Fence** | Validates exact meter distance against calibrated hub coordinates & perimeter (`OUTSIDE_GEOFENCE`, e.g., `120m` enterprise hub fence). | Guarantees zero remote clock-ins from home, transit, or cafés. |
 
-### 5.2 Distributed Cryptographic Colleague ID Card Scanner
-Replacing fixed wall terminals, **any authenticated colleague or guard already verified inside the geofence** can scan an arriving or leaving worker's Staff ID Card:
-- **Dual-Tier HMAC-SHA256 & 45-Second TOTP Credentials (`attendance-security.mjs`):** Mobile Digital Staff IDs display a **live 45-second rotating TOTP QR (`SHIFTRELAY:DYN:<ORG>:<STAFF_ID>:<STEP>:<6-CHAR_TOTP>`)** with auto-countdown (`GET /api/me/card-token`) that never reveals static printed PINs on workers' personal phones. For non-smartphone staff, authorized supervisors print laminated physical badges (`SHIFTRELAY:ID:<ORG>:<STAFF_ID>:<6-CHAR VERIFY CODE>`), tagged in attendance logs as `static_badge_fallback` (with optional tenant-level `strictDynamicQrOnly` lock).
-- **Replay Rejection & Live Camera Snapshot Proof:** Stale dynamic QR codes past the ±1 step drift window are blocked automatically (`403 CARD_QR_EXPIRED`). Active camera scanners automatically attach compressed scan-time snapshots (`scanPhotoDataUrl`) alongside `cardProofMode` metadata (`dynamic_live_qr` vs `static_badge_fallback`) for immediate Supervisor audit.
-- **Directory Secret Isolation:** Public team/directory API endpoints strip all `cardVerifyCode` and `cardQrPayload` strings, preventing coworkers from looking up another employee's secret badge code from the roster.
-- **Anti-Self-Scan (`SELF_SCAN_FORBIDDEN`):** Logged-in user cannot scan their own Staff ID or verification code.
-- **Same-Day Duplicate Lock (`ALREADY_CLOCKED_IN` / `DUPLICATE_DAILY_CARD_SCAN`):** Workers cannot run repeat same-day card check-ins to stack shift points or fabricate double shifts.
-- **Role-Gated Overrides (`SUPERVISOR_REQUIRED`):** Only authorized managers/admins can log `supervisor_override` entries—all worker attempts are rejected (`403`) and logged.
+### 5.2 Assisted Clock-In Page Worker ID Scanner, Live Facial Capture & Handover Flow
+Staff who carry an active smartphone clock in directly from their own Today **Clock-In** screen under strict live GPS validation (`gps-guard.js` + `verifyStrictLiveGps`). Whenever a worker arrives **without a smartphone or with a dead battery**, any verified on-site colleague or supervisor launches the prominent **Scan Worker ID & Face** scanner directly from the **Clock-In** page (also available in Supervisor Command):
+- **Step 1 — Physical Staff ID Badge + Live Geofence (`peer-card-preview`):** Rear camera scans the worker's cryptographically signed **physical Staff ID Card** (`SHIFTRELAY:ID:<ORG>:<STAFF_ID>:<6-CHAR VERIFY CODE>`, printed Code-128 barcode, or manual `Staff ID + SEC`), verified alongside the helper device's live on-site GPS (`403 OUTSIDE_GEOFENCE` if off-site; `403 SELF_SCAN_FORBIDDEN` if self-scanning).
+- **Step 2 — Mandatory Live Facial Verification Capture (`peer-card-scan`):** The scanner immediately opens a live front/portrait camera frame (`FACIAL_PHOTO_REQUIRED` enforced with HTTP `400` if omitted) showing the scanned worker's registered profile photo beside the live camera snapshot (`physical_badge_facial_verify`), permanently attaching compressed JPEG evidence (`scan_photo_data_url`) and helper attribution (`scanned_by_membership_id`) for Supervisor audit.
+- **Step 3 — Delegated Handover Acceptance, Checklists & Clean Close (`peer-assisted-complete`):** Immediately after live facial clock-in succeeds, the modal presents the worker's **incoming shift handover briefing, readiness checks, and pre-shift safety/operational checklist** on the helper's screen so the worker can read/verify everything, accept handover acknowledgment (`work_items` / `audit_events` + `handovers`), save task completion state, and tap **Close & Return**—leaving zero residual data or session cross-contamination on the colleague's device.
+- **Directory Secret Isolation & Same-Day Lock:** Public team/directory API endpoints strip all `cardVerifyCode` and `cardQrPayload` strings, repeat same-day card check-ins return `409 DUPLICATE_DAILY_CARD_SCAN`, and `supervisor_override` exit codes remain strictly role-gated (`403 SUPERVISOR_REQUIRED`).
 
 ### 5.3 Shift-Boundary Auto-Clockout & Supervisor Presence Review Hold
 To close the #1 vulnerability of legacy gate terminals (checking in once and disappearing early):
@@ -160,9 +158,9 @@ To close the #1 vulnerability of legacy gate terminals (checking in once and dis
 ### 5.4 Honest Threat Modeling & Anti-Collusion Roadmap
 Enterprise buyers and investors respect engineering honesty over marketing hype. ShiftRelay explicitly addresses remaining physical-world threats:
 
-- **Threat A — "WhatsApp Screenshot Collusion" (On-site friend scanning an off-site friend's badge screenshot):**
-  - *Shipped Technical Defenses (Active Now):* Workers' mobile Digital ID cards render **45-second rotating TOTP QR payloads** (`SHIFTRELAY:DYN:...`) rather than static PINs, automatically rejecting forwarded WhatsApp screenshots after the ~45–90s tolerance window (`403 CARD_QR_EXPIRED`). Every punch permanently attributes the scanner (`scannedByMembershipId`), verifies scanner GPS inside the geofence, blocks self-scanning (`SELF_SCAN_FORBIDDEN`), attaches optional scan-time camera snapshots (`scanPhotoDataUrl`), distinguishes `dynamic_live_qr` vs `static_badge_fallback` in Supervisor review, and triggers Auto-Out payroll holds (`pending_supervisor_confirm`) whenever exit scans are missed.
-  - *Optional Physical Governance:* Sites enforcing `strictDynamicQrOnly` disable static codes entirely on smartphone lines, while non-smartphone industrial floors isolate printed laminated badges to supervised guard/line tablets.
+- **Threat A — "Badge Borrowing / Buddy Punching on Behalf of an Absent Friend":**
+  - *Shipped Technical Defenses (Active Now):* Assisted check-ins and exit scans require **both** the worker's physical Staff ID Card (`SHIFTRELAY:ID:...`) and a **mandatory live facial verification portrait photo** captured in real time inside the scanner (`400 FACIAL_PHOTO_REQUIRED` if bypassed, saved as `physical_badge_facial_verify` beside the worker's profile avatar). Every punch permanently attributes the helper/scanner (`scannedByMembershipId`), verifies scanner GPS inside the geofence, blocks self-scanning (`SELF_SCAN_FORBIDDEN`), blocks repeat daily card scans (`DUPLICATE_DAILY_CARD_SCAN`), and triggers Auto-Out payroll holds (`pending_supervisor_confirm`) whenever an exit facial scan is missed.
+  - *Optional Physical Governance:* Sites on high-turnover shifts pair assisted Clock-In scanning with a supervisor floor spot-check or dedicated gate tablet reviewing captured live facial portraits side-by-side in Live Roster Presence & Presence Verification.
 - **Threat B — Deep-Indoor Warehouse / Basement GPS Drift & Zero-Phone Staff:**
   - *Operational Solution:* Standardize a **Guard / Reception Commodity Android Tablet** running ShiftRelay's peer scanner right at the main doorway/muster bench (costing <10% of proprietary ZKTeco/turnstile installs with zero biometric maintenance) plus calibrated per-site geofence radii.
 - **Threat C — Physical Motorized Turnstile Bar Actuation:**
@@ -198,7 +196,7 @@ Enterprise buyers and investors respect engineering honesty over marketing hype.
 
 ## 7. COMPETITIVE LANDSCAPE & DEFENSIBLE MOATS
 
-| Dimension | **ShiftRelay Enterprise (v3.0)** | **ZKTeco / Hikvision Gate Boxes** | **SeamlessHR** | **PaidHR (Pade)** | **SAP / Dayforce / Workday** |
+| Dimension | **ShiftRelay Enterprise (v4.0)** | **ZKTeco / Hikvision Gate Boxes** | **SeamlessHR** | **PaidHR (Pade)** | **SAP / Dayforce / Workday** |
 |---|---|---|---|---|---|
 | **Wall Hardware Required** | **₦0 (Phone / Optional Tablet)** | **₦2.5M–₦4.5M+ per multi-gate** | Optional hardware / Office GPS | Mobile app GPS | Proprietary clocks / Heavy IT |
 | **Gate-to-Payroll Bridge** | **Direct Real-Time Engine** | **Manual USB / LAN / CSV Scrubbing** | Separate Office HR Suite | Basic office payroll sync | Complex ERP integration |
@@ -335,7 +333,7 @@ ShiftRelay **explicitly prohibits** unlicensed digital wallets, stored-value bal
 ### 13.2 Risk Analysis & Anti-Bypass Contingency Matrix
 | Identified Risk | Severity | Mitigation & Control Mechanism |
 |---|---|---|
-| **Collusion via Forwarded Badge Screenshots** | High | *Shipped & Enforced:* 45s rotating TOTP QR (`CARD_QR_EXPIRED` screenshot rejection), suppressed static SEC codes on worker phones, scan-time camera photo snapshot, `SELF_SCAN_FORBIDDEN`, geofence check on scanner, `scannedByMembershipId` attribution, and Auto-Out Supervisor Payroll Hold. |
+| **Collusion via Borrowed Badges or Proxy Punches** | High | *Shipped & Enforced:* Mandatory live facial verification snapshot (`FACIAL_PHOTO_REQUIRED`), physical badge HMAC code, suppressed directory SEC codes, `SELF_SCAN_FORBIDDEN`, geofence check on scanner, `scannedByMembershipId` attribution, and Auto-Out Supervisor Payroll Hold. |
 | **Indoor Warehouse GPS Drift / No Personal Phone** | Moderate–High | Per-hub radius/accuracy calibration (`resolveOrgGeofenceConfig`) + commodity Android **Guard/Reception Tablet** executing the same peer-scan flow at doors/benches without ZKTeco hardware. |
 | **Site Internet / Power Blackouts** | High | Offline Service Worker + IndexedDB FIFO sync buffering punches until signal returns, alongside zero wall-hardware electrical dependency. |
 | **Enterprise Procurement Latency** | High | De-risked 30-day ₦250k paid single-line trial running in parallel with existing gates ("Shadow Ledger" variance proof), 100% credited to onboarding. |
@@ -363,12 +361,12 @@ ShiftRelay turns frontline workforce verification into verifiable **"S" (Social)
 - **NHF (National Housing Fund):** `2.5%` Basic Salary (statutory/elective per Business Facilitation Act 2023).
 - **Overtime Matrix:** `1.5x` Weekday Overtime; `2.0x` Sundays and Federal Nigerian Public Holidays.
 
-### Appendix B: ShiftRelay v3.0 Operational Glossary
+### Appendix B: ShiftRelay v4.0 Operational Glossary
 - **Strict Live GPS Fence:** Real-time geolocation gate enforced on both client UI (`gps-guard.js`) and server API (`verifyStrictLiveGps`) before allowing any attendance punch.
-- **Colleague Cryptographic ID Scanner:** Distributed peer check-in/exit flow validating HMAC-SHA256 Staff ID QR payloads or 6-character security codes inside the site geofence while blocking self-scans and duplicate daily entries.
+- **Assisted Clock-In Worker ID & Live Face Scanner:** Built directly into the **Clock-In** page (`Scan Worker ID & Face`) for workers without smartphones or with dead batteries—scanning their physical Staff ID card inside the geofence, capturing a mandatory live facial photo (`physical_badge_facial_verify`), completing incoming handover acceptance & pre-shift checklists on the helper's device, and closing cleanly.
 - **Auto-Out Presence Hold (`hold_presence_review`):** Automated payroll protection mechanism placing un-exited peer-scanned shifts into supervisor review (`pending_supervisor_confirm`) until physical attendance is verified (`verified_hours`).
 - **The "CSV Gap":** The costly, error-prone manual extraction step (USB sticks, desktop polling, Excel scrubbing) required between traditional gate clocks and payroll software—eliminated completely by ShiftRelay.
 - **Shadow Ledger Pilot:** Low-risk 14–30 day parallel deployment comparing legacy gate logs against ShiftRelay's verified attendance engine to quantify recoverable payroll leakage before full site rollout.
 
 ---
-*ShiftRelay Technologies Limited — Enterprise Frontline Operating System (Version 3.0, November 2026). Confidential.*
+*ShiftRelay Technologies Limited — Enterprise Frontline Operating System (Version 4.0, November 2026). Confidential.*

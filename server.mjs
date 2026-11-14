@@ -157,10 +157,9 @@ import {
   ensureCardSigningSecret,
   computeStaffCardSecurityCode,
   buildStaffCardCredentials,
-  buildDynamicStaffCardCredentials,
   parseStaffCardPayload,
   verifyStaffCardSecurityCode,
-  verifyStaffCardDynamicToken,
+  sanitizeFacialPhotoDataUrl,
   sanitizeScanPhotoDataUrl,
   resolveOrgGeofenceConfig,
   verifyStrictLiveGps,
@@ -720,15 +719,9 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 function buildSessionStaffCardFields(orgCode, staffId, storeOrSecret) {
   const staticCreds = buildStaffCardCredentials(orgCode, staffId, storeOrSecret);
-  const dynCreds = buildDynamicStaffCardCredentials(orgCode, staffId, storeOrSecret);
   return {
     cardVerifyCode: staticCreds.cardVerifyCode,
-    cardQrPayload: staticCreds.cardQrPayload,
-    dynamicCardToken: dynCreds.dynamicToken,
-    dynamicCardStep: dynCreds.dynamicStep,
-    dynamicStepSeconds: dynCreds.stepSeconds,
-    dynamicCardExpiresAt: dynCreds.validUntilIso,
-    dynamicQrPayload: dynCreds.dynamicQrPayload
+    cardQrPayload: staticCreds.cardQrPayload
   };
 }
 
@@ -3049,12 +3042,14 @@ async function getOrganisationRosterState(user) {
       const role = entry.role || prev.role || dm?.role || 'worker';
       const shiftStart = entry.shift_start || prev.shift_start || (role === 'incoming' ? '14:00' : '06:00');
       const shiftEnd = entry.shift_end || prev.shift_end || (role === 'incoming' ? '22:00' : '14:00');
+      const profileEntry = store.workerProfiles?.[entry.id] || store.workerProfiles?.[key] || {};
       memberMap.set(key, {
         id: entry.id || prev.id || dm?.id || key,
         user_id: entry.user_id || prev.user_id || entry.id || dm?.id || key,
         staffId: entry.staff_code || entry.staffId || prev.staffId || contract.staffId || dm?.staffId || ('SR-' + String(key).slice(-4).toUpperCase()),
         name: entry.name || pu.full_name || prev.name || dm?.name || contract.userName || 'Staff Member',
         email: entry.email || pu.email || prev.email || dm?.email || '',
+        avatarUrl: profileEntry.avatarUrl || prev.avatarUrl || pu.avatar_data_url || null,
         role,
         title: entry.title || prev.title || dm?.title || contract.role || 'Staff Specialist',
         department: entry.department || prev.department || dm?.department || contract.department || 'Operations',
@@ -3149,7 +3144,7 @@ async function getOrganisationRosterState(user) {
 
   // PostgreSQL mode
   const rowsRes = await query(
-    `select m.id, m.user_id, m.staff_code, u.full_name as name, u.email, u.time_zone, m.role, m.title, m.department, m.status, m.shift_start, m.shift_end
+    `select m.id, m.user_id, m.staff_code, u.full_name as name, u.email, u.time_zone, u.avatar_data_url, m.role, m.title, m.department, m.status, m.shift_start, m.shift_end
      from memberships m
      join portal_users u on u.id = m.user_id
      where m.organisation_id = $1
@@ -3168,12 +3163,14 @@ async function getOrganisationRosterState(user) {
   const members = rowsRes.rows.map((r) => {
     const dm = demoById.get(r.user_id) || demoById.get(r.id);
     const contract = contractsByUid.get(r.user_id) || contractsByUid.get(r.id) || {};
+    const wp = store.workerProfiles?.[r.id] || store.workerProfiles?.[r.user_id] || {};
     const m = {
       id: r.id,
       user_id: r.user_id,
       staffId: r.staff_code || dm?.staffId || contract.staffId || ('SR-' + String(r.user_id).slice(-4).toUpperCase()),
       name: r.name,
       email: r.email,
+      avatarUrl: wp.avatarUrl || r.avatar_data_url || null,
       role: r.role,
       title: r.title,
       department: r.department || 'Operations',
@@ -3234,6 +3231,208 @@ async function getOrganisationRosterState(user) {
       pendingCount: members.filter(m => m.status === 'pending').length,
       revokedCount: members.filter(m => m.status === 'revoked').length
     }
+  };
+}
+
+async function resolveAssistedWorkerCheckInContext(user, targetMember, org, store) {
+  const orgProfile = resolveIndustryProfile(org.industryKey || org.industry || user.industry, org.trading_name || org.legal_name || user.organisation_name);
+  const tenantId = org.organisation_code || user.company_id || user.organisation_id || 'RIF-2026';
+  const orgKey = tenantId || user.organisation_id || 'default';
+  const dayKey = new Date().toISOString().slice(0, 10);
+
+  let relevantHandover = null;
+  if (databaseReady) {
+    const hoRes = await query(
+      `select wi.id, wi.status, wi.payload, wi.created_at, wi.acknowledged_at, wi.created_by_membership_id, wi.assigned_to_membership_id,
+              coalesce(author.full_name, 'Shift Lead') as author_name
+       from work_items wi
+       left join memberships am on am.id = wi.created_by_membership_id
+       left join portal_users author on author.id = am.user_id
+       where wi.organisation_id = $1 and wi.item_type = 'handover'
+       order by case when wi.assigned_to_membership_id = $2 then 0 else 1 end,
+                case when wi.status = 'relayed' then 0 when wi.status = 'awaiting_review' then 1 else 2 end,
+                wi.created_at desc
+       limit 1`,
+      [user.organisation_id, targetMember.id]
+    );
+    const row = hoRes.rows[0];
+    if (row && row.status !== 'acknowledged') {
+      const p = row.payload || {};
+      relevantHandover = {
+        id: row.id,
+        status: row.status,
+        summary: p.summary || orgProfile.defaultHandoverSummary,
+        notes: p.notes || orgProfile.defaultHandoverNotes,
+        authorName: p.author || row.author_name || 'Shift Lead',
+        createdAt: row.created_at,
+        alreadyAcknowledged: false
+      };
+    }
+  } else {
+    const list = Array.isArray(store.handovers) ? store.handovers : [];
+    const match = list.find(h =>
+      (h.assignedTo === targetMember.id || h.assignedTo === 'team' || !h.assignedTo) && h.status !== 'acknowledged'
+    ) || list.find(h => h.status !== 'acknowledged');
+    if (match) {
+      relevantHandover = {
+        id: match.id,
+        status: match.status || 'relayed',
+        summary: match.handover?.summary || orgProfile.defaultHandoverSummary,
+        notes: match.handover?.notes || orgProfile.defaultHandoverNotes,
+        authorName: match.handover?.author || match.authorName || 'Shift Lead',
+        createdAt: match.createdAt,
+        alreadyAcknowledged: false
+      };
+    }
+  }
+
+  if (!relevantHandover) {
+    relevantHandover = {
+      id: 'ho-morning-01',
+      status: 'relayed',
+      summary: orgProfile.defaultHandoverSummary || 'Shift Readiness & Operations Handover Briefing',
+      notes: orgProfile.defaultHandoverNotes || 'Verify station readiness, PPE, and priority equipment status before taking over.',
+      authorName: 'Shift Operations Lead',
+      createdAt: new Date().toISOString(),
+      alreadyAcknowledged: false
+    };
+  }
+
+  const readinessChecks = Array.isArray(orgProfile.handoverChecklist?.incoming) && orgProfile.handoverChecklist.incoming.length
+    ? orgProfile.handoverChecklist.incoming
+    : [
+        'I understand active shift priorities and safety precautions.',
+        'I completed my pre-shift equipment & PPE readiness check.',
+        'I accept handover responsibility for this assigned shift.'
+      ];
+
+  const baseTasks = Array.isArray(orgProfile.tasks) ? orgProfile.tasks : [];
+  const customTasks = Array.isArray(store.customShiftTasks?.[orgKey]?.[dayKey]) ? store.customShiftTasks[orgKey][dayKey] : [];
+  const workerSaved = store.workerTaskState?.[targetMember.id]?.[dayKey] || {};
+  const orgSaved = store.shiftTaskState?.[orgKey]?.[dayKey] || {};
+
+  const checklistTasks = [...baseTasks, ...customTasks].map(t => ({
+    id: t.id,
+    text: t.text || t.title || 'Operational Task',
+    priority: t.priority || 'normal',
+    done: workerSaved[t.id] !== undefined
+      ? Boolean(workerSaved[t.id])
+      : (orgSaved[t.id] !== undefined ? Boolean(orgSaved[t.id]) : Boolean(t.done))
+  }));
+
+  return {
+    tenantId,
+    dayKey,
+    industryLabel: orgProfile.shortLabel || orgProfile.label,
+    handover: relevantHandover,
+    readinessChecks,
+    checklistTasks
+  };
+}
+
+async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
+  const { requireFacialPhoto = false, isExitScan = false } = options;
+  const rawPayload = String(body.badgePayload || body.badgeCode || body.staffId || body.memberId || '').trim();
+  const explicitSecurityCode = String(body.cardVerifyCode || body.cardSecurityCode || body.securityCode || body.verifyCode || '').trim();
+  if (!rawPayload) {
+    return { statusCode: 400, payload: { error: 'Physical Staff ID card QR payload or Staff ID code is required.' } };
+  }
+
+  const parsed = parseStaffCardPayload(rawPayload, explicitSecurityCode);
+  const extractedCode = parsed.staffId || rawPayload;
+  const lookupNeedle = String(extractedCode || '').trim().toLowerCase();
+
+  const { members, store } = await getOrganisationRosterState(user);
+  const targetMember = members.find(m =>
+    (m.staffId && m.staffId.toLowerCase() === lookupNeedle) ||
+    (m.id && m.id.toLowerCase() === lookupNeedle) ||
+    (m.user_id && m.user_id.toLowerCase() === lookupNeedle) ||
+    (m.email && m.email.toLowerCase() === lookupNeedle)
+  );
+
+  if (!targetMember) {
+    return { statusCode: 404, payload: { error: `Unrecognized Staff ID: "${extractedCode}". Member not found in this organisation.` } };
+  }
+  if (targetMember.status !== 'active') {
+    return { statusCode: 403, payload: { error: `${targetMember.name} (${targetMember.staffId}) has membership status "${targetMember.status}" and cannot clock in.` } };
+  }
+  if (targetMember.id === user.id || (user.user_id && targetMember.user_id === user.user_id)) {
+    return {
+      statusCode: 403,
+      payload: {
+        error: 'Self-scanning is disabled. Use your personal GPS Clock-In button, or have an on-site colleague scan your physical Staff ID card.',
+        code: 'SELF_SCAN_FORBIDDEN'
+      }
+    };
+  }
+
+  const orgId = user.organisation_id;
+  const org = (store.organisations || []).find(o => o.id === orgId) || {};
+  const orgForGps = databaseReady
+    ? ((await query('select id, organisation_code, hub_name, hub_lat, hub_lng, hub_perimeter, settings, industry from organisations where id = $1 limit 1', [orgId])).rows[0] || org)
+    : org;
+  const orgCode = String(orgForGps.organisation_code || org.organisation_code || user.company_id || 'RIF-2026').toUpperCase();
+  const normParsedOrg = String(parsed.orgCode || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  const normExpectedOrg = orgCode.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  if (normParsedOrg && normExpectedOrg && normParsedOrg !== normExpectedOrg && !(normExpectedOrg === 'RIF2026' && ['246701', 'RIFFMAX', 'RIFFMAX01', 'RIF01', 'RIF2026'].includes(normParsedOrg))) {
+    return { statusCode: 403, payload: { error: 'This Staff ID card belongs to a different organisation.', code: 'ORG_MISMATCH' } };
+  }
+
+  const signingStore = (await loadSigningStoreForAuth()) || store;
+  const isCardValid = verifyStaffCardSecurityCode({
+    orgCode,
+    staffId: targetMember.staffId,
+    providedCode: parsed.securityCode,
+    storeOrSecret: signingStore
+  });
+  if (!isCardValid) {
+    return {
+      statusCode: 403,
+      payload: {
+        error: 'Invalid or missing physical Staff ID Card Security Code (SEC). Scan the printed Staff ID QR or enter both Staff ID and 6-char Card SEC.',
+        code: 'INVALID_CARD_SECURITY_CODE'
+      }
+    };
+  }
+
+  const orgProfile = resolveIndustryProfile(orgForGps.industry || org.industryKey || org.industry, orgForGps.trading_name || org.trading_name || org.legal_name);
+  let gpsProof;
+  try {
+    gpsProof = verifyStrictLiveGps(orgForGps, orgProfile, body, {
+      actionLabel: isExitScan ? 'scan worker exit card' : 'scan worker ID card',
+      allowOfflineCaptured: true
+    });
+  } catch (gpsErr) {
+    return {
+      statusCode: gpsErr.statusCode || 403,
+      payload: { error: gpsErr.message, code: gpsErr.errorCode || 'GPS_REQUIRED' }
+    };
+  }
+
+  const scanPhotoDataUrl = sanitizeFacialPhotoDataUrl(body.scanPhotoDataUrl || body.facialPhotoDataUrl);
+  if (requireFacialPhoto && !scanPhotoDataUrl) {
+    return {
+      statusCode: 400,
+      payload: {
+        error: 'Live facial verification capture is required before completing ID card check-in or exit scan.',
+        code: 'FACIAL_PHOTO_REQUIRED'
+      }
+    };
+  }
+
+  return {
+    ok: true,
+    targetMember,
+    members,
+    store,
+    org,
+    orgForGps,
+    orgId,
+    orgCode,
+    orgProfile,
+    gpsProof,
+    scanPhotoDataUrl,
+    parsed
   };
 }
 
@@ -4037,18 +4236,6 @@ async function getOrganisationRosterState(user) {
     const { members, summary } = await getOrganisationRosterState(user);
     return sendJson(response, 200, { members, summary });
   }
-  if (url.pathname === '/api/me/card-token' && request.method === 'GET') {
-    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
-    const storeForSecret = await loadSigningStoreForAuth();
-    let orgCode = String(user.company_id || 'RIF-2026').toUpperCase();
-    if (!databaseReady && storeForSecret?.organisations) {
-      const org = storeForSecret.organisations.find(o => o.id === user.organisation_id);
-      if (org?.organisation_code) orgCode = String(org.organisation_code).toUpperCase();
-    }
-    const staffId = String(user.staffId || ('SR-' + String(user.id || '0000').slice(-4).toUpperCase())).toUpperCase();
-    const dynCreds = buildDynamicStaffCardCredentials(orgCode, staffId, storeForSecret);
-    return sendJson(response, 200, { ok: true, ...dynCreds });
-  }
   if (url.pathname === '/api/team/id-cards' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
     if (!['owner', 'manager', 'workforce_admin', 'supervisor'].includes(user.role)) {
@@ -4330,143 +4517,87 @@ async function getOrganisationRosterState(user) {
     });
   }
 
-  // ── Peer Mobile ID Card Clock-In & Exit Scanner (Zero Hardware Kiosk Needed) ──
-  // POST /api/time-entries/peer-card-scan (and backwards-compatible /api/time-entries/kiosk-badge-scan)
+  // ── Clock-In Page Assisted Worker ID Card Preview, Mandatory Facial Capture, Handover & Checklists ──
+  // 1) POST /api/time-entries/peer-card-preview
+  // Validates the worker's physical Staff ID badge + live on-site GPS before live facial capture,
+  // returning identity + profile avatar + active incoming handover & checklist items.
+  if (url.pathname === '/api/time-entries/peer-card-preview' && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'ID card attendance requires an authenticated organisation account.' });
+    const body = await readJson(request).catch(() => ({}));
+    const reqActionRaw = String(body.action || body.scanAction || 'clock-in').trim().toLowerCase();
+    const isExitScan = reqActionRaw === 'clock-out' || reqActionRaw === 'clock_out' || reqActionRaw === 'exit' || reqActionRaw === 'check-out';
+    const v = await verifyPeerCardBadgeAndGps(user, body, { requireFacialPhoto: false, isExitScan });
+    if (!v.ok) return sendJson(response, v.statusCode, v.payload);
+
+    const { targetMember, store, orgForGps, orgId, gpsProof } = v;
+    const todayPrefix = new Date().toISOString().slice(0, 10);
+    let activeEntry = null;
+    let duplicateToday = false;
+
+    if (!databaseReady) {
+      activeEntry = (store.timeEntries || []).find(e =>
+        (e.membershipId === targetMember.id || e.membershipId === targetMember.user_id) && !e.clockedOutAt
+      ) || null;
+      duplicateToday = (store.timeEntries || []).some(e =>
+        (e.membershipId === targetMember.id || e.membershipId === targetMember.user_id) &&
+        typeof e.clockedInAt === 'string' &&
+        e.clockedInAt.slice(0, 10) === todayPrefix &&
+        e.verificationMode === 'colleague_card_scan'
+      );
+    } else {
+      activeEntry = (await query(
+        'select id, clocked_in_at from time_entries where membership_id = $1 and clocked_out_at is null limit 1',
+        [targetMember.id]
+      )).rows[0] || null;
+      duplicateToday = Boolean((await query(
+        `select id from time_entries where membership_id = $1 and clocked_in_at >= date_trunc('day', now()) and verification_mode = 'colleague_card_scan' limit 1`,
+        [targetMember.id]
+      )).rows[0]);
+    }
+
+    const assistedBrief = await resolveAssistedWorkerCheckInContext(user, targetMember, orgForGps, store);
+    return sendJson(response, 200, {
+      ok: true,
+      geofenceStatus: 'within_geofence',
+      distanceMeters: gpsProof.distanceMeters,
+      siteName: gpsProof.hubName,
+      alreadyOnShift: Boolean(activeEntry),
+      alreadyCompletedDailyScan: Boolean(!activeEntry && duplicateToday),
+      suggestedAction: activeEntry ? 'clock-out' : 'clock-in',
+      worker: {
+        userId: targetMember.user_id,
+        membershipId: targetMember.id,
+        userName: targetMember.name,
+        staffId: targetMember.staffId,
+        role: targetMember.title,
+        department: targetMember.department,
+        avatarUrl: targetMember.avatarUrl || null,
+        organisationId: orgId
+      },
+      assistedBrief
+    });
+  }
+
+  // 2) POST /api/time-entries/peer-card-scan (and backwards-compatible /api/time-entries/kiosk-badge-scan)
   // Enforces:
   //   1) Scanner device MUST have verified live high-accuracy GPS inside the site geofence
   //   2) No self-scanning (scanner cannot scan their own Staff ID card)
-  //   3) Cryptographic 6-char Card Security Code (or signed QR payload) must match card
-  //   4) Duplicate same-day colleague card check-ins blocked (409)
-  //   5) Supports both Check-In and Exit Card Scan so workers without phones prove on-site departure
+  //   3) Cryptographic physical Staff ID Card Security Code (printed QR or Staff ID + SEC) must match
+  //   4) Mandatory live facial verification photo capture before clock-in / exit scan completes
+  //   5) Duplicate same-day colleague card check-ins blocked (409)
+  //   6) Clock-in returns worker's incoming handover & required checklists for assisted completion
   if ((url.pathname === '/api/time-entries/peer-card-scan' || url.pathname === '/api/time-entries/kiosk-badge-scan') && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'ID card attendance requires an authenticated organisation account.' });
     const body = await readJson(request).catch(() => ({}));
-    const rawPayload = String(body.badgePayload || body.badgeCode || body.staffId || body.memberId || '').trim();
-    const explicitSecurityCode = String(body.cardVerifyCode || body.cardSecurityCode || body.securityCode || body.verifyCode || '').trim();
     const reqActionRaw = String(body.action || body.scanAction || 'clock-in').trim().toLowerCase();
     const isExitScan = reqActionRaw === 'clock-out' || reqActionRaw === 'clock_out' || reqActionRaw === 'exit' || reqActionRaw === 'check-out';
-    if (!rawPayload) return sendJson(response, 400, { error: 'Staff ID card QR payload or Staff ID code is required.' });
+    const v = await verifyPeerCardBadgeAndGps(user, body, { requireFacialPhoto: true, isExitScan });
+    if (!v.ok) return sendJson(response, v.statusCode, v.payload);
 
-    const parsed = parseStaffCardPayload(rawPayload, explicitSecurityCode);
-    const extractedCode = parsed.staffId || rawPayload;
-    const lookupNeedle = String(extractedCode || '').trim().toLowerCase();
-
-    const { members, store } = await getOrganisationRosterState(user);
-    const targetMember = members.find(m =>
-      (m.staffId && m.staffId.toLowerCase() === lookupNeedle) ||
-      (m.id && m.id.toLowerCase() === lookupNeedle) ||
-      (m.user_id && m.user_id.toLowerCase() === lookupNeedle) ||
-      (m.email && m.email.toLowerCase() === lookupNeedle)
-    );
-
-    if (!targetMember) {
-      return sendJson(response, 404, {
-        error: `Unrecognized Staff ID: "${extractedCode}". Member not found in this organisation.`
-      });
-    }
-    if (targetMember.status !== 'active') {
-      return sendJson(response, 403, {
-        error: `${targetMember.name} (${targetMember.staffId}) has membership status "${targetMember.status}" and cannot clock in.`
-      });
-    }
-    if (targetMember.id === user.id || (user.user_id && targetMember.user_id === user.user_id)) {
-      return sendJson(response, 403, {
-        error: 'Self-scanning is disabled. Use your personal GPS Clock-In/Out button, or have an on-site colleague scan your physical Staff ID card.',
-        code: 'SELF_SCAN_FORBIDDEN'
-      });
-    }
-
-    const orgId = user.organisation_id;
-    const org = (store.organisations || []).find(o => o.id === orgId) || {};
-    const orgForGps = databaseReady
-      ? ((await query('select id, organisation_code, hub_name, hub_lat, hub_lng, hub_perimeter, settings from organisations where id = $1 limit 1', [orgId])).rows[0] || org)
-      : org;
-    const orgCode = String(orgForGps.organisation_code || org.organisation_code || user.company_id || 'RIF-2026').toUpperCase();
-    const normParsedOrg = String(parsed.orgCode || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    const normExpectedOrg = orgCode.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    if (normParsedOrg && normExpectedOrg && normParsedOrg !== normExpectedOrg && !(normExpectedOrg === 'RIF2026' && ['246701', 'RIFFMAX', 'RIFFMAX01', 'RIF01', 'RIF2026'].includes(normParsedOrg))) {
-      return sendJson(response, 403, {
-        error: 'This Staff ID card belongs to a different organisation.',
-        code: 'ORG_MISMATCH'
-      });
-    }
-
-    const signingStore = (await loadSigningStoreForAuth()) || store;
-    const strictDynamicOnly = Boolean(orgForGps?.settings?.strictDynamicQrOnly || org?.settings?.strictDynamicQrOnly);
-    let cardProofMode = null;
-
-    if (parsed.isDynamicQr) {
-      const dynVerdict = verifyStaffCardDynamicToken({
-        orgCode,
-        staffId: targetMember.staffId,
-        providedToken: parsed.securityCode,
-        providedStep: parsed.step,
-        storeOrSecret: signingStore
-      });
-      if (dynVerdict.expired) {
-        return sendJson(response, 403, {
-          error: 'Expired Dynamic Staff ID QR (screenshot or cached photo rejected after 45s window). Ask your colleague to show their live rotating ShiftRelay QR or printed physical badge.',
-          code: 'CARD_QR_EXPIRED'
-        });
-      }
-      if (!dynVerdict.valid) {
-        return sendJson(response, 403, {
-          error: 'Invalid Dynamic Staff ID QR signature. Scan the worker\'s live ShiftRelay QR card.',
-          code: 'INVALID_CARD_SECURITY_CODE'
-        });
-      }
-      cardProofMode = 'dynamic_live_qr';
-    } else {
-      const dynManualVerdict = verifyStaffCardDynamicToken({
-        orgCode,
-        staffId: targetMember.staffId,
-        providedToken: parsed.securityCode,
-        providedStep: null,
-        storeOrSecret: signingStore
-      });
-      if (dynManualVerdict.valid) {
-        cardProofMode = dynManualVerdict.proofMode || 'dynamic_live_code';
-      } else if (dynManualVerdict.expired) {
-        return sendJson(response, 403, {
-          error: 'Entered rotating 45s TOTP code has expired. Read the fresh code on your colleague\'s Digital ID or use their printed physical badge SEC code.',
-          code: 'CARD_QR_EXPIRED'
-        });
-      } else if (verifyStaffCardSecurityCode({ orgCode, staffId: targetMember.staffId, providedCode: parsed.securityCode, storeOrSecret: signingStore })) {
-        if (strictDynamicOnly) {
-          return sendJson(response, 403, {
-            error: 'Static printed badge codes are disabled by site security policy. Scan the worker\'s live 45-second rotating Digital Staff ID QR.',
-            code: 'STATIC_CARD_DISABLED'
-          });
-        }
-        cardProofMode = 'static_badge_fallback';
-      } else {
-        return sendJson(response, 403, {
-          error: 'Invalid or missing Staff ID Security Code / Dynamic TOTP Token. Scan the worker\'s live ShiftRelay QR or enter the live code / printed card SEC.',
-          code: 'INVALID_CARD_SECURITY_CODE'
-        });
-      }
-    }
-
-    const scanPhotoDataUrl = sanitizeScanPhotoDataUrl(body.scanPhotoDataUrl);
-    const proofLabel = cardProofMode === 'dynamic_live_qr'
-      ? 'Live 45s TOTP QR'
-      : (cardProofMode === 'dynamic_live_code' ? 'Live 45s TOTP Code' : 'Printed Badge Fallback');
-    const photoSuffix = scanPhotoDataUrl ? ' · Photo Snapshot Attached' : '';
-
-    const orgProfile = resolveIndustryProfile(org.industryKey || org.industry, org.trading_name || org.legal_name);
-    let gpsProof;
-    try {
-      gpsProof = verifyStrictLiveGps(orgForGps, orgProfile, body, {
-        actionLabel: isExitScan ? 'scan colleague exit card' : 'scan colleague ID card',
-        allowOfflineCaptured: true
-      });
-    } catch (gpsErr) {
-      return sendJson(response, gpsErr.statusCode || 403, {
-        error: gpsErr.message,
-        code: gpsErr.errorCode || 'GPS_REQUIRED'
-      });
-    }
-
+    const { targetMember, store, orgForGps, orgId, gpsProof, scanPhotoDataUrl } = v;
+    const cardProofMode = 'physical_badge_facial_verify';
+    const proofLabel = 'Physical ID Badge + Live Facial Verify';
+    const photoSuffix = ' · Live Facial Photo Attached';
     const now = new Date();
     const nowIso = now.toISOString();
     const todayPrefix = nowIso.slice(0, 10);
@@ -4496,12 +4627,10 @@ async function getOrganisationRosterState(user) {
         activeEntry.exitScannedByMembershipId = user.id;
         activeEntry.exitScannedByName = user.name || 'Colleague';
         activeEntry.exitCardProofMode = cardProofMode;
-        if (scanPhotoDataUrl) {
-          activeEntry.exitScanPhotoDataUrl = scanPhotoDataUrl;
-          if (!activeEntry.scanPhotoDataUrl) activeEntry.scanPhotoDataUrl = scanPhotoDataUrl;
-        }
+        activeEntry.exitScanPhotoDataUrl = scanPhotoDataUrl;
+        if (!activeEntry.scanPhotoDataUrl) activeEntry.scanPhotoDataUrl = scanPhotoDataUrl;
         activeEntry.presenceVerificationStatus = 'verified_entry_and_exit';
-        activeEntry.clockOutDetails = `Verified Card Exit Scan (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}${photoSuffix}`;
+        activeEntry.clockOutDetails = `Verified Exit (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}${photoSuffix}`;
         await saveStore(store);
         broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-out' }, { organisationId: orgId });
 
@@ -4512,7 +4641,7 @@ async function getOrganisationRosterState(user) {
           verificationMode: activeEntry.verificationMode || 'colleague_card_scan',
           clockOutVerificationMode: 'colleague_card_exit_scan',
           cardProofMode,
-          hasPhotoProof: Boolean(scanPhotoDataUrl),
+          hasPhotoProof: true,
           presenceVerificationStatus: 'verified_entry_and_exit',
           geofenceStatus: 'within_geofence',
           distanceMeters: gpsProof.distanceMeters,
@@ -4522,18 +4651,19 @@ async function getOrganisationRosterState(user) {
             userName: targetMember.name,
             staffId: targetMember.staffId,
             role: targetMember.title,
-            department: targetMember.department
+            department: targetMember.department,
+            avatarUrl: targetMember.avatarUrl || null
           },
           clockedInAt: activeEntry.clockedInAt,
           clockedOutAt: nowIso,
           verifiedBy: { membershipId: user.id, name: user.name },
-          message: `${targetMember.name} (${targetMember.staffId}) exit verified on-site by ${user.name}${earlyDeparture ? ' (early exit recorded to exact departure time)' : ''}.`
+          message: `${targetMember.name} (${targetMember.staffId}) exit + live facial photo verified on-site by ${user.name}${earlyDeparture ? ' (early exit recorded to exact departure time)' : ''}.`
         });
       }
 
       if (activeEntry) {
         return sendJson(response, 409, {
-          error: `${targetMember.name} (${targetMember.staffId}) is already clocked in today. Switch the scanner to Exit Card Scan if they are leaving site.`,
+          error: `${targetMember.name} (${targetMember.staffId}) is already clocked in today. Switch the scanner to Shift Exit Scan if they are leaving site.`,
           code: 'ALREADY_CLOCKED_IN'
         });
       }
@@ -4546,16 +4676,17 @@ async function getOrganisationRosterState(user) {
       );
       if (duplicateTodayCardScan) {
         return sendJson(response, 409, {
-          error: `${targetMember.name} (${targetMember.staffId}) already completed a colleague ID card clock-in today. Duplicate same-day card check-ins are blocked.`,
+          error: `${targetMember.name} (${targetMember.staffId}) already completed an ID card clock-in today. Duplicate same-day card check-ins are blocked.`,
           code: 'DUPLICATE_DAILY_CARD_SCAN'
         });
       }
 
-      const verificationDetails = `Colleague ID Card Check-In (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${photoSuffix}`;
+      const verificationDetails = `Worker ID Card + Facial Check-In (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${photoSuffix}`;
       const scheduledEndMs = computeScheduledShiftEndMs(targetMember, now.getTime());
       const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
+      const newEntryId = crypto.randomUUID();
       const newEntry = {
-        id: crypto.randomUUID(),
+        id: newEntryId,
         organisationId: orgId,
         membershipId: targetMember.id,
         clockedInAt: nowIso,
@@ -4577,14 +4708,16 @@ async function getOrganisationRosterState(user) {
       store.timeEntries.unshift(newEntry);
       await saveStore(store);
       broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-in' }, { organisationId: orgId });
+      const assistedBrief = await resolveAssistedWorkerCheckInContext(user, targetMember, orgForGps, store);
 
       return sendJson(response, 200, {
         ok: true,
+        entryId: newEntryId,
         alreadyClockedIn: false,
         action: 'clock-in',
         verificationMode: 'colleague_card_scan',
         cardProofMode,
-        hasPhotoProof: Boolean(scanPhotoDataUrl),
+        hasPhotoProof: true,
         presenceVerificationStatus: 'awaiting_exit_scan',
         worker: {
           userId: targetMember.user_id,
@@ -4592,14 +4725,16 @@ async function getOrganisationRosterState(user) {
           userName: targetMember.name,
           staffId: targetMember.staffId,
           role: targetMember.title,
-          department: targetMember.department
+          department: targetMember.department,
+          avatarUrl: targetMember.avatarUrl || null
         },
         clockedInAt: nowIso,
         scheduledClockOutAt,
         geofenceStatus: 'within_geofence',
         distanceMeters: gpsProof.distanceMeters,
         verifiedBy: { membershipId: user.id, name: user.name },
-        message: `${targetMember.name} (${targetMember.staffId}) clocked in by ${user.name} (${gpsProof.distanceMeters}m from ${hubName}). Scan their ID card again on exit or confirm presence at shift end.`
+        assistedBrief,
+        message: `${targetMember.name} (${targetMember.staffId}) clocked in with live facial photo by ${user.name} (${gpsProof.distanceMeters}m from ${hubName}). Complete handover acceptance & checklists below.`
       });
     }
 
@@ -4618,7 +4753,7 @@ async function getOrganisationRosterState(user) {
       }
       const scheduledEndMs = computeScheduledShiftEndMs(targetMember, new Date(existingOpen.clocked_in_at).getTime());
       const earlyDeparture = now.getTime() < scheduledEndMs;
-      const exitDetail = `Verified Card Exit Scan (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}${photoSuffix}`;
+      const exitDetail = `Verified Exit (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}${photoSuffix}`;
       await query(
         `update time_entries
          set clocked_out_at = $1,
@@ -4631,7 +4766,7 @@ async function getOrganisationRosterState(user) {
          where id = $5 and clocked_out_at is null`,
         [nowIso, cardProofMode, scanPhotoDataUrl, exitDetail, existingOpen.id]
       );
-      await audit(orgId, user.id, 'peer_card_clock_out', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) exit verified via colleague ID card scan (${proofLabel}).`);
+      await audit(orgId, user.id, 'peer_card_clock_out', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) exit + live facial verification completed via assisted scanner.`);
       broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-out' }, { organisationId: orgId });
 
       return sendJson(response, 200, {
@@ -4641,7 +4776,7 @@ async function getOrganisationRosterState(user) {
         verificationMode: existingOpen.verification_mode || 'colleague_card_scan',
         clockOutVerificationMode: 'colleague_card_exit_scan',
         cardProofMode,
-        hasPhotoProof: Boolean(scanPhotoDataUrl),
+        hasPhotoProof: true,
         presenceVerificationStatus: 'verified_entry_and_exit',
         geofenceStatus: 'within_geofence',
         distanceMeters: gpsProof.distanceMeters,
@@ -4651,18 +4786,19 @@ async function getOrganisationRosterState(user) {
           userName: targetMember.name,
           staffId: targetMember.staffId,
           role: targetMember.title,
-          department: targetMember.department
+          department: targetMember.department,
+          avatarUrl: targetMember.avatarUrl || null
         },
         clockedInAt: existingOpen.clocked_in_at,
         clockedOutAt: nowIso,
         verifiedBy: { membershipId: user.id, name: user.name },
-        message: `${targetMember.name} (${targetMember.staffId}) exit verified on-site by ${user.name}${earlyDeparture ? ' (early exit recorded to exact departure time)' : ''}.`
+        message: `${targetMember.name} (${targetMember.staffId}) exit + live facial photo verified on-site by ${user.name}${earlyDeparture ? ' (early exit recorded to exact departure time)' : ''}.`
       });
     }
 
     if (existingOpen) {
       return sendJson(response, 409, {
-        error: `${targetMember.name} (${targetMember.staffId}) is already clocked in today. Switch the scanner to Exit Card Scan if they are leaving site.`,
+        error: `${targetMember.name} (${targetMember.staffId}) is already clocked in today. Switch the scanner to Shift Exit Scan if they are leaving site.`,
         code: 'ALREADY_CLOCKED_IN'
       });
     }
@@ -4673,30 +4809,33 @@ async function getOrganisationRosterState(user) {
     )).rows[0];
     if (dupCardPg) {
       return sendJson(response, 409, {
-        error: `${targetMember.name} (${targetMember.staffId}) already completed a colleague ID card clock-in today. Duplicate same-day card check-ins are blocked.`,
+        error: `${targetMember.name} (${targetMember.staffId}) already completed an ID card clock-in today. Duplicate same-day card check-ins are blocked.`,
         code: 'DUPLICATE_DAILY_CARD_SCAN'
       });
     }
 
-    const verificationDetails = `Colleague ID Card Check-In (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${photoSuffix}`;
+    const verificationDetails = `Worker ID Card + Facial Check-In (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${photoSuffix}`;
     const scheduledEndMs = computeScheduledShiftEndMs(targetMember, now.getTime());
     const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
+    const newEntryId = crypto.randomUUID();
     await query(
       `insert into time_entries (id, organisation_id, membership_id, clocked_in_at, note, verification_mode, geofence_status, distance_meters, presence_verification_status, scanned_by_membership_id, scanned_by_name, card_proof_mode, scan_photo_data_url)
        values ($1, $2, $3, $4, $5, 'colleague_card_scan', 'within_geofence', $6, 'awaiting_exit_scan', $7, $8, $9, $10)`,
-      [crypto.randomUUID(), orgId, targetMember.id, nowIso, verificationDetails, gpsProof.distanceMeters, user.id, user.name || 'Colleague', cardProofMode, scanPhotoDataUrl]
+      [newEntryId, orgId, targetMember.id, nowIso, verificationDetails, gpsProof.distanceMeters, user.id, user.name || 'Colleague', cardProofMode, scanPhotoDataUrl]
     );
     await saveStore(store);
-    await audit(orgId, user.id, 'peer_card_clock_in', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) clocked in via colleague ID card scan (${proofLabel}).`);
+    await audit(orgId, user.id, 'peer_card_clock_in', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) clocked in with live facial photo via assisted scanner.`);
     broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-in' }, { organisationId: orgId });
+    const assistedBrief = await resolveAssistedWorkerCheckInContext(user, targetMember, orgForGps, store);
 
     return sendJson(response, 200, {
       ok: true,
+      entryId: newEntryId,
       alreadyClockedIn: false,
       action: 'clock-in',
       verificationMode: 'colleague_card_scan',
       cardProofMode,
-      hasPhotoProof: Boolean(scanPhotoDataUrl),
+      hasPhotoProof: true,
       presenceVerificationStatus: 'awaiting_exit_scan',
       worker: {
         userId: targetMember.user_id,
@@ -4704,14 +4843,210 @@ async function getOrganisationRosterState(user) {
         userName: targetMember.name,
         staffId: targetMember.staffId,
         role: targetMember.title,
-        department: targetMember.department
+        department: targetMember.department,
+        avatarUrl: targetMember.avatarUrl || null
       },
       clockedInAt: nowIso,
       scheduledClockOutAt,
       geofenceStatus: 'within_geofence',
       distanceMeters: gpsProof.distanceMeters,
       verifiedBy: { membershipId: user.id, name: user.name },
-      message: `${targetMember.name} (${targetMember.staffId}) clocked in by ${user.name} (${gpsProof.distanceMeters}m from ${hubName}). Scan their ID card again on exit or confirm presence at shift end.`
+      assistedBrief,
+      message: `${targetMember.name} (${targetMember.staffId}) clocked in with live facial photo by ${user.name} (${gpsProof.distanceMeters}m from ${hubName}). Complete handover acceptance & checklists below.`
+    });
+  }
+
+  // 3) POST /api/time-entries/peer-assisted-complete
+  // Saves pre-shift checklists and acknowledges incoming handover on behalf of a worker
+  // who just checked in via physical Staff ID card + live facial verification capture on the helper's phone.
+  if (url.pathname === '/api/time-entries/peer-assisted-complete' && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    const body = await readJson(request).catch(() => ({}));
+    const targetMembershipId = String(body.targetMembershipId || body.membershipId || '').trim();
+    if (!targetMembershipId) return sendJson(response, 400, { error: 'Target worker membershipId is required.' });
+
+    const { members, store } = await getOrganisationRosterState(user);
+    const targetMember = members.find(m => m.id === targetMembershipId || m.user_id === targetMembershipId);
+    if (!targetMember || targetMember.status !== 'active') {
+      return sendJson(response, 404, { error: 'Target active staff member not found in your organisation.' });
+    }
+
+    const canAssistRole = ['owner', 'supervisor', 'manager', 'workforce_admin'].includes(user.role);
+    let activeEntry = null;
+    if (!databaseReady) {
+      activeEntry = (store.timeEntries || []).find(e =>
+        (e.membershipId === targetMember.id || e.membershipId === targetMember.user_id) &&
+        !e.clockedOutAt &&
+        e.verificationMode === 'colleague_card_scan'
+      ) || null;
+      if (!activeEntry || (!canAssistRole && activeEntry.scannedByMembershipId && activeEntry.scannedByMembershipId !== user.id)) {
+        return sendJson(response, 403, {
+          error: 'No active assisted ID-card check-in session found for this worker on your device today.',
+          code: 'ASSISTED_SESSION_REQUIRED'
+        });
+      }
+    } else {
+      activeEntry = (await query(
+        `select id, scanned_by_membership_id, note from time_entries
+         where organisation_id = $1 and membership_id = $2 and clocked_out_at is null and verification_mode = 'colleague_card_scan'
+         limit 1`,
+        [user.organisation_id, targetMember.id]
+      )).rows[0] || null;
+      if (!activeEntry || (!canAssistRole && activeEntry.scanned_by_membership_id && activeEntry.scanned_by_membership_id !== user.id)) {
+        return sendJson(response, 403, {
+          error: 'No active assisted ID-card check-in session found for this worker on your device today.',
+          code: 'ASSISTED_SESSION_REQUIRED'
+        });
+      }
+    }
+
+    const org = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
+    const orgForBrief = databaseReady
+      ? ((await query('select id, organisation_code, trading_name, legal_name, industry from organisations where id = $1 limit 1', [user.organisation_id])).rows[0] || org)
+      : org;
+    const briefBefore = await resolveAssistedWorkerCheckInContext(user, targetMember, orgForBrief, store);
+    const tenantId = briefBefore.tenantId;
+    const dayKey = briefBefore.dayKey;
+
+    if (!store.shiftTaskState) store.shiftTaskState = {};
+    if (!store.shiftTaskState[tenantId]) store.shiftTaskState[tenantId] = {};
+    if (!store.shiftTaskState[tenantId][dayKey]) store.shiftTaskState[tenantId][dayKey] = {};
+    if (!store.workerTaskState) store.workerTaskState = {};
+    if (!store.workerTaskState[targetMember.id]) store.workerTaskState[targetMember.id] = {};
+    if (!store.workerTaskState[targetMember.id][dayKey]) store.workerTaskState[targetMember.id][dayKey] = {};
+
+    const taskStates = (body.taskStates && typeof body.taskStates === 'object') ? body.taskStates : {};
+    for (const [taskId, doneVal] of Object.entries(taskStates)) {
+      store.shiftTaskState[tenantId][dayKey][taskId] = Boolean(doneVal);
+      store.workerTaskState[targetMember.id][dayKey][taskId] = Boolean(doneVal);
+    }
+
+    const readinessChecked = Array.isArray(body.readinessChecked) ? body.readinessChecked.map(Boolean) : [];
+    const acknowledgeHandover = body.acknowledgeHandover !== false;
+    const requestedHandoverId = String(body.handoverId || briefBefore.handover?.id || 'ho-morning-01').trim();
+    const nowIso = new Date().toISOString();
+    let handoverStatus = briefBefore.handover?.status || 'relayed';
+
+    if (acknowledgeHandover) {
+      handoverStatus = 'acknowledged';
+      const ackNoteText = `Accepted via Assisted ID Check-In on ${user.name || 'Colleague'}'s device (Live Facial Photo Attached)`;
+      if (!databaseReady) {
+        if (!Array.isArray(store.handovers)) store.handovers = [];
+        const existingHo = store.handovers.find(h => h.id === requestedHandoverId);
+        if (existingHo) {
+          existingHo.status = 'acknowledged';
+          existingHo.acknowledgement = {
+            by: targetMember.id,
+            byName: targetMember.name,
+            assistedBy: user.id,
+            assistedByName: user.name,
+            at: nowIso
+          };
+          existingHo.updatedAt = nowIso;
+        } else {
+          store.handovers.unshift({
+            id: requestedHandoverId === 'ho-morning-01' ? ('ho-assisted-' + Date.now()) : requestedHandoverId,
+            organisationId: user.organisation_id,
+            createdBy: user.id,
+            assignedTo: targetMember.id,
+            status: 'acknowledged',
+            handover: {
+              summary: briefBefore.handover?.summary || 'Shift Readiness & Handover Briefing',
+              notes: `${briefBefore.handover?.notes || ''} (${ackNoteText})`.trim(),
+              author: briefBefore.handover?.authorName || 'Shift Operations Lead'
+            },
+            acknowledgement: {
+              by: targetMember.id,
+              byName: targetMember.name,
+              assistedBy: user.id,
+              assistedByName: user.name,
+              at: nowIso
+            },
+            createdAt: nowIso,
+            updatedAt: nowIso
+          });
+        }
+        if (activeEntry) {
+          activeEntry.assistedHandoverAccepted = true;
+          activeEntry.assistedChecklistCompletedCount = Object.values(store.workerTaskState[targetMember.id][dayKey]).filter(Boolean).length;
+          activeEntry.note = `${activeEntry.note || ''} · Assisted Handover & Checklists Accepted`.trim();
+        }
+      } else {
+        if (UUID_REGEX.test(requestedHandoverId)) {
+          const existingDbItem = (await query(
+            'select id, created_by_membership_id, workflow_run_id from work_items where id = $1 and organisation_id = $2 limit 1',
+            [requestedHandoverId, user.organisation_id]
+          )).rows[0];
+          if (existingDbItem) {
+            await query(
+              'update work_items set status = $1, acknowledged_at = now(), assigned_to_membership_id = $2, updated_at = now() where id = $3',
+              ['acknowledged', targetMember.id, existingDbItem.id]
+            );
+            await query(
+              'insert into work_events (id, organisation_id, workflow_run_id, work_item_id, actor_membership_id, event_type, message) values ($1,$2,$3,$4,$5,$6,$7)',
+              [crypto.randomUUID(), user.organisation_id, existingDbItem.workflow_run_id, existingDbItem.id, user.id, 'acknowledged', `${targetMember.name} (${targetMember.staffId}) ${ackNoteText}`]
+            );
+          }
+        } else {
+          const runId = crypto.randomUUID();
+          const workItemId = crypto.randomUUID();
+          await query(
+            'insert into workflow_runs (id, organisation_id, created_by_membership_id, status, priority) values ($1,$2,$3,$4,$5)',
+            [runId, user.organisation_id, user.id, 'completed', 'normal']
+          );
+          await query(
+            'insert into work_items (id, workflow_run_id, organisation_id, assigned_to_membership_id, created_by_membership_id, item_type, title, status, priority, acknowledged_at, payload) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),$10::jsonb)',
+            [
+              workItemId,
+              runId,
+              user.organisation_id,
+              targetMember.id,
+              user.id,
+              'handover',
+              briefBefore.handover?.summary || 'Assisted Check-In Shift Handover',
+              'acknowledged',
+              'normal',
+              JSON.stringify({
+                summary: briefBefore.handover?.summary || 'Shift Readiness & Handover Briefing',
+                notes: `${briefBefore.handover?.notes || ''} (${ackNoteText})`.trim(),
+                author: briefBefore.handover?.authorName || user.name,
+                assistedBy: user.name,
+                readinessConfirmedCount: readinessChecked.filter(Boolean).length
+              })
+            ]
+          );
+          await query(
+            'insert into work_events (id, organisation_id, workflow_run_id, work_item_id, actor_membership_id, event_type, message) values ($1,$2,$3,$4,$5,$6,$7)',
+            [crypto.randomUUID(), user.organisation_id, runId, workItemId, user.id, 'acknowledged', `${targetMember.name} (${targetMember.staffId}) ${ackNoteText}`]
+          );
+        }
+        await query(
+          `update time_entries set note = trim(coalesce(note, '') || ' | Assisted Handover & Checklists Accepted') where id = $1`,
+          [activeEntry.id]
+        );
+        await audit(
+          user.organisation_id,
+          user.id,
+          'peer_assisted_handover_acknowledged',
+          'membership',
+          targetMember.id,
+          `${targetMember.name} (${targetMember.staffId}) accepted handover & shift checklists on ${user.name}'s assisted scanner.`
+        );
+      }
+      broadcastEvent('handover-acknowledged', { organisationId: user.organisation_id, membershipId: targetMember.id, assistedBy: user.id }, { organisationId: user.organisation_id });
+    }
+
+    await saveStore(store);
+    const updatedTaskMap = store.workerTaskState[targetMember.id][dayKey];
+    const tasksCompletedCount = briefBefore.checklistTasks.filter(t => updatedTaskMap[t.id] ?? t.done).length;
+    return sendJson(response, 200, {
+      ok: true,
+      worker: { membershipId: targetMember.id, userName: targetMember.name, staffId: targetMember.staffId },
+      handoverStatus,
+      tasksCompletedCount,
+      tasksTotalCount: briefBefore.checklistTasks.length,
+      readinessConfirmedCount: readinessChecked.filter(Boolean).length,
+      message: `${targetMember.name} (${targetMember.staffId}) accepted shift handover and completed ${tasksCompletedCount}/${briefBefore.checklistTasks.length} checklist items.`
     });
   }
 

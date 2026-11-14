@@ -8,11 +8,10 @@ import { chromium } from 'playwright';
 import pg from 'pg';
 import {
   buildStaffCardCredentials,
-  buildDynamicStaffCardCredentials,
   parseStaffCardPayload,
   verifyStaffCardSecurityCode,
-  verifyStaffCardDynamicToken,
   sanitizeScanPhotoDataUrl,
+  sanitizeFacialPhotoDataUrl,
   verifyStrictLiveGps,
   applyAutoShiftEndClosure,
   resolveOrgGeofenceConfig
@@ -112,67 +111,29 @@ async function runUnitChecks() {
   assert.equal(verifyStaffCardSecurityCode({ orgCode: 'RIF-2026', staffId: 'RIF-0023', providedCode: 'WRONG1', storeOrSecret: store }), false);
   assert.equal(verifyStaffCardSecurityCode({ orgCode: 'RIF-2026', staffId: 'RIF-0099', providedCode: creds.cardVerifyCode, storeOrSecret: store }), false);
 
-  // Rotating 45s TOTP dynamic QR checks (current valid, +-1 step drift valid, >2 steps expired rejected)
-  const fixedNow = 1763100000000;
-  const dynNow = buildDynamicStaffCardCredentials('RIF-2026', 'RIF-0023', store, { nowMs: fixedNow });
-  assert.equal(dynNow.dynamicToken.length, 6);
-  assert.equal(dynNow.stepSeconds, 45);
-  assert.ok(dynNow.dynamicQrPayload.startsWith(`SHIFTRELAY:DYN:RIF-2026:RIF-0023:${dynNow.dynamicStep}:`));
-  const parsedDyn = parseStaffCardPayload(dynNow.dynamicQrPayload);
-  assert.equal(parsedDyn.mode, 'dynamic_totp');
-  assert.equal(parsedDyn.isDynamicQr, true);
-  assert.equal(parsedDyn.step, dynNow.dynamicStep);
-  const verdictNow = verifyStaffCardDynamicToken({
-    orgCode: 'RIF-2026',
-    staffId: 'RIF-0023',
-    providedToken: parsedDyn.securityCode,
-    providedStep: parsedDyn.step,
-    storeOrSecret: store,
-    nowMs: fixedNow
-  });
-  assert.equal(verdictNow.valid, true);
-  assert.equal(verdictNow.expired, false);
-  assert.equal(verdictNow.proofMode, 'dynamic_live_qr');
+  // Physical Staff ID Badge QR + explicit manual SEC verification checks
+  const parsedRaw = parseStaffCardPayload('RIF-0023', creds.cardVerifyCode);
+  assert.equal(parsedRaw.mode, 'physical_card');
+  assert.equal(parsedRaw.staffId, 'RIF-0023');
+  assert.equal(parsedRaw.securityCode, creds.cardVerifyCode);
+  assert.equal(parsedRaw.isSignedQr, false);
+  const legacyShort = parseStaffCardPayload(`SR:STAFF:RIF-0023:${creds.cardVerifyCode}`);
+  assert.equal(legacyShort.mode, 'physical_card');
+  assert.equal(legacyShort.staffId, 'RIF-0023');
+  assert.equal(legacyShort.securityCode, creds.cardVerifyCode);
+  assert.equal(legacyShort.isSignedQr, true);
+  const unsignedOrgQr = parseStaffCardPayload('SHIFTRELAY:ID:RIF-2026:RIF-0023');
+  assert.equal(unsignedOrgQr.orgCode, 'RIF-2026');
+  assert.equal(unsignedOrgQr.staffId, 'RIF-0023');
+  assert.equal(unsignedOrgQr.isSignedQr, false);
 
-  const dynPrevStep = buildDynamicStaffCardCredentials('RIF-2026', 'RIF-0023', store, { step: dynNow.dynamicStep - 1, nowMs: fixedNow });
-  const verdictDrift = verifyStaffCardDynamicToken({
-    orgCode: 'RIF-2026',
-    staffId: 'RIF-0023',
-    providedToken: dynPrevStep.dynamicToken,
-    providedStep: dynPrevStep.dynamicStep,
-    storeOrSecret: store,
-    nowMs: fixedNow
-  });
-  assert.equal(verdictDrift.valid, true);
-
-  const dynOldScreenshot = buildDynamicStaffCardCredentials('RIF-2026', 'RIF-0023', store, { step: dynNow.dynamicStep - 4, nowMs: fixedNow });
-  const verdictExpired = verifyStaffCardDynamicToken({
-    orgCode: 'RIF-2026',
-    staffId: 'RIF-0023',
-    providedToken: dynOldScreenshot.dynamicToken,
-    providedStep: dynOldScreenshot.dynamicStep,
-    storeOrSecret: store,
-    nowMs: fixedNow
-  });
-  assert.equal(verdictExpired.valid, false);
-  assert.equal(verdictExpired.expired, true);
-
-  // Manual 6-char dynamic token expiry lookback check
-  const verdictManualExpired = verifyStaffCardDynamicToken({
-    orgCode: 'RIF-2026',
-    staffId: 'RIF-0023',
-    providedToken: dynOldScreenshot.dynamicToken,
-    providedStep: null,
-    storeOrSecret: store,
-    nowMs: fixedNow
-  });
-  assert.equal(verdictManualExpired.valid, false);
-  assert.equal(verdictManualExpired.expired, true);
-
-  // Scan photo validation
-  assert.equal(sanitizeScanPhotoDataUrl('javascript:alert(1)'), null);
+  // Mandatory live facial verification photo sanitization
+  assert.equal(sanitizeFacialPhotoDataUrl('javascript:alert(1)'), null);
+  assert.equal(sanitizeFacialPhotoDataUrl('data:text/plain;base64,SGVsbG8='), null);
+  assert.equal(sanitizeFacialPhotoDataUrl('data:image/jpeg;base64,' + 'A'.repeat(140000)), null);
   const validTinyPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgQmY9m8AAAAASUVORK5CYII=';
   assert.equal(sanitizeScanPhotoDataUrl(validTinyPng), validTinyPng);
+  assert.equal(sanitizeFacialPhotoDataUrl(validTinyPng), validTinyPng);
 
   // Auto clock-out flags colleague_card_scan for supervisor review
   const cardShift = {
@@ -298,7 +259,7 @@ async function main() {
       pgPool = new Pool({ connectionString: PG_URL, max: 5 });
       const pgReady = await waitForPg(pgPool);
       if (!pgReady) throw new Error(`PostgreSQL 18 did not become ready on port ${PG_PORT}`);
-      for (const tbl of ['user_sessions', 'time_entries', 'app_kv_store', 'work_events']) {
+      for (const tbl of ['user_sessions', 'time_entries', 'app_kv_store', 'work_events', 'work_items', 'audit_events']) {
         try { await pgPool.query(`DELETE FROM ${tbl}`); } catch (_) {}
       }
       console.log('   PostgreSQL 18 ready (production database mode).');
@@ -342,8 +303,10 @@ async function main() {
     assert.equal(supCardsRes.status, 200);
     const suleimanCard = supCardsRes.data.cards.find(c => c.staffId === 'RIF-0023');
     const ngoziCard = supCardsRes.data.cards.find(c => c.staffId === 'RIF-0006');
+    const ibrahimCard = supCardsRes.data.cards.find(c => c.staffId === ibrahim.user.staffId);
     assert.ok(suleimanCard?.cardVerifyCode && suleimanCard?.cardQrPayload);
     assert.ok(ngoziCard?.cardVerifyCode);
+    assert.ok(ibrahimCard?.cardVerifyCode && ibrahimCard?.cardQrPayload);
 
     // Clock-in without GPS -> 400
     const noGpsClockIn = await apiJson('/api/time-entries/clock-in', farouk.cookie, { method: 'POST', body: {} });
@@ -394,62 +357,98 @@ async function main() {
     assert.equal(offSiteScan.status, 403);
     assert.equal(offSiteScan.data.code, 'OUTSIDE_GEOFENCE');
 
-    // Dynamic 45s TOTP token API + WhatsApp screenshot expiry blocking + live photo proof
-    const ibrahimTokenRes = await apiJson('/api/me/card-token', ibrahim.cookie);
-    assert.equal(ibrahimTokenRes.status, 200);
-    assert.equal(ibrahimTokenRes.data.stepSeconds, 45);
-    assert.ok(ibrahimTokenRes.data.dynamicQrPayload?.startsWith(`SHIFTRELAY:DYN:RIF-2026:${ibrahim.user.staffId}:`));
-
-    let liveSecret = process.env.CARD_SIGNING_SECRET || process.env.SESSION_SECRET || '';
-    if (!liveSecret) {
-      if (USE_PG && pgPool) {
-        const kv = await pgPool.query("SELECT data FROM app_kv_store WHERE store_key = 'primary' LIMIT 1");
-        liveSecret = kv.rows[0]?.data?.cardSigningSecret || '';
-      } else if (existsSync(STORE_PATH)) {
-        const st = JSON.parse(await readFile(STORE_PATH, 'utf8'));
-        liveSecret = st.cardSigningSecret || '';
+    // Clock-In Assisted Workflow API checks: preview -> mandatory facial photo -> handover & checklists -> exit scan
+    const ibrahimPreview = await apiJson('/api/time-entries/peer-card-preview', babatunde.cookie, {
+      method: 'POST',
+      body: {
+        badgePayload: ibrahimCard.cardQrPayload,
+        coords: { ...ONSITE_COORDS, capturedAt: Date.now() }
       }
-    }
-    if (liveSecret) {
-      const expiredDynCreds = buildDynamicStaffCardCredentials('RIF-2026', ibrahim.user.staffId, liveSecret, {
-        step: ibrahimTokenRes.data.dynamicStep - 5
-      });
-      const replayAttempt = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
-        method: 'POST',
-        body: { badgePayload: expiredDynCreds.dynamicQrPayload, coords: { ...ONSITE_COORDS, capturedAt: Date.now() } }
-      });
-      assert.equal(replayAttempt.status, 403, 'Expired dynamic QR screenshot must be rejected');
-      assert.equal(replayAttempt.data.code, 'CARD_QR_EXPIRED');
-    }
+    });
+    assert.equal(ibrahimPreview.status, 200);
+    assert.equal(ibrahimPreview.data.worker?.staffId, ibrahim.user.staffId);
+    assert.equal(ibrahimPreview.data.alreadyOnShift, false);
+    assert.ok(ibrahimPreview.data.assistedBrief?.handover?.summary);
+    assert.ok(Array.isArray(ibrahimPreview.data.assistedBrief?.checklistTasks));
+
+    // Missing live facial capture -> 400 FACIAL_PHOTO_REQUIRED
+    const missingFaceScan = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
+      method: 'POST',
+      body: {
+        badgePayload: ibrahimCard.cardQrPayload,
+        coords: { ...ONSITE_COORDS, capturedAt: Date.now() }
+      }
+    });
+    assert.equal(missingFaceScan.status, 400, 'Physical ID card scan without live facial photo must be blocked');
+    assert.equal(missingFaceScan.data.code, 'FACIAL_PHOTO_REQUIRED');
 
     const SAMPLE_SCAN_PHOTO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgQmY9m8AAAAASUVORK5CYII=';
     const ibrahimLiveScanIn = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
       method: 'POST',
       body: {
-        badgePayload: ibrahimTokenRes.data.dynamicQrPayload,
+        badgePayload: ibrahimCard.cardQrPayload,
         scanPhotoDataUrl: SAMPLE_SCAN_PHOTO,
         coords: { ...ONSITE_COORDS, capturedAt: Date.now() }
       }
     });
     assert.equal(ibrahimLiveScanIn.status, 200);
-    assert.equal(ibrahimLiveScanIn.data.cardProofMode, 'dynamic_live_qr');
+    assert.equal(ibrahimLiveScanIn.data.cardProofMode, 'physical_badge_facial_verify');
     assert.equal(ibrahimLiveScanIn.data.hasPhotoProof, true);
+    assert.ok(ibrahimLiveScanIn.data.assistedBrief?.handover);
+
+    // Helper completes handover acceptance & checklists on behalf of Ibrahim
+    const nonScannerComplete = await apiJson('/api/time-entries/peer-assisted-complete', farouk.cookie, {
+      method: 'POST',
+      body: { targetMembershipId: ibrahim.user.id, acknowledgeHandover: true }
+    });
+    assert.equal(nonScannerComplete.status, 403, 'Colleague who did not scan worker cannot submit assisted handover');
+    assert.equal(nonScannerComplete.data.code, 'ASSISTED_SESSION_REQUIRED');
+
+    const firstTaskId = ibrahimLiveScanIn.data.assistedBrief?.checklistTasks?.[0]?.id;
+    const assistedComplete = await apiJson('/api/time-entries/peer-assisted-complete', babatunde.cookie, {
+      method: 'POST',
+      body: {
+        targetMembershipId: ibrahim.user.id,
+        handoverId: ibrahimLiveScanIn.data.assistedBrief?.handover?.id || 'ho-morning-01',
+        taskStates: firstTaskId ? { [firstTaskId]: true } : {},
+        readinessChecked: [true, true, true],
+        acknowledgeHandover: true
+      }
+    });
+    assert.equal(assistedComplete.status, 200);
+    assert.equal(assistedComplete.data.handoverStatus, 'acknowledged');
+
+    // Exit scan without facial photo must also fail -> with facial photo succeeds
+    const missingFaceExit = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
+      method: 'POST',
+      body: {
+        action: 'clock-out',
+        badgePayload: ibrahimCard.cardQrPayload,
+        coords: { ...ONSITE_COORDS, capturedAt: Date.now() }
+      }
+    });
+    assert.equal(missingFaceExit.status, 400);
+    assert.equal(missingFaceExit.data.code, 'FACIAL_PHOTO_REQUIRED');
 
     const ibrahimLiveScanOut = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
       method: 'POST',
       body: {
         action: 'clock-out',
-        badgePayload: ibrahimTokenRes.data.dynamicQrPayload,
+        badgePayload: ibrahimCard.cardQrPayload,
+        scanPhotoDataUrl: SAMPLE_SCAN_PHOTO,
         coords: { ...ONSITE_COORDS, capturedAt: Date.now() }
       }
     });
     assert.equal(ibrahimLiveScanOut.status, 200);
-    assert.equal(ibrahimLiveScanOut.data.cardProofMode, 'dynamic_live_qr');
+    assert.equal(ibrahimLiveScanOut.data.cardProofMode, 'physical_badge_facial_verify');
 
-    console.log('   PASS: All API strict GPS, anti-self-scan, rotating 45s TOTP & anti-screenshot checks passed.');
+    console.log('   PASS: All API strict GPS, physical badge preview, mandatory facial photo, assisted handover & exit checks passed.');
 
     console.log('4. Running Playwright headless Chromium E2E UI verification...');
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({
+      headless: true,
+      args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']
+    });
 
     // Context A: GPS DENIED / UNAVAILABLE
     const deniedContext = await browser.newContext({
@@ -503,10 +502,10 @@ async function main() {
     await deniedPage.screenshot({ path: join(ARTIFACT_DIR, 'strict-peer-scanner-gps-blocked.png') });
     await deniedContext.close();
 
-    // Context B: VALID ON-SITE GPS
+    // Context B: VALID ON-SITE GPS + LIVE CAMERA
     const onsiteContext = await browser.newContext({
       viewport: { width: 1280, height: 820 },
-      permissions: ['geolocation'],
+      permissions: ['geolocation', 'camera'],
       geolocation: { latitude: ONSITE_COORDS.latitude, longitude: ONSITE_COORDS.longitude, accuracy: 12 }
     });
     const onsitePage = await onsiteContext.newPage();
@@ -523,7 +522,7 @@ async function main() {
     );
     await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-gps-onsite-clockin.png') });
 
-    // Open Peer ID Scanner -> verify GPS ready pill -> Check-In Suleiman RIF-0023
+    // Open Clock-In Page Assisted Worker ID Scanner -> Step 1: Verify Physical ID Card
     await onsitePage.click('#sr-btn-scan-peer-id');
     await onsitePage.waitForFunction(
       () => (document.getElementById('sr-scanner-gps-text')?.textContent || '').includes('On-Site GPS Lock Ready'),
@@ -533,13 +532,65 @@ async function main() {
     await onsitePage.fill('#sr-peer-staff-id-input', 'RIF-0023');
     await onsitePage.fill('#sr-peer-card-code-input', suleimanCard.cardVerifyCode);
     await onsitePage.click('#sr-peer-submit-id-btn');
+
+    // Step 2: Mandatory Live Facial Capture
     await onsitePage.waitForFunction(
-      () => (document.getElementById('sr-peer-scan-result')?.textContent || '').includes('Clocked In'),
+      () => {
+        const s2 = document.getElementById('sr-scan-step-2');
+        const vid = document.getElementById('sr-facial-video');
+        return s2 && s2.style.display === 'flex' && vid && vid.videoWidth > 0 && vid.videoHeight > 0;
+      },
+      null,
+      { timeout: 10000 }
+    );
+    assert.equal(await onsitePage.isDisabled('#sr-btn-submit-face-checkin'), true, 'Clock-in submit must stay disabled until live facial photo is captured');
+    await onsitePage.click('#sr-btn-capture-face');
+    await onsitePage.waitForFunction(
+      () => {
+        const btn = document.getElementById('sr-btn-submit-face-checkin');
+        const img = document.getElementById('sr-facial-preview-img');
+        return btn && !btn.disabled && img && img.style.display === 'block' && img.src.startsWith('data:image/jpeg;base64,');
+      },
       null,
       { timeout: 6000 }
     );
+    await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-peer-facial-capture.png') });
+    await onsitePage.click('#sr-btn-submit-face-checkin');
 
-    // Duplicate same-shift card check-in -> must show Verification Blocked
+    // Step 3: Incoming Shift Handover Acceptance & Checklists
+    await onsitePage.waitForFunction(
+      () => {
+        const s3 = document.getElementById('sr-scan-step-3');
+        const hoTitle = document.getElementById('sr-assisted-ho-summary')?.textContent || '';
+        return s3 && s3.style.display === 'flex' && hoTitle.trim().length > 0;
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await onsitePage.locator('.sr-assisted-task-chk').first().check().catch(() => {});
+    await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-peer-assisted-handover.png') });
+    await onsitePage.click('#sr-btn-assisted-complete');
+    await onsitePage.waitForFunction(
+      () => {
+        const pill = document.getElementById('sr-assisted-ho-status-pill')?.textContent || '';
+        const closeBtn = document.getElementById('sr-btn-assisted-close');
+        return pill.includes('HANDOVER ACCEPTED') && closeBtn && closeBtn.style.display !== 'none';
+      },
+      null,
+      { timeout: 8000 }
+    );
+    await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-peer-assisted-complete.png') });
+    await onsitePage.click('#sr-btn-assisted-close');
+
+    // Helper returns cleanly to their own Active On Shift Clock-In screen
+    const stillActiveText = await onsitePage.textContent('#sr-today-shift-status');
+    assert.ok((stillActiveText || '').toLowerCase().includes('active on shift'), 'Helper must stay signed into their own active shift after closing scanner');
+
+    // Re-open scanner: duplicate same-shift card check-in blocked, Shift Exit Scan + live facial verification succeeds
+    await onsitePage.click('#sr-btn-scan-peer-id');
+    await onsitePage.waitForSelector('#sr-peer-staff-id-input', { timeout: 6000 });
+    await onsitePage.fill('#sr-peer-staff-id-input', 'RIF-0023');
+    await onsitePage.fill('#sr-peer-card-code-input', suleimanCard.cardVerifyCode);
     await onsitePage.click('#sr-peer-submit-id-btn');
     await onsitePage.waitForFunction(
       () => (document.getElementById('sr-peer-scan-result')?.textContent || '').toLowerCase().includes('already clocked in'),
@@ -547,21 +598,45 @@ async function main() {
       { timeout: 6000 }
     );
 
-    // Switch to Shift Exit Scan -> verify exit succeeds
+    // Switch to Shift Exit Scan -> capture live facial photo -> log exit
     await onsitePage.click('#sr-scan-mode-out');
     await onsitePage.click('#sr-peer-submit-id-btn');
     await onsitePage.waitForFunction(
       () => {
-        const txt = (document.getElementById('sr-peer-scan-result')?.textContent || '').toLowerCase();
-        return txt.includes('exit verified') || txt.includes('early exit logged');
+        const s2 = document.getElementById('sr-scan-step-2');
+        const vid = document.getElementById('sr-facial-video');
+        return s2 && s2.style.display === 'flex' && vid && vid.videoWidth > 0;
+      },
+      null,
+      { timeout: 10000 }
+    );
+    await onsitePage.click('#sr-btn-capture-face');
+    await onsitePage.waitForFunction(
+      () => {
+        const btn = document.getElementById('sr-btn-submit-face-checkin');
+        return btn && !btn.disabled;
       },
       null,
       { timeout: 6000 }
     );
+    await onsitePage.click('#sr-btn-submit-face-checkin');
+    await onsitePage.waitForFunction(
+      () => {
+        const doneBox = document.getElementById('sr-scan-step-done');
+        const txt = (document.getElementById('sr-done-summary-box')?.textContent || '').toLowerCase();
+        return doneBox && doneBox.style.display === 'flex' && (txt.includes('exit verified') || txt.includes('early exit logged'));
+      },
+      null,
+      { timeout: 8000 }
+    );
     await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-peer-scanner-exit-verified.png') });
+    await onsitePage.click('#sr-btn-finish-scan-done');
 
     // Try re-scanning RIF-0023 in same day after exit -> must block duplicate daily card check-in
-    await onsitePage.click('#sr-scan-mode-in');
+    await onsitePage.click('#sr-btn-scan-peer-id');
+    await onsitePage.waitForSelector('#sr-peer-staff-id-input', { timeout: 6000 });
+    await onsitePage.fill('#sr-peer-staff-id-input', 'RIF-0023');
+    await onsitePage.fill('#sr-peer-card-code-input', suleimanCard.cardVerifyCode);
     await onsitePage.click('#sr-peer-submit-id-btn');
     await onsitePage.waitForFunction(
       () => (document.getElementById('sr-peer-scan-result')?.textContent || '').toLowerCase().includes('already completed'),
@@ -569,13 +644,16 @@ async function main() {
       { timeout: 6000 }
     );
 
-    // Close scanner and verify Worker Profile ("Me") renders live rotating 45s TOTP QR and hides static SEC PIN
+    // Close scanner and verify Worker Profile ("Me") renders clean Physical Staff ID Card (no 45s TOTP / no printed Card Sec leak)
     await onsitePage.click('#sr-btn-close-scanner');
     await onsitePage.click('[data-sr-view="me"]');
-    await onsitePage.waitForSelector('#sr-profile-qr-countdown', { timeout: 6000 });
+    await onsitePage.waitForSelector('#sr-profile-qr-svg', { timeout: 6000 });
     const meCardText = await onsitePage.textContent('#sr-content-area');
-    assert.ok(meCardText.includes('LIVE 45s TOTP') && !meCardText.includes('Card Sec:'), 'Worker Digital ID must show live 45s TOTP QR and never leak static printed Card Sec');
-    await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-worker-dynamic-id.png') });
+    assert.ok(
+      meCardText.includes('Official Staff ID Card') && !meCardText.includes('LIVE 45s TOTP') && !meCardText.includes('Card Sec:'),
+      'Worker ID card must display Official Staff ID Card without 45s TOTP rotation or printed Card Sec'
+    );
+    await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-worker-physical-id.png') });
     await onsiteContext.close();
 
     // Part C: Auto-Out Hold & Supervisor Presence Review Workflow
@@ -590,7 +668,7 @@ async function main() {
       }
     });
     assert.equal(ngoziCheckIn.status, 200);
-    assert.equal(ngoziCheckIn.data.cardProofMode, 'static_badge_fallback');
+    assert.equal(ngoziCheckIn.data.cardProofMode, 'physical_badge_facial_verify');
     assert.equal(ngoziCheckIn.data.hasPhotoProof, true);
 
     // Stop server so edits/backdating load cleanly on restart, backdate Ngozi's card entry 12h so shift_end (14:00 WAT) is expired
@@ -622,7 +700,7 @@ async function main() {
     assert.equal(reviewsBefore.status, 200);
     const ngoziReview = reviewsBefore.data.reviews.find(r => r.membershipId === ngoziCard.id);
     assert.ok(ngoziReview, 'Auto-out card shift without exit scan must enter pending_supervisor_confirm queue');
-    assert.equal(ngoziReview.cardProofMode, 'static_badge_fallback');
+    assert.equal(ngoziReview.cardProofMode, 'physical_badge_facial_verify');
     assert.equal(ngoziReview.hasPhotoProof, true);
 
     // Owner checks payroll -> Ngozi must be held in hold_presence_review!

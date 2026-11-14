@@ -83,8 +83,7 @@
     const org = user.organisation_name || 'ShiftRelay Network';
     const staffCode = user.staffId || user.employee_code || ('RIF-' + String(user.id || '0001').slice(-4).padStart(4, '0'));
     const orgCode = user.company_id || 'RIF-2026';
-    const dynamicToken = user.dynamicCardToken || '';
-    const payload = user.dynamicQrPayload || `SHIFTRELAY:ID:${orgCode}:${staffCode}`;
+    const payload = user.cardQrPayload || `SHIFTRELAY:ID:${orgCode}:${staffCode}`;
 
     const backdrop = document.createElement('div');
     backdrop.id = 'qr-modal-backdrop';
@@ -92,7 +91,7 @@
     backdrop.innerHTML = `
       <div class="qr-passport-modal-card" role="dialog" aria-modal="true" aria-label="Official Staff ID Card">
         <h3 style="margin:0;font-size:18px;font-weight:800;color:#0d524d;">Official Staff ID Card</h3>
-        <p style="margin:4px 0 0;font-size:12px;color:#64748b;">Live rotating 45s QR &middot; <span id="qr-passport-countdown" style="color:#0d9488;font-weight:700;">Rotates every 45s</span> (anti-screenshot protected)</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#64748b;">Physical Badge Identification Pass &middot; Verified on-site via Clock-In Assisted Scanner + Live Facial Check</p>
 
         <div class="qr-code-box" id="qr-passport-svg-wrap">
           ${typeof window.generateQrSvg === 'function' ? window.generateQrSvg(payload, 148) : ''}
@@ -101,11 +100,10 @@
         <div style="background:#f8fafc;padding:10px 14px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:14px;font-size:12px;">
           <strong style="display:block;font-size:14px;color:#0f172a;">${escape(name)}</strong>
           <span style="color:#64748b;">${escape(role)} · ${escape(org)}</span>
-          <div style="font-family:monospace;font-size:11px;font-weight:700;color:#0d524d;margin-top:4px;">STAFF ID: ${escape(staffCode)} &middot; LIVE TOTP: <span id="qr-passport-dyn-code">${escape(dynamicToken || 'SYNC')}</span></div>
+          <div style="font-family:monospace;font-size:11px;font-weight:700;color:#0d524d;margin-top:4px;">STAFF ID: ${escape(staffCode)} &middot; GPS + LIVE FACE REQUIRED</div>
         </div>
 
         <div style="display:flex;gap:8px;">
-          <button class="secondary" id="btn-refresh-qr-modal" type="button" style="flex:1;">Refresh QR</button>
           <button class="primary" id="btn-close-qr-modal" type="button" style="flex:1;">Done</button>
         </div>
       </div>
@@ -113,19 +111,7 @@
 
     document.body.appendChild(backdrop);
 
-    const stopTicker = window.ShiftRelayLiveCardTicker?.attach
-      ? window.ShiftRelayLiveCardTicker.attach({
-          qrBoxEl: document.getElementById('qr-passport-svg-wrap'),
-          countdownEl: document.getElementById('qr-passport-countdown'),
-          tokenEls: [document.getElementById('qr-passport-dyn-code')],
-          refreshBtn: document.getElementById('btn-refresh-qr-modal'),
-          qrSize: 148,
-          user
-        })
-      : () => {};
-
     const close = () => {
-      try { stopTicker(); } catch (_) {}
       backdrop.style.opacity = '0';
       setTimeout(() => backdrop.remove(), 200);
     };

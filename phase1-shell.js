@@ -1984,7 +1984,7 @@
     return await mountShell(viewName);
   }
 
-  // ── 1.9 Colleague ID Card Clock-In Scanner (No Hardware Kiosk Needed) ─────
+  // ── 1.9 Assisted Worker Physical ID Card + Live Facial Capture + Handover Scanner ──
   function openPeerIdScannerModal(tenantId, siteName, onClockInSuccess) {
     document.getElementById('sr-qr-scanner-modal')?.remove();
 
@@ -1996,66 +1996,141 @@
     backdrop.className = 'sr-modal-backdrop';
     backdrop.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:9999;padding:14px;';
     backdrop.innerHTML = `
-      <div class="sr-modal-card" style="max-width:480px;width:100%;max-height:92vh;display:flex;flex-direction:column;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,0.35);overflow:hidden;" role="dialog" aria-modal="true" aria-label="Colleague ID Card Verification">
-        <div class="sr-modal-header" style="display:flex;justify-content:space-between;align-items:flex-start;padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);flex-shrink:0;">
+      <div class="sr-modal-card" style="max-width:500px;width:100%;max-height:92vh;display:flex;flex-direction:column;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,0.35);overflow:hidden;" role="dialog" aria-modal="true" aria-label="Assisted Worker ID & Facial Verification Scanner">
+        <div class="sr-modal-header" style="display:flex;justify-content:space-between;align-items:flex-start;padding:14px 18px;border-bottom:1px solid var(--sr-border-subtle);flex-shrink:0;">
           <div>
-            <h3 style="margin:0;font-size:16px;display:flex;align-items:center;gap:8px;color:var(--sr-text-main);font-weight:800;">
+            <h3 style="margin:0;font-size:15.5px;display:flex;align-items:center;gap:8px;color:var(--sr-text-main);font-weight:800;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/><path d="M20 14v3h-3"/><path d="M14 20h6"/></svg>
-              Colleague ID Card Scanner
+              Worker ID Card &amp; Live Face Scanner
             </h3>
-            <p style="margin:4px 0 0;font-size:12px;color:var(--sr-text-muted);line-height:1.4;">
-              Requires live on-site GPS + rotating 45s Live QR (blocks WhatsApp screenshots) or printed Staff ID card. Scan both check-in and departure exit.
+            <p style="margin:3px 0 0;font-size:11.5px;color:var(--sr-text-muted);line-height:1.35;">
+              For workers without a smartphone or with a dead battery: Scan physical Staff ID Card &rarr; Capture live face photo &rarr; Accept handover &amp; check shift tasks.
             </p>
           </div>
           <button type="button" class="sr-icon-btn" id="sr-btn-close-scanner" aria-label="Close" style="background:transparent;border:none;cursor:pointer;color:var(--sr-text-muted);padding:4px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
-        <div class="sr-modal-body" style="padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
+
+        <div class="sr-modal-body" style="padding:14px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
+          <!-- 3-Step Assisted Progress Indicator -->
+          <div id="sr-scan-stepper" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:11px;font-weight:700;text-align:center;">
+            <div id="sr-step-pill-1" style="padding:6px 6px;border-radius:8px;background:rgba(13,148,136,0.14);color:#0f766e;border:1px solid rgba(13,148,136,0.35);">1. Scan ID Card</div>
+            <div id="sr-step-pill-2" style="padding:6px 6px;border-radius:8px;background:var(--sr-bg-card-subtle);color:var(--sr-text-muted);border:1px solid var(--sr-border-subtle);">2. Live Face Photo</div>
+            <div id="sr-step-pill-3" style="padding:6px 6px;border-radius:8px;background:var(--sr-bg-card-subtle);color:var(--sr-text-muted);border:1px solid var(--sr-border-subtle);">3. Handover &amp; Check</div>
+          </div>
+
           <!-- Strict Live GPS Gate Pill -->
           <div id="sr-scanner-gps-pill" style="padding:8px 12px;border-radius:9px;font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:7px;background:rgba(245,158,11,0.12);color:#b45309;border:1px solid rgba(245,158,11,0.35);">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2.5"/></svg>
             <span id="sr-scanner-gps-text">Acquiring live on-site GPS verification lock...</span>
           </div>
 
-          <!-- Dual-Action Mode Selector: Check-In vs Exit Verification Scan -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-            <button type="button" class="sr-btn sr-btn-primary" id="sr-scan-mode-in" data-scan-mode="clock-in" style="min-height:34px;font-size:12px;font-weight:700;">Shift Check-In</button>
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-scan-mode-out" data-scan-mode="clock-out" style="min-height:34px;font-size:12px;font-weight:700;">Shift Exit Scan</button>
-          </div>
+          <div id="sr-peer-scan-result" style="display:none;padding:11px 14px;border-radius:10px;font-size:12.5px;line-height:1.45;"></div>
 
-          <!-- Viewfinder container -->
-          <div style="position:relative;width:100%;height:170px;background:#090d16;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <video id="sr-scanner-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>
-            <div style="position:absolute;width:136px;height:136px;border:2px dashed rgba(16,185,129,0.85);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.48);pointer-events:none;">
-              <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#10b981;box-shadow:0 0 10px #10b981;animation:srScanLine 2s ease-in-out infinite;"></div>
+          <!-- STEP 1: Scan Physical Staff ID Card -->
+          <div id="sr-scan-step-1" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <button type="button" class="sr-btn sr-btn-primary" id="sr-scan-mode-in" data-scan-mode="clock-in" style="min-height:34px;font-size:12px;font-weight:700;">Shift Check-In</button>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-scan-mode-out" data-scan-mode="clock-out" style="min-height:34px;font-size:12px;font-weight:700;">Shift Exit Scan</button>
             </div>
-            <div id="sr-scanner-status" style="position:absolute;bottom:8px;left:10px;right:10px;background:rgba(15,23,42,0.86);color:#f8fafc;font-size:11.5px;padding:6px 10px;border-radius:6px;text-align:center;">
-              Align colleague&rsquo;s signed Staff ID QR code
-            </div>
-          </div>
 
-          <div id="sr-peer-scan-result" style="display:none;padding:12px 14px;border-radius:10px;font-size:12.5px;line-height:1.45;"></div>
-
-          <!-- Verified Staff ID + Physical Card Security Code Form -->
-          <div style="padding:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);border-radius:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
-              <span style="font-size:12px;font-weight:700;color:var(--sr-text-main);">Physical Staff ID &amp; Card Security Code</span>
-              <span style="font-size:10.5px;color:var(--sr-text-muted);">${escapeHtml(resolvedSite)}</span>
-            </div>
-            <form id="sr-peer-id-form" style="display:flex;flex-direction:column;gap:8px;">
-              <div style="display:grid;grid-template-columns:1.25fr 0.9fr;gap:8px;">
-                <input type="text" id="sr-peer-staff-id-input" class="sr-input" placeholder="Staff ID or signed QR..." autocomplete="off" style="min-width:0;padding:8px 11px;font-size:12.5px;border:1px solid var(--sr-border-medium);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);" />
-                <input type="text" id="sr-peer-card-code-input" class="sr-input" placeholder="Live TOTP or Printed SEC" maxlength="8" autocomplete="off" style="min-width:0;padding:8px 11px;font-size:12.5px;font-family:monospace;text-transform:uppercase;border:1px solid var(--sr-border-medium);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);" />
+            <div style="position:relative;width:100%;height:165px;background:#090d16;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <video id="sr-scanner-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>
+              <div style="position:absolute;width:136px;height:136px;border:2px dashed rgba(16,185,129,0.85);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.48);pointer-events:none;">
+                <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#10b981;box-shadow:0 0 10px #10b981;animation:srScanLine 2s ease-in-out infinite;"></div>
               </div>
-              <button type="submit" class="sr-btn sr-btn-primary" id="sr-peer-submit-id-btn" style="padding:9px 14px;font-size:12.5px;font-weight:700;width:100%;">Verify Live GPS &amp; Clock In Card</button>
-            </form>
-            <div style="margin-top:8px;font-size:11px;color:var(--sr-text-muted);">
-              Roster Status Overview (read-only — scan physical ID card or enter printed Staff ID + SEC code):
+              <div id="sr-scanner-status" style="position:absolute;bottom:8px;left:10px;right:10px;background:rgba(15,23,42,0.86);color:#f8fafc;font-size:11.5px;padding:6px 10px;border-radius:6px;text-align:center;">
+                Point rear camera at colleague&rsquo;s printed Staff ID card QR/barcode
+              </div>
             </div>
-            <div id="sr-peer-directory-list" style="margin-top:6px;max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
-              <div style="font-size:12px;color:var(--sr-text-muted);padding:8px 4px;">Loading approved staff status&hellip;</div>
+
+            <div style="padding:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);border-radius:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
+                <span style="font-size:12px;font-weight:700;color:var(--sr-text-main);">Physical Staff ID &amp; Badge Security Code</span>
+                <span style="font-size:10.5px;color:var(--sr-text-muted);">${escapeHtml(resolvedSite)}</span>
+              </div>
+              <form id="sr-peer-id-form" style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:grid;grid-template-columns:1.25fr 0.9fr;gap:8px;">
+                  <input type="text" id="sr-peer-staff-id-input" class="sr-input" placeholder="Staff ID (e.g. RIF-0023)..." autocomplete="off" style="min-width:0;padding:8px 11px;font-size:12.5px;border:1px solid var(--sr-border-medium);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);" />
+                  <input type="text" id="sr-peer-card-code-input" class="sr-input" placeholder="Printed Card SEC" maxlength="8" autocomplete="off" style="min-width:0;padding:8px 11px;font-size:12.5px;font-family:monospace;text-transform:uppercase;border:1px solid var(--sr-border-medium);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);" />
+                </div>
+                <button type="submit" class="sr-btn sr-btn-primary" id="sr-peer-submit-id-btn" style="padding:9px 14px;font-size:12.5px;font-weight:700;width:100%;">Verify Badge &rarr; Proceed to Facial Capture</button>
+              </form>
+              <div style="margin-top:8px;font-size:11px;color:var(--sr-text-muted);">
+                Site Roster Status Overview (physical Staff ID card + live facial photo required):
+              </div>
+              <div id="sr-peer-directory-list" style="margin-top:6px;max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:12px;color:var(--sr-text-muted);padding:8px 4px;">Loading approved staff status&hellip;</div>
+              </div>
             </div>
+          </div>
+
+          <!-- STEP 2: Mandatory Live Facial Verification Capture -->
+          <div id="sr-scan-step-2" style="display:none;flex-direction:column;gap:12px;">
+            <div id="sr-facial-worker-card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-medium);">
+              <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
+                <div id="sr-facial-profile-avatar" style="width:44px;height:44px;border-radius:50%;background:rgba(13,148,136,0.16);color:#0f766e;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid rgba(13,148,136,0.3);"></div>
+                <div style="min-width:0;flex:1;">
+                  <strong id="sr-facial-worker-name" style="display:block;font-size:13.5px;color:var(--sr-text-main);">Worker</strong>
+                  <small id="sr-facial-worker-meta" style="display:block;font-size:11.5px;color:var(--sr-text-muted);"></small>
+                </div>
+              </div>
+              <button type="button" id="sr-btn-back-to-step1" class="sr-btn sr-btn-secondary" style="padding:5px 10px;min-height:30px;font-size:11px;flex-shrink:0;">Change Card</button>
+            </div>
+
+            <div style="position:relative;width:100%;height:200px;background:#090d16;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+              <video id="sr-facial-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+              <img id="sr-facial-preview-img" alt="Captured facial verification portrait" style="display:none;width:100%;height:100%;object-fit:cover;" />
+              <div id="sr-facial-guide-ring" style="position:absolute;width:128px;height:152px;border:2px solid rgba(52,211,153,0.85);border-radius:50%;box-shadow:0 0 0 9999px rgba(0,0,0,0.42);pointer-events:none;"></div>
+              <div id="sr-facial-status" style="position:absolute;bottom:8px;left:10px;right:10px;background:rgba(15,23,42,0.86);color:#f8fafc;font-size:11.5px;padding:6px 10px;border-radius:6px;text-align:center;">
+                Position worker&rsquo;s face inside the oval and tap Capture Live Face Photo
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:8px;">
+              <button type="button" id="sr-btn-capture-face" class="sr-btn sr-btn-secondary" style="min-height:40px;font-size:12.5px;font-weight:700;">Capture Live Face Photo</button>
+              <button type="button" id="sr-btn-submit-face-checkin" class="sr-btn sr-btn-primary" disabled style="min-height:40px;font-size:12.5px;font-weight:700;opacity:0.55;cursor:not-allowed;">Verify Face &amp; Clock In Worker</button>
+            </div>
+          </div>
+
+          <!-- STEP 3: Assisted Incoming Handover & Shift Checklists -->
+          <div id="sr-scan-step-3" style="display:none;flex-direction:column;gap:12px;">
+            <div id="sr-assisted-worker-header" style="padding:10px 12px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);font-size:12px;color:#065f46;font-weight:700;"></div>
+
+            <div style="padding:12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+                <strong style="font-size:13px;color:var(--sr-text-main);">Incoming Shift Handover Briefing</strong>
+                <span id="sr-assisted-ho-status-pill" style="font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(245,158,11,0.15);color:#b45309;">AWAITING ACCEPTANCE</span>
+              </div>
+              <div id="sr-assisted-ho-summary" style="font-size:13px;font-weight:700;color:var(--sr-text-main);margin-bottom:4px;"></div>
+              <div id="sr-assisted-ho-author" style="font-size:11.5px;color:var(--sr-text-muted);margin-bottom:6px;"></div>
+              <div id="sr-assisted-ho-notes" style="font-size:12px;line-height:1.45;color:var(--sr-text-secondary);background:var(--sr-bg-card);padding:8px 10px;border-radius:8px;border:1px solid var(--sr-border-subtle);"></div>
+            </div>
+
+            <div style="padding:12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <strong style="display:block;font-size:12.5px;color:var(--sr-text-main);margin-bottom:6px;">1. Incoming Handover Readiness Checks</strong>
+              <div id="sr-assisted-readiness-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+            </div>
+
+            <div style="padding:12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <strong style="font-size:12.5px;color:var(--sr-text-main);">2. Pre-Shift &amp; Safety Checklist</strong>
+                <span id="sr-assisted-task-count" style="font-size:11px;font-weight:700;color:#0f766e;">0 / 0 Verified</span>
+              </div>
+              <div id="sr-assisted-task-list" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;"></div>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" id="sr-btn-assisted-complete" class="sr-btn sr-btn-primary" style="flex:1;min-height:42px;font-size:12.5px;font-weight:700;">Accept Handover &amp; Save Checklists</button>
+              <button type="button" id="sr-btn-assisted-close" class="sr-btn sr-btn-secondary" style="display:none;min-height:42px;padding:0 18px;font-size:12.5px;font-weight:700;">Close &amp; Return</button>
+            </div>
+          </div>
+
+          <!-- Exit Scan Complete Summary -->
+          <div id="sr-scan-step-done" style="display:none;flex-direction:column;gap:12px;">
+            <div id="sr-done-summary-box" style="padding:14px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.35);color:#065f46;font-size:13px;line-height:1.45;"></div>
+            <button type="button" id="sr-btn-finish-scan-done" class="sr-btn sr-btn-primary" style="min-height:42px;font-size:13px;font-weight:700;width:100%;">Close &amp; Return to Clock-In Page</button>
           </div>
         </div>
       </div>
@@ -2065,8 +2140,44 @@
 
     let stream = null;
     let scanActive = true;
+    let currentStep = 1;
     let cachedMembers = [];
     let scanAction = 'clock-in';
+    let verifiedPayload = '';
+    let verifiedPin = '';
+    let verifiedPreview = null;
+    let capturedFacialPhoto = null;
+    let assistedCheckInData = null;
+
+    const stopCameraStream = () => {
+      if (stream) {
+        try { stream.getTracks().forEach(t => t.stop()); } catch (_) {}
+        stream = null;
+      }
+      const scanVideo = document.getElementById('sr-scanner-video');
+      const faceVideo = document.getElementById('sr-facial-video');
+      if (scanVideo) scanVideo.srcObject = null;
+      if (faceVideo) faceVideo.srcObject = null;
+    };
+
+    const updateStepperUi = (stepNum) => {
+      currentStep = stepNum;
+      [1, 2, 3].forEach((n) => {
+        const pill = document.getElementById(`sr-step-pill-${n}`);
+        if (!pill) return;
+        if (n < stepNum) {
+          pill.style.cssText = 'padding:6px 6px;border-radius:8px;background:rgba(16,185,129,0.16);color:#047857;border:1px solid rgba(16,185,129,0.4);';
+        } else if (n === stepNum) {
+          pill.style.cssText = 'padding:6px 6px;border-radius:8px;background:rgba(13,148,136,0.14);color:#0f766e;border:1px solid rgba(13,148,136,0.4);';
+        } else {
+          pill.style.cssText = 'padding:6px 6px;border-radius:8px;background:var(--sr-bg-card-subtle);color:var(--sr-text-muted);border:1px solid var(--sr-border-subtle);';
+        }
+      });
+      document.getElementById('sr-scan-step-1').style.display = stepNum === 1 ? 'flex' : 'none';
+      document.getElementById('sr-scan-step-2').style.display = stepNum === 2 ? 'flex' : 'none';
+      document.getElementById('sr-scan-step-3').style.display = stepNum === 3 ? 'flex' : 'none';
+      document.getElementById('sr-scan-step-done').style.display = stepNum === 4 ? 'flex' : 'none';
+    };
 
     const updateScannerGpsPill = (stateType, text) => {
       const pill = document.getElementById('sr-scanner-gps-pill');
@@ -2088,45 +2199,6 @@
       }
     };
 
-    const setScanAction = (mode) => {
-      scanAction = mode === 'clock-out' ? 'clock-out' : 'clock-in';
-      const btnIn = document.getElementById('sr-scan-mode-in');
-      const btnOut = document.getElementById('sr-scan-mode-out');
-      const subBtn = document.getElementById('sr-peer-submit-id-btn');
-      if (btnIn && btnOut) {
-        btnIn.className = scanAction === 'clock-in' ? 'sr-btn sr-btn-primary' : 'sr-btn sr-btn-secondary';
-        btnOut.className = scanAction === 'clock-out' ? 'sr-btn sr-btn-primary' : 'sr-btn sr-btn-secondary';
-      }
-      if (subBtn) {
-        subBtn.textContent = scanAction === 'clock-out'
-          ? 'Verify Live GPS & Scan Exit Card'
-          : 'Verify Live GPS & Clock In Card';
-      }
-    };
-
-    document.getElementById('sr-scan-mode-in')?.addEventListener('click', () => setScanAction('clock-in'));
-    document.getElementById('sr-scan-mode-out')?.addEventListener('click', () => setScanAction('clock-out'));
-
-    const cleanup = () => {
-      scanActive = false;
-      if (stream) {
-        try { stream.getTracks().forEach(t => t.stop()); } catch (_) {}
-        stream = null;
-      }
-      backdrop.remove();
-    };
-
-    document.getElementById('sr-btn-close-scanner')?.addEventListener('click', cleanup);
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cleanup(); });
-
-    const normalizePayload = (raw) => {
-      const str = String(raw || '').trim();
-      if (!str) return '';
-      const idLineMatch = str.match(/Staff ID:\s*([^\r\n]+)/i);
-      if (idLineMatch) return idLineMatch[1].trim();
-      return str;
-    };
-
     const showResultBanner = (type, title, detail) => {
       const box = document.getElementById('sr-peer-scan-result');
       if (!box) return;
@@ -2139,37 +2211,248 @@
       box.innerHTML = `<div style="font-weight:800;margin-bottom:2px;">${escapeHtml(title)}</div><div>${escapeHtml(detail)}</div>`;
     };
 
-    // Pre-flight strict GPS check on modal open
+    const clearResultBanner = () => {
+      const box = document.getElementById('sr-peer-scan-result');
+      if (box) box.style.display = 'none';
+    };
+
+    const setScanAction = (mode) => {
+      scanAction = mode === 'clock-out' ? 'clock-out' : 'clock-in';
+      const btnIn = document.getElementById('sr-scan-mode-in');
+      const btnOut = document.getElementById('sr-scan-mode-out');
+      const subBtn = document.getElementById('sr-peer-submit-id-btn');
+      const faceSubBtn = document.getElementById('sr-btn-submit-face-checkin');
+      if (btnIn && btnOut) {
+        btnIn.className = scanAction === 'clock-in' ? 'sr-btn sr-btn-primary' : 'sr-btn sr-btn-secondary';
+        btnOut.className = scanAction === 'clock-out' ? 'sr-btn sr-btn-primary' : 'sr-btn sr-btn-secondary';
+      }
+      if (subBtn) {
+        subBtn.textContent = scanAction === 'clock-out'
+          ? 'Verify Badge -> Proceed to Exit Facial Capture'
+          : 'Verify Badge -> Proceed to Facial Capture';
+      }
+      if (faceSubBtn) {
+        faceSubBtn.textContent = scanAction === 'clock-out'
+          ? 'Verify Face & Log Exit Scan'
+          : 'Verify Face & Clock In Worker';
+      }
+    };
+
+    document.getElementById('sr-scan-mode-in')?.addEventListener('click', () => setScanAction('clock-in'));
+    document.getElementById('sr-scan-mode-out')?.addEventListener('click', () => setScanAction('clock-out'));
+
+    const cleanup = () => {
+      scanActive = false;
+      stopCameraStream();
+      backdrop.remove();
+    };
+
+    document.getElementById('sr-btn-close-scanner')?.addEventListener('click', cleanup);
+    document.getElementById('sr-btn-finish-scan-done')?.addEventListener('click', cleanup);
+    document.getElementById('sr-btn-assisted-close')?.addEventListener('click', cleanup);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cleanup(); });
+
+    const normalizePayload = (raw) => {
+      const str = String(raw || '').trim();
+      if (!str) return '';
+      const idLineMatch = str.match(/Staff ID:\s*([^\r\n]+)/i);
+      if (idLineMatch) return idLineMatch[1].trim();
+      return str;
+    };
+
+    const startBadgeScannerCamera = () => {
+      scanActive = true;
+      stopCameraStream();
+      const statusEl = document.getElementById('sr-scanner-status');
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (statusEl) statusEl.textContent = 'Camera unavailable. Enter physical Staff ID + Card SEC code below (GPS required).';
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .catch(() => navigator.mediaDevices.getUserMedia({ video: true }))
+        .then(s => {
+          if (currentStep !== 1) {
+            try { s.getTracks().forEach(t => t.stop()); } catch (_) {}
+            return;
+          }
+          stream = s;
+          const video = document.getElementById('sr-scanner-video');
+          if (video) {
+            video.srcObject = s;
+            video.play().catch(() => {});
+          }
+          if ('BarcodeDetector' in window) {
+            const detector = new window.BarcodeDetector({ formats: ['qr_code', 'code_128'] });
+            const scanLoop = async () => {
+              if (!scanActive || currentStep !== 1) return;
+              if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
+                try {
+                  const codes = await detector.detect(video);
+                  if (codes.length > 0 && codes[0].rawValue) {
+                    handleStep1VerifyBadge(codes[0].rawValue);
+                    return;
+                  }
+                } catch (_) {}
+              }
+              if (scanActive && currentStep === 1) requestAnimationFrame(scanLoop);
+            };
+            requestAnimationFrame(scanLoop);
+          } else if (statusEl) {
+            statusEl.textContent = 'Camera active. Align printed Staff ID QR or enter Staff ID + SEC below.';
+          }
+        })
+        .catch(() => {
+          if (statusEl) statusEl.textContent = 'Camera unavailable. Enter Staff ID + Card SEC code below (GPS required).';
+        });
+    };
+
+    const startFacialCamera = () => {
+      stopCameraStream();
+      const faceVideo = document.getElementById('sr-facial-video');
+      const faceImg = document.getElementById('sr-facial-preview-img');
+      const guideRing = document.getElementById('sr-facial-guide-ring');
+      const faceStatus = document.getElementById('sr-facial-status');
+      const capBtn = document.getElementById('sr-btn-capture-face');
+      const subFaceBtn = document.getElementById('sr-btn-submit-face-checkin');
+
+      capturedFacialPhoto = null;
+      if (faceImg) faceImg.style.display = 'none';
+      if (faceVideo) faceVideo.style.display = 'block';
+      if (guideRing) guideRing.style.display = 'block';
+      if (capBtn) capBtn.textContent = 'Capture Live Face Photo';
+      if (subFaceBtn) {
+        subFaceBtn.disabled = true;
+        subFaceBtn.style.opacity = '0.55';
+        subFaceBtn.style.cursor = 'not-allowed';
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (faceStatus) faceStatus.textContent = 'Camera access required for live facial verification. Enable camera permission and retry.';
+        if (capBtn) capBtn.disabled = true;
+        return;
+      }
+      if (faceStatus) faceStatus.textContent = 'Starting live camera for facial verification...';
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+        .catch(() => navigator.mediaDevices.getUserMedia({ video: true }))
+        .then(s => {
+          if (currentStep !== 2) {
+            try { s.getTracks().forEach(t => t.stop()); } catch (_) {}
+            return;
+          }
+          stream = s;
+          if (faceVideo) {
+            faceVideo.srcObject = s;
+            faceVideo.play().catch(() => {});
+          }
+          if (capBtn) capBtn.disabled = false;
+          if (faceStatus) faceStatus.textContent = 'Align worker\'s live face inside oval and tap Capture Live Face Photo';
+        })
+        .catch(() => {
+          if (faceStatus) faceStatus.textContent = 'Camera blocked or unavailable. Live facial photo capture is mandatory.';
+          if (capBtn) capBtn.disabled = true;
+        });
+    };
+
+    const enterStep2FacialCapture = (previewData) => {
+      clearResultBanner();
+      verifiedPreview = previewData;
+      const w = previewData?.worker || {};
+      const nameEl = document.getElementById('sr-facial-worker-name');
+      const metaEl = document.getElementById('sr-facial-worker-meta');
+      const avatarEl = document.getElementById('sr-facial-profile-avatar');
+      if (nameEl) nameEl.textContent = `${w.userName || 'Staff Member'} (${w.staffId || verifiedPayload})`;
+      if (metaEl) metaEl.textContent = `${w.role || 'Staff'} · ${w.department || 'Operations'} · ${scanAction === 'clock-out' ? 'Shift Exit Scan' : 'Shift Check-In'}`;
+      if (avatarEl) {
+        if (w.avatarUrl && typeof w.avatarUrl === 'string') {
+          avatarEl.innerHTML = `<img src="${escapeHtml(w.avatarUrl)}" alt="${escapeHtml(w.userName || 'Worker')}" style="width:100%;height:100%;object-fit:cover;" />`;
+        } else {
+          const initials = String(w.userName || 'ST').split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+          avatarEl.textContent = initials || 'ST';
+        }
+      }
+      updateStepperUi(2);
+      setScanAction(scanAction);
+      startFacialCamera();
+    };
+
+    const enterStep3AssistedHandover = (scanData) => {
+      stopCameraStream();
+      clearResultBanner();
+      assistedCheckInData = scanData;
+      const w = scanData?.worker || {};
+      const brief = scanData?.assistedBrief || {};
+      const ho = brief.handover || {};
+      const readinessChecks = Array.isArray(brief.readinessChecks) ? brief.readinessChecks : [];
+      const tasks = Array.isArray(brief.checklistTasks) ? brief.checklistTasks : [];
+
+      const hdrEl = document.getElementById('sr-assisted-worker-header');
+      if (hdrEl) {
+        hdrEl.textContent = `Checked In On-Site (Live Face Photo Verified): ${w.userName || 'Worker'} (${w.staffId || ''}) · ${scanData.distanceMeters ?? 0}m from site`;
+      }
+      document.getElementById('sr-assisted-ho-summary').textContent = ho.summary || 'Incoming Shift Handover Briefing';
+      document.getElementById('sr-assisted-ho-author').textContent = `From: ${ho.authorName || 'Shift Lead'} · Verified Check-In on ${activeUser.name || 'Colleague'}'s Device`;
+      document.getElementById('sr-assisted-ho-notes').textContent = ho.notes || 'Verify site safety and operational instructions before accepting shift handover.';
+
+      const readinessRoot = document.getElementById('sr-assisted-readiness-list');
+      if (readinessRoot) {
+        readinessRoot.innerHTML = readinessChecks.map((label, idx) => `
+          <label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.4;color:var(--sr-text-main);cursor:pointer;padding:8px 10px;border-radius:8px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);text-align:left;">
+            <input type="checkbox" class="sr-assisted-readiness-chk" data-ridx="${idx}" checked style="width:17px !important;height:17px !important;min-width:17px !important;min-height:17px !important;margin:1px 0 0 0 !important;padding:0 !important;accent-color:#0d9488;flex-shrink:0;cursor:pointer;" />
+            <span style="flex:1;min-width:0;">${escapeHtml(label)}</span>
+          </label>
+        `).join('');
+      }
+
+      const taskRoot = document.getElementById('sr-assisted-task-list');
+      const updateTaskCount = () => {
+        const all = Array.from(document.querySelectorAll('.sr-assisted-task-chk'));
+        const done = all.filter(el => el.checked).length;
+        const cntEl = document.getElementById('sr-assisted-task-count');
+        if (cntEl) cntEl.textContent = `${done} / ${all.length} Verified`;
+      };
+      if (taskRoot) {
+        taskRoot.innerHTML = tasks.map(t => `
+          <label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.4;color:var(--sr-text-main);cursor:pointer;padding:8px 10px;border-radius:8px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);text-align:left;">
+            <input type="checkbox" class="sr-assisted-task-chk" data-task-id="${escapeHtml(t.id)}" ${t.done ? 'checked' : ''} style="width:17px !important;height:17px !important;min-width:17px !important;min-height:17px !important;margin:1px 0 0 0 !important;padding:0 !important;accent-color:#0d9488;flex-shrink:0;cursor:pointer;" />
+            <span style="flex:1;min-width:0;">${escapeHtml(t.text)}</span>
+            ${t.priority === 'urgent' ? '<span style="font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:99px;background:rgba(239,68,68,0.12);color:#dc2626;white-space:nowrap;flex-shrink:0;">URGENT</span>' : ''}
+          </label>
+        `).join('');
+        taskRoot.querySelectorAll('.sr-assisted-task-chk').forEach(chk => chk.addEventListener('change', updateTaskCount));
+      }
+      updateTaskCount();
+
+      const compBtn = document.getElementById('sr-btn-assisted-complete');
+      const closeBtn = document.getElementById('sr-btn-assisted-close');
+      if (compBtn) {
+        compBtn.disabled = false;
+        compBtn.style.display = 'inline-flex';
+        compBtn.textContent = 'Accept Handover & Save Checklists';
+      }
+      if (closeBtn) closeBtn.style.display = 'none';
+      const statusPill = document.getElementById('sr-assisted-ho-status-pill');
+      if (statusPill) {
+        statusPill.textContent = 'AWAITING ACCEPTANCE';
+        statusPill.style.background = 'rgba(245,158,11,0.15)';
+        statusPill.style.color = '#b45309';
+      }
+
+      updateStepperUi(3);
+    };
+
     if (window.ShiftRelayGps?.captureStrictLiveGps) {
-      window.ShiftRelayGps.captureStrictLiveGps({ actionLabel: 'open colleague ID card scanner' })
+      window.ShiftRelayGps.captureStrictLiveGps({ actionLabel: 'open worker ID card scanner' })
         .then((coords) => {
           updateScannerGpsPill('ok', `On-Site GPS Lock Ready (Accuracy ±${Math.round(coords.accuracy || 10)}m)`);
         })
         .catch((gpsErr) => {
-          updateScannerGpsPill('error', gpsErr.message || 'Location access denied — cannot scan colleague IDs without GPS.');
+          updateScannerGpsPill('error', gpsErr.message || 'Location access denied — cannot scan worker IDs without GPS.');
         });
     } else {
       updateScannerGpsPill('error', 'Strict GPS module unavailable.');
     }
 
-    const captureScannerVideoSnapshot = () => {
-      try {
-        const videoEl = document.getElementById('sr-scanner-video');
-        if (!videoEl || !videoEl.videoWidth || !videoEl.videoHeight) return null;
-        const canvas = document.createElement('canvas');
-        canvas.width = 240;
-        canvas.height = 180;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return null;
-        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.62);
-        return (typeof dataUrl === 'string' && dataUrl.length <= 120000) ? dataUrl : null;
-      } catch (_) {
-        return null;
-      }
-    };
-
-    const handlePeerCardSubmit = async (rawPayload, explicitPin = '') => {
+    const handleStep1VerifyBadge = async (rawPayload, explicitPin = '') => {
       const cleanPayload = normalizePayload(rawPayload);
       const cleanPin = String(explicitPin || '').trim().toUpperCase();
       if (!cleanPayload) return;
@@ -2177,18 +2460,17 @@
       const statusEl = document.getElementById('sr-scanner-status');
       const submitBtn = document.getElementById('sr-peer-submit-id-btn');
       if (submitBtn) submitBtn.disabled = true;
-      if (statusEl) statusEl.textContent = 'Verifying live device GPS before card check...';
+      if (statusEl) statusEl.textContent = 'Verifying live device GPS & physical Staff ID card...';
       updateScannerGpsPill('loading', 'Capturing fresh live GPS reading...');
+      clearResultBanner();
 
       let coords = null;
       try {
-        if (!window.ShiftRelayGps?.captureStrictLiveGps) {
-          throw new Error('Strict GPS verification unavailable.');
-        }
+        if (!window.ShiftRelayGps?.captureStrictLiveGps) throw new Error('Strict GPS verification unavailable.');
         coords = await window.ShiftRelayGps.captureStrictLiveGps({
-          actionLabel: scanAction === 'clock-out' ? 'scan colleague exit card' : 'scan colleague ID card'
+          actionLabel: scanAction === 'clock-out' ? 'scan worker exit card' : 'scan worker ID card'
         });
-        updateScannerGpsPill('ok', `Live GPS Captured (±${Math.round(coords.accuracy || 10)}m) · Verifying with server...`);
+        updateScannerGpsPill('ok', `Live GPS Captured (±${Math.round(coords.accuracy || 10)}m) · Verifying card...`);
       } catch (gpsErr) {
         const msg = gpsErr?.message || 'Live GPS access is required before scanning any ID card.';
         updateScannerGpsPill('error', msg);
@@ -2199,34 +2481,158 @@
         return;
       }
 
-      if (statusEl) statusEl.textContent = scanAction === 'clock-out' ? 'Verifying card exit scan...' : 'Verifying signed card & on-site GPS...';
-      const scanPhotoDataUrl = captureScannerVideoSnapshot();
-      try {
-        const bodyPayload = {
-          badgePayload: cleanPayload,
-          cardVerifyCode: cleanPin || undefined,
-          action: scanAction,
-          coords,
-          ...(scanPhotoDataUrl ? { scanPhotoDataUrl } : {})
-        };
+      verifiedPayload = cleanPayload;
+      verifiedPin = cleanPin;
 
-        if (!navigator.onLine && window.OfflineQueue?.enqueue) {
-          const idemPeerKey = 'idem_peer_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-          window.OfflineQueue.enqueue('/api/time-entries/peer-card-scan', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Idempotency-Key': idemPeerKey
-            },
-            body: JSON.stringify({ ...bodyPayload, offlineQueued: true })
-          });
-          showResultBanner('success', 'Saved Offline With Verified GPS', `Recorded ${cleanPayload} offline with live GPS timestamp. Will verify & sync on reconnect.`);
-          if (typeof onClockInSuccess === 'function') onClockInSuccess();
-          if (submitBtn) submitBtn.disabled = false;
-          setTimeout(() => { scanActive = true; }, 1200);
-          return;
+      if (!navigator.onLine) {
+        updateScannerGpsPill('ok', `Offline Mode · GPS Locked (±${Math.round(coords.accuracy || 10)}m)`);
+        enterStep2FacialCapture({
+          worker: { userName: cleanPayload, staffId: cleanPayload, role: 'Offline Verification', department: resolvedSite }
+        });
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/time-entries/peer-card-preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            badgePayload: cleanPayload,
+            cardVerifyCode: cleanPin || undefined,
+            action: scanAction,
+            coords
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Physical ID card & location verification failed');
+
+        if (scanAction === 'clock-in' && data.alreadyOnShift) {
+          throw new Error(`${data.worker?.userName || 'Worker'} (${data.worker?.staffId || cleanPayload}) is already clocked in today. Switch to Shift Exit Scan if they are leaving site.`);
+        }
+        if (scanAction === 'clock-in' && data.alreadyCompletedDailyScan) {
+          throw new Error(`${data.worker?.userName || 'Worker'} (${data.worker?.staffId || cleanPayload}) already completed a daily ID card check-in today.`);
+        }
+        if (scanAction === 'clock-out' && !data.alreadyOnShift) {
+          throw new Error(`${data.worker?.userName || 'Worker'} (${data.worker?.staffId || cleanPayload}) does not have an active open shift to clock out.`);
         }
 
+        updateScannerGpsPill('ok', `On-Site GPS & Badge Verified (${data.distanceMeters ?? 0}m from ${data.siteName || resolvedSite})`);
+        enterStep2FacialCapture(data);
+      } catch (err) {
+        showResultBanner('error', 'Verification Blocked', err.message || 'Could not verify Staff ID card.');
+        if (statusEl) statusEl.textContent = 'Blocked: ' + (err.message || 'Check badge and retry.');
+        scanActive = true;
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    };
+
+    document.getElementById('sr-btn-back-to-step1')?.addEventListener('click', () => {
+      clearResultBanner();
+      updateStepperUi(1);
+      startBadgeScannerCamera();
+    });
+
+    document.getElementById('sr-btn-capture-face')?.addEventListener('click', () => {
+      const faceVideo = document.getElementById('sr-facial-video');
+      const faceImg = document.getElementById('sr-facial-preview-img');
+      const guideRing = document.getElementById('sr-facial-guide-ring');
+      const faceStatus = document.getElementById('sr-facial-status');
+      const capBtn = document.getElementById('sr-btn-capture-face');
+      const subFaceBtn = document.getElementById('sr-btn-submit-face-checkin');
+
+      if (capturedFacialPhoto) {
+        // Retake photo
+        capturedFacialPhoto = null;
+        if (faceImg) faceImg.style.display = 'none';
+        if (faceVideo) faceVideo.style.display = 'block';
+        if (guideRing) guideRing.style.display = 'block';
+        if (capBtn) capBtn.textContent = 'Capture Live Face Photo';
+        if (faceStatus) faceStatus.textContent = 'Align worker\'s live face inside oval and tap Capture Live Face Photo';
+        if (subFaceBtn) {
+          subFaceBtn.disabled = true;
+          subFaceBtn.style.opacity = '0.55';
+          subFaceBtn.style.cursor = 'not-allowed';
+        }
+        return;
+      }
+
+      if (!faceVideo || !faceVideo.videoWidth || !faceVideo.videoHeight) {
+        showResultBanner('error', 'Live Camera Not Ready', 'Wait for live camera video before capturing facial verification photo.');
+        return;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = 240;
+      canvas.height = 180;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(faceVideo, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.68);
+      if (!dataUrl || dataUrl.length > 125000) {
+        showResultBanner('error', 'Photo Capture Error', 'Could not compress live facial snapshot. Try capturing again.');
+        return;
+      }
+      clearResultBanner();
+      capturedFacialPhoto = dataUrl;
+      if (faceImg) {
+        faceImg.src = dataUrl;
+        faceImg.style.display = 'block';
+      }
+      if (faceVideo) faceVideo.style.display = 'none';
+      if (guideRing) guideRing.style.display = 'none';
+      if (capBtn) capBtn.textContent = 'Retake Photo';
+      if (faceStatus) faceStatus.textContent = 'Live facial portrait captured — tap Verify to complete check-in';
+      if (subFaceBtn) {
+        subFaceBtn.disabled = false;
+        subFaceBtn.style.opacity = '1';
+        subFaceBtn.style.cursor = 'pointer';
+      }
+      triggerVibration([25, 20]);
+    });
+
+    document.getElementById('sr-btn-submit-face-checkin')?.addEventListener('click', async () => {
+      if (!capturedFacialPhoto) {
+        showResultBanner('error', 'Live Facial Photo Required', 'Capture a live facial verification photo first.');
+        return;
+      }
+      const subFaceBtn = document.getElementById('sr-btn-submit-face-checkin');
+      if (subFaceBtn) subFaceBtn.disabled = true;
+      clearResultBanner();
+
+      let coords = null;
+      try {
+        coords = await window.ShiftRelayGps.captureStrictLiveGps({
+          actionLabel: scanAction === 'clock-out' ? 'complete exit facial scan' : 'complete check-in facial scan'
+        });
+      } catch (gpsErr) {
+        showResultBanner('error', 'GPS Verification Required', gpsErr?.message || 'Enable live GPS and retry.');
+        if (subFaceBtn) subFaceBtn.disabled = false;
+        return;
+      }
+
+      const bodyPayload = {
+        badgePayload: verifiedPayload,
+        cardVerifyCode: verifiedPin || undefined,
+        action: scanAction,
+        coords,
+        scanPhotoDataUrl: capturedFacialPhoto
+      };
+
+      if (!navigator.onLine && window.OfflineQueue?.enqueue) {
+        window.OfflineQueue.enqueue('/api/time-entries/peer-card-scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'idem_peer_' + Date.now() },
+          body: JSON.stringify({ ...bodyPayload, offlineQueued: true })
+        });
+        stopCameraStream();
+        document.getElementById('sr-done-summary-box').innerHTML = `<strong>Saved Offline With Live Facial Proof</strong><br>Recorded ${escapeHtml(verifiedPayload)} offline with verified GPS &amp; facial portrait. Will sync automatically when reconnected.`;
+        updateStepperUi(4);
+        if (typeof onClockInSuccess === 'function') await onClockInSuccess();
+        return;
+      }
+
+      try {
         const res = await fetch('/api/time-entries/peer-card-scan', {
           method: 'POST',
           headers: {
@@ -2236,45 +2642,74 @@
           body: JSON.stringify(bodyPayload)
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'ID card & location verification failed');
-
-        const proofNote = data.cardProofMode === 'dynamic_live_qr'
-          ? 'Live 45s TOTP QR'
-          : (data.cardProofMode === 'dynamic_live_code' ? 'Live 45s TOTP Code' : 'Printed Badge Fallback');
-        const photoNote = data.hasPhotoProof ? ' · Photo Snapshot Saved' : '';
+        if (!res.ok) throw new Error(data.error || 'Could not complete card & facial verification.');
 
         if (data.action === 'clock-out') {
           SRAudio.playClockOut();
           triggerVibration([100, 50, 150]);
-          showResultBanner(
-            data.earlyDeparture ? 'warning' : 'success',
-            `${data.worker?.userName || 'Colleague'} (${data.worker?.staffId || cleanPayload}) ${data.earlyDeparture ? 'Early Exit Logged' : 'Exit Verified On Site'}`,
-            `${data.message || 'Shift closed via on-site Staff ID exit scan.'} [${proofNote}${photoNote}]`
-          );
-          if (statusEl) statusEl.textContent = `Exit scanned: ${data.worker?.staffId || cleanPayload} (${proofNote})`;
-          const hit = cachedMembers.find(m => m.id === data.worker?.membershipId || m.staffId === data.worker?.staffId);
-          if (hit) hit.onShift = false;
+          stopCameraStream();
+          document.getElementById('sr-done-summary-box').innerHTML = `
+            <strong>${escapeHtml(data.worker?.userName || 'Worker')} (${escapeHtml(data.worker?.staffId || verifiedPayload)}) Exit Verified</strong><br>
+            <span>${escapeHtml(data.message || 'Physical ID Card + Live Facial Exit Scan completed.')}</span>
+          `;
+          updateStepperUi(4);
+          if (typeof onClockInSuccess === 'function') await onClockInSuccess(data);
         } else {
           SRAudio.playClockIn();
           triggerVibration([70, 50, 100]);
-          showResultBanner('success', `${data.worker?.userName || 'Colleague'} (${data.worker?.staffId || cleanPayload}) Clocked In`, `${data.message || 'GPS-verified card scan completed.'} [${proofNote}${photoNote}]`);
-          if (statusEl) statusEl.textContent = `Clocked in: ${data.worker?.staffId || cleanPayload} (${proofNote})`;
-          const hit = cachedMembers.find(m => m.id === data.worker?.membershipId || m.staffId === data.worker?.staffId);
-          if (hit) hit.onShift = true;
+          if (typeof onClockInSuccess === 'function') await onClockInSuccess(data);
+          enterStep3AssistedHandover(data);
         }
-        updateScannerGpsPill('ok', `Verified On-Site (${data.distanceMeters ?? 0}m from ${resolvedSite})`);
-        renderRosterList(document.getElementById('sr-peer-staff-id-input')?.value || '');
-        if (typeof showToast === 'function') showToast(data.message || 'Colleague ID scan verified.', 'success');
-        if (typeof onClockInSuccess === 'function') await onClockInSuccess(data);
-        setTimeout(() => { scanActive = true; }, 1400);
       } catch (err) {
-        showResultBanner('error', 'Verification Blocked', err.message || 'Could not verify Staff ID card.');
-        if (statusEl) statusEl.textContent = 'Blocked: ' + err.message;
-        scanActive = true;
-      } finally {
-        if (submitBtn) submitBtn.disabled = false;
+        showResultBanner('error', 'Verification Blocked', err.message || 'Could not verify worker.');
+        if (subFaceBtn) subFaceBtn.disabled = false;
       }
-    };
+    });
+
+    document.getElementById('sr-btn-assisted-complete')?.addEventListener('click', async () => {
+      if (!assistedCheckInData?.worker?.membershipId) return;
+      const compBtn = document.getElementById('sr-btn-assisted-complete');
+      const closeBtn = document.getElementById('sr-btn-assisted-close');
+      const statusPill = document.getElementById('sr-assisted-ho-status-pill');
+      if (compBtn) compBtn.disabled = true;
+
+      const taskStates = {};
+      document.querySelectorAll('.sr-assisted-task-chk').forEach(el => {
+        if (el.dataset.taskId) taskStates[el.dataset.taskId] = Boolean(el.checked);
+      });
+      const readinessChecked = Array.from(document.querySelectorAll('.sr-assisted-readiness-chk')).map(el => Boolean(el.checked));
+
+      try {
+        const res = await fetch('/api/time-entries/peer-assisted-complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetMembershipId: assistedCheckInData.worker.membershipId,
+            handoverId: assistedCheckInData.assistedBrief?.handover?.id || 'ho-morning-01',
+            taskStates,
+            readinessChecked,
+            acknowledgeHandover: true
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Could not save handover & checklist verification.');
+
+        SRAudio.playClockIn();
+        triggerVibration([40, 40]);
+        if (statusPill) {
+          statusPill.textContent = 'HANDOVER ACCEPTED';
+          statusPill.style.background = 'rgba(16,185,129,0.16)';
+          statusPill.style.color = '#047857';
+        }
+        showResultBanner('success', 'Shift Handover Accepted & Checklists Saved', data.message || 'Worker check-in, facial proof, handover acceptance, and checklists are all verified.');
+        if (compBtn) compBtn.style.display = 'none';
+        if (closeBtn) closeBtn.style.display = 'inline-flex';
+        if (typeof showToast === 'function') showToast(data.message || 'Assisted handover & checklists completed.', 'success');
+      } catch (err) {
+        showResultBanner('error', 'Save Failed', err.message || 'Could not complete handover acceptance.');
+        if (compBtn) compBtn.disabled = false;
+      }
+    });
 
     const renderRosterList = (filterText = '') => {
       const listEl = document.getElementById('sr-peer-directory-list');
@@ -2309,7 +2744,7 @@
               <div style="font-size:11px;color:var(--sr-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(m.title || '')} &middot; ${escapeHtml(m.department || '')}</div>
             </div>
             ${isSelf ? `
-              <span style="font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:99px;background:rgba(100,116,139,0.12);color:#64748b;white-space:nowrap;">You (Use My Shift GPS)</span>
+              <span style="font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:99px;background:rgba(100,116,139,0.12);color:#64748b;white-space:nowrap;">You (Use Clock In Button)</span>
             ` : onShift ? `
               <span style="font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:99px;background:rgba(16,185,129,0.12);color:#059669;white-space:nowrap;">On Shift &middot; End ${escapeHtml(shiftEnd)}</span>
             ` : `
@@ -2320,7 +2755,6 @@
       }).join('');
     };
 
-    // Load live roster status overview (read-only; physical card QR/SEC code required to scan)
     fetch('/api/directory')
       .then(r => r.ok ? r.json() : { members: [] })
       .then(d => {
@@ -2329,7 +2763,7 @@
       })
       .catch(() => {
         const listEl = document.getElementById('sr-peer-directory-list');
-        if (listEl) listEl.innerHTML = `<div style="font-size:12px;color:var(--sr-text-muted);padding:8px;">Scan colleague Staff ID QR or enter printed Staff ID + SEC code above.</div>`;
+        if (listEl) listEl.innerHTML = `<div style="font-size:12px;color:var(--sr-text-muted);padding:8px;">Scan physical Staff ID QR or enter Staff ID + SEC code above.</div>`;
       });
 
     const inputEl = document.getElementById('sr-peer-staff-id-input');
@@ -2339,47 +2773,11 @@
       e.preventDefault();
       const val = inputEl?.value?.trim();
       const pinVal = pinEl?.value?.trim().toUpperCase() || '';
-      if (val) handlePeerCardSubmit(val, pinVal);
+      if (val) handleStep1VerifyBadge(val, pinVal);
     });
 
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        .then(s => {
-          stream = s;
-          const video = document.getElementById('sr-scanner-video');
-          if (video) {
-            video.srcObject = s;
-            video.play().catch(() => {});
-          }
-          if ('BarcodeDetector' in window) {
-            const detector = new window.BarcodeDetector({ formats: ['qr_code', 'code_128'] });
-            const scanLoop = async () => {
-              if (!scanActive) return;
-              if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
-                try {
-                  const codes = await detector.detect(video);
-                  if (codes.length > 0 && codes[0].rawValue) {
-                    handlePeerCardSubmit(codes[0].rawValue);
-                    return;
-                  }
-                } catch (_) {}
-              }
-              if (scanActive) requestAnimationFrame(scanLoop);
-            };
-            requestAnimationFrame(scanLoop);
-          } else {
-            const statusEl = document.getElementById('sr-scanner-status');
-            if (statusEl) statusEl.textContent = 'Camera active. Align signed QR or enter Staff ID + Card SEC code below.';
-          }
-        })
-        .catch(() => {
-          const statusEl = document.getElementById('sr-scanner-status');
-          if (statusEl) statusEl.textContent = 'Camera unavailable. Enter Staff ID + Card SEC code below (GPS required).';
-        });
-    } else {
-      const statusEl = document.getElementById('sr-scanner-status');
-      if (statusEl) statusEl.textContent = 'Enter Staff ID + printed 6-char Card SEC code (strict GPS required).';
-    }
+    updateStepperUi(1);
+    startBadgeScannerCamera();
   }
   const openGateQrScannerModal = openPeerIdScannerModal;
 
@@ -2687,10 +3085,6 @@
 
           ${isClockedIn ? `
             <div class="sr-clock-mode-chips">
-              <button type="button" class="sr-clock-chip-btn" id="sr-btn-scan-peer-id" style="border-color:rgba(13,148,136,0.35);color:var(--sr-primary);" title="Scan a colleague's Staff ID card to clock them in once per day">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-                <span>Scan Colleague ID Card</span>
-              </button>
               <button type="button" class="sr-clock-chip-btn" id="sr-btn-station-help" style="border-color:rgba(59,130,246,0.3);color:#2563eb;" title="Signal supervisor for temporary relief or station coverage">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span>Request Relief</span>
@@ -2700,14 +3094,23 @@
                 <span>Report Hazard</span>
               </button>
             </div>
-          ` : `
-            <div class="sr-clock-mode-chips">
-              <button type="button" class="sr-clock-chip-btn" id="sr-btn-scan-peer-id" style="border-color:rgba(13,148,136,0.35);color:var(--sr-primary);" title="Scan a colleague's Staff ID card to clock them in once per day">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-                <span>Scan Colleague ID Card</span>
-              </button>
+          ` : ''}
+          <div style="margin-top:14px;padding:14px;border-radius:14px;background:linear-gradient(135deg, rgba(13,148,136,0.08), rgba(15,23,42,0.04));border:1px solid rgba(13,148,136,0.28);display:flex;flex-direction:column;gap:10px;text-align:left;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+              <div>
+                <div style="font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#0f766e;">Assisted Gate Scanner &bull; On-Site</div>
+                <div style="font-size:14px;font-weight:800;color:var(--sr-text);margin-top:2px;">No Phone or Dead Battery? Scan Worker ID</div>
+                <div style="font-size:12px;color:var(--sr-text-sec);line-height:1.45;margin-top:3px;">Scan a colleague's physical Staff ID card, capture live facial verification, accept their handover &amp; checklists, then close back to your session.</div>
+              </div>
+              <div style="width:36px;height:36px;border-radius:10px;background:rgba(13,148,136,0.14);color:#0f766e;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="10" r="3"/><path d="M7 18a5 5 0 0 1 10 0"/></svg>
+              </div>
             </div>
-          `}
+            <button type="button" id="sr-btn-scan-peer-id" style="width:100%;height:42px;border-radius:10px;border:none;background:#0d9488;color:#ffffff;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 4px 12px rgba(13,148,136,0.22);" title="Scan a colleague's physical Staff ID card, verify face, and complete handover">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
+              <span>Scan Worker ID &amp; Face</span>
+            </button>
+          </div>
         </section>
 
         <!-- One-Line Recent Star Activity Strip (Tap opens Rewards Page for Exchange & History) -->
@@ -3426,6 +3829,7 @@
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <span class="sr-badge-certified">${activeHeadcount} On Shift &middot; ${totalApprovedStaff} Approved</span>
+              <button type="button" class="sr-btn sr-btn-primary" id="sr-sup-scan-peer-btn" style="padding:4px 10px;min-height:28px;font-size:11.5px;">Scan Worker ID &amp; Face</button>
               <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-view-team-roster" style="padding:4px 10px;min-height:28px;font-size:11.5px;">Full List (${totalApprovedStaff})</button>
             </div>
           </div>
@@ -3696,9 +4100,9 @@
               ${presenceReviews.map(rev => {
                 const inStr = rev.clockedInAt ? new Date(rev.clockedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
                 const outStr = rev.clockedOutAt ? new Date(rev.clockedOutAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                const proofBadge = rev.cardProofMode === 'dynamic_live_qr'
-                  ? 'Live 45s TOTP QR'
-                  : (rev.cardProofMode === 'dynamic_live_code' ? 'Live 45s TOTP Code' : (rev.cardProofMode === 'static_badge_fallback' ? 'Printed Card Fallback' : ''));
+                const proofBadge = rev.cardProofMode === 'physical_badge_facial_verify'
+                  ? 'Badge + Live Face Verified'
+                  : (rev.cardProofMode === 'static_badge_fallback' ? 'Printed Badge Verify' : '');
                 const safeThumbUrl = (typeof rev.scanPhotoDataUrl === 'string' && /^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/i.test(rev.scanPhotoDataUrl))
                   ? rev.scanPhotoDataUrl
                   : '';
@@ -8194,97 +8598,7 @@
     }
   }
 
-  // ── 9. Real Barcode Generators & Rotating 45s TOTP Card Ticker ───────────────
-  function attachLiveDynamicCardTicker({
-    qrBoxEl = null,
-    countdownEl = null,
-    tokenEls = [],
-    refreshBtn = null,
-    qrSize = 128,
-    user = null
-  }) {
-    if (!qrBoxEl) return () => {};
-    let expiresAtMs = user?.dynamicCardExpiresAt ? Date.parse(user.dynamicCardExpiresAt) : (Date.now() + 45000);
-    if (!Number.isFinite(expiresAtMs)) expiresAtMs = Date.now() + 45000;
-    let fetching = false;
-    let stopped = false;
-
-    const applyCredentials = (cred) => {
-      if (stopped || !cred) return;
-      if (cred.validUntilIso) {
-        const parsed = Date.parse(cred.validUntilIso);
-        if (Number.isFinite(parsed)) expiresAtMs = parsed;
-      } else {
-        expiresAtMs = Date.now() + ((Number(cred.stepSeconds) || 45) * 1000);
-      }
-      if (user) {
-        user.dynamicQrPayload = cred.dynamicQrPayload;
-        user.dynamicCardToken = cred.dynamicToken;
-        user.dynamicCardExpiresAt = cred.validUntilIso;
-      }
-      if (window.state?.user && (!user?.id || window.state.user.id === user.id)) {
-        window.state.user.dynamicQrPayload = cred.dynamicQrPayload;
-        window.state.user.dynamicCardToken = cred.dynamicToken;
-        window.state.user.dynamicCardExpiresAt = cred.validUntilIso;
-      }
-      if (qrBoxEl && cred.dynamicQrPayload && typeof window.generateQrSvg === 'function') {
-        qrBoxEl.innerHTML = window.generateQrSvg(cred.dynamicQrPayload, qrSize);
-      }
-      for (const el of (tokenEls || [])) {
-        if (el && cred.dynamicToken) el.textContent = cred.dynamicToken;
-      }
-      updateCountdownLabel();
-    };
-
-    const refreshToken = async () => {
-      if (stopped || fetching) return;
-      fetching = true;
-      if (countdownEl) countdownEl.textContent = 'Refreshing QR...';
-      try {
-        const res = await fetch('/api/me/card-token', { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.dynamicQrPayload) applyCredentials(data);
-        }
-      } catch (_) {} finally {
-        fetching = false;
-      }
-    };
-
-    const updateCountdownLabel = () => {
-      if (!countdownEl) return;
-      const rem = Math.max(0, Math.ceil((expiresAtMs - Date.now()) / 1000));
-      countdownEl.textContent = rem > 0 ? `Rotates in ${rem}s` : 'Rotating...';
-    };
-
-    updateCountdownLabel();
-    if (!user?.dynamicQrPayload || Date.now() >= expiresAtMs) {
-      refreshToken();
-    }
-
-    const timer = setInterval(() => {
-      if (stopped || !document.body.contains(qrBoxEl)) {
-        clearInterval(timer);
-        stopped = true;
-        return;
-      }
-      const rem = Math.max(0, Math.ceil((expiresAtMs - Date.now()) / 1000));
-      updateCountdownLabel();
-      if (rem <= 0 && !fetching) {
-        refreshToken();
-      }
-    }, 1000);
-
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', () => refreshToken());
-    }
-
-    return () => {
-      stopped = true;
-      clearInterval(timer);
-    };
-  }
-  window.ShiftRelayLiveCardTicker = { attach: attachLiveDynamicCardTicker };
+  // ── 9. Real Barcode Generators (Code-128 Physical Staff Badge) ────────────────
 
   const CODE128_PATTERNS = [
     "212222","222122","222221","121223","121322","131222","122213","122312","132212","221213",
@@ -8438,8 +8752,7 @@
     const rawSuffix = String(user.id || '0001').slice(-4).padStart(4, '0');
     const staffCode = user.staffId || user.employee_code || ('RIF-' + rawSuffix);
     const orgCode = user.company_id || 'RIF-2026';
-    const dynamicToken = user.dynamicCardToken || '';
-    const qrPayload = user.dynamicQrPayload || `SHIFTRELAY:ID:${orgCode}:${staffCode}`;
+    const qrPayload = user.cardQrPayload || `SHIFTRELAY:ID:${orgCode}:${staffCode}`;
     const qrSvg = (typeof window !== 'undefined' && typeof window.generateQrSvg === 'function')
       ? window.generateQrSvg(qrPayload, 128)
       : (typeof generateQrSvg === 'function' ? generateQrSvg(qrPayload, 128) : '');
@@ -8470,7 +8783,7 @@
                   <span class="sr-cv-meta-chip">${escapeHtml(orgName)}</span>
                   <span class="sr-cv-meta-chip">${escapeHtml(deptName)}</span>
                   <span class="sr-cv-meta-chip">ID: <strong style="color:#ffffff;">${escapeHtml(staffCode)}</strong></span>
-                  <span class="sr-cv-meta-chip">Live TOTP: <strong id="sr-profile-chip-dyn-code" style="color:#34d399;font-family:monospace;">${escapeHtml(dynamicToken || 'SYNC')}</strong></span>
+                  <span class="sr-cv-meta-chip">Badge Mode: <strong style="color:#34d399;">Physical Card + Face</strong></span>
                   <span class="sr-cv-meta-chip">${escapeHtml(workEmail)}</span>
                 </div>
               </div>
@@ -8499,17 +8812,17 @@
                 </span>
                 <div>
                   <div style="font-size:14px;font-weight:800;color:#ffffff;">Official Staff ID Card</div>
-                  <div style="font-size:11px;color:#94a3b8;">Rotating 45s Live QR (<span id="sr-profile-qr-countdown" style="color:#34d399;font-weight:700;">Rotates every 45s</span>) &bull; GPS-Locked On-Site Only</div>
+                  <div style="font-size:11px;color:#94a3b8;">Printable Physical Badge Pass &bull; For Clock-In Page Assisted Scanner When Phone Unavailable</div>
                 </div>
               </div>
-              <button type="button" id="sr-profile-qr-refresh" style="padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#34d399;font-size:10.5px;font-weight:800;letter-spacing:0.04em;cursor:pointer;">LIVE 45s TOTP &bull; REFRESH</button>
+              <span style="padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#34d399;font-size:10.5px;font-weight:800;letter-spacing:0.04em;white-space:nowrap;flex-shrink:0;">GPS + LIVE FACE</span>
             </div>
 
             <div class="sr-barcode-codes-row">
-              <!-- Real Rotating 45s 2D QR Code Box (blocks WhatsApp screenshot reuse) -->
-              <div class="sr-barcode-qr-box" title="Live rotating 45s QR — scan on-site with colleague GPS-locked camera">
+              <!-- Official Physical Staff ID Badge QR Code -->
+              <div class="sr-barcode-qr-box" title="Official Staff ID badge QR for assisted Clock-In scanner when phone unavailable">
                 <div id="sr-profile-qr-svg">${qrSvg}</div>
-                <div style="font-size:9.5px;font-weight:800;color:#0f172a;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;">Live TOTP: <span id="sr-profile-dyn-code">${escapeHtml(dynamicToken || 'SYNC')}</span></div>
+                <div style="font-size:9.5px;font-weight:800;color:#0f172a;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;">Staff ID: <span id="sr-profile-staff-code">${escapeHtml(staffCode)}</span></div>
               </div>
 
               <!-- Real 1D Code-128 Barcode Box -->
@@ -8520,7 +8833,7 @@
             </div>
 
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;color:#94a3b8;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
-              <span>Check-In/Exit: <strong>Strict GPS + Card Verification</strong></span>
+              <span>Assisted Gate Scan: <strong>Strict GPS + Physical Badge + Live Face</strong></span>
               <span style="color:#34d399;font-weight:700;">NIBSS &amp; PenCom Compliant</span>
             </div>
           </div>
@@ -8818,17 +9131,7 @@
       </div>
     `;
 
-    attachLiveDynamicCardTicker({
-      qrBoxEl: document.getElementById('sr-profile-qr-svg'),
-      countdownEl: document.getElementById('sr-profile-qr-countdown'),
-      tokenEls: [
-        document.getElementById('sr-profile-dyn-code'),
-        document.getElementById('sr-profile-chip-dyn-code')
-      ],
-      refreshBtn: document.getElementById('sr-profile-qr-refresh'),
-      qrSize: 128,
-      user
-    });
+
 
     // ── Bind Profile Picture Upload ─────────────────────────────────────────
     const avatarInput = document.getElementById('sr-avatar-file-input');
