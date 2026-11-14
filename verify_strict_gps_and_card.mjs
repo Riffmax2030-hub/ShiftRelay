@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
+import pg from 'pg';
 import {
   buildStaffCardCredentials,
   parseStaffCardPayload,
@@ -12,9 +14,16 @@ import {
   resolveOrgGeofenceConfig
 } from './attendance-security.mjs';
 
+const { Pool } = pg;
+const USE_PG = process.argv.includes('--pg');
+const PG_PORT = 54323;
+const PG_BIN = 'C:\\Program Files\\PostgreSQL\\18\\bin';
+const PG_DATA = join(process.env.TEMP || process.cwd(), 'disposable_pg_cluster_utf8');
+const PG_URL = `postgres://postgres@127.0.0.1:${PG_PORT}/postgres`;
+
 const ARTIFACT_DIR = 'C:\\Users\\DATA ENG. OLA\\.gemini\\antigravity\\brain\\af65195c-f6f5-4f1b-843a-e3eb86a344fb';
 const STORE_PATH = join(process.cwd(), 'data', 'shiftrelay.json');
-const PORT = 4319;
+const PORT = USE_PG ? 4329 : 4319;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const ONSITE_COORDS = { latitude: 6.4312, longitude: 3.4244, accuracy: 14 };
 const OFFSITE_COORDS = { latitude: 6.4485, longitude: 3.3642, accuracy: 12 };
@@ -148,12 +157,25 @@ async function apiJson(path, cookie, { method = 'GET', body } = {}) {
   return { status: res.status, ok: res.ok, data };
 }
 
+async function waitForPg(pool, maxRetries = 30) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const res = await pool.query('SELECT 1 as alive');
+      if (res.rows[0]?.alive === 1) return true;
+    } catch (_) {}
+    await new Promise(r => setTimeout(r, 200));
+  }
+  return false;
+}
+
 async function main() {
   await runUnitChecks();
 
   const originalStoreRaw = await readFile(STORE_PATH, 'utf8');
   let child = null;
   let browser = null;
+  let pgProc = null;
+  let pgPool = null;
 
   const startServer = async () => {
     const proc = spawn(process.execPath, ['server.mjs'], {
@@ -161,10 +183,12 @@ async function main() {
       env: {
         ...process.env,
         PORT: String(PORT),
-        NODE_ENV: 'development',
-        DATABASE_URL: '',
-        ALLOW_DEV_FALLBACK: 'true',
-        ALLOW_DEV_DEMO_AUTH: 'true'
+        NODE_ENV: USE_PG ? 'production' : 'development',
+        DATABASE_URL: USE_PG ? PG_URL : '',
+        ALLOW_DEV_FALLBACK: USE_PG ? 'false' : 'true',
+        ALLOW_DEV_DEMO_AUTH: USE_PG ? 'false' : 'true',
+        SESSION_SECRET: '',
+        CARD_SIGNING_SECRET: ''
       },
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -188,13 +212,36 @@ async function main() {
   });
 
   try {
-    // Prepare isolated clean store copy (keep org/contracts/members, clear volatile test punches)
-    const cleanStore = JSON.parse(originalStoreRaw);
-    cleanStore.timeEntries = [];
-    await writeFile(STORE_PATH, JSON.stringify(cleanStore, null, 2), 'utf8');
+    if (USE_PG) {
+      console.log(`1b. Booting local PostgreSQL 18 cluster (${PG_DATA}) on port ${PG_PORT}...`);
+      if (!existsSync(join(PG_DATA, 'PG_VERSION'))) {
+        execFileSync(join(PG_BIN, 'initdb.exe'), ['-D', PG_DATA, '-U', 'postgres', '-A', 'trust', '-E', 'UTF8', '--no-locale'], { stdio: 'inherit' });
+      }
+      pgProc = spawn(join(PG_BIN, 'postgres.exe'), ['-D', PG_DATA, '-p', String(PG_PORT)], {
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+      pgPool = new Pool({ connectionString: PG_URL, max: 5 });
+      const pgReady = await waitForPg(pgPool);
+      if (!pgReady) throw new Error(`PostgreSQL 18 did not become ready on port ${PG_PORT}`);
+      for (const tbl of ['user_sessions', 'time_entries', 'app_kv_store', 'work_events']) {
+        try { await pgPool.query(`DELETE FROM ${tbl}`); } catch (_) {}
+      }
+      console.log('   PostgreSQL 18 ready (production database mode).');
+    } else {
+      // Prepare isolated clean store copy (keep org/contracts/members, clear volatile test punches)
+      const cleanStore = JSON.parse(originalStoreRaw);
+      cleanStore.timeEntries = [];
+      await writeFile(STORE_PATH, JSON.stringify(cleanStore, null, 2), 'utf8');
+    }
 
-    console.log(`2. Starting isolated ShiftRelay server on port ${PORT}...`);
+    console.log(`2. Starting isolated ShiftRelay server (${USE_PG ? 'POSTGRES PRODUCTION' : 'LOCAL-DEMO'}) on port ${PORT}...`);
     child = await startServer();
+
+    if (USE_PG) {
+      const readyRes = await fetch(`${BASE_URL}/api/health/readiness`);
+      const readyJson = await readyRes.json();
+      assert.equal(readyJson.databaseMode, 'postgres-primary', 'Expected postgres-primary databaseMode');
+    }
 
     console.log('3. Testing strict API enforcement (GPS + Card Security + Anti-Bypass)...');
     const owner = await signInApi('sherif@riffmax.tech');
@@ -402,19 +449,29 @@ async function main() {
     });
     assert.equal(ngoziCheckIn.status, 200);
 
-    // Stop server so store edits load cleanly on restart, backdate Ngozi's card entry 12h so shift_end (14:00 WAT) is expired
+    // Stop server so edits/backdating load cleanly on restart, backdate Ngozi's card entry 12h so shift_end (14:00 WAT) is expired
     await stopServer(child);
     child = null;
     await new Promise(r => setTimeout(r, 250));
-    const midStore = JSON.parse(await readFile(STORE_PATH, 'utf8'));
-    const ngoziEntry = midStore.timeEntries.find(e => e.membershipId === ngoziCard.id && !e.clockedOutAt);
-    assert.ok(ngoziEntry, 'Expected Ngozi open entry in store');
-    ngoziEntry.clockedInAt = new Date(Date.now() - 12 * 3600000).toISOString();
-    await writeFile(STORE_PATH, JSON.stringify(midStore, null, 2), 'utf8');
+    if (USE_PG) {
+      const upd = await pgPool.query(
+        "UPDATE time_entries SET clocked_in_at = now() - interval '12 hours' WHERE membership_id = $1 AND clocked_out_at IS NULL RETURNING id",
+        [ngoziCard.id]
+      );
+      assert.ok(upd.rows.length === 1, 'Expected Ngozi open entry in PostgreSQL time_entries');
+    } else {
+      const midStore = JSON.parse(await readFile(STORE_PATH, 'utf8'));
+      const ngoziEntry = midStore.timeEntries.find(e => e.membershipId === ngoziCard.id && !e.clockedOutAt);
+      assert.ok(ngoziEntry, 'Expected Ngozi open entry in store');
+      ngoziEntry.clockedInAt = new Date(Date.now() - 12 * 3600000).toISOString();
+      await writeFile(STORE_PATH, JSON.stringify(midStore, null, 2), 'utf8');
+    }
 
     child = await startServer();
     const owner2 = await signInApi('sherif@riffmax.tech');
     const supervisor2 = await signInApi('olaide@riffmax.tech');
+    const babatunde2 = await signInApi('babatunde@riffmax.tech');
+    assert.equal(babatunde2.user.cardVerifyCode, babatunde.user.cardVerifyCode, 'Staff ID HMAC cardVerifyCode must persist across server restarts');
 
     // Supervisor fetches presence reviews -> triggers shift-boundary sweep + creates review item
     const reviewsBefore = await apiJson('/api/time-entries/presence-reviews', supervisor2.cookie);
@@ -457,10 +514,15 @@ async function main() {
     const ngoziPayrollAfter = payrollAfter.data.payroll.employees.find(e => e.staffId === 'RIF-0006');
     assert.equal(ngoziPayrollAfter.status, 'verified_ready');
 
-    console.log('ALL STRICT GPS, ID CARD ANTI-BYPASS & PRESENCE VERIFICATION TESTS PASSED!');
+    console.log(`ALL STRICT GPS, ID CARD ANTI-BYPASS & PRESENCE VERIFICATION TESTS PASSED (${USE_PG ? 'POSTGRES PRODUCTION' : 'LOCAL-DEMO'})!`);
   } finally {
     if (browser) await browser.close().catch(() => {});
     if (child) await stopServer(child);
+    if (pgPool) await pgPool.end().catch(() => {});
+    if (pgProc) {
+      try { execFileSync(join(PG_BIN, 'pg_ctl.exe'), ['-D', PG_DATA, 'stop', '-m', 'immediate'], { stdio: 'ignore' }); } catch (_) {}
+      try { pgProc.kill('SIGTERM'); } catch (_) {}
+    }
     await writeFile(STORE_PATH, originalStoreRaw, 'utf8');
   }
 }

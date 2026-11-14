@@ -97,7 +97,7 @@ import { promisify } from 'node:util';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { basename, extname, join, normalize, resolve } from 'node:path';
-import { databaseConfigured, demoMembers, demoOrganisation, initializeDatabase, isDatabaseConnectionError, sanitizeDatabaseError, query, seedDemoOrganisation, DEFAULT_DEMO_MEMBER_PASSWORD_HASH } from './database.mjs';
+import { databaseConfigured, demoMembers, demoOrganisation, getPool, initializeDatabase, isDatabaseConnectionError, sanitizeDatabaseError, query, seedDemoOrganisation, DEFAULT_DEMO_MEMBER_PASSWORD_HASH } from './database.mjs';
 import {
   ADMIN_ROLE_DEFS,
   adminSessionCookie,
@@ -780,7 +780,8 @@ async function getUser(request) {
           const profile = resolveIndustryProfile(row.industry, row.organisation_name);
           const geo = resolveOrgGeofenceConfig(row, profile);
           const staffId = row.staff_code || ('SR-' + String(row.user_id || row.id).slice(-4).toUpperCase());
-          const cardCreds = buildStaffCardCredentials(row.company_id, staffId);
+          const storeForSecret = await loadSigningStoreForAuth();
+          const cardCreds = buildStaffCardCredentials(row.company_id, staffId, storeForSecret);
           return {
             ...row,
             staffId,
@@ -1434,7 +1435,7 @@ async function signIn(body) {
       const dbProfile = resolveIndustryProfile(member.industry, member.organisation_name);
       const geo = resolveOrgGeofenceConfig(member, dbProfile);
       const staffId = member.staff_code || ('SR-' + String(member.user_id || member.id).slice(-4).toUpperCase());
-      const storeForSecret = await getStore().catch(() => null);
+      const storeForSecret = await loadSigningStoreForAuth();
       const cardCreds = buildStaffCardCredentials(org.organisation_code, staffId, storeForSecret);
       return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, staffId, cardVerifyCode: cardCreds.cardVerifyCode, cardQrPayload: cardCreds.cardQrPayload, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name, company_name: member.company_name, company_id: org.organisation_code, hub_name: geo.hubName, hub_lat: geo.hubLat, hub_lng: geo.hubLng, hub_perimeter: geo.perimeterMeters, industry: member.industry || dbProfile.label, industryKey: dbProfile.key, industryProfile: dbProfile } };
     } catch (dbErr) {
@@ -1652,20 +1653,126 @@ export function calculateNigerianStatutory(grossSalary) {
   };
 }
 
+async function loadSigningStoreForAuth() {
+  if (process.env.CARD_SIGNING_SECRET || process.env.SESSION_SECRET) return null;
+  const store = await getStore().catch(() => null);
+  if (!store) return null;
+  const prevSecret = store.cardSigningSecret;
+  const resolved = ensureCardSigningSecret(store);
+  if (!prevSecret && resolved) {
+    await saveStore(store).catch(() => {});
+  }
+  return store;
+}
+
+const toIsoStringOrNull = (val) => (
+  val instanceof Date ? val.toISOString() : (val ? String(val) : null)
+);
+
+async function loadPayrollStoreForTenant(tenantId = null) {
+  if (databaseReady && getPool()) {
+    await processShiftBoundaryAutoClockouts().catch(() => {});
+  }
+  const baseStore = await getStore();
+  if (!databaseReady || !getPool()) return baseStore;
+
+  const [orgRes, memRes, usrRes] = await Promise.all([
+    query('select id, organisation_code, legal_name, trading_name, industry, country, hub_name, hub_lat, hub_lng, hub_perimeter from organisations'),
+    query('select id, organisation_id, user_id, role, title, department, staff_code, status from memberships'),
+    query('select id, full_name, email, time_zone from portal_users')
+  ]);
+
+  const pgOrgs = orgRes.rows || [];
+  let resolvedTenantUuid = null;
+  if (tenantId) {
+    const cleanCode = String(tenantId).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const matchOrg = pgOrgs.find(
+      o => o.id === tenantId || String(o.organisation_code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase() === cleanCode
+    );
+    resolvedTenantUuid = matchOrg
+      ? matchOrg.id
+      : (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(tenantId)) ? tenantId : null);
+  }
+
+  const teRes = await query(
+    `select t.id, t.organisation_id, t.membership_id, m.user_id,
+            t.clocked_in_at, t.clocked_out_at, t.note,
+            t.verification_mode, t.geofence_status, t.distance_meters,
+            t.presence_verification_status, t.verified_hours,
+            t.clock_out_verification_mode, t.clock_out_geofence_status
+     from time_entries t
+     join memberships m on m.id = t.membership_id
+     where ($1::uuid is null or t.organisation_id = $1::uuid)
+     order by t.clocked_in_at desc`,
+    [resolvedTenantUuid]
+  );
+
+  const orgMap = new Map((baseStore.organisations || []).map(o => [o.id, o]));
+  for (const o of pgOrgs) {
+    orgMap.set(o.id, { ...(orgMap.get(o.id) || {}), ...o });
+  }
+
+  const userMap = new Map((baseStore.portalUsers || []).map(u => [u.id, u]));
+  for (const u of (usrRes.rows || [])) {
+    userMap.set(u.id, { ...(userMap.get(u.id) || {}), ...u });
+  }
+
+  const memberMap = new Map((baseStore.memberships || []).map(m => [m.id, m]));
+  for (const m of (memRes.rows || [])) {
+    memberMap.set(m.id, { ...(memberMap.get(m.id) || {}), ...m });
+  }
+
+  const pgEntries = (teRes.rows || []).map(row => ({
+    id: row.id,
+    organisationId: row.organisation_id,
+    membershipId: row.membership_id,
+    userId: row.user_id || row.membership_id,
+    clockedInAt: toIsoStringOrNull(row.clocked_in_at),
+    clockedOutAt: toIsoStringOrNull(row.clocked_out_at),
+    note: row.note || null,
+    verificationMode: row.verification_mode || 'standard',
+    geofenceStatus: row.geofence_status || 'verified_on_site',
+    distanceMeters: row.distance_meters ?? null,
+    presenceVerificationStatus: row.presence_verification_status || (row.clocked_out_at ? 'verified' : 'active'),
+    verifiedHours: row.verified_hours !== null && row.verified_hours !== undefined ? Number(row.verified_hours) : null,
+    clockOutVerificationMode: row.clock_out_verification_mode || null,
+    clockOutGeofenceStatus: row.clock_out_geofence_status || null
+  }));
+
+  return {
+    ...baseStore,
+    organisations: Array.from(orgMap.values()),
+    portalUsers: Array.from(userMap.values()),
+    memberships: Array.from(memberMap.values()),
+    timeEntries: pgEntries
+  };
+}
+
 export function compilePayrollRun(store, tenantId = null) {
   // ── Filter & deduplicate contracts by tenant + userId ──────────────────────
+  const resolvedTenantObj = tenantId
+    ? (store.organisations || []).find(o =>
+        o.id === tenantId ||
+        String(o.organisation_code || '').toUpperCase() === String(tenantId).toUpperCase()
+      )
+    : null;
+  const effectiveTenantId = resolvedTenantObj ? resolvedTenantObj.id : tenantId;
   const allContracts = store.contracts || [];
-  const rawContracts = tenantId
-    ? allContracts.filter(c => (c.tenant_id || c.organisation_id) === tenantId)
+  const rawContracts = effectiveTenantId
+    ? allContracts.filter(c => (c.tenant_id || c.organisation_id) === effectiveTenantId)
     : allContracts;
   const usersById = new Map((store.portalUsers || []).map(u => [u.id, u]));
-  const membershipsByUid = new Map((store.memberships || []).map(m => [m.user_id || m.id, m]));
+  const membershipsByUid = new Map();
+  for (const m of (store.memberships || [])) {
+    if (m.user_id) membershipsByUid.set(m.user_id, m);
+    if (m.id) membershipsByUid.set(m.id, m);
+  }
   const demoById = new Map(demoMembers.map(m => [m.id, m]));
 
   const dedupedContracts = new Map();
   for (const raw of rawContracts) {
     const uid = raw.userId || raw.user_id || raw.id;
-    const orgKey = raw.tenant_id || raw.organisation_id || tenantId || demoOrganisation.id;
+    const orgKey = raw.tenant_id || raw.organisation_id || effectiveTenantId || demoOrganisation.id;
     if (!uid) continue;
     const key = `${orgKey}:${uid}`;
     const prev = dedupedContracts.get(key) || {};
@@ -1681,6 +1788,7 @@ export function compilePayrollRun(store, tenantId = null) {
       ...prev,
       ...raw,
       userId: uid,
+      _membershipId: membership?.id || raw.membershipId || null,
       tenant_id: orgKey,
       userName: raw.userName || prev.userName || pu?.full_name || dm?.name || 'Staff Member',
       staffId: raw.staffId || prev.staffId || membership?.staff_code || dm?.staffId || ('SR-' + String(uid).slice(-4).toUpperCase()),
@@ -1696,7 +1804,7 @@ export function compilePayrollRun(store, tenantId = null) {
   }
   const contracts = Array.from(dedupedContracts.values());
   const org = (store.organisations || []).find(o =>
-    tenantId ? (o.id === tenantId || o.organisation_code === tenantId) : true
+    effectiveTenantId ? (o.id === effectiveTenantId || o.organisation_code === effectiveTenantId) : true
   ) || { legal_name: 'ShiftRelay Employer', organisation_code: 'SR-000', id: null };
 
   const month = '2026-11'; // current payroll month (November 2026)
@@ -1708,7 +1816,7 @@ export function compilePayrollRun(store, tenantId = null) {
 
     // ── Live attendance from store.timeEntries ─────────────────────────────
     const memberEntries = (store.timeEntries || []).filter(e =>
-      e.membershipId === c.userId &&
+      (e.membershipId === c.userId || (c._membershipId && e.membershipId === c._membershipId) || e.userId === c.userId) &&
       typeof e.clockedInAt === 'string' &&
       e.clockedInAt.startsWith(month)
     );
@@ -1755,7 +1863,10 @@ export function compilePayrollRun(store, tenantId = null) {
     const unexcusedAbsenceDays = openPunches;
 
     // ── Shift Score integration ─────────────────────────────────────────────
-    const scoreData = monthlyScoreSummary(c.userId, store, month);
+    const normalizedScoreStore = memberEntries.some(e => e.membershipId !== c.userId)
+      ? { ...store, timeEntries: (store.timeEntries || []).map(e => (memberEntries.includes(e) ? { ...e, membershipId: c.userId } : e)) }
+      : store;
+    const scoreData = monthlyScoreSummary(c.userId, normalizedScoreStore, month);
     const { avgScore, grade: shiftGrade, performanceBonusPct, attendanceDeductionDays } = scoreData;
 
     // ── Pay calculation ─────────────────────────────────────────────────────
@@ -2283,8 +2394,8 @@ async function handleApi(request, response, url) {
 
   // ── High-Tech Enterprise Reports & Documents API ──────────────────────────
   if (url.pathname === '/api/reports/payroll-ledger' && request.method === 'GET') {
-    const store = await getStore();
     const tenantId = url.searchParams.get('tenantId') || null;
+    const store = await loadPayrollStoreForTenant(tenantId);
     const payrollData = compilePayrollRun(store, tenantId);
     const org = (store.organisations || []).find(o => tenantId ? (o.id === tenantId || o.organisation_code === tenantId) : true) || { legal_name: 'Riffmax Technology Limited', organisation_code: 'RIF-2026' };
     const html = generatePayrollReportHtml(payrollData, org);
@@ -3115,9 +3226,10 @@ async function getOrganisationRosterState(user) {
     if (!['owner', 'manager', 'workforce_admin', 'supervisor'].includes(user.role)) return sendJson(response, 403, { error: 'Executive analytics requires manager or owner access.' });
     const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
     const { members, store, summary: rosterSummary } = await getOrganisationRosterState(user);
+    const payrollStore = await loadPayrollStoreForTenant(user.organisation_id);
     const activeMembers = members.filter(m => m.status === 'active');
-    const payroll = compilePayrollRun(store, user.organisation_id);
-    const orgEntries = (store.timeEntries || []).filter(e =>
+    const payroll = compilePayrollRun(payrollStore, user.organisation_id);
+    const orgEntries = (payrollStore.timeEntries || []).filter(e =>
       (!e.organisationId || e.organisationId === user.organisation_id) &&
       activeMembers.some(m => m.id === e.membershipId || m.user_id === e.membershipId)
     );
@@ -4040,16 +4152,17 @@ async function getOrganisationRosterState(user) {
     }
 
     const newStatus = isConfirmed ? 'supervisor_confirmed' : 'flagged_early_departure';
+    const creditedHours = isConfirmed ? null : (verifiedHours !== null ? verifiedHours : 0);
     const noteSuffix = isConfirmed
       ? ` [CONFIRMED BY ${user.name || 'Supervisor'}]`
-      : ` [EARLY DEPARTURE FLAGGED BY ${user.name || 'Supervisor'}]`;
+      : ` [EARLY DEPARTURE FLAGGED BY ${user.name || 'Supervisor'} (${creditedHours}h credited)]`;
     const upd = await query(
-      `update time_entries set presence_verification_status = $1, note = COALESCE(note, '') || $2 where id = $3 and organisation_id = $4 returning id`,
-      [newStatus, noteSuffix, entryId, user.organisation_id]
+      `update time_entries set presence_verification_status = $1, verified_hours = $2, note = COALESCE(note, '') || $3 where id = $4 and organisation_id = $5 returning id`,
+      [newStatus, creditedHours, noteSuffix, entryId, user.organisation_id]
     );
     if (!upd.rows[0]) return sendJson(response, 404, { error: 'Attendance record not found.' });
     await audit(user.organisation_id, user.id, 'presence_review_decided', 'time_entry', entryId, `${newStatus} by ${user.name}`);
-    return sendJson(response, 200, { ok: true, id: entryId, status: newStatus });
+    return sendJson(response, 200, { ok: true, id: entryId, status: newStatus, verifiedHours: creditedHours });
   }
   if (url.pathname === '/api/incidents' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Incident reporting is available for authenticated organisation accounts.' });
@@ -5429,9 +5542,10 @@ async function getUserRewards(user, store) {
 
   // ── Worker Earnings & Statements (NGN Africa & Global Hybrid) ──────────────
   if (url.pathname === '/api/earnings' && request.method === 'GET') {
-    const store = await getStore();
-    const payroll = compilePayrollRun(store);
-    const emp = payroll.employees.find(e => e.userId === user.id || e.userName === user.name) || payroll.employees[0];
+    const store = await loadPayrollStoreForTenant(user.organisation_id || null);
+    const payroll = compilePayrollRun(store, user.organisation_id || null);
+    const emp = payroll.employees.find(e => e.userId === user.id || e.userId === user.user_id || e._membershipId === user.id || e.userName === user.name) || payroll.employees[0];
+    if (!emp) return sendJson(response, 404, { error: 'No active payroll profile found for this account yet.' });
     const orgSettings = store.organisationSettings || {};
     const orgConfig = orgSettings.settings || {};
     const payModel = orgConfig.payModel || emp.compensation_type || 'monthly_salaried';
@@ -5497,9 +5611,10 @@ async function getUserRewards(user, store) {
 
   // ── Worker Official Digital Payslip (Pay Advice) ───────────────────────────
   if (url.pathname === '/api/worker-payslip' && request.method === 'GET') {
-    const store = await getStore();
-    const payroll = compilePayrollRun(store);
-    const emp = payroll.employees.find(e => e.userId === user.id || e.userName === user.name) || payroll.employees[0];
+    const store = await loadPayrollStoreForTenant(user.organisation_id || null);
+    const payroll = compilePayrollRun(store, user.organisation_id || null);
+    const emp = payroll.employees.find(e => e.userId === user.id || e.userId === user.user_id || e._membershipId === user.id || e.userName === user.name) || payroll.employees[0];
+    if (!emp) return sendJson(response, 404, { error: 'No active payslip profile found for this account yet.' });
     return sendJson(response, 200, {
       payslip: {
         companyName: payroll.companyName,
@@ -5574,23 +5689,23 @@ async function getUserRewards(user, store) {
 
   // ── Push to Finance: Master Month-End Payroll Compilation ──────────────────
   if (url.pathname === '/api/payroll/summary' && request.method === 'GET') {
-    const store = await getStore();
-    // Scope payroll to the requesting user's organisation when available
     const tenantId = user.organisation_id || null;
+    const store = await loadPayrollStoreForTenant(tenantId);
+    // Scope payroll to the requesting user's organisation when available
     const payroll = compilePayrollRun(store, tenantId);
     return sendJson(response, 200, { payroll });
   }
 
   if (url.pathname === '/api/payroll/compile' && request.method === 'POST') {
-    const store = await getStore();
     const tenantId = user.organisation_id || null;
+    const store = await loadPayrollStoreForTenant(tenantId);
     const payroll = compilePayrollRun(store, tenantId);
     return sendJson(response, 200, { ok: true, payroll });
   }
 
   // ── Push to Finance: Dispatch to Accounts Desk ─────────────────────────────
   if (url.pathname === '/api/payroll/dispatch' && request.method === 'POST') {
-    const store = await getStore();
+    const store = await loadPayrollStoreForTenant(user.organisation_id || null);
     const payroll = compilePayrollRun(store, user.organisation_id || null);
     const dispatchRecord = {
       period: payroll.period,
@@ -5603,14 +5718,15 @@ async function getUserRewards(user, store) {
       status: 'dispatched_to_finance',
       auditReference: `SR-FIN-DISPATCH-${Date.now()}`
     };
-    store.lastPayrollDispatch = dispatchRecord;
-    await saveStore(store);
+    const baseStore = await getStore();
+    baseStore.lastPayrollDispatch = dispatchRecord;
+    await saveStore(baseStore);
     return sendJson(response, 200, { ok: true, dispatch: dispatchRecord });
   }
 
   // ── Push to Finance: Export Bank CSV Schedule ──────────────────────────────
   if (url.pathname === '/api/payroll/export-bank-csv' && request.method === 'GET') {
-    const store = await getStore();
+    const store = await loadPayrollStoreForTenant(user.organisation_id || null);
     const payroll = compilePayrollRun(store, user.organisation_id || null);
     const csvData = generateBankPaymentCSV(payroll.employees);
     response.writeHead(200, {
@@ -5623,7 +5739,7 @@ async function getUserRewards(user, store) {
 
   // ── Push to Finance: Export Statutory Tax & Pension CSV Schedule ───────────
   if (url.pathname === '/api/payroll/export-tax-csv' && request.method === 'GET') {
-    const store = await getStore();
+    const store = await loadPayrollStoreForTenant(user.organisation_id || null);
     const payroll = compilePayrollRun(store, user.organisation_id || null);
     const csvData = generateTaxPensionCSV(payroll.employees);
     response.writeHead(200, {
@@ -6283,7 +6399,7 @@ async function getUserRewards(user, store) {
 
   // 2. Admin Overview Stats
   if (url.pathname === '/api/admin/overview' && request.method === 'GET') {
-    const store = await getStore();
+    const store = await loadPayrollStoreForTenant(null);
     const adminCtx = await requireAdminGate(request, response, store);
     if (!adminCtx) return;
     const tenants = store.organisations || [];
@@ -8211,7 +8327,7 @@ async function getUserRewards(user, store) {
   if (url.pathname === '/api/payroll/tenant-summary' && request.method === 'GET') {
     const tenantParam = url.searchParams.get('tenant') || user.organisation_id;
     if (!tenantParam) return sendJson(response, 400, { error: 'tenant query param required.' });
-    const store = await getStore();
+    const store = await loadPayrollStoreForTenant(tenantParam);
     const org = (store.organisations || []).find(o =>
       o.id === tenantParam || o.organisation_code === tenantParam
     );
