@@ -443,6 +443,10 @@ const schema = `
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
   );
+  alter table time_entries add column if not exists face_match_status varchar(48);
+  alter table time_entries add column if not exists face_match_confidence integer;
+  alter table time_entries add column if not exists face_photo_hash varchar(64);
+  alter table time_entries add column if not exists face_match_reason text;
 `;
 
 export function databaseConfigured() {

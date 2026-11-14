@@ -430,12 +430,46 @@ async function main() {
     assert.equal(missingFaceExit.status, 400);
     assert.equal(missingFaceExit.data.code, 'FACIAL_PHOTO_REQUIRED');
 
-    const ibrahimLiveScanOut = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
+    const makeValidPngDataUrl = (r, g, b) => {
+      const raw = Buffer.from([0, r, g, b, 255]);
+      const hdr = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgQmY9m8AAAAASUVORK5CYII=', 'base64');
+      return `data:image/png;base64,${Buffer.concat([hdr, raw]).toString('base64')}`;
+    };
+    const SAMPLE_EXIT_PHOTO = makeValidPngDataUrl(22, 163, 74);
+
+    // Covered pitch-black camera frame must be rejected
+    const darkFrameScan = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
+      method: 'POST',
+      body: {
+        action: 'clock-out',
+        badgePayload: ibrahimCard.cardQrPayload,
+        scanPhotoDataUrl: SAMPLE_EXIT_PHOTO,
+        captureMeta: { captureSource: 'live_camera', meanLuma: 2, lumaStdDev: 0.5, livenessDelta: 0.2, dualFrameChecked: 1 },
+        coords: { ...ONSITE_COORDS, capturedAt: Date.now() }
+      }
+    });
+    assert.equal(darkFrameScan.status, 400, 'Pitch-black covered live camera frame must be rejected');
+    assert.equal(darkFrameScan.data.code, 'FACE_FRAME_TOO_DARK');
+
+    // Replaying exact same selfie hash from clock-in on exit scan must be blocked by Anti-Replay Guardrail
+    const replayAttempt = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
       method: 'POST',
       body: {
         action: 'clock-out',
         badgePayload: ibrahimCard.cardQrPayload,
         scanPhotoDataUrl: SAMPLE_SCAN_PHOTO,
+        coords: { ...ONSITE_COORDS, capturedAt: Date.now() }
+      }
+    });
+    assert.equal(replayAttempt.status, 403, 'Replaying an identical previous facial selfie hash must be blocked');
+    assert.equal(replayAttempt.data.code, 'REPLAYED_FACE_PHOTO');
+
+    const ibrahimLiveScanOut = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
+      method: 'POST',
+      body: {
+        action: 'clock-out',
+        badgePayload: ibrahimCard.cardQrPayload,
+        scanPhotoDataUrl: SAMPLE_EXIT_PHOTO,
         coords: { ...ONSITE_COORDS, capturedAt: Date.now() }
       }
     });
@@ -619,7 +653,16 @@ async function main() {
       null,
       { timeout: 6000 }
     );
+    const exitScanRespPromise = onsitePage.waitForResponse(
+      r => r.url().includes('/api/time-entries/peer-card-scan') && r.request().method() === 'POST',
+      { timeout: 15000 }
+    );
     await onsitePage.click('#sr-btn-submit-face-checkin');
+    const exitScanResp = await exitScanRespPromise;
+    if (!exitScanResp.ok()) {
+      const errBody = await exitScanResp.text().catch(() => '');
+      throw new Error(`Step 4 Exit Scan API returned ${exitScanResp.status()}: ${errBody}`);
+    }
     await onsitePage.waitForFunction(
       () => {
         const doneBox = document.getElementById('sr-scan-step-done');
@@ -627,7 +670,7 @@ async function main() {
         return doneBox && doneBox.style.display === 'flex' && (txt.includes('exit verified') || txt.includes('early exit logged'));
       },
       null,
-      { timeout: 8000 }
+      { timeout: 10000 }
     );
     await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-peer-scanner-exit-verified.png') });
     await onsitePage.click('#sr-btn-finish-scan-done');
@@ -738,6 +781,218 @@ async function main() {
     assert.equal(payrollAfter.data.payroll.summary.unverifiedShiftHolds, 0);
     const ngoziPayrollAfter = payrollAfter.data.payroll.employees.find(e => e.staffId === 'RIF-0006');
     assert.equal(ngoziPayrollAfter.status, 'verified_ready');
+
+    console.log('6. Verifying Security Hardening, CORS, Auth Gates, WebAuthn & Web Hosting Routes...');
+    // Unauthenticated endpoints must return 401
+    for (const [method, path, body] of [
+      ['GET', '/api/riffmax/payslips', null],
+      ['POST', '/api/supervisor/override', { workerId: 'x' }],
+      ['GET', '/api/payroll/ledger?gross=200000', null],
+      ['POST', '/api/settlements/paystack-transfer', { amountNgn: 1000 }],
+      ['POST', '/api/settlements/mono-lookup', { bankCode: '044' }],
+      ['GET', '/api/datacenter/state', null],
+      ['GET', '/api/hitl/state', null],
+      ['POST', '/api/auth/executive-onboard', { companyId: 'RIF-2026', email: 'sherif@riffmax.tech', password: 'Password123!', confirmPassword: 'Password123!' }],
+      ['GET', '/api/reports/payroll-ledger', null],
+      ['POST', '/api/emails/test-send', { to: 'victim@example.com' }],
+      ['POST', '/api/newsletter/dispatch-weekly', { to: 'victim@example.com' }],
+      ['GET', '/api/compliance/audit-voucher', null],
+      ['GET', '/api/events/perimeter-breaches', null],
+      ['POST', '/api/auth/webauthn/register-options', {}],
+      ['POST', '/api/auth/webauthn/register-verify', { id: 'fake' }]
+    ]) {
+      const r = await apiJson(path, '', body ? { method, body } : { method });
+      assert.equal(r.status, 401, `Expected 401 for unauthenticated ${method} ${path}, got ${r.status}`);
+    }
+
+    // Worker role cannot read payroll summaries, payslips, ledger reports, supervisor overrides, or executive onboard -> 403 / 401
+    for (const [method, path, body, expectedStatus] of [
+      ['GET', '/api/payroll/tenant-summary', null, 403],
+      ['GET', '/api/riffmax/payslips', null, 403],
+      ['GET', '/api/reports/payroll-ledger', null, 403],
+      ['POST', '/api/supervisor/override', { workerId: 'x' }, 403],
+      ['POST', '/api/auth/executive-onboard', { companyId: 'RIF-2026', email: 'sherif@riffmax.tech', password: 'Password123!', confirmPassword: 'Password123!' }, 401]
+    ]) {
+      const r = await apiJson(path, babatunde2.cookie, body ? { method, body } : { method });
+      assert.equal(r.status, expectedStatus, `Expected ${expectedStatus} for worker on ${method} ${path}, got ${r.status}`);
+    }
+
+    // Authenticated owner can access own tenant summary and ledger; invalid activation token fails cleanly
+    const ownSummary = await apiJson('/api/payroll/tenant-summary?tenant=RIF-2026', owner2.cookie);
+    assert.equal(ownSummary.status, 200);
+    const badActivate = await apiJson('/api/auth/activate', '', {
+      method: 'POST',
+      body: { token: 'nonexistent-token', newPassword: 'ValidPassword123!' }
+    });
+    assert.equal(badActivate.status, 404);
+
+    // Authenticated owner can calculate statutory payroll ledger
+    const authedLedger = await apiJson('/api/payroll/ledger?gross=300000', owner2.cookie);
+    assert.equal(authedLedger.status, 200);
+    assert.ok(authedLedger.data.netPay > 0);
+
+    // WebAuthn login-verify spoofing without real credential + challenge assertion must fail with 401
+    const waOpt = await apiJson('/api/auth/webauthn/login-options', '', {
+      method: 'POST',
+      body: { email: 'sherif@riffmax.tech', companyId: 'RIF-2026' }
+    });
+    assert.equal(waOpt.status, 200);
+    const waSpoof = await apiJson('/api/auth/webauthn/login-verify', '', {
+      method: 'POST',
+      body: { email: 'sherif@riffmax.tech', companyId: 'RIF-2026' }
+    });
+    assert.equal(waSpoof.status, 401, 'WebAuthn login-verify must reject requests lacking device assertion & enrolled credential');
+
+    // CORS allowlist: reject evil origin, allow Capacitor WebView origin
+    const evilPreflight = await fetch(`${BASE_URL}/api/config`, {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://evil-attacker.example', 'Access-Control-Request-Method': 'POST' }
+    });
+    assert.equal(evilPreflight.status, 403);
+    assert.equal(evilPreflight.headers.get('access-control-allow-origin'), null);
+    assert.equal(evilPreflight.headers.get('access-control-allow-credentials'), null);
+
+    const evilGet = await fetch(`${BASE_URL}/api/config`, { headers: { Origin: 'https://evil-attacker.example' } });
+    assert.equal(evilGet.status, 200);
+    assert.equal(evilGet.headers.get('access-control-allow-origin'), null);
+    assert.equal(evilGet.headers.get('access-control-allow-credentials'), null);
+
+    const nativePreflight = await fetch(`${BASE_URL}/api/config`, {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://localhost', 'Access-Control-Request-Method': 'POST' }
+    });
+    assert.equal(nativePreflight.status, 204);
+    assert.equal(nativePreflight.headers.get('access-control-allow-origin'), 'https://localhost');
+    assert.equal(nativePreflight.headers.get('access-control-allow-credentials'), 'true');
+
+    // Custom domain hosting routes, SEO files & subdomain partitioning
+    for (const staticPath of ['/favicon.ico', '/robots.txt', '/sitemap.xml', '/website', '/pricing', '/privacy', '/terms', '/admin', '/activate', '/support-security', '/delete-account']) {
+      const staticRes = await fetch(`${BASE_URL}${staticPath}`);
+      assert.equal(staticRes.status, 200, `Expected 200 for ${staticPath}, got ${staticRes.status}`);
+    }
+    const robotsTxt = await (await fetch(`${BASE_URL}/robots.txt`)).text();
+    assert.ok(robotsTxt.includes('Sitemap:') && robotsTxt.includes('/sitemap.xml'));
+    const sitemapXml = await (await fetch(`${BASE_URL}/sitemap.xml`)).text();
+    assert.ok(sitemapXml.includes('<urlset') && sitemapXml.includes('/website.html'));
+
+    const marketingHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'shiftrelay.com' } })).text();
+    assert.ok(marketingHostHome.includes('ShiftRelay | Digital Staff ID'), 'Apex domain should serve website.html on /');
+    const adminHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'admin.shiftrelay.com' } })).text();
+    assert.ok(adminHostHome.includes('ShiftRelay Web Admin'), 'admin subdomain should serve admin.html on /');
+
+    console.log('7. Testing Biometric HR Passport Enrollment, Executive Add-Staff & Daily Safety Checklists...');
+    const PASSPORT_TEST_IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
+    // 7a) Enroll official HR passport photo for Ibrahim & verify peer-card-preview returns referencePhotoUrl
+    const workerPassportTry = await apiJson(`/api/team/members/${encodeURIComponent(ibrahim.user.id)}/passport-photo`, babatunde2.cookie, {
+      method: 'POST',
+      body: { passportPhotoDataUrl: PASSPORT_TEST_IMG }
+    });
+    assert.equal(workerPassportTry.status, 403, 'Frontline worker cannot overwrite HR passport photos for colleagues');
+
+    const enrollPassport = await apiJson(`/api/team/members/${encodeURIComponent(ibrahim.user.id)}/passport-photo`, owner2.cookie, {
+      method: 'POST',
+      body: { passportPhotoDataUrl: PASSPORT_TEST_IMG }
+    });
+    assert.equal(enrollPassport.status, 200);
+    assert.equal(enrollPassport.data.referencePhotoUrl, PASSPORT_TEST_IMG);
+
+    const previewWithPassport = await apiJson('/api/time-entries/peer-card-preview', babatunde2.cookie, {
+      method: 'POST',
+      body: { badgePayload: ibrahim.user.cardQrPayload, coords: { ...ONSITE_COORDS, capturedAt: Date.now() } }
+    });
+    assert.equal(previewWithPassport.status, 200);
+    assert.equal(previewWithPassport.data.worker?.hasReferencePhoto, true);
+    assert.equal(previewWithPassport.data.worker?.referencePhotoUrl, PASSPORT_TEST_IMG);
+
+    // 7b) Executive Self-Serve Add New Staff + Department (owner permitted, worker blocked)
+    const workerAddTry = await apiJson('/api/executive/staff', babatunde2.cookie, {
+      method: 'POST',
+      body: { fullName: 'Unauthorized Add', email: 'unauth.add@riffmax.tech', department: 'Operations' }
+    });
+    assert.equal(workerAddTry.status, 403);
+
+    const uniqueNewEmail = `ngozi.${Date.now()}@riffmax.tech`;
+    const execAddStaff = await apiJson('/api/executive/staff', owner2.cookie, {
+      method: 'POST',
+      body: {
+        fullName: 'Ngozi Okeke',
+        email: uniqueNewEmail,
+        phone: '+2348095551234',
+        department: 'Cold Chain Quality',
+        role: 'worker',
+        title: 'Cold Room Auditor',
+        baseSalary: 185000,
+        passportPhotoDataUrl: PASSPORT_TEST_IMG
+      }
+    });
+    assert.equal(execAddStaff.status, 201, `Executive add-staff failed: ${JSON.stringify(execAddStaff.data)}`);
+    assert.equal(execAddStaff.data.staff?.department, 'Cold Chain Quality');
+    assert.equal(execAddStaff.data.staff?.hasReferencePassport, true);
+    assert.ok(execAddStaff.data.staff?.staffId && execAddStaff.data.staff?.cardVerifyCode);
+
+    const dupAddStaff = await apiJson('/api/executive/staff', owner2.cookie, {
+      method: 'POST',
+      body: { fullName: 'Ngozi Duplicate', email: uniqueNewEmail, department: 'Cold Chain Quality' }
+    });
+    assert.equal(dupAddStaff.status, 409);
+    assert.equal(dupAddStaff.data.code, 'DUPLICATE_STAFF_EMAIL');
+
+    const dirAfterAdd = await apiJson('/api/directory', owner2.cookie);
+    assert.equal(dirAfterAdd.status, 200);
+    const addedMemberInDir = (dirAfterAdd.data.members || []).find(m => m.email === uniqueNewEmail);
+    assert.ok(addedMemberInDir, 'Newly added staff must immediately appear in Workforce Directory');
+    assert.equal(addedMemberInDir.department, 'Cold Chain Quality');
+    assert.equal(addedMemberInDir.avatarUrl, PASSPORT_TEST_IMG);
+
+    // 7c) Workplace Safety & Daily Checklists Config -> Syncs to /api/shift-tasks & Assisted Peer Preview
+    const unauthAdminChecklists = await apiJson(`/api/admin/tenants/${encodeURIComponent(owner2.user.organisation_id)}/checklists`, '', {
+      method: 'PUT',
+      body: { dailyChecklists: [{ text: 'Unauthorized rule' }] }
+    });
+    assert.equal(unauthAdminChecklists.status, 401);
+
+    const safetyRuleText = 'Inspect high-vis PPE vest, eye goggles & fire exit clearance';
+    const saveOrgChecklists = await apiJson('/api/organisation/checklists', owner2.cookie, {
+      method: 'PUT',
+      body: {
+        dailyChecklists: [
+          { text: safetyRuleText, category: 'Workplace Safety', priority: 'urgent' },
+          { text: 'Verify chemical SDS binder at workstation before shift handoff', category: 'PPE & Gear', priority: 'normal' }
+        ]
+      }
+    });
+    assert.equal(saveOrgChecklists.status, 200);
+    assert.equal(saveOrgChecklists.data.dailyChecklists?.length, 2);
+
+    const workerShiftTasks = await apiJson(`/api/shift-tasks?tenant=${encodeURIComponent(owner2.user.company_id || 'RIF-2026')}`, babatunde2.cookie);
+    assert.equal(workerShiftTasks.status, 200);
+    assert.ok((workerShiftTasks.data.dailyChecklists || []).some(c => c.text === safetyRuleText), 'Worker /api/shift-tasks must surface saved daily workplace safety rule');
+
+    const previewChecklistSync = await apiJson('/api/time-entries/peer-card-preview', babatunde2.cookie, {
+      method: 'POST',
+      body: { badgePayload: ibrahim.user.cardQrPayload, coords: { ...ONSITE_COORDS, capturedAt: Date.now() } }
+    });
+    assert.equal(previewChecklistSync.status, 200);
+    assert.ok((previewChecklistSync.data.assistedBrief?.checklistTasks || []).some(t => t.text === safetyRuleText && t.source === 'company_safety'), 'Peer scanner checklist must include company workplace safety rule');
+
+    // 7d) UI Verification: Executive "+ Add New Staff" Button & Modal Opens Cleanly + Admin Checklists Builder DOM
+    const execUiContext = await browser.newContext({ viewport: { width: 1366, height: 860 } });
+    const [oCookieName, oCookieVal] = owner2.cookie.split('=');
+    await execUiContext.addCookies([{ name: oCookieName, value: oCookieVal, domain: '127.0.0.1', path: '/' }]);
+    const execUiPage = await execUiContext.newPage();
+    await execUiPage.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await execUiPage.waitForSelector('#sr-analytics-add-staff-btn', { timeout: 15000 });
+    await execUiPage.click('#sr-analytics-add-staff-btn');
+    await execUiPage.waitForSelector('#sr-exec-add-staff-modal', { timeout: 5000 });
+    await execUiPage.waitForSelector('#sr-add-staff-dept');
+    await execUiPage.waitForSelector('#sr-add-staff-passport-input');
+
+    const adminUiPage = await execUiContext.newPage();
+    await adminUiPage.goto(`${BASE_URL}/admin`, { waitUntil: 'domcontentloaded' });
+    await adminUiPage.waitForSelector('#ob-checklists-panel', { state: 'attached', timeout: 8000 });
+    await adminUiPage.waitForSelector('#csv-checklist-items', { state: 'attached', timeout: 8000 });
+    await execUiContext.close();
 
     console.log(`ALL STRICT GPS, ID CARD ANTI-BYPASS & PRESENCE VERIFICATION TESTS PASSED (${USE_PG ? 'POSTGRES PRODUCTION' : 'LOCAL-DEMO'})!`);
   } finally {

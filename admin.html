@@ -982,6 +982,31 @@
                 </div>
               </div>
 
+              <!-- Workplace Safety & Mandatory Daily App Checklists -->
+              <div id="ob-checklists-panel" style="margin:14px 0 18px; padding:14px 16px; border-radius:12px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.28);">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                  <div>
+                    <div style="font-size:13px; font-weight:800; color:#f8fafc;">Workplace Safety &amp; Mandatory Daily App Checklists</div>
+                    <div style="font-size:11.5px; color:var(--text-slate);">These rules sync directly to workers&rsquo; mobile app checklists &amp; assisted ID scanner Step 3 every shift.</div>
+                  </div>
+                  <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:11.5px;" onclick="window.loadSectorSafetyDefaults('ob')">↻ Load Sector Safety Defaults</button>
+                </div>
+                <div id="ob-checklist-items" style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
+                <div style="display:grid; grid-template-columns:1.6fr 0.9fr auto auto; gap:8px; align-items:center;">
+                  <input type="text" id="ob-chk-text" class="adm-input" style="margin-bottom:0;" placeholder="e.g., Inspect hard hat, steel-toe boots &amp; fire extinguisher seal" />
+                  <select id="ob-chk-category" class="adm-select" style="margin-bottom:0;">
+                    <option value="Workplace Safety">Workplace Safety</option>
+                    <option value="PPE &amp; Gear">PPE &amp; Gear</option>
+                    <option value="Hygiene &amp; Compliance">Hygiene &amp; Compliance</option>
+                    <option value="Shift Readiness">Shift Readiness</option>
+                  </select>
+                  <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:#cbd5e1; white-space:nowrap; cursor:pointer;">
+                    <input type="checkbox" id="ob-chk-urgent" checked /> Urgent
+                  </label>
+                  <button type="button" class="btn-ghost" style="padding:8px 12px; font-size:12px; white-space:nowrap;" onclick="window.addOnboardingChecklistRule('ob')">+ Add Rule</button>
+                </div>
+              </div>
+
               <button type="submit" class="btn-emerald">Provision Tenant, Issue Company Code &amp; Route to Owner →</button>
             </form>
           </div>
@@ -1034,6 +1059,31 @@
               <label class="lbl-sm">Employee CSV Rows</label>
               <textarea id="csv-raw-input" class="adm-textarea" rows="4">Musa Danjuma, musa.d@company.com, +2348031112233, employee, Packaging Line A, 145000
 Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision, 260000</textarea>
+            </div>
+            <div style="margin:12px 0 16px; padding:14px 16px; border-radius:12px; background:rgba(14,165,233,0.06); border:1px solid rgba(14,165,233,0.28);">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                <div>
+                  <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:#f8fafc; cursor:pointer;">
+                    <input type="checkbox" id="csv-sync-checklists" checked />
+                    <span>Workplace Safety &amp; Daily Mandatory Checklists (Saved &amp; Pushed to App During Staff Import)</span>
+                  </label>
+                </div>
+                <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.saveSelectedTenantChecklists()">Save Safety Rules Only</button>
+              </div>
+              <div id="csv-checklist-items" style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
+              <div style="display:grid; grid-template-columns:1.6fr 0.9fr auto auto; gap:8px; align-items:center;">
+                <input type="text" id="csv-chk-text" class="adm-input" style="margin-bottom:0;" placeholder="Add workplace safety or daily shift rule for this staff group..." />
+                <select id="csv-chk-category" class="adm-select" style="margin-bottom:0;">
+                  <option value="Workplace Safety">Workplace Safety</option>
+                  <option value="PPE &amp; Gear">PPE &amp; Gear</option>
+                  <option value="Hygiene &amp; Compliance">Hygiene &amp; Compliance</option>
+                  <option value="Shift Readiness">Shift Readiness</option>
+                </select>
+                <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:#cbd5e1; white-space:nowrap; cursor:pointer;">
+                  <input type="checkbox" id="csv-chk-urgent" checked /> Urgent
+                </label>
+                <button type="button" class="btn-ghost" style="padding:8px 12px; font-size:12px; white-space:nowrap;" onclick="window.addOnboardingChecklistRule('csv')">+ Add Rule</button>
+              </div>
             </div>
             <button type="button" class="btn-emerald" onclick="window.handleBulkCsvImport()">Import Roster &amp; Dispatch Welcome Emails →</button>
           </div>
@@ -2043,6 +2093,123 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       };
     };
 
+    const SECTOR_SAFETY_PRESETS = {
+      tech: [
+        { text: 'Verify zero-trust endpoint lock, MFA token & workstation ergonomic posture', category: 'Workplace Safety', priority: 'urgent' },
+        { text: 'Review active PagerDuty/incident escalation runbook & release freeze status', category: 'Shift Readiness', priority: 'normal' }
+      ],
+      manufacturing: [
+        { text: 'Inspect hard hat, safety goggles, high-vis vest & steel-toe PPE before entering line', category: 'PPE & Gear', priority: 'urgent' },
+        { text: 'Verify Lockout/Tagout (LOTO) guards & emergency stop switches are clear', category: 'Workplace Safety', priority: 'urgent' }
+      ],
+      gas_station: [
+        { text: 'Verify anti-static footwear, dry-chemical fire extinguisher gauge & spill kit seal', category: 'Workplace Safety', priority: 'urgent' },
+        { text: 'Confirm forecourt cone placement, pump grounding & no-ignition perimeter safety', category: 'PPE & Gear', priority: 'urgent' }
+      ],
+      restaurant: [
+        { text: 'Complete food handler handwash, hairnet/apron hygiene & slip-resistant shoe check', category: 'Hygiene & Compliance', priority: 'urgent' },
+        { text: 'Log walk-in chiller/freezer core temperature & sanitize prep surfaces', category: 'Workplace Safety', priority: 'normal' }
+      ],
+      healthcare: [
+        { text: 'Verify sterile PPE gloving, mask fit-check & biohazard sharps bin capacity', category: 'PPE & Gear', priority: 'urgent' },
+        { text: 'Confirm patient call-bell & emergency crash cart readiness during shift transition', category: 'Workplace Safety', priority: 'urgent' }
+      ],
+      logistics: [
+        { text: 'Inspect MHE/forklift horn, amber beacon, harness & high-visibility vest', category: 'PPE & Gear', priority: 'urgent' },
+        { text: 'Check loading bay wheel chocks & clear fire exit lanes', category: 'Workplace Safety', priority: 'urgent' }
+      ],
+      default: [
+        { text: 'Inspect required PPE, high-visibility wear & hazard-free workstation perimeter', category: 'PPE & Gear', priority: 'urgent' },
+        { text: 'Confirm fire extinguisher clearance, emergency assembly point & first-aid kit access', category: 'Workplace Safety', priority: 'urgent' },
+        { text: 'Complete incoming shift handover hazards briefing before starting duty', category: 'Shift Readiness', priority: 'normal' }
+      ]
+    };
+
+    const checklistDrafts = {
+      ob: [...SECTOR_SAFETY_PRESETS.tech],
+      csv: [...SECTOR_SAFETY_PRESETS.default]
+    };
+
+    function renderChecklistBuilder(prefix) {
+      const box = document.getElementById(prefix + '-checklist-items');
+      if (!box) return;
+      const items = checklistDrafts[prefix] || [];
+      if (!items.length) {
+        box.innerHTML = '<div style="font-size:12px; color:var(--text-slate); padding:6px 2px;">No custom safety rules added yet. Add rules below to enforce them daily in the worker app.</div>';
+        return;
+      }
+      box.innerHTML = items.map((r, idx) => `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 10px; border-radius:8px; background:rgba(15,23,42,0.55); border:1px solid rgba(148,163,184,0.2);">
+          <div style="min-width:0; flex:1; font-size:12.5px; color:#f8fafc;">
+            <strong>${escapeHtml(r.text)}</strong>
+            <span style="margin-left:8px; font-size:10.5px; padding:2px 7px; border-radius:99px; background:rgba(16,185,129,0.14); color:#34d399;">${escapeHtml(r.category || 'Workplace Safety')}</span>
+            ${r.priority === 'urgent' ? '<span style="margin-left:4px; font-size:10px; padding:2px 6px; border-radius:99px; background:rgba(239,68,68,0.16); color:#fca5a5;">URGENT</span>' : ''}
+          </div>
+          <button type="button" class="btn-ghost" style="padding:3px 9px; font-size:11px; color:#fca5a5;" onclick="window.removeOnboardingChecklistRule('${prefix}', ${idx})">Remove</button>
+        </div>
+      `).join('');
+    }
+
+    window.loadSectorSafetyDefaults = function (prefix) {
+      const sel = document.getElementById('ob-industry');
+      const sector = (sel && sel.value) || 'default';
+      checklistDrafts[prefix] = [...(SECTOR_SAFETY_PRESETS[sector] || SECTOR_SAFETY_PRESETS.default)];
+      renderChecklistBuilder(prefix);
+    };
+
+    window.addOnboardingChecklistRule = function (prefix) {
+      const textEl = document.getElementById(prefix + '-chk-text');
+      const catEl = document.getElementById(prefix + '-chk-category');
+      const urgEl = document.getElementById(prefix + '-chk-urgent');
+      const text = String(textEl?.value || '').trim();
+      if (!text) return;
+      if (!checklistDrafts[prefix]) checklistDrafts[prefix] = [];
+      checklistDrafts[prefix].push({
+        text,
+        category: catEl?.value || 'Workplace Safety',
+        priority: urgEl?.checked ? 'urgent' : 'normal',
+        mandatory: true
+      });
+      if (textEl) textEl.value = '';
+      renderChecklistBuilder(prefix);
+    };
+
+    window.removeOnboardingChecklistRule = function (prefix, idx) {
+      if (!Array.isArray(checklistDrafts[prefix])) return;
+      checklistDrafts[prefix].splice(idx, 1);
+      renderChecklistBuilder(prefix);
+    };
+
+    window.saveSelectedTenantChecklists = async function () {
+      const tenantId = document.getElementById('csv-tenant-select')?.value;
+      if (!tenantId) return showToast('Select a tenant first.');
+      const res = await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/checklists`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dailyChecklists: checklistDrafts.csv || [] })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return showToast('Error saving safety rules: ' + (data.error || res.status));
+      showToast(`Saved ${data.dailyChecklists?.length || 0} daily workplace safety checklist rules for tenant!`);
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('ob-industry')?.addEventListener('change', () => window.loadSectorSafetyDefaults('ob'));
+      document.getElementById('csv-tenant-select')?.addEventListener('change', (ev) => {
+        const tid = ev.target.value;
+        const found = (cachedTenants || []).find(t => t.id === tid);
+        if (found?.settings?.dailyChecklists?.length) {
+          checklistDrafts.csv = found.settings.dailyChecklists.map(c => ({ ...c }));
+        } else {
+          const sec = String(found?.industryKey || found?.industry || 'default').toLowerCase();
+          checklistDrafts.csv = [...(SECTOR_SAFETY_PRESETS[sec] || SECTOR_SAFETY_PRESETS.default)];
+        }
+        renderChecklistBuilder('csv');
+      });
+      renderChecklistBuilder('ob');
+      renderChecklistBuilder('csv');
+    });
+
     window.handleCreateTenant = async function (e) {
       e.preventDefault();
       const companyName = document.getElementById('ob-company-name').value.trim();
@@ -2055,7 +2222,8 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         siteName: document.getElementById('ob-site-name').value.trim(),
         radiusMeters: Number(document.getElementById('ob-radius').value) || 250,
         latitude: Number(document.getElementById('ob-lat').value) || 6.5244,
-        longitude: Number(document.getElementById('ob-lng').value) || 3.3792
+        longitude: Number(document.getElementById('ob-lng').value) || 3.3792,
+        dailyChecklists: checklistDrafts.ob || []
       };
       try {
         const res = await admFetch('/api/admin/tenants', {
@@ -2065,6 +2233,14 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to provision tenant');
+        const createdTenantId = data.tenant?.id || data.id || data.tenantId;
+        if (createdTenantId && Array.isArray(checklistDrafts.ob) && checklistDrafts.ob.length > 0) {
+          await admFetch(`/api/admin/tenants/${encodeURIComponent(createdTenantId)}/checklists`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dailyChecklists: checklistDrafts.ob })
+          }).catch(() => {});
+        }
 
         pushEmailStationLog({
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -2075,8 +2251,9 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
           status: 'DELIVERED'
         });
         document.getElementById('adm-onboard-form').reset();
+        window.loadSectorSafetyDefaults('ob');
         await refreshAdminData();
-        showToast('Tenant provisioned, welcome email dispatched & routed to Owner Vault!');
+        showToast('Tenant provisioned with daily workplace safety checklists & routed to Owner Vault!');
         window.switchAdminView('tenants');
       } catch (err) {
         showToast('Error: ' + err.message);
@@ -2107,6 +2284,14 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Bulk import failed');
+        const syncChk = document.getElementById('csv-sync-checklists');
+        if (syncChk?.checked && Array.isArray(checklistDrafts.csv)) {
+          await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/checklists`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dailyChecklists: checklistDrafts.csv })
+          }).catch(() => {});
+        }
         pushEmailStationLog({
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           from: 'onboarding@shiftrelay.com',
@@ -2116,7 +2301,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
           status: 'DELIVERED'
         });
         await refreshAdminData();
-        showToast(`Imported ${data.importedCount || employees.length} workers & dispatched onboarding emails!`);
+        showToast(`Imported ${data.importedCount || employees.length} workers, synced safety checklists & dispatched onboarding emails!`);
       } catch (err) {
         showToast('Import error: ' + err.message);
       }

@@ -12,6 +12,17 @@ const COMPANY_RC = 'RC 7392819';
 const HEADQUARTERS = 'Victoria Island / Lekki Tech Corridor, Lagos, Nigeria';
 const SUPPORT_EMAIL = 'support@shiftrelay.tech';
 
+export function getEmailPlatformBaseUrl() {
+  const raw = (
+    process.env.APP_URL ||
+    process.env.PUBLIC_BASE_URL ||
+    process.env.PUBLIC_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    'https://shiftrelay-vjkf.onrender.com'
+  ).trim();
+  return (raw || 'https://shiftrelay-vjkf.onrender.com').replace(/\/+$/, '');
+}
+
 /**
  * Universal High-Tech Email Envelope Wrapper
  * Features:
@@ -214,8 +225,8 @@ export function wrapEnterpriseEmail({
                 Licensed Frontline Operational System · Zero-Lending Boundary Enforced
               </p>
               <div style="font-size:11.5px;color:#94a3b8;">
-                <a href="https://shiftrelay-vjkf.onrender.com/terms.html" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Terms of Service</a> ·
-                <a href="https://shiftrelay-vjkf.onrender.com/privacy.html" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Privacy Policy</a> ·
+                <a href="${escapeHtml(getEmailPlatformBaseUrl())}/terms.html" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Terms of Service</a> ·
+                <a href="${escapeHtml(getEmailPlatformBaseUrl())}/privacy.html" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Privacy Policy</a> ·
                 <a href="mailto:${SUPPORT_EMAIL}" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Support Desk</a>
                 ${unsubUrl ? `· <a href="${unsubUrl}" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Unsubscribe</a>` : ''}
               </div>
@@ -487,7 +498,7 @@ export function renderWeeklyProgressNewsletterEmail({
     { title: 'Zero Overtime Disputes', desc: 'Supervisor real-time shift authorization prevented 100% of retroactive claim delays.' },
     { title: 'Digital ID Modernization', desc: 'Workers can now present ISO 18004 2D QR and Code-128 barcodes directly from their profiles.' }
   ],
-  platformUrl = 'https://shiftrelay-vjkf.onrender.com'
+  platformUrl = getEmailPlatformBaseUrl()
 }) {
   const practicesHtml = topPractices.map(p => `
     <div style="background-color:#0d182b;padding:14px;border-radius:8px;margin-bottom:10px;border-left:3px solid #00f5a0;">

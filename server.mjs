@@ -160,6 +160,10 @@ import {
   parseStaffCardPayload,
   verifyStaffCardSecurityCode,
   sanitizeFacialPhotoDataUrl,
+  normalizeReferencePhotoUrl,
+  computeScanPhotoHash,
+  analyzeLiveCaptureQuality,
+  compareReferenceVsLiveFace,
   sanitizeScanPhotoDataUrl,
   resolveOrgGeofenceConfig,
   verifyStrictLiveGps,
@@ -526,18 +530,121 @@ function demoTimeSummary(user, store, month) {
   };
 }
 
+const NATIVE_WEBVIEW_ORIGINS = new Set([
+  'capacitor://localhost',
+  'ionic://localhost',
+  'https://localhost',
+  'http://localhost'
+]);
+
+function normalizeOriginUrl(raw) {
+  const val = String(raw || '').trim().replace(/\/+$/, '');
+  if (!val) return '';
+  try {
+    const parsed = new URL(val);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+    return parsed.origin;
+  } catch {
+    return '';
+  }
+}
+
+export function getPublicAppOrigin(request = null) {
+  const configured = normalizeOriginUrl(
+    process.env.APP_URL || process.env.PUBLIC_BASE_URL || process.env.PUBLIC_URL || ''
+  );
+  if (configured) return configured;
+
+  if (request?.headers?.host) {
+    const rawProto = String(request.headers['x-forwarded-proto'] || (request.socket?.encrypted ? 'https' : 'http'));
+    const proto = rawProto.split(',')[0].trim().toLowerCase() === 'https' ? 'https' : 'http';
+    const host = String(request.headers['x-forwarded-host'] || request.headers.host).split(',')[0].trim();
+    const derived = normalizeOriginUrl(`${proto}://${host}`);
+    if (derived) return derived;
+  }
+
+  return normalizeOriginUrl(process.env.RENDER_EXTERNAL_URL || 'https://shiftrelay-vjkf.onrender.com')
+    || 'https://shiftrelay-vjkf.onrender.com';
+}
+
+export function isAllowedCorsOrigin(origin, request = null) {
+  if (!origin || typeof origin !== 'string') return false;
+  const trimmed = origin.trim();
+  if (NATIVE_WEBVIEW_ORIGINS.has(trimmed)) return true;
+
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+
+  if (!IS_PRODUCTION && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')) {
+    return true;
+  }
+
+  const reqHost = String(request?.headers?.['x-forwarded-host'] || request?.headers?.host || '').split(',')[0].trim().toLowerCase();
+  if (reqHost && parsed.host.toLowerCase() === reqHost) {
+    return true;
+  }
+
+  const allowedHosts = new Set([
+    'shiftrelay.com',
+    'www.shiftrelay.com',
+    'app.shiftrelay.com',
+    'admin.shiftrelay.com',
+    'shiftrelay-vjkf.onrender.com'
+  ]);
+
+  const rawList = [
+    process.env.APP_URL,
+    process.env.PUBLIC_BASE_URL,
+    process.env.PUBLIC_URL,
+    process.env.RENDER_EXTERNAL_URL,
+    ...String(process.env.CORS_ALLOWED_ORIGINS || '').split(',')
+  ];
+
+  for (const item of rawList) {
+    const clean = normalizeOriginUrl(item);
+    if (clean) {
+      if (parsed.origin === clean) return true;
+      allowedHosts.add(new URL(clean).host.toLowerCase());
+    } else if (item && /^[a-z0-9.-]+(:\d+)?$/i.test(item.trim())) {
+      allowedHosts.add(item.trim().toLowerCase());
+    }
+  }
+
+  return allowedHosts.has(parsed.host.toLowerCase()) || allowedHosts.has(parsed.hostname.toLowerCase());
+}
+
+async function getOpsOrAdminAuth(request) {
+  const user = await getUser(request);
+  if (user && user.status === 'active') return { kind: 'user', user };
+  const store = await getStore();
+  const adminCtx = await authenticateAdminRequest(request, store, databaseReady);
+  if (adminCtx) return { kind: 'admin', adminCtx, store };
+  return null;
+}
+
 function sendJson(response, status, payload) {
+  const corsHeaders = response.__corsOrigin
+    ? {
+        'Access-Control-Allow-Origin': response.__corsOrigin,
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+        'Access-Control-Max-Age': '86400',
+        'Vary': 'Origin',
+      }
+    : { 'Vary': 'Origin' };
   response.writeHead(status, {
-    'Access-Control-Allow-Origin': response.__corsOrigin || '*',
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-    'Access-Control-Max-Age': '86400',
+    ...corsHeaders,
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store, no-cache, must-revalidate, private',
     'Pragma': 'no-cache',
     'X-Content-Type-Options': 'nosniff',
-  'X-XSS-Protection': '1; mode=block',
+    'X-XSS-Protection': '1; mode=block',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(self), microphone=(self), geolocation=(self)',
@@ -725,6 +832,39 @@ function buildSessionStaffCardFields(orgCode, staffId, storeOrSecret) {
   };
 }
 
+function normalizeDailyChecklists(rawList) {
+  if (!Array.isArray(rawList)) return [];
+  const seen = new Set();
+  const out = [];
+  for (let i = 0; i < rawList.length; i++) {
+    const item = rawList[i];
+    const text = String(typeof item === 'string' ? item : (item?.text || item?.title || '')).trim().slice(0, 180);
+    if (!text) continue;
+    const dedupeKey = text.toLowerCase();
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    const rawId = typeof item === 'object' && item?.id ? String(item.id).trim() : '';
+    out.push({
+      id: rawId || `safety-rule-${i + 1}-${createHash('sha1').update(dedupeKey).digest('hex').slice(0, 8)}`,
+      text,
+      category: String(item?.category || 'Workplace Safety').trim().slice(0, 48) || 'Workplace Safety',
+      priority: item?.priority === 'urgent' || item?.urgent === true ? 'urgent' : 'normal',
+      mandatory: item?.mandatory !== false,
+      source: 'company_safety'
+    });
+  }
+  return out;
+}
+
+function resolveOrgDailyChecklists(org = {}, store = {}) {
+  const orgKey = org?.organisation_code || org?.company_id || org?.id || 'default';
+  const fromOrgSettings = Array.isArray(org?.settings?.dailyChecklists) ? org.settings.dailyChecklists : null;
+  const fromStore = Array.isArray(store?.customDailyChecklists?.[orgKey])
+    ? store.customDailyChecklists[orgKey]
+    : (Array.isArray(store?.customDailyChecklists?.[org?.id]) ? store.customDailyChecklists[org.id] : null);
+  return normalizeDailyChecklists(fromOrgSettings || fromStore || []);
+}
+
 function enrichUserWithOrganisation(userObj, store) {
   if (!userObj) return null;
   const orgs = Array.isArray(store?.organisations) ? store.organisations : [];
@@ -755,6 +895,8 @@ function enrichUserWithOrganisation(userObj, store) {
   const staffId = userObj.staffId || userObj.staff_code || dm?.staffId || contract?.staffId || ('SR-' + String(userObj.id || userObj.user_id || '0000').slice(-4).toUpperCase());
   const cardFields = buildSessionStaffCardFields(companyId, staffId, store);
   const geo = resolveOrgGeofenceConfig(matchedOrg || {}, profile);
+  const wp = store?.workerProfiles?.[userObj.id] || store?.workerProfiles?.[userObj.user_id] || {};
+  const dailyChecklists = resolveOrgDailyChecklists(matchedOrg || {}, store);
 
   return {
     ...userObj,
@@ -763,6 +905,7 @@ function enrichUserWithOrganisation(userObj, store) {
     company_name: legalName,
     company_id: companyId,
     staffId,
+    avatar_data_url: userObj.avatar_data_url || wp.avatarUrl || null,
     ...cardFields,
     hub_name: userObj.hub_name || geo.hubName,
     hub_lat: geo.hubLat,
@@ -770,7 +913,8 @@ function enrichUserWithOrganisation(userObj, store) {
     hub_perimeter: geo.perimeterMeters,
     industry: rawIndustry || profile.label,
     industryKey: profile.key,
-    industryProfile: profile
+    industryProfile: profile,
+    dailyChecklists
   };
 }
 
@@ -791,6 +935,7 @@ async function getUser(request) {
           const staffId = row.staff_code || ('SR-' + String(row.user_id || row.id).slice(-4).toUpperCase());
           const storeForSecret = await loadSigningStoreForAuth();
           const cardFields = buildSessionStaffCardFields(row.company_id, staffId, storeForSecret);
+          const dailyChecklists = resolveOrgDailyChecklists(row, storeForSecret || {});
           return {
             ...row,
             staffId,
@@ -801,7 +946,8 @@ async function getUser(request) {
             hub_perimeter: geo.perimeterMeters,
             industry: row.industry || profile.label,
             industryKey: profile.key,
-            industryProfile: profile
+            industryProfile: profile,
+            dailyChecklists
           };
         }
         // Invalid, expired, or non-active membership must never fall through to demo auth
@@ -1386,7 +1532,15 @@ async function timeSummary(user, month) {
 }
 
 async function audit(organisationId, actorId, eventType, entityType, entityId, detail) {
-  await query('insert into audit_events (id, organisation_id, actor_membership_id, event_type, entity_type, entity_id, detail) values ($1,$2,$3,$4,$5,$6,$7)', [crypto.randomUUID(), organisationId, actorId || null, eventType, entityType || null, entityId || null, detail || null]);
+  if (!databaseReady) return;
+  const safeOrgId = UUID_REGEX.test(String(organisationId || '')) ? organisationId : null;
+  if (!safeOrgId) return;
+  const safeActorId = UUID_REGEX.test(String(actorId || '')) ? actorId : null;
+  const safeEntityId = UUID_REGEX.test(String(entityId || '')) ? entityId : null;
+  await query(
+    'insert into audit_events (id, organisation_id, actor_membership_id, event_type, entity_type, entity_id, detail) values ($1,$2,$3,$4,$5,$6,$7)',
+    [crypto.randomUUID(), safeOrgId, safeActorId, eventType, entityType || null, safeEntityId, detail || null]
+  ).catch(() => {});
 }
 async function notifyOrganisationOwners(organisationId, message) {
   const owners = await query("select id from memberships where organisation_id = $1 and role = 'owner' and status = 'active'", [organisationId]);
@@ -2192,8 +2346,13 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── Executive Onboarding Submission ────────────────────────────────────────
+  // ── Executive Onboarding Submission (Strict Auth / Provisioning Guard) ────
   if (url.pathname === '/api/auth/executive-onboard' && request.method === 'POST') {
+    const authCtx = await getOpsOrAdminAuth(request);
+    if (!authCtx || (authCtx.kind === 'user' && authCtx.user.role !== 'owner')) {
+      return sendJson(response, 401, { error: 'Executive onboarding requires Sovereign Admin provisioning or an active executive owner session.' });
+    }
+
     const body = await readJson(request);
     const companyCode = String(body.companyId || body.companyCode || '').trim();
     const email = String(body.email || '').trim().toLowerCase();
@@ -2210,12 +2369,22 @@ async function handleApi(request, response, url) {
       return sendJson(response, 400, { error: 'Password confirmation does not match.' });
     }
 
-    const store = await getStore();
+    const store = authCtx.store || await getStore();
     const org = (store.organisations || []).find(o => {
       const c = String(o.organisation_code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
       const codeClean = companyCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
       return c === codeClean || (o.aliases || []).map(a => String(a).replace(/[^A-Za-z0-9]/g, '').toUpperCase()).includes(codeClean);
     }) || store.organisations?.[0];
+
+    if (!org) {
+      return sendJson(response, 404, { error: 'Tenant organisation not found.' });
+    }
+    if (authCtx.kind === 'user' && authCtx.user.organisation_id !== org.id) {
+      return sendJson(response, 403, { error: 'Forbidden: cross-tenant executive onboarding denied.' });
+    }
+    if (authCtx.kind === 'user' && authCtx.user.email.toLowerCase() !== email) {
+      return sendJson(response, 403, { error: 'Forbidden: you can only update your own executive credentials.' });
+    }
 
     let userObj = (store.portalUsers || []).find(u => u.email.toLowerCase() === email);
     if (!userObj) {
@@ -2269,9 +2438,8 @@ async function handleApi(request, response, url) {
     await saveStore(store);
 
     // Dispatch Executive Welcome Email via ShiftRelay Email Engine
-    const protocol = request.headers['x-forwarded-proto'] || 'http';
-    const host = request.headers.host || 'localhost:4000';
-    const loginUrl = `${protocol}://${host}/?companyId=${org.organisation_code}`;
+    const publicOrigin = getPublicAppOrigin(request);
+    const loginUrl = `${publicOrigin}/?companyId=${org.organisation_code}`;
 
     const welcomeEmailHtml = renderAccountActivationEmail({
       recipientName: userObj.full_name,
@@ -2326,6 +2494,9 @@ async function handleApi(request, response, url) {
     const store = await getStore();
     const member = (store.memberships || []).find(m => m.id === memberId || m.user_id === memberId);
     if (!member) return sendJson(response, 404, { error: 'Member not found in organization roster.' });
+    if (member.organisation_id !== authUser.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: cannot invite personnel outside your organisation.' });
+    }
 
     const userRecord = (store.portalUsers || []).find(u => u.id === (member.user_id || member.id));
     if (!userRecord) return sendJson(response, 404, { error: 'User record for member not found.' });
@@ -2338,9 +2509,8 @@ async function handleApi(request, response, url) {
     member.status = 'pending_activation';
     await saveStore(store);
 
-    const protocol = request.headers['x-forwarded-proto'] || 'http';
-    const host = request.headers.host || 'localhost:4000';
-    const activationUrl = `${protocol}://${host}/activate?token=${activationToken}`;
+    const publicOrigin = getPublicAppOrigin(request);
+    const activationUrl = `${publicOrigin}/activate?token=${activationToken}`;
 
     const activationEmailHtml = renderAccountActivationEmail({
       recipientName: userRecord.full_name,
@@ -2402,14 +2572,27 @@ async function handleApi(request, response, url) {
 
   // ── High-Tech Enterprise Reports & Documents API ──────────────────────────
   if (url.pathname === '/api/reports/payroll-ledger' && request.method === 'GET') {
-    const tenantId = url.searchParams.get('tenantId') || null;
+    const authCtx = await getOpsOrAdminAuth(request);
+    if (!authCtx) {
+      return sendJson(response, 401, { error: 'Authentication required to view statutory payroll ledger.' });
+    }
+    if (authCtx.kind === 'user' && !['owner', 'workforce_admin', 'finance_admin'].includes(authCtx.user.role)) {
+      return sendJson(response, 403, { error: 'Forbidden: executive or finance clearance required.' });
+    }
+    const requestedTenant = url.searchParams.get('tenantId') || null;
+    const tenantId = authCtx.kind === 'user' ? authCtx.user.organisation_id : requestedTenant;
+    if (authCtx.kind === 'user' && requestedTenant && requestedTenant !== authCtx.user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: cross-tenant payroll ledger access denied.' });
+    }
     const store = await loadPayrollStoreForTenant(tenantId);
     const payrollData = compilePayrollRun(store, tenantId);
     const org = (store.organisations || []).find(o => tenantId ? (o.id === tenantId || o.organisation_code === tenantId) : true) || { legal_name: 'Riffmax Technology Limited', organisation_code: 'RIF-2026' };
     const html = generatePayrollReportHtml(payrollData, org);
     response.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
-      'Content-Length': Buffer.byteLength(html)
+      'Content-Length': Buffer.byteLength(html),
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      ...SECURITY_HEADERS
     });
     return response.end(html);
   }
@@ -2449,15 +2632,20 @@ async function handleApi(request, response, url) {
 
   // ── Automated Weekly Progress Newsletter Dispatch ────────────────────────
   if (url.pathname === '/api/newsletter/dispatch-weekly' && request.method === 'POST') {
-    const body = await readJson(request).catch(() => ({}));
-    const store = await getStore();
+    const authCtx = await getOpsOrAdminAuth(request);
+    if (!authCtx) {
+      return sendJson(response, 401, { error: 'Authentication required to dispatch newsletters.' });
+    }
+    if (authCtx.kind === 'user' && !['owner', 'workforce_admin', 'supervisor', 'manager'].includes(authCtx.user.role)) {
+      return sendJson(response, 403, { error: 'Forbidden: management clearance required to dispatch emails.' });
+    }
+    const body = await readJson(request);
+    const store = authCtx.store || await getStore();
     const org = store.organisations?.[0] || { legal_name: 'Riffmax Technology Limited', trading_name: 'Riffmax Technology' };
-    const recipientEmail = body.to || 'sherifolaide2030@gmail.com';
+    const recipientEmail = body.to || process.env.EXECUTIVE_DIGEST_EMAIL || 'sherifolaide2030@gmail.com';
     const recipientName = body.name || 'Workforce Leadership Team';
 
-    const protocol = request.headers['x-forwarded-proto'] || 'http';
-    const host = request.headers.host || 'localhost:4000';
-    const platformUrl = `${protocol}://${host}`;
+    const platformUrl = getPublicAppOrigin(request);
 
     const newsletterHtml = renderWeeklyProgressNewsletterEmail({
       recipientName,
@@ -2491,10 +2679,13 @@ async function handleApi(request, response, url) {
 
   // ── Email Template Preview & Test Dispatch API ────────────────────────────
   if (url.pathname === '/api/emails/preview' && request.method === 'GET') {
+    if (IS_PRODUCTION) {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required for email template preview in production.' });
+    }
     const type = url.searchParams.get('type') || 'activation';
-    const protocol = request.headers['x-forwarded-proto'] || 'http';
-    const host = request.headers.host || 'localhost:4000';
-    const sampleUrl = `${protocol}://${host}/activate?token=sample-preview-token`;
+    const publicOrigin = getPublicAppOrigin(request);
+    const sampleUrl = `${publicOrigin}/activate?token=sample-preview-token`;
 
     let html = '';
     if (type === 'activation') {
@@ -2512,7 +2703,7 @@ async function handleApi(request, response, url) {
       html = renderPasswordResetEmail({
         recipientName: 'Olaide Emmanuela',
         recipientEmail: 'olaide@riffmax.tech',
-        resetUrl: `${protocol}://${host}/reset-password?token=sample-reset-token`,
+        resetUrl: `${publicOrigin}/reset-password?token=sample-reset-token`,
         requestIp: '102.89.34.12 (Lagos, NG)',
         expiresMinutes: 30
       });
@@ -2527,7 +2718,7 @@ async function handleApi(request, response, url) {
         checklistTotal: 8,
         priority: 'NORMAL',
         handoverSummary: 'All microservices healthy. Database connection pool stabilized. 0 open safety alarms.',
-        reviewUrl: `${protocol}://${host}/#handovers`
+        reviewUrl: `${publicOrigin}/#handovers`
       });
     } else if (type === 'payroll') {
       html = renderExecutivePayrollDigestEmail({
@@ -2540,7 +2731,7 @@ async function handleApi(request, response, url) {
         penComRemittanceNgn: 2505600,
         payeTaxNgn: 1842000,
         varianceNgn: 0,
-        reportDownloadUrl: `${protocol}://${host}/api/reports/payroll-ledger`
+        reportDownloadUrl: `${publicOrigin}/api/reports/payroll-ledger`
       });
     } else if (type === 'newsletter') {
       html = renderWeeklyProgressNewsletterEmail({
@@ -2548,7 +2739,7 @@ async function handleApi(request, response, url) {
         orgName: 'Riffmax Technology Limited',
         weekNumber: 46,
         year: 2026,
-        platformUrl: `${protocol}://${host}`
+        platformUrl: publicOrigin
       });
     } else {
       html = '<p>Unknown template type. Use ?type=activation|reset|handover|payroll|newsletter</p>';
@@ -2556,19 +2747,26 @@ async function handleApi(request, response, url) {
 
     response.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
-      'Content-Length': Buffer.byteLength(html)
+      'Content-Length': Buffer.byteLength(html),
+      ...SECURITY_HEADERS
     });
     return response.end(html);
   }
 
   if (url.pathname === '/api/emails/test-send' && request.method === 'POST') {
-    const body = await readJson(request).catch(() => ({}));
-    const to = body.to || 'sherifolaide2030@gmail.com';
+    const authCtx = await getOpsOrAdminAuth(request);
+    if (!authCtx) {
+      return sendJson(response, 401, { error: 'Authentication required to send test emails.' });
+    }
+    if (authCtx.kind === 'user' && !['owner', 'workforce_admin', 'supervisor', 'manager'].includes(authCtx.user.role)) {
+      return sendJson(response, 403, { error: 'Forbidden: management clearance required for test dispatch.' });
+    }
+    const body = await readJson(request);
+    const to = body.to || process.env.EXECUTIVE_DIGEST_EMAIL || 'sherifolaide2030@gmail.com';
     const type = body.type || 'newsletter';
 
-    const protocol = request.headers['x-forwarded-proto'] || 'http';
-    const host = request.headers.host || 'localhost:4000';
-    const sampleUrl = `${protocol}://${host}/activate?token=test-token`;
+    const publicOrigin = getPublicAppOrigin(request);
+    const sampleUrl = `${publicOrigin}/activate?token=test-token`;
 
     let html = '';
     let subject = '';
@@ -2590,7 +2788,7 @@ async function handleApi(request, response, url) {
       html = renderPasswordResetEmail({
         recipientName: 'Test Recipient',
         recipientEmail: to,
-        resetUrl: `${protocol}://${host}/reset-password?token=test-reset`,
+        resetUrl: `${publicOrigin}/reset-password?token=test-reset`,
         requestIp: '102.89.34.12 (Lagos, NG)',
         expiresMinutes: 30
       });
@@ -2606,7 +2804,7 @@ async function handleApi(request, response, url) {
         checklistTotal: 8,
         priority: 'NORMAL',
         handoverSummary: 'All microservices healthy. Database connection pool stabilized. 0 open safety alarms.',
-        reviewUrl: `${protocol}://${host}/#handovers`
+        reviewUrl: `${publicOrigin}/#handovers`
       });
     } else if (type === 'payroll') {
       subject = 'Executive Payroll & Remittance Digest — November 2026';
@@ -2620,7 +2818,7 @@ async function handleApi(request, response, url) {
         penComRemittanceNgn: 2505600,
         payeTaxNgn: 1842000,
         varianceNgn: 0,
-        reportDownloadUrl: `${protocol}://${host}/api/reports/payroll-ledger`
+        reportDownloadUrl: `${publicOrigin}/api/reports/payroll-ledger`
       });
     } else {
       subject = 'ShiftRelay Weekly Operational Dispatch — Issue #46';
@@ -2629,7 +2827,7 @@ async function handleApi(request, response, url) {
         orgName: 'Riffmax Technology Limited',
         weekNumber: 46,
         year: 2026,
-        platformUrl: `${protocol}://${host}`
+        platformUrl: publicOrigin
       });
     }
 
@@ -2648,7 +2846,42 @@ async function handleApi(request, response, url) {
   }
 
   // ── Admin Live Database Updates: Tenant Editor ─────────────────────────────
-  if (url.pathname.startsWith('/api/admin/tenants/') && request.method === 'PUT') {
+  async function handleSaveDailyChecklistsForTenant(targetTenantId, body, response) {
+    const dailyChecklists = normalizeDailyChecklists(body.dailyChecklists || body.checklists || body.rules || []);
+    const store = await getStore();
+    if (!store.customDailyChecklists) store.customDailyChecklists = {};
+    const matchedOrg = (store.organisations || []).find(o => o.id === targetTenantId || o.organisation_code === targetTenantId);
+    const orgIdResolved = matchedOrg?.id || targetTenantId;
+    const orgCodeResolved = matchedOrg?.organisation_code || orgIdResolved;
+
+    if (matchedOrg) {
+      if (!matchedOrg.settings || typeof matchedOrg.settings !== 'object') matchedOrg.settings = {};
+      matchedOrg.settings.dailyChecklists = dailyChecklists;
+    }
+    store.customDailyChecklists[orgIdResolved] = dailyChecklists;
+    if (orgCodeResolved) store.customDailyChecklists[orgCodeResolved] = dailyChecklists;
+    await saveStore(store);
+
+    if (databaseReady && UUID_REGEX.test(String(orgIdResolved || ''))) {
+      await query(
+        `update organisations
+         set settings = coalesce(settings, '{}'::jsonb) || jsonb_build_object('dailyChecklists', $2::jsonb)
+         where id = $1`,
+        [orgIdResolved, JSON.stringify(dailyChecklists)]
+      ).catch(() => {});
+    }
+    return sendJson(response, 200, { ok: true, tenantId: orgIdResolved, dailyChecklists });
+  }
+
+  const adminChecklistMatchPre = url.pathname.match(/^\/api\/admin\/tenants\/([^/]+)\/checklists$/);
+  if (adminChecklistMatchPre && request.method === 'PUT') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const body = await readJson(request).catch(() => ({}));
+    return handleSaveDailyChecklistsForTenant(decodeURIComponent(adminChecklistMatchPre[1]), body, response);
+  }
+  if (url.pathname.startsWith('/api/admin/tenants/') && !url.pathname.endsWith('/checklists') && request.method === 'PUT') {
     const store = await getStore();
     const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin']);
     if (!adminCtx) return;
@@ -2760,26 +2993,65 @@ async function handleApi(request, response, url) {
 
   // ── WebAuthn / Device Biometrics Endpoints ──────────────────────────────
   if (url.pathname === '/api/auth/webauthn/register-options' && request.method === 'POST') {
-    const body = await readJson(request);
+    const authUser = await getUser(request);
+    if (!authUser || authUser.status !== 'active') {
+      return sendJson(response, 401, { error: 'Sign in required before registering a device passkey.' });
+    }
     const challenge = randomBytes(32).toString('base64');
     const store = await getStore();
     if (!store.webAuthnChallenges) store.webAuthnChallenges = {};
-    store.webAuthnChallenges[body.userId || body.email] = { challenge, timestamp: Date.now() };
+    const key = authUser.user_id || authUser.id;
+    store.webAuthnChallenges[key] = { challenge, type: 'register', timestamp: Date.now() };
     await saveStore(store);
     return sendJson(response, 200, { challenge });
   }
 
   if (url.pathname === '/api/auth/webauthn/register-verify' && request.method === 'POST') {
+    const authUser = await getUser(request);
+    if (!authUser || authUser.status !== 'active') {
+      return sendJson(response, 401, { error: 'Sign in required to bind biometric passkey.' });
+    }
     const body = await readJson(request);
+    const credId = String(body.id || '').trim();
+    const rawId = String(body.rawId || credId).trim();
+    if (!credId) return sendJson(response, 400, { error: 'Valid WebAuthn credential id is required.' });
+
     const store = await getStore();
+    const challengeKey = authUser.user_id || authUser.id;
+    const challengeRecord = store.webAuthnChallenges?.[challengeKey];
+    if (!challengeRecord || challengeRecord.type !== 'register' || (Date.now() - challengeRecord.timestamp) > 60000) {
+      return sendJson(response, 401, { error: 'Biometric registration challenge expired or invalid.' });
+    }
+    delete store.webAuthnChallenges[challengeKey];
+
+    const clientDataB64 = body.response?.clientDataJSON;
+    if (!clientDataB64) {
+      await saveStore(store);
+      return sendJson(response, 400, { error: 'WebAuthn clientDataJSON attestation is required.' });
+    }
+    try {
+      const clientData = JSON.parse(Buffer.from(String(clientDataB64), 'base64url').toString('utf8'));
+      const decodedChallengeB64 = Buffer.from(String(clientData.challenge || ''), 'base64url').toString('base64');
+      if (clientData.type !== 'webauthn.create' || decodedChallengeB64 !== challengeRecord.challenge) {
+        await saveStore(store);
+        return sendJson(response, 401, { error: 'WebAuthn registration challenge mismatch.' });
+      }
+      if (clientData.origin && !isAllowedCorsOrigin(clientData.origin, request)) {
+        await saveStore(store);
+        return sendJson(response, 401, { error: 'WebAuthn origin not permitted.' });
+      }
+    } catch {
+      await saveStore(store);
+      return sendJson(response, 400, { error: 'Malformed WebAuthn clientDataJSON payload.' });
+    }
+
     if (!store.biometricCredentials) store.biometricCredentials = {};
-    const userId = body.user?.id || user?.id;
-    if (!userId) return sendJson(response, 400, { error: 'User context required for biometric enrollment.' });
-    store.biometricCredentials[userId] = {
-      credentialId: body.id,
-      rawId: body.rawId,
-      email: body.user?.email || user?.email,
-      companyId: body.user?.companyId || '246701',
+    store.biometricCredentials[challengeKey] = {
+      credentialId: credId,
+      rawId,
+      email: authUser.email,
+      organisationId: authUser.organisation_id,
+      companyId: authUser.company_id || 'RIF-2026',
       createdAt: new Date().toISOString()
     };
     await saveStore(store);
@@ -2788,10 +3060,12 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/auth/webauthn/login-options' && request.method === 'POST') {
     const body = await readJson(request);
+    const email = String(body.email || '').trim().toLowerCase();
+    if (!email) return sendJson(response, 400, { error: 'Email is required for biometric verification.' });
     const challenge = randomBytes(32).toString('base64');
     const store = await getStore();
     if (!store.webAuthnChallenges) store.webAuthnChallenges = {};
-    store.webAuthnChallenges[body.email] = { challenge, timestamp: Date.now() };
+    store.webAuthnChallenges[email] = { challenge, type: 'login', timestamp: Date.now() };
     await saveStore(store);
     return sendJson(response, 200, { challenge });
   }
@@ -2801,38 +3075,91 @@ async function handleApi(request, response, url) {
     const store = await getStore();
     const email = (body.email || '').trim().toLowerCase();
     const companyId = (body.companyId || '').trim().replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    
+    const suppliedCredId = String(body.id || '').trim();
+    const suppliedRawId = String(body.rawId || '').trim();
+
+    if (!email || !companyId) {
+      return sendJson(response, 400, { error: 'Email and Company ID are required.' });
+    }
+
     // Strict Verification: Challenge presence and replay prevention
     const challengeRecord = store.webAuthnChallenges?.[email];
-    if (!challengeRecord || (Date.now() - challengeRecord.timestamp) > 60000) {
+    if (!challengeRecord || challengeRecord.type !== 'login' || (Date.now() - challengeRecord.timestamp) > 60000) {
       return sendJson(response, 401, { error: 'Biometric verification challenge expired or invalid. Please re-authenticate.' });
     }
     // Invalidate challenge immediately (Anti-Replay Attack Protection)
     delete store.webAuthnChallenges[email];
     await saveStore(store);
 
-    // Verify company tenant isolation
-    let targetOrg = (store.organisations || []).find(o => {
-      const c = String(o.organisation_code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-      const aliases = (o.aliases || []).map(a => String(a).replace(/[^A-Za-z0-9]/g, '').toUpperCase());
-      return c === companyId || aliases.includes(companyId);
-    });
-
-    // Find registered user in portalUsers / demoMembers
-    let targetUser = (store.portalUsers || []).find(u => u.email.toLowerCase() === email);
-    let member = targetUser ? (store.memberships || []).find(m => m.user_id === targetUser.id && (!targetOrg || m.organisation_id === targetOrg.id)) : null;
-
-    if (!targetUser) {
-      // Fallback check against demoMembers
-      const dm = users.find(u => u.email.toLowerCase() === email);
-      if (dm) {
-        targetUser = { id: dm.id, full_name: dm.name, email: dm.email, role: dm.role, department: dm.department };
-        member = { id: dm.id, role: dm.role, title: dm.title, department: dm.department, organisation_id: demoOrganisation.id, status: 'active' };
-      }
+    // Require cryptographic WebAuthn assertion payload (clientDataJSON + authenticatorData + signature + credentialId)
+    const assertionResp = body.response;
+    if (!suppliedCredId || !assertionResp?.clientDataJSON || !assertionResp?.authenticatorData || !assertionResp?.signature) {
+      return sendJson(response, 401, { error: 'Valid hardware biometric assertion is required. Please sign in with your password.' });
     }
 
-    if (!targetUser || !member || member.status !== 'active') {
+    let clientData;
+    try {
+      clientData = JSON.parse(Buffer.from(String(assertionResp.clientDataJSON), 'base64url').toString('utf8'));
+    } catch {
+      return sendJson(response, 401, { error: 'Malformed WebAuthn clientDataJSON.' });
+    }
+    const decodedChallengeB64 = Buffer.from(String(clientData?.challenge || ''), 'base64url').toString('base64');
+    if (clientData?.type !== 'webauthn.get' || decodedChallengeB64 !== challengeRecord.challenge) {
+      return sendJson(response, 401, { error: 'Biometric cryptographic challenge mismatch.' });
+    }
+    if (clientData?.origin && !isAllowedCorsOrigin(clientData.origin, request)) {
+      return sendJson(response, 401, { error: 'Biometric origin mismatch.' });
+    }
+
+    let targetOrg = null;
+    let targetUser = null;
+    let member = null;
+
+    if (databaseReady) {
+      const riffmaxAliasCodes = ['RIF2026', 'RIFFMAX', 'RIFFMAX01', 'RIF01', '246701'];
+      let orgRes = await query('select id, organisation_code, legal_name, trading_name from organisations where upper(replace(organisation_code, \'-\', \'\')) = $1 limit 1', [companyId]);
+      if (!orgRes.rows[0] && riffmaxAliasCodes.includes(companyId)) {
+        orgRes = await query('select id, organisation_code, legal_name, trading_name from organisations where id = $1 or upper(replace(organisation_code, \'-\', \'\')) = \'RIF2026\' limit 1', [demoOrganisation.id]);
+      }
+      targetOrg = orgRes.rows[0] || null;
+      if (targetOrg) {
+        const res = await query(
+          `select u.id as user_id, u.full_name, u.email, m.id, m.role, m.title, m.department, m.organisation_id, m.status
+           from portal_users u
+           join memberships m on m.user_id = u.id
+           where m.organisation_id = $1 and lower(u.email) = lower($2)
+           order by m.created_at desc limit 1`,
+          [targetOrg.id, email]
+        );
+        if (res.rows[0]) {
+          targetUser = { id: res.rows[0].user_id, full_name: res.rows[0].full_name, email: res.rows[0].email };
+          member = res.rows[0];
+        }
+      }
+    } else {
+      targetOrg = (store.organisations || []).find(o => {
+        const c = String(o.organisation_code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        const aliases = (o.aliases || []).map(a => String(a).replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+        return c === companyId || aliases.includes(companyId);
+      }) || null;
+
+      targetUser = (store.portalUsers || []).find(u => u.email.toLowerCase() === email) || null;
+      member = targetUser
+        ? (store.memberships || []).find(m => m.user_id === targetUser.id && targetOrg && m.organisation_id === targetOrg.id)
+        : null;
+    }
+
+    if (!targetOrg || !targetUser || !member || member.status !== 'active') {
       return sendJson(response, 401, { error: 'User account not found, inactive, or barred for biometric authentication.' });
+    }
+
+    const enrolled = store.biometricCredentials?.[targetUser.id] || store.biometricCredentials?.[member.id];
+    const credMatches = enrolled && (
+      (enrolled.credentialId && enrolled.credentialId === suppliedCredId) ||
+      (enrolled.rawId && suppliedRawId && enrolled.rawId === suppliedRawId)
+    );
+    if (!credMatches || String(enrolled.email || '').toLowerCase() !== email) {
+      return sendJson(response, 401, { error: 'No matching enrolled biometric passkey found for this account on the server.' });
     }
 
     const sessionId = await createSession(targetUser.id, member.id);
@@ -2847,7 +3174,7 @@ async function handleApi(request, response, url) {
         title: member.title,
         department: member.department,
         organisation_id: member.organisation_id,
-        company_id: companyId || '246701'
+        company_id: targetOrg.organisation_code || companyId
       }
     });
   }
@@ -3015,6 +3342,263 @@ async function handleApi(request, response, url) {
       }
     }
     return sendJson(response, 200, { avatarDataUrl: avatar, profile: store.workerProfiles[user.id] });
+  }
+
+  // Executive Self-Serve: Add New Staff & Assign Department (+ optional HR Reference Passport)
+  if (url.pathname === '/api/executive/staff' && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    if (!['owner', 'workforce_admin', 'manager'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Forbidden: executive or workforce admin clearance is required to add new staff.' });
+    }
+    const body = await readJson(request).catch(() => ({}));
+    const fullName = String(body.fullName || body.name || '').trim();
+    const email = String(body.email || '').trim().toLowerCase();
+    const phone = String(body.phone || '').trim();
+    const department = String(body.department || 'Operations').trim().slice(0, 80) || 'Operations';
+    const rawRole = String(body.role || 'worker').trim().toLowerCase();
+    const normalizedRole = ({
+      employee: 'worker',
+      staff: 'worker',
+      worker: 'worker',
+      incoming: 'worker',
+      outgoing: 'worker',
+      supervisor: 'supervisor',
+      lead: 'supervisor',
+      manager: 'manager',
+      finance: 'finance_admin',
+      finance_admin: 'finance_admin',
+      workforce_admin: 'workforce_admin',
+      hr: 'workforce_admin'
+    })[rawRole] || 'worker';
+    const title = String(body.title || body.jobTitle || (normalizedRole === 'supervisor' ? 'Shift Supervisor' : normalizedRole === 'manager' ? 'Department Manager' : normalizedRole === 'finance_admin' ? 'Payroll Officer' : 'Operations Specialist')).trim().slice(0, 80);
+    const shiftStart = /^\d{2}:\d{2}/.test(String(body.shiftStart || '')) ? String(body.shiftStart).slice(0, 5) : '08:00';
+    const shiftEnd = /^\d{2}:\d{2}/.test(String(body.shiftEnd || '')) ? String(body.shiftEnd).slice(0, 5) : '17:00';
+    const baseSalary = Math.max(0, Number(body.baseSalary ?? body.monthlyRate ?? body.salary ?? 150000) || 0);
+    const passportPhotoUrl = body.passportPhotoDataUrl || body.avatarDataUrl || body.referencePhotoUrl
+      ? normalizeReferencePhotoUrl(body.passportPhotoDataUrl || body.avatarDataUrl || body.referencePhotoUrl)
+      : null;
+    if ((body.passportPhotoDataUrl || body.avatarDataUrl) && !passportPhotoUrl) {
+      return sendJson(response, 400, { error: 'Reference passport photo must be a valid PNG, JPEG, or WebP image under 2MB.' });
+    }
+    if (!fullName || fullName.length < 2 || !email || !email.includes('@')) {
+      return sendJson(response, 400, { error: 'Staff full name and a valid work/personal email are required.' });
+    }
+
+    const { members, store } = await getOrganisationRosterState(user);
+    if (members.some(m => String(m.email || '').toLowerCase() === email)) {
+      return sendJson(response, 409, { error: `A staff member with email "${email}" already exists in ${user.organisation_name || 'this organisation'}.`, code: 'DUPLICATE_STAFF_EMAIL' });
+    }
+    const orgId = user.organisation_id;
+    const matchedOrg = (store.organisations || []).find(o => o.id === orgId) || {};
+    const orgCode = String(user.company_id || matchedOrg.organisation_code || 'SR').toUpperCase();
+    const orgPrefix = orgCode.split('-')[0].replace(/[^A-Z0-9]/gi, '').slice(0, 4) || 'SR';
+    const nextNum = members.length + 1 + Math.floor(Math.random() * 80);
+    const requestedStaffCode = String(body.staffCode || body.staffId || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    const staffId = requestedStaffCode || `${orgPrefix}-${String(nextNum).padStart(4, '0')}`;
+    if (members.some(m => String(m.staffId || '').toUpperCase() === staffId)) {
+      return sendJson(response, 409, { error: `Staff ID "${staffId}" is already assigned. Leave blank to auto-generate or pick another code.`, code: 'DUPLICATE_STAFF_ID' });
+    }
+
+    const newUserId = crypto.randomUUID();
+    const newMembershipId = crypto.randomUUID();
+    const activationToken = randomBytes(24).toString('hex');
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const verificationKey = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : String(Math.floor(1000 + Math.random() * 9000));
+
+    if (!Array.isArray(store.portalUsers)) store.portalUsers = [];
+    if (!Array.isArray(store.memberships)) store.memberships = [];
+    if (!Array.isArray(store.contracts)) store.contracts = [];
+    if (!store.workerProfiles) store.workerProfiles = {};
+
+    const portalUserEntry = {
+      id: newUserId,
+      full_name: fullName,
+      email,
+      phone: phone || null,
+      avatar_data_url: passportPhotoUrl,
+      status: 'pending_activation',
+      activation_token: activationToken,
+      verification_key: verificationKey,
+      tenant_id: orgId,
+      organisation_id: orgId,
+      created_at: new Date().toISOString()
+    };
+    const membershipEntry = {
+      id: newMembershipId,
+      user_id: newUserId,
+      organisation_id: orgId,
+      site_id: matchedOrg.siteId || null,
+      role: normalizedRole,
+      title,
+      department,
+      staff_code: staffId,
+      shift_start: shiftStart,
+      shift_end: shiftEnd,
+      shift_days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+      status: 'active'
+    };
+    const contractEntry = {
+      id: newMembershipId,
+      userId: newUserId,
+      membershipId: newMembershipId,
+      tenant_id: orgId,
+      organisation_id: orgId,
+      userName: fullName,
+      staffId,
+      role: title,
+      job_title: title,
+      department,
+      compensation_type: 'fixed_monthly',
+      rate_type: 'monthly',
+      monthly_rate: baseSalary,
+      monthly_salary: baseSalary,
+      hourly_rate: Math.round(baseSalary / 160),
+      currency: 'NGN',
+      status: 'active'
+    };
+
+    store.portalUsers.push(portalUserEntry);
+    store.memberships.push(membershipEntry);
+    store.contracts.push(contractEntry);
+    if (passportPhotoUrl) {
+      store.workerProfiles[newMembershipId] = {
+        userId: newUserId,
+        membershipId: newMembershipId,
+        fullName,
+        avatarUrl: passportPhotoUrl,
+        headline: `${title} · ${department}`
+      };
+    }
+    await saveStore(store);
+
+    if (databaseReady) {
+      try {
+        const orgExists = await query('select id from organisations where id = $1 limit 1', [orgId]);
+        if (!orgExists.rows[0]) {
+          await query(
+            `insert into organisations (id, legal_name, trading_name, organisation_code, work_email, industry, country, time_zone, preferred_language, hub_name, hub_lat, hub_lng, hub_perimeter, settings)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb)
+             on conflict (id) do nothing`,
+            [
+              orgId,
+              matchedOrg.legal_name || user.company_name || user.organisation_name || 'ShiftRelay Enterprise',
+              matchedOrg.trading_name || user.organisation_name || 'ShiftRelay',
+              orgCode,
+              matchedOrg.work_email || user.email || 'admin@shiftrelay.tech',
+              matchedOrg.industry || user.industry || 'Operations',
+              matchedOrg.country || 'Nigeria',
+              matchedOrg.time_zone || 'Africa/Lagos',
+              matchedOrg.preferred_language || 'en',
+              matchedOrg.hub_name || user.hub_name || 'Main Hub',
+              Number(user.hub_lat) || 6.4312,
+              Number(user.hub_lng) || 3.4244,
+              Number(user.hub_perimeter) || 250,
+              JSON.stringify(matchedOrg.settings || {})
+            ]
+          );
+        }
+        const existingPgPu = await query('select id from portal_users where lower(email) = lower($1) limit 1', [email]);
+        const effectivePgUserId = existingPgPu.rows[0]?.id || newUserId;
+        await query(
+          `insert into portal_users (id, full_name, email, phone, password_hash, avatar_data_url, email_verified)
+           values ($1,$2,$3,$4,$5,$6,false)
+           on conflict (id) do update set full_name = excluded.full_name, phone = coalesce(excluded.phone, portal_users.phone), avatar_data_url = coalesce(excluded.avatar_data_url, portal_users.avatar_data_url)`,
+          [effectivePgUserId, fullName, email, phone || null, null, passportPhotoUrl]
+        );
+        await query(
+          `insert into memberships (id, organisation_id, user_id, site_id, role, title, department, shift_start, shift_end, shift_days, status, staff_code)
+           values ($1,$2,$3,null,$4,$5,$6,$7,$8,$9::jsonb,'active',$10)
+           on conflict (organisation_id, user_id) do update set role = excluded.role, title = excluded.title, department = excluded.department, shift_start = excluded.shift_start, shift_end = excluded.shift_end, status = 'active', staff_code = excluded.staff_code`,
+          [newMembershipId, orgId, effectivePgUserId, normalizedRole, title, department, shiftStart, shiftEnd, JSON.stringify(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']), staffId]
+        );
+      } catch (pgErr) {
+        console.error('[EXECUTIVE STAFF PG SYNC ERROR]', pgErr.message);
+        throw pgErr;
+      }
+    }
+
+    const publicOrigin = getPublicAppOrigin(request);
+    const activationUrl = `${publicOrigin}/activate?token=${activationToken}`;
+    const cardCreds = buildStaffCardCredentials(orgCode, staffId, store);
+    await sendShiftRelayEmail({
+      to: email,
+      subject: `Welcome to ${user.organisation_name || orgCode} on ShiftRelay — Staff ID ${staffId}`,
+      html: renderAccountActivationEmail({
+        workerName: fullName,
+        companyName: user.organisation_name || orgCode,
+        companyCode: orgCode,
+        department,
+        roleTitle: title,
+        staffId,
+        activationUrl,
+        verificationHint: phone ? `Last 4 digits of registered phone (${verificationKey})` : `Verification Key ${verificationKey}`
+      }),
+      text: `Hello ${fullName},\n\nYou have been added to ${user.organisation_name || orgCode} (${department}) by ${user.name}.\nStaff ID: ${staffId}\nCard SEC: ${cardCreds.cardVerifyCode}\nActivate smartphone access: ${activationUrl}\nVerification code: ${verificationKey}`,
+      source: 'Executive Staff Self-Provisioning'
+    }).catch(() => {});
+
+    await audit(orgId, user.id, 'executive_add_staff', 'membership', newMembershipId, `Added ${fullName} (${staffId}) into ${department}.`);
+    broadcastEvent('roster-updated', { action: 'staff_added', membershipId: newMembershipId, staffId, department }, { organisationId: orgId });
+
+    return sendJson(response, 201, {
+      ok: true,
+      activationUrl,
+      staff: {
+        id: newMembershipId,
+        user_id: newUserId,
+        name: fullName,
+        email,
+        phone: phone || null,
+        staffId,
+        role: normalizedRole,
+        title,
+        department,
+        shift_start: shiftStart,
+        shift_end: shiftEnd,
+        grossPay: baseSalary,
+        hasReferencePassport: Boolean(passportPhotoUrl),
+        referencePhotoUrl: passportPhotoUrl,
+        cardVerifyCode: cardCreds.cardVerifyCode,
+        cardQrPayload: cardCreds.cardQrPayload,
+        status: 'active'
+      }
+    });
+  }
+
+  // Upload or update an employee's Official HR Reference Passport Photo
+  const passportPhotoMatch = url.pathname.match(/^\/api\/team\/members\/([^/]+)\/passport-photo$/);
+  if (passportPhotoMatch && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    if (!['owner', 'workforce_admin', 'manager', 'supervisor'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Supervisor, Manager, or Owner access required to enroll HR reference passport photos.' });
+    }
+    const targetId = decodeURIComponent(passportPhotoMatch[1]);
+    const body = await readJson(request).catch(() => ({}));
+    const photoUrl = normalizeReferencePhotoUrl(body.passportPhotoDataUrl || body.avatarDataUrl || body.photoDataUrl || body.referencePhotoUrl);
+    if (!photoUrl) {
+      return sendJson(response, 400, { error: 'Valid PNG, JPEG, or WebP passport photo under 2MB is required.' });
+    }
+    const { members, store } = await getOrganisationRosterState(user);
+    const target = members.find(m => m.id === targetId || m.user_id === targetId || String(m.staffId || '').toUpperCase() === targetId.toUpperCase());
+    if (!target) return sendJson(response, 404, { error: 'Target staff member not found in your organisation.' });
+
+    if (!store.workerProfiles) store.workerProfiles = {};
+    store.workerProfiles[target.id] = {
+      ...(store.workerProfiles[target.id] || {}),
+      userId: target.user_id,
+      membershipId: target.id,
+      fullName: target.name,
+      avatarUrl: photoUrl
+    };
+    const pu = (store.portalUsers || []).find(u => u.id === target.user_id);
+    if (pu) pu.avatar_data_url = photoUrl;
+    await saveStore(store);
+
+    if (databaseReady && UUID_REGEX.test(String(target.user_id || ''))) {
+      await query('update portal_users set avatar_data_url = $1 where id = $2', [photoUrl, target.user_id]).catch(() => {});
+    }
+    await audit(user.organisation_id, user.id, 'passport_photo_enrolled', 'membership', target.id, `Enrolled official HR reference passport photo for ${target.name} (${target.staffId}).`);
+    return sendJson(response, 200, { ok: true, membershipId: target.id, staffId: target.staffId, referencePhotoUrl: photoUrl });
   }
 
 async function getOrganisationRosterState(user) {
@@ -3307,18 +3891,29 @@ async function resolveAssistedWorkerCheckInContext(user, targetMember, org, stor
       ];
 
   const baseTasks = Array.isArray(orgProfile.tasks) ? orgProfile.tasks : [];
+  const orgDailyRules = resolveOrgDailyChecklists(org, store);
   const customTasks = Array.isArray(store.customShiftTasks?.[orgKey]?.[dayKey]) ? store.customShiftTasks[orgKey][dayKey] : [];
   const workerSaved = store.workerTaskState?.[targetMember.id]?.[dayKey] || {};
   const orgSaved = store.shiftTaskState?.[orgKey]?.[dayKey] || {};
 
-  const checklistTasks = [...baseTasks, ...customTasks].map(t => ({
-    id: t.id,
-    text: t.text || t.title || 'Operational Task',
-    priority: t.priority || 'normal',
-    done: workerSaved[t.id] !== undefined
-      ? Boolean(workerSaved[t.id])
-      : (orgSaved[t.id] !== undefined ? Boolean(orgSaved[t.id]) : Boolean(t.done))
-  }));
+  const mergedSeen = new Set();
+  const checklistTasks = [...orgDailyRules, ...baseTasks, ...customTasks]
+    .filter(t => {
+      const k = String(t.text || t.title || '').trim().toLowerCase();
+      if (!k || mergedSeen.has(k)) return false;
+      mergedSeen.add(k);
+      return true;
+    })
+    .map(t => ({
+      id: t.id,
+      text: t.text || t.title || 'Operational Task',
+      category: t.category || (t.source === 'company_safety' ? 'Workplace Safety' : 'Shift Operations'),
+      priority: t.priority || 'normal',
+      source: t.source || 'industry',
+      done: workerSaved[t.id] !== undefined
+        ? Boolean(workerSaved[t.id])
+        : (orgSaved[t.id] !== undefined ? Boolean(orgSaved[t.id]) : Boolean(t.done))
+    }));
 
   return {
     tenantId,
@@ -3420,6 +4015,97 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     };
   }
 
+  let facePhotoHash = null;
+  let faceVerification = null;
+  if (requireFacialPhoto && scanPhotoDataUrl) {
+    let quality;
+    try {
+      quality = analyzeLiveCaptureQuality(scanPhotoDataUrl, body.captureMeta || null);
+    } catch (qErr) {
+      return {
+        statusCode: qErr.statusCode || 400,
+        payload: { error: qErr.message, code: qErr.errorCode || 'INVALID_LIVE_FACE_FRAME' }
+      };
+    }
+    facePhotoHash = quality.hash;
+
+    // Anti-Replay Guardrail: Block reusing an identical saved photo hash from an earlier scan
+    let isReplayedHash = false;
+    if (databaseReady) {
+      const replayPg = await query(
+        `select id from time_entries where organisation_id = $1 and membership_id = $2 and face_photo_hash = $3 limit 1`,
+        [orgId, targetMember.id, facePhotoHash]
+      ).catch(() => ({ rows: [] }));
+      isReplayedHash = replayPg.rows.length > 0;
+    } else {
+      isReplayedHash = (store.timeEntries || []).some(e =>
+        (e.membershipId === targetMember.id || e.membershipId === targetMember.user_id) && e.facePhotoHash === facePhotoHash
+      ) || (store.faceVerificationLog || []).some(l =>
+        (l.membershipId === targetMember.id || l.userId === targetMember.user_id) && l.facePhotoHash === facePhotoHash
+      );
+    }
+    if (isReplayedHash) {
+      await audit(orgId, user.id, 'biometric_replay_blocked', 'membership', targetMember.id, `Blocked replayed facial photo hash for ${targetMember.name} (${targetMember.staffId}).`);
+      broadcastEvent('biometric-alert', {
+        membershipId: targetMember.id,
+        staffId: targetMember.staffId,
+        workerName: targetMember.name,
+        scannedBy: user.name || 'Colleague',
+        status: 'replay_blocked',
+        reason: 'Identical previously submitted facial photograph detected.'
+      }, { organisationId: orgId });
+      return {
+        statusCode: 403,
+        payload: {
+          error: 'Anti-Spoof Block: This exact facial photograph was already submitted on an earlier scan. Take a fresh live photo of the worker now.',
+          code: 'REPLAYED_FACE_PHOTO'
+        }
+      };
+    }
+
+    faceVerification = await compareReferenceVsLiveFace({
+      referenceImageUrl: targetMember.avatarUrl || null,
+      livePhotoDataUrl: scanPhotoDataUrl,
+      workerName: targetMember.name,
+      staffId: targetMember.staffId
+    });
+    if (faceVerification.blocked) {
+      await audit(orgId, user.id, 'biometric_face_blocked', 'membership', targetMember.id, `Blocked facial mismatch/spoof for ${targetMember.name} (${targetMember.staffId}): ${faceVerification.reason}`);
+      broadcastEvent('biometric-alert', {
+        membershipId: targetMember.id,
+        staffId: targetMember.staffId,
+        workerName: targetMember.name,
+        scannedBy: user.name || 'Colleague',
+        status: faceVerification.status,
+        confidence: faceVerification.confidence,
+        reason: faceVerification.reason
+      }, { organisationId: orgId });
+      return {
+        statusCode: 403,
+        payload: {
+          error: `Identity Guardrail Block: ${faceVerification.reason} A colleague cannot verify using someone else's face.`,
+          code: faceVerification.blockCode || 'FACE_MISMATCH_BLOCKED',
+          faceVerification,
+          referencePhotoUrl: targetMember.avatarUrl || null
+        }
+      };
+    }
+
+    if (!databaseReady) {
+      if (!Array.isArray(store.faceVerificationLog)) store.faceVerificationLog = [];
+      store.faceVerificationLog.unshift({
+        membershipId: targetMember.id,
+        userId: targetMember.user_id,
+        facePhotoHash,
+        faceMatchStatus: faceVerification.status,
+        faceMatchConfidence: faceVerification.confidence,
+        faceMatchReason: faceVerification.reason,
+        recordedAt: new Date().toISOString()
+      });
+      if (store.faceVerificationLog.length > 400) store.faceVerificationLog.length = 400;
+    }
+  }
+
   return {
     ok: true,
     targetMember,
@@ -3432,6 +4118,9 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     orgProfile,
     gpsProof,
     scanPhotoDataUrl,
+    facePhotoHash,
+    faceVerification,
+    referencePhotoUrl: targetMember.avatarUrl || null,
     parsed
   };
 }
@@ -4225,7 +4914,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     const disbursementDayDb = String(body.disbursementDay || body.settings?.disbursementDay || '25');
     const defaultMonthlySalaryDb = Number(body.defaultMonthlySalary || body.settings?.defaultMonthlySalary) > 0 ? Number(body.defaultMonthlySalary || body.settings?.defaultMonthlySalary) : 240000;
     await query(
-      'update organisations set trading_name = $1, industry = $2, country = $3, time_zone = $4, preferred_language = $5, settings = $6::jsonb where id = $7',
+      'update organisations set trading_name = $1, industry = $2, country = $3, time_zone = $4, preferred_language = $5, settings = coalesce(settings, \'{}\'::jsonb) || $6::jsonb where id = $7',
       [tradingName, industry, country, timeZone, language, JSON.stringify({ handoverReminderMinutes: reminderMinutes, payModel: payModelDb, disbursementDay: disbursementDayDb, defaultMonthlySalary: defaultMonthlySalaryDb }), user.organisation_id]
     );
     await audit(user.organisation_id, user.id, 'settings_updated', 'organisation', user.organisation_id, 'Organisation settings updated.');
@@ -4280,6 +4969,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         .map(e => {
           const m = memberById.get(e.membershipId) || {};
           const workedHours = Math.round(Math.max(0, (new Date(e.clockedOutAt) - new Date(e.clockedInAt)) / 3600000) * 100) / 100;
+          const logMatch = (store.faceVerificationLog || []).find(l => (l.membershipId === e.membershipId || l.userId === m.user_id) && (!e.facePhotoHash || l.facePhotoHash === e.facePhotoHash));
           return {
             id: e.id,
             membershipId: e.membershipId,
@@ -4295,6 +4985,10 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
             cardProofMode: e.cardProofMode || null,
             hasPhotoProof: Boolean(e.scanPhotoDataUrl),
             scanPhotoDataUrl: e.scanPhotoDataUrl || null,
+            referencePhotoUrl: m.avatarUrl || null,
+            faceMatchStatus: e.faceMatchStatus || logMatch?.faceMatchStatus || (m.avatarUrl ? 'manual_side_by_side_review' : 'no_reference_passport'),
+            faceMatchConfidence: e.faceMatchConfidence ?? logMatch?.faceMatchConfidence ?? null,
+            faceMatchReason: e.faceMatchReason || logMatch?.faceMatchReason || null,
             scannedByName: e.scannedByName || null,
             flagReason: e.attendanceIntegrityFlag || 'AUTO_OUT_UNVERIFIED_PRESENCE',
             details: e.clockOutDetails || e.verificationDetails || 'Auto clock-out without verified exit GPS or card exit scan'
@@ -4302,7 +4996,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         });
     } else {
       const pgRes = await query(
-        `select t.id, t.membership_id, t.clocked_in_at, t.clocked_out_at, t.verification_mode, t.clock_out_verification_mode, t.card_proof_mode, t.scan_photo_data_url, t.scanned_by_name, t.note
+        `select t.id, t.membership_id, t.clocked_in_at, t.clocked_out_at, t.verification_mode, t.clock_out_verification_mode, t.card_proof_mode, t.scan_photo_data_url, t.scanned_by_name, t.note, t.face_match_status, t.face_match_confidence, t.face_match_reason
          from time_entries t
          where t.organisation_id = $1 and t.clocked_out_at is not null and t.presence_verification_status = 'pending_supervisor_confirm'
          order by t.clocked_out_at desc`,
@@ -4326,6 +5020,10 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
           cardProofMode: r.card_proof_mode || null,
           hasPhotoProof: Boolean(r.scan_photo_data_url),
           scanPhotoDataUrl: r.scan_photo_data_url || null,
+          referencePhotoUrl: m.avatarUrl || null,
+          faceMatchStatus: r.face_match_status || (m.avatarUrl ? 'manual_side_by_side_review' : 'no_reference_passport'),
+          faceMatchConfidence: r.face_match_confidence ?? null,
+          faceMatchReason: r.face_match_reason || null,
           scannedByName: r.scanned_by_name || null,
           flagReason: 'AUTO_OUT_UNVERIFIED_PRESENCE',
           details: r.note || 'Auto clock-out without verified exit presence'
@@ -4572,6 +5270,8 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         role: targetMember.title,
         department: targetMember.department,
         avatarUrl: targetMember.avatarUrl || null,
+        referencePhotoUrl: targetMember.avatarUrl || null,
+        hasReferencePhoto: Boolean(targetMember.avatarUrl),
         organisationId: orgId
       },
       assistedBrief
@@ -4819,9 +5519,16 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
     const newEntryId = crypto.randomUUID();
     await query(
-      `insert into time_entries (id, organisation_id, membership_id, clocked_in_at, note, verification_mode, geofence_status, distance_meters, presence_verification_status, scanned_by_membership_id, scanned_by_name, card_proof_mode, scan_photo_data_url)
-       values ($1, $2, $3, $4, $5, 'colleague_card_scan', 'within_geofence', $6, 'awaiting_exit_scan', $7, $8, $9, $10)`,
-      [newEntryId, orgId, targetMember.id, nowIso, verificationDetails, gpsProof.distanceMeters, user.id, user.name || 'Colleague', cardProofMode, scanPhotoDataUrl]
+      `insert into time_entries (id, organisation_id, membership_id, clocked_in_at, note, verification_mode, geofence_status, distance_meters, presence_verification_status, scanned_by_membership_id, scanned_by_name, card_proof_mode, scan_photo_data_url, face_match_status, face_match_confidence, face_photo_hash, face_match_reason)
+       values ($1, $2, $3, $4, $5, 'colleague_card_scan', 'within_geofence', $6, 'awaiting_exit_scan', $7, $8, $9, $10, $11, $12, $13, $14)`,
+      [
+        newEntryId, orgId, targetMember.id, nowIso, verificationDetails, gpsProof.distanceMeters,
+        user.id, user.name || 'Colleague', cardProofMode, scanPhotoDataUrl,
+        v.faceVerification?.status || null,
+        v.faceVerification?.confidence ?? null,
+        v.facePhotoHash || null,
+        v.faceVerification?.reason || null
+      ]
     );
     await saveStore(store);
     await audit(orgId, user.id, 'peer_card_clock_in', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) clocked in with live facial photo via assisted scanner.`);
@@ -4836,6 +5543,8 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       verificationMode: 'colleague_card_scan',
       cardProofMode,
       hasPhotoProof: true,
+      referencePhotoUrl: targetMember.avatarUrl || null,
+      faceVerification: v.faceVerification || null,
       presenceVerificationStatus: 'awaiting_exit_scan',
       worker: {
         userId: targetMember.user_id,
@@ -4844,7 +5553,9 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         staffId: targetMember.staffId,
         role: targetMember.title,
         department: targetMember.department,
-        avatarUrl: targetMember.avatarUrl || null
+        avatarUrl: targetMember.avatarUrl || null,
+        referencePhotoUrl: targetMember.avatarUrl || null,
+        hasReferencePhoto: Boolean(targetMember.avatarUrl)
       },
       clockedInAt: nowIso,
       scheduledClockOutAt,
@@ -7112,6 +7823,7 @@ async function getUserRewards(user, store) {
         account_name: emp.accountName || empName
       });
 
+      const publicOrigin = getPublicAppOrigin(request);
       provisioned.push({
         userId: empUserId,
         staffId,
@@ -7119,7 +7831,7 @@ async function getUserRewards(user, store) {
         email: emp.email.trim().toLowerCase(),
         phone: (emp.phone || '').trim(),
         activationToken,
-        activationUrl: `/activate?token=${activationToken}`,
+        activationUrl: `${publicOrigin}/activate?token=${activationToken}`,
         verificationKeyPrompt: cleanPhone ? `Last 4 digits of phone (${verificationKey})` : 'Verification Key 1234'
       });
     }
@@ -7199,11 +7911,11 @@ async function getUserRewards(user, store) {
 
     const user = store.portalUsers[userIndex];
 
-    if (user.phone && verificationCode) {
-      const cleanPhone = user.phone.replace(/[^0-9]/g, '');
+    if (user.phone) {
+      const cleanPhone = String(user.phone).replace(/[^0-9]/g, '');
       const last4 = cleanPhone.slice(-4);
       const cleanInput = verificationCode.replace(/[^0-9]/g, '');
-      if (cleanInput !== last4 && cleanInput !== cleanPhone && cleanInput !== user.verification_key) {
+      if (!cleanInput || (cleanInput !== last4 && cleanInput !== cleanPhone && cleanInput !== user.verification_key)) {
         return sendJson(response, 400, { error: 'Verification failed. Please enter the last 4 digits of your registered phone number.' });
       }
     }
@@ -7217,19 +7929,86 @@ async function getUserRewards(user, store) {
     const member = (store.memberships || []).find(m => m.user_id === user.id);
     if (member) member.status = 'active';
 
-    const org = (store.organisations || []).find(o => o.id === user.tenant_id || o.id === user.organisation_id);
+    const org = (store.organisations || []).find(o => o.id === user.tenant_id || o.id === user.organisation_id) || store.organisations?.[0];
+    const contract = (store.contracts || []).find(c => c.userId === user.id);
 
-    const sessionId = await createSession(user.id, member ? member.id : user.id);
-    response.setHeader('Set-Cookie', sessionCookie(sessionId));
+    const isUuid = (val) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(val || ''));
+    const toStableUuid = (seed) => {
+      if (isUuid(seed)) return String(seed);
+      const h = createHash('sha256').update(String(seed)).digest('hex');
+      return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
+    };
+
+    let sessionUserId = user.id;
+    let sessionMembershipId = member ? member.id : user.id;
+
+    if (databaseReady) {
+      const orgCode = org?.organisation_code || 'RIF-2026';
+      let pgOrgRes = await query('select id from organisations where upper(replace(organisation_code, \'-\', \'\')) = upper(replace($1, \'-\', \'\')) limit 1', [orgCode]);
+      let pgOrgId = pgOrgRes.rows[0]?.id || toStableUuid(org?.id || orgCode);
+      if (!pgOrgRes.rows[0]) {
+        await query(
+          `insert into organisations (id, organisation_code, legal_name, trading_name, work_email, industry, country, time_zone, hub_name, hub_lat, hub_lng, hub_perimeter)
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+           on conflict (organisation_code) do update set legal_name = excluded.legal_name`,
+          [
+            pgOrgId,
+            orgCode,
+            org?.legal_name || 'ShiftRelay Enterprise Client',
+            org?.trading_name || org?.legal_name || 'ShiftRelay Enterprise Client',
+            org?.work_email || user.email,
+            org?.industry || 'Workforce Operations',
+            org?.country || 'Nigeria',
+            org?.time_zone || 'Africa/Lagos',
+            org?.hub_name || 'Primary Operations Hub',
+            org?.hub_lat ?? 6.4312,
+            org?.hub_lng ?? 3.4244,
+            org?.hub_perimeter ?? 150
+          ]
+        );
+      }
+
+      const existingPgUser = await query('select id from portal_users where lower(email) = lower($1) limit 1', [user.email]);
+      const pgUserId = existingPgUser.rows[0]?.id || toStableUuid(user.id);
+      await query(
+        `insert into portal_users (id, full_name, email, phone, password_hash, email_verified)
+         values ($1, $2, $3, $4, $5, true)
+         on conflict (id) do update set password_hash = excluded.password_hash, email_verified = true`,
+        [pgUserId, user.full_name || 'Employee', user.email.toLowerCase(), user.phone || null, hashedPw]
+      );
+
+      const pgMembershipId = toStableUuid(member?.id || `${pgOrgId}:${pgUserId}`);
+      await query(
+        `insert into memberships (id, organisation_id, user_id, role, title, department, status, staff_code)
+         values ($1, $2, $3, $4, $5, $6, 'active', $7)
+         on conflict (organisation_id, user_id) do update set status = 'active', role = excluded.role, staff_code = coalesce(excluded.staff_code, memberships.staff_code)`,
+        [
+          pgMembershipId,
+          pgOrgId,
+          pgUserId,
+          member?.role || 'incoming',
+          member?.title || contract?.role || 'Frontline Specialist',
+          member?.department || contract?.department || 'Operations',
+          contract?.staffId || null
+        ]
+      );
+
+      const resolvedM = await query('select id from memberships where organisation_id = $1 and user_id = $2 limit 1', [pgOrgId, pgUserId]);
+      sessionUserId = pgUserId;
+      sessionMembershipId = resolvedM.rows[0]?.id || pgMembershipId;
+    }
 
     await saveStore(store);
+
+    const sessionId = await createSession(sessionUserId, sessionMembershipId);
+    response.setHeader('Set-Cookie', sessionCookie(sessionId));
 
     return sendJson(response, 200, {
       ok: true,
       message: 'Your ShiftRelay account is now active! You may begin your frontline shifts.',
-      companyId: org?.organisation_code || '246701',
+      companyId: org?.organisation_code || 'RIF-2026',
       user: {
-        id: member ? member.id : user.id,
+        id: sessionMembershipId,
         name: user.full_name,
         email: user.email,
         role: member ? member.role : 'incoming',
@@ -7385,7 +8164,23 @@ async function getUserRewards(user, store) {
     const savedStates = store.shiftTaskState?.[orgKey]?.[dayKey] || {};
     const customTasks = store.customShiftTasks?.[orgKey]?.[dayKey] || [];
     const industry = store.organisationIndustry?.[orgKey] || null;
-    return sendJson(response, 200, { ok: true, savedStates, customTasks, dayKey, industry });
+    const matchedOrg = (store.organisations || []).find(o => o.id === user.organisation_id || o.organisation_code === orgKey) || {};
+    const pgOrgRow = databaseReady && user.organisation_id
+      ? ((await query('select id, organisation_code, settings from organisations where id = $1 limit 1', [user.organisation_id])).rows[0] || null)
+      : null;
+    const dailyChecklists = normalizeDailyChecklists(
+      (pgOrgRow?.settings?.dailyChecklists?.length ? pgOrgRow.settings.dailyChecklists : null) ||
+      resolveOrgDailyChecklists(matchedOrg, store)
+    );
+    return sendJson(response, 200, { ok: true, savedStates, customTasks, dailyChecklists, dayKey, industry });
+  }
+
+  if (url.pathname === '/api/organisation/checklists' && (request.method === 'PUT' || request.method === 'POST')) {
+    if (!['owner', 'workforce_admin', 'manager', 'supervisor'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Only supervisors, managers, or organisation owners can configure daily workplace safety checklists.' });
+    }
+    const body = await readJson(request).catch(() => ({}));
+    return handleSaveDailyChecklistsForTenant(user.organisation_id, body, response);
   }
 
   if (url.pathname === '/api/organisation/industry' && (request.method === 'PUT' || request.method === 'POST')) {
@@ -8765,6 +9560,9 @@ async function getUserRewards(user, store) {
   // Returns payroll driven by live attendance for a specific company account
   // ══════════════════════════════════════════════════════════════════════════
   if (url.pathname === '/api/payroll/tenant-summary' && request.method === 'GET') {
+    if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Forbidden: executive or finance clearance required for payroll summaries.' });
+    }
     const tenantParam = url.searchParams.get('tenant') || user.organisation_id;
     if (!tenantParam) return sendJson(response, 400, { error: 'tenant query param required.' });
     const store = await loadPayrollStoreForTenant(tenantParam);
@@ -8772,6 +9570,9 @@ async function getUserRewards(user, store) {
       o.id === tenantParam || o.organisation_code === tenantParam
     );
     if (!org) return sendJson(response, 404, { error: 'Tenant not found.' });
+    if (org.id !== user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: cross-tenant payroll summary access denied.' });
+    }
     const payroll = compilePayrollRun(store, org.id);
     return sendJson(response, 200, { payroll });
   }
@@ -9009,10 +9810,39 @@ async function handleUploadFileRequest(request, response, url) {
   response.end(content);
 }
 
+const WEBSITE_HOSTS = new Set(
+  String(process.env.WEBSITE_HOSTS || 'shiftrelay.com,www.shiftrelay.com')
+    .split(',').map(h => h.trim().toLowerCase()).filter(Boolean)
+);
+const ADMIN_HOSTS = new Set(
+  String(process.env.ADMIN_HOSTS || 'admin.shiftrelay.com')
+    .split(',').map(h => h.trim().toLowerCase()).filter(Boolean)
+);
+
+const CLEAN_HTML_ROUTES = {
+  admin: 'admin.html',
+  activate: 'activate.html',
+  website: 'website.html',
+  pricing: 'pricing.html',
+  privacy: 'privacy.html',
+  terms: 'terms.html',
+  'support-security': 'support-security.html',
+  'delete-account': 'delete-account.html',
+  healthcare: 'healthcare.html',
+  hospitality: 'hospitality.html',
+  logistics: 'logistics.html',
+  manufacturing: 'manufacturing.html',
+  office: 'office.html'
+};
+
 async function serveStatic(request, response, url) {
-  let requestedPath = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
-  if (requestedPath === 'admin') requestedPath = 'admin.html';
-  if (requestedPath === 'activate') requestedPath = 'activate.html';
+  const reqHost = String(request.headers['x-forwarded-host'] || request.headers.host || '').split(',')[0].trim().split(':')[0].toLowerCase();
+  let requestedPath = url.pathname === '/'
+    ? (WEBSITE_HOSTS.has(reqHost) ? 'website.html' : (ADMIN_HOSTS.has(reqHost) ? 'admin.html' : 'index.html'))
+    : url.pathname.replace(/^\/+/, '');
+  if (requestedPath === 'favicon.ico') requestedPath = 'icon.svg';
+  const cleanKey = requestedPath.replace(/\/+$/, '').toLowerCase();
+  if (CLEAN_HTML_ROUTES[cleanKey]) requestedPath = CLEAN_HTML_ROUTES[cleanKey];
   const safePath = normalize(requestedPath).replace(/^([.]{2}[/\\])+/, '');
 
   // ── Block direct static access to uploads (must use handleUploadFileRequest) ──
@@ -9085,34 +9915,104 @@ async function serveStatic(request, response, url) {
 
 const server = createServer((request, response) => {
   Promise.resolve().then(async () => {
-    const url = new URL(request.url, `http://${request.headers.host}`);
+    const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
 
-    // CORS & Mobile WebView support
+    // CORS & Mobile WebView support (strict allowlist; never reflect unknown origins with credentials)
     const origin = request.headers.origin;
-    if (origin) {
+    const originAllowed = origin ? isAllowedCorsOrigin(origin, request) : false;
+    if (origin && originAllowed) {
       response.__corsOrigin = origin;
       response.setHeader('Access-Control-Allow-Origin', origin);
       response.setHeader('Access-Control-Allow-Credentials', 'true');
       response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
       response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      response.setHeader('Vary', 'Origin');
     }
     if (request.method === 'OPTIONS') {
-      response.writeHead(204, {
-        'Access-Control-Allow-Origin': origin || '*',
-        'Access-Control-Allow-Credentials': 'true',
+      if (origin && !originAllowed) {
+        response.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8', 'Vary': 'Origin', ...SECURITY_HEADERS });
+        response.end(JSON.stringify({ error: 'Origin not permitted by CORS policy.' }));
+        return;
+      }
+      const preflightHeaders = {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-    'Access-Control-Max-Age': '86400',
-      });
+        'Access-Control-Max-Age': '86400',
+        'Vary': 'Origin'
+      };
+      if (origin && originAllowed) {
+        preflightHeaders['Access-Control-Allow-Origin'] = origin;
+        preflightHeaders['Access-Control-Allow-Credentials'] = 'true';
+      }
+      response.writeHead(204, preflightHeaders);
       response.end();
       return;
     }
     if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok' });
 
+    if (request.method === 'GET' && url.pathname === '/robots.txt') {
+      const publicOrigin = getPublicAppOrigin(request);
+      const robotsTxt = [
+        'User-agent: *',
+        'Allow: /website.html',
+        'Allow: /pricing.html',
+        'Allow: /privacy.html',
+        'Allow: /terms.html',
+        'Allow: /support-security.html',
+        'Disallow: /api/',
+        'Disallow: /admin',
+        'Disallow: /admin.html',
+        'Disallow: /activate',
+        'Disallow: /office.html',
+        `Sitemap: ${publicOrigin}/sitemap.xml`,
+        ''
+      ].join('\n');
+      response.writeHead(200, {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Length': Buffer.byteLength(robotsTxt),
+        ...SECURITY_HEADERS
+      });
+      return response.end(robotsTxt);
+    }
+
+    if (request.method === 'GET' && url.pathname === '/sitemap.xml') {
+      const publicOrigin = getPublicAppOrigin(request);
+      const urls = [
+        '/website.html',
+        '/pricing.html',
+        '/privacy.html',
+        '/terms.html',
+        '/support-security.html',
+        '/healthcare.html',
+        '/hospitality.html',
+        '/logistics.html',
+        '/manufacturing.html',
+        '/'
+      ];
+      const sitemapXml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        ...urls.map(u => `  <url><loc>${publicOrigin}${u}</loc></url>`),
+        '</urlset>'
+      ].join('\n');
+      response.writeHead(200, {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Content-Length': Buffer.byteLength(sitemapXml),
+        ...SECURITY_HEADERS
+      });
+      return response.end(sitemapXml);
+    }
+
     // ── IP Rate Limiting ─────────────────────────────────────────────────
     if (url.pathname.startsWith('/api/')) {
       const ip = (request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown').split(',')[0].trim();
-      const isAuth = (/^\/api\/auth\/(sign-in|register|verify)$/.test(url.pathname) || /^\/api\/organisations$/.test(url.pathname) || /^\/api\/organisation-memberships$/.test(url.pathname)) && request.method === 'POST';
+      const isAuth = (
+        /^\/api\/auth\/(sign-in|register|verify|activate|forgot-password|reset-password|executive-onboard|webauthn\/login-options|webauthn\/login-verify)$/.test(url.pathname) ||
+        /^\/api\/admin\/auth\/(login|mfa\/verify|break-glass)$/.test(url.pathname) ||
+        /^\/api\/(organisations|organisation-memberships|account-deletion-requests)$/.test(url.pathname) ||
+        /^\/api\/enterprise\/demo-request$/.test(url.pathname) ||
+        /^\/api\/leads\/roi-quote$/.test(url.pathname)
+      ) && request.method === 'POST';
       if (isRateLimited(ip, isAuth)) {
         return sendJson(response, 429, { error: 'Too many requests. Please slow down and try again shortly.' });
       }
@@ -9121,7 +10021,7 @@ const server = createServer((request, response) => {
       return sendJson(response, 200, {
         status: 'READY',
         service: 'ShiftRelay Enterprise HCM Engine',
-        version: '2026.11.v129',
+        version: '2026.11.v154',
         databaseMode: databaseReady ? 'postgres-primary' : 'local-resilient-store',
         compliance: ['NDPA-2023', 'NITDA-BIOMETRIC', 'PENCOM-PRA-2014', 'FINANCE-ACT-CRA'],
         operationalZones: ['Victoria Island Tech Hub', 'Ikeja Operations Hub', 'Lekki Service Zone', 'Abuja Regional Hub'],
@@ -9130,6 +10030,11 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/supervisor/override') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required for supervisor override.' });
+      if (authCtx.kind === 'user' && !['owner', 'supervisor', 'manager', 'workforce_admin'].includes(authCtx.user.role)) {
+        return sendJson(response, 403, { error: 'Forbidden: supervisor or executive role required.' });
+      }
       const body = await readJson(request);
       const workerId = String(body.workerId || body.membershipId || 'wrk-01').trim();
       const workerName = String(body.workerName || 'Frontline Specialist').trim();
@@ -9151,6 +10056,11 @@ const server = createServer((request, response) => {
 
     // ── Riffmax Datacenter Autonomous Task & Approval Endpoints ──
     if (request.method === 'GET' && url.pathname === '/api/datacenter/state') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
+      if (authCtx.kind === 'user' && !['owner', 'workforce_admin'].includes(authCtx.user.role)) {
+        return sendJson(response, 403, { error: 'Forbidden: executive admin clearance required.' });
+      }
       const stateFile = join(dataDirectory, 'riffmax-datacenter-state.json');
       let data = { activeDirective: 'Autonomous Telemetry Active', liveFeed: [], pendingApprovals: [] };
       try { data = JSON.parse(await readFile(stateFile, 'utf8')); } catch (_) {}
@@ -9158,6 +10068,11 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/datacenter/dispatch') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
+      if (authCtx.kind === 'user' && authCtx.user.role !== 'owner') {
+        return sendJson(response, 403, { error: 'Forbidden: sovereign owner or admin clearance required.' });
+      }
       const body = await readJson(request);
       const prompt = String(body.prompt || body.directive || 'Routine Codebase Audit').trim();
       const mod = await import('./scripts/riffmax-datacenter-engine.mjs');
@@ -9166,6 +10081,11 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/datacenter/approve') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
+      if (authCtx.kind === 'user' && authCtx.user.role !== 'owner') {
+        return sendJson(response, 403, { error: 'Forbidden: sovereign owner or admin clearance required.' });
+      }
       const body = await readJson(request);
       const taskId = String(body.taskId || '').trim();
       const mod = await import('./scripts/riffmax-datacenter-engine.mjs');
@@ -9175,11 +10095,21 @@ const server = createServer((request, response) => {
 
     // ── Riffmax HITL Workspace Endpoints (Linear-Style Kanban & Collaboration) ──
     if (request.method === 'GET' && url.pathname === '/api/hitl/state') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
+      if (authCtx.kind === 'user' && !['owner', 'supervisor', 'manager', 'workforce_admin'].includes(authCtx.user.role)) {
+        return sendJson(response, 403, { error: 'Forbidden: management clearance required.' });
+      }
       const mod = await import('./scripts/riffmax-hitl-engine.mjs');
       return sendJson(response, 200, mod.getHitlState());
     }
 
     if (request.method === 'POST' && url.pathname === '/api/hitl/tasks') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
+      if (authCtx.kind === 'user' && !['owner', 'supervisor', 'manager', 'workforce_admin'].includes(authCtx.user.role)) {
+        return sendJson(response, 403, { error: 'Forbidden: management clearance required.' });
+      }
       const body = await readJson(request);
       const mod = await import('./scripts/riffmax-hitl-engine.mjs');
       const task = mod.createHitlTask(body);
@@ -9187,20 +10117,35 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/hitl/tasks/comment') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
+      if (authCtx.kind === 'user' && !['owner', 'supervisor', 'manager', 'workforce_admin'].includes(authCtx.user.role)) {
+        return sendJson(response, 403, { error: 'Forbidden: management clearance required.' });
+      }
       const body = await readJson(request);
       const mod = await import('./scripts/riffmax-hitl-engine.mjs');
-      const task = mod.postTaskComment(body.taskId, body.sender || 'Sherif Akanmu', body.text);
+      const task = mod.postTaskComment(body.taskId, body.sender || authCtx.user?.name || authCtx.adminCtx?.adminUser?.full_name || 'Operations Lead', body.text);
       return sendJson(response, 200, { ok: true, task });
     }
 
     if (request.method === 'POST' && url.pathname === '/api/hitl/tasks/approve') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
+      if (authCtx.kind === 'user' && !['owner', 'supervisor', 'manager', 'workforce_admin'].includes(authCtx.user.role)) {
+        return sendJson(response, 403, { error: 'Forbidden: management clearance required.' });
+      }
       const body = await readJson(request);
       const mod = await import('./scripts/riffmax-hitl-engine.mjs');
-      const task = mod.approveTaskHitl(body.taskId, body.approver || 'Sherif Akanmu');
+      const task = mod.approveTaskHitl(body.taskId, body.approver || authCtx.user?.name || authCtx.adminCtx?.adminUser?.full_name || 'Operations Lead');
       return sendJson(response, 200, { ok: true, task });
     }
 
     if (request.method === 'POST' && url.pathname === '/api/hitl/tasks/move') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
+      if (authCtx.kind === 'user' && !['owner', 'supervisor', 'manager', 'workforce_admin'].includes(authCtx.user.role)) {
+        return sendJson(response, 403, { error: 'Forbidden: management clearance required.' });
+      }
       const body = await readJson(request);
       const mod = await import('./scripts/riffmax-hitl-engine.mjs');
       const task = mod.moveTaskColumn(body.taskId, body.column);
@@ -9209,6 +10154,11 @@ const server = createServer((request, response) => {
 
     // ── Riffmax Official Monthly Payroll & Payslip Endpoints ──
     if (request.method === 'GET' && url.pathname === '/api/riffmax/payslips') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required to access payslip registers.' });
+      if (authCtx.kind === 'user' && !['owner', 'finance_admin', 'workforce_admin'].includes(authCtx.user.role)) {
+        return sendJson(response, 403, { error: 'Forbidden: executive or finance clearance required.' });
+      }
       const payslipsFile = join(dataDirectory, 'riffmax-payslips.json');
       let data = { employees: [] };
       try { data = JSON.parse(await readFile(payslipsFile, 'utf8')); } catch (_) {}
@@ -9216,21 +10166,36 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'GET' && url.pathname.startsWith('/api/riffmax/payslips/')) {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required to access employee payslips.' });
       const staffId = decodeURIComponent(url.pathname.replace('/api/riffmax/payslips/', '')).trim();
       const payslipsFile = join(dataDirectory, 'riffmax-payslips.json');
       let data = { employees: [] };
       try { data = JSON.parse(await readFile(payslipsFile, 'utf8')); } catch (_) {}
-      const emp = (data.employees || []).find(e => 
-        e.staffId.toLowerCase() === staffId.toLowerCase() || 
-        e.email.toLowerCase() === staffId.toLowerCase() || 
+      const emp = (data.employees || []).find(e =>
+        e.staffId.toLowerCase() === staffId.toLowerCase() ||
+        e.email.toLowerCase() === staffId.toLowerCase() ||
         e.name.toLowerCase().includes(staffId.toLowerCase())
       );
       if (!emp) return sendJson(response, 404, { error: 'Payslip not found for ' + staffId });
+      if (
+        authCtx.kind === 'user' &&
+        !['owner', 'finance_admin', 'workforce_admin'].includes(authCtx.user.role) &&
+        emp.email.toLowerCase() !== String(authCtx.user.email || '').toLowerCase() &&
+        emp.staffId.toLowerCase() !== String(authCtx.user.staffId || '').toLowerCase()
+      ) {
+        return sendJson(response, 403, { error: 'Forbidden: you can only inspect your own payslip.' });
+      }
       return sendJson(response, 200, { ok: true, employee: emp, tenant: data.tenant, companyName: data.companyName, month: data.month, currency: data.currency });
     }
 
     // ── External Prompt & Multi-Conversation Dispatch Bridge ──
     if (request.method === 'POST' && (url.pathname === '/api/riffmax/inbox' || url.pathname === '/api/hitl/prompt')) {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
+      if (authCtx.kind === 'user' && !['owner', 'supervisor', 'manager', 'workforce_admin'].includes(authCtx.user.role)) {
+        return sendJson(response, 403, { error: 'Forbidden: management clearance required.' });
+      }
       const body = await readJson(request);
       const prompt = String(body.prompt || body.directive || body.title || '').trim();
       const mod = await import('./scripts/riffmax-hitl-engine.mjs');
@@ -9245,12 +10210,18 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/events/perimeter-breaches') {
-      response.writeHead(200, {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required for perimeter breach stream.' });
+      if (authCtx.kind === 'user' && !['owner', 'supervisor', 'manager', 'workforce_admin'].includes(authCtx.user.role)) {
+        return sendJson(response, 403, { error: 'Forbidden: supervisor or executive clearance required.' });
+      }
+      const sseHeaders = {
         'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
+        'Cache-Control': 'no-store, no-cache, no-transform, private',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*'
-      });
+        ...(response.__corsOrigin ? { 'Access-Control-Allow-Origin': response.__corsOrigin, 'Access-Control-Allow-Credentials': 'true', 'Vary': 'Origin' } : {})
+      };
+      response.writeHead(200, sseHeaders);
       const initialEvent = {
         id: 'br_' + Date.now(),
         zone: 'Primary Hub Gate 02',
@@ -9294,6 +10265,8 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/payroll/ledger') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required to calculate payroll ledger.' });
       const grossPay = Number(url.searchParams.get('gross') || 285000);
       const basicPay = Math.round(grossPay * 0.55);
       const shiftAllowance = Math.round(grossPay * 0.25);
@@ -9331,6 +10304,8 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/settlements/paystack-transfer') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required to trigger settlement transfers.' });
       const body = await readJson(request);
       const amountNgn = Number(body.amountNgn || body.amount || 5000);
       const bankName = String(body.bankName || 'Access Bank PLC / Paystack Titan').trim();
@@ -9349,6 +10324,8 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/settlements/mono-lookup') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required for Mono account lookup.' });
       const body = await readJson(request);
       return sendJson(response, 200, {
         ok: true,
@@ -9361,6 +10338,8 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/compliance/biometric-consent') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required to record NDPA biometric consent.' });
       const body = await readJson(request);
       const consentHash = 'NDPA-CONSENT-' + createHash('sha256').update(JSON.stringify(body) + Date.now()).digest('hex').slice(0, 12).toUpperCase();
       return sendJson(response, 200, {
@@ -9372,6 +10351,8 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/compliance/audit-voucher') {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required to issue NDPA compliance voucher.' });
       const voucherId = 'NDPA-2026-SR-' + randomBytes(4).toString('hex').toUpperCase();
       return sendJson(response, 200, {
         ok: true,
@@ -9541,12 +10522,20 @@ export async function processWeeklyNewsletterAutomation() {
     };
 
     const recipientEmail = process.env.EXECUTIVE_DIGEST_EMAIL || process.env.SMTP_USER || 'sherifolaide2030@gmail.com';
+    const basePlatformUrl = getPublicAppOrigin();
     const html = renderWeeklyProgressNewsletterEmail({
       recipientName: 'Executive Leadership & Stakeholders',
-      organizationName: 'Riffmax Technology Limited',
-      periodLabel: `Week of ${now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`,
-      metrics: defaultDigest,
-      dashboardUrl: 'https://shiftrelay-vjkf.onrender.com/'
+      orgName: 'Riffmax Technology Limited',
+      weekNumber: Math.max(1, Math.ceil((now - new Date(now.getFullYear(), 0, 1)) / (7 * 86400000))),
+      year: now.getFullYear(),
+      stats: {
+        totalShiftsAccounted: defaultDigest.shiftsAccountedFor,
+        verifiedHoursLogged: defaultDigest.verifiedHours,
+        punctualityRate: defaultDigest.punctualityScore,
+        safetyIncidents: defaultDigest.safetyIncidents,
+        variance: defaultDigest.payrollVariance
+      },
+      platformUrl: basePlatformUrl
     });
 
     await sendShiftRelayEmail({

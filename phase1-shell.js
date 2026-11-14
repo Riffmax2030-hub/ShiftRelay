@@ -2079,12 +2079,22 @@
               <button type="button" id="sr-btn-back-to-step1" class="sr-btn sr-btn-secondary" style="padding:5px 10px;min-height:30px;font-size:11px;flex-shrink:0;">Change Card</button>
             </div>
 
-            <div style="position:relative;width:100%;height:200px;background:#090d16;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-              <video id="sr-facial-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
-              <img id="sr-facial-preview-img" alt="Captured facial verification portrait" style="display:none;width:100%;height:100%;object-fit:cover;" />
-              <div id="sr-facial-guide-ring" style="position:absolute;width:128px;height:152px;border:2px solid rgba(52,211,153,0.85);border-radius:50%;box-shadow:0 0 0 9999px rgba(0,0,0,0.42);pointer-events:none;"></div>
-              <div id="sr-facial-status" style="position:absolute;bottom:8px;left:10px;right:10px;background:rgba(15,23,42,0.86);color:#f8fafc;font-size:11.5px;padding:6px 10px;border-radius:6px;text-align:center;">
-                Position worker&rsquo;s face inside the oval and tap Capture Live Face Photo
+            <!-- Side-by-Side HR Reference Passport vs Live Camera Guardrail -->
+            <div id="sr-facial-compare-grid" style="display:grid;grid-template-columns:132px 1fr;gap:10px;align-items:stretch;">
+              <div style="background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-medium);border-radius:12px;padding:8px;display:flex;flex-direction:column;justify-content:space-between;gap:6px;">
+                <div style="font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;color:#0f766e;text-align:center;">HR Passport</div>
+                <div id="sr-facial-ref-box" style="flex:1;min-height:132px;border-radius:8px;overflow:hidden;background:#0f172a;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;text-align:center;padding:6px;">
+                  No HR passport on file yet
+                </div>
+                <div id="sr-facial-ref-badge" style="font-size:10px;font-weight:700;padding:3px 6px;border-radius:99px;background:rgba(245,158,11,0.14);color:#b45309;text-align:center;">Visual Audit</div>
+              </div>
+              <div style="position:relative;width:100%;height:200px;background:#090d16;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                <video id="sr-facial-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+                <img id="sr-facial-preview-img" alt="Captured facial verification portrait" style="display:none;width:100%;height:100%;object-fit:cover;" />
+                <div id="sr-facial-guide-ring" style="position:absolute;width:128px;height:152px;border:2px solid rgba(52,211,153,0.85);border-radius:50%;box-shadow:0 0 0 9999px rgba(0,0,0,0.42);pointer-events:none;"></div>
+                <div id="sr-facial-status" style="position:absolute;bottom:8px;left:10px;right:10px;background:rgba(15,23,42,0.86);color:#f8fafc;font-size:11px;padding:6px 10px;border-radius:6px;text-align:center;">
+                  Position worker&rsquo;s live face inside the oval and match against HR Passport
+                </div>
               </div>
             </div>
 
@@ -2147,6 +2157,7 @@
     let verifiedPin = '';
     let verifiedPreview = null;
     let capturedFacialPhoto = null;
+    let capturedCaptureMeta = null;
     let assistedCheckInData = null;
 
     const stopCameraStream = () => {
@@ -2353,21 +2364,39 @@
         });
     };
 
-    const enterStep2FacialCapture = (previewData) => {
+      const enterStep2FacialCapture = (previewData) => {
       clearResultBanner();
       verifiedPreview = previewData;
       const w = previewData?.worker || {};
+      const refPhoto = (typeof (w.referencePhotoUrl || w.avatarUrl) === 'string' && /^(data:image\/(png|jpe?g|webp);base64,|https?:\/\/|\/)/i.test(w.referencePhotoUrl || w.avatarUrl))
+        ? (w.referencePhotoUrl || w.avatarUrl)
+        : null;
       const nameEl = document.getElementById('sr-facial-worker-name');
       const metaEl = document.getElementById('sr-facial-worker-meta');
       const avatarEl = document.getElementById('sr-facial-profile-avatar');
+      const refBox = document.getElementById('sr-facial-ref-box');
+      const refBadge = document.getElementById('sr-facial-ref-badge');
       if (nameEl) nameEl.textContent = `${w.userName || 'Staff Member'} (${w.staffId || verifiedPayload})`;
       if (metaEl) metaEl.textContent = `${w.role || 'Staff'} · ${w.department || 'Operations'} · ${scanAction === 'clock-out' ? 'Shift Exit Scan' : 'Shift Check-In'}`;
       if (avatarEl) {
-        if (w.avatarUrl && typeof w.avatarUrl === 'string') {
-          avatarEl.innerHTML = `<img src="${escapeHtml(w.avatarUrl)}" alt="${escapeHtml(w.userName || 'Worker')}" style="width:100%;height:100%;object-fit:cover;" />`;
+        if (refPhoto) {
+          avatarEl.innerHTML = `<img src="${escapeHtml(refPhoto)}" alt="${escapeHtml(w.userName || 'Worker')}" style="width:100%;height:100%;object-fit:cover;" />`;
         } else {
           const initials = String(w.userName || 'ST').split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
           avatarEl.textContent = initials || 'ST';
+        }
+      }
+      if (refBox && refBadge) {
+        if (refPhoto) {
+          refBox.innerHTML = `<img id="sr-facial-ref-photo" src="${escapeHtml(refPhoto)}" alt="HR Passport of ${escapeHtml(w.userName || 'Worker')}" style="width:100%;height:100%;object-fit:cover;min-height:132px;" />`;
+          refBadge.textContent = 'Official HR Passport';
+          refBadge.style.background = 'rgba(16,185,129,0.14)';
+          refBadge.style.color = '#047857';
+        } else {
+          refBox.innerHTML = '<span>No HR Passport Enrolled Yet</span>';
+          refBadge.textContent = 'Supervisor Photo Audit';
+          refBadge.style.background = 'rgba(245,158,11,0.14)';
+          refBadge.style.color = '#b45309';
         }
       }
       updateStepperUi(2);
@@ -2387,7 +2416,11 @@
 
       const hdrEl = document.getElementById('sr-assisted-worker-header');
       if (hdrEl) {
-        hdrEl.textContent = `Checked In On-Site (Live Face Photo Verified): ${w.userName || 'Worker'} (${w.staffId || ''}) · ${scanData.distanceMeters ?? 0}m from site`;
+        const fv = scanData?.faceVerification;
+        const fvText = fv?.status === 'verified_match'
+          ? `Biometric Vision Match (${fv.confidence || 90}%)`
+          : (fv?.status === 'no_reference_passport' ? 'Live Face Saved (Enroll HR Passport Recommended)' : 'Live Face + HR Passport Audit Saved');
+        hdrEl.textContent = `Checked In On-Site (${fvText}): ${w.userName || 'Worker'} (${w.staffId || ''}) · ${scanData.distanceMeters ?? 0}m from site`;
       }
       document.getElementById('sr-assisted-ho-summary').textContent = ho.summary || 'Incoming Shift Handover Briefing';
       document.getElementById('sr-assisted-ho-author').textContent = `From: ${ho.authorName || 'Shift Lead'} · Verified Check-In on ${activeUser.name || 'Colleague'}'s Device`;
@@ -2534,7 +2567,28 @@
       startBadgeScannerCamera();
     });
 
-    document.getElementById('sr-btn-capture-face')?.addEventListener('click', () => {
+    const sampleCanvasLumaStats = (ctx, w, h) => {
+      try {
+        const px = ctx.getImageData(0, 0, w, h).data;
+        let sum = 0;
+        let sumSq = 0;
+        let count = 0;
+        for (let i = 0; i < px.length; i += 16) {
+          const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+          sum += lum;
+          sumSq += lum * lum;
+          count++;
+        }
+        if (!count) return { meanLuma: 0, lumaStdDev: 0, sample: [] };
+        const meanLuma = sum / count;
+        const variance = Math.max(0, (sumSq / count) - (meanLuma * meanLuma));
+        return { meanLuma, lumaStdDev: Math.sqrt(variance), sample: px };
+      } catch (_) {
+        return { meanLuma: 60, lumaStdDev: 20, sample: null };
+      }
+    };
+
+    document.getElementById('sr-btn-capture-face')?.addEventListener('click', async () => {
       const faceVideo = document.getElementById('sr-facial-video');
       const faceImg = document.getElementById('sr-facial-preview-img');
       const guideRing = document.getElementById('sr-facial-guide-ring');
@@ -2545,11 +2599,12 @@
       if (capturedFacialPhoto) {
         // Retake photo
         capturedFacialPhoto = null;
+        capturedCaptureMeta = null;
         if (faceImg) faceImg.style.display = 'none';
         if (faceVideo) faceVideo.style.display = 'block';
         if (guideRing) guideRing.style.display = 'block';
         if (capBtn) capBtn.textContent = 'Capture Live Face Photo';
-        if (faceStatus) faceStatus.textContent = 'Align worker\'s live face inside oval and tap Capture Live Face Photo';
+        if (faceStatus) faceStatus.textContent = 'Align worker\'s live face inside oval and match against HR Passport';
         if (subFaceBtn) {
           subFaceBtn.disabled = true;
           subFaceBtn.style.opacity = '0.55';
@@ -2568,6 +2623,33 @@
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       ctx.drawImage(faceVideo, 0, 0, canvas.width, canvas.height);
+      const frameA = sampleCanvasLumaStats(ctx, canvas.width, canvas.height);
+
+      // Dual-frame liveness check ~160ms apart
+      if (capBtn) capBtn.disabled = true;
+      if (faceStatus) faceStatus.textContent = 'Running dual-frame anti-spoof & liveness check...';
+      await new Promise(r => setTimeout(r, 160));
+      ctx.drawImage(faceVideo, 0, 0, canvas.width, canvas.height);
+      const frameB = sampleCanvasLumaStats(ctx, canvas.width, canvas.height);
+      if (capBtn) capBtn.disabled = false;
+
+      if (frameB.meanLuma < 8 && frameB.lumaStdDev < 2.5) {
+        if (faceStatus) faceStatus.textContent = 'Camera obstructed / too dark — uncover lens and retry';
+        showResultBanner('error', 'Live Camera Check Failed', 'Camera lens appears covered or too dark. Ensure clear view of worker face.');
+        return;
+      }
+
+      let livenessDelta = 1;
+      if (frameA.sample && frameB.sample) {
+        let diffSum = 0;
+        let diffCount = 0;
+        for (let i = 0; i < Math.min(frameA.sample.length, frameB.sample.length); i += 16) {
+          diffSum += Math.abs(frameA.sample[i] - frameB.sample[i]) + Math.abs(frameA.sample[i + 1] - frameB.sample[i + 1]);
+          diffCount++;
+        }
+        livenessDelta = diffCount ? Math.round((diffSum / diffCount) * 100) / 100 : 1;
+      }
+
       const dataUrl = canvas.toDataURL('image/jpeg', 0.68);
       if (!dataUrl || dataUrl.length > 125000) {
         showResultBanner('error', 'Photo Capture Error', 'Could not compress live facial snapshot. Try capturing again.');
@@ -2575,6 +2657,15 @@
       }
       clearResultBanner();
       capturedFacialPhoto = dataUrl;
+      capturedCaptureMeta = {
+        captureSource: 'live_camera',
+        width: canvas.width,
+        height: canvas.height,
+        meanLuma: Math.round(frameB.meanLuma * 10) / 10,
+        lumaStdDev: Math.round(frameB.lumaStdDev * 10) / 10,
+        livenessDelta,
+        dualFrameChecked: 1
+      };
       if (faceImg) {
         faceImg.src = dataUrl;
         faceImg.style.display = 'block';
@@ -2582,7 +2673,7 @@
       if (faceVideo) faceVideo.style.display = 'none';
       if (guideRing) guideRing.style.display = 'none';
       if (capBtn) capBtn.textContent = 'Retake Photo';
-      if (faceStatus) faceStatus.textContent = 'Live facial portrait captured — tap Verify to complete check-in';
+      if (faceStatus) faceStatus.textContent = 'Live facial portrait captured — compare with HR Passport & tap Verify';
       if (subFaceBtn) {
         subFaceBtn.disabled = false;
         subFaceBtn.style.opacity = '1';
@@ -2616,7 +2707,8 @@
         cardVerifyCode: verifiedPin || undefined,
         action: scanAction,
         coords,
-        scanPhotoDataUrl: capturedFacialPhoto
+        scanPhotoDataUrl: capturedFacialPhoto,
+        captureMeta: capturedCaptureMeta || undefined
       };
 
       if (!navigator.onLine && window.OfflineQueue?.enqueue) {
@@ -2642,7 +2734,11 @@
           body: JSON.stringify(bodyPayload)
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Could not complete card & facial verification.');
+        if (!res.ok) {
+          const blockErr = new Error(data.error || 'Could not complete card & facial verification.');
+          blockErr.code = data.code || '';
+          throw blockErr;
+        }
 
         if (data.action === 'clock-out') {
           SRAudio.playClockOut();
@@ -2661,8 +2757,26 @@
           enterStep3AssistedHandover(data);
         }
       } catch (err) {
+        if (['REPLAYED_FACE_PHOTO', 'FACE_MISMATCH_BLOCKED', 'FACE_SPOOF_BLOCKED', 'STATIC_SPOOF_DETECTED'].includes(err.code)) {
+          capturedFacialPhoto = null;
+          capturedCaptureMeta = null;
+          const faceImg = document.getElementById('sr-facial-preview-img');
+          const faceVideo = document.getElementById('sr-facial-video');
+          const guideRing = document.getElementById('sr-facial-guide-ring');
+          const capBtn = document.getElementById('sr-btn-capture-face');
+          if (faceImg) faceImg.style.display = 'none';
+          if (faceVideo) faceVideo.style.display = 'block';
+          if (guideRing) guideRing.style.display = 'block';
+          if (capBtn) capBtn.textContent = 'Capture Live Face Photo';
+        }
         showResultBanner('error', 'Verification Blocked', err.message || 'Could not verify worker.');
-        if (subFaceBtn) subFaceBtn.disabled = false;
+        if (subFaceBtn) {
+          subFaceBtn.disabled = !capturedFacialPhoto;
+          if (!capturedFacialPhoto) {
+            subFaceBtn.style.opacity = '0.55';
+            subFaceBtn.style.cursor = 'not-allowed';
+          }
+        }
       }
     });
 
@@ -2944,11 +3058,15 @@
       } catch (_) {}
 
       let serverIndustry = null;
+      let serverDailyChecklists = Array.isArray(user.dailyChecklists) ? user.dailyChecklists : [];
       // Hydrate from backend database (/api/shift-tasks)
       try {
         const taskRes = await fetch(`/api/shift-tasks?tenant=${encodeURIComponent(tenantId)}&date=${encodeURIComponent(todayIsoDay)}`);
         if (taskRes.ok) {
           const taskData = await taskRes.json();
+          if (Array.isArray(taskData?.dailyChecklists)) {
+            serverDailyChecklists = taskData.dailyChecklists;
+          }
           if (taskData?.industry && CLIENT_INDUSTRY_PROFILES[resolveClientIndustryKey(taskData.industry, user.organisation_name)]) {
             serverIndustry = resolveClientIndustryKey(taskData.industry, user.organisation_name);
             localStorage.setItem('shiftrelay-company-industry', serverIndustry);
@@ -2981,15 +3099,19 @@
           : CLIENT_INDUSTRY_PROFILES.operations.tasks
       };
 
-      // Merge industry suite with saved states & custom worker-added tasks
-      let tasks = activeIndustrySuite.tasks.map(t => ({
-        ...t,
-        done: savedTaskStates[t.id] !== undefined ? Boolean(savedTaskStates[t.id]) : Boolean(t.done)
-      }));
-      tasks = tasks.concat(customTasks.map(t => ({
-        ...t,
-        done: savedTaskStates[t.id] !== undefined ? Boolean(savedTaskStates[t.id]) : Boolean(t.done)
-      })));
+      // Merge Admin Workplace Safety rules, industry suite, saved states & custom worker-added tasks
+      const combinedSeen = new Set();
+      let tasks = [...serverDailyChecklists, ...activeIndustrySuite.tasks, ...customTasks]
+        .filter(t => {
+          const k = String(t?.text || t?.title || '').trim().toLowerCase();
+          if (!k || combinedSeen.has(k)) return false;
+          combinedSeen.add(k);
+          return true;
+        })
+        .map(t => ({
+          ...t,
+          done: savedTaskStates[t.id] !== undefined ? Boolean(savedTaskStates[t.id]) : Boolean(t.done)
+        }));
 
       const html = `
         <!-- Today's Assigned Shift Duty Station Card -->
@@ -3715,6 +3837,11 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
               <span>Scan Staff ID</span>
             </button>
+            ${['owner', 'workforce_admin', 'manager'].includes(user.role) ? `
+            <button class="sr-btn sr-btn-primary" id="sr-exec-overview-add-staff-btn" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;" title="Add new staff member directly into a company department">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+              <span>+ Add New Staff</span>
+            </button>` : ''}
             <!-- 2-Layer Executive vs Shift Operations Switcher -->
             <button class="sr-btn sr-btn-secondary" id="sr-btn-toggle-executive-view" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Corporate Executive Analytics Layer">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
@@ -4103,15 +4230,26 @@
                 const proofBadge = rev.cardProofMode === 'physical_badge_facial_verify'
                   ? 'Badge + Live Face Verified'
                   : (rev.cardProofMode === 'static_badge_fallback' ? 'Printed Badge Verify' : '');
+                const matchStatusLabel = rev.faceMatchStatus === 'verified_match'
+                  ? `Vision Match ${rev.faceMatchConfidence || ''}%`
+                  : (rev.faceMatchStatus === 'no_reference_passport' ? 'No Passport Enrolled' : (rev.faceMatchStatus ? 'Compare Passport vs Live' : ''));
                 const safeThumbUrl = (typeof rev.scanPhotoDataUrl === 'string' && /^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/i.test(rev.scanPhotoDataUrl))
                   ? rev.scanPhotoDataUrl
+                  : '';
+                const safeRefUrl = (typeof rev.referencePhotoUrl === 'string' && /^(data:image\/(jpeg|webp|png);base64,|https?:\/\/|\/)/i.test(rev.referencePhotoUrl))
+                  ? rev.referencePhotoUrl
                   : '';
                 return `
                   <div class="sr-review-item" data-presence-entry-id="${escapeHtml(rev.id)}">
                     <div class="sr-review-info" style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
-                      ${safeThumbUrl ? `<img src="${safeThumbUrl}" alt="Scan snapshot" style="width:44px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--sr-border-medium);flex-shrink:0;" />` : ''}
+                      ${(safeRefUrl || safeThumbUrl) ? `
+                        <div style="display:flex;gap:4px;flex-shrink:0;">
+                          ${safeRefUrl ? `<img src="${escapeHtml(safeRefUrl)}" title="Official HR Passport" alt="HR Passport" style="width:38px;height:38px;object-fit:cover;border-radius:6px;border:1.5px solid #0d9488;" />` : ''}
+                          ${safeThumbUrl ? `<img src="${safeThumbUrl}" title="Live Check-In Selfie" alt="Live scan snapshot" style="width:44px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--sr-border-medium);" />` : ''}
+                        </div>
+                      ` : ''}
                       <div style="min-width:0;flex:1;">
-                        <strong>${escapeHtml(rev.workerName)} (${escapeHtml(rev.staffId || rev.membershipId)})${proofBadge ? ` <span style="font-size:10px;padding:2px 6px;border-radius:99px;background:rgba(13,148,136,0.12);color:#0f766e;font-weight:700;vertical-align:middle;">${escapeHtml(proofBadge)}</span>` : ''}</strong>
+                        <strong>${escapeHtml(rev.workerName)} (${escapeHtml(rev.staffId || rev.membershipId)})${proofBadge ? ` <span style="font-size:10px;padding:2px 6px;border-radius:99px;background:rgba(13,148,136,0.12);color:#0f766e;font-weight:700;vertical-align:middle;">${escapeHtml(proofBadge)}</span>` : ''}${matchStatusLabel ? ` <span style="font-size:10px;padding:2px 6px;border-radius:99px;background:rgba(59,130,246,0.12);color:#1d4ed8;font-weight:700;vertical-align:middle;">${escapeHtml(matchStatusLabel)}</span>` : ''}</strong>
                         <small style="display:block;white-space:normal;line-height:1.35;">${escapeHtml(rev.role || 'Staff')} &middot; ${escapeHtml(inStr)} &rarr; ${escapeHtml(outStr)} (${Number(rev.workedHours || 0)}h) &middot; ${escapeHtml(rev.details || 'No exit scan / exit GPS verified')}</small>
                       </div>
                     </div>
@@ -4304,6 +4442,9 @@
       const openOverviewPeerScanner = () => openPeerIdScannerModal(user.company_id || user.organisation_id, user.hub_name || '', () => renderManagerOverview());
       document.getElementById('sr-sup-scan-peer-btn')?.addEventListener('click', openOverviewPeerScanner);
       document.getElementById('sr-empty-floor-scan-btn')?.addEventListener('click', openOverviewPeerScanner);
+      document.getElementById('sr-exec-overview-add-staff-btn')?.addEventListener('click', () => {
+        window.ShiftRelayOpenAddStaffModal?.({ user, onSuccess: () => renderManagerOverview() });
+      });
       document.getElementById('sr-btn-view-team-roster')?.addEventListener('click', () => navigate('team'));
 
       // ── 1-Click Batch Payroll Disbursement Binding ───────────────────────
@@ -7688,6 +7829,11 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
                 <span>Staff ID Cards</span>
               </button>
+              ${['owner', 'workforce_admin', 'manager'].includes(user.role) ? `
+              <button type="button" class="sr-btn sr-btn-primary" id="sr-team-add-staff-btn" style="min-height:32px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                <span>+ Add New Staff</span>
+              </button>` : ''}
             </div>
           </div>
 
@@ -7726,6 +7872,9 @@
       });
       document.getElementById('sr-team-scan-id-btn')?.addEventListener('click', () => {
         openPeerIdScannerModal(user.company_id || user.organisation_id, user.hub_name || '', () => renderTeamScreen());
+      });
+      document.getElementById('sr-team-add-staff-btn')?.addEventListener('click', () => {
+        window.ShiftRelayOpenAddStaffModal?.({ user, knownDepartments: uniqueDepts, onSuccess: () => renderTeamScreen() });
       });
       document.getElementById('sr-team-print-ids-btn')?.addEventListener('click', async () => {
         const printBtn = document.getElementById('sr-team-print-ids-btn');
@@ -15609,6 +15758,202 @@
     });
   }
 
+  // ── Executive Self-Serve Add New Staff + Department Modal ─────────────────
+  window.ShiftRelayOpenAddStaffModal = async function openExecutiveAddStaffModal(options = {}) {
+    document.getElementById('sr-exec-add-staff-modal')?.remove();
+    const escapeHtmlModal = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    let deptList = Array.isArray(options.knownDepartments) ? [...options.knownDepartments] : [];
+    if (!deptList.length) {
+      try {
+        const res = await fetch('/api/analytics');
+        if (res.ok) {
+          const data = await res.json();
+          deptList = (data.departmentBreakdown || data.unitBreakdown || []).map(u => u.unit).filter(Boolean);
+        }
+      } catch (_) {}
+    }
+    const baseDepts = ['Operations', 'Engineering', 'Production', 'Quality Supervision', 'Logistics & Dispatch', 'Finance & Admin', 'Security & Safety', 'Customer Operations'];
+    const mergedDepts = Array.from(new Set([...deptList, ...baseDepts]));
+
+    let passportDataUrl = null;
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'sr-exec-add-staff-modal';
+    backdrop.className = 'sr-modal-backdrop';
+    backdrop.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:10050;padding:14px;';
+    backdrop.innerHTML = `
+      <div class="sr-modal-card" style="max-width:520px;width:100%;max-height:92vh;display:flex;flex-direction:column;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,0.4);overflow:hidden;" role="dialog" aria-modal="true" aria-label="Add New Staff Member">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:15px 18px;border-bottom:1px solid var(--sr-border-subtle);">
+          <div>
+            <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Add New Staff Member</h3>
+            <p style="margin:3px 0 0;font-size:12px;color:var(--sr-text-muted);">Provision directly to a department, issue a physical Staff ID card &amp; enroll an HR passport photo.</p>
+          </div>
+          <button type="button" id="sr-exec-staff-close" aria-label="Close" style="background:transparent;border:none;color:var(--sr-text-muted);cursor:pointer;font-size:18px;padding:2px 6px;">&times;</button>
+        </div>
+
+        <form id="sr-exec-add-staff-form" style="padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:11px;">
+          <div id="sr-exec-staff-feedback" style="display:none;padding:10px 12px;border-radius:9px;font-size:12.5px;line-height:1.45;"></div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);margin-bottom:4px;">Full Name *</label>
+              <input type="text" id="sr-add-staff-name" class="sr-input" required placeholder="e.g., Adewale Ogunleye" style="width:100%;box-sizing:border-box;padding:8px 11px;border-radius:8px;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);margin-bottom:4px;">Email Address *</label>
+              <input type="email" id="sr-add-staff-email" class="sr-input" required placeholder="adewale@company.com" style="width:100%;box-sizing:border-box;padding:8px 11px;border-radius:8px;" />
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);margin-bottom:4px;">Department *</label>
+              <select id="sr-add-staff-dept" class="sr-input" style="width:100%;box-sizing:border-box;padding:8px 11px;border-radius:8px;">
+                ${mergedDepts.map(d => `<option value="${escapeHtmlModal(d)}">${escapeHtmlModal(d)}</option>`).join('')}
+                <option value="__custom__">+ Enter Custom Department...</option>
+              </select>
+              <input type="text" id="sr-add-staff-dept-custom" class="sr-input" placeholder="Custom department name..." style="display:none;width:100%;box-sizing:border-box;padding:8px 11px;border-radius:8px;margin-top:6px;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);margin-bottom:4px;">System Role *</label>
+              <select id="sr-add-staff-role" class="sr-input" style="width:100%;box-sizing:border-box;padding:8px 11px;border-radius:8px;">
+                <option value="worker">Frontline Staff / Worker</option>
+                <option value="supervisor">Shift Supervisor</option>
+                <option value="manager">Department Manager</option>
+                <option value="finance_admin">Finance / Payroll Admin</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);margin-bottom:4px;">Job Title</label>
+              <input type="text" id="sr-add-staff-title" class="sr-input" placeholder="e.g., Packaging Line Operator" style="width:100%;box-sizing:border-box;padding:8px 11px;border-radius:8px;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);margin-bottom:4px;">Phone (Last-4 Verify)</label>
+              <input type="tel" id="sr-add-staff-phone" class="sr-input" placeholder="+2348031234567" style="width:100%;box-sizing:border-box;padding:8px 11px;border-radius:8px;" />
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);margin-bottom:4px;">Monthly Salary (NGN)</label>
+              <input type="number" id="sr-add-staff-salary" class="sr-input" value="150000" min="0" style="width:100%;box-sizing:border-box;padding:8px 11px;border-radius:8px;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);margin-bottom:4px;">Shift Start</label>
+              <input type="time" id="sr-add-staff-start" class="sr-input" value="08:00" style="width:100%;box-sizing:border-box;padding:8px 11px;border-radius:8px;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);margin-bottom:4px;">Shift End</label>
+              <input type="time" id="sr-add-staff-end" class="sr-input" value="17:00" style="width:100%;box-sizing:border-box;padding:8px 11px;border-radius:8px;" />
+            </div>
+          </div>
+
+          <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px dashed var(--sr-border-medium);display:flex;align-items:center;gap:12px;">
+            <div id="sr-add-staff-passport-preview" style="width:48px;height:48px;border-radius:8px;background:#0f172a;color:#94a3b8;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;flex-shrink:0;overflow:hidden;">HR ID</div>
+            <div style="min-width:0;flex:1;">
+              <label style="display:block;font-size:12px;font-weight:700;color:var(--sr-text-main);margin-bottom:3px;">Official HR Passport Photo (Recommended for Face Match Guardrail)</label>
+              <input type="file" id="sr-add-staff-passport-input" accept="image/png,image/jpeg,image/webp" style="font-size:11.5px;color:var(--sr-text-muted);max-width:100%;" />
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px;">
+            <button type="button" id="sr-exec-staff-cancel" class="sr-btn sr-btn-secondary" style="min-height:38px;padding:0 16px;">Cancel</button>
+            <button type="submit" id="sr-exec-staff-submit" class="sr-btn sr-btn-primary" style="min-height:38px;padding:0 18px;font-weight:700;">Create Staff &amp; Issue ID Card</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(backdrop);
+
+    const closeModal = () => backdrop.remove();
+    document.getElementById('sr-exec-staff-close')?.addEventListener('click', closeModal);
+    document.getElementById('sr-exec-staff-cancel')?.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+
+    const deptSel = document.getElementById('sr-add-staff-dept');
+    const customDeptEl = document.getElementById('sr-add-staff-dept-custom');
+    deptSel?.addEventListener('change', () => {
+      if (customDeptEl) customDeptEl.style.display = deptSel.value === '__custom__' ? 'block' : 'none';
+    });
+
+    document.getElementById('sr-add-staff-passport-input')?.addEventListener('change', (ev) => {
+      const file = ev.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const scale = Math.min(1, 220 / Math.max(img.width, img.height));
+          canvas.width = Math.max(48, Math.round(img.width * scale));
+          canvas.height = Math.max(48, Math.round(img.height * scale));
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          passportDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+          const prevBox = document.getElementById('sr-add-staff-passport-preview');
+          if (prevBox) prevBox.innerHTML = `<img src="${passportDataUrl}" alt="HR Passport" style="width:100%;height:100%;object-fit:cover;" />`;
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('sr-exec-add-staff-form')?.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const feedback = document.getElementById('sr-exec-staff-feedback');
+      const submitBtn = document.getElementById('sr-exec-staff-submit');
+      const dept = deptSel?.value === '__custom__' ? String(customDeptEl?.value || '').trim() : String(deptSel?.value || 'Operations').trim();
+      if (!dept) {
+        if (feedback) {
+          feedback.style.cssText = 'display:block;padding:10px 12px;border-radius:9px;font-size:12.5px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#dc2626;';
+          feedback.textContent = 'Enter a department name.';
+        }
+        return;
+      }
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Provisioning...'; }
+      try {
+        const res = await fetch('/api/executive/staff', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: document.getElementById('sr-add-staff-name')?.value?.trim(),
+            email: document.getElementById('sr-add-staff-email')?.value?.trim(),
+            phone: document.getElementById('sr-add-staff-phone')?.value?.trim(),
+            department: dept,
+            role: document.getElementById('sr-add-staff-role')?.value,
+            title: document.getElementById('sr-add-staff-title')?.value?.trim(),
+            baseSalary: Number(document.getElementById('sr-add-staff-salary')?.value) || 0,
+            shiftStart: document.getElementById('sr-add-staff-start')?.value || '08:00',
+            shiftEnd: document.getElementById('sr-add-staff-end')?.value || '17:00',
+            passportPhotoDataUrl: passportDataUrl
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to add staff member.');
+
+        if (feedback) {
+          feedback.style.cssText = 'display:block;padding:10px 12px;border-radius:9px;font-size:12.5px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);color:#047857;';
+          feedback.innerHTML = `<strong>${escapeHtmlModal(data.staff?.name)}</strong> added to <strong>${escapeHtmlModal(data.staff?.department)}</strong>!<br>Staff ID: <code>${escapeHtmlModal(data.staff?.staffId)}</code> &bull; Card SEC: <code>${escapeHtmlModal(data.staff?.cardVerifyCode)}</code>`;
+        }
+        if (typeof showToast === 'function') showToast(`${data.staff?.name || 'Staff'} added to ${data.staff?.department || dept}!`, 'success');
+        if (submitBtn) { submitBtn.textContent = 'Added!'; }
+        if (typeof options.onSuccess === 'function') await options.onSuccess(data);
+        setTimeout(() => closeModal(), 900);
+      } catch (err) {
+        if (feedback) {
+          feedback.style.cssText = 'display:block;padding:10px 12px;border-radius:9px;font-size:12.5px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#dc2626;';
+          feedback.textContent = err.message || 'Could not create staff member.';
+        }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Create Staff & Issue ID Card'; }
+      }
+    });
+  };
+
   // ── Priority 5: Enterprise Executive Analytics Dashboard ──────────────────────
   const escapeHtml = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   async function renderExecutiveAnalytics() {
@@ -15704,6 +16049,10 @@
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-analytics-refresh-btn" style="font-size:12px;padding:7px 12px;display:flex;align-items:center;gap:6px;" title="Refresh Executive Pulse">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
               <span>Refresh</span>
+            </button>
+            <button type="button" class="sr-btn sr-btn-primary" id="sr-analytics-add-staff-btn" style="font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:6px;" title="Add a new staff member and assign department">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+              <span>+ Add New Staff</span>
             </button>
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-switch-to-shiftops" style="font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Frontline Shift Operations Layer">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
@@ -15998,6 +16347,15 @@
 
     document.getElementById('sr-analytics-refresh-btn')?.addEventListener('click', () => {
       renderExecutiveAnalytics();
+    });
+
+    document.getElementById('sr-analytics-add-staff-btn')?.addEventListener('click', () => {
+      const units = (unitBreakdown || []).map(u => u.unit).filter(Boolean);
+      window.ShiftRelayOpenAddStaffModal?.({
+        user: window.__shiftRelayCurrentUser || tenant,
+        knownDepartments: units,
+        onSuccess: () => renderExecutiveAnalytics()
+      });
     });
 
     // Switch back to Shift Operations layer

@@ -319,3 +319,200 @@ export function applyAutoShiftEndClosure(entry, scheduledEndMs, options = {}) {
   }
   return entry;
 }
+
+export function normalizeReferencePhotoUrl(rawUrl) {
+  if (typeof rawUrl !== 'string') return null;
+  const trimmed = rawUrl.trim();
+  if (!trimmed || trimmed.length > 2_000_000) return null;
+  if (/^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/i.test(trimmed)) return trimmed;
+  if (/^https?:\/\/[^\s"'<>]+$/i.test(trimmed) || /^\/[A-Za-z0-9/_\-.?=&]+$/i.test(trimmed)) return trimmed;
+  return null;
+}
+
+export function computeScanPhotoHash(dataUrl) {
+  if (typeof dataUrl !== 'string') return null;
+  const idx = dataUrl.indexOf(',');
+  const payload = idx >= 0 ? dataUrl.slice(idx + 1).trim() : dataUrl.trim();
+  if (!payload) return null;
+  return crypto.createHash('sha256').update(Buffer.from(payload, 'base64')).digest('hex');
+}
+
+export function analyzeLiveCaptureQuality(dataUrl, captureMeta = null) {
+  const idx = String(dataUrl || '').indexOf(',');
+  const base64Part = idx >= 0 ? String(dataUrl).slice(idx + 1).trim() : '';
+  const bytes = base64Part ? Buffer.from(base64Part, 'base64') : Buffer.alloc(0);
+  if (bytes.length < 32) {
+    const err = new Error('Captured facial verification image is empty or corrupted. Hold camera steady and retry.');
+    err.statusCode = 400;
+    err.errorCode = 'INVALID_LIVE_FACE_FRAME';
+    throw err;
+  }
+
+  if (captureMeta && typeof captureMeta === 'object' && captureMeta.captureSource === 'live_camera') {
+    const meanLuma = Number(captureMeta.meanLuma);
+    const lumaStdDev = Number(captureMeta.lumaStdDev);
+    const livenessDelta = Number(captureMeta.livenessDelta);
+    if (Number.isFinite(meanLuma) && Number.isFinite(lumaStdDev) && meanLuma < 8 && lumaStdDev < 2.5) {
+      const err = new Error('Camera lens appears covered or pitch-black. Move to well-lit area with worker face centered in the oval.');
+      err.statusCode = 400;
+      err.errorCode = 'FACE_FRAME_TOO_DARK';
+      throw err;
+    }
+    if (Number.isFinite(lumaStdDev) && lumaStdDev < 2.0) {
+      const err = new Error('Uniform/blank camera frame detected. Aim rear or front camera directly at the worker.');
+      err.statusCode = 400;
+      err.errorCode = 'INVALID_LIVE_FACE_FRAME';
+      throw err;
+    }
+    if (Number.isFinite(livenessDelta) && livenessDelta < 0.05 && Number(captureMeta.dualFrameChecked) === 1) {
+      const err = new Error('Static frozen frame detected during live capture. Ensure real live camera feed and slight natural movement.');
+      err.statusCode = 400;
+      err.errorCode = 'STATIC_SPOOF_DETECTED';
+      throw err;
+    }
+  }
+
+  return {
+    byteLength: bytes.length,
+    hash: computeScanPhotoHash(dataUrl)
+  };
+}
+
+export async function compareReferenceVsLiveFace({ referenceImageUrl, livePhotoDataUrl, workerName = 'Worker', staffId = '' }) {
+  const safeRef = normalizeReferencePhotoUrl(referenceImageUrl);
+  if (!safeRef) {
+    return {
+      status: 'no_reference_passport',
+      matched: null,
+      confidence: null,
+      spoofDetected: false,
+      provider: 'none',
+      blocked: false,
+      reason: 'No HR reference passport photo enrolled for this worker yet — live selfie saved for supervisor review.'
+    };
+  }
+
+  const apiKey = String(process.env.OPENAI_API_KEY || '').trim();
+  const canSendRefToVision = safeRef.startsWith('data:image/') || safeRef.startsWith('https://');
+  if (!apiKey || !canSendRefToVision) {
+    return {
+      status: 'manual_side_by_side_review',
+      matched: null,
+      confidence: null,
+      spoofDetected: false,
+      provider: 'side_by_side_passport',
+      blocked: false,
+      reason: 'Official HR passport attached side-by-side for visual colleague & supervisor identity confirmation.'
+    };
+  }
+
+  try {
+    const visionModel = String(process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini').trim();
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: visionModel,
+        temperature: 0,
+        max_tokens: 180,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a strict workplace identity verification engine. Compare Image 1 (Official HR Reference Passport Photo) against Image 2 (Live Colleague-Scanner Camera Capture). Detect if they show the SAME human being and detect spoofing (a photo of a phone screen, printed cutout, or covered face). Respond ONLY as JSON: {"samePerson": boolean, "confidence": integer 0-100, "spoofDetected": boolean, "reason": "short concise explanation"}. If unsure or face is occluded, set samePerson false only when clearly a different person or spoof.'
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: `Verify identity of staff member ${workerName} (${staffId || 'badge'}). Image 1 is their official HR passport photo. Image 2 is the live check-in photo just captured.` },
+              { type: 'image_url', image_url: { url: safeRef, detail: 'low' } },
+              { type: 'image_url', image_url: { url: livePhotoDataUrl, detail: 'high' } }
+            ]
+          }
+        ]
+      }),
+      signal: AbortSignal.timeout(7000)
+    });
+
+    if (!res.ok) {
+      return {
+        status: 'vision_fallback_review',
+        matched: null,
+        confidence: null,
+        spoofDetected: false,
+        provider: 'openai_vision_fallback',
+        blocked: false,
+        reason: `Biometric Vision HTTP ${res.status} — fallback to HR passport side-by-side supervisor review.`
+      };
+    }
+
+    const payload = await res.json();
+    const rawContent = payload?.choices?.[0]?.message?.content || '{}';
+    const parsed = JSON.parse(rawContent);
+    const samePerson = Boolean(parsed.samePerson);
+    const confidence = Math.max(0, Math.min(100, Number(parsed.confidence) || 0));
+    const spoofDetected = Boolean(parsed.spoofDetected);
+    const reason = String(parsed.reason || (samePerson ? 'Facial features match HR passport.' : 'Facial features do not match HR passport.')).slice(0, 200);
+
+    if (spoofDetected) {
+      return {
+        status: 'spoof_blocked',
+        matched: false,
+        confidence,
+        spoofDetected: true,
+        provider: 'openai_vision',
+        blocked: true,
+        blockCode: 'FACE_SPOOF_BLOCKED',
+        reason
+      };
+    }
+
+    if (!samePerson && confidence >= 65) {
+      return {
+        status: 'mismatch_blocked',
+        matched: false,
+        confidence,
+        spoofDetected: false,
+        provider: 'openai_vision',
+        blocked: true,
+        blockCode: 'FACE_MISMATCH_BLOCKED',
+        reason
+      };
+    }
+
+    if (samePerson && confidence >= 60) {
+      return {
+        status: 'verified_match',
+        matched: true,
+        confidence,
+        spoofDetected: false,
+        provider: 'openai_vision',
+        blocked: false,
+        reason
+      };
+    }
+
+    return {
+      status: 'low_confidence_review',
+      matched: samePerson,
+      confidence,
+      spoofDetected: false,
+      provider: 'openai_vision',
+      blocked: false,
+      reason: `Low-confidence facial comparison (${confidence}%) — held with HR passport for supervisor audit.`
+    };
+  } catch (err) {
+    return {
+      status: 'vision_fallback_review',
+      matched: null,
+      confidence: null,
+      spoofDetected: false,
+      provider: 'openai_vision_fallback',
+      blocked: false,
+      reason: 'Live Vision verification unavailable — HR passport photo attached for manual review.'
+    };
+  }
+}

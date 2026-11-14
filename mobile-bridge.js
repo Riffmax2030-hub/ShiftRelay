@@ -7,10 +7,11 @@
   'use strict';
 
   // Fallback production URL if packaged as native app without origin server
-  const DEFAULT_REMOTE_BACKEND = 'https://shiftrelay.up.railway.app';
-  
+  const DEFAULT_REMOTE_BACKEND = 'https://shiftrelay-vjkf.onrender.com';
+
   function getBackendBase() {
-    return (localStorage.getItem('sr_remote_api_base') || window.SR_REMOTE_API_BASE || DEFAULT_REMOTE_BACKEND).replace(/\/+$/, '');
+    const metaBase = document.querySelector('meta[name="shiftrelay-api-base"]')?.getAttribute('content') || '';
+    return (localStorage.getItem('sr_remote_api_base') || window.SR_REMOTE_API_BASE || metaBase || DEFAULT_REMOTE_BACKEND).replace(/\/+$/, '');
   }
 
   window.ShiftRelayMobile = {

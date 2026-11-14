@@ -394,23 +394,24 @@ function renderLogin() {
       }
     });
 
-    // Biometric Trigger
+    // Biometric Trigger (Real WebAuthn Device Assertion Required)
     $('#btn-layer3-biometrics')?.addEventListener('click', async () => {
       const msg = $('#form-message');
-      msg.textContent = 'Initiating biometric verification…';
+      if (!window.ShiftRelayBiometrics || !window.ShiftRelayBiometrics.isSupported()) {
+        msg.textContent = 'WebAuthn biometric passkeys are not supported in this browser. Sign in with password.';
+        return;
+      }
+      if (!window.ShiftRelayBiometrics.hasEnrolled()) {
+        msg.textContent = 'No biometric passkey enrolled on this device yet. Sign in with password and enroll in Profile.';
+        return;
+      }
+      msg.textContent = 'Initiating hardware biometric verification…';
       try {
-        const optRes = await api('/api/auth/webauthn/login-options', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: loginFlow.email, companyId: loginFlow.companyId })
-        });
-        const verifyRes = await api('/api/auth/webauthn/login-verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: loginFlow.email, companyId: loginFlow.companyId })
-        });
-        if (verifyRes.ok && verifyRes.user) {
+        const verifyRes = await window.ShiftRelayBiometrics.authenticate();
+        if (verifyRes && verifyRes.ok && verifyRes.user) {
           login(verifyRes.user);
+        } else {
+          msg.textContent = 'Biometric assertion was not verified. Please sign in with your password.';
         }
       } catch (err) {
         msg.textContent = err.message || 'Biometric authentication unavailable. Use password.';

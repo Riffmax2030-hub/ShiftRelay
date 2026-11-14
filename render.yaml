@@ -5,10 +5,22 @@ services:
     plan: starter
     buildCommand: npm ci
     startCommand: node server.mjs
-    healthCheckPath: /health
+    healthCheckPath: /api/health/readiness
     autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 4000
+      - key: ALLOW_DEV_FALLBACK
+        value: false
+      - key: ALLOW_DEV_DEMO_AUTH
+        value: false
+      - key: APP_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: CARD_SIGNING_SECRET
+        sync: false
