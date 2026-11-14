@@ -8,8 +8,11 @@ import { chromium } from 'playwright';
 import pg from 'pg';
 import {
   buildStaffCardCredentials,
+  buildDynamicStaffCardCredentials,
   parseStaffCardPayload,
   verifyStaffCardSecurityCode,
+  verifyStaffCardDynamicToken,
+  sanitizeScanPhotoDataUrl,
   verifyStrictLiveGps,
   applyAutoShiftEndClosure,
   resolveOrgGeofenceConfig
@@ -108,6 +111,68 @@ async function runUnitChecks() {
   assert.equal(verifyStaffCardSecurityCode({ orgCode: 'RIF-2026', staffId: 'RIF-0023', providedCode: creds.cardVerifyCode, storeOrSecret: store }), true);
   assert.equal(verifyStaffCardSecurityCode({ orgCode: 'RIF-2026', staffId: 'RIF-0023', providedCode: 'WRONG1', storeOrSecret: store }), false);
   assert.equal(verifyStaffCardSecurityCode({ orgCode: 'RIF-2026', staffId: 'RIF-0099', providedCode: creds.cardVerifyCode, storeOrSecret: store }), false);
+
+  // Rotating 45s TOTP dynamic QR checks (current valid, +-1 step drift valid, >2 steps expired rejected)
+  const fixedNow = 1763100000000;
+  const dynNow = buildDynamicStaffCardCredentials('RIF-2026', 'RIF-0023', store, { nowMs: fixedNow });
+  assert.equal(dynNow.dynamicToken.length, 6);
+  assert.equal(dynNow.stepSeconds, 45);
+  assert.ok(dynNow.dynamicQrPayload.startsWith(`SHIFTRELAY:DYN:RIF-2026:RIF-0023:${dynNow.dynamicStep}:`));
+  const parsedDyn = parseStaffCardPayload(dynNow.dynamicQrPayload);
+  assert.equal(parsedDyn.mode, 'dynamic_totp');
+  assert.equal(parsedDyn.isDynamicQr, true);
+  assert.equal(parsedDyn.step, dynNow.dynamicStep);
+  const verdictNow = verifyStaffCardDynamicToken({
+    orgCode: 'RIF-2026',
+    staffId: 'RIF-0023',
+    providedToken: parsedDyn.securityCode,
+    providedStep: parsedDyn.step,
+    storeOrSecret: store,
+    nowMs: fixedNow
+  });
+  assert.equal(verdictNow.valid, true);
+  assert.equal(verdictNow.expired, false);
+  assert.equal(verdictNow.proofMode, 'dynamic_live_qr');
+
+  const dynPrevStep = buildDynamicStaffCardCredentials('RIF-2026', 'RIF-0023', store, { step: dynNow.dynamicStep - 1, nowMs: fixedNow });
+  const verdictDrift = verifyStaffCardDynamicToken({
+    orgCode: 'RIF-2026',
+    staffId: 'RIF-0023',
+    providedToken: dynPrevStep.dynamicToken,
+    providedStep: dynPrevStep.dynamicStep,
+    storeOrSecret: store,
+    nowMs: fixedNow
+  });
+  assert.equal(verdictDrift.valid, true);
+
+  const dynOldScreenshot = buildDynamicStaffCardCredentials('RIF-2026', 'RIF-0023', store, { step: dynNow.dynamicStep - 4, nowMs: fixedNow });
+  const verdictExpired = verifyStaffCardDynamicToken({
+    orgCode: 'RIF-2026',
+    staffId: 'RIF-0023',
+    providedToken: dynOldScreenshot.dynamicToken,
+    providedStep: dynOldScreenshot.dynamicStep,
+    storeOrSecret: store,
+    nowMs: fixedNow
+  });
+  assert.equal(verdictExpired.valid, false);
+  assert.equal(verdictExpired.expired, true);
+
+  // Manual 6-char dynamic token expiry lookback check
+  const verdictManualExpired = verifyStaffCardDynamicToken({
+    orgCode: 'RIF-2026',
+    staffId: 'RIF-0023',
+    providedToken: dynOldScreenshot.dynamicToken,
+    providedStep: null,
+    storeOrSecret: store,
+    nowMs: fixedNow
+  });
+  assert.equal(verdictManualExpired.valid, false);
+  assert.equal(verdictManualExpired.expired, true);
+
+  // Scan photo validation
+  assert.equal(sanitizeScanPhotoDataUrl('javascript:alert(1)'), null);
+  const validTinyPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgQmY9m8AAAAASUVORK5CYII=';
+  assert.equal(sanitizeScanPhotoDataUrl(validTinyPng), validTinyPng);
 
   // Auto clock-out flags colleague_card_scan for supervisor review
   const cardShift = {
@@ -259,6 +324,7 @@ async function main() {
     const supervisor = await signInApi('olaide@riffmax.tech');
     const babatunde = await signInApi('babatunde@riffmax.tech');
     const farouk = await signInApi('farouk@riffmax.tech');
+    const ibrahim = await signInApi('ibrahim@riffmax.tech');
 
     // Directory must not leak secret card codes
     const dirRes = await apiJson('/api/directory', babatunde.cookie);
@@ -328,7 +394,59 @@ async function main() {
     assert.equal(offSiteScan.status, 403);
     assert.equal(offSiteScan.data.code, 'OUTSIDE_GEOFENCE');
 
-    console.log('   PASS: All API strict GPS, anti-self-scan, and card crypto checks passed.');
+    // Dynamic 45s TOTP token API + WhatsApp screenshot expiry blocking + live photo proof
+    const ibrahimTokenRes = await apiJson('/api/me/card-token', ibrahim.cookie);
+    assert.equal(ibrahimTokenRes.status, 200);
+    assert.equal(ibrahimTokenRes.data.stepSeconds, 45);
+    assert.ok(ibrahimTokenRes.data.dynamicQrPayload?.startsWith(`SHIFTRELAY:DYN:RIF-2026:${ibrahim.user.staffId}:`));
+
+    let liveSecret = process.env.CARD_SIGNING_SECRET || process.env.SESSION_SECRET || '';
+    if (!liveSecret) {
+      if (USE_PG && pgPool) {
+        const kv = await pgPool.query("SELECT data FROM app_kv_store WHERE store_key = 'primary' LIMIT 1");
+        liveSecret = kv.rows[0]?.data?.cardSigningSecret || '';
+      } else if (existsSync(STORE_PATH)) {
+        const st = JSON.parse(await readFile(STORE_PATH, 'utf8'));
+        liveSecret = st.cardSigningSecret || '';
+      }
+    }
+    if (liveSecret) {
+      const expiredDynCreds = buildDynamicStaffCardCredentials('RIF-2026', ibrahim.user.staffId, liveSecret, {
+        step: ibrahimTokenRes.data.dynamicStep - 5
+      });
+      const replayAttempt = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
+        method: 'POST',
+        body: { badgePayload: expiredDynCreds.dynamicQrPayload, coords: { ...ONSITE_COORDS, capturedAt: Date.now() } }
+      });
+      assert.equal(replayAttempt.status, 403, 'Expired dynamic QR screenshot must be rejected');
+      assert.equal(replayAttempt.data.code, 'CARD_QR_EXPIRED');
+    }
+
+    const SAMPLE_SCAN_PHOTO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgQmY9m8AAAAASUVORK5CYII=';
+    const ibrahimLiveScanIn = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
+      method: 'POST',
+      body: {
+        badgePayload: ibrahimTokenRes.data.dynamicQrPayload,
+        scanPhotoDataUrl: SAMPLE_SCAN_PHOTO,
+        coords: { ...ONSITE_COORDS, capturedAt: Date.now() }
+      }
+    });
+    assert.equal(ibrahimLiveScanIn.status, 200);
+    assert.equal(ibrahimLiveScanIn.data.cardProofMode, 'dynamic_live_qr');
+    assert.equal(ibrahimLiveScanIn.data.hasPhotoProof, true);
+
+    const ibrahimLiveScanOut = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
+      method: 'POST',
+      body: {
+        action: 'clock-out',
+        badgePayload: ibrahimTokenRes.data.dynamicQrPayload,
+        coords: { ...ONSITE_COORDS, capturedAt: Date.now() }
+      }
+    });
+    assert.equal(ibrahimLiveScanOut.status, 200);
+    assert.equal(ibrahimLiveScanOut.data.cardProofMode, 'dynamic_live_qr');
+
+    console.log('   PASS: All API strict GPS, anti-self-scan, rotating 45s TOTP & anti-screenshot checks passed.');
 
     console.log('4. Running Playwright headless Chromium E2E UI verification...');
     browser = await chromium.launch({ headless: true });
@@ -450,15 +568,30 @@ async function main() {
       null,
       { timeout: 6000 }
     );
+
+    // Close scanner and verify Worker Profile ("Me") renders live rotating 45s TOTP QR and hides static SEC PIN
+    await onsitePage.click('#sr-btn-close-scanner');
+    await onsitePage.click('[data-sr-view="me"]');
+    await onsitePage.waitForSelector('#sr-profile-qr-countdown', { timeout: 6000 });
+    const meCardText = await onsitePage.textContent('#sr-content-area');
+    assert.ok(meCardText.includes('LIVE 45s TOTP') && !meCardText.includes('Card Sec:'), 'Worker Digital ID must show live 45s TOTP QR and never leak static printed Card Sec');
+    await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-worker-dynamic-id.png') });
     await onsiteContext.close();
 
     // Part C: Auto-Out Hold & Supervisor Presence Review Workflow
     console.log('5. Verifying Auto Clock-Out Payroll Hold & Supervisor Presence Review...');
     const ngoziCheckIn = await apiJson('/api/time-entries/peer-card-scan', babatunde.cookie, {
       method: 'POST',
-      body: { badgePayload: 'RIF-0006', cardVerifyCode: ngoziCard.cardVerifyCode, coords: { ...ONSITE_COORDS, capturedAt: Date.now() } }
+      body: {
+        badgePayload: 'RIF-0006',
+        cardVerifyCode: ngoziCard.cardVerifyCode,
+        scanPhotoDataUrl: SAMPLE_SCAN_PHOTO,
+        coords: { ...ONSITE_COORDS, capturedAt: Date.now() }
+      }
     });
     assert.equal(ngoziCheckIn.status, 200);
+    assert.equal(ngoziCheckIn.data.cardProofMode, 'static_badge_fallback');
+    assert.equal(ngoziCheckIn.data.hasPhotoProof, true);
 
     // Stop server so edits/backdating load cleanly on restart, backdate Ngozi's card entry 12h so shift_end (14:00 WAT) is expired
     await stopServer(child);
@@ -487,7 +620,10 @@ async function main() {
     // Supervisor fetches presence reviews -> triggers shift-boundary sweep + creates review item
     const reviewsBefore = await apiJson('/api/time-entries/presence-reviews', supervisor2.cookie);
     assert.equal(reviewsBefore.status, 200);
-    assert.ok(reviewsBefore.data.reviews.some(r => r.membershipId === ngoziCard.id), 'Auto-out card shift without exit scan must enter pending_supervisor_confirm queue');
+    const ngoziReview = reviewsBefore.data.reviews.find(r => r.membershipId === ngoziCard.id);
+    assert.ok(ngoziReview, 'Auto-out card shift without exit scan must enter pending_supervisor_confirm queue');
+    assert.equal(ngoziReview.cardProofMode, 'static_badge_fallback');
+    assert.equal(ngoziReview.hasPhotoProof, true);
 
     // Owner checks payroll -> Ngozi must be held in hold_presence_review!
     const payrollBefore = await apiJson('/api/payroll/summary', owner2.cookie);

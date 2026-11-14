@@ -157,8 +157,11 @@ import {
   ensureCardSigningSecret,
   computeStaffCardSecurityCode,
   buildStaffCardCredentials,
+  buildDynamicStaffCardCredentials,
   parseStaffCardPayload,
   verifyStaffCardSecurityCode,
+  verifyStaffCardDynamicToken,
+  sanitizeScanPhotoDataUrl,
   resolveOrgGeofenceConfig,
   verifyStrictLiveGps,
   applyAutoShiftEndClosure
@@ -715,6 +718,20 @@ async function createSession(userId, membershipId) {
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function buildSessionStaffCardFields(orgCode, staffId, storeOrSecret) {
+  const staticCreds = buildStaffCardCredentials(orgCode, staffId, storeOrSecret);
+  const dynCreds = buildDynamicStaffCardCredentials(orgCode, staffId, storeOrSecret);
+  return {
+    cardVerifyCode: staticCreds.cardVerifyCode,
+    cardQrPayload: staticCreds.cardQrPayload,
+    dynamicCardToken: dynCreds.dynamicToken,
+    dynamicCardStep: dynCreds.dynamicStep,
+    dynamicStepSeconds: dynCreds.stepSeconds,
+    dynamicCardExpiresAt: dynCreds.validUntilIso,
+    dynamicQrPayload: dynCreds.dynamicQrPayload
+  };
+}
+
 function enrichUserWithOrganisation(userObj, store) {
   if (!userObj) return null;
   const orgs = Array.isArray(store?.organisations) ? store.organisations : [];
@@ -743,7 +760,7 @@ function enrichUserWithOrganisation(userObj, store) {
     (!matchedOrg?.id || (c.tenant_id || c.organisation_id) === matchedOrg.id)
   );
   const staffId = userObj.staffId || userObj.staff_code || dm?.staffId || contract?.staffId || ('SR-' + String(userObj.id || userObj.user_id || '0000').slice(-4).toUpperCase());
-  const cardCreds = buildStaffCardCredentials(companyId, staffId, store);
+  const cardFields = buildSessionStaffCardFields(companyId, staffId, store);
   const geo = resolveOrgGeofenceConfig(matchedOrg || {}, profile);
 
   return {
@@ -753,8 +770,7 @@ function enrichUserWithOrganisation(userObj, store) {
     company_name: legalName,
     company_id: companyId,
     staffId,
-    cardVerifyCode: cardCreds.cardVerifyCode,
-    cardQrPayload: cardCreds.cardQrPayload,
+    ...cardFields,
     hub_name: userObj.hub_name || geo.hubName,
     hub_lat: geo.hubLat,
     hub_lng: geo.hubLng,
@@ -781,12 +797,11 @@ async function getUser(request) {
           const geo = resolveOrgGeofenceConfig(row, profile);
           const staffId = row.staff_code || ('SR-' + String(row.user_id || row.id).slice(-4).toUpperCase());
           const storeForSecret = await loadSigningStoreForAuth();
-          const cardCreds = buildStaffCardCredentials(row.company_id, staffId, storeForSecret);
+          const cardFields = buildSessionStaffCardFields(row.company_id, staffId, storeForSecret);
           return {
             ...row,
             staffId,
-            cardVerifyCode: cardCreds.cardVerifyCode,
-            cardQrPayload: cardCreds.cardQrPayload,
+            ...cardFields,
             hub_name: geo.hubName,
             hub_lat: geo.hubLat,
             hub_lng: geo.hubLng,
@@ -1436,8 +1451,8 @@ async function signIn(body) {
       const geo = resolveOrgGeofenceConfig(member, dbProfile);
       const staffId = member.staff_code || ('SR-' + String(member.user_id || member.id).slice(-4).toUpperCase());
       const storeForSecret = await loadSigningStoreForAuth();
-      const cardCreds = buildStaffCardCredentials(org.organisation_code, staffId, storeForSecret);
-      return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, staffId, cardVerifyCode: cardCreds.cardVerifyCode, cardQrPayload: cardCreds.cardQrPayload, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name, company_name: member.company_name, company_id: org.organisation_code, hub_name: geo.hubName, hub_lat: geo.hubLat, hub_lng: geo.hubLng, hub_perimeter: geo.perimeterMeters, industry: member.industry || dbProfile.label, industryKey: dbProfile.key, industryProfile: dbProfile } };
+      const cardFields = buildSessionStaffCardFields(org.organisation_code, staffId, storeForSecret);
+      return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, staffId, ...cardFields, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name, company_name: member.company_name, company_id: org.organisation_code, hub_name: geo.hubName, hub_lat: geo.hubLat, hub_lng: geo.hubLng, hub_perimeter: geo.perimeterMeters, industry: member.industry || dbProfile.label, industryKey: dbProfile.key, industryProfile: dbProfile } };
     } catch (dbErr) {
       if (ALLOW_DEV_FALLBACK && isDatabaseConnectionError(dbErr)) {
         console.warn('[AUTH FALLBACK] DB connection error during signIn; falling back to local credentials:', dbErr.message);
@@ -4022,6 +4037,18 @@ async function getOrganisationRosterState(user) {
     const { members, summary } = await getOrganisationRosterState(user);
     return sendJson(response, 200, { members, summary });
   }
+  if (url.pathname === '/api/me/card-token' && request.method === 'GET') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    const storeForSecret = await loadSigningStoreForAuth();
+    let orgCode = String(user.company_id || 'RIF-2026').toUpperCase();
+    if (!databaseReady && storeForSecret?.organisations) {
+      const org = storeForSecret.organisations.find(o => o.id === user.organisation_id);
+      if (org?.organisation_code) orgCode = String(org.organisation_code).toUpperCase();
+    }
+    const staffId = String(user.staffId || ('SR-' + String(user.id || '0000').slice(-4).toUpperCase())).toUpperCase();
+    const dynCreds = buildDynamicStaffCardCredentials(orgCode, staffId, storeForSecret);
+    return sendJson(response, 200, { ok: true, ...dynCreds });
+  }
   if (url.pathname === '/api/team/id-cards' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
     if (!['owner', 'manager', 'workforce_admin', 'supervisor'].includes(user.role)) {
@@ -4078,6 +4105,9 @@ async function getOrganisationRosterState(user) {
             workedHours,
             verificationMode: e.verificationMode || 'standard',
             clockOutVerificationMode: e.clockOutVerificationMode || 'auto_shift_end',
+            cardProofMode: e.cardProofMode || null,
+            hasPhotoProof: Boolean(e.scanPhotoDataUrl),
+            scanPhotoDataUrl: e.scanPhotoDataUrl || null,
             scannedByName: e.scannedByName || null,
             flagReason: e.attendanceIntegrityFlag || 'AUTO_OUT_UNVERIFIED_PRESENCE',
             details: e.clockOutDetails || e.verificationDetails || 'Auto clock-out without verified exit GPS or card exit scan'
@@ -4085,7 +4115,7 @@ async function getOrganisationRosterState(user) {
         });
     } else {
       const pgRes = await query(
-        `select t.id, t.membership_id, t.clocked_in_at, t.clocked_out_at, t.verification_mode, t.clock_out_verification_mode, t.scanned_by_name, t.note
+        `select t.id, t.membership_id, t.clocked_in_at, t.clocked_out_at, t.verification_mode, t.clock_out_verification_mode, t.card_proof_mode, t.scan_photo_data_url, t.scanned_by_name, t.note
          from time_entries t
          where t.organisation_id = $1 and t.clocked_out_at is not null and t.presence_verification_status = 'pending_supervisor_confirm'
          order by t.clocked_out_at desc`,
@@ -4106,6 +4136,9 @@ async function getOrganisationRosterState(user) {
           workedHours,
           verificationMode: r.verification_mode || 'standard',
           clockOutVerificationMode: r.clock_out_verification_mode || 'auto_shift_end',
+          cardProofMode: r.card_proof_mode || null,
+          hasPhotoProof: Boolean(r.scan_photo_data_url),
+          scanPhotoDataUrl: r.scan_photo_data_url || null,
           scannedByName: r.scanned_by_name || null,
           flagReason: 'AUTO_OUT_UNVERIFIED_PRESENCE',
           details: r.note || 'Auto clock-out without verified exit presence'
@@ -4358,12 +4391,67 @@ async function getOrganisationRosterState(user) {
       });
     }
 
-    if (!verifyStaffCardSecurityCode({ orgCode, staffId: targetMember.staffId, providedCode: parsed.securityCode, storeOrSecret: store })) {
-      return sendJson(response, 403, {
-        error: 'Invalid or missing 6-character Card Security Code. Scan the worker\'s physical Staff ID QR code or enter the SEC code printed on their card.',
-        code: 'INVALID_CARD_SECURITY_CODE'
+    const signingStore = (await loadSigningStoreForAuth()) || store;
+    const strictDynamicOnly = Boolean(orgForGps?.settings?.strictDynamicQrOnly || org?.settings?.strictDynamicQrOnly);
+    let cardProofMode = null;
+
+    if (parsed.isDynamicQr) {
+      const dynVerdict = verifyStaffCardDynamicToken({
+        orgCode,
+        staffId: targetMember.staffId,
+        providedToken: parsed.securityCode,
+        providedStep: parsed.step,
+        storeOrSecret: signingStore
       });
+      if (dynVerdict.expired) {
+        return sendJson(response, 403, {
+          error: 'Expired Dynamic Staff ID QR (screenshot or cached photo rejected after 45s window). Ask your colleague to show their live rotating ShiftRelay QR or printed physical badge.',
+          code: 'CARD_QR_EXPIRED'
+        });
+      }
+      if (!dynVerdict.valid) {
+        return sendJson(response, 403, {
+          error: 'Invalid Dynamic Staff ID QR signature. Scan the worker\'s live ShiftRelay QR card.',
+          code: 'INVALID_CARD_SECURITY_CODE'
+        });
+      }
+      cardProofMode = 'dynamic_live_qr';
+    } else {
+      const dynManualVerdict = verifyStaffCardDynamicToken({
+        orgCode,
+        staffId: targetMember.staffId,
+        providedToken: parsed.securityCode,
+        providedStep: null,
+        storeOrSecret: signingStore
+      });
+      if (dynManualVerdict.valid) {
+        cardProofMode = dynManualVerdict.proofMode || 'dynamic_live_code';
+      } else if (dynManualVerdict.expired) {
+        return sendJson(response, 403, {
+          error: 'Entered rotating 45s TOTP code has expired. Read the fresh code on your colleague\'s Digital ID or use their printed physical badge SEC code.',
+          code: 'CARD_QR_EXPIRED'
+        });
+      } else if (verifyStaffCardSecurityCode({ orgCode, staffId: targetMember.staffId, providedCode: parsed.securityCode, storeOrSecret: signingStore })) {
+        if (strictDynamicOnly) {
+          return sendJson(response, 403, {
+            error: 'Static printed badge codes are disabled by site security policy. Scan the worker\'s live 45-second rotating Digital Staff ID QR.',
+            code: 'STATIC_CARD_DISABLED'
+          });
+        }
+        cardProofMode = 'static_badge_fallback';
+      } else {
+        return sendJson(response, 403, {
+          error: 'Invalid or missing Staff ID Security Code / Dynamic TOTP Token. Scan the worker\'s live ShiftRelay QR or enter the live code / printed card SEC.',
+          code: 'INVALID_CARD_SECURITY_CODE'
+        });
+      }
     }
+
+    const scanPhotoDataUrl = sanitizeScanPhotoDataUrl(body.scanPhotoDataUrl);
+    const proofLabel = cardProofMode === 'dynamic_live_qr'
+      ? 'Live 45s TOTP QR'
+      : (cardProofMode === 'dynamic_live_code' ? 'Live 45s TOTP Code' : 'Printed Badge Fallback');
+    const photoSuffix = scanPhotoDataUrl ? ' · Photo Snapshot Attached' : '';
 
     const orgProfile = resolveIndustryProfile(org.industryKey || org.industry, org.trading_name || org.legal_name);
     let gpsProof;
@@ -4407,8 +4495,13 @@ async function getOrganisationRosterState(user) {
         activeEntry.clockOutCoords = { latitude: gpsProof.effectiveLat, longitude: gpsProof.effectiveLng, accuracy: gpsProof.accuracy, capturedAt: gpsProof.capturedAt };
         activeEntry.exitScannedByMembershipId = user.id;
         activeEntry.exitScannedByName = user.name || 'Colleague';
+        activeEntry.exitCardProofMode = cardProofMode;
+        if (scanPhotoDataUrl) {
+          activeEntry.exitScanPhotoDataUrl = scanPhotoDataUrl;
+          if (!activeEntry.scanPhotoDataUrl) activeEntry.scanPhotoDataUrl = scanPhotoDataUrl;
+        }
         activeEntry.presenceVerificationStatus = 'verified_entry_and_exit';
-        activeEntry.clockOutDetails = `Verified Card Exit Scan by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}`;
+        activeEntry.clockOutDetails = `Verified Card Exit Scan (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}${photoSuffix}`;
         await saveStore(store);
         broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-out' }, { organisationId: orgId });
 
@@ -4418,6 +4511,8 @@ async function getOrganisationRosterState(user) {
           earlyDeparture,
           verificationMode: activeEntry.verificationMode || 'colleague_card_scan',
           clockOutVerificationMode: 'colleague_card_exit_scan',
+          cardProofMode,
+          hasPhotoProof: Boolean(scanPhotoDataUrl),
           presenceVerificationStatus: 'verified_entry_and_exit',
           geofenceStatus: 'within_geofence',
           distanceMeters: gpsProof.distanceMeters,
@@ -4456,7 +4551,7 @@ async function getOrganisationRosterState(user) {
         });
       }
 
-      const verificationDetails = `Colleague ID Card Check-In by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}`;
+      const verificationDetails = `Colleague ID Card Check-In (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${photoSuffix}`;
       const scheduledEndMs = computeScheduledShiftEndMs(targetMember, now.getTime());
       const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
       const newEntry = {
@@ -4466,8 +4561,10 @@ async function getOrganisationRosterState(user) {
         clockedInAt: nowIso,
         clockedOutAt: null,
         scheduledClockOutAt,
-        note: `Colleague ID Card Clock-In (${targetMember.staffId})`,
+        note: `Colleague ID Card Clock-In (${targetMember.staffId} · ${proofLabel})`,
         verificationMode: 'colleague_card_scan',
+        cardProofMode,
+        scanPhotoDataUrl,
         verificationDetails,
         scannedByMembershipId: user.id,
         scannedByName: user.name || 'Colleague',
@@ -4486,6 +4583,8 @@ async function getOrganisationRosterState(user) {
         alreadyClockedIn: false,
         action: 'clock-in',
         verificationMode: 'colleague_card_scan',
+        cardProofMode,
+        hasPhotoProof: Boolean(scanPhotoDataUrl),
         presenceVerificationStatus: 'awaiting_exit_scan',
         worker: {
           userId: targetMember.user_id,
@@ -4519,18 +4618,20 @@ async function getOrganisationRosterState(user) {
       }
       const scheduledEndMs = computeScheduledShiftEndMs(targetMember, new Date(existingOpen.clocked_in_at).getTime());
       const earlyDeparture = now.getTime() < scheduledEndMs;
-      const exitDetail = `Verified Card Exit Scan by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}`;
+      const exitDetail = `Verified Card Exit Scan (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}${photoSuffix}`;
       await query(
         `update time_entries
          set clocked_out_at = $1,
              clock_out_verification_mode = 'colleague_card_exit_scan',
              clock_out_geofence_status = 'within_geofence',
              presence_verification_status = 'verified_entry_and_exit',
-             note = trim(coalesce(note, '') || ' | ' || $2)
-         where id = $3 and clocked_out_at is null`,
-        [nowIso, exitDetail, existingOpen.id]
+             card_proof_mode = coalesce($2, card_proof_mode),
+             scan_photo_data_url = coalesce($3, scan_photo_data_url),
+             note = trim(coalesce(note, '') || ' | ' || $4)
+         where id = $5 and clocked_out_at is null`,
+        [nowIso, cardProofMode, scanPhotoDataUrl, exitDetail, existingOpen.id]
       );
-      await audit(orgId, user.id, 'peer_card_clock_out', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) exit verified via colleague ID card scan.`);
+      await audit(orgId, user.id, 'peer_card_clock_out', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) exit verified via colleague ID card scan (${proofLabel}).`);
       broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-out' }, { organisationId: orgId });
 
       return sendJson(response, 200, {
@@ -4539,6 +4640,8 @@ async function getOrganisationRosterState(user) {
         earlyDeparture,
         verificationMode: existingOpen.verification_mode || 'colleague_card_scan',
         clockOutVerificationMode: 'colleague_card_exit_scan',
+        cardProofMode,
+        hasPhotoProof: Boolean(scanPhotoDataUrl),
         presenceVerificationStatus: 'verified_entry_and_exit',
         geofenceStatus: 'within_geofence',
         distanceMeters: gpsProof.distanceMeters,
@@ -4575,16 +4678,16 @@ async function getOrganisationRosterState(user) {
       });
     }
 
-    const verificationDetails = `Colleague ID Card Check-In by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}`;
+    const verificationDetails = `Colleague ID Card Check-In (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${photoSuffix}`;
     const scheduledEndMs = computeScheduledShiftEndMs(targetMember, now.getTime());
     const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
     await query(
-      `insert into time_entries (id, organisation_id, membership_id, clocked_in_at, note, verification_mode, geofence_status, distance_meters, presence_verification_status, scanned_by_membership_id, scanned_by_name)
-       values ($1, $2, $3, $4, $5, 'colleague_card_scan', 'within_geofence', $6, 'awaiting_exit_scan', $7, $8)`,
-      [crypto.randomUUID(), orgId, targetMember.id, nowIso, verificationDetails, gpsProof.distanceMeters, user.id, user.name || 'Colleague']
+      `insert into time_entries (id, organisation_id, membership_id, clocked_in_at, note, verification_mode, geofence_status, distance_meters, presence_verification_status, scanned_by_membership_id, scanned_by_name, card_proof_mode, scan_photo_data_url)
+       values ($1, $2, $3, $4, $5, 'colleague_card_scan', 'within_geofence', $6, 'awaiting_exit_scan', $7, $8, $9, $10)`,
+      [crypto.randomUUID(), orgId, targetMember.id, nowIso, verificationDetails, gpsProof.distanceMeters, user.id, user.name || 'Colleague', cardProofMode, scanPhotoDataUrl]
     );
     await saveStore(store);
-    await audit(orgId, user.id, 'peer_card_clock_in', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) clocked in via colleague ID card scan.`);
+    await audit(orgId, user.id, 'peer_card_clock_in', 'membership', targetMember.id, `${targetMember.name} (${targetMember.staffId}) clocked in via colleague ID card scan (${proofLabel}).`);
     broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-in' }, { organisationId: orgId });
 
     return sendJson(response, 200, {
@@ -4592,6 +4695,8 @@ async function getOrganisationRosterState(user) {
       alreadyClockedIn: false,
       action: 'clock-in',
       verificationMode: 'colleague_card_scan',
+      cardProofMode,
+      hasPhotoProof: Boolean(scanPhotoDataUrl),
       presenceVerificationStatus: 'awaiting_exit_scan',
       worker: {
         userId: targetMember.user_id,

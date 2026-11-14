@@ -1,358 +1,374 @@
 # ShiftRelay Enterprise HCM
-## Comprehensive Business Plan & Operational Strategy
-### Frontline Human Capital Management & Workforce Intelligence for Nigerian Industry
+## Comprehensive Business Plan, Anti-Bypass Operational Strategy & Investor Blueprint
+### Zero-Hardware Frontline Attendance Verification, Shift Intelligence & Statutory Payroll OS for Nigerian Industry
 
 ---
 
 > **Document Classification:** Confidential — For Investor, Board & Strategic Partner Review  
-> **Version:** 2.0 (Enterprise Comprehensive) | **Date:** October 2026  
+> **Version:** 3.0 (Gate-Eradication & Production Architecture Upgrade) | **Date:** November 2026  
 > **Jurisdiction:** Federal Republic of Nigeria | **Primary Currency:** Nigerian Naira (₦) / USD ($) Reference  
-> **Target Sector:** FMCG Manufacturing, Oil & Gas Downstream, Heavy Industry, Maritime & Port Logistics
+> **Target Sectors:** Manufacturing, FMCG, Logistics & Ports, Oil & Gas Retail, Healthcare, Hospitality, Facility Ops & Physical Security  
 
 ---
 
 ## TABLE OF CONTENTS
 
-1. [Executive Summary](#1-executive-summary)
-2. [Company Overview & Strategic Vision](#2-company-overview--strategic-vision)
-3. [The Problem: Industrial Frontline Workforce Crisis in Nigeria](#3-the-problem-industrial-frontline-workforce-crisis-in-nigeria)
-4. [The Solution: The ShiftRelay Platform Architecture](#4-the-solution-the-shiftrelay-platform-architecture)
-5. [In-Depth Functional Specifications & Module Walkthrough](#5-in-depth-functional-specifications--module-walkthrough)
-6. [Addressable Market Analysis & Industry Demographics](#6-addressable-market-analysis--industry-demographics)
-7. [Competitive Landscape & Defensible Moats](#7-competitive-landscape--defensible-moats)
-8. [Business Model, Pricing Strategy & Monetization Streams](#8-business-model-pricing-strategy--monetization-streams)
-9. [Three-Year Financial Projections & Unit Economics](#9-three-year-financial-projections--unit-economics)
-10. [Go-To-Market (GTM) & Enterprise Sales Strategy](#10-go-to-market-gtm--enterprise-sales-strategy)
-11. [Regulatory Compliance, Statutory Bodies & Legal Framework](#11-regulatory-compliance-statutory-bodies--legal-framework)
-12. [Strategic Partnerships, Industry Alliances & Government Liaisons](#12-strategic-partnerships-industry-alliances--government-liaisons)
-13. [Technology Stack, Infrastructure & Data Sovereignty](#13-technology-stack-infrastructure--data-sovereignty)
-14. [Organizational Design, Human Capital & Hiring Plan](#14-organizational-design-human-capital--hiring-plan)
-15. [Risk Analysis, Contingency Planning & Mitigation](#15-risk-analysis-contingency-planning--mitigation)
-16. [Social Impact, Worker Dignity & ESG Governance](#16-social-impact-worker-dignity--esg-governance)
-17. [Capitalization Requirements & Use of Seed Proceeds](#17-capitalization-requirements--use-of-seed-proceeds)
-18. [Appendices: Statutory Tables, Rate Matrices & Glossary](#18-appendices-statutory-tables-rate-matrices--glossary)
+1. **Executive Summary**
+2. **Company Overview, Strategic Vision & Multi-Industry Scope**
+3. **The Problem: Why Wall Gate Gadgets & Manual Payroll Bridges Fail Nigerian Industry**
+4. **The Solution: Zero-Hardware Distributed Gate & ShiftRelay Platform Architecture**
+5. **Anti-Bypass Security Engineering & Functional Module Specifications**
+6. **Addressable Market Analysis & Segment Prioritization**
+7. **Competitive Landscape & Defensible Moats**
+8. **Business Model, Commercial Pricing & Zero-Hardware ROI**
+9. **Financial Projections, Breakeven Analysis & Reconciled Capital Strategy**
+10. **Go-To-Market (GTM) & "Shadow Ledger" Conversion Playbook**
+11. **Regulatory Compliance, Legal Boundaries & NDPA Data Sovereignty**
+12. **Technology Stack, Mobile Packaging & Automated Security Governance**
+13. **Organizational Design, Risk Matrix & Collusion Defense Roadmap**
+14. **Social Impact, Worker Dignity & ESG Governance**
+15. **Appendices: Statutory Matrices & Operational Glossary**
 
 ---
 
 ## 1. EXECUTIVE SUMMARY
 
-**ShiftRelay Technologies Limited** is an enterprise-tier, cloud-native Human Capital Management (HCM) and Workforce Management (WFM) platform engineered specifically for Nigeria’s mission-critical industrial, manufacturing, and operational frontline sectors.
+**ShiftRelay Technologies Limited** is an enterprise-tier, cloud- and mobile-native Workforce Operating System built for shift-driven organizations across Nigeria and Sub-Saharan Africa.
 
-### 1.1 The Market Opportunity
-Nigeria's industrial economy is expanding rapidly, anchored by massive private-sector manufacturing facilities, fast-moving consumer goods (FMCG) conglomerates, port logistics corridors, and downstream energy hubs. However, the software layer running these high-intensity workplaces remains severely broken:
-- Over 90% of frontline attendance, shift rosters, and handovers rely on manual paper muster rolls, guard clipboards, and unmonitored WhatsApp groups.
-- Industrial payroll processing remains mired in error-prone Excel spreadsheets that struggle to calculate dynamic overtime, union collective agreements, and strict Nigerian statutory deductions (PenCom, PAYE, NSITF, NHF).
-- Ghost workers, unrecorded absenteeism, and delayed shift handovers bleed an estimated ₦8M to ₦15M annually per mid-sized manufacturing plant.
-- The total Nigerian workforce management software market represents an estimated **₦370–390 Billion addressable ecosystem**, with multinational solutions (e.g., SAP SuccessFactors, Dayforce) failing to cater to local infrastructural constraints (device battery drain, internet downtime) and volatile FX pricing.
+### 1.1 The Core Breakthrough: Eradicating Both the Gate Hardware and the CSV Gap
+Across Nigerian factories, warehouses, hospitals, fuel stations, and corporate compounds, employers currently spend **₦2.5M to ₦4.5M+ per multi-gate facility** installing wall-mounted biometric/RFID terminals (such as ZKTeco, Hikvision, or Anviz units). Despite that capital outlay, those wall gadgets only act as **dumb timestamp loggers**. To convert gate punches into monthly salaries, HR teams still walk up with USB flash drives, pull desktop LAN exports, scrub broken spreadsheets for missing exit swipes, cross-check departmental paper books, and manually compute PAYE, PenCom, NHF, and overtime.
 
-### 1.2 The ShiftRelay Solution
-ShiftRelay provides an integrated, tri-factor authenticated digital operations hub designed to withstand harsh physical site realities:
-1. **Dual-Mode Attendance Verification:** Combines zero-battery Site Gate QR vector muster posters (for 70%+ of factory workers) with high-precision 1.5-second burst GPS Snapshot geofencing (for field personnel), totally eliminating battery drain and device tethering.
-2. **Automated Nigerian Statutory Payroll Engine:** Hardcoded compliance with PITA/Finance Act Consolidated Relief Allowance (CRA), PenCom (8% employee + 10% employer), NSITF (1% gross), and NHF (2.5%), featuring a one-click "Push to Finance Desk" and bank-ready direct disbursement exports.
-3. **Operational Handover Relay:** Digital structured handovers capturing equipment telemetry, safety anomalies, open tasks, and AI-assisted gap detection.
-4. **Peer Shift Swap Exchange:** Regulated shift exchange marketplace empowering frontline staff to swap shifts peer-to-peer while giving supervisors instant roster control and overtime visibility.
-5. **Executive Intelligence & Compliance Dashboard:** Real-time visibility into active site headcount, overtime budget exposure, statutory remittance countdowns, and plant-level operational attendance.
+ShiftRelay **eliminates both the physical wall hardware and the error-prone Excel bridge**:
+1. **Strict Live GPS Geofencing:** Client-side pre-checks and hard server-side Haversine validation block every off-site, stale, or location-disabled clock-in and clock-out attempt (`GPS_REQUIRED`, `OUTSIDE_GEOFENCE`).
+2. **Distributed Cryptographic Colleague ID Card Verification:** Any authenticated worker physically verified inside the site geofence can scan arriving or departing teammates' cryptographically signed Staff ID Cards (HMAC-SHA256 QR payload or 6-character badge verification code). A single congested gate queue turns into parallel, oil-proof, glove-proof, zero-CapEx verification points—backed optionally by a standard Android phone or tablet at reception for non-smartphone staff.
+3. **Shift-Boundary Auto-Clockout & Payroll Hold Engine:** Un-exited colleague-scanned shifts automatically close at scheduled shift end into **`pending_supervisor_confirm`** status and hold payroll (**`hold_presence_review`**) until a supervisor confirms physical attendance—stopping "clock in once, leave early, collect full pay" fraud.
+4. **Native Nigerian Statutory Payroll Engine:** Verified hours feed directly into hardcoded Finance Act PITA PAYE & CRA, PenCom (8% employee / 10% employer), NHF (2.5% basic), NSITF (1% gross), and ITF (1% employer payroll) schedules, including reverse net-to-gross resolution (`< ₦0.01` precision), casual labor accumulators, and 1.5x/2.0x holiday overtime matrices.
+5. **Structured Operational Handovers & 13 Vertical Blueprints:** Equipment status, safety incidents, dual supervisor/incoming readiness sign-offs, and compliance workflows tailored out-of-the-box for 13 Nigerian industry sectors.
 
-### 1.3 Business Model & Projections
-- **Model:** Enterprise B2B SaaS billed via Per Employee Per Month (PEPM) subscription (₦3,500 – ₦6,000 PEPM) plus implementation and compliance audit fees.
-- **Year 1 Target:** 4 enterprise clients, ₦125 Million ARR.
-- **Year 3 Target:** 70 enterprise accounts, ₦1.96 Billion (~$1.2M USD) ARR with 69.8% EBITDA margin.
+### 1.2 Commercial & Financial Highlights
+- **Pricing Model:** B2B SaaS Base Platform Retainer + Per Employee Per Month (PEPM): **Professional** (`₦150k + ₦3,500 PEPM`), **Enterprise** (`₦400k + ₦4,500 PEPM`), and **Enterprise Plus** (`₦750k + ₦5,500 PEPM`), plus a zero-hardware 48-hour onboarding package.
+- **Unit Economics:** On a 200-worker Enterprise plant (`₦1,300,000` MRR vs `₦305,000` direct servicing cost), ShiftRelay yields **`₦995,000` monthly net contribution per client (76.5% margin)**.
+- **Breakeven Hurdle:** Only **3.26 Enterprise accounts (3–4 plants / 600–800 workers)** cover full annual fixed overhead (`₦3,245,000/mo`).
+- **3-Year Scale Trajectory:** Growing from **4–14 enterprise accounts (Year 1: ₦45M cautious to ₦138M accelerated revenue)** to **70 accounts and ₦1.964 Billion (~$1.2M USD) gross revenue in Year 3 (69.8% EBITDA margin)**.
 
 ---
 
-## 2. COMPANY OVERVIEW & STRATEGIC VISION
+## 2. COMPANY OVERVIEW, STRATEGIC VISION & MULTI-INDUSTRY SCOPE
 
 ### 2.1 Corporate Identity
-- **Entity Name:** ShiftRelay Technologies Limited
-- **Registration:** Corporate Affairs Commission (CAC), Federal Republic of Nigeria
-- **Operating Headquarters:** Lagos, Nigeria (Strategic access to Apapa Port, Ikeja Industrial Estate, and Lekki Free Zone)
-- **Deployment Platform:** Web-native Progressive Web Application (PWA), zero app-store download hurdle.
+- **Venture Entity:** ShiftRelay Technologies Limited (Private Company Limited by Shares under CAMA 2020, Nigeria)
+- **Operating Base:** Lagos, Nigeria — serving the Apapa Port corridor, Ikeja Industrial Estate, Agbara/Ota, Sagamu Interchange, Port Harcourt, and Kano commercial hubs.
+- **Delivery Footprint:** Responsive offline-capable Progressive Web Application (PWA) plus native Android and iOS builds packaged via Capacitor (`@capacitor/core@8.6.2`).
+- **Multi-Tenant Architecture:** Production PostgreSQL tenant isolation with private concierge onboarding (public self-registration disabled).
 
-### 2.2 Core Mission & Vision
-- **Mission:** *To formalize, protect, and empower Africa's industrial frontline workforce through battery-conscious software, transparent statutory payroll, and immutable operational truth.*
-- **Vision:** *To become the undisputed enterprise operating system for shift-based industry across Sub-Saharan Africa by 2030, managing over 1,000,000 active frontline workers.*
+### 2.2 Mission & Vision
+- **Mission:** *To replace fragile gate hardware and broken attendance spreadsheets with cryptographic on-site truth, transparent statutory payroll, and structured shift continuity for Africa's frontline workforce.*
+- **Vision:** *To serve as the primary workforce verification and statutory payroll operating system for 1,000,000+ frontline workers across Sub-Saharan Africa by 2030.*
+
+### 2.3 Modular Expansion Across 13 Industry Verticals
+While ShiftRelay's beachhead revenue targets 24/7 manufacturing and logistics plants, its live software engine (`industry-profiles.mjs`) already embeds dedicated operational terminology, safety regulators, statutory checklists, facility zones, and analytics for **13 distinct workplace verticals**:
+
+| Vertical Group | Supported Profile Blueprints | Embedded Regulatory & Operational Context |
+|---|---|---|
+| **Industrial & Supply Chain** | Manufacturing & Industrial Plants; Logistics, Warehousing & Supply Chain; Agricultural Farms & Agribusiness | LOTO / OSHA equipment checks, fleet & cold-chain zones, fork-lift/dispatch handover readiness |
+| **Energy, Mobility & Field** | Gas Stations, Petrol & Fuel Retail; Transportation, Fleet & Mobility; Physical Security, Guarding & Patrol | NMDPRA forecourt & dip-test safety, haulage manifest handovers, GPS patrol perimeters |
+| **Clinical, Hospitality & Retail** | Healthcare & Clinical Triage; Restaurants, QSR & Fast Food; Hospitality, Hotels & Resorts; Retail & Supermarkets | Cold-chain/HACCP logs, ward drug/triage relays, till reconciliation, NAFDAC/MDCN standards |
+| **Corporate & Technical Ops** | Facility Management & Building Ops; Technology, SaaS & Software Engineering; General Enterprise & Field Operations | MEP telemetry checks, SOC 2/NDPA incident handovers, mixed PAYE + 5%/10% WHT contractor rules |
 
 ---
 
-## 3. THE PROBLEM: INDUSTRIAL FRONTLINE WORKFORCE CRISIS IN NIGERIA
+## 3. THE PROBLEM: WHY WALL GATE GADGETS & MANUAL PAYROLL BRIDGES FAIL NIGERIAN INDUSTRY
 
-### 3.1 Five Structural Workplace Failures
-1. **The Battery & Device Conundrum:** Standard workforce apps require persistent GPS tracking or heavy background syncs. In Nigeria, frontline factory and dock workers face erratic personal power supplies and use entry-level Android devices. Continuous GPS drains batteries within hours, causing workers to turn off location services and sabotaging time tracking.
-2. **Ghost Workers & Time Theft:** Reliance on manual paper muster books at security gates fosters widespread "buddy punching" and fabricated overtime. Disconnected security guards have no validation link to core HR records.
-3. **Statutory Penalties & Audit Vulnerability:** Regulatory audits by PenCom (imposing mandatory 2% monthly compounding fines on delayed remittances) and State Revenue Services (imposing 10% penalties plus Central Bank MPR interest on unremitted PAYE) create multimillion-Naira liabilities for industrial employers.
-4. **Catastrophic Handover Information Loss:** In 24/7 manufacturing plants (e.g., flour mills, cement kilns, bottling lines), outgoing shifts pass critical operational context verbally or over disorganized WhatsApp chats. Unlogged machinery faults result in severe equipment downtime, scrap losses, and industrial workplace accidents.
-5. **The "Japa" Brain Drain Deficit:** An exodus of mid-level HR managers and experienced payroll accountants has left plant operators vulnerable to clerical mistakes and compliance breaches.
+### 3.1 How Legacy Gate Hardware Systems Actually Operate Today
+Most Nigerian employers that have attempted to digitize attendance rely on wall-mounted biometric (optical/capacitive fingerprint, palm/face) or RFID proximity terminals (dominated globally and locally by ZKTeco, Hikvision, and Anviz). Understanding why companies still struggle requires looking inside how those devices actually move data:
+
+1. **Gate Function:** Employees press a finger, tap an RFID card, or enter a PIN. The box matches an enrolled template or card UID and saves a raw row: `(User_ID, Timestamp, Verify_Mode)`—optionally firing an electric lock relay on turnstiles.
+2. **Three Broken Data Collection Methods:**
+   - **USB Flash Drive Export (Still widespread across factories & depots):** Every week or month, an HR/admin staff member physically walks to every gate device, plugs in a USB thumb drive, exports raw `.dat`/`.txt`/`.csv` files, walks back to an office computer, imports into vendor desktop software (*ZKTime*, *BioTime*), fixes unreadable rows, and exports another CSV for payroll.
+   - **Local Office LAN Polling:** An office desktop running Windows middleware periodically polls devices assigned static local IPs (`192.168.x.x`) over Ethernet—failing immediately whenever switches lose power, cables corrode, or remote sites operate off-grid.
+   - **Cloud ADMS Push Middleware:** Newer terminals push HTTP punch logs over the internet to vendor software, which **still sits disconnected** from shift handover records, casual pay rules, and Nigerian statutory tax engines—meaning HR still exports and manipulates spreadsheets at month end.
+
+### 3.2 Six Structural Failures Bleeding Employer Margin
+Primary discovery interviews (including discovery evidence from Nigerian institutional workplaces using doorway card readers alongside departmental paper books) confirm six compounding failures:
+
+1. **Peak-Hour Gate Congestion & Queues:** At 06:00 AM / 02:00 PM / 10:00 PM shift changes, 100–300 workers funnel past one or two wall scanners requiring 2–4 seconds (plus retries) per worker. Queues cause artificial lateness, production line delays, and hourly payroll disputes.
+2. **Environmental Biometric Sensor Failure:** Factory grease, flour dust, palm oil, clinic hand sanitizer, dishwater, cuts, calluses, and protective gloves cause chronic fingerprint rejections (*"Please Try Again"*). Supervisors resort to paper fallback logs or issue fallback PINs/RFID cards—immediately reopening buddy-punching loopholes.
+3. **The "Dual-Ledger Trap" & CSV Scrubbing Overhead:** As validated directly in Nigerian customer interviews, organizations with electronic doorway card swipes frequently maintain secondary **departmental paper sign-in sheets** at inner work areas. HR spends **3 to 5 working days monthly** manually reconciling gate CSVs against paper registers—with zero immutable audit trail once spreadsheets are edited on local PCs.
+4. **Ghost Overtime From Unverified Missing Exit Punches:** A wall box records that Staff #104 entered at 08:00 AM. If Staff #104 slips out early, skips exit scanning, or experiences a sensor miss at 05:00 PM, HR either pays an unearned full shift or faces worker disputes weeks later.
+5. **High Hardware CapEx & Maintenance Vulnerability:** Multi-gate hardware installations cost **₦2.5M–₦4.5M upfront** plus cabling, inverter backup dependency, glass sensor wear, and cross-branch silos—locking out distributed depots, retail chains, farms, and construction sites.
+6. **Statutory Penalties & Catastrophic Handover Loss:** Late payroll compilation triggers **PenCom's 2% monthly compounding penalty** and State Internal Revenue (LIRS/OGIRS/FIRS) PAYE arrears fines, while verbal or buried WhatsApp shift handovers cause unlogged machine faults, workplace safety incidents, and stock spoilage.
 
 ---
 
-## 4. THE SOLUTION: THE SHIFTRELAY PLATFORM ARCHITECTURE
+## 4. THE SOLUTION: ZERO-HARDWARE DISTRIBUTED GATE & SHIFTRELAY PLATFORM ARCHITECTURE
 
-ShiftRelay resolves these challenges via a resilient, multi-tiered enterprise architecture:
+ShiftRelay eliminates physical wall clocks and broken CSV bridges by unifying **Cryptographic Attendance Enforcement, Shift Continuity, and Nigerian Statutory Payroll** inside a single multi-tenant architecture:
 
 ```
-+-----------------------------------------------------------------------------------+
-|                           SHIFTRELAY ENTERPRISE PLATFORM                          |
-+-----------------------------------------------------------------------------------+
-                                         |
-     +-----------------------------------+-----------------------------------+
-     |                                   |                                   |
-[Portal A: Frontline/Manager]   [Portal B: Admin Concierge]    [Portal C: Activation]
-  - Tri-Factor Login              - Internal Back-Office         - Single-Use Token
-  - Dual-Mode Attendance          - Company ID Generation        - Worker Password Set
-  - Push to Finance               - Bulk CSV Intake              - Zero Plaintext Logins
-  - Handover Relays               - Gate QR Vector Posters       - Instant Onboarding
++------------------------------------------------------------------------------------+
+|                    SHIFTRELAY ENTERPRISE OPERATING SYSTEM (v3.0)                   |
++------------------------------------------------------------------------------------+
+         |                                  |                                |
+[1. CLIENT ENTRY LAYER]           [2. SECURITY & CORE ENGINE]      [3. PERSISTENCE & CI]
+- Offline PWA + Capacitor Mobile  - Tri-Factor Auth (No Public     - PostgreSQL Primary
+- Pre-Flight GPS Guard Engine       Self-Registration Allowed)       (Tenant Store +
+  (gps-guard.js blocks entry      - Server Hard Geofence Gate        time_entries +
+  if location denied/off-site)      (Haversine + Accuracy/Fresh)     user_sessions +
+- Distributed Peer ID Scanner     - HMAC-SHA256 Staff ID Crypto      verified_hours)
+  (Camera QR + 6-Char Verify Code)  + Anti-Self-Scan Enforcement   - GitHub CI Playwright
+- Optional Commodity Guard Tablet - Shift-Boundary Shield (60s)      E2E & Weekly Security
+  (Zero specialized hardware)       + Auto-Out Payroll Hold Queue    Autofix Pipelines
 ```
 
-### 4.1 Tri-Factor Authentication Engine
-ShiftRelay strictly abolishes open public registration to prevent unauthorized profile creation:
-- **Factor 1:** Enterprise Tenant Identifier (`company_id`, e.g., `FLO-NG-6093`).
-- **Factor 2:** Corporate Work Email / Mobile Phone.
-- **Factor 3:** Worker-selected salted & hashed password.
+### 4.1 Portal Ecosystem & Access Governance
+- **Public Registration Strictly Disabled:** No open self-signup endpoint (`403` enforced). Every organization (`company_id`, e.g., `RIF-2026`) is provisioned through the secured **Internal Admin Concierge Portal (`admin.html`)** with single-use encrypted email activation tokens (`activate.html`).
+- **Role-Differentiated Operational Workspaces:**
+  - **Worker Mode:** Live Today Shift Hub, Strict GPS Clock-In/Out, Cryptographic Digital Staff ID Card, Verified Earnings & Payslips, Handover Baton Receipts, Peer Shift Swaps, Merit Rewards Wallet, and Operational CV Passport.
+  - **Supervisor Dual-Mode:** Seamless toggle between personal Worker view and Live Floor Supervisor Command (Active Floor Presence, Peer ID Card Scanner Modal, **Auto Clock-Out Presence Review Queue**, Handover Certification Checklists, and Overtime Approvals).
+  - **Executive & Finance Command:** Multi-Unit Workforce Analytics, Facility Zones & Safety Governance, Direct Statutory Payroll Ledger Compilation (`Push to Finance Desk`), and Compliance Deadlines.
 
 ---
 
-## 5. IN-DEPTH FUNCTIONAL SPECIFICATIONS & MODULE WALKTHROUGH
+## 5. ANTI-BYPASS SECURITY ENGINEERING & FUNCTIONAL MODULE SPECIFICATIONS
 
-### 5.1 Dual-Mode Attendance Verification Engine
-- **Device-Native Recurrent Biometric Authentication (WebAuthn/FIDO2):** Following initial tri-factor onboarding (Company ID + Work Email + Password), workers bind their personal smartphone's biometric sensor (Fingerprint scanner / Face ID / Touch ID) to their profile. Subsequent daily access requires zero typing—granting access in under 1 second without storing sensitive biometric templates on external servers.
-- **Air-Gapped Offline-First PWA Synchronization:** Frontline personnel can clock in, clock out, and verify muster presence even when plant Wi-Fi or cellular networks are offline. The Service Worker securely stores timestamped, geofenced records in local IndexedDB storage, auto-flushing to the server with immutable audit logs upon connection restoration.
+Every design choice in ShiftRelay v3.0 directly answers the core security requirement: **make attendance impossible when location is inaccessible or off-site, and prevent smart users from gaming cards or missing punches.**
 
-- **Gate Muster Vector QR:** Server dynamically renders high-density, mathematically cryptographically signed SVG vector QR posters (`qr-svg-generator.js`). Mounted at factory security gates, workers scan the poster in under 500 milliseconds. Uses zero cellular battery beyond camera activation.
-- **1.5-Second Burst GPS Snapshot:** Designed for mobile fleet drivers, dispatch handlers, and off-site contractors. Captures a single point-in-time coordinate fix within a 1,500ms timeout window, evaluates against the configurable site geofence perimeter (e.g., 500m Haversine radius), logs compliance status, and immediately terminates the GPS radio.
+### 5.1 Strict Live GPS Geofencing (Two-Layer Enforcement)
+| Security Control | Enforcement Behavior | Bypass Prevented |
+|---|---|---|
+| **Client Pre-Check (`gps-guard.js`)** | Probes browser/device geolocation before submitting any clock-in/clock-out; blocks UI submission immediately on permission denial or timeout. | Prevents blind "button click" clock-ins without live location consent. |
+| **Mandatory Fresh Coordinates** | Server rejects empty GPS payloads (`GPS_REQUIRED`) or cached timestamps older than the active freshness window (`GPS_STALE`). | Blocks replay attacks using yesterday's cached coordinates. |
+| **Accuracy Ceiling Guard** | Rejects spoofed/degraded low-precision readings exceeding strict site threshold (`GPS_ACCURACY_TOO_POOR`). | Blocks crude cell-tower spoofing from outside the facility perimeter. |
+| **Server Haversine Fence** | Validates exact meter distance against calibrated hub coordinates & perimeter (`OUTSIDE_GEOFENCE`, e.g., `120m` enterprise hub fence). | Guarantees zero remote clock-ins from home, transit, or cafés. |
 
-### 5.2 Nigerian Statutory Payroll & Remittance Engine
-Hardcoded to the latest **Personal Income Tax Act (PITA)** and **Finance Act** standards:
-- **Consolidated Relief Allowance (CRA):** Automatically calculates higher of ₦200,000 or 1% of gross income, plus 20% of gross emoluments.
-- **Pension Reform Act (PRA 2014):** 18% total split (8% employee deduction + 10% employer contribution) calculated strictly on Basic + Housing + Transport emoluments.
-- **National Housing Fund (NHF):** 2.5% of basic salary for participating private/public entities.
-- **Nigeria Social Insurance Trust Fund (NSITF):** 1.0% total gross payroll, categorized strictly as employer cost-to-company without touching net employee wages.
-- **Push to Finance Desk & Automated Cut-Off Schedules:** Configurable payroll calendar rules (e.g., auto-cut on the 23rd or 25th of every month) automatically freeze timesheets, compute overtime anomalies, and compile preliminary payroll drafts. Supervisors review and sign off, allowing the Finance Desk to export bank-ready payment batches and statutory schedules either automatically on a scheduled date or manually with a single click.
+### 5.2 Distributed Cryptographic Colleague ID Card Scanner
+Replacing fixed wall terminals, **any authenticated colleague or guard already verified inside the geofence** can scan an arriving or leaving worker's Staff ID Card:
+- **Dual-Tier HMAC-SHA256 & 45-Second TOTP Credentials (`attendance-security.mjs`):** Mobile Digital Staff IDs display a **live 45-second rotating TOTP QR (`SHIFTRELAY:DYN:<ORG>:<STAFF_ID>:<STEP>:<6-CHAR_TOTP>`)** with auto-countdown (`GET /api/me/card-token`) that never reveals static printed PINs on workers' personal phones. For non-smartphone staff, authorized supervisors print laminated physical badges (`SHIFTRELAY:ID:<ORG>:<STAFF_ID>:<6-CHAR VERIFY CODE>`), tagged in attendance logs as `static_badge_fallback` (with optional tenant-level `strictDynamicQrOnly` lock).
+- **Replay Rejection & Live Camera Snapshot Proof:** Stale dynamic QR codes past the ±1 step drift window are blocked automatically (`403 CARD_QR_EXPIRED`). Active camera scanners automatically attach compressed scan-time snapshots (`scanPhotoDataUrl`) alongside `cardProofMode` metadata (`dynamic_live_qr` vs `static_badge_fallback`) for immediate Supervisor audit.
+- **Directory Secret Isolation:** Public team/directory API endpoints strip all `cardVerifyCode` and `cardQrPayload` strings, preventing coworkers from looking up another employee's secret badge code from the roster.
+- **Anti-Self-Scan (`SELF_SCAN_FORBIDDEN`):** Logged-in user cannot scan their own Staff ID or verification code.
+- **Same-Day Duplicate Lock (`ALREADY_CLOCKED_IN` / `DUPLICATE_DAILY_CARD_SCAN`):** Workers cannot run repeat same-day card check-ins to stack shift points or fabricate double shifts.
+- **Role-Gated Overrides (`SUPERVISOR_REQUIRED`):** Only authorized managers/admins can log `supervisor_override` entries—all worker attempts are rejected (`403`) and logged.
 
-### 5.3 Peer Shift Swap Marketplace
-Empowers workers to exchange scheduled shifts within rotational windows without manager paperwork overhead:
-- Originating worker selects scheduled shift and offers it to open pool or targeted peer.
-- Eligible colleagues claim the shift based on skill compatibility and rest-break criteria.
-- Shift supervisor receives real-time alert to approve or decline with a single tap.
-- System automatically reconciles timesheet allocations and overtime accruals.
+### 5.3 Shift-Boundary Auto-Clockout & Supervisor Presence Review Hold
+To close the #1 vulnerability of legacy gate terminals (checking in once and disappearing early):
+1. Background Shift Boundary Engine ticks every 60 seconds (`server.mjs`).
+2. If a colleague-checked-in shift crosses its `scheduledClockOutAt` without an on-site exit scan, the engine auto-closes the entry as **`pending_supervisor_confirm`** (capping verified hours at `0` until reviewed).
+3. Payroll compilation automatically places that employee on **`hold_presence_review`** with automatic absence hold deductions applied.
+4. Only after a Supervisor inspects the **Auto Clock-Out Presence Verification** queue and clicks **Confirm Full Shift** (`confirm-presence`) do PostgreSQL `verified_hours` and payable wages release into `verified_ready`.
 
-### 5.4 Executive Analytics & Intelligence Center
-A tenant-isolated operational control tower for C-suite and plant management:
-- **Active Workforce Metrics:** Instant breakdown of rostered headcount, workers currently clocked in, absent personnel, and approved leaves.
-- **Dual-Mode Ratio:** Telemetry tracking Gate QR vs. GPS snapshot proportions to monitor site gate throughput.
-- **Overtime Spend & Budget Burn:** Dynamic financial gauges comparing real-time overtime accruals against monthly factory budget caps.
-- **Remittance Countdown:** Real-time ledger displaying statutory deadlines (e.g., 7-day PenCom remittance, 10th-of-month PAYE deadline).
+### 5.4 Honest Threat Modeling & Anti-Collusion Roadmap
+Enterprise buyers and investors respect engineering honesty over marketing hype. ShiftRelay explicitly addresses remaining physical-world threats:
+
+- **Threat A — "WhatsApp Screenshot Collusion" (On-site friend scanning an off-site friend's badge screenshot):**
+  - *Shipped Technical Defenses (Active Now):* Workers' mobile Digital ID cards render **45-second rotating TOTP QR payloads** (`SHIFTRELAY:DYN:...`) rather than static PINs, automatically rejecting forwarded WhatsApp screenshots after the ~45–90s tolerance window (`403 CARD_QR_EXPIRED`). Every punch permanently attributes the scanner (`scannedByMembershipId`), verifies scanner GPS inside the geofence, blocks self-scanning (`SELF_SCAN_FORBIDDEN`), attaches optional scan-time camera snapshots (`scanPhotoDataUrl`), distinguishes `dynamic_live_qr` vs `static_badge_fallback` in Supervisor review, and triggers Auto-Out payroll holds (`pending_supervisor_confirm`) whenever exit scans are missed.
+  - *Optional Physical Governance:* Sites enforcing `strictDynamicQrOnly` disable static codes entirely on smartphone lines, while non-smartphone industrial floors isolate printed laminated badges to supervised guard/line tablets.
+- **Threat B — Deep-Indoor Warehouse / Basement GPS Drift & Zero-Phone Staff:**
+  - *Operational Solution:* Standardize a **Guard / Reception Commodity Android Tablet** running ShiftRelay's peer scanner right at the main doorway/muster bench (costing <10% of proprietary ZKTeco/turnstile installs with zero biometric maintenance) plus calibrated per-site geofence radii.
+- **Threat C — Physical Motorized Turnstile Bar Actuation:**
+  - *Honest Scope:* ShiftRelay replaces the **attendance, time-verification, and payroll brain**. Factories requiring electro-mechanical steel turnstile locks retain existing door hardware solely for physical gate release or pair via future dry-contact relay integration—while removing all manual USB exports and Excel reconciliation.
+
+### 5.5 Nigerian Statutory Payroll, Compliance & Operational Engines
+- **Compliance Computation Engine (`compliance-engine.mjs`):**
+  - **PITA / Finance Act PAYE & CRA:** Automated calculation of Consolidated Relief Allowance (`max(1% gross, ₦200,000) + 20% gross`) and progressive 7%–24% brackets + 1% minimum tax safeguard, with SLA guarantee to push enacted tax-reform bracket updates seamlessly across all tenants.
+  - **PenCom (PRA 2014):** 8% Employee + 10% Employer pension tracking with 7-working-day post-payday compliance countdowns.
+  - **NHF (2.5% Basic), NSITF (1% Gross Employer), ITF (1% Total Employer Payroll).**
+  - **Net-to-Gross Reverse Salary Resolver:** Binary-search solver (`< ₦0.01` tolerance) computing exact employer cost-to-company for negotiated take-home contracts.
+  - **Casual Pay & Public Holiday Matrix:** Automatic 1.5x weekday overtime and 2.0x Sunday / Official Nigerian Public Holiday (`NIGERIAN_PUBLIC_HOLIDAYS_2026`) double-time computation.
+- **Anti-Farming Merit & Rewards Engine:** Enforces strict milestone locks (education/certification/skill one-time caps, daily clock-in reward cap, task toggle anti-spam) preventing gamification farming (`test-anti-farming.mjs`).
+- **Executive Digital Payroll Ledger & Barcoded Worker CV Passport:** Generates watermarked statutory payroll ledgers and printable barcode/QR worker operational dossiers (`email-engine.mjs`).
+- **Structured Shift Handovers, Direct Messaging, Emergency Broadcasts & Safety Incidents:** Real-time SSE floor updates (`team-realtime.js`) and Nigerian Pidgin / multilingual support (`language-pack.js`).
 
 ---
 
-## 6. ADDRESSABLE MARKET ANALYSIS & INDUSTRY DEMOGRAPHICS
+## 6. ADDRESSABLE MARKET ANALYSIS & SEGMENT PRIORITIZATION
 
-### 6.1 Market Sizing
-- **Total Addressable Market (TAM):** ₦370B – ₦390B ($230M – $245M USD) dedicated to workforce management, time & attendance, and payroll solutions across Nigerian enterprise segments.
-- **Serviceable Addressable Market (SAM):** ₦65B ($40M USD) representing large-scale industrial manufacturing, FMCG, agribusiness, energy, and logistics entities employing 100+ shift-based workers.
-- **Serviceable Obtainable Market (SOM):** ₦3.2B ($2.0M USD) representing 120 key manufacturing clients in the Lagos, Ogun, Port Harcourt, and Kano industrial corridors over 36 months.
+### 6.1 Market Sizing (Nigeria Workforce & Payroll Ecosystem)
+- **Total Addressable Market (TAM):** **₦370B – ₦390B ($230M – $245M USD)** annually across Nigerian enterprise workforce attendance, payroll administration, and shift scheduling.
+- **Serviceable Addressable Market (SAM):** **₦65B ($40M USD)** representing multi-shift industrial manufacturing, FMCG, agribusiness, logistics depots, fuel retail chains, clinical networks, and guarding operations (50+ staff).
+- **Serviceable Obtainable Market (SOM — 36 Months):** **₦3.2B ($2.0M USD)** capturing 120–140 anchor enterprise organizations across Lagos, Ogun, Port Harcourt, Abuja, and Kano corridors.
 
-### 6.2 Key Industry Verticals & Target Clients
-1. **FMCG & Grain Milling:** Flour Mills of Nigeria Plc (FMN), BUA Foods, Honeywell Flour Mills, Nestle Nigeria, Unilever.
-2. **Cement & Heavy Building Materials:** Dangote Cement Plc, Lafarge Africa Plc, BUA Cement.
-3. **Oil & Gas Downstream & Logistics:** NNPC Retail, TotalEnergies Marketing Nigeria, Ardova Plc, 11Plc, Conoil.
-4. **Maritime, Ports & Terminals:** APM Terminals Apapa, PTML, Ports & Cargo Handling Services, ENL Consortium.
+### 6.2 Phased Vertical Sequencing
+| Phase | Target Segment | Headcount | Pain Severity | Willingness to Pay | ShiftRelay Strategic Fit |
+|---|---|---|---|---|---|
+| **Phase 1 (Beachhead)** | FMCG, Milling, Packaging, Cement, Port Logistics & Mid-Tier Industrial Plants | 50–500+ staff | **EXTREME** (line downtime, overtime fraud, PenCom fines, broken wall scanners) | **VERY HIGH** | 24/7 rotational relays, strict GPS + peer card queues, direct PenCom/PAYE payroll. |
+| **Phase 2 (Multi-Site Expansion)** | Clinical Networks, Fuel Retail Chains, Hospitality Groups & Facility Security | 50–1,000+ distributed staff | **HIGH** (impossible to put ZKTeco hardware at every fuel pump, guard post, or clinic annex) | **MODERATE–HIGH** | Zero-hardware geofenced sites + 13 pre-built vertical compliance & safety modules. |
 
 ---
 
 ## 7. COMPETITIVE LANDSCAPE & DEFENSIBLE MOATS
 
-### 7.1 Direct Benchmarking: ShiftRelay vs. Global Leaders (Dayforce & Workday)
-To win in Nigeria and Sub-Saharan Africa, ShiftRelay is engineered to the architectural rigour of Dayforce (Ceridian) and Workday, while decisively out-executing them on physical site constraints:
-
-1. **Continuous Real-Time Calculation:** ShiftRelay replicates Dayforce's defining innovation—the continuous calculation engine—specifically customized for the Nigerian fiscal environment. Overtime, allowances, and statutory deductions update dynamically with every verified punch.
-2. **Device-Native Web Biometrics:** Unlike global platforms requiring expensive proprietary timeclocks or heavy mobile apps, ShiftRelay utilizes browser-level WebAuthn/FIDO2 standards. After initial tri-factor setup, frontline staff log back into the app instantly via device fingerprint or Face Unlock in under one second.
-3. **Resilient Offline PWA Clocking:** Operating in port terminals and remote industrial facilities where cellular connections drop, ShiftRelay buffers all punches, muster scans, and handovers in a cryptographically signed client-side IndexedDB FIFO queue, synchronizing seamlessly once connectivity restores.
-4. **Naira Predictability:** Global SaaS pricing in USD exposes Nigerian manufacturers to crippling foreign exchange volatility. ShiftRelay's fixed Naira billing shields operational budgets from FX devaluations.
-
-
-| Feature / Dimension | ShiftRelay Enterprise | SAP / Dayforce / Workday | SeamlessHR | PaidHR (Pade) | ZKTeco Hardware |
+| Dimension | **ShiftRelay Enterprise (v3.0)** | **ZKTeco / Hikvision Gate Boxes** | **SeamlessHR** | **PaidHR (Pade)** | **SAP / Dayforce / Workday** |
 |---|---|---|---|---|---|
-| **Frontline Shift Optimization** | **Native Core** | High (Config-Heavy) | Secondary | Low | Basic Clock-in |
-| **Attendance Verification** | **Dual Gate QR + GPS** | Biometric / App | GPS Mobile App | Mobile App | Fingerprint Device |
-| **Battery Consumption** | **Zero Drain (<0.1%)** | Heavy Background | Moderate | Moderate | N/A (Wall Unit) |
-| **Native Nigerian Statutory Engine** | **Hardcoded (PITA/PenCom)** | 3rd-Party Add-on | Strong | Good | None |
-| **Pricing Denomination** | **Naira (₦) Fixed** | USD ($) Volatile | Naira (₦) | Naira (₦) | Capital Purchase |
-| **Deployment Timeline** | **48 Hours** | 6–12 Months | 4–8 Weeks | 1–2 Weeks | 2–4 Weeks |
-| **Offline-Resilient PWA** | **Yes (Service Worker)**| No (Native/Heavy) | Limited | No | Yes (Local Buffer) |
+| **Wall Hardware Required** | **₦0 (Phone / Optional Tablet)** | **₦2.5M–₦4.5M+ per multi-gate** | Optional hardware / Office GPS | Mobile app GPS | Proprietary clocks / Heavy IT |
+| **Gate-to-Payroll Bridge** | **Direct Real-Time Engine** | **Manual USB / LAN / CSV Scrubbing** | Separate Office HR Suite | Basic office payroll sync | Complex ERP integration |
+| **Shift-Change Queue Speed** | **Parallel Peer Scanning** | Bottlenecked wall queues | Single phone check-in | Single phone check-in | Wall clock congestion |
+| **Dirty/Oily/Gloved Hands** | **100% Unaffected (ID QR/Code)** | **Frequent Sensor Failure** | N/A | N/A | Optical failure risk |
+| **Un-Exited Shift Safeguard** | **Auto-Out + Payroll Hold** | Paid unless HR catches in Excel | Manual review | Manual review | Config-heavy rules |
+| **Frontline Shift Handovers** | **Native Dual-Signoff Baton** | **None** | None | None | External modules |
+| **13 Vertical Blueprints** | **Built-In (Nigerian Regulators)** | None | Corporate HR focus | Startup/SME office | Custom enterprise consulting |
+| **Billing & Go-Live Time** | **Fixed Naira (₦) · <48 Hours** | Upfront CapEx + 2–4 Weeks | Naira · 4–8 Weeks | Naira · 1–2 Weeks | Volatile USD ($) · 6–12 Months |
 
 ---
 
-## 8. BUSINESS MODEL, PRICING STRATEGY & MONETIZATION STREAMS
+## 8. BUSINESS MODEL, COMMERCIAL PRICING & ZERO-HARDWARE ROI
 
-ShiftRelay operates an enterprise B2B Software-as-a-Service (SaaS) model supplemented by specialized high-margin corporate services:
+### 8.1 Core SaaS Packaging & Setup Tiers
+| Tier | Monthly Base Fee | Monthly PEPM Rate | Headcount Capacity | One-Time Onboarding | Included Support & SLA |
+|---|---|---|---|---|---|
+| **Professional** | **₦150,000 / mo** | **₦3,500 / worker** | Up to 150 Workers | **₦750,000** | Business Hours WhatsApp & Email Desk (4h SLA) |
+| **Enterprise (Beachhead)** | **₦400,000 / mo** | **₦4,500 / worker** | Up to 500 Workers | **₦1,500,000** | 24/7 Supervisor Hotline + Dedicated Success Lead |
+| **Enterprise Plus** | **₦750,000 / mo** | **₦5,500 / worker** | Up to 1,500+ Workers | **₦3,000,000** | 1-Hour SLA + Multi-Site + Custom ERP Connectors |
 
-### 8.1 Core Subscription Tiers
+- **Flexible Surge Staff Addendum:** Seasonal/casual surges (<90 days) billed at **₦2,500/worker/month** without bumping base platform tiers.
+- **De-Risked Pilot Entry:** **₦250,000 flat 30-Day Single-Line Pilot** (up to 50–100 workers), **100% credited** toward the onboarding fee upon annual contract signature.
+- **Zero-Hardware Onboarding Advantage:** Setup fee funds geofence calibration, CSV roster/RSA PIN migration, cryptographic Staff ID activation (digital + optional laminated floor badges), statutory rule calibration, and 2-day supervisor training—achieving **62%–73% gross setup margin** while costing employers **60%+ less** than importing biometric wall terminals.
 
-```
-+---------------------------------------------------------------------------------+
-| PROFESSIONAL                 | ENTERPRISE                   | ENTERPRISE PLUS   |
-| ₦3,500 / Worker / Mo         | ₦4,500 / Worker / Mo         | ₦5,500 / Worker / Mo
-| Base: ₦150,000 / Mo          | Base: ₦400,000 / Mo          | Base: ₦750,000 / Mo
-| Min: 50 Workers              | Min: 200 Workers             | Min: 1,000 Workers
-+---------------------------------------------------------------------------------+
-| - Core Frontline HR          | - Professional Features      | - Enterprise Features
-| - GPS Snapshot Attendance    | - Dual-Mode Gate QR Engine   | - Multi-Site Management
-| - Nigerian Payroll Engine    | - Peer Shift Swap Market     | - ERP Integration (SAP)
-| - Digital Payslips           | - Push to Finance Desk       | - Dedicated Account Lead
-| - Basic Handover Relay       | - Executive Analytics Hub    | - Forensic Audit Exports
-+---------------------------------------------------------------------------------+
-```
-
-### 8.2 Professional Services & Enterprise Setup
-- **Enterprise Site Onboarding & Gate Blueprinting:** ₦1,500,000 – ₦3,000,000 per manufacturing complex (includes employee verification, digital site mapping, and muster point setup).
-- **Custom Union CBA Ruleset Configuration:** ₦500,000 per collective bargaining tier.
-- **Forensic Historical Payroll & Attendance Audit:** ₦1,500,000 flat engagement fee.
+### 8.2 Quantified Monthly ROI Case (200-Worker Industrial Facility)
+- **Baseline Client Monthly Cost With ShiftRelay Enterprise:** `₦400,000 + (200 × ₦4,500)` = **₦1,300,000 / month**.
+- **Documented Client Monthly Savings & Leakage Recovery:**
+  1. **Eradicated Ghost Punches, Off-Site Entries & Early-Exit Full-Shift Claims (~5–8% payroll leakage):** **₦950,000 – ₦1,450,000 / mo** recovered.
+  2. **Elimination of HR Manual CSV/Paper Reconciliation (3–5 Finance/HR Days Monthly):** **₦250,000 – ₦350,000 / mo** labor efficiency.
+  3. **Avoided PenCom 2% Monthly Late Penalty & Tax Audit Fines:** **₦300,000 – ₦450,000 / mo** risk avoided.
+  4. **Eliminated Biometric Sensor Repairs & Gate Hardware CapEx Amortization:** **₦150,000+ / mo** hardware lifecycle savings.
+- **Total Value Delivered:** **₦1,650,000 – ₦2,400,000/month** against **₦1,300,000/month** cost—delivering net positive ROI from Month 1 and recovering the onboarding fee in **under 6 weeks**.
 
 ---
 
-## 9. THREE-YEAR FINANCIAL PROJECTIONS & UNIT ECONOMICS
+## 9. FINANCIAL PROJECTIONS, BREAKEVEN ANALYSIS & RECONCILED CAPITAL STRATEGY
 
-### 9.1 Income Statement Projections (FY2027 – FY2029)
-*All figures in Millions of Naira (₦M)*
+### 9.1 Monthly Delivery Unit Economics & Breakeven Threshold
+- **Fixed Monthly Operating Overhead (Lean Scale Budget):** **₦3,245,000 / month** (`₦38,940,000 / year`), covering 2 full-time senior engineers (`₦1.2M/mo`), field implementation & sales (`₦800k/mo`), cloud infrastructure (`₦250k/mo`), SMS/email dispatch (`₦100k/mo`), NDPC/legal compliance (`₦250k/mo`), Xero accounting (`₦50k/mo`), field travel (`₦300k/mo`), and 10% contingency (`₦295k/mo`).
+- **Net Contribution per 200-Worker Enterprise Client:** `₦1,300,000 MRR` minus `₦305,000` direct servicing (cloud tenant isolation, transactional messaging, success support) = **₦995,000 / month (76.5% contribution margin)**.
+- **Exact Operating Breakeven:** `₦3,245,000 ÷ ₦995,000` = **3.26 Enterprise Clients (3 to 4 accounts / 600–800 workers)**.
+- **4-Year Enterprise LTV & CAC:** `₦180,000,000` LTV (500-staff enterprise benchmark over 48 months) vs `₦4,500,000` direct enterprise CAC → **40:1 LTV:CAC ratio** and **1.3-month CAC payback**.
 
-| Financial Summary | Year 1 (2027) | Year 2 (2028) | Year 3 (2029) |
+### 9.2 Year 1 Demand Scenarios (₦38.94M Lean Operating Plan)
+| Metric | **Scenario A: Cautious Demand** | **Scenario B: Accelerated Corridor Adoption** |
+|---|---|---|
+| **Year-End Contracted Plants** | 4 Enterprise Plants (800 Workers) | 14 Enterprise Plants (2,800 Workers) |
+| **Breakeven Milestone** | **Month 7** | **Month 4** |
+| **Year 1 Total Revenue (Subs + Setup)** | **₦45,000,000** | **₦138,000,000** |
+| **Year 1 Operating Expenditure** | ₦38,940,000 | ₦48,500,000 (scaled sales team) |
+| **Year 1 Operating Profit (EBITDA)** | **+₦6,060,000 (13.5% Margin)** | **+₦89,500,000 (64.8% Margin)** |
+
+### 9.3 Three-Year Enterprise Scale Trajectory (FY2027 – FY2029)
+| Financial Summary (₦ Millions) | **Year 1 Target (Mid-Case Scale)** | **Year 2 (FY2028)** | **Year 3 (FY2029)** |
 |---|---|---|---|
-| **Contracted Clients** | **4** | **23** | **70** |
-| **Managed Frontline Workers** | **2,200** | **11,500** | **35,000** |
-| Recurring Subscription Revenue (ARR) | ₦117.0M | ₦602.0M | ₦1,814.0M |
-| Implementation & Professional Services | ₦8.0M | ₦40.0M | ₦150.0M |
-| **Total Gross Revenue** | **₦125.0M** | **₦642.0M** | **₦1,964.0M** |
-| Cost of Goods Sold (Cloud/Host/SMS) | (₦15.0M) | (₦45.0M) | (₦120.0M) |
-| **Gross Profit** | **₦110.0M (88%)** | **₦597.0M (93%)** | **₦1,844.0M (94%)** |
-| Engineering & Product Development | (₦36.0M) | (₦96.0M) | (₦180.0M) |
-| Enterprise Sales & Field Engineering | (₦24.0M) | (₦72.0M) | (₦144.0M) |
-| Operations, Compliance & Legal | (₦20.0M) | (₦45.0M) | (₦85.0M) |
-| General, Administrative & Marketing | (₦8.0M) | (₦28.0M) | (₦65.0M) |
-| **EBITDA** | **₦22.0M** | **₦356.0M** | **₦1,370.0M** |
-| **EBITDA Margin** | **17.6%** | **55.5%** | **69.8%** |
+| **Contracted Enterprise Accounts** | **4 – 10** | **23** | **70** |
+| **Active Managed Frontline Workers** | **2,200** | **11,500** | **35,000** |
+| Recurring SaaS Revenue (ARR) | ₦117.0M | ₦602.0M | ₦1,814.0M |
+| Onboarding, Pilots & Compliance Audits | ₦8.0M | ₦40.0M | ₦150.0M |
+| **Total Gross Revenue** | **₦125.0M** | **₦642.0M** | **₦1,964.0M (~$1.2M)** |
+| Direct Cloud / SMS / Delivery COGS | (₦15.0M) | (₦45.0M) | (₦120.0M) |
+| **Gross Profit (%)** | **₦110.0M (88.0%)** | **₦597.0M (93.0%)** | **₦1,844.0M (93.9%)** |
+| Total OpEx (Eng, GTM, Compliance, G&A) | (₦88.0M) | (₦241.0M) | (₦474.0M) |
+| **EBITDA (Margin %)** | **₦22.0M (17.6%)** | **₦356.0M (55.5%)** | **₦1,370.0M (69.8%)** |
 
-### 9.2 Key Unit Economics
-- **Customer Lifetime Value (LTV):** ₦180,000,000 (Based on 500-employee enterprise over 4-year average tenure).
-- **Customer Acquisition Cost (CAC):** ₦4,500,000 (Direct enterprise field sales, proof-of-concept deployment).
-- **LTV to CAC Ratio:** **40:1**, reflecting the immense retention and stickiness of core workforce payroll systems.
-- **Payback Period:** **1.3 Months** from go-live.
+### 9.4 Reconciled Two-Stage Capitalization Strategy
+Eliminating proprietary wall hardware removes the multi-million-Naira hardware inventory bottleneck from earlier models, enabling a capital-efficient two-stage path:
 
----
-
-## 10. GO-TO-MARKET (GTM) & ENTERPRISE SALES STRATEGY
-
-### 10.1 Beachhead Strategy: The Apapa & Ikeja Industrial Corridors
-Phase 1 focuses entirely on the high-density industrial manufacturing nodes in Lagos and Ogun States:
-- **Pilot Conversion Model:** Offer pre-qualified plant directors a 30-day "Single Production Line" trial covering up to 100 workers.
-- **The "Ghost Worker Audit" Hook:** Run a concurrent comparison between existing security muster sheets and ShiftRelay’s Gate QR scanner. Demonstrating an immediate 3–5% discrepancy in ghost hours guarantees C-suite contract signing.
-
-### 10.2 Channel Partnerships & Industry Infiltration
-- **HR Association Endorsements:** Joint workshops with the **Chartered Institute of Personnel Management (CIPM)** on statutory payroll compliance.
-- **Manufacturers Association of Nigeria (MAN):** Position ShiftRelay as the preferred local manufacturing productivity tool at annual regional summits.
+- **Stage 1 — Targeted Operating Pre-Seed Bridge: ₦35,000,000 (~$22,000 USD)** (combined with ₦15M committed founder/angel funds = **₦50M runway pool**):
+  - **42% (₦21.0M):** Senior full-stack engineering, native ERP/banking API connectors & Capacitor mobile release maintenance.
+  - **28% (₦14.0M):** Enterprise GTM pilots, field implementation & badge lamination/starter guard tablets (replacing old steel-lockbox wall CapEx).
+  - **14% (₦7.0M):** Production PostgreSQL/Render/AWS high-availability infrastructure & SMS gateways (Termii/Twilio).
+  - **16% (₦8.0M):** NDPC audit, trademark filings, legal retainers & working-capital contingency.
+- **Stage 2 — Institutional Growth Seed Round: ₦250,000,000 (~$155,000 USD)** (unlocked post-breakeven across 5+ paying industrial accounts):
+  - Funds multi-region enterprise sales expansion (Port Harcourt, Kano, Abuja), native SAP/Oracle/Xero ERP connectors, enterprise SOC 2 / ISO readiness, and West African regional rollout.
 
 ---
 
-## 11. REGULATORY COMPLIANCE, STATUTORY BODIES & LEGAL FRAMEWORK
+## 10. GO-TO-MARKET (GTM) & "SHADOW LEDGER" CONVERSION PLAYBOOK
 
-ShiftRelay operates in strict alignment with Nigerian statutory requirements:
+### 10.1 The "Shadow Ledger" Dual-Run Wedge
+Industrial MDs and Finance Controllers hate ripping out existing gate hardware on faith. ShiftRelay wins fast by **running alongside existing gates for 14 to 30 days**:
+1. Plant keeps running its existing ZKTeco/RFID box or paper gate register.
+2. ShiftRelay onboards one shift line (50–100 workers) in **under 48 hours** via Strict GPS + Colleague ID Card scanning + Auto-Out Payroll Hold.
+3. On Day 14, ShiftRelay delivers a **Forensic Variance Report** comparing raw gate swipes/paper logs against GPS-verified, colleague-confirmed hours and held early exits. Exposing **3%–8% ghost hours, unlogged early departures, and 3+ days of eliminated CSV cleanup** converts pilots into annual contracts.
 
-### 11.1 Key Statutory Bodies & Integration Mandates
-1. **National Pension Commission (PenCom):** System enforces compliance with Section 11 of the Pension Reform Act 2014, requiring remittance within 7 working days post-salary disbursement.
-2. **State Internal Revenue Services (SIRS / LIRS):** Automated generation of monthly Form H1 schedules and annual employer tax returns.
-3. **Nigeria Social Insurance Trust Fund (NSITF):** Rigorous calculation of 1% gross emolument employer contributions under the Employees' Compensation Act 2010.
-4. **Federal Mortgage Bank of Nigeria (FMBN - NHF):** Handles statutory tracking of 2.5% basic pay deductions.
-5. **Nigeria Data Protection Commission (NDPC):** Fully compliant with the Nigeria Data Protection Act (NDPA) 2023, ensuring worker biometrics and location metadata are stored within sovereign Nigerian data borders.
-
----
-
-## 12. STRATEGIC PARTNERSHIPS & LIAISONS
-
-```
-+-----------------------------------------------------------------------------------+
-|                        STRATEGIC ECOSYSTEM ALLIANCES                              |
-+-----------------------------------------------------------------------------------+
-| REGULATORY & AUDIT   | INDUSTRY ASSOCIATIONS | FINANCIAL & FINTECH | TECHNOLOGY   |
-| - PenCom             | - MAN                 | - Paystack / Flw    | - AWS Lagos  |
-| - State SIRS / LIRS  | - CIPM Nigeria        | - Tier-1 Banks      | - PostgreSQL |
-| - NSITF              | - NECA                |   (Access, GTB,     | - OpenAI API |
-| - NDPC (NDPR)        | - NUPENG / PENGASSAN  |    Zenith, UBA)     | - PWA Engine |
-+-----------------------------------------------------------------------------------+
-```
+### 10.2 Corridor Distribution & Ecosystem Channels
+- **Direct Industrial Corridor Blitz:** Physical & executive LinkedIn outreach across Ikeja, Apapa, Agbara, and Sagamu plant GMs, Operations Directors, and Heads of HR.
+- **Institutional Channel Leverage:** Joint compliance workshops with **CIPM Nigeria** (Chartered Institute of Personnel Management), **MAN** (Manufacturers Association of Nigeria), and **NECA** focusing on statutory PenCom/PAYE audit readiness and zero-hardware payroll automation.
+- **Diagnostic Lead Funnel:** Automated *"Plant Leakage & Statutory Risk Scorecard"* qualifying employers by gate method (paper vs RFID vs fingerprint), monthly HR CSV hours, and PenCom/PAYE audit confidence.
 
 ---
 
-## 13. TECHNOLOGY STACK, INFRASTRUCTURE & DATA SOVEREIGNTY
+## 11. REGULATORY COMPLIANCE, LEGAL BOUNDARIES & NDPA DATA SOVEREIGNTY
 
-- **Client Runtime:** Lightweight Vanilla ECMAScript PWA. Zero heavyweight frontend framework overhead, ensuring full sub-second load times on budget devices (e.g., Tecno, Infinix, Itel).
-- **Backend Architecture:** High-throughput Node.js asynchronous event-driven server (`server.mjs`).
-- **Database Engine:** Enterprise-grade PostgreSQL with connection pooling and tenant-scoped row isolation.
-- **Data Sovereignty:** Primary database and document repositories hosted in African/Lagos local cloud availability zones to comply with local content guidelines.
-- **Resilience:** Offline service-worker caching allowing roster views and shift reviews even during facility internet blackouts.
+### 11.1 Statutory Payroll Governance
+- **PenCom (Pension Reform Act 2014):** Tracks 8% employee / 10% employer split and triggers remittance deadline alerts ahead of the mandatory 7-working-day statutory window.
+- **Federal & State Revenue (PITA / Finance Act & State SIRS):** Automates PAYE tax schedules, Form H1 outputs, and updates tax tables immediately as Nigerian tax reform brackets take effect.
+- **NSITF & ITF:** Calculates employer-side 1% NSITF (Employees' Compensation Act) and 1% ITF training fund liabilities cleanly outside employee net take-home deductions.
+- **NHF (FMBN):** Configurable 2.5% basic salary tracking compliant with private-sector provisions of the Business Facilitation Act 2023.
 
----
+### 11.2 Central Bank of Nigeria (CBN) Fintech Safe-Harbor Policy
+ShiftRelay **explicitly prohibits** unlicensed digital wallets, stored-value balances, and Earned Wage Access (EWA) payday lending inside the platform. All salary disbursements execute exclusively via verified commercial bank bulk payment exports processed by the employer's licensed bank—keeping ShiftRelay clear of CBN MMO/Moneylender licensing risks.
 
-## 14. ORGANIZATIONAL DESIGN & HIRING PLAN
-
-### 14.1 Key Executive Roles
-- **Chief Executive Officer (CEO):** Enterprise sales leader with deep industrial networks across MAN and Nigerian corporate boards.
-- **Chief Technology Officer (CTO):** Systems architect with extensive background in high-availability distributed systems and data security.
-- **Head of Payroll & Compliance:** Certified CIPM / ICAN professional overseeing the statutory computation engine and regulatory changes.
-- **Enterprise Solutions Engineers (2):** On-site technical managers handling client gate setup, network configuration, and supervisor training.
+### 11.3 Nigeria Data Protection Act (NDPA 2023) Privacy Architecture
+- **No Continuous Location Tracking:** GPS coordinates are captured **strictly at the active moment of clock-in, clock-out, or peer verification scan**—never via covert background tracking.
+- **Zero Central Biometric Templates:** Phone unlocking relies on device-local OS hardware (`WebAuthn`/FIDO2); worker verification uses cryptographic staff ID codes (`attendance-security.mjs`), avoiding toxic raw fingerprint database liability under NDPA 2023.
+- **Transparent Bilingual Consent:** Plain-English & Nigerian Pidgin notices + Data Processing Addendum (DPA) naming the Employer as Data Controller and ShiftRelay as Data Processor.
 
 ---
 
-## 15. RISK ANALYSIS & CONTINGENCY PLANNING
+## 12. TECHNOLOGY STACK, MOBILE PACKAGING & AUTOMATED SECURITY GOVERNANCE
 
-| Identified Risk | Severity | Likelihood | Strategic Mitigation Plan |
-|---|---|---|---|
-| **Prolonged Enterprise Sales Cycles** | High | High | De-risk via 30-day proof-of-concept line audits and fast-track CEO approvals. |
-| **Foreign Exchange & Macro Inflation** | Moderate | High | All software contracts are denominated in Nigerian Naira with annual CPI indexing. |
-| **Worker Pushback / Sabotage** | Moderate | Moderate | Involve factory shop stewards early; emphasize that digital logs guarantee overtime pay. |
-| **Cellular Network Outages** | High | Moderate | System buffers scans locally via IndexedDB Service Worker; auto-syncs when online. |
-
----
-
-## 16. SOCIAL IMPACT, WORKER DIGNITY & ESG GOVERNANCE
-
-ShiftRelay champions the **"S" and "G" in ESG reporting** for Nigerian industry:
-- **Transparent Worker Compensation:** Replaces unitemized cash payments with clear, verifiable digital payslips showing gross wages, overtime, and statutory pension savings.
-- **Financial Inclusion:** Provides formal payroll records enabling blue-collar factory workers to access micro-credit, cooperative loans, and formal banking services.
-- **Eradication of Exploitation:** Ensures every minute of overtime performed in hazardous manufacturing environments is mathematically tracked and compensated.
+- **Frontend & Native Mobile:** Modular Vanilla ECMAScript PWA (sub-second rendering on budget Tecno/Infinix/Itel Android phones, IndexedDB offline buffering) packaged cleanly for **Android and iOS via Capacitor `8.6.2`**.
+- **Backend & Persistence:** Node.js ESM application server (`server.mjs`) backed by **PostgreSQL** (`database.mjs`) using row-level tenant partitioning, persistent `app_kv_store`, indexed `time_entries` (`verified_hours` column), `user_sessions`, and real-time SSE `work_events`.
+- **Production Security Hardening:** In production (`NODE_ENV=production`), development demo fallbacks are forcibly disabled (`ALLOW_DEV_FALLBACK=false`, `ALLOW_DEV_DEMO_AUTH=false`); missing persistent `DATABASE_URL` or weak auth configs fail closed rather than silently falling back to insecure state.
+- **Zero-Vulnerability CI/CD & Weekly Autofix Governance:**
+  - `npm run verify`: Automated syntax checks across 8 core modules plus unit, anti-farming, statutory compliance, background scheduler, and email/report regression tests.
+  - `.github/workflows/deploy.yml`: Enforces `npm run audit:check`, `npm run verify`, headless Playwright strict GPS/card/PG E2E suites (`verify_strict_gps_and_card.mjs`), health readiness probes, and Docker build verification on every change to `main`.
+  - `.github/dependabot.yml` + `.github/workflows/security-autofix.yml`: Weekly Monday security dependency scans (`0` known vulnerabilities verified post-upgrade), automated tested autofix PRs, and Capacitor asset rebuilds.
 
 ---
 
-## 17. CAPITALIZATION REQUIREMENTS & USE OF SEED PROCEEDS
+## 13. ORGANIZATIONAL DESIGN, RISK MATRIX & COLLUSION DEFENSE ROADMAP
 
-ShiftRelay is raising a **₦250 Million (~$155,000 USD) Pre-Seed Capitalization Round**:
+### 13.1 Core Executive & Delivery Team
+- **Founder & CEO (Sherif Akanmu):** Product vision, enterprise GTM strategy, pilot closing, and industrial partner relationships.
+- **CTO / Lead Systems Architect:** Multi-tenant PostgreSQL scaling, cryptographic attendance integrity, Capacitor mobile releases, and CI/security hardening.
+- **Head of Payroll & Statutory Compliance (CIPM/ICAN):** Maintains PITA/Finance Act/PenCom/NSITF/ITF calculation rules and client audit sign-offs.
+- **Enterprise Solutions Engineers (2):** 48-hour site geofence calibration, CSV onboarding, optional guard-tablet setup, and supervisor floor training.
+- **Fractional CCO & Fractional CFO (via Connectd / Advisory):** Pipeline scaling across Lagos/Ogun/Port Harcourt corridors and institutional investor data-room governance.
 
-```
-+---------------------------------------------------------------------------------+
-| ALLOCATION OF PROCEEDS (₦250,000,000)                                           |
-+---------------------------------------------------------------------------------+
-| [35%] Engineering & System Hardening (PostgreSQL/AWS Scaling):    ₦87,500,000   |
-| [25%] Enterprise Direct Sales & Industrial Field Deployment:      ₦62,500,000   |
-| [15%] Cloud Infrastructure, Hosting & Local Server Redundancy:    ₦37,500,000   |
-| [10%] Regulatory Filings, NDPR Audit & Corporate Compliance:      ₦25,000,000   |
-| [08%] CIPM / MAN Partnership Roadshows & Industry Marketing:      ₦20,000,000   |
-| [07%] Contingency Operating Reserves:                             ₦17,500,000   |
-+---------------------------------------------------------------------------------+
-```
+### 13.2 Risk Analysis & Anti-Bypass Contingency Matrix
+| Identified Risk | Severity | Mitigation & Control Mechanism |
+|---|---|---|
+| **Collusion via Forwarded Badge Screenshots** | High | *Shipped & Enforced:* 45s rotating TOTP QR (`CARD_QR_EXPIRED` screenshot rejection), suppressed static SEC codes on worker phones, scan-time camera photo snapshot, `SELF_SCAN_FORBIDDEN`, geofence check on scanner, `scannedByMembershipId` attribution, and Auto-Out Supervisor Payroll Hold. |
+| **Indoor Warehouse GPS Drift / No Personal Phone** | Moderate–High | Per-hub radius/accuracy calibration (`resolveOrgGeofenceConfig`) + commodity Android **Guard/Reception Tablet** executing the same peer-scan flow at doors/benches without ZKTeco hardware. |
+| **Site Internet / Power Blackouts** | High | Offline Service Worker + IndexedDB FIFO sync buffering punches until signal returns, alongside zero wall-hardware electrical dependency. |
+| **Enterprise Procurement Latency** | High | De-risked 30-day ₦250k paid single-line trial running in parallel with existing gates ("Shadow Ledger" variance proof), 100% credited to onboarding. |
+| **Naira Inflation & FX Volatility** | Moderate | Full Naira SaaS billing with annual CPI adjustment clauses and lean AWS/Render cloud footprint. |
+| **Workforce / Union Resistance** | Moderate | Shop-steward onboarding framing ShiftRelay as worker protection ensuring transparent payslips and exact 1.5x/2.0x overtime recognition. |
+
+---
+
+## 14. SOCIAL IMPACT, WORKER DIGNITY & ESG GOVERNANCE
+
+ShiftRelay turns frontline workforce verification into verifiable **"S" (Social) and "G" (Governance)** performance for enterprise boards and international ESG lenders:
+- **Worker Pay Transparency:** Eliminates opaque cash/envelope deductions through itemized digital payslips detailing verified hours, overtime multipliers, PAYE tax, and PenCom pension remittances.
+- **Verifiable Operational Credit Identity:** Barcoded/QR Worker Operational CV Dossiers give frontline industrial staff formal employment and verified shift histories usable for cooperative credit and banking inclusion.
+- **Fair Overtime & Safety Protection:** Prevents uncompensated extra shift hours while structured Safety Incidents, Emergency Broadcasts, and Checklist sign-offs enforce hazard accountability across every shift handover.
 
 ---
 
-## 18. APPENDICES
+## 15. APPENDICES: STATUTORY MATRICES & OPERATIONAL GLOSSARY
 
-### Appendix A: Statutory Deduction Reference Guide
-- **Personal Income Tax (PAYE):** Bands scaled progressively from 7% up to 24% for income above ₦3,200,000.
-- **PenCom (PRA 2014):** 8% employee contribution, 10% employer contribution, remitted within 7 working days.
-- **NSITF:** 1% gross payroll, remitted monthly by employer.
-- **NHF:** 2.5% basic salary, voluntary for private sector under the Business Facilitation Act 2023.
+### Appendix A: Core Nigerian Statutory Computation Matrix (`compliance-engine.mjs`)
+- **PAYE Tax:** Consolidated Relief Allowance (`max(1% Gross, ₦200,000) + 20% Gross`) + progressive annual brackets (7%, 11%, 15%, 19%, 21%, 24%) + 1% minimum tax floor where applicable. (Continuously updated per enacted Finance/Tax Acts.)
+- **PenCom Pension (PRA 2014):** `8%` Employee Deduction + `10%` Employer Contribution (`18%` total), statutory remittance countdown `7 working days`.
+- **NSITF (Employees' Compensation Act):** `1.0%` Gross Payroll (Employer Liability).
+- **ITF (Industrial Training Fund):** `1.0%` Total Payroll (Employer Liability).
+- **NHF (National Housing Fund):** `2.5%` Basic Salary (statutory/elective per Business Facilitation Act 2023).
+- **Overtime Matrix:** `1.5x` Weekday Overtime; `2.0x` Sundays and Federal Nigerian Public Holidays.
 
-### Appendix B: Operational Terminology & Definitions
-- **Frontline Specialist:** Direct factory/site operator working on scheduled rotational shifts.
-- **Gate Muster QR:** Fixed entrance vector code validating physical presence without battery drain.
-- **Push to Finance:** Finalized supervisory verification of shifts, transitioning timesheets into payroll vouchers.
-- **Shift Handover Relay:** Structured protocol transferring operational control and safety context between incoming and outgoing production crews.
+### Appendix B: ShiftRelay v3.0 Operational Glossary
+- **Strict Live GPS Fence:** Real-time geolocation gate enforced on both client UI (`gps-guard.js`) and server API (`verifyStrictLiveGps`) before allowing any attendance punch.
+- **Colleague Cryptographic ID Scanner:** Distributed peer check-in/exit flow validating HMAC-SHA256 Staff ID QR payloads or 6-character security codes inside the site geofence while blocking self-scans and duplicate daily entries.
+- **Auto-Out Presence Hold (`hold_presence_review`):** Automated payroll protection mechanism placing un-exited peer-scanned shifts into supervisor review (`pending_supervisor_confirm`) until physical attendance is verified (`verified_hours`).
+- **The "CSV Gap":** The costly, error-prone manual extraction step (USB sticks, desktop polling, Excel scrubbing) required between traditional gate clocks and payroll software—eliminated completely by ShiftRelay.
+- **Shadow Ledger Pilot:** Low-risk 14–30 day parallel deployment comparing legacy gate logs against ShiftRelay's verified attendance engine to quantify recoverable payroll leakage before full site rollout.
 
 ---
-*ShiftRelay Technologies Limited — Enterprise Frontline Operating System. Confidential.*
+*ShiftRelay Technologies Limited — Enterprise Frontline Operating System (Version 3.0, November 2026). Confidential.*

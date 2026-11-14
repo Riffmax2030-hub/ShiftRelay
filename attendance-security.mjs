@@ -6,7 +6,17 @@
 import crypto from 'node:crypto';
 
 const CARD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export const DYNAMIC_CARD_STEP_SECONDS = 45;
+export const DYNAMIC_CARD_ALLOWED_SKEW_STEPS = 1;
 let cachedSigningSecret = process.env.CARD_SIGNING_SECRET || process.env.SESSION_SECRET || '';
+
+function encodeHmacDigestToCardCode(digest, length = 6) {
+  let code = '';
+  for (let i = 0; i < length; i++) {
+    code += CARD_ALPHABET[digest[i] % CARD_ALPHABET.length];
+  }
+  return code;
+}
 
 export function calculateHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
   const R = 6371e3;
@@ -43,10 +53,21 @@ export function ensureCardSigningSecret(store = null) {
   return cachedSigningSecret;
 }
 
-export function computeStaffCardSecurityCode(orgCode, staffId, storeOrSecret = null) {
-  const secret = typeof storeOrSecret === 'string'
+function resolveSigningSecretArg(storeOrSecret = null) {
+  return typeof storeOrSecret === 'string'
     ? storeOrSecret
     : ensureCardSigningSecret(storeOrSecret);
+}
+
+function timingSafeCodeMatch(expected, candidate) {
+  const a = String(expected || '').trim().toUpperCase();
+  const b = String(candidate || '').trim().toUpperCase();
+  if (!a || !b || a.length !== b.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
+}
+
+export function computeStaffCardSecurityCode(orgCode, staffId, storeOrSecret = null) {
+  const secret = resolveSigningSecretArg(storeOrSecret);
   const cleanOrg = String(orgCode || 'RIF-2026').trim().toUpperCase();
   const cleanStaff = String(staffId || '').trim().toUpperCase();
   if (!cleanStaff) return '';
@@ -54,11 +75,7 @@ export function computeStaffCardSecurityCode(orgCode, staffId, storeOrSecret = n
     .createHmac('sha256', secret)
     .update(`SHIFTRELAY-CARD-V1::${cleanOrg}::${cleanStaff}`)
     .digest();
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += CARD_ALPHABET[digest[i] % CARD_ALPHABET.length];
-  }
-  return code;
+  return encodeHmacDigestToCardCode(digest, 6);
 }
 
 export function buildStaffCardCredentials(orgCode, staffId, storeOrSecret = null) {
@@ -72,64 +89,197 @@ export function buildStaffCardCredentials(orgCode, staffId, storeOrSecret = null
   };
 }
 
+export function getDynamicCardWindow(nowMs = Date.now(), stepSeconds = DYNAMIC_CARD_STEP_SECONDS) {
+  const safeStepSec = Math.max(15, Number(stepSeconds) || DYNAMIC_CARD_STEP_SECONDS);
+  const safeNowMs = Number.isFinite(Number(nowMs)) ? Number(nowMs) : Date.now();
+  const stepMs = safeStepSec * 1000;
+  const step = Math.floor(safeNowMs / stepMs);
+  const expiresAtMs = (step + 1) * stepMs;
+  const expiresInSeconds = Math.max(1, Math.ceil((expiresAtMs - safeNowMs) / 1000));
+  return {
+    step,
+    stepSeconds: safeStepSec,
+    expiresAtMs,
+    expiresInSeconds,
+    validUntilIso: new Date(expiresAtMs).toISOString()
+  };
+}
+
+export function computeDynamicStaffCardToken(orgCode, staffId, storeOrSecret = null, step = null) {
+  const secret = resolveSigningSecretArg(storeOrSecret);
+  const cleanOrg = String(orgCode || 'RIF-2026').trim().toUpperCase();
+  const cleanStaff = String(staffId || '').trim().toUpperCase();
+  if (!cleanStaff) return '';
+  const resolvedStep = Number.isInteger(Number(step)) ? Number(step) : getDynamicCardWindow().step;
+  const digest = crypto
+    .createHmac('sha256', secret)
+    .update(`SHIFTRELAY-DYN-V1::${cleanOrg}::${cleanStaff}::${resolvedStep}`)
+    .digest();
+  return encodeHmacDigestToCardCode(digest, 6);
+}
+
+export function buildDynamicStaffCardCredentials(orgCode, staffId, storeOrSecret = null, options = {}) {
+  const cleanOrg = String(orgCode || 'RIF-2026').trim().toUpperCase();
+  const cleanStaff = String(staffId || '').trim().toUpperCase();
+  const win = getDynamicCardWindow(options.nowMs, options.stepSeconds);
+  const resolvedStep = Number.isInteger(Number(options.step)) ? Number(options.step) : win.step;
+  const dynamicToken = computeDynamicStaffCardToken(cleanOrg, cleanStaff, storeOrSecret, resolvedStep);
+  return {
+    staffId: cleanStaff,
+    orgCode: cleanOrg,
+    dynamicToken,
+    dynamicStep: resolvedStep,
+    stepSeconds: win.stepSeconds,
+    expiresInSeconds: win.expiresInSeconds,
+    validUntilIso: win.validUntilIso,
+    dynamicQrPayload: cleanStaff ? `SHIFTRELAY:DYN:${cleanOrg}:${cleanStaff}:${resolvedStep}:${dynamicToken}` : ''
+  };
+}
+
 export function parseStaffCardPayload(rawPayload, explicitSecurityCode = '') {
   const trimmed = String(rawPayload || '').trim();
   const cleanExplicit = String(explicitSecurityCode || '').trim().toUpperCase();
   if (!trimmed) {
-    return { orgCode: '', staffId: '', securityCode: cleanExplicit, isSignedQr: false };
+    return { mode: 'static_card', orgCode: '', staffId: '', step: null, securityCode: cleanExplicit, isSignedQr: false, isDynamicQr: false };
   }
   if (trimmed.includes(':')) {
     const parts = trimmed.split(':').map((s) => s.trim()).filter(Boolean);
     // Supported:
-    // SHIFTRELAY:ID:<ORG_CODE>:<STAFF_ID>:<VERIFY_CODE>
+    // SHIFTRELAY:DYN:<ORG_CODE>:<STAFF_ID>:<STEP>:<DYN_TOKEN>  (Anti-screenshot rotating TOTP QR)
+    // SHIFTRELAY:ID:<ORG_CODE>:<STAFF_ID>:<VERIFY_CODE>         (Printed physical Staff ID QR)
     // SHIFTRELAY:ID:<ORG_CODE>:<STAFF_ID>
     // SR:STAFF:<STAFF_ID>:<VERIFY_CODE>
-    if (parts.length >= 5 && parts[0].toUpperCase() === 'SHIFTRELAY' && parts[1].toUpperCase() === 'ID') {
+    if (parts.length >= 6 && parts[0].toUpperCase() === 'SHIFTRELAY' && parts[1].toUpperCase() === 'DYN') {
+      const parsedStep = Number(parts[4]);
       return {
+        mode: 'dynamic_totp',
         orgCode: parts[2].toUpperCase(),
         staffId: parts[3].toUpperCase(),
+        step: Number.isInteger(parsedStep) ? parsedStep : null,
+        securityCode: cleanExplicit || parts[5].toUpperCase(),
+        isSignedQr: true,
+        isDynamicQr: true
+      };
+    }
+    if (parts.length >= 5 && parts[0].toUpperCase() === 'SHIFTRELAY' && parts[1].toUpperCase() === 'ID') {
+      return {
+        mode: 'static_card',
+        orgCode: parts[2].toUpperCase(),
+        staffId: parts[3].toUpperCase(),
+        step: null,
         securityCode: cleanExplicit || parts[4].toUpperCase(),
-        isSignedQr: true
+        isSignedQr: true,
+        isDynamicQr: false
       };
     }
     if (parts.length === 4 && parts[0].toUpperCase() === 'SHIFTRELAY' && parts[1].toUpperCase() === 'ID') {
       return {
+        mode: 'static_card',
         orgCode: parts[2].toUpperCase(),
         staffId: parts[3].toUpperCase(),
+        step: null,
         securityCode: cleanExplicit,
-        isSignedQr: false
+        isSignedQr: false,
+        isDynamicQr: false
       };
     }
     if (parts.length >= 4 && parts[0].toUpperCase() === 'SR') {
       return {
+        mode: 'static_card',
         orgCode: '',
         staffId: parts[2].toUpperCase(),
+        step: null,
         securityCode: cleanExplicit || parts[3].toUpperCase(),
-        isSignedQr: Boolean(cleanExplicit || parts[3])
+        isSignedQr: Boolean(cleanExplicit || parts[3]),
+        isDynamicQr: false
       };
     }
     return {
+      mode: 'static_card',
       orgCode: '',
       staffId: parts[parts.length - 1].toUpperCase(),
+      step: null,
       securityCode: cleanExplicit,
-      isSignedQr: false
+      isSignedQr: false,
+      isDynamicQr: false
     };
   }
   return {
+    mode: 'static_card',
     orgCode: '',
     staffId: trimmed.toUpperCase(),
+    step: null,
     securityCode: cleanExplicit,
-    isSignedQr: false
+    isSignedQr: false,
+    isDynamicQr: false
   };
 }
 
 export function verifyStaffCardSecurityCode({ orgCode, staffId, providedCode, storeOrSecret = null }) {
   const expected = computeStaffCardSecurityCode(orgCode, staffId, storeOrSecret);
-  const candidate = String(providedCode || '').trim().toUpperCase();
-  if (!expected || !candidate || expected.length !== candidate.length) {
-    return false;
+  return timingSafeCodeMatch(expected, providedCode);
+}
+
+export function verifyStaffCardDynamicToken({
+  orgCode,
+  staffId,
+  providedToken,
+  providedStep = null,
+  storeOrSecret = null,
+  nowMs = Date.now(),
+  allowedSkewSteps = DYNAMIC_CARD_ALLOWED_SKEW_STEPS
+}) {
+  const candidate = String(providedToken || '').trim().toUpperCase();
+  if (!candidate) {
+    return { valid: false, expired: false, matchedStep: null, proofMode: null };
   }
-  return crypto.timingSafeEqual(Buffer.from(expected, 'utf8'), Buffer.from(candidate, 'utf8'));
+  const secret = resolveSigningSecretArg(storeOrSecret);
+  const nowStep = getDynamicCardWindow(nowMs).step;
+  const maxSkew = Math.max(0, Number.isFinite(Number(allowedSkewSteps)) ? Number(allowedSkewSteps) : DYNAMIC_CARD_ALLOWED_SKEW_STEPS);
+
+  if (providedStep !== null && providedStep !== undefined && Number.isInteger(Number(providedStep))) {
+    const stepNum = Number(providedStep);
+    const expectedAtStep = computeDynamicStaffCardToken(orgCode, staffId, secret, stepNum);
+    if (!timingSafeCodeMatch(expectedAtStep, candidate)) {
+      return { valid: false, expired: false, matchedStep: null, proofMode: null };
+    }
+    if (Math.abs(nowStep - stepNum) <= maxSkew) {
+      return { valid: true, expired: false, matchedStep: stepNum, proofMode: 'dynamic_live_qr' };
+    }
+    return { valid: false, expired: true, matchedStep: stepNum, proofMode: null };
+  }
+
+  // Manual 6-char dynamic token entered without explicit step: check valid skew window first
+  const candidateOffsets = [0];
+  for (let d = 1; d <= maxSkew; d++) {
+    candidateOffsets.push(-d, d);
+  }
+  for (const offset of candidateOffsets) {
+    const checkStep = nowStep + offset;
+    const expected = computeDynamicStaffCardToken(orgCode, staffId, secret, checkStep);
+    if (timingSafeCodeMatch(expected, candidate)) {
+      return { valid: true, expired: false, matchedStep: checkStep, proofMode: 'dynamic_live_code' };
+    }
+  }
+
+  // Detect recently expired manual dynamic token (~15m lookback) to distinguish screenshot replay from typo
+  for (let back = maxSkew + 1; back <= 20; back++) {
+    const oldStep = nowStep - back;
+    const expectedOld = computeDynamicStaffCardToken(orgCode, staffId, secret, oldStep);
+    if (timingSafeCodeMatch(expectedOld, candidate)) {
+      return { valid: false, expired: true, matchedStep: oldStep, proofMode: null };
+    }
+  }
+
+  return { valid: false, expired: false, matchedStep: null, proofMode: null };
+}
+
+export function sanitizeScanPhotoDataUrl(rawPhoto) {
+  if (typeof rawPhoto !== 'string') return null;
+  const trimmed = rawPhoto.trim();
+  if (!trimmed || trimmed.length > 130_000) return null;
+  if (!/^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/i.test(trimmed)) return null;
+  return trimmed;
 }
 
 export function resolveOrgGeofenceConfig(org = {}, profile = null) {

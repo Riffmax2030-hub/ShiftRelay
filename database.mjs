@@ -134,6 +134,8 @@ const schema = `
   alter table time_entries add column if not exists clock_out_verification_mode text;
   alter table time_entries add column if not exists clock_out_geofence_status text;
   alter table time_entries add column if not exists verified_hours numeric;
+  alter table time_entries add column if not exists card_proof_mode text;
+  alter table time_entries add column if not exists scan_photo_data_url text;
   create table if not exists quote_reactions (
     quote_key varchar(64) not null,
     membership_id uuid not null references memberships(id) on delete cascade,

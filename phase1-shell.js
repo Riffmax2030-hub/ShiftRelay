@@ -2004,7 +2004,7 @@
               Colleague ID Card Scanner
             </h3>
             <p style="margin:4px 0 0;font-size:12px;color:var(--sr-text-muted);line-height:1.4;">
-              Requires live on-site GPS + physical Staff ID card QR or 6-char Security Code. Scan both check-in and departure exit.
+              Requires live on-site GPS + rotating 45s Live QR (blocks WhatsApp screenshots) or printed Staff ID card. Scan both check-in and departure exit.
             </p>
           </div>
           <button type="button" class="sr-icon-btn" id="sr-btn-close-scanner" aria-label="Close" style="background:transparent;border:none;cursor:pointer;color:var(--sr-text-muted);padding:4px;">
@@ -2046,7 +2046,7 @@
             <form id="sr-peer-id-form" style="display:flex;flex-direction:column;gap:8px;">
               <div style="display:grid;grid-template-columns:1.25fr 0.9fr;gap:8px;">
                 <input type="text" id="sr-peer-staff-id-input" class="sr-input" placeholder="Staff ID or signed QR..." autocomplete="off" style="min-width:0;padding:8px 11px;font-size:12.5px;border:1px solid var(--sr-border-medium);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);" />
-                <input type="text" id="sr-peer-card-code-input" class="sr-input" placeholder="Card SEC (6 chars)" maxlength="8" autocomplete="off" style="min-width:0;padding:8px 11px;font-size:12.5px;font-family:monospace;text-transform:uppercase;border:1px solid var(--sr-border-medium);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);" />
+                <input type="text" id="sr-peer-card-code-input" class="sr-input" placeholder="Live TOTP or Printed SEC" maxlength="8" autocomplete="off" style="min-width:0;padding:8px 11px;font-size:12.5px;font-family:monospace;text-transform:uppercase;border:1px solid var(--sr-border-medium);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);" />
               </div>
               <button type="submit" class="sr-btn sr-btn-primary" id="sr-peer-submit-id-btn" style="padding:9px 14px;font-size:12.5px;font-weight:700;width:100%;">Verify Live GPS &amp; Clock In Card</button>
             </form>
@@ -2152,6 +2152,23 @@
       updateScannerGpsPill('error', 'Strict GPS module unavailable.');
     }
 
+    const captureScannerVideoSnapshot = () => {
+      try {
+        const videoEl = document.getElementById('sr-scanner-video');
+        if (!videoEl || !videoEl.videoWidth || !videoEl.videoHeight) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width = 240;
+        canvas.height = 180;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.62);
+        return (typeof dataUrl === 'string' && dataUrl.length <= 120000) ? dataUrl : null;
+      } catch (_) {
+        return null;
+      }
+    };
+
     const handlePeerCardSubmit = async (rawPayload, explicitPin = '') => {
       const cleanPayload = normalizePayload(rawPayload);
       const cleanPin = String(explicitPin || '').trim().toUpperCase();
@@ -2183,12 +2200,14 @@
       }
 
       if (statusEl) statusEl.textContent = scanAction === 'clock-out' ? 'Verifying card exit scan...' : 'Verifying signed card & on-site GPS...';
+      const scanPhotoDataUrl = captureScannerVideoSnapshot();
       try {
         const bodyPayload = {
           badgePayload: cleanPayload,
           cardVerifyCode: cleanPin || undefined,
           action: scanAction,
-          coords
+          coords,
+          ...(scanPhotoDataUrl ? { scanPhotoDataUrl } : {})
         };
 
         if (!navigator.onLine && window.OfflineQueue?.enqueue) {
@@ -2219,22 +2238,27 @@
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'ID card & location verification failed');
 
+        const proofNote = data.cardProofMode === 'dynamic_live_qr'
+          ? 'Live 45s TOTP QR'
+          : (data.cardProofMode === 'dynamic_live_code' ? 'Live 45s TOTP Code' : 'Printed Badge Fallback');
+        const photoNote = data.hasPhotoProof ? ' · Photo Snapshot Saved' : '';
+
         if (data.action === 'clock-out') {
           SRAudio.playClockOut();
           triggerVibration([100, 50, 150]);
           showResultBanner(
             data.earlyDeparture ? 'warning' : 'success',
             `${data.worker?.userName || 'Colleague'} (${data.worker?.staffId || cleanPayload}) ${data.earlyDeparture ? 'Early Exit Logged' : 'Exit Verified On Site'}`,
-            data.message || 'Shift closed via on-site Staff ID exit scan.'
+            `${data.message || 'Shift closed via on-site Staff ID exit scan.'} [${proofNote}${photoNote}]`
           );
-          if (statusEl) statusEl.textContent = `Exit scanned: ${data.worker?.staffId || cleanPayload}`;
+          if (statusEl) statusEl.textContent = `Exit scanned: ${data.worker?.staffId || cleanPayload} (${proofNote})`;
           const hit = cachedMembers.find(m => m.id === data.worker?.membershipId || m.staffId === data.worker?.staffId);
           if (hit) hit.onShift = false;
         } else {
           SRAudio.playClockIn();
           triggerVibration([70, 50, 100]);
-          showResultBanner('success', `${data.worker?.userName || 'Colleague'} (${data.worker?.staffId || cleanPayload}) Clocked In`, data.message || 'GPS-verified card scan completed.');
-          if (statusEl) statusEl.textContent = `Clocked in: ${data.worker?.staffId || cleanPayload} · Exit scan required at shift end`;
+          showResultBanner('success', `${data.worker?.userName || 'Colleague'} (${data.worker?.staffId || cleanPayload}) Clocked In`, `${data.message || 'GPS-verified card scan completed.'} [${proofNote}${photoNote}]`);
+          if (statusEl) statusEl.textContent = `Clocked in: ${data.worker?.staffId || cleanPayload} (${proofNote})`;
           const hit = cachedMembers.find(m => m.id === data.worker?.membershipId || m.staffId === data.worker?.staffId);
           if (hit) hit.onShift = true;
         }
@@ -3672,11 +3696,20 @@
               ${presenceReviews.map(rev => {
                 const inStr = rev.clockedInAt ? new Date(rev.clockedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
                 const outStr = rev.clockedOutAt ? new Date(rev.clockedOutAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                const proofBadge = rev.cardProofMode === 'dynamic_live_qr'
+                  ? 'Live 45s TOTP QR'
+                  : (rev.cardProofMode === 'dynamic_live_code' ? 'Live 45s TOTP Code' : (rev.cardProofMode === 'static_badge_fallback' ? 'Printed Card Fallback' : ''));
+                const safeThumbUrl = (typeof rev.scanPhotoDataUrl === 'string' && /^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/i.test(rev.scanPhotoDataUrl))
+                  ? rev.scanPhotoDataUrl
+                  : '';
                 return `
                   <div class="sr-review-item" data-presence-entry-id="${escapeHtml(rev.id)}">
-                    <div class="sr-review-info">
-                      <strong>${escapeHtml(rev.workerName)} (${escapeHtml(rev.staffId || rev.membershipId)})</strong>
-                      <small>${escapeHtml(rev.role || 'Staff')} &middot; ${escapeHtml(inStr)} &rarr; ${escapeHtml(outStr)} (${Number(rev.workedHours || 0)}h) &middot; ${escapeHtml(rev.details || 'No exit scan / exit GPS verified')}</small>
+                    <div class="sr-review-info" style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
+                      ${safeThumbUrl ? `<img src="${safeThumbUrl}" alt="Scan snapshot" style="width:44px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--sr-border-medium);flex-shrink:0;" />` : ''}
+                      <div style="min-width:0;flex:1;">
+                        <strong>${escapeHtml(rev.workerName)} (${escapeHtml(rev.staffId || rev.membershipId)})${proofBadge ? ` <span style="font-size:10px;padding:2px 6px;border-radius:99px;background:rgba(13,148,136,0.12);color:#0f766e;font-weight:700;vertical-align:middle;">${escapeHtml(proofBadge)}</span>` : ''}</strong>
+                        <small style="display:block;white-space:normal;line-height:1.35;">${escapeHtml(rev.role || 'Staff')} &middot; ${escapeHtml(inStr)} &rarr; ${escapeHtml(outStr)} (${Number(rev.workedHours || 0)}h) &middot; ${escapeHtml(rev.details || 'No exit scan / exit GPS verified')}</small>
+                      </div>
                     </div>
                     <div class="sr-review-actions">
                       <button type="button" class="sr-btn sr-btn-primary" style="min-height:40px;padding:0 14px;font-size:12.5px;" data-action="confirm-presence" data-id="${escapeHtml(rev.id)}">
@@ -8161,7 +8194,98 @@
     }
   }
 
-  // ── 9. Real Barcode Generators (GS1 Code-128 1D & ISO/IEC 18004 2D QR) ──────
+  // ── 9. Real Barcode Generators & Rotating 45s TOTP Card Ticker ───────────────
+  function attachLiveDynamicCardTicker({
+    qrBoxEl = null,
+    countdownEl = null,
+    tokenEls = [],
+    refreshBtn = null,
+    qrSize = 128,
+    user = null
+  }) {
+    if (!qrBoxEl) return () => {};
+    let expiresAtMs = user?.dynamicCardExpiresAt ? Date.parse(user.dynamicCardExpiresAt) : (Date.now() + 45000);
+    if (!Number.isFinite(expiresAtMs)) expiresAtMs = Date.now() + 45000;
+    let fetching = false;
+    let stopped = false;
+
+    const applyCredentials = (cred) => {
+      if (stopped || !cred) return;
+      if (cred.validUntilIso) {
+        const parsed = Date.parse(cred.validUntilIso);
+        if (Number.isFinite(parsed)) expiresAtMs = parsed;
+      } else {
+        expiresAtMs = Date.now() + ((Number(cred.stepSeconds) || 45) * 1000);
+      }
+      if (user) {
+        user.dynamicQrPayload = cred.dynamicQrPayload;
+        user.dynamicCardToken = cred.dynamicToken;
+        user.dynamicCardExpiresAt = cred.validUntilIso;
+      }
+      if (window.state?.user && (!user?.id || window.state.user.id === user.id)) {
+        window.state.user.dynamicQrPayload = cred.dynamicQrPayload;
+        window.state.user.dynamicCardToken = cred.dynamicToken;
+        window.state.user.dynamicCardExpiresAt = cred.validUntilIso;
+      }
+      if (qrBoxEl && cred.dynamicQrPayload && typeof window.generateQrSvg === 'function') {
+        qrBoxEl.innerHTML = window.generateQrSvg(cred.dynamicQrPayload, qrSize);
+      }
+      for (const el of (tokenEls || [])) {
+        if (el && cred.dynamicToken) el.textContent = cred.dynamicToken;
+      }
+      updateCountdownLabel();
+    };
+
+    const refreshToken = async () => {
+      if (stopped || fetching) return;
+      fetching = true;
+      if (countdownEl) countdownEl.textContent = 'Refreshing QR...';
+      try {
+        const res = await fetch('/api/me/card-token', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.dynamicQrPayload) applyCredentials(data);
+        }
+      } catch (_) {} finally {
+        fetching = false;
+      }
+    };
+
+    const updateCountdownLabel = () => {
+      if (!countdownEl) return;
+      const rem = Math.max(0, Math.ceil((expiresAtMs - Date.now()) / 1000));
+      countdownEl.textContent = rem > 0 ? `Rotates in ${rem}s` : 'Rotating...';
+    };
+
+    updateCountdownLabel();
+    if (!user?.dynamicQrPayload || Date.now() >= expiresAtMs) {
+      refreshToken();
+    }
+
+    const timer = setInterval(() => {
+      if (stopped || !document.body.contains(qrBoxEl)) {
+        clearInterval(timer);
+        stopped = true;
+        return;
+      }
+      const rem = Math.max(0, Math.ceil((expiresAtMs - Date.now()) / 1000));
+      updateCountdownLabel();
+      if (rem <= 0 && !fetching) {
+        refreshToken();
+      }
+    }, 1000);
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => refreshToken());
+    }
+
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }
+  window.ShiftRelayLiveCardTicker = { attach: attachLiveDynamicCardTicker };
+
   const CODE128_PATTERNS = [
     "212222","222122","222221","121223","121322","131222","122213","122312","132212","221213",
     "221312","231212","112232","122132","122231","113222","123122","123221","223211","221132",
@@ -8314,8 +8438,8 @@
     const rawSuffix = String(user.id || '0001').slice(-4).padStart(4, '0');
     const staffCode = user.staffId || user.employee_code || ('RIF-' + rawSuffix);
     const orgCode = user.company_id || 'RIF-2026';
-    const cardVerifyCode = user.cardVerifyCode || '';
-    const qrPayload = user.cardQrPayload || (cardVerifyCode ? `SHIFTRELAY:ID:${orgCode}:${staffCode}:${cardVerifyCode}` : `SHIFTRELAY:ID:${orgCode}:${staffCode}`);
+    const dynamicToken = user.dynamicCardToken || '';
+    const qrPayload = user.dynamicQrPayload || `SHIFTRELAY:ID:${orgCode}:${staffCode}`;
     const qrSvg = (typeof window !== 'undefined' && typeof window.generateQrSvg === 'function')
       ? window.generateQrSvg(qrPayload, 128)
       : (typeof generateQrSvg === 'function' ? generateQrSvg(qrPayload, 128) : '');
@@ -8346,7 +8470,7 @@
                   <span class="sr-cv-meta-chip">${escapeHtml(orgName)}</span>
                   <span class="sr-cv-meta-chip">${escapeHtml(deptName)}</span>
                   <span class="sr-cv-meta-chip">ID: <strong style="color:#ffffff;">${escapeHtml(staffCode)}</strong></span>
-                  ${cardVerifyCode ? `<span class="sr-cv-meta-chip">Card Sec: <strong style="color:#34d399;font-family:monospace;">${escapeHtml(cardVerifyCode)}</strong></span>` : ''}
+                  <span class="sr-cv-meta-chip">Live TOTP: <strong id="sr-profile-chip-dyn-code" style="color:#34d399;font-family:monospace;">${escapeHtml(dynamicToken || 'SYNC')}</strong></span>
                   <span class="sr-cv-meta-chip">${escapeHtml(workEmail)}</span>
                 </div>
               </div>
@@ -8375,22 +8499,22 @@
                 </span>
                 <div>
                   <div style="font-size:14px;font-weight:800;color:#ffffff;">Official Staff ID Card</div>
-                  <div style="font-size:11px;color:#94a3b8;">Signed QR &amp; Security Code${cardVerifyCode ? ` (${escapeHtml(cardVerifyCode)})` : ''} &bull; GPS-Locked On-Site Only</div>
+                  <div style="font-size:11px;color:#94a3b8;">Rotating 45s Live QR (<span id="sr-profile-qr-countdown" style="color:#34d399;font-weight:700;">Rotates every 45s</span>) &bull; GPS-Locked On-Site Only</div>
                 </div>
               </div>
-              <span style="padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#34d399;font-size:10.5px;font-weight:800;letter-spacing:0.04em;">VERIFIED ACTIVE</span>
+              <button type="button" id="sr-profile-qr-refresh" style="padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#34d399;font-size:10.5px;font-weight:800;letter-spacing:0.04em;cursor:pointer;">LIVE 45s TOTP &bull; REFRESH</button>
             </div>
 
             <div class="sr-barcode-codes-row">
-              <!-- Real 2D QR Code Box -->
-              <div class="sr-barcode-qr-box" title="Scan on-site with colleague GPS-locked camera">
-                ${qrSvg}
-                <div style="font-size:9.5px;font-weight:800;color:#0f172a;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;">Signed ID QR</div>
+              <!-- Real Rotating 45s 2D QR Code Box (blocks WhatsApp screenshot reuse) -->
+              <div class="sr-barcode-qr-box" title="Live rotating 45s QR — scan on-site with colleague GPS-locked camera">
+                <div id="sr-profile-qr-svg">${qrSvg}</div>
+                <div style="font-size:9.5px;font-weight:800;color:#0f172a;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;">Live TOTP: <span id="sr-profile-dyn-code">${escapeHtml(dynamicToken || 'SYNC')}</span></div>
               </div>
 
               <!-- Real 1D Code-128 Barcode Box -->
               <div class="sr-barcode-1d-box" title="Scan with any barcode laser scanner">
-                <div style="font-size:9px;font-weight:800;color:#64748b;letter-spacing:0.06em;text-transform:uppercase;">GS1 Code-128 Staff Barcode${cardVerifyCode ? ` &bull; SEC: ${escapeHtml(cardVerifyCode)}` : ''}</div>
+                <div style="font-size:9px;font-weight:800;color:#64748b;letter-spacing:0.06em;text-transform:uppercase;">GS1 Code-128 Staff ID: ${escapeHtml(staffCode)}</div>
                 ${barcodeSvg}
               </div>
             </div>
@@ -8693,6 +8817,18 @@
         </div>
       </div>
     `;
+
+    attachLiveDynamicCardTicker({
+      qrBoxEl: document.getElementById('sr-profile-qr-svg'),
+      countdownEl: document.getElementById('sr-profile-qr-countdown'),
+      tokenEls: [
+        document.getElementById('sr-profile-dyn-code'),
+        document.getElementById('sr-profile-chip-dyn-code')
+      ],
+      refreshBtn: document.getElementById('sr-profile-qr-refresh'),
+      qrSize: 128,
+      user
+    });
 
     // ── Bind Profile Picture Upload ─────────────────────────────────────────
     const avatarInput = document.getElementById('sr-avatar-file-input');
