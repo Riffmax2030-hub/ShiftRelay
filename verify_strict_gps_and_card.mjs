@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { existsSync, mkdirSync } from 'node:fs';
+import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { execFileSync, spawn } from 'node:child_process';
-import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { chromium } from 'playwright';
 import pg from 'pg';
 import {
@@ -16,12 +17,14 @@ import {
 
 const { Pool } = pg;
 const USE_PG = process.argv.includes('--pg');
+const UNIT_ONLY = process.argv.includes('--unit');
 const PG_PORT = 54323;
 const PG_BIN = 'C:\\Program Files\\PostgreSQL\\18\\bin';
 const PG_DATA = join(process.env.TEMP || process.cwd(), 'disposable_pg_cluster_utf8');
 const PG_URL = `postgres://postgres@127.0.0.1:${PG_PORT}/postgres`;
 
-const ARTIFACT_DIR = 'C:\\Users\\DATA ENG. OLA\\.gemini\\antigravity\\brain\\af65195c-f6f5-4f1b-843a-e3eb86a344fb';
+const WIN_ARTIFACT_DIR = 'C:\\Users\\DATA ENG. OLA\\.gemini\\antigravity\\brain\\af65195c-f6f5-4f1b-843a-e3eb86a344fb';
+const ARTIFACT_DIR = process.env.SR_ARTIFACT_DIR || (process.platform === 'win32' && existsSync(WIN_ARTIFACT_DIR) ? WIN_ARTIFACT_DIR : join(tmpdir(), 'shiftrelay-verify-artifacts'));
 const STORE_PATH = join(process.cwd(), 'data', 'shiftrelay.json');
 const PORT = USE_PG ? 4329 : 4319;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
@@ -170,8 +173,10 @@ async function waitForPg(pool, maxRetries = 30) {
 
 async function main() {
   await runUnitChecks();
+  if (UNIT_ONLY) return;
+  mkdirSync(ARTIFACT_DIR, { recursive: true });
 
-  const originalStoreRaw = await readFile(STORE_PATH, 'utf8');
+  const originalStoreRaw = existsSync(STORE_PATH) ? await readFile(STORE_PATH, 'utf8') : null;
   let child = null;
   let browser = null;
   let pgProc = null;
@@ -194,8 +199,13 @@ async function main() {
     });
     proc.stdout.on('data', d => process.stdout.write(`   [srv] ${d}`));
     proc.stderr.on('data', d => process.stderr.write(`   [srv-err] ${d}`));
-    await waitForServer(BASE_URL);
-    return proc;
+    try {
+      await waitForServer(BASE_URL);
+      return proc;
+    } catch (err) {
+      await stopServer(proc);
+      throw err;
+    }
   };
 
   const stopServer = (proc) => new Promise((resolve) => {
@@ -229,7 +239,8 @@ async function main() {
       console.log('   PostgreSQL 18 ready (production database mode).');
     } else {
       // Prepare isolated clean store copy (keep org/contracts/members, clear volatile test punches)
-      const cleanStore = JSON.parse(originalStoreRaw);
+      mkdirSync(dirname(STORE_PATH), { recursive: true });
+      const cleanStore = originalStoreRaw ? JSON.parse(originalStoreRaw) : {};
       cleanStore.timeEntries = [];
       await writeFile(STORE_PATH, JSON.stringify(cleanStore, null, 2), 'utf8');
     }
@@ -523,7 +534,11 @@ async function main() {
       try { execFileSync(join(PG_BIN, 'pg_ctl.exe'), ['-D', PG_DATA, 'stop', '-m', 'immediate'], { stdio: 'ignore' }); } catch (_) {}
       try { pgProc.kill('SIGTERM'); } catch (_) {}
     }
-    await writeFile(STORE_PATH, originalStoreRaw, 'utf8');
+    if (originalStoreRaw !== null) {
+      await writeFile(STORE_PATH, originalStoreRaw, 'utf8');
+    } else if (existsSync(STORE_PATH)) {
+      await unlink(STORE_PATH).catch(() => {});
+    }
   }
 }
 

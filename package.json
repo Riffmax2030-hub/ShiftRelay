@@ -8,6 +8,9 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "node --watch server.mjs",
+    "verify": "node --check server.mjs && node --check database.mjs && node --check attendance-security.mjs && node --check admin-auth.mjs && node --check compliance-engine.mjs && node --check email-engine.mjs && node --check industry-profiles.mjs && node --check gps-guard.js && node verify_strict_gps_and_card.mjs --unit && node test-anti-farming.mjs && node test-compliance-engine.mjs && node test-background-engines.mjs && node test-forms-and-emails.mjs",
+    "audit:check": "npm audit --omit=dev --audit-level=moderate",
+    "audit:fix": "npm audit fix && npm run verify && npm run cap:sync",
     "build:mobile": "node scripts/build-mobile.mjs",
     "cap:sync": "npm run build:mobile && npx cap sync",
     "cap:android": "npx cap open android",

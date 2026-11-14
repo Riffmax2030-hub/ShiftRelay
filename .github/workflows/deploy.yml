@@ -22,18 +22,41 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Lint and Static Validation
-        run: |
-          node -c server.mjs
-          node -c database.mjs
+      - name: Security Vulnerability Gate (Production Deps)
+        run: npm run audit:check
 
-      - name: Smoke Test Backend Health
+      - name: Syntax, Unit & Engine Verification
+        env:
+          ALLOW_DEV_FALLBACK: 'true'
+          ALLOW_DEV_DEMO_AUTH: 'true'
+          NODE_ENV: development
+        run: npm run verify
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Strict GPS & Staff ID Card E2E Verification
+        run: node verify_strict_gps_and_card.mjs
+
+      - name: Smoke Test Backend Health & Strict GPS Client Guard
+        env:
+          ALLOW_DEV_FALLBACK: 'true'
+          ALLOW_DEV_DEMO_AUTH: 'true'
+          NODE_ENV: development
+          PORT: 4000
         run: |
           node server.mjs &
           SERVER_PID=$!
-          sleep 3
-          curl -f http://localhost:4000/health || exit 1
-          kill $SERVER_PID
+          trap "kill $SERVER_PID 2>/dev/null || true" EXIT
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:4000/health >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl -fsS http://localhost:4000/health
+          curl -fsS http://localhost:4000/api/health/readiness
+          curl -fsS http://localhost:4000/gps-guard.js >/dev/null
 
   docker-build:
     needs: test-and-lint
