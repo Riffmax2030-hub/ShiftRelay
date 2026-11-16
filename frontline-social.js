@@ -1922,7 +1922,7 @@ function openProofOfWorkCredentialDialog(profile) {
               <div>
                 <span style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#047857;font-weight:700;">Authenticity Guaranteed</span>
                 <small style="color:#64748b;font-weight:normal;display:block;">Issued on ${issueDate}</small>
-                <small style="color:#0284c7;font-family:monospace;font-size:10px;">shiftrelay.io/verify/${certId}</small>
+                <small style="color:#0284c7;font-family:monospace;font-size:10px;">shiftrelayos.com/verify/${certId}</small>
               </div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -1941,7 +1941,7 @@ function openProofOfWorkCredentialDialog(profile) {
 
   document.getElementById('close-credential-dialog')?.addEventListener('click', () => document.getElementById('credential-dialog')?.remove());
   document.getElementById('btn-copy-verify-link')?.addEventListener('click', () => {
-    const url = `https://shiftrelay.io/verify/${certId}`;
+    const url = `https://shiftrelayos.com/verify/${certId}`;
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(url);
     }

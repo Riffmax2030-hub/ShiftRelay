@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ShiftRelay Web Admin Command Block | Sovereign & Department Console</title>
+  <title>ShiftRelay OS Web Admin Command Block | Sovereign &amp; Department Console</title>
   <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -183,8 +183,46 @@
       height: 100vh;
       overflow-y: auto;
     }
+    .adm-mobile-menu-btn,
+    .adm-sidebar-close-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 11px;
+      border-radius: 9px;
+      border: 1px solid var(--border-hairline);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-white);
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .adm-sidebar-backdrop { display: none; }
     @media (max-width: 1040px) {
-      .adm-sidebar { position: relative; height: auto; }
+      .adm-mobile-menu-btn,
+      .adm-sidebar-close-btn { display: inline-flex; }
+      .adm-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(300px, 86vw);
+        height: 100vh;
+        z-index: 320;
+        transform: translateX(-105%);
+        transition: transform 0.22s ease;
+        box-shadow: 24px 0 60px rgba(0, 0, 0, 0.72);
+      }
+      .adm-sidebar.mobile-open { transform: translateX(0); }
+      .adm-sidebar-backdrop.mobile-open {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 310;
+        background: rgba(2, 6, 16, 0.72);
+        backdrop-filter: blur(4px);
+      }
     }
     .nav-sec-label {
       font-family: 'JetBrains Mono', monospace;
@@ -211,6 +249,12 @@
       text-align: left;
       margin-bottom: 3px;
       transition: all 0.15s;
+    }
+    .adm-nav-btn .nav-label-inner {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
     }
     .adm-nav-btn:hover {
       color: var(--text-white);
@@ -240,6 +284,7 @@
       display: flex;
       flex-direction: column;
       min-width: 0;
+      overflow-x: hidden;
     }
     .adm-topbar {
       position: sticky;
@@ -260,6 +305,14 @@
       align-items: center;
       gap: 6px;
       flex-wrap: wrap;
+      max-width: 100%;
+    }
+    #adm-owner-preview-bar {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      max-width: 100%;
     }
     .role-chip {
       padding: 6px 12px;
@@ -287,6 +340,30 @@
       max-width: 1480px;
       width: 100%;
     }
+    .chk-builder-row {
+      display: grid;
+      grid-template-columns: 1.6fr 0.9fr auto auto;
+      gap: 8px;
+      align-items: center;
+    }
+    .pulse-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 1100px) {
+      .pulse-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .adm-topbar { padding: 12px 16px; }
+      .adm-body { padding: 18px 16px 48px; }
+      .auth-left-architecture, .auth-right-form { padding: 24px 18px; }
+      .auth-card { padding: 24px 20px; }
+      .panel-card { padding: 18px 16px; border-radius: 16px; }
+      .chk-builder-row { grid-template-columns: 1fr; }
+      .pulse-grid { grid-template-columns: 1fr; }
+      .role-chip { padding: 5px 9px; font-size: 11.5px; }
+    }
     .adm-view { display: none; }
     .adm-view.active { display: block; }
 
@@ -304,6 +381,17 @@
       border: 1px solid var(--border-hairline);
       border-radius: 18px;
       padding: 22px;
+      min-width: 0;
+    }
+    #view-email-station .kpi-tile .val {
+      font-size: clamp(11.5px, 0.92vw, 13.2px);
+      overflow-wrap: anywhere;
+      line-height: 1.35;
+      letter-spacing: -0.015em;
+    }
+    #view-email-station .adm-table code {
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
     .kpi-tile .lbl {
       font-family: 'JetBrains Mono', monospace;
@@ -474,19 +562,19 @@
     <div class="auth-left-architecture">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <a href="/website.html" class="brand-lockup">
-          <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay Logo" />
+          <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay OS Logo" />
           <div>
-            <div class="brand-wordmark">Shift<span>Relay</span></div>
-            <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--emerald); letter-spacing:0.1em; display:block;">ADMIN.SHIFTRELAY.COM</span>
+            <div class="brand-wordmark">Shift<span>Relay OS</span></div>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--emerald); letter-spacing:0.1em; display:block;">ADMIN.SHIFTRELAYOS.COM</span>
           </div>
         </a>
         <div style="display:flex; gap:8px;">
-          <a href="/website.html" class="btn-ghost">shiftrelay.com</a>
+          <a href="/website.html" class="btn-ghost">shiftrelayos.com</a>
           <a href="/" class="btn-ghost">Mobile Workspace</a>
         </div>
       </div>
 
-      <div style="my:auto; max-width:540px;">
+      <div style="margin:auto 0; max-width:540px;">
         <span class="chip emerald" style="margin-bottom:14px;">SOVEREIGN OWNER &amp; DEPARTMENT SEPARATION</span>
         <h1 style="font-family:'Outfit',sans-serif; font-size:36px; font-weight:900; line-height:1.12; margin-bottom:14px;">
           Enterprise Admin Command Block &amp; Email Auto-Station
@@ -500,7 +588,7 @@
             // SEPARATED CLEARANCE ARCHITECTURE
           </div>
           <div class="arch-matrix-row">
-            <strong>★ Founder / Owner Root</strong>
+            <strong style="display:inline-flex; align-items:center; gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg> Founder / Owner Root</strong>
             <span class="chip amber">Treasury + Master Approvals</span>
           </div>
           <div class="arch-matrix-row">
@@ -542,7 +630,7 @@
         <form id="adm-login-form" onsubmit="window.handleAdminLogin(event)">
           <div style="margin-bottom:14px;">
             <label class="lbl-sm" for="adm-email-input">Corporate Work Email</label>
-            <input type="email" id="adm-email-input" class="adm-input" autocomplete="username" placeholder="name@shiftrelay.com" required />
+            <input type="email" id="adm-email-input" class="adm-input" autocomplete="username" placeholder="name@shiftrelayos.com" required />
           </div>
 
           <div style="margin-bottom:14px;">
@@ -596,57 +684,63 @@
        2. WIDESCREEN ADMIN CONSOLE (#console-root)
        ═══════════════════════════════════════════════════════════════════════ -->
   <div id="console-root">
-    <aside class="adm-sidebar">
+    <div id="adm-sidebar-backdrop" class="adm-sidebar-backdrop" onclick="window.toggleAdminSidebar(false)"></div>
+    <aside class="adm-sidebar" id="adm-sidebar">
       <div>
-        <div style="display:flex; align-items:center; gap:10px; padding:4px 8px 18px; border-bottom:1px solid var(--border-hairline);">
-          <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay" style="width:34px; height:34px; border-radius:9px;" />
-          <div>
-            <div class="brand-wordmark" style="font-size:18px;">Shift<span>Relay</span></div>
-            <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--emerald);" id="sidebar-role-badge">★ OWNER ROOT</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:4px 8px 18px; border-bottom:1px solid var(--border-hairline);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay OS" style="width:34px; height:34px; border-radius:9px;" />
+            <div>
+              <div class="brand-wordmark" style="font-size:18px;">Shift<span>Relay OS</span></div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--emerald);" id="sidebar-role-badge">OWNER ROOT</div>
+            </div>
           </div>
+          <button type="button" class="adm-sidebar-close-btn" aria-label="Close Navigation" onclick="window.toggleAdminSidebar(false)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
         </div>
 
         <div class="nav-sec-label">Command &amp; Sovereignty</div>
         <button type="button" class="adm-nav-btn active" data-view="overview" onclick="window.switchAdminView('overview')">
-          <span>◈ Command Overview</span>
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg> Command Overview</span>
         </button>
         <button type="button" class="adm-nav-btn owner-btn" data-view="owner-vault" onclick="window.switchAdminView('owner-vault')">
-          <span>★ Owner Sovereign Vault</span>
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg> Owner Sovereign Vault</span>
           <span class="badge-count" id="nav-badge-approvals" style="background:rgba(245,158,11,0.2); color:#fde68a;">4</span>
         </button>
 
         <div class="nav-sec-label">Separated Worker Queues</div>
         <button type="button" class="adm-nav-btn" data-view="onboarding" onclick="window.switchAdminView('onboarding')">
-          <span>01 • Tenant Onboarding</span>
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg> 01. Tenant Onboarding</span>
         </button>
         <button type="button" class="adm-nav-btn" data-view="tenants" onclick="window.switchAdminView('tenants')">
-          <span>02 • Tenants &amp; Staff IDs</span>
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg> 02. Tenants &amp; Staff IDs</span>
           <span class="badge-count" id="nav-badge-tenants">0</span>
         </button>
         <button type="button" class="adm-nav-btn" data-view="rectifications" onclick="window.switchAdminView('rectifications')">
-          <span>03 • Rectification Receipts</span>
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg> 03. Rectifications &amp; NDPA</span>
           <span class="badge-count" id="nav-badge-rects">3</span>
         </button>
         <button type="button" class="adm-nav-btn" data-view="finance" onclick="window.switchAdminView('finance')">
-          <span>04 • Statutory Payroll Audit</span>
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> 04. Statutory Payroll Audit</span>
         </button>
         <button type="button" class="adm-nav-btn" data-view="leads" onclick="window.switchAdminView('leads')">
-          <span>05 • shiftrelay.com Leads</span>
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> 05. shiftrelayos.com Leads</span>
           <span class="badge-count" id="nav-badge-leads">0</span>
         </button>
 
         <div class="nav-sec-label">Infrastructure &amp; Email</div>
         <button type="button" class="adm-nav-btn" data-view="email-station" onclick="window.switchAdminView('email-station')">
-          <span>06 • Email Auto-Station</span>
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> 06. Email Auto-Station</span>
           <span class="badge-count" id="nav-badge-emails">5</span>
         </button>
         <button type="button" class="adm-nav-btn" data-view="hosting" onclick="window.switchAdminView('hosting')">
-          <span>07 • Hosting &amp; Domains</span>
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> 07. Hosting &amp; Domains</span>
         </button>
       </div>
 
       <div style="border-top:1px solid var(--border-hairline); padding-top:14px; display:flex; flex-direction:column; gap:7px;">
-        <a href="/website.html" class="btn-ghost" style="justify-content:center;">Public Site (shiftrelay.com)</a>
+        <a href="/website.html" class="btn-ghost" style="justify-content:center;">Public Site (shiftrelayos.com)</a>
         <a href="/" class="btn-ghost" style="justify-content:center;">Mobile Workspace</a>
         <button type="button" class="btn-ghost" style="justify-content:center; color:var(--rose);" onclick="window.logoutAdminConsole()">
           Sign Out of Admin Block
@@ -656,18 +750,24 @@
 
     <div class="adm-main">
       <header class="adm-topbar">
-        <div>
-          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);" id="topbar-clearance-title">
-            ACTIVE SESSION: FOUNDER / SOVEREIGN OWNER (ROOT ACCESS)
-          </div>
-          <div style="font-size:12px; color:var(--text-slate);" id="topbar-clearance-desc">
-            Full access to Owner Sovereign Vault, Master Approvals, Email Auto-Station, and Hosting Partition Manager.
+        <div style="display:flex; align-items:flex-start; gap:12px; min-width:0; flex:1;">
+          <button type="button" id="adm-mobile-menu-btn" class="adm-mobile-menu-btn" aria-label="Open Navigation Menu" onclick="window.toggleAdminSidebar(true)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            <span>Menu</span>
+          </button>
+          <div style="min-width:0;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);" id="topbar-clearance-title">
+              ACTIVE SESSION: FOUNDER / SOVEREIGN OWNER (ROOT ACCESS)
+            </div>
+            <div style="font-size:12px; color:var(--text-slate);" id="topbar-clearance-desc">
+              Full access to Owner Sovereign Vault, Master Approvals, Email Auto-Station, and Hosting Partition Manager.
+            </div>
           </div>
         </div>
 
         <div class="role-switcher-bar" id="adm-clearance-bar">
           <span class="chip emerald" id="adm-locked-role-chip" style="font-family:'JetBrains Mono',monospace;">SERVER RBAC VERIFIED</span>
-          <div id="adm-owner-preview-bar" style="display:none; align-items:center; gap:6px;">
+          <div id="adm-owner-preview-bar">
             <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-dim);">UI PREVIEW:</span>
             <button type="button" class="role-chip owner-chip active" data-switch-role="owner_root" onclick="window.setAdminActiveRole('owner_root')">Owner (Me)</button>
             <button type="button" class="role-chip" data-switch-role="onboarding_admin" onclick="window.setAdminActiveRole('onboarding_admin')">Onboarding</button>
@@ -704,6 +804,38 @@
             </div>
           </div>
 
+          <div class="panel-card" style="border-color:rgba(56,189,248,0.28);">
+            <div class="panel-head" style="margin-bottom:14px; padding-bottom:12px;">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">LIVE APP v162 TELEMETRY // BIOMETRICS, EXCEPTIONS &amp; WATCHDOG</span>
+                <h2>Upgraded App Compliance &amp; Watchdog Pulse</h2>
+              </div>
+              <span class="chip cyan">Auto-Synced Across All Tenants</span>
+            </div>
+            <div class="pulse-grid">
+              <div class="kpi-tile" style="padding:16px;">
+                <div class="lbl">BIOMETRIC ENROLLMENTS</div>
+                <div class="val" id="kpi-biometrics-enrolled" style="font-size:24px; color:var(--emerald);">0</div>
+                <div class="sub" id="kpi-digital-ids-sub">0 Active Digital Staff IDs</div>
+              </div>
+              <div class="kpi-tile" style="padding:16px;">
+                <div class="lbl">ATTENDANCE EXCEPTIONS</div>
+                <div class="val" id="kpi-open-exceptions" style="font-size:24px; color:#fde68a;">0</div>
+                <div class="sub" id="kpi-pardoned-exceptions-sub" style="color:var(--text-slate);">0 Excused / Pardoned</div>
+              </div>
+              <div class="kpi-tile" style="padding:16px;">
+                <div class="lbl">PRE-SHIFT WATCHDOG ALERTS</div>
+                <div class="val" id="kpi-watchdog-reminders" style="font-size:24px; color:var(--sky);">0</div>
+                <div class="sub">Replacing Manual Gate Muster</div>
+              </div>
+              <div class="kpi-tile" style="padding:16px;">
+                <div class="lbl">NDPA DELETION QUEUE</div>
+                <div class="val" id="kpi-pending-deletions" style="font-size:24px; color:var(--rose);">0</div>
+                <div class="sub" style="color:var(--text-slate);">App Store / Play Compliance</div>
+              </div>
+            </div>
+          </div>
+
           <div class="panel-card">
             <div class="panel-head">
               <div>
@@ -714,7 +846,7 @@
               </div>
               <div style="display:flex; gap:8px;">
                 <button type="button" class="btn-ghost" onclick="window.switchAdminView('email-station')">Open Email Auto-Station</button>
-                <button type="button" class="btn-amber" onclick="window.switchAdminView('owner-vault')">★ Open Owner Sovereign Vault →</button>
+                <button type="button" class="btn-amber" onclick="window.switchAdminView('owner-vault')">Open Owner Sovereign Vault →</button>
               </div>
             </div>
 
@@ -731,7 +863,7 @@
                 </thead>
                 <tbody>
                   <tr>
-                    <td><strong style="color:#fde68a;">★ Founder / Sovereign Owner</strong><div style="font-size:11.5px; color:var(--text-slate);">Owner Root Clearance</div></td>
+                    <td><strong style="color:#fde68a; display:inline-flex; align-items:center; gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg> Founder / Sovereign Owner</strong><div style="font-size:11.5px; color:var(--text-slate);">Owner Root Clearance</div></td>
                     <td>Master Approvals, SaaS MRR/ARR Treasury, Staff Permissions, Hosting &amp; Email Root Config</td>
                     <td><span class="chip emerald">UNRESTRICTED SOVEREIGN ACCESS</span></td>
                     <td>Final Approving Authority</td>
@@ -746,7 +878,7 @@
                   </tr>
                   <tr>
                     <td><strong>Tunde Bakare</strong><div style="font-size:11.5px; color:var(--sky);">Support &amp; Rectification Officer</div></td>
-                    <td>Worker Rectification Receipts (`SR-REC-*`), Email Auto-Station Support, Inbound Demo Leads</td>
+                    <td>Worker Rectification Receipts (<code>SR-REC-*</code>), Email Auto-Station Support, Inbound Demo Leads</td>
                     <td>Locked out of Contract Deletion &amp; Treasury Release</td>
                     <td>Routes bank/RSA overrides to <strong>Owner Vault</strong></td>
                     <td><button type="button" class="btn-ghost" onclick="window.switchAdminView('rectifications')">Open Queue</button></td>
@@ -799,7 +931,10 @@
         <!-- VIEW 2: OWNER-ONLY SOVEREIGN VAULT -->
         <section class="adm-view" id="view-owner-vault">
           <div id="owner-restricted-banner" class="owner-shield-box" style="display:none;">
-            <span class="chip amber" style="margin-bottom:12px;">🔒 OWNER-ONLY CLEARANCE REQUIRED</span>
+            <span class="chip amber" style="margin-bottom:12px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              OWNER-ONLY CLEARANCE REQUIRED
+            </span>
             <h2 style="font-family:'Outfit',sans-serif; font-size:26px; margin-bottom:10px;">
               Restricted to the Founder / Sovereign Owner
             </h2>
@@ -807,26 +942,26 @@
               You are viewing the console as <strong id="restricted-worker-name">Department Admin</strong>. Separated admin workers prepare tasks in their assigned queues, while final approvals and SaaS revenue remain exclusive to the Owner.
             </p>
             <button type="button" class="btn-amber" onclick="window.setAdminActiveRole('owner_root')">
-              ★ Switch Back to Owner Root Clearance
+              Switch Back to Owner Root Clearance
             </button>
           </div>
 
           <div id="owner-vault-unlocked">
             <div class="kpi-row">
               <div class="kpi-tile" style="border-color:var(--border-amber);">
-                <div class="lbl" style="color:#fbbf24;">PLATFORM SAAS MRR (OWNER ONLY)</div>
-                <div class="val" style="color:#fde68a;">₦18.45M</div>
-                <div class="sub">ARR Run-Rate: ₦221.4M / yr</div>
+                <div class="lbl" style="color:#fbbf24;">ESTIMATED SAAS MRR (LIVE PEPM)</div>
+                <div class="val" id="owner-vault-mrr" style="color:#fde68a;">₦0</div>
+                <div class="sub" id="owner-vault-arr-sub">ARR Run-Rate: ₦0 / yr</div>
               </div>
               <div class="kpi-tile">
                 <div class="lbl">PEPM SUBSCRIPTION FEE</div>
-                <div class="val">₦2,500</div>
-                <div class="sub">Per Active Worker / Month</div>
+                <div class="val" id="owner-vault-pepm">₦2,500</div>
+                <div class="sub" id="owner-vault-pepm-sub">Per Provisioned Worker / Mo</div>
               </div>
               <div class="kpi-tile">
-                <div class="lbl">KIOSK HARDWARE SPEND</div>
-                <div class="val">₦0.00</div>
-                <div class="sub">Digital ID Cards &amp; Peer Scan</div>
+                <div class="lbl">MANAGED PAYROLL LEDGER</div>
+                <div class="val" id="owner-vault-payroll-vol">₦0</div>
+                <div class="sub" id="owner-vault-exceptions-sub">0 Open Attendance Exceptions</div>
               </div>
               <div class="kpi-tile">
                 <div class="lbl">AWAITING YOUR SIGN-OFF</div>
@@ -838,7 +973,10 @@
             <div class="panel-card" style="border-color:var(--border-amber);">
               <div class="panel-head">
                 <div>
-                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#fbbf24;">★ OWNER EXCLUSIVE SIGN-OFF</span>
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#fbbf24; display:inline-flex; align-items:center; gap:5px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+                    OWNER EXCLUSIVE SIGN-OFF
+                  </span>
                   <h2>Master Approval Queue (Tasks Prepared by Admin Workers)</h2>
                 </div>
               </div>
@@ -982,6 +1120,65 @@
                 </div>
               </div>
 
+              <!-- Employer Time & Attendance Policy (Dayforce-Grade Grace & Exceptions) -->
+              <div id="ob-attendance-policy-panel" style="margin:14px 0 16px; padding:14px 16px; border-radius:12px; background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.28);">
+                <div style="margin-bottom:10px;">
+                  <div style="font-size:13px; font-weight:800; color:#f8fafc;">Time, Attendance &amp; Exception Policy (Single-Source Payroll)</div>
+                  <div style="font-size:11.5px; color:var(--text-slate);">Workers review and accept these exact grace periods and exception rules on first shift sign-in.</div>
+                </div>
+                <div class="grid-2">
+                  <div>
+                    <label class="lbl-sm">Grace Period (Minutes &mdash; Pardoned for Pay)</label>
+                    <select id="ob-grace-minutes" class="adm-select">
+                      <option value="5">5 Minutes Grace</option>
+                      <option value="10" selected>10 Minutes Grace (Standard)</option>
+                      <option value="15">15 Minutes Grace</option>
+                      <option value="20">20 Minutes Grace</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="lbl-sm">Late Arrival Deduction Rule</label>
+                    <select id="ob-late-mode" class="adm-select">
+                      <option value="none_within_grace" selected>Pardon Within Grace &bull; Review Beyond Grace</option>
+                      <option value="pro_rata_minutes">Pro-Rata Hourly Deduction Beyond Grace</option>
+                      <option value="shift_score_only">Shift Score Impact Only (Zero NGN Deduction)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="grid-2">
+                  <div>
+                    <label class="lbl-sm">Missed Clock-In Action</label>
+                    <select id="ob-missed-in-action" class="adm-select">
+                      <option value="exception_review" selected>Route to Supervisor Exception Queue</option>
+                      <option value="pro_rata_deduct">Pro-Rata Deduction Unless Pardoned</option>
+                      <option value="pardon_with_flag">Auto-Pardon With Audit Flag</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="lbl-sm">Missed Clock-Out Action</label>
+                    <select id="ob-missed-out-action" class="adm-select">
+                      <option value="exception_review" selected>Hold for Supervisor Exception Review</option>
+                      <option value="auto_cap_shift_end">Auto-Cap at Scheduled Shift End</option>
+                      <option value="pro_rata_deduct">Pro-Rata Deduction Until Corrected</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="grid-2">
+                  <div>
+                    <label class="lbl-sm">Early Departure Action</label>
+                    <select id="ob-early-dep-action" class="adm-select">
+                      <option value="exception_review" selected>Route to Supervisor Exception Queue</option>
+                      <option value="pro_rata_deduct">Pro-Rata Minutes Deduction</option>
+                      <option value="pardon_with_flag">Auto-Pardon With Audit Flag</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="lbl-sm">Automated Pre-Shift Reminders (Min Before Shift)</label>
+                    <input type="text" id="ob-reminders" class="adm-input" value="30, 15, 0" placeholder="e.g., 30, 15, 0" />
+                  </div>
+                </div>
+              </div>
+
               <!-- Workplace Safety & Mandatory Daily App Checklists -->
               <div id="ob-checklists-panel" style="margin:14px 0 18px; padding:14px 16px; border-radius:12px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.28);">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
@@ -989,10 +1186,13 @@
                     <div style="font-size:13px; font-weight:800; color:#f8fafc;">Workplace Safety &amp; Mandatory Daily App Checklists</div>
                     <div style="font-size:11.5px; color:var(--text-slate);">These rules sync directly to workers&rsquo; mobile app checklists &amp; assisted ID scanner Step 3 every shift.</div>
                   </div>
-                  <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:11.5px;" onclick="window.loadSectorSafetyDefaults('ob')">↻ Load Sector Safety Defaults</button>
+                  <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:11.5px;" onclick="window.loadSectorSafetyDefaults('ob')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                    Load Sector Safety Defaults
+                  </button>
                 </div>
                 <div id="ob-checklist-items" style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
-                <div style="display:grid; grid-template-columns:1.6fr 0.9fr auto auto; gap:8px; align-items:center;">
+                <div class="chk-builder-row">
                   <input type="text" id="ob-chk-text" class="adm-input" style="margin-bottom:0;" placeholder="e.g., Inspect hard hat, steel-toe boots &amp; fire extinguisher seal" />
                   <select id="ob-chk-category" class="adm-select" style="margin-bottom:0;">
                     <option value="Workplace Safety">Workplace Safety</option>
@@ -1042,7 +1242,18 @@
             <div class="panel-head">
               <div>
                 <h2>Bulk Employee &amp; Digital Staff ID Import (CSV)</h2>
-                <p style="font-size:12.5px; color:var(--text-slate);">Format: <code>Full Name, Email, Phone, Role (employee/manager), Department, BaseSalary</code></p>
+                <p style="font-size:12.5px; color:var(--text-slate);">14-Column Standardized Nigerian Employer Roster: <code>staff_id, full_name, email, phone_e164, department, site_name, role, pay_basis, base_rate_ngn, pencom_rsa_pin, bank_name, cbn_bank_code, nuban_account_number, tin</code> (legacy 6-column rows also auto-supported)</p>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a href="/api/admin/roster-template.csv" download="shiftrelay_roster_template_14col.csv" class="btn-ghost" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Download 14-Col Roster Template (CSV)
+                </a>
+                <label class="btn-ghost" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Load .CSV File
+                  <input id="csv-file-input" type="file" accept=".csv,text/csv" style="display:none;" onchange="window.handleRosterCsvFileSelect(this)" />
+                </label>
               </div>
             </div>
             <div class="grid-2">
@@ -1052,13 +1263,14 @@
               </div>
               <div>
                 <label class="lbl-sm">Provisioning Mode</label>
-                <input type="text" class="adm-input" value="Mobile App + Staff ID Card (Colleague Peer Scan, Zero Kiosk Hardware)" readonly />
+                <input type="text" class="adm-input" value="Mobile App + Digital Staff ID + Peer Scan + Bank/PenCom" readonly />
               </div>
             </div>
             <div style="margin-bottom:14px;">
-              <label class="lbl-sm">Employee CSV Rows</label>
-              <textarea id="csv-raw-input" class="adm-textarea" rows="4">Musa Danjuma, musa.d@company.com, +2348031112233, employee, Packaging Line A, 145000
-Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision, 260000</textarea>
+              <label class="lbl-sm">Employee Roster CSV (Header Optional — Pre-Check Validates NUBAN, CBN Code &amp; PenCom RSA PIN)</label>
+              <textarea id="csv-raw-input" class="adm-textarea" rows="5">staff_id,full_name,email,phone_e164,department,site_name,role,pay_basis,base_rate_ngn,pencom_rsa_pin,bank_name,cbn_bank_code,nuban_account_number,tin
+SR-0101,Musa Danjuma,musa.d@company.com,+2348031112233,Packaging Line A,Ikeja Hub,worker,monthly,145000,PEN100234567891,Guaranty Trust Bank (GTBank),058,0123456789,12345678-0001
+SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ikeja Hub,supervisor,monthly,260000,PEN100987654321,Access Bank,044,0234567891,23456789-0001</textarea>
             </div>
             <div style="margin:12px 0 16px; padding:14px 16px; border-radius:12px; background:rgba(14,165,233,0.06); border:1px solid rgba(14,165,233,0.28);">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
@@ -1071,7 +1283,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
                 <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.saveSelectedTenantChecklists()">Save Safety Rules Only</button>
               </div>
               <div id="csv-checklist-items" style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
-              <div style="display:grid; grid-template-columns:1.6fr 0.9fr auto auto; gap:8px; align-items:center;">
+              <div class="chk-builder-row">
                 <input type="text" id="csv-chk-text" class="adm-input" style="margin-bottom:0;" placeholder="Add workplace safety or daily shift rule for this staff group..." />
                 <select id="csv-chk-category" class="adm-select" style="margin-bottom:0;">
                   <option value="Workplace Safety">Workplace Safety</option>
@@ -1085,22 +1297,29 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
                 <button type="button" class="btn-ghost" style="padding:8px 12px; font-size:12px; white-space:nowrap;" onclick="window.addOnboardingChecklistRule('csv')">+ Add Rule</button>
               </div>
             </div>
-            <button type="button" class="btn-emerald" onclick="window.handleBulkCsvImport()">Import Roster &amp; Dispatch Welcome Emails →</button>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <button type="button" class="btn-ghost" onclick="window.precheckRosterCsvImport()">Pre-Check &amp; Validate CSV</button>
+              <button type="button" class="btn-emerald" onclick="window.commitRosterCsvImport()">Commit Validated Staff &amp; Dispatch Welcome Emails &rarr;</button>
+            </div>
+            <div id="csv-validation-preview" style="display:none; margin-top:16px; border:1px solid rgba(51,65,85,0.85); border-radius:12px; background:rgba(2,6,23,0.68); overflow:hidden;"></div>
           </div>
         </section>
 
-        <!-- VIEW 5: WORKER RECTIFICATION RECEIPTS (LIVE APP SYNC) -->
+        <!-- VIEW 5: WORKER RECTIFICATION RECEIPTS & NDPA ACCOUNT DELETIONS -->
         <section class="adm-view" id="view-rectifications">
           <div class="panel-card">
             <div class="panel-head">
               <div>
                 <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">DEPT 02 // OPERATIONS &amp; SUPPORT DESK (SYNCED WITH MOBILE APP)</span>
-                <h2>Worker Rectification Receipts (`SR-REC-*` / `RECT-*`)</h2>
+                <h2>Worker Rectification Receipts (<code>SR-REC-*</code> / <code>RECT-*</code>)</h2>
                 <p style="font-size:13px; color:var(--text-slate);">
                   Receipts generated by workers inside the Mobile App Support Desk automatically sync here and trigger an automated confirmation via the <strong>Email Auto-Station Engine</strong>.
                 </p>
               </div>
-              <button type="button" class="btn-ghost" onclick="window.syncAppRectificationReceipts(true)">↻ Sync Receipts from App</button>
+              <button type="button" class="btn-ghost" onclick="window.syncAppRectificationReceipts(true)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                Sync Receipts from App
+              </button>
             </div>
 
             <div class="table-scroll">
@@ -1119,6 +1338,35 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
               </table>
             </div>
           </div>
+
+          <div class="panel-card" style="border-color:rgba(244,63,94,0.28);">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--rose);">APP STORE &amp; NDPA 2023 COMPLIANCE // DATA ERASURE QUEUE</span>
+                <h2>Account &amp; Biometric Data Deletion Requests</h2>
+                <p style="font-size:13px; color:var(--text-slate);">
+                  Self-service requests submitted via <code>/delete-account.html</code> or the ShiftRelay OS mobile app. Process statutory identity checks and record completion.
+                </p>
+              </div>
+              <span class="chip rose" id="adm-deletions-count-chip">0 Pending</span>
+            </div>
+
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Request ID</th>
+                    <th>Requester &amp; Contact</th>
+                    <th>Company Code / Role</th>
+                    <th>Scope &amp; Reason</th>
+                    <th>Status</th>
+                    <th>Support / Owner Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-deletions-tbody"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <!-- VIEW 6: STATUTORY PAYROLL AUDIT -->
@@ -1129,10 +1377,40 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
                 <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--indigo);">DEPT 03 // FINANCE &amp; STATUTORY COMPLIANCE</span>
                 <h2>Monthly Payroll Run &amp; Statutory Remittance Audit (PenCom, PAYE, NHF, NSITF)</h2>
               </div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="btn-ghost" onclick="window.printAdminMonthlyPaymentVoucher()">🖨 Print Monthly Payment Data</button>
-                <button type="button" class="btn-ghost" onclick="window.exportAdminStatutoryCsv()">⬇ Statutory CSV</button>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <input type="month" id="adm-finance-month" class="adm-input" style="width:auto; min-width:148px; padding:7px 11px; font-size:12.5px;" onchange="window.loadAdminFinanceOverview()" />
+                <button type="button" class="btn-ghost" onclick="window.printAdminMonthlyPaymentVoucher()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                  Print Monthly Payment Data
+                </button>
+                <button type="button" class="btn-ghost" onclick="window.exportAdminStatutoryCsv()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                  Statutory CSV
+                </button>
                 <button type="button" class="btn-emerald" onclick="window.submitPayrollBatchForOwnerApproval()">Submit Batch to Owner Vault →</button>
+              </div>
+            </div>
+
+            <div class="pulse-grid" style="margin-bottom:18px;">
+              <div class="kpi-tile" style="padding:14px;">
+                <div class="lbl">VERIFIED GROSS PAYROLL</div>
+                <div class="val" id="fin-total-gross" style="font-size:22px;">₦0</div>
+                <div class="sub" id="fin-total-hours-sub">0.0h Logged &bull; 0 Staff</div>
+              </div>
+              <div class="kpi-tile" style="padding:14px;">
+                <div class="lbl">PENCOM REMITTANCE (18%)</div>
+                <div class="val" id="fin-total-pencom" style="font-size:22px; color:var(--sky);">₦0</div>
+                <div class="sub">8% Employee + 10% Employer</div>
+              </div>
+              <div class="kpi-tile" style="padding:14px;">
+                <div class="lbl">PAYE + NHF + NSITF</div>
+                <div class="val" id="fin-total-statutory" style="font-size:22px; color:#c4b5fd;">₦0</div>
+                <div class="sub">Finance Act 2025 / NRS Ready</div>
+              </div>
+              <div class="kpi-tile" style="padding:14px;">
+                <div class="lbl">NET BANK DISBURSEMENT</div>
+                <div class="val" id="fin-total-net" style="font-size:22px; color:var(--emerald);">₦0</div>
+                <div class="sub" id="fin-total-exceptions-sub" style="color:var(--text-slate);">0 Open Exceptions</div>
               </div>
             </div>
 
@@ -1144,54 +1422,28 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
                     <th>Verified Hours</th>
                     <th>Gross Payroll</th>
                     <th>PenCom (8% Emp / 10% Er)</th>
-                    <th>PAYE + NHF (2.5%) + NSITF (1%)</th>
+                    <th>PAYE + NHF + NSITF</th>
                     <th>Net Disbursement</th>
                     <th>Status</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td><strong>Riffmax Technology Limited</strong><div style="font-size:11.5px; color:var(--text-slate);">Victoria Island Engineering Hub</div></td>
-                    <td>4,820h Verified</td>
-                    <td>₦14,820,000</td>
-                    <td>₦2,667,600</td>
-                    <td>₦1,407,900</td>
-                    <td><strong style="color:var(--emerald);">₦12,480,500</strong></td>
-                    <td><span class="chip emerald">AUDITED • READY</span></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Flour Mills Logistics</strong><div style="font-size:11.5px; color:var(--text-slate);">Tin Can Island Hub</div></td>
-                    <td>3,190h Verified</td>
-                    <td>₦9,640,000</td>
-                    <td>₦1,735,200</td>
-                    <td>₦915,800</td>
-                    <td><strong style="color:var(--emerald);">₦8,120,400</strong></td>
-                    <td><span class="chip emerald">AUDITED • READY</span></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Eko Atlantic Facility Ops</strong><div style="font-size:11.5px; color:var(--text-slate);">Victoria Island Precinct</div></td>
-                    <td>2,140h Verified</td>
-                    <td>₦6,450,000</td>
-                    <td>₦1,161,000</td>
-                    <td>₦612,750</td>
-                    <td><strong style="color:var(--emerald);">₦5,439,250</strong></td>
-                    <td><span class="chip cyan">IN STATUTORY REVIEW</span></td>
-                  </tr>
+                <tbody id="adm-finance-tbody">
+                  <tr><td colspan="7" style="text-align:center; color:var(--text-slate); padding:22px;">Loading live compiled payroll audit from backend ledger...</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- VIEW 7: INBOUND LEADS FROM SHIFTRELAY.COM -->
+        <!-- VIEW 7: INBOUND LEADS FROM SHIFTRELAYOS.COM -->
         <section class="adm-view" id="view-leads">
           <div class="panel-card">
             <div class="panel-head">
               <div>
-                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">PUBLIC WEBSITE PIPELINE (SHIFTRELAY.COM)</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">PUBLIC WEBSITE PIPELINE (SHIFTRELAYOS.COM)</span>
                 <h2>Inbound Enterprise Consultations &amp; Facility Inquiries</h2>
               </div>
-              <a href="/website.html#demo-request-section" class="btn-ghost">Open shiftrelay.com Form ↗</a>
+              <a href="/website.html#demo-request-section" class="btn-ghost">Open shiftrelayos.com Form ↗</a>
             </div>
             <div class="table-scroll">
               <table class="adm-table">
@@ -1218,22 +1470,22 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
           <div class="kpi-row">
             <div class="kpi-tile">
               <div class="lbl">SUPPORT &amp; RECEIPTS STATION</div>
-              <div class="val" style="font-size:18px; color:var(--emerald);">support@shiftrelay.com</div>
+              <div class="val" style="color:var(--emerald);">support@shiftrelayos.com</div>
               <div class="sub">Auto-Routes Worker RECT-* Receipts</div>
             </div>
             <div class="kpi-tile">
               <div class="lbl">SECURITY &amp; TENANT OTP</div>
-              <div class="val" style="font-size:18px; color:var(--sky);">security@shiftrelay.com</div>
+              <div class="val" style="color:var(--sky);">security@shiftrelayos.com</div>
               <div class="sub">6-Digit Tenant Verification Codes</div>
             </div>
             <div class="kpi-tile">
               <div class="lbl">ONBOARDING &amp; CONSULTATION DESK</div>
-              <div class="val" style="font-size:18px; color:#fde68a;">onboarding@shiftrelay.com</div>
+              <div class="val" style="color:#fde68a;">onboarding@shiftrelayos.com</div>
               <div class="sub">Executive Auto-Reply &amp; Welcome Kits</div>
             </div>
             <div class="kpi-tile">
               <div class="lbl">FINANCE &amp; STATUTORY</div>
-              <div class="val" style="font-size:18px; color:#c4b5fd;">finance@shiftrelay.com</div>
+              <div class="val" style="color:#c4b5fd;">finance@shiftrelayos.com</div>
               <div class="sub">Monthly Payment &amp; PenCom Schedules</div>
             </div>
           </div>
@@ -1269,6 +1521,99 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
             </div>
           </div>
 
+          <!-- Automated Newsletter Control Center & Legal Acceptance Audit -->
+          <div class="panel-card" id="newsletter-admin-panel">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">NDPA CONSENT &bull; RFC 8058 ONE-CLICK UNSUBSCRIBE</span>
+                <h2>Automated Newsletter &amp; Statutory Brief Control Center</h2>
+                <p style="font-size:13px; color:var(--text-slate);">
+                  Manage <code>shiftrelayos.com</code> workforce subscribers, preview live transactional/digest templates, toggle weekly/monthly crons, and audit legal acceptances.
+                </p>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a href="/api/admin/newsletter/subscribers.csv" download="shiftrelay_newsletter_subscribers.csv" class="btn-ghost" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                  Export Subscribers CSV
+                </a>
+                <button type="button" class="btn-ghost" onclick="window.refreshNewsletterAdminPanel()">Refresh Live Data</button>
+              </div>
+            </div>
+
+            <div class="kpi-row" style="margin-bottom:18px;">
+              <div class="kpi-tile"><div class="lbl">Active Subscribers</div><div class="val" id="adm-nws-active">0</div></div>
+              <div class="kpi-tile"><div class="lbl">Total Opt-Ins</div><div class="val" id="adm-nws-total">0</div></div>
+              <div class="kpi-tile"><div class="lbl">Unsubscribed (NDPA)</div><div class="val" id="adm-nws-unsub">0</div></div>
+              <div class="kpi-tile"><div class="lbl">Dispatched Campaigns</div><div class="val" id="adm-nws-dispatches">0</div></div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-bottom:18px;">
+              <div style="padding:14px; border-radius:12px; background:rgba(15,23,42,0.55); border:1px solid rgba(51,65,85,0.75);">
+                <div style="font-size:11px; font-weight:700; color:var(--emerald); text-transform:uppercase; margin-bottom:8px;">Automated Cron Schedules</div>
+                <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0; margin-bottom:8px; cursor:pointer;">
+                  <input id="adm-nws-weekly-toggle" type="checkbox" checked />
+                  Weekly Operational Progress Digest (Owners &amp; HR)
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0; margin-bottom:10px; cursor:pointer;">
+                  <input id="adm-nws-monthly-toggle" type="checkbox" checked />
+                  Monthly Nigeria PAYE &amp; PenCom Compliance Brief
+                </label>
+                <button type="button" class="btn-emerald" style="padding:7px 12px; font-size:12px;" onclick="window.saveNewsletterSchedule()">Save Schedule Settings</button>
+              </div>
+
+              <div style="padding:14px; border-radius:12px; background:rgba(15,23,42,0.55); border:1px solid rgba(51,65,85,0.75);">
+                <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; margin-bottom:8px;">Campaign Dispatch &amp; Test Preview</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                  <select id="adm-nws-dispatch-type" class="adm-select" style="padding:7px 9px; font-size:12px;">
+                    <option value="monthly_statutory">Monthly Statutory Brief</option>
+                    <option value="weekly_ops">Weekly Ops Digest</option>
+                  </select>
+                  <select id="adm-nws-segment" class="adm-select" style="padding:7px 9px; font-size:12px;">
+                    <option value="all">All Active Segments</option>
+                    <option value="hr_payroll">HR &amp; Payroll</option>
+                    <option value="operations">Operations &amp; Security</option>
+                    <option value="executive">Executive Leadership</option>
+                    <option value="general">General Subscribers</option>
+                  </select>
+                </div>
+                <input id="adm-nws-test-email" type="email" class="adm-input" placeholder="Test recipient (e.g. onboarding@shiftrelayos.com)" style="padding:7px 9px; font-size:12px; margin-bottom:8px;" />
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="btn-ghost" style="padding:7px 11px; font-size:12px;" onclick="window.previewNewsletterTemplate()">Preview Template</button>
+                  <button type="button" class="btn-ghost" style="padding:7px 11px; font-size:12px;" onclick="window.dispatchNewsletterCampaign(true)">Send Test Preview</button>
+                  <button type="button" class="btn-emerald" style="padding:7px 11px; font-size:12px;" onclick="window.dispatchNewsletterCampaign(false)">Dispatch Campaign Now</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="adm-nws-preview-wrap" style="display:none; margin-bottom:18px; border:1px solid rgba(56,189,248,0.35); border-radius:12px; overflow:hidden; background:#020617;">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(15,23,42,0.9); border-bottom:1px solid rgba(51,65,85,0.75);">
+                <span style="font-size:11.5px; font-weight:700; color:#38bdf8;">Live Newsletter Email Template Preview</span>
+                <button type="button" class="btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="document.getElementById('adm-nws-preview-wrap').style.display='none'">Close Preview</button>
+              </div>
+              <iframe id="adm-nws-preview-frame" title="Newsletter Template Preview" style="width:100%; height:360px; border:0; background:#ffffff;"></iframe>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
+              <div>
+                <h3 style="font-size:13px; color:#f8fafc; margin:0 0 8px;">Subscribers Directory (<span id="adm-nws-dir-count">0</span>)</h3>
+                <div class="table-scroll" style="max-height:240px;">
+                  <table class="adm-table">
+                    <thead><tr><th>Email &amp; Name</th><th>Segment</th><th>Source</th><th>Status</th></tr></thead>
+                    <tbody id="adm-nws-subscribers-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div>
+                <h3 style="font-size:13px; color:#f8fafc; margin:0 0 8px;">Recent Dispatches &amp; Legal Acceptances</h3>
+                <div class="table-scroll" style="max-height:240px;">
+                  <table class="adm-table">
+                    <thead><tr><th>Record Type / Period</th><th>Scope / Document</th><th>Target / Version</th><th>Timestamp</th></tr></thead>
+                    <tbody id="adm-nws-audit-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- SMTP / API Provider Configuration Card -->
           <div class="panel-card">
             <div class="panel-head">
@@ -1293,14 +1638,14 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
               </div>
               <div>
                 <label class="lbl-sm">Primary Sending Domain</label>
-                <input type="text" id="smtp-domain" class="adm-input" value="shiftrelay.com" />
+                <input type="text" id="smtp-domain" class="adm-input" value="shiftrelayos.com" />
               </div>
             </div>
 
             <div class="grid-2">
               <div>
                 <label class="lbl-sm">Default Support / Reply-To Mailbox</label>
-                <input type="email" id="smtp-reply" class="adm-input" value="support@shiftrelay.com" />
+                <input type="email" id="smtp-reply" class="adm-input" value="support@shiftrelayos.com" />
               </div>
               <div>
                 <label class="lbl-sm">SMTP / API Key Secret (Stored Encrypted)</label>
@@ -1324,7 +1669,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
                 <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">DEPLOYMENT &amp; DNS ARCHITECTURE</span>
                 <h2>Production Hosting &amp; Subdomain Partitioning Blueprint</h2>
                 <p style="font-size:13px; color:var(--text-slate);">
-                  When you purchase your hosting and `shiftrelay.com` domain, use this exact partitioning table to separate the Public Landing Page, the Mobile/Gate App, the Admin Console, and the Email Auto-Station.
+                  When configuring DNS and custom domain routing for <code>shiftrelayos.com</code>, use this exact partitioning table to separate the Public Landing Page, the Mobile/Gate App, the Admin Console, and the Email Auto-Station (<code>mail.shiftrelayos.com</code>).
                 </p>
               </div>
             </div>
@@ -1342,31 +1687,31 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
                 </thead>
                 <tbody>
                   <tr>
-                    <td><code style="color:var(--emerald); font-weight:700;">shiftrelay.com</code><br/><code style="font-size:11px; color:var(--text-slate);">www.shiftrelay.com</code></td>
+                    <td><code style="color:var(--emerald); font-weight:700;">shiftrelayos.com</code><br/><code style="font-size:11px; color:var(--text-slate);">www.shiftrelayos.com</code></td>
                     <td><code>website.html</code></td>
                     <td>Public B2B SaaS Website (No Login / No Sign-Up; Demo &amp; Contact Only)</td>
-                    <td><code>A @ → Server IP</code><br/><code>CNAME www → shiftrelay.com</code></td>
+                    <td><code>A @ → Origin IP</code><br/><code>CNAME www → shiftrelayos.com</code></td>
                     <td><span class="chip emerald">READY IN REPO</span></td>
                   </tr>
                   <tr>
-                    <td><code style="color:var(--sky); font-weight:700;">app.shiftrelay.com</code></td>
+                    <td><code style="color:var(--sky); font-weight:700;">app.shiftrelayos.com</code></td>
                     <td><code>index.html</code></td>
-                    <td>Workers, Shift Supervisors, Company Owners &amp; 2-Layer Gate Tablets</td>
-                    <td><code>CNAME app → shiftrelay.com</code></td>
+                    <td>Workers, Shift Supervisors, Company Owners &amp; Assisted Gate Scanners</td>
+                    <td><code>CNAME app → shiftrelayos.com</code></td>
                     <td><span class="chip emerald">READY IN REPO</span></td>
                   </tr>
                   <tr>
-                    <td><code style="color:#fde68a; font-weight:700;">admin.shiftrelay.com</code></td>
+                    <td><code style="color:#fde68a; font-weight:700;">admin.shiftrelayos.com</code></td>
                     <td><code>admin.html</code> (<code>/admin</code>)</td>
                     <td>Founder / Sovereign Owner &amp; Separated Internal Admin Staff Only</td>
-                    <td><code>CNAME admin → shiftrelay.com</code></td>
+                    <td><code>CNAME admin → shiftrelayos.com</code></td>
                     <td><span class="chip emerald">READY IN REPO</span></td>
                   </tr>
                   <tr>
-                    <td><code style="color:#c4b5fd; font-weight:700;">@shiftrelay.com</code> (Email)</td>
+                    <td><code style="color:#c4b5fd; font-weight:700;">@shiftrelayos.com</code> (<code>mail.shiftrelayos.com</code>)</td>
                     <td>Email Auto-Station</td>
-                    <td><code>support@</code>, <code>onboarding@</code>, <code>finance@</code>, <code>gate-otp@</code>, <code>legal@</code></td>
-                    <td><code>MX 10 mx.zoho.com</code> + <code>TXT v=spf1</code> + <code>DKIM</code></td>
+                    <td><code>notifications@</code>, <code>support@</code>, <code>onboarding@</code>, <code>security@</code>, <code>finance@</code>, <code>dpo@</code>, <code>legal@</code></td>
+                    <td><code>CNAME mail</code> + <code>MX</code> + <code>TXT v=spf1</code> + <code>DKIM</code> + <code>DMARC</code></td>
                     <td><span class="chip cyan">CONFIGURED IN MODULE 06</span></td>
                   </tr>
                 </tbody>
@@ -1411,7 +1756,29 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
     let cachedApprovals = [];
     let cachedAdminStaff = [];
     let cachedRectifications = [];
+    let cachedDeletions = [];
+    let cachedFinanceOverview = null;
     let cachedAuditLogs = [];
+
+    function formatNgn(amount) {
+      const n = Number(amount || 0);
+      return '₦' + Math.round(n).toLocaleString('en-NG');
+    }
+
+    function formatCompactNgn(amount) {
+      const n = Number(amount || 0);
+      if (n >= 1000000) return '₦' + (n / 1000000).toFixed(2) + 'M';
+      return formatNgn(n);
+    }
+
+    window.toggleAdminSidebar = function (forceState) {
+      const sidebar = document.getElementById('adm-sidebar');
+      const backdrop = document.getElementById('adm-sidebar-backdrop');
+      if (!sidebar || !backdrop) return;
+      const isOpen = typeof forceState === 'boolean' ? forceState : !sidebar.classList.contains('mobile-open');
+      sidebar.classList.toggle('mobile-open', isOpen);
+      backdrop.classList.toggle('mobile-open', isOpen);
+    };
 
     const ADMIN_ROLE_PROFILES = {
       owner_root: {
@@ -1443,7 +1810,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
     const defaultEmailStationLogs = [
       {
         time: new Date(Date.now() - 1000 * 60 * 42).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        from: 'security@shiftrelay.com',
+        from: 'security@shiftrelayos.com',
         to: 'sherif@riffmax.tech',
         subject: 'Tenant Security Verification Code [482910] — Riffmax Technology Limited',
         source: 'Tenant Admin Verification (RIF-2026)',
@@ -1623,6 +1990,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       adminSessionEpoch++;
       document.getElementById('auth-barrier').style.display = 'none';
       document.getElementById('console-root').classList.add('active');
+      try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch (_) { window.scrollTo(0, 0); }
       const previewBar = document.getElementById('adm-owner-preview-bar');
       const lockedChip = document.getElementById('adm-locked-role-chip');
       const isRoot = currentAdminRole === 'owner_root';
@@ -1687,6 +2055,10 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       document.querySelectorAll('.adm-nav-btn').forEach(b => {
         b.classList.toggle('active', b.getAttribute('data-view') === viewId);
       });
+      if (window.innerWidth <= 1040 && typeof window.toggleAdminSidebar === 'function') {
+        window.toggleAdminSidebar(false);
+      }
+      try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch (_) { window.scrollTo(0, 0); }
     };
 
     window.beginMfaEnrollment = async function () {
@@ -1787,27 +2159,60 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       const myEpoch = adminSessionEpoch;
       renderEmailStationTable();
 
+      const monthInput = document.getElementById('adm-finance-month');
+      if (monthInput && !monthInput.value) {
+        const now = new Date();
+        monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      }
+
       try {
+        const canDeletions = ['owner_root', 'ops_support_admin'].includes(currentAdminRole);
+        const canFinance = ['owner_root', 'finance_admin'].includes(currentAdminRole);
         const calls = [
           admFetch('/api/admin/overview'),
           admFetch('/api/admin/tenants'),
           admFetch('/api/admin/demo-requests'),
           admFetch('/api/admin/approvals'),
-          admFetch('/api/admin/rectifications')
+          admFetch('/api/admin/rectifications'),
+          canDeletions ? admFetch('/api/admin/account-deletions') : Promise.resolve(null),
+          canFinance ? admFetch(`/api/admin/payroll-overview${monthInput?.value ? `?month=${encodeURIComponent(monthInput.value)}` : ''}`) : Promise.resolve(null),
+          currentAdminRole === 'owner_root' ? admFetch('/api/admin/staff') : Promise.resolve(null),
+          currentAdminRole === 'owner_root' ? admFetch('/api/admin/audit-logs?limit=50') : Promise.resolve(null)
         ];
-        if (currentAdminRole === 'owner_root') {
-          calls.push(admFetch('/api/admin/staff'));
-          calls.push(admFetch('/api/admin/audit-logs?limit=50'));
-        }
         const results = await Promise.all(calls);
         if (myEpoch !== adminSessionEpoch || !currentAdminUser) return;
-        const [ovRes, tenRes, leadRes, appRes, recRes, staffRes, auditRes] = results;
+        const [ovRes, tenRes, leadRes, appRes, recRes, delRes, finRes, staffRes, auditRes] = results;
 
         if (ovRes && ovRes.ok) {
           const ov = await ovRes.json();
           if (ov.stats) {
-            document.getElementById('kpi-total-tenants').textContent = ov.stats.totalTenants;
-            document.getElementById('kpi-total-workers').textContent = ov.stats.totalFrontlineWorkers;
+            const s = ov.stats;
+            document.getElementById('kpi-total-tenants').textContent = s.totalTenants ?? 0;
+            document.getElementById('kpi-total-workers').textContent = s.totalFrontlineWorkers ?? 0;
+
+            const bioEl = document.getElementById('kpi-biometrics-enrolled');
+            if (bioEl) bioEl.textContent = s.biometricEnrolledCount ?? 0;
+            const digEl = document.getElementById('kpi-digital-ids-sub');
+            if (digEl) digEl.textContent = `${s.digitalIdActiveCount ?? 0} Active Digital Staff IDs`;
+            const exEl = document.getElementById('kpi-open-exceptions');
+            if (exEl) exEl.textContent = s.openAttendanceExceptions ?? 0;
+            const parEl = document.getElementById('kpi-pardoned-exceptions-sub');
+            if (parEl) parEl.textContent = `${s.pardonedExceptionsCount ?? 0} Excused / Pardoned`;
+            const remEl = document.getElementById('kpi-watchdog-reminders');
+            if (remEl) remEl.textContent = s.automatedRemindersCount ?? 0;
+            const pdEl = document.getElementById('kpi-pending-deletions');
+            if (pdEl) pdEl.textContent = s.pendingDeletionRequests ?? 0;
+
+            const mrrEl = document.getElementById('owner-vault-mrr');
+            if (mrrEl) mrrEl.textContent = formatCompactNgn(s.estimatedSaaSMrrNgn || 0);
+            const arrEl = document.getElementById('owner-vault-arr-sub');
+            if (arrEl) arrEl.textContent = `ARR Run-Rate: ${formatCompactNgn(s.estimatedSaaSArrNgn || 0)} / yr`;
+            const pepmEl = document.getElementById('owner-vault-pepm');
+            if (pepmEl) pepmEl.textContent = formatNgn(s.pepmRateNgn || 2500);
+            const payVolEl = document.getElementById('owner-vault-payroll-vol');
+            if (payVolEl) payVolEl.textContent = formatCompactNgn(s.monthlyPayrollVolumeNgn ?? s.monthlyPayrollVolume ?? 0);
+            const exSubEl = document.getElementById('owner-vault-exceptions-sub');
+            if (exSubEl) exSubEl.textContent = `${s.openAttendanceExceptions ?? 0} Open Attendance Exceptions`;
           }
         }
         if (tenRes && tenRes.ok) {
@@ -1829,6 +2234,17 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
           const rd = await recRes.json();
           cachedRectifications = rd.rectifications || [];
           renderRectificationTable();
+        }
+        if (delRes && delRes.ok) {
+          const dd = await delRes.json();
+          cachedDeletions = dd.requests || [];
+          renderAccountDeletionsTable();
+        }
+        if (finRes && finRes.ok) {
+          cachedFinanceOverview = await finRes.json();
+          renderFinanceOverview();
+        } else if (!canFinance) {
+          renderFinanceRestricted();
         }
         if (staffRes && staffRes.ok) {
           const sd = await staffRes.json();
@@ -1946,7 +2362,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
     window.promptAddAdminWorker = async function () {
       const fullName = prompt('Enter new Admin Staff Full Name:', 'Ngozi Okafor');
       if (!fullName) return;
-      const email = prompt('Enter corporate email (@shiftrelay.com):', fullName.toLowerCase().replace(/\s+/g, '.') + '@shiftrelay.com');
+      const email = prompt('Enter corporate email (@shiftrelayos.com):', fullName.toLowerCase().replace(/\s+/g, '.') + '@shiftrelayos.com');
       if (!email) return;
       const role = prompt('Assign role key (onboarding_admin | ops_support_admin | finance_admin):', 'onboarding_admin');
       if (!role) return;
@@ -1978,12 +2394,20 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         const siteName = t.hubName || t.siteName || 'Riffmax Engineering Hub (Victoria Island)';
         const radius = t.hubRadius || t.hub_perimeter || 120;
         const staffCount = Number(t.employeeCount ?? t.workerCount ?? 0);
+        const graceMin = Number(t.attendancePolicy?.graceMinutes ?? 10);
+        const bioCount = Number(t.biometricEnrolledCount ?? 0);
+        const chkCount = Number(t.dailyChecklistCount ?? (t.settings?.dailyChecklists?.length || 0));
 
         return `
           <tr>
             <td>
               <strong>${escapeHtml(companyName)}</strong>
-              <div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(t.legalName || companyName)} · ${escapeHtml(t.industry || 'Enterprise SaaS & HCM')}</div>
+              <div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(t.legalName || companyName)} &bull; ${escapeHtml(t.industry || 'Enterprise SaaS & HCM')}</div>
+              <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:5px;">
+                <span class="chip cyan" style="font-size:10px; padding:2px 7px;">${graceMin}m Grace Policy</span>
+                <span class="chip emerald" style="font-size:10px; padding:2px 7px;">${bioCount}/${staffCount} Bio Enrolled</span>
+                <span class="chip amber" style="font-size:10px; padding:2px 7px;">${chkCount} Safety Rules</span>
+              </div>
             </td>
             <td><code style="color:var(--emerald); font-weight:800; font-family:'JetBrains Mono',monospace;">${escapeHtml(companyCode)}</code></td>
             <td><a href="mailto:${escapeHtml(adminEmail)}" style="color:#38bdf8; text-decoration:none;">${escapeHtml(adminEmail)}</a></td>
@@ -1991,10 +2415,10 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
             <td><span class="chip emerald">${staffCount} Staff</span></td>
             <td>
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                <button type="button" class="btn-emerald" style="padding:4px 9px; font-size:11px;" onclick="window.openEditTenantModal('${t.id}')">
+                <button type="button" class="btn-emerald" style="padding:4px 9px; font-size:11px;" onclick="window.openEditTenantModal('${escapeHtml(t.id)}')">
                   Edit Tenant
                 </button>
-                <button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="window.printGatePoster('${companyName.replace(/'/g, '')}', '${companyCode}', '${siteName.replace(/'/g, '')}')">
+                <button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="window.printGatePoster('${companyName.replace(/'/g, '')}', '${companyCode}', '${siteName.replace(/'/g, '')}', '${escapeHtml(t.id)}')">
                   ID Check-In Guide
                 </button>
               </div>
@@ -2025,37 +2449,129 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         { key: 'operations', label: 'General Workforce Operations' }
       ];
       const currentKey = tenant.industryKey || 'operations';
+      const curPolicy = tenant.attendancePolicy || {};
+      const curGrace = Number(curPolicy.graceMinutes ?? 10);
+      const curLateMode = curPolicy.lateArrivalDeductionMode || 'none_within_grace';
+      const curMissedIn = curPolicy.missedClockInAction || 'exception_review';
+      const curMissedOut = curPolicy.missedClockOutAction || 'exception_review';
+      const curEarlyDep = curPolicy.earlyDepartureAction || 'exception_review';
+      const curReminders = Array.isArray(curPolicy.reminderScheduleMinutes) && curPolicy.reminderScheduleMinutes.length
+        ? curPolicy.reminderScheduleMinutes.join(', ')
+        : '30, 15, 0';
+      const curLat = tenant.hubLat ?? 6.5244;
+      const curLng = tenant.hubLng ?? 3.3792;
 
       const modal = document.createElement('div');
       modal.id = 'adm-tenant-edit-modal';
-      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.58);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;';
       modal.innerHTML = `
-        <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;padding:24px;box-shadow:0 24px 48px rgba(15,23,42,0.22);border:1px solid #e2e8f0;color:#0f172a;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="background:#0a1120;border-radius:18px;max-width:560px;width:100%;padding:24px;box-shadow:0 28px 60px rgba(0,0,0,0.7);border:1px solid rgba(0,245,160,0.32);color:#f8fafc;margin:auto;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08);">
             <div>
-              <h3 style="margin:0;font-size:17px;font-weight:800;">Configure Company Profile &amp; Sector</h3>
-              <p style="margin:3px 0 0;font-size:12px;color:#64748b;">Tailors safety regulations, tax schedules, shift workflows &amp; AI guidance.</p>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#00f5a0;letter-spacing:0.06em;">TENANT POLICY &amp; GEOFENCE EDITOR</span>
+              <h3 style="margin:3px 0 0;font-size:17px;font-weight:800;font-family:'Outfit',sans-serif;">Configure Company Profile &amp; Attendance Policy</h3>
+              <p style="margin:3px 0 0;font-size:12px;color:#94a3b8;">Updates GPS bounds, grace rules, automated reminders &amp; Nigerian payroll calculation.</p>
             </div>
-            <button type="button" id="adm-edit-close" style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;width:32px;height:32px;cursor:pointer;font-weight:700;">&times;</button>
+            <button type="button" id="adm-edit-close" style="border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);color:#f8fafc;border-radius:8px;width:32px;height:32px;cursor:pointer;font-weight:700;">&times;</button>
           </div>
           <form id="adm-tenant-edit-form" style="display:flex;flex-direction:column;gap:12px;">
-            <label style="font-size:12px;font-weight:700;color:#334155;">Trading / Company Name
-              <input id="adm-edit-name" type="text" required value="${String(tenant.tradingName || tenant.legalName || '').replace(/"/g, '&quot;')}" style="width:100%;margin-top:4px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;" />
+            <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Trading / Company Name
+              <input id="adm-edit-name" type="text" required value="${String(tenant.tradingName || tenant.legalName || '').replace(/"/g, '&quot;')}" class="adm-input" style="margin-top:4px;" />
             </label>
-            <label style="font-size:12px;font-weight:700;color:#334155;">Industry Sector
-              <select id="adm-edit-industry" style="width:100%;margin-top:4px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;">
+            <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Industry Sector
+              <select id="adm-edit-industry" class="adm-select" style="margin-top:4px;">
                 ${sectors.map(s => `<option value="${s.key}" ${s.key === currentKey ? 'selected' : ''}>${s.label}</option>`).join('')}
               </select>
             </label>
-            <label style="font-size:12px;font-weight:700;color:#334155;">Primary Hub / Site Name
-              <input id="adm-edit-hub" type="text" required value="${String(tenant.hubName || tenant.siteName || '').replace(/"/g, '&quot;')}" style="width:100%;margin-top:4px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;" />
-            </label>
-            <label style="font-size:12px;font-weight:700;color:#334155;">Geofence Radius (meters)
-              <input id="adm-edit-radius" type="number" min="25" max="5000" required value="${Number(tenant.hubRadius || tenant.radiusMeters || 120)}" style="width:100%;margin-top:4px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;" />
-            </label>
-            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
-              <button type="button" id="adm-edit-cancel" style="padding:9px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;font-weight:700;cursor:pointer;">Cancel</button>
-              <button type="submit" style="padding:9px 16px;border-radius:8px;border:none;background:#0f172a;color:#fff;font-weight:700;cursor:pointer;">Save Sector &amp; Config</button>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Primary Hub / Site Name
+                <input id="adm-edit-hub" type="text" required value="${String(tenant.hubName || tenant.siteName || '').replace(/"/g, '&quot;')}" class="adm-input" style="margin-top:4px;" />
+              </label>
+              <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Geofence Radius (m)
+                <input id="adm-edit-radius" type="number" min="25" max="5000" required value="${Number(tenant.hubRadius || tenant.radiusMeters || 120)}" class="adm-input" style="margin-top:4px;" />
+              </label>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Hub GPS Latitude
+                <input id="adm-edit-lat" type="number" step="0.000001" required value="${curLat}" class="adm-input" style="margin-top:4px;font-family:'JetBrains Mono',monospace;" />
+              </label>
+              <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Hub GPS Longitude
+                <input id="adm-edit-lng" type="number" step="0.000001" required value="${curLng}" class="adm-input" style="margin-top:4px;font-family:'JetBrains Mono',monospace;" />
+              </label>
+            </div>
+            <div style="padding:14px;border-radius:12px;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.24);display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:12.5px;font-weight:800;color:#f8fafc;">Dayforce-Grade Time &amp; Attendance Exception Policy</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <label style="font-size:11.5px;font-weight:700;color:#cbd5e1;">Grace Minutes
+                  <select id="adm-edit-grace" class="adm-select" style="margin-top:4px;padding:8px 10px;font-size:12.5px;">
+                    ${[5, 10, 15, 20].map(m => `<option value="${m}" ${curGrace === m ? 'selected' : ''}>${m} minutes</option>`).join('')}
+                  </select>
+                </label>
+                <label style="font-size:11.5px;font-weight:700;color:#cbd5e1;">Late Arrival Rule
+                  <select id="adm-edit-late-mode" class="adm-select" style="margin-top:4px;padding:8px 10px;font-size:12.5px;">
+                    <option value="none_within_grace" ${curLateMode === 'none_within_grace' ? 'selected' : ''}>Pardon in Grace / Review</option>
+                    <option value="pro_rata_minutes" ${curLateMode === 'pro_rata_minutes' ? 'selected' : ''}>Pro-Rata Deduction</option>
+                    <option value="shift_score_only" ${curLateMode === 'shift_score_only' ? 'selected' : ''}>Shift Score Only</option>
+                  </select>
+                </label>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                <label style="font-size:11px;font-weight:700;color:#cbd5e1;">Missed Clock-In
+                  <select id="adm-edit-missed-in" class="adm-select" style="margin-top:4px;padding:7px 8px;font-size:12px;">
+                    <option value="exception_review" ${curMissedIn === 'exception_review' ? 'selected' : ''}>Exception Queue</option>
+                    <option value="pro_rata_deduct" ${curMissedIn === 'pro_rata_deduct' ? 'selected' : ''}>Pro-Rata Deduct</option>
+                    <option value="pardon_with_flag" ${curMissedIn === 'pardon_with_flag' ? 'selected' : ''}>Pardon w/ Flag</option>
+                  </select>
+                </label>
+                <label style="font-size:11px;font-weight:700;color:#cbd5e1;">Missed Clock-Out
+                  <select id="adm-edit-missed-out" class="adm-select" style="margin-top:4px;padding:7px 8px;font-size:12px;">
+                    <option value="exception_review" ${curMissedOut === 'exception_review' ? 'selected' : ''}>Exception Queue</option>
+                    <option value="auto_cap_shift_end" ${curMissedOut === 'auto_cap_shift_end' ? 'selected' : ''}>Cap Shift End</option>
+                    <option value="pro_rata_deduct" ${curMissedOut === 'pro_rata_deduct' ? 'selected' : ''}>Pro-Rata Deduct</option>
+                  </select>
+                </label>
+                <label style="font-size:11px;font-weight:700;color:#cbd5e1;">Early Departure
+                  <select id="adm-edit-early-dep" class="adm-select" style="margin-top:4px;padding:7px 8px;font-size:12px;">
+                    <option value="exception_review" ${curEarlyDep === 'exception_review' ? 'selected' : ''}>Exception Queue</option>
+                    <option value="pro_rata_deduct" ${curEarlyDep === 'pro_rata_deduct' ? 'selected' : ''}>Pro-Rata Deduct</option>
+                    <option value="pardon_with_flag" ${curEarlyDep === 'pardon_with_flag' ? 'selected' : ''}>Pardon w/ Flag</option>
+                  </select>
+                </label>
+              </div>
+              <label style="font-size:11.5px;font-weight:700;color:#cbd5e1;">Automated Watchdog Pre-Shift Reminders (Minutes Before Shift)
+                <input id="adm-edit-reminders" type="text" value="${escapeHtml(curReminders)}" class="adm-input" style="margin-top:4px;padding:8px 10px;font-size:12.5px;font-family:'JetBrains Mono',monospace;" placeholder="30, 15, 0" />
+              </label>
+            </div>
+            <div style="padding:12px;border-radius:10px;background:rgba(14,165,233,0.06);border:1px solid rgba(56,189,248,0.28);display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span style="font-size:11px;font-weight:700;color:#38bdf8;letter-spacing:0.04em;text-transform:uppercase;">Missed Clock-In &amp; Escalation Channels (Nigeria Gateway)</span>
+                <span id="adm-edit-ch-status" style="font-size:10.5px;color:#94a3b8;font-family:'JetBrains Mono',monospace;">Loading channel gateway...</span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#e2e8f0;cursor:pointer;">
+                  <input id="adm-edit-ch-email" type="checkbox" checked /> Email Dispatch
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#e2e8f0;cursor:pointer;">
+                  <input id="adm-edit-ch-inapp" type="checkbox" checked /> In-App Push Alert
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#e2e8f0;cursor:pointer;">
+                  <input id="adm-edit-ch-termii" type="checkbox" /> Termii SMS (Nigeria)
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#e2e8f0;cursor:pointer;">
+                  <input id="adm-edit-ch-whatsapp" type="checkbox" /> WhatsApp Cloud API
+                </label>
+              </div>
+              <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+                <label style="flex:1;min-width:140px;font-size:11px;font-weight:700;color:#cbd5e1;">Termii / SMS Sender ID
+                  <input id="adm-edit-ch-sender" type="text" value="ShiftRelay" maxlength="11" class="adm-input" style="margin-top:3px;padding:6px 9px;font-size:12px;font-family:'JetBrains Mono',monospace;" />
+                </label>
+                <button type="button" id="adm-edit-ch-probe" class="btn-ghost" style="padding:7px 11px;font-size:11.5px;">Send Channel Probe (Dry-Run/Live)</button>
+              </div>
+              <div id="adm-edit-ch-logs" style="font-size:11px;color:#94a3b8;line-height:1.45;"></div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;">
+              <button type="button" id="adm-edit-cancel" class="btn-ghost">Cancel</button>
+              <button type="submit" class="btn-emerald">Save Sector, GPS &amp; Policy</button>
             </div>
           </form>
         </div>
@@ -2069,6 +2585,20 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         const nextIndustryKey = document.getElementById('adm-edit-industry').value;
         const nextSite = document.getElementById('adm-edit-hub').value.trim();
         const nextRadiusRaw = document.getElementById('adm-edit-radius').value;
+        const nextLat = Number(document.getElementById('adm-edit-lat').value);
+        const nextLng = Number(document.getElementById('adm-edit-lng').value);
+        const remindersArr = String(document.getElementById('adm-edit-reminders').value || '30, 15, 0')
+          .split(',')
+          .map(x => Number(x.trim()))
+          .filter(x => Number.isFinite(x) && x >= 0 && x <= 180);
+        const attendancePolicy = {
+          graceMinutes: Number(document.getElementById('adm-edit-grace').value || 10),
+          lateArrivalDeductionMode: document.getElementById('adm-edit-late-mode').value,
+          missedClockInAction: document.getElementById('adm-edit-missed-in').value,
+          missedClockOutAction: document.getElementById('adm-edit-missed-out').value,
+          earlyDepartureAction: document.getElementById('adm-edit-early-dep').value,
+          reminderScheduleMinutes: remindersArr.length ? remindersArr : [30, 15, 0]
+        };
         try {
           const res = await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}`, {
             method: 'PUT',
@@ -2079,18 +2609,89 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
               industryKey: nextIndustryKey,
               industry: nextIndustryKey,
               hubName: nextSite || tenant.hubName,
-              hubRadius: Number(nextRadiusRaw) || Number(tenant.hubRadius) || 120
+              hubRadius: Number(nextRadiusRaw) || Number(tenant.hubRadius) || 120,
+              hubLat: Number.isFinite(nextLat) ? nextLat : curLat,
+              hubLng: Number.isFinite(nextLng) ? nextLng : curLng,
+              attendancePolicy
             })
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Could not update tenant');
+          await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/notifications`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              email: Boolean(document.getElementById('adm-edit-ch-email')?.checked),
+              inApp: Boolean(document.getElementById('adm-edit-ch-inapp')?.checked),
+              termiiSms: Boolean(document.getElementById('adm-edit-ch-termii')?.checked),
+              whatsappCloud: Boolean(document.getElementById('adm-edit-ch-whatsapp')?.checked),
+              termiiSenderId: (document.getElementById('adm-edit-ch-sender')?.value || 'ShiftRelay').trim()
+            })
+          }).catch(() => {});
           modal.remove();
           await refreshAdminData();
-          showToast(`Updated ${nextName || tenantId} (${nextIndustryKey} profile applied).`);
+          showToast(`Updated ${nextName || tenantId} (${nextIndustryKey} profile & policy applied).`);
         } catch (err) {
           showToast('Tenant update error: ' + err.message);
         }
       };
+
+      (async () => {
+        const statusEl = modal.querySelector('#adm-edit-ch-status');
+        const logsEl = modal.querySelector('#adm-edit-ch-logs');
+        const probeBtn = modal.querySelector('#adm-edit-ch-probe');
+        const paintChannelLogs = (logs) => {
+          if (!logsEl) return;
+          if (!Array.isArray(logs) || !logs.length) {
+            logsEl.innerHTML = 'No recent SMS/WhatsApp dispatches recorded for this tenant yet.';
+            return;
+          }
+          logsEl.innerHTML = 'Recent logs: ' + logs.slice(0, 3).map(l =>
+            `<span style="display:inline-block;margin:2px 6px 2px 0;padding:2px 7px;border-radius:6px;background:rgba(15,23,42,0.7);border:1px solid rgba(148,163,184,0.2);">${escapeHtml(l.channel || 'sms')} · ${escapeHtml(l.status || 'LOGGED')} (${escapeHtml(l.recipient_masked || l.recipientMasked || '***')})</span>`
+          ).join('');
+        };
+        try {
+          const chRes = await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/notifications`);
+          const chData = await chRes.json();
+          if (chRes.ok && chData) {
+            const c = chData.channels || {};
+            if (modal.querySelector('#adm-edit-ch-email')) modal.querySelector('#adm-edit-ch-email').checked = c.email !== false;
+            if (modal.querySelector('#adm-edit-ch-inapp')) modal.querySelector('#adm-edit-ch-inapp').checked = c.inApp !== false;
+            if (modal.querySelector('#adm-edit-ch-termii')) modal.querySelector('#adm-edit-ch-termii').checked = Boolean(c.termiiSms);
+            if (modal.querySelector('#adm-edit-ch-whatsapp')) modal.querySelector('#adm-edit-ch-whatsapp').checked = Boolean(c.whatsappCloud);
+            if (modal.querySelector('#adm-edit-ch-sender')) modal.querySelector('#adm-edit-ch-sender').value = c.termiiSenderId || 'ShiftRelay';
+            const pc = chData.providersConfigured || {};
+            if (statusEl) {
+              statusEl.textContent = `Termii: ${pc.termiiLive ? 'LIVE' : 'DRY_RUN_LOGGED'} · WhatsApp: ${pc.whatsappCloudLive ? 'LIVE' : 'DRY_RUN_LOGGED'}`;
+            }
+            paintChannelLogs(chData.logs);
+          }
+        } catch (_) {
+          if (statusEl) statusEl.textContent = 'Gateway offline';
+        }
+        if (probeBtn) {
+          probeBtn.onclick = async () => {
+            probeBtn.disabled = true;
+            try {
+              const pRes = await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/notifications/test`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  termiiSms: Boolean(modal.querySelector('#adm-edit-ch-termii')?.checked),
+                  whatsappCloud: Boolean(modal.querySelector('#adm-edit-ch-whatsapp')?.checked),
+                  termiiSenderId: (modal.querySelector('#adm-edit-ch-sender')?.value || 'ShiftRelay').trim()
+                })
+              });
+              const pData = await pRes.json();
+              if (!pRes.ok) throw new Error(pData.error || 'Probe failed');
+              paintChannelLogs(pData.logs);
+              showToast(`Channel probe complete (${(pData.logs || pData.results || []).map(r => r.channel + ':' + r.status).join(', ') || 'logged'}).`);
+            } catch (err) {
+              showToast('Probe error: ' + err.message);
+            } finally {
+              probeBtn.disabled = false;
+            }
+          };
+        }
+      })();
     };
 
     const SECTOR_SAFETY_PRESETS = {
@@ -2213,6 +2814,18 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
     window.handleCreateTenant = async function (e) {
       e.preventDefault();
       const companyName = document.getElementById('ob-company-name').value.trim();
+      const reminderRaw = String(document.getElementById('ob-reminders')?.value || '30, 15, 0')
+        .split(',')
+        .map(v => Number(v.trim()))
+        .filter(n => Number.isFinite(n));
+      const attendancePolicy = {
+        graceMinutes: Number(document.getElementById('ob-grace-minutes')?.value || 10),
+        lateArrivalDeductionMode: document.getElementById('ob-late-mode')?.value || 'none_within_grace',
+        missedClockInAction: document.getElementById('ob-missed-in-action')?.value || 'exception_review',
+        missedClockOutAction: document.getElementById('ob-missed-out-action')?.value || 'exception_review',
+        earlyDepartureAction: document.getElementById('ob-early-dep-action')?.value || 'exception_review',
+        reminderScheduleMinutes: reminderRaw.length > 0 ? reminderRaw : [30, 15, 0]
+      };
       const payload = {
         legalName: companyName,
         name: companyName,
@@ -2223,7 +2836,8 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         radiusMeters: Number(document.getElementById('ob-radius').value) || 250,
         latitude: Number(document.getElementById('ob-lat').value) || 6.5244,
         longitude: Number(document.getElementById('ob-lng').value) || 3.3792,
-        dailyChecklists: checklistDrafts.ob || []
+        dailyChecklists: checklistDrafts.ob || [],
+        attendancePolicy
       };
       try {
         const res = await admFetch('/api/admin/tenants', {
@@ -2244,9 +2858,9 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
 
         pushEmailStationLog({
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          from: 'onboarding@shiftrelay.com',
+          from: 'onboarding@shiftrelayos.com',
           to: payload.adminEmail,
-          subject: `Welcome to ShiftRelay — Gate Code & Owner OTP Setup for ${companyName}`,
+          subject: `Welcome to ShiftRelay OS — Company ID & Owner OTP Setup for ${companyName}`,
           source: 'Onboarding Wizard',
           status: 'DELIVERED'
         });
@@ -2260,10 +2874,132 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       }
     };
 
-    window.handleBulkCsvImport = async function () {
+    window._lastPrecheckedCsvState = null;
+
+    window.handleRosterCsvFileSelect = function (inputEl) {
+      const file = inputEl && inputEl.files && inputEl.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = String(reader.result || '').replace(/^\uFEFF/, '');
+        const rawEl = document.getElementById('csv-raw-input');
+        if (rawEl) rawEl.value = text.trim();
+        window.precheckRosterCsvImport();
+      };
+      reader.readAsText(file, 'utf-8');
+    };
+
+    function renderCsvValidationPreview(data) {
+      const box = document.getElementById('csv-validation-preview');
+      if (!box) return;
+      const rows = Array.isArray(data?.rows) ? data.rows : [];
+      box.style.display = 'block';
+      const summaryHtml = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;background:rgba(15,23,42,0.88);border-bottom:1px solid rgba(51,65,85,0.75);">
+          <div style="font-size:12.5px;color:#e2e8f0;font-weight:600;">
+            Pre-Check Summary: <span style="color:#34d399;">${Number(data.validCount || 0)} Valid</span> &middot;
+            <span style="color:${Number(data.errorCount || 0) > 0 ? '#f87171' : '#94a3b8'};">${Number(data.errorCount || 0)} Blocking Errors</span>
+            (${Number(data.totalRows || rows.length)} rows scanned)
+          </div>
+          <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#94a3b8;">Checks: NUBAN 10-digit &bull; CBN Code &bull; PenCom RSA &bull; Duplicate Staff ID/Email</span>
+        </div>`;
+      if (!rows.length) {
+        box.innerHTML = summaryHtml + '<div style="padding:14px;font-size:12.5px;color:#fca5a5;">No valid CSV data rows detected. Verify column formatting.</div>';
+        return;
+      }
+      const rowsHtml = rows.slice(0, 50).map(r => {
+        const errs = Array.isArray(r.errors) ? r.errors : [];
+        const warns = Array.isArray(r.warnings) ? r.warnings : [];
+        const badge = r.valid
+          ? (warns.length ? '<span style="padding:2px 7px;border-radius:99px;background:rgba(245,158,11,0.18);color:#fbbf24;font-size:10.5px;font-weight:700;">READY (WARN)</span>'
+              : '<span style="padding:2px 7px;border-radius:99px;background:rgba(16,185,129,0.18);color:#34d399;font-size:10.5px;font-weight:700;">READY</span>')
+          : '<span style="padding:2px 7px;border-radius:99px;background:rgba(239,68,68,0.18);color:#fca5a5;font-size:10.5px;font-weight:700;">BLOCKED</span>';
+        const noteText = [...errs, ...warns].join(' | ') || 'Bank, CBN & Identity checks passed';
+        return `
+          <tr>
+            <td style="font-family:'JetBrains Mono',monospace;">#${Number(r.rowNumber || 0)}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${escapeHtml(r.staffId || '—')}</td>
+            <td><strong>${escapeHtml(r.fullName || '—')}</strong><br><span style="font-size:11px;color:#94a3b8;">${escapeHtml(r.email || '')}</span></td>
+            <td>${escapeHtml(r.role || 'employee')} / ${escapeHtml(r.payBasis || 'monthly')}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${escapeHtml(r.nubanAccountNumber || '—')} (${escapeHtml(r.cbnBankCode || '—')})</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${escapeHtml(r.pencomRsaPin || '—')}</td>
+            <td>${badge}<div style="font-size:11px;color:${errs.length ? '#fca5a5' : '#94a3b8'};margin-top:3px;">${escapeHtml(noteText)}</div></td>
+          </tr>`;
+      }).join('');
+      box.innerHTML = summaryHtml + `
+        <div class="table-scroll" style="max-height:260px;">
+          <table class="adm-table">
+            <thead><tr><th>Row</th><th>Staff ID</th><th>Worker</th><th>Role / Basis</th><th>NUBAN (CBN)</th><th>PenCom PIN</th><th>Pre-Check Result</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>`;
+    }
+
+    window.precheckRosterCsvImport = async function () {
+      const tenantId = document.getElementById('csv-tenant-select')?.value;
+      const csvText = document.getElementById('csv-raw-input')?.value?.trim() || '';
+      if (!tenantId || !csvText) {
+        showToast('Select a tenant and paste CSV rows first.');
+        return null;
+      }
+      try {
+        const res = await admFetch('/api/admin/roster-import', {
+          method: 'POST',
+          body: JSON.stringify({ tenantId, csvText, dryRun: true })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'CSV validation failed');
+        window._lastPrecheckedCsvState = { tenantId, csvText, result: data };
+        renderCsvValidationPreview(data);
+        showToast(`Pre-check complete: ${data.validCount} ready, ${data.errorCount} blocking errors.`);
+        return data;
+      } catch (err) {
+        showToast('CSV pre-check error: ' + err.message);
+        return null;
+      }
+    };
+
+    window.commitRosterCsvImport = async function () {
+      const tenantId = document.getElementById('csv-tenant-select')?.value;
+      const csvText = document.getElementById('csv-raw-input')?.value?.trim() || '';
+      if (!tenantId || !csvText) return;
+      const firstLine = csvText.split(/\r?\n/)[0] || '';
+      const colsCount = firstLine.split(',').length;
+      if (colsCount < 10 && !/staff_id|pencom_rsa_pin|cbn_bank_code|nuban_account_number/i.test(firstLine)) {
+        return window.handleBulkCsvImport(true);
+      }
+      try {
+        const res = await admFetch('/api/admin/roster-import', {
+          method: 'POST',
+          body: JSON.stringify({ tenantId, csvText, dryRun: false, commit: true })
+        });
+        const data = await res.json();
+        renderCsvValidationPreview(data);
+        if (!res.ok) throw new Error(data.error || 'Roster import blocked by validation errors');
+
+        if (document.getElementById('csv-sync-checklists')?.checked && Array.isArray(checklistDrafts?.csv) && checklistDrafts.csv.length) {
+          await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/checklists`, {
+            method: 'PUT',
+            body: JSON.stringify({ dailyChecklists: checklistDrafts.csv })
+          }).catch(() => {});
+        }
+        await refreshAdminData();
+        showToast(`Imported ${data.importedCount || 0} staff members and dispatched welcome links.`);
+      } catch (err) {
+        showToast('Roster import error: ' + err.message);
+      }
+    };
+
+    window.handleBulkCsvImport = async function (forceLegacy = false) {
       const tenantId = document.getElementById('csv-tenant-select').value;
       const raw = document.getElementById('csv-raw-input').value.trim();
       if (!tenantId || !raw) return;
+      if (!forceLegacy) {
+        const firstLine = raw.split(/\r?\n/)[0] || '';
+        if (firstLine.split(',').length >= 10 || /staff_id|pencom_rsa_pin|cbn_bank_code|nuban_account_number/i.test(firstLine)) {
+          return window.commitRosterCsvImport();
+        }
+      }
       const employees = raw.split(/\r?\n/).map(line => {
         const p = line.split(',').map(s => s.trim());
         return {
@@ -2294,9 +3030,9 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         }
         pushEmailStationLog({
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          from: 'onboarding@shiftrelay.com',
+          from: 'onboarding@shiftrelayos.com',
           to: `${employees.length} Provisioned Workers`,
-          subject: 'Your ShiftRelay Account & Digital Staff ID Are Active',
+          subject: 'Your ShiftRelay OS Account & Digital Staff ID Are Active',
           source: 'Bulk CSV Roster Import',
           status: 'DELIVERED'
         });
@@ -2371,7 +3107,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
         if (!res.ok) throw new Error('Failed to resolve ticket');
         pushEmailStationLog({
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          from: 'support@shiftrelay.com',
+          from: 'support@shiftrelayos.com',
           to: target.email,
           subject: `Resolved: Official Rectification Receipt #${target.id} (${target.category})`,
           source: 'Support Desk Resolution',
@@ -2384,7 +3120,183 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       }
     };
 
+    function renderAccountDeletionsTable() {
+      const list = cachedDeletions || [];
+      const tbody = document.getElementById('adm-deletions-tbody');
+      const chip = document.getElementById('adm-deletions-count-chip');
+      const pendingCount = list.filter(x => {
+        const st = String(x.status || 'requested').toLowerCase();
+        return st === 'requested' || st === 'pending_review';
+      }).length;
+      if (chip) chip.textContent = `${pendingCount} Pending`;
+      if (!tbody) return;
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:20px;">No App Store / NDPA account or biometric deletion requests pending.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map((d) => {
+        const rawSt = String(d.status || 'requested').toLowerCase();
+        const stLabel = rawSt === 'requested' ? 'REQUESTED' : rawSt.toUpperCase();
+        const isPending = rawSt === 'requested' || rawSt === 'pending_review';
+        const ts = d.requestedAt || d.createdAt;
+        const dtStr = ts ? new Date(ts).toLocaleDateString() : 'N/A';
+        return `
+          <tr>
+            <td><code style="color:var(--rose); font-weight:700;">${escapeHtml(d.id)}</code><div style="font-size:11px; color:var(--text-slate);">${escapeHtml(dtStr)}</div></td>
+            <td><strong>${escapeHtml(d.fullName || d.email || 'Worker')}</strong><div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(d.email || '')}</div></td>
+            <td><code style="color:var(--emerald);">${escapeHtml(d.companyCode || 'NDPA Self-Service')}</code><div style="font-size:11px; color:var(--text-slate);">${escapeHtml(d.role || 'Account Erasure')}</div></td>
+            <td style="font-size:12px; color:#cbd5e1; max-width:300px;"><strong>${escapeHtml(d.scope || 'Full Account & Biometric Deletion')}</strong><div style="color:var(--text-slate);">${escapeHtml(d.reason || 'Self-service request')}</div></td>
+            <td><span class="chip ${rawSt === 'completed' ? 'emerald' : rawSt === 'rejected' ? 'rose' : 'amber'}">${escapeHtml(stLabel)}</span></td>
+            <td>
+              ${isPending ? `
+                <div style="display:flex; gap:6px;">
+                  <button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.decideAccountDeletion('${escapeHtml(d.id)}', 'completed')">Complete Erasure</button>
+                  <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px; color:var(--rose);" onclick="window.decideAccountDeletion('${escapeHtml(d.id)}', 'rejected')">Reject</button>
+                </div>
+              ` : `<span style="font-size:11.5px; color:var(--text-slate);">Processed</span>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    window.decideAccountDeletion = async function (reqId, nextStatus) {
+      try {
+        const res = await admFetch(`/api/admin/account-deletions/${encodeURIComponent(reqId)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: nextStatus })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not update deletion request');
+        await refreshAdminData();
+        showToast(`Account deletion ${reqId} marked as ${nextStatus}.`);
+      } catch (err) {
+        showToast('Deletion request error: ' + err.message);
+      }
+    };
+
+    window.refreshNewsletterAdminPanel = async function () {
+      try {
+        const [nwsRes, accRes] = await Promise.all([
+          admFetch('/api/admin/newsletter'),
+          admFetch('/api/admin/legal-acceptances')
+        ]);
+        const nws = await nwsRes.json().catch(() => ({}));
+        const acc = await accRes.json().catch(() => ({}));
+        if (nwsRes.ok && nws) {
+          const sum = nws.summary || {};
+          const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v ?? 0); };
+          setVal('adm-nws-active', sum.activeCount ?? 0);
+          setVal('adm-nws-total', sum.total ?? 0);
+          setVal('adm-nws-unsub', sum.unsubscribedCount ?? 0);
+          setVal('adm-nws-dispatches', (nws.dispatches || []).length);
+          setVal('adm-nws-dir-count', (nws.subscribers || []).length);
+          const sched = nws.schedule || {};
+          const wChk = document.getElementById('adm-nws-weekly-toggle');
+          const mChk = document.getElementById('adm-nws-monthly-toggle');
+          if (wChk) wChk.checked = sched.weeklyOpsEnabled !== false;
+          if (mChk) mChk.checked = sched.monthlyComplianceEnabled !== false;
+          const subBody = document.getElementById('adm-nws-subscribers-tbody');
+          if (subBody) {
+            const subs = Array.isArray(nws.subscribers) ? nws.subscribers : [];
+            subBody.innerHTML = subs.length ? subs.slice(0, 60).map(s => `
+              <tr>
+                <td><strong>${escapeHtml(s.email || '')}</strong><br><span style="font-size:11px;color:#94a3b8;">${escapeHtml(s.full_name || s.company_name || 'Subscriber')}</span></td>
+                <td><span class="chip" style="font-size:10.5px;">${escapeHtml(s.role_segment || 'general')}</span></td>
+                <td style="font-size:11px;color:#94a3b8;">${escapeHtml(s.consent_source || 'website')}</td>
+                <td><span style="padding:2px 7px;border-radius:99px;font-size:10.5px;font-weight:700;background:${s.status === 'active' ? 'rgba(16,185,129,0.16);color:#34d399' : 'rgba(239,68,68,0.16);color:#fca5a5'}">${escapeHtml(String(s.status || 'active').toUpperCase())}</span></td>
+              </tr>`).join('')
+              : '<tr><td colspan="4" style="color:#94a3b8;">No newsletter subscribers recorded yet.</td></tr>';
+          }
+          const auditBody = document.getElementById('adm-nws-audit-tbody');
+          if (auditBody) {
+            const disps = (nws.dispatches || []).slice(0, 15).map(d => ({
+              kind: 'DISPATCH · ' + (d.period_key || d.periodKey || d.dispatch_type || 'campaign'),
+              scope: d.dispatch_type || 'monthly_statutory',
+              target: `${d.recipient_count ?? 1} recipients (${d.segment || 'all'})`,
+              ts: d.sent_at || ''
+            }));
+            const accs = (acc.acceptances || []).slice(0, 20).map(a => ({
+              kind: 'LEGAL · ' + (a.document_type || a.documentType || 'terms'),
+              scope: a.acceptance_source || a.acceptanceSource || 'onboarding',
+              target: `${a.actor_email || a.actorEmail || 'user'} (${a.document_version || a.documentVersion || '2026-11'})`,
+              ts: a.accepted_at || a.acceptedAt || ''
+            }));
+            const combined = [...disps, ...accs].sort((x, y) => String(y.ts).localeCompare(String(x.ts))).slice(0, 25);
+            auditBody.innerHTML = combined.length ? combined.map(r => `
+              <tr>
+                <td style="font-family:'JetBrains Mono',monospace;font-size:11px;">${escapeHtml(r.kind)}</td>
+                <td style="font-size:11.5px;">${escapeHtml(r.scope)}</td>
+                <td style="font-size:11.5px;color:#cbd5e1;">${escapeHtml(r.target)}</td>
+                <td style="font-size:11px;color:#94a3b8;">${escapeHtml(String(r.ts).slice(0, 16).replace('T', ' '))}</td>
+              </tr>`).join('')
+              : '<tr><td colspan="4" style="color:#94a3b8;">No dispatches or legal acceptance events recorded yet.</td></tr>';
+          }
+        }
+      } catch (_) {}
+    };
+
+    window.saveNewsletterSchedule = async function () {
+      try {
+        const res = await admFetch('/api/admin/newsletter/schedule', {
+          method: 'POST',
+          body: JSON.stringify({
+            weeklyOpsEnabled: Boolean(document.getElementById('adm-nws-weekly-toggle')?.checked),
+            monthlyComplianceEnabled: Boolean(document.getElementById('adm-nws-monthly-toggle')?.checked),
+            defaultSegment: document.getElementById('adm-nws-segment')?.value || 'all'
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not save newsletter schedule');
+        showToast('Automated newsletter schedule saved.');
+        window.refreshNewsletterAdminPanel();
+      } catch (err) {
+        showToast('Schedule error: ' + err.message);
+      }
+    };
+
+    window.previewNewsletterTemplate = async function () {
+      const dispatchType = document.getElementById('adm-nws-dispatch-type')?.value || 'monthly_statutory';
+      const typeMap = { monthly_statutory: 'monthly-compliance', weekly_ops: 'newsletter' };
+      const previewUrl = `/api/emails/preview?type=${encodeURIComponent(typeMap[dispatchType] || 'monthly-compliance')}`;
+      const wrap = document.getElementById('adm-nws-preview-wrap');
+      const frame = document.getElementById('adm-nws-preview-frame');
+      if (wrap && frame) {
+        wrap.style.display = 'block';
+        frame.srcdoc = '<div style="font-family:sans-serif;padding:24px;color:#475569;">Loading template preview...</div>';
+        try {
+          const res = await admFetch(previewUrl);
+          if (!res.ok) throw new Error('Preview request failed');
+          frame.srcdoc = await res.text();
+        } catch (err) {
+          frame.srcdoc = `<div style="font-family:sans-serif;padding:24px;color:#b91c1c;">Could not load preview: ${escapeHtml(err.message)}</div>`;
+        }
+      }
+    };
+
+    window.dispatchNewsletterCampaign = async function (testMode = false) {
+      try {
+        const dispatchType = document.getElementById('adm-nws-dispatch-type')?.value || 'monthly_statutory';
+        const segment = document.getElementById('adm-nws-segment')?.value || 'all';
+        const testEmail = document.getElementById('adm-nws-test-email')?.value?.trim() || '';
+        const res = await admFetch('/api/admin/newsletter/dispatch', {
+          method: 'POST',
+          body: JSON.stringify({ dispatchType, segment, testMode, testEmail })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Newsletter dispatch failed');
+        showToast(testMode
+          ? `Test preview sent (${data.emailRecord?.status || 'queued'}).`
+          : `Campaign dispatched (${data.sentCount ?? data.recipientCount ?? 1} recipients).`);
+        await renderEmailStationTable();
+      } catch (err) {
+        showToast('Newsletter dispatch error: ' + err.message);
+      }
+    };
+
     async function renderEmailStationTable() {
+      window.refreshNewsletterAdminPanel();
       let logs = getEmailStationLogs();
       try {
         const res = await admFetch('/api/admin/emails');
@@ -2392,6 +3304,16 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
           const data = await res.json();
           if (Array.isArray(data.emails) && data.emails.length > 0) {
             logs = [...data.emails, ...logs.filter(l => !data.emails.some(e => e.id === l.id))];
+          }
+          const chip = document.getElementById('smtp-status-chip');
+          if (chip && data.smtpConfig) {
+            if (data.smtpConfig.configured) {
+              chip.textContent = `LIVE SMTP CONNECTED: ${data.smtpConfig.host}:${data.smtpConfig.port}`;
+              chip.className = 'chip emerald';
+            } else {
+              chip.textContent = `OUTBOX QUEUE READY (${data.smtpConfig.fromEmail || 'mail.shiftrelayos.com'})`;
+              chip.className = 'chip cyan';
+            }
           }
         }
       } catch (_) {}
@@ -2404,10 +3326,11 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       tbody.innerHTML = logs.map(l => {
         const urlMatch = (l.html || l.text || '').match(/https?:\/\/[^\s"'>]+/);
         const linkHtml = urlMatch ? `<br><a href="${escapeHtml(urlMatch[0])}" target="_blank" style="font-size:11px; color:#38bdf8; text-decoration:underline;">Open Activation Link ↗</a>` : '';
+        const cleanFrom = String(l.from || 'notifications@shiftrelayos.com').replace(/"/g, '').trim();
         return `
           <tr>
             <td style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-slate);">${escapeHtml(l.time || 'Just now')}</td>
-            <td><code style="color:var(--emerald);">${escapeHtml(l.from || 'engine@shiftrelay.tech')}</code></td>
+            <td><code style="color:var(--emerald);">${escapeHtml(cleanFrom)}</code></td>
             <td><strong>${escapeHtml(l.to)}</strong></td>
             <td>${escapeHtml(l.subject)}${linkHtml}</td>
             <td><span class="chip cyan">${escapeHtml(l.source || 'Email Engine')}</span></td>
@@ -2417,18 +3340,22 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       }).join('');
     }
 
-    window.triggerTestAutoStationEmail = function () {
-      const to = prompt('Enter recipient email to test Auto-Station dispatch:', 'owner@shiftrelay.com');
+    window.triggerTestAutoStationEmail = async function () {
+      const to = prompt('Enter recipient email to test Auto-Station dispatch:', 'owner@shiftrelayos.com');
       if (!to) return;
-      pushEmailStationLog({
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        from: 'support@shiftrelay.com',
-        to,
-        subject: 'ShiftRelay Email Auto-Station Diagnostic & Receipt Routing Test',
-        source: 'Admin Manual Diagnostic',
-        status: 'DELIVERED'
-      });
-      showToast('Dispatched test email to ' + to + ' via Email Auto-Station!');
+      try {
+        const res = await admFetch('/api/admin/emails/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Email dispatch failed');
+        await renderEmailStationTable();
+        showToast(`Dispatched ${data.mode === 'smtp' ? 'LIVE SMTP' : 'Auto-Station'} test email to ${to}!`);
+      } catch (err) {
+        showToast('Email test error: ' + err.message);
+      }
     };
 
     window.saveSmtpStationConfig = function () {
@@ -2439,14 +3366,125 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       showToast(`Saved Email Auto-Station configuration for ${domain}!`);
     };
 
+    function renderFinanceRestricted() {
+      const tbody = document.getElementById('adm-finance-tbody');
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-slate); padding:22px;">Finance clearance (<code>owner_root</code> or <code>finance_admin</code>) is required to view cross-tenant statutory payroll schedules.</td></tr>`;
+      }
+    }
+
+    window.loadAdminFinanceOverview = async function () {
+      const monthInput = document.getElementById('adm-finance-month');
+      const month = monthInput?.value || '';
+      try {
+        const res = await admFetch(`/api/admin/payroll-overview${month ? `?month=${encodeURIComponent(month)}` : ''}`);
+        if (!res.ok) return renderFinanceRestricted();
+        cachedFinanceOverview = await res.json();
+        renderFinanceOverview();
+      } catch (_) {}
+    };
+
+    function mapFinanceRow(r) {
+      const empPen = Number(r.totalEmployeePension ?? r.pencomEmployeeNgn ?? 0);
+      const erPen = Number(r.totalEmployerPension ?? r.pencomEmployerNgn ?? 0);
+      const paye = Number(r.totalPayeTax ?? r.payeNgn ?? 0);
+      const nhf = Number(r.totalNhf ?? r.nhfNgn ?? 0);
+      const nsitf = Number(r.totalNsitf ?? r.nsitfNgn ?? 0);
+      return {
+        companyName: r.legalName || r.companyName || r.companyCode || 'Enterprise Tenant',
+        siteName: r.hubName || r.siteName || 'Primary Hub',
+        companyCode: r.companyCode || r.companyId || 'N/A',
+        staffCount: Number(r.employeeCount ?? r.staffCount ?? 0),
+        verifiedHours: Number(r.verifiedHours ?? 0),
+        grossNgn: Number(r.totalGross ?? r.grossNgn ?? 0),
+        empPenNgn: empPen,
+        erPenNgn: erPen,
+        pencomTotalNgn: Number(r.pencomTotalNgn ?? (empPen + erPen)),
+        payeNgn: paye,
+        nhfNgn: nhf,
+        nsitfNgn: nsitf,
+        statutorySumNgn: paye + nhf + nsitf,
+        netNgn: Number(r.totalNetPay ?? r.netNgn ?? 0),
+        openExCount: Number(r.unresolvedExceptionsCount ?? r.openExceptionsCount ?? 0)
+      };
+    }
+
+    function mapFinanceTotals(totals, mappedRows) {
+      const empPen = Number(totals.totalEmployeePension ?? totals.pencomEmployeeNgn ?? 0);
+      const erPen = Number(totals.totalEmployerPension ?? totals.pencomEmployerNgn ?? 0);
+      const paye = Number(totals.totalPayeTax ?? totals.payeNgn ?? 0);
+      const nhf = Number(totals.totalNhf ?? totals.nhfNgn ?? 0);
+      const nsitf = Number(totals.totalNsitf ?? totals.nsitfNgn ?? 0);
+      const sumStaff = mappedRows.reduce((s, r) => s + r.staffCount, 0);
+      return {
+        verifiedHours: Number(totals.verifiedHours ?? 0),
+        staffCount: Number(totals.employeeCount ?? totals.staffCount ?? sumStaff),
+        grossNgn: Number(totals.totalGross ?? totals.grossNgn ?? 0),
+        pencomTotalNgn: Number(totals.pencomTotalNgn ?? (empPen + erPen)),
+        statutorySumNgn: paye + nhf + nsitf,
+        netNgn: Number(totals.totalNetPay ?? totals.netNgn ?? 0),
+        openExCount: Number(totals.unresolvedExceptionsCount ?? totals.openExceptionsCount ?? 0)
+      };
+    }
+
+    function renderFinanceOverview() {
+      const tbody = document.getElementById('adm-finance-tbody');
+      const data = cachedFinanceOverview;
+      if (!tbody || !data) return;
+      const rows = (Array.isArray(data.tenants) ? data.tenants : []).map(mapFinanceRow);
+      const totals = mapFinanceTotals(data.totals || {}, rows);
+
+      const grossEl = document.getElementById('fin-total-gross');
+      if (grossEl) grossEl.textContent = formatNgn(totals.grossNgn);
+      const hrsEl = document.getElementById('fin-total-hours-sub');
+      if (hrsEl) hrsEl.textContent = `${totals.verifiedHours.toFixed(1)}h Logged \u2022 ${totals.staffCount} Staff`;
+      const penEl = document.getElementById('fin-total-pencom');
+      if (penEl) penEl.textContent = formatNgn(totals.pencomTotalNgn);
+      const statEl = document.getElementById('fin-total-statutory');
+      if (statEl) statEl.textContent = formatNgn(totals.statutorySumNgn);
+      const netEl = document.getElementById('fin-total-net');
+      if (netEl) netEl.textContent = formatNgn(totals.netNgn);
+      const exSub = document.getElementById('fin-total-exceptions-sub');
+      if (exSub) exSub.textContent = `${totals.openExCount} Open Exceptions`;
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-slate); padding:22px;">No tenant payroll ledgers compiled for ${escapeHtml(data.month || 'this month')}.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => {
+        const ready = r.openExCount === 0;
+        return `
+          <tr>
+            <td>
+              <strong>${escapeHtml(r.companyName)}</strong>
+              <div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(r.siteName)} &bull; <code>${escapeHtml(r.companyCode)}</code></div>
+            </td>
+            <td>${r.verifiedHours.toFixed(1)}h (${r.staffCount} staff)</td>
+            <td>${formatNgn(r.grossNgn)}</td>
+            <td>${formatNgn(r.pencomTotalNgn)}<div style="font-size:11px; color:var(--text-slate);">Emp ${formatNgn(r.empPenNgn)} / Er ${formatNgn(r.erPenNgn)}</div></td>
+            <td>${formatNgn(r.statutorySumNgn)}</td>
+            <td><strong style="color:var(--emerald);">${formatNgn(r.netNgn)}</strong></td>
+            <td><span class="chip ${ready ? 'emerald' : 'amber'}">${ready ? 'AUDITED \u2022 READY' : `${r.openExCount} EXCEPTIONS OPEN`}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
     window.submitPayrollBatchForOwnerApproval = async function () {
+      const rawRows = Array.isArray(cachedFinanceOverview?.tenants) ? cachedFinanceOverview.tenants : [];
+      const mappedRows = rawRows.map(mapFinanceRow);
+      const totals = mapFinanceTotals(cachedFinanceOverview?.totals || {}, mappedRows);
+      const monthLabel = cachedFinanceOverview?.month || 'current cycle';
+      const grossFormatted = formatNgn(totals.grossNgn);
+      const netFormatted = formatNgn(totals.netNgn);
       try {
         const res = await admFetch('/api/admin/approvals', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            summary: 'Final Release: Multi-Tenant Statutory Payroll & PenCom/PAYE Schedule (₦30,910,000 Gross)',
-            impact: 'Treasury Batch: ₦30,910,000'
+            summary: `Final Release (${monthLabel}): Multi-Tenant Statutory Payroll & PenCom/PAYE Schedule (${grossFormatted} Gross / ${netFormatted} Net)`,
+            impact: `Treasury Batch: ${grossFormatted}`
           })
         });
         const data = await res.json();
@@ -2459,41 +3497,74 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
     };
 
     window.exportAdminStatutoryCsv = function () {
-      const csv = [
-        'Tenant,VerifiedHours,GrossPayNGN,PenComEmployee8Pct,PenComEmployer10Pct,PAYETax,NHF2_5Pct,NSITF1Pct,NetDisbursementNGN',
-        '"Riffmax Technology Limited",4820,14820000,1185600,1482000,889200,370500,148200,12480500',
-        '"Flour Mills Logistics",3190,9640000,771200,964000,578400,241000,96400,8120400',
-        '"Eko Atlantic Facility Ops",2140,6450000,516000,645000,387000,161250,64500,5439250'
-      ].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const rows = (cachedFinanceOverview?.tenants || []).map(mapFinanceRow);
+      if (!rows.length) return showToast('No compiled payroll data available for CSV export yet.');
+      const monthLabel = cachedFinanceOverview?.month || 'cycle';
+      const csvLines = [
+        'Tenant,CompanyCode,Month,StaffCount,VerifiedHours,GrossPayNGN,PenComEmployee8Pct,PenComEmployer10Pct,PAYETax,NHF2_5Pct,NSITF1Pct,NetDisbursementNGN,OpenExceptions'
+      ];
+      rows.forEach(r => {
+        csvLines.push([
+          `"${String(r.companyName).replace(/"/g, '""')}"`,
+          r.companyCode,
+          monthLabel,
+          r.staffCount,
+          r.verifiedHours.toFixed(2),
+          Math.round(r.grossNgn),
+          Math.round(r.empPenNgn),
+          Math.round(r.erPenNgn),
+          Math.round(r.payeNgn),
+          Math.round(r.nhfNgn),
+          Math.round(r.nsitfNgn),
+          Math.round(r.netNgn),
+          r.openExCount
+        ].join(','));
+      });
+      const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'ShiftRelay_Statutory_Schedule_Nov2026.csv';
+      a.download = `ShiftRelay_OS_Statutory_Schedule_${monthLabel}.csv`;
       a.click();
-      showToast('Downloaded Statutory PenCom & PAYE CSV Schedule.');
+      showToast(`Downloaded live Statutory PenCom & PAYE CSV (${monthLabel}).`);
     };
 
     window.printAdminMonthlyPaymentVoucher = function () {
-      const w = window.open('', '_blank', 'width=880,height=920');
+      const rows = (cachedFinanceOverview?.tenants || []).map(mapFinanceRow);
+      const totals = mapFinanceTotals(cachedFinanceOverview?.totals || {}, rows);
+      const monthLabel = cachedFinanceOverview?.month || 'Current Cycle';
+      const w = window.open('', '_blank', 'width=920,height=920');
       if (!w) return;
+      const bodyRowsHtml = rows.length
+        ? rows.map(r => `
+            <tr>
+              <td>${escapeHtml(r.companyName)} (<code>${escapeHtml(r.companyCode)}</code>)</td>
+              <td>${r.verifiedHours.toFixed(1)} hrs</td>
+              <td>${formatNgn(r.grossNgn)}</td>
+              <td>${formatNgn(r.pencomTotalNgn)}</td>
+              <td>${formatNgn(r.statutorySumNgn)}</td>
+              <td><strong>${formatNgn(r.netNgn)}</strong></td>
+            </tr>
+          `).join('')
+        : '<tr><td colspan="6">No tenant payroll runs recorded for this cycle.</td></tr>';
       w.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
-          <title>ShiftRelay Official Monthly Payment Data & Statutory Remittance Sheet</title>
+          <title>ShiftRelay OS Monthly Payment Data & Statutory Remittance Sheet (${escapeHtml(monthLabel)})</title>
           <style>
             body { font-family: Inter, sans-serif; color: #0f172a; padding: 40px; }
             .head { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #10b981; padding-bottom:16px; margin-bottom:24px; }
             table { width:100%; border-collapse:collapse; font-size:13px; margin-top:16px; }
             th, td { border:1px solid #cbd5e1; padding:10px 12px; text-align:left; }
             th { background:#f1f5f9; font-weight:700; }
+            tfoot td { background:#ecfdf5; font-weight:800; }
           </style>
         </head>
         <body>
           <div class="head">
             <div>
-              <h1 style="margin:0; font-size:22px;">ShiftRelay Monthly Payment Data &amp; Statutory Schedule</h1>
-              <p style="margin:4px 0 0; color:#475569; font-size:13px;">Generated from Verified Mobile &amp; Peer Staff ID Attendance Logs • November 2026</p>
+              <h1 style="margin:0; font-size:22px;">ShiftRelay OS Monthly Payment Data &amp; Statutory Schedule</h1>
+              <p style="margin:4px 0 0; color:#475569; font-size:13px;">Verified Mobile &amp; Peer Staff ID Attendance Ledger &bull; Cycle: ${escapeHtml(monthLabel)}</p>
             </div>
             <button onclick="window.print()" style="padding:10px 18px; background:#10b981; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Print / Save PDF</button>
           </div>
@@ -2508,13 +3579,19 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
                 <th>Net Bank Payout</th>
               </tr>
             </thead>
-            <tbody>
-              <tr><td>Riffmax Technology Limited</td><td>4,820 hrs</td><td>₦14,820,000</td><td>₦2,667,600</td><td>₦1,407,900</td><td><strong>₦12,480,500</strong></td></tr>
-              <tr><td>Flour Mills Logistics</td><td>3,190 hrs</td><td>₦9,640,000</td><td>₦1,735,200</td><td>₦915,800</td><td><strong>₦8,120,400</strong></td></tr>
-              <tr><td>Eko Atlantic Facility Ops</td><td>2,140 hrs</td><td>₦6,450,000</td><td>₦1,161,000</td><td>₦612,750</td><td><strong>₦5,439,250</strong></td></tr>
-            </tbody>
+            <tbody>${bodyRowsHtml}</tbody>
+            <tfoot>
+              <tr>
+                <td>TOTAL PORTFOLIO</td>
+                <td>${totals.verifiedHours.toFixed(1)} hrs</td>
+                <td>${formatNgn(totals.grossNgn)}</td>
+                <td>${formatNgn(totals.pencomTotalNgn)}</td>
+                <td>${formatNgn(totals.statutorySumNgn)}</td>
+                <td>${formatNgn(totals.netNgn)}</td>
+              </tr>
+            </tfoot>
           </table>
-          <p style="margin-top:32px; font-size:12px; color:#64748b;">Authorized by ShiftRelay Sovereign Owner &amp; Statutory Compliance Desk • shiftrelay.com</p>
+          <p style="margin-top:32px; font-size:12px; color:#64748b;">Authorized by ShiftRelay OS Sovereign Owner &amp; Statutory Compliance Desk &bull; shiftrelayos.com</p>
         </body>
         </html>
       `);
@@ -2526,7 +3603,7 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       document.getElementById('nav-badge-leads').textContent = cachedLeads.length;
       if (!tbody) return;
       if (!cachedLeads.length) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:24px;">No inbound demo requests yet. Submit one on <a href="/website.html#demo-request-section" style="color:var(--emerald);">shiftrelay.com</a> to see it appear live here!</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:24px;">No inbound demo requests yet. Submit one on <a href="/website.html#demo-request-section" style="color:var(--emerald);">shiftrelayos.com</a> to see it appear live here!</td></tr>`;
         return;
       }
       tbody.innerHTML = cachedLeads.map((l, idx) => `
@@ -2551,34 +3628,122 @@ Chioma Nwosu, chioma.n@company.com, +2348034445566, manager, Quality Supervision
       showToast('Pre-filled Onboarding Wizard with lead: ' + l.companyName);
     };
 
-    window.printGatePoster = function (companyName, gateCode, siteName) {
-      const w = window.open('', '_blank', 'width=720,height=860');
-      if (!w) return;
-      w.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head><title>Staff ID Check-In Guide — ${companyName}</title></head>
-        <body style="background:#050912;color:#f8fafc;font-family:sans-serif;text-align:center;padding:48px;">
-          <div style="border:2px solid #00f5a0;border-radius:24px;padding:40px;max-width:520px;margin:0 auto;background:#0a1224;">
-            <img src="/assets/logos/logo-brand-motion.svg?v=130" style="width:64px;height:64px;border-radius:14px;" />
-            <h1 style="margin:14px 0 4px;">${companyName}</h1>
-            <p style="color:#94a3b8;">${siteName} &middot; Peer Mobile ID Card Clock-In (Zero Hardware Kiosk)</p>
-            <div style="font-family:monospace;font-size:28px;color:#00f5a0;padding:12px 24px;border:1px dashed #00f5a0;border-radius:12px;display:inline-block;margin:18px 0;">${gateCode}</div>
-            <p style="font-size:14px;color:#cbd5e1;line-height:1.6;">
-              1. Smartphone staff clock in directly in the app and verify GPS perimeter.<br/>
-              2. Colleagues without a smartphone present their issued Staff ID Card.<br/>
-              3. Any teammate uses &ldquo;Scan Colleague ID Card&rdquo; once daily; auto clock-out handles shift end.
-            </p>
-            <button onclick="window.print()" style="margin-top:20px;padding:11px 22px;background:#00f5a0;color:#02120b;border:none;border-radius:8px;font-weight:800;cursor:pointer;">Print Check-In Guide</button>
+    window.printGatePoster = async function (companyName, gateCode, siteName, tenantId) {
+      const targetKey = tenantId || gateCode;
+      let activeLang = 'en';
+      let currentData = null;
+
+      document.getElementById('sr-gate-poster-modal')?.remove();
+      const overlay = document.createElement('div');
+      overlay.id = 'sr-gate-poster-modal';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.84);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px;';
+      overlay.innerHTML = `
+        <div style="width:100%;max-width:740px;max-height:92vh;overflow:auto;background:#0a1224;border:1px solid rgba(56,189,248,0.35);border-radius:18px;padding:22px;color:#f8fafc;box-shadow:0 24px 60px rgba(0,0,0,0.6);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;">
+            <div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#34d399;text-transform:uppercase;">Multilingual A4 Gate Rollout Kit</span>
+              <h2 style="margin:4px 0 2px;font-size:18px;">${escapeHtml(companyName || 'Facility Gate')} &mdash; ${escapeHtml(gateCode || '')}</h2>
+              <p style="margin:0;font-size:12.5px;color:#94a3b8;">${escapeHtml(siteName || 'Primary Operations Hub')} &bull; Live Gate QR &amp; NDPA Notice</p>
+            </div>
+            <button type="button" id="gp-close-btn" class="btn-ghost" style="padding:6px 12px;">Close</button>
           </div>
-        </body>
-        </html>
-      `);
-      w.document.close();
+          <div id="gp-lang-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+            ${[
+              ['en', 'English'],
+              ['pcm', 'Nigerian Pidgin'],
+              ['yo', 'Yoruba'],
+              ['ha', 'Hausa'],
+              ['ig', 'Igbo']
+            ].map(([code, label]) => `
+              <button type="button" class="btn-ghost gp-lang-btn" data-lang="${code}" style="padding:6px 11px;font-size:12px;">${label}</button>
+            `).join('')}
+          </div>
+          <div id="gp-preview-card" style="background:#ffffff;color:#0f172a;border-radius:14px;padding:24px;border:2px solid #0f172a;">
+            <div style="text-align:center;color:#475569;padding:30px;">Loading Gate QR Kit...</div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap;">
+            <button type="button" id="gp-print-btn" class="btn-emerald">Print A4 / Letter Gate Poster &rarr;</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.querySelector('#gp-close-btn').onclick = () => overlay.remove();
+
+      const buildPosterHtml = (d) => {
+        const tr = d.translation || {};
+        const steps = Array.isArray(tr.steps) ? tr.steps : [];
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;color:#059669;text-transform:uppercase;">ShiftRelay OS &bull; Verified Frontline Attendance</div>
+              <h1 style="margin:4px 0 2px;font-size:21px;line-height:1.2;color:#0f172a;">${escapeHtml(d.tradingName || d.legalName || companyName)}</h1>
+              <div style="font-size:12.5px;color:#475569;font-weight:600;">${escapeHtml(d.hubName || siteName)} &bull; Facility Code: <strong style="color:#0f172a;font-family:monospace;">${escapeHtml(d.companyId || gateCode)}</strong></div>
+            </div>
+            <div style="font-family:monospace;font-size:12px;font-weight:700;padding:6px 12px;border-radius:8px;background:#ecfdf5;color:#065f46;border:1px solid #6ee7b7;">${escapeHtml(tr.label || activeLang.toUpperCase())}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:228px 1fr;gap:22px;align-items:center;margin-bottom:16px;">
+            <style>.sr-gp-qr-box svg{width:184px!important;height:184px!important;max-width:100%;height:auto;display:block;margin:0 auto;}</style>
+            <div style="text-align:center;padding:14px;border:2px dashed #0f172a;border-radius:12px;background:#f8fafc;">
+              <div class="sr-gp-qr-box" style="width:184px;height:184px;margin:0 auto;overflow:hidden;border-radius:8px;background:#ffffff;">${d.qrSvg || ''}</div>
+              <div style="font-family:monospace;font-size:11px;font-weight:700;color:#0f172a;margin-top:10px;">${escapeHtml(d.gateId || 'GATE-01')} &bull; ${escapeHtml(d.companyId || gateCode)}</div>
+            </div>
+            <div>
+              <h2 style="margin:0 0 6px;font-size:17px;color:#0f172a;">${escapeHtml(tr.headline || 'VERIFIED SHIFT CLOCK-IN GATE')}</h2>
+              <p style="margin:0 0 12px;font-size:13px;color:#334155;line-height:1.45;">${escapeHtml(tr.subtitle || '')}</p>
+              <ol style="margin:0;padding-left:18px;font-size:13px;color:#0f172a;line-height:1.55;">
+                ${steps.map(st => `<li style="margin-bottom:6px;">${escapeHtml(st)}</li>`).join('')}
+              </ol>
+            </div>
+          </div>
+          <div style="padding:10px 14px;border-radius:10px;background:#f1f5f9;border-left:4px solid #059669;font-size:12px;color:#1e293b;margin-bottom:10px;">
+            <strong>${escapeHtml(tr.contactLabel || 'Shift Supervisor / HR Desk')}:</strong> ${escapeHtml(d.hrContact || 'onboarding@shiftrelayos.com')}
+          </div>
+          <div style="padding:9px 12px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;font-size:11.5px;color:#7c2d12;line-height:1.45;">
+            ${escapeHtml(tr.ndpaNote || '')}
+          </div>`;
+      };
+
+      const loadLang = async (lang) => {
+        activeLang = lang;
+        overlay.querySelectorAll('.gp-lang-btn').forEach(btn => {
+          const isSel = btn.dataset.lang === lang;
+          btn.style.background = isSel ? 'rgba(16,185,129,0.22)' : '';
+          btn.style.borderColor = isSel ? '#34d399' : '';
+          btn.style.color = isSel ? '#34d399' : '';
+        });
+        try {
+          const res = await admFetch(`/api/tenants/${encodeURIComponent(targetKey)}/gate-qr?lang=${encodeURIComponent(lang)}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Could not load gate QR');
+          currentData = data;
+          const card = overlay.querySelector('#gp-preview-card');
+          if (card) card.innerHTML = buildPosterHtml(data);
+        } catch (err) {
+          const card = overlay.querySelector('#gp-preview-card');
+          if (card) card.innerHTML = `<div style="color:#b91c1c;padding:20px;">Failed to load poster: ${escapeHtml(err.message)}</div>`;
+        }
+      };
+
+      overlay.querySelectorAll('.gp-lang-btn').forEach(btn => {
+        btn.onclick = () => loadLang(btn.dataset.lang);
+      });
+
+      overlay.querySelector('#gp-print-btn').onclick = () => {
+        if (!currentData) return;
+        const w = window.open('', '_blank', 'width=840,height=1000');
+        if (!w) {
+          showToast('Popup blocked — allow popups to print A4 Gate Poster.');
+          return;
+        }
+        w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Gate Poster — ${escapeHtml(currentData.companyId || gateCode)}</title><style>@page{size:A4 portrait;margin:14mm;}body{font-family:Inter,Arial,sans-serif;margin:0;padding:12px;background:#fff;color:#0f172a;}</style></head><body>${buildPosterHtml(currentData)}<script>window.onload=function(){window.print();};<\/script></body></html>`);
+        w.document.close();
+      };
+
+      await loadLang('en');
     };
 
     async function bootstrapAdminSession() {
       await loadAdminAuthCapabilities();
+      if (!authStatusMeta || authStatusMeta.authenticated !== true) return;
       try {
         const res = await admFetch('/api/admin/session');
         if (!res.ok) return;

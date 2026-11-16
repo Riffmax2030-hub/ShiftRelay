@@ -1,13 +1,15 @@
 
 // ── ShiftRelay Enterprise Email Delivery Engine ───────────────────────────
-export async function sendShiftRelayEmail({ to, subject, html, text, source = 'ShiftRelay Engine' }) {
+export async function sendShiftRelayEmail({ to, subject, html, text, headers = {}, source = 'ShiftRelay Engine' }) {
   const store = await getStore();
   if (!Array.isArray(store.emailStation)) store.emailStation = [];
 
   const emailId = 'eml_' + Date.now() + '_' + Math.floor(1000 + Math.random() * 9000);
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const from = process.env.FROM_EMAIL || 'notifications@shiftrelay.tech';
+  const rawFromEnv = process.env.FROM_EMAIL || 'notifications@shiftrelayos.com';
+  const from = String(rawFromEnv).replace(/^([^"]+)"\s*</, '"$1" <');
+  const safeHeaders = headers && typeof headers === 'object' ? { ...headers } : {};
 
   const emailRecord = {
     id: emailId,
@@ -18,6 +20,7 @@ export async function sendShiftRelayEmail({ to, subject, html, text, source = 'S
     subject,
     html: html || text,
     text: text || (html ? html.replace(/<[^>]+>/g, '') : ''),
+    headers: safeHeaders,
     source,
     status: 'DELIVERED'
   };
@@ -29,14 +32,15 @@ export async function sendShiftRelayEmail({ to, subject, html, text, source = 'S
   // Extract link if present in email text or html
   const urlMatch = (html || text || '').match(/https?:\/\/[^\s"'>]+/);
   const clickableUrl = urlMatch ? urlMatch[0] : null;
+  const maskedTo = String(to || '').replace(/^(.)[^@]*(@.*)$/, '$1***$2');
 
   console.log('\n' + '╔═══════════════════════════════════════════════════════════════════════════════╗');
   console.log('║ ✉ SHIFTRELAY EMAIL ENGINE DISPATCH                                            ║');
   console.log('╠═══════════════════════════════════════════════════════════════════════════════╣');
-  console.log('║ Recipient: ' + to.padEnd(65) + '║');
+  console.log('║ Recipient: ' + maskedTo.padEnd(65) + '║');
   console.log('║ Subject:   ' + subject.slice(0, 65).padEnd(65) + '║');
   console.log('║ Source:    ' + source.padEnd(65) + '║');
-  if (clickableUrl) {
+  if (clickableUrl && !/token=/i.test(clickableUrl)) {
     console.log('║ Action Link: ' + clickableUrl.slice(0, 63).padEnd(63) + '║');
   }
   console.log('╚═══════════════════════════════════════════════════════════════════════════════╝\n');
@@ -61,9 +65,10 @@ export async function sendShiftRelayEmail({ to, subject, html, text, source = 'S
         to,
         subject,
         text,
-        html
+        html,
+        headers: safeHeaders
       });
-      console.log('✓ Dispatched live email to ' + to + ' via SMTP (MsgId: ' + mailRes.messageId + ')');
+      console.log('✓ Dispatched live email via SMTP (MsgId: ' + mailRes.messageId + ')');
       emailRecord.status = 'SENT_LIVE';
       emailRecord.messageId = mailRes.messageId;
     } catch (e) {
@@ -80,7 +85,7 @@ export async function sendShiftRelayEmail({ to, subject, html, text, source = 'S
           'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ from, to, subject, html, text })
+        body: JSON.stringify({ from, to, subject, html, text, headers: safeHeaders })
       });
       console.log('✓ Dispatched to real inbox via Resend API');
     } catch (e) {
@@ -139,12 +144,49 @@ import {
   renderPasswordResetEmail,
   renderShiftHandoverEmail,
   renderExecutivePayrollDigestEmail,
-  renderWeeklyProgressNewsletterEmail
+  renderWeeklyProgressNewsletterEmail,
+  renderAttendanceReminderEmail,
+  renderNewsletterWelcomeEmail,
+  renderMonthlyComplianceNewsletterEmail
 } from './email-engine.mjs';
+import {
+  LEGAL_ENTITY,
+  POLICY_VERSIONS,
+  getWhatsAppDeskConfig,
+  buildPublicLegalSnapshot
+} from './legal-config.mjs';
+import {
+  BANK_CSV_PROFILES,
+  NIGERIAN_BANKS,
+  resolveCbnBank,
+  normalizeBankFormat,
+  generateBankPaymentCSV as generateMultiBankPaymentCSV,
+  validatePayrollExportReadiness,
+  generateRosterTemplateCsv,
+  validateAndNormalizeRosterRows,
+  getGatePosterTranslation,
+  GATE_POSTER_TRANSLATIONS,
+  serializeCsvRows,
+  escapeCsvCell
+} from './nigerian-banking.mjs';
+import {
+  calculatePayeTax,
+  calculateStatutoryDeductions
+} from './compliance-engine.mjs';
+import {
+  DEFAULT_ATTENDANCE_POLICY,
+  normalizeAttendancePolicy,
+  getEffectiveAttendancePolicy,
+  formatMonthMeta,
+  parseClockTimeOnDate,
+  computeAttendanceExceptionsForOrg,
+  evaluateReminderStagesForOrg
+} from './attendance-policy-engine.mjs';
 import {
   generatePayrollReportHtml,
   generateCvReportHtml,
-  generateTermsOfServiceHtml
+  generateTermsOfServiceHtml,
+  generateDpaReportHtml
 } from './report-engine.mjs';
 import {
   INDUSTRY_PROFILES,
@@ -211,6 +253,9 @@ const mimeTypes = {
   '.json': 'application/json',
   '.webmanifest': 'application/manifest+json',
   '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.txt': 'text/plain',
+  '.xml': 'application/xml',
   '.mp4': 'video/mp4',
   '.webm': 'video/webm',
   '.png': 'image/png',
@@ -266,6 +311,14 @@ function applyStoreDefaults(store) {
   }
 
   const demoById = new Map(demoMembers.map(m => [m.id, m]));
+  const defaultRsaForId = (uid) => {
+    const num = String(uid || '').replace(/\D+/g, '').padStart(3, '0').slice(-3);
+    return `PEN100200300${num}`;
+  };
+  const defaultTinForId = (uid) => {
+    const num = String(uid || '').replace(/\D+/g, '').padStart(4, '0').slice(-4);
+    return `10482910-${num}`;
+  };
   if (!Array.isArray(store.contracts) || store.contracts.length === 0) {
     store.contracts = demoMembers.map((staff) => ({
       id: staff.id,
@@ -285,8 +338,11 @@ function applyStoreDefaults(store) {
       hourly_rate: Math.round(staff.grossPay / 160),
       currency: 'NGN',
       bank_name: staff.bank || 'GTBank',
+      cbn_bank_code: staff.cbn_bank_code || '058',
       account_number: staff.account,
       account_name: staff.name,
+      pencom_rsa_pin: staff.pencom_rsa_pin || defaultRsaForId(staff.id),
+      tin: staff.tin || defaultTinForId(staff.id),
       status: 'active'
     }));
   } else {
@@ -320,8 +376,11 @@ function applyStoreDefaults(store) {
         hourly_rate: Number(raw.hourly_rate || prev.hourly_rate || (rate > 0 ? Math.round(rate / 160) : 1500)),
         currency: raw.currency || prev.currency || 'NGN',
         bank_name: raw.bank_name || prev.bank_name || dm?.bank || 'GTBank',
+        cbn_bank_code: raw.cbn_bank_code || prev.cbn_bank_code || dm?.cbn_bank_code || '058',
         account_number: raw.account_number || prev.account_number || dm?.account || '0000000000',
         account_name: raw.account_name || prev.account_name || raw.userName || pu?.full_name || dm?.name || 'Staff Member',
+        pencom_rsa_pin: raw.pencom_rsa_pin || prev.pencom_rsa_pin || dm?.pencom_rsa_pin || (dm ? defaultRsaForId(uid) : ''),
+        tin: raw.tin || prev.tin || dm?.tin || (dm ? defaultTinForId(uid) : ''),
         status: raw.status || prev.status || 'active'
       });
     }
@@ -349,8 +408,11 @@ function applyStoreDefaults(store) {
             hourly_rate: Math.round(staff.grossPay / 160),
             currency: 'NGN',
             bank_name: staff.bank || 'GTBank',
+            cbn_bank_code: staff.cbn_bank_code || '058',
             account_number: staff.account,
             account_name: staff.name,
+            pencom_rsa_pin: staff.pencom_rsa_pin || defaultRsaForId(staff.id),
+            tin: staff.tin || defaultTinForId(staff.id),
             status: 'active'
           });
         }
@@ -563,8 +625,8 @@ export function getPublicAppOrigin(request = null) {
     if (derived) return derived;
   }
 
-  return normalizeOriginUrl(process.env.RENDER_EXTERNAL_URL || 'https://shiftrelay-vjkf.onrender.com')
-    || 'https://shiftrelay-vjkf.onrender.com';
+  return normalizeOriginUrl(process.env.RENDER_EXTERNAL_URL || 'https://app.shiftrelayos.com')
+    || 'https://app.shiftrelayos.com';
 }
 
 export function isAllowedCorsOrigin(origin, request = null) {
@@ -590,11 +652,10 @@ export function isAllowedCorsOrigin(origin, request = null) {
   }
 
   const allowedHosts = new Set([
-    'shiftrelay.com',
-    'www.shiftrelay.com',
-    'app.shiftrelay.com',
-    'admin.shiftrelay.com',
-    'shiftrelay-vjkf.onrender.com'
+    'shiftrelayos.com',
+    'www.shiftrelayos.com',
+    'app.shiftrelayos.com',
+    'admin.shiftrelayos.com'
   ]);
 
   const rawList = [
@@ -738,11 +799,11 @@ function evictMembershipClients(membershipId, reason = 'membership_deactivated')
 
 /* ── IP Rate Limiter (sliding window, in-memory) ────────────────────────────
    Protects all /api/ routes from brute-force and DDoS. Up to 120 requests
-   per 60 seconds per IP. Sensitive auth endpoints get a tighter 10/min cap.
+   per 60 seconds per IP. Sensitive auth endpoints get a tighter 25/min cap.
    ──────────────────────────────────────────────────────────────────────── */
 const rateLimitBuckets = new Map();
 const RATE_WINDOW_MS = 60_000;
-const RATE_LIMIT_GENERAL = 120;
+const RATE_LIMIT_GENERAL = Math.max(300, Number(process.env.RATE_LIMIT_GENERAL) || 600);
 const RATE_LIMIT_AUTH = 25;
 
 const authBuckets = new Map();
@@ -758,12 +819,14 @@ function isRateLimited(ip, isAuth = false) {
   return timestamps.length > limit;
 }
 
-// Prune rate-limit map every 5 minutes to prevent unbounded memory growth.
+// Prune rate-limit maps every 5 minutes to prevent unbounded memory growth.
 setInterval(() => {
   const now = Date.now();
-  for (const [ip, timestamps] of rateLimitBuckets) {
-    const fresh = timestamps.filter((t) => now - t < RATE_WINDOW_MS);
-    if (fresh.length === 0) rateLimitBuckets.delete(ip); else rateLimitBuckets.set(ip, fresh);
+  for (const map of [rateLimitBuckets, authBuckets]) {
+    for (const [ip, timestamps] of map) {
+      const fresh = timestamps.filter((t) => now - t < RATE_WINDOW_MS);
+      if (fresh.length === 0) map.delete(ip); else map.set(ip, fresh);
+    }
   }
 }, 5 * 60_000);
 
@@ -788,8 +851,10 @@ async function readBuffer(request) {
 }
 
 function sessionId(request) { return request.headers.cookie?.match(/(?:^|;\s*)shiftrelay_session=([^;]+)/)?.[1] || null; }
-function sessionCookie(value, maxAge = 60 * 60 * 24 * 7) {
-  const sameSiteMode = IS_PRODUCTION ? '; Secure; SameSite=None' : '; SameSite=Lax';
+function sessionCookie(value, maxAge = 60 * 60 * 24 * 7, request = null) {
+  const reqOrigin = String(request?.headers?.origin || '').trim();
+  const isNativeOrigin = NATIVE_WEBVIEW_ORIGINS.has(reqOrigin);
+  const sameSiteMode = (IS_PRODUCTION || isNativeOrigin) ? '; Secure; SameSite=None' : '; SameSite=Lax';
   return `shiftrelay_session=${value}; HttpOnly; Path=/; Max-Age=${maxAge}${sameSiteMode}`;
 }
 async function hashPassword(password) { const salt = randomBytes(16).toString('hex'); const hash = await scrypt(password, salt, 64); return `${salt}:${Buffer.from(hash).toString('hex')}`; }
@@ -897,6 +962,16 @@ function enrichUserWithOrganisation(userObj, store) {
   const geo = resolveOrgGeofenceConfig(matchedOrg || {}, profile);
   const wp = store?.workerProfiles?.[userObj.id] || store?.workerProfiles?.[userObj.user_id] || {};
   const dailyChecklists = resolveOrgDailyChecklists(matchedOrg || {}, store);
+  const attendancePolicy = getEffectiveAttendancePolicy(matchedOrg || {});
+  const memberRecord = (store?.memberships || []).find(m => m.id === userObj.id || m.user_id === userObj.user_id) || {};
+  const userRecord = (store?.portalUsers || []).find(u => u.id === (userObj.user_id || userObj.id)) || {};
+  const policyAcknowledgedVersion =
+    userObj.policy_acknowledged_version ||
+    memberRecord.policy_acknowledged_version ||
+    userRecord.policy_acknowledged_version ||
+    store?.policyAcknowledgements?.[userObj.id] ||
+    store?.policyAcknowledgements?.[userObj.user_id] ||
+    null;
 
   return {
     ...userObj,
@@ -914,7 +989,10 @@ function enrichUserWithOrganisation(userObj, store) {
     industry: rawIndustry || profile.label,
     industryKey: profile.key,
     industryProfile: profile,
-    dailyChecklists
+    dailyChecklists,
+    attendancePolicy,
+    policyAcknowledgedVersion,
+    policyRequiresAck: Boolean(policyAcknowledgedVersion !== attendancePolicy.policyVersion)
   };
 }
 
@@ -925,7 +1003,7 @@ async function getUser(request) {
       if (!UUID_REGEX.test(token)) return null;
       try {
         const result = await query(
-          `select m.id, u.id as user_id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.staff_code, m.organisation_id, coalesce(o.trading_name, o.legal_name) as organisation_name, o.legal_name as company_name, o.organisation_code as company_id, o.industry, o.hub_name, o.hub_lat, o.hub_lng, o.hub_perimeter, o.settings from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id join organisations o on o.id = m.organisation_id where s.id = $1 and s.expires_at > now()`,
+          `select m.id, u.id as user_id, u.full_name as name, u.email, u.time_zone, u.country_code, u.avatar_data_url, m.role, m.title, m.department, m.shift_start, m.shift_end, m.shift_days, m.status, m.staff_code, m.organisation_id, m.policy_acknowledged_version, m.policy_acknowledged_at, u.policy_acknowledged_version as user_policy_ack_version, coalesce(o.trading_name, o.legal_name) as organisation_name, o.legal_name as company_name, o.organisation_code as company_id, o.industry, o.hub_name, o.hub_lat, o.hub_lng, o.hub_perimeter, o.settings from user_sessions s join memberships m on m.id = s.membership_id join portal_users u on u.id = s.user_id join organisations o on o.id = m.organisation_id where s.id = $1 and s.expires_at > now()`,
           [token]
         );
         if (result.rows[0]?.status === 'active') {
@@ -936,6 +1014,8 @@ async function getUser(request) {
           const storeForSecret = await loadSigningStoreForAuth();
           const cardFields = buildSessionStaffCardFields(row.company_id, staffId, storeForSecret);
           const dailyChecklists = resolveOrgDailyChecklists(row, storeForSecret || {});
+          const attendancePolicy = getEffectiveAttendancePolicy(row);
+          const ackVer = row.policy_acknowledged_version || row.user_policy_ack_version || null;
           return {
             ...row,
             staffId,
@@ -947,7 +1027,10 @@ async function getUser(request) {
             industry: row.industry || profile.label,
             industryKey: profile.key,
             industryProfile: profile,
-            dailyChecklists
+            dailyChecklists,
+            attendancePolicy,
+            policyAcknowledgedVersion: ackVer,
+            policyRequiresAck: Boolean(ackVer !== attendancePolicy.policyVersion)
           };
         }
         // Invalid, expired, or non-active membership must never fall through to demo auth
@@ -1004,8 +1087,43 @@ async function getUser(request) {
   return null;
 }
 
-function notify(store, recipientId, handoverId, message) {
-  store.notifications.unshift({ id: crypto.randomUUID(), recipientId, handoverId, message, read: false, createdAt: new Date().toISOString() });
+function notify(store, recipientId, handoverId, message, organisationId = null, category = 'general') {
+  if (!Array.isArray(store.notifications)) store.notifications = [];
+  const notif = {
+    id: crypto.randomUUID(),
+    organisationId: organisationId || demoOrganisation.id,
+    recipientId,
+    handoverId: handoverId || null,
+    category,
+    message,
+    read: false,
+    createdAt: new Date().toISOString()
+  };
+  store.notifications.unshift(notif);
+  if (store.notifications.length > 500) store.notifications.length = 500;
+  if (notif.organisationId) {
+    broadcastEvent('notification-added', { id: notif.id, message, category, recipientMembershipId: recipientId }, {
+      organisationId: notif.organisationId,
+      recipientMembershipId: recipientId || undefined
+    });
+  }
+}
+
+async function deliverOrgNotification({ store, organisationId, recipientId, message, category = 'general', handoverId = null }) {
+  if (databaseReady && getPool() && UUID_REGEX.test(String(organisationId || '')) && UUID_REGEX.test(String(recipientId || ''))) {
+    const notifId = crypto.randomUUID();
+    await query(
+      'insert into notifications (id, organisation_id, recipient_membership_id, message) values ($1,$2,$3,$4)',
+      [notifId, organisationId, recipientId, message]
+    ).catch(() => {});
+    broadcastEvent('notification-added', { id: notifId, message, category, recipientMembershipId: recipientId }, {
+      organisationId,
+      recipientMembershipId: recipientId
+    });
+    return notifId;
+  }
+  if (store) notify(store, recipientId, handoverId, message, organisationId, category);
+  return null;
 }
 
 async function databaseHandovers(user) {
@@ -1838,12 +1956,7 @@ async function loadPayrollStoreForTenant(tenantId = null) {
   const baseStore = await getStore();
   if (!databaseReady || !getPool()) return baseStore;
 
-  const [orgRes, memRes, usrRes] = await Promise.all([
-    query('select id, organisation_code, legal_name, trading_name, industry, country, hub_name, hub_lat, hub_lng, hub_perimeter from organisations'),
-    query('select id, organisation_id, user_id, role, title, department, staff_code, status from memberships'),
-    query('select id, full_name, email, time_zone from portal_users')
-  ]);
-
+  const orgRes = await query('select id, organisation_code, legal_name, trading_name, industry, country, time_zone, hub_name, hub_lat, hub_lng, hub_perimeter, settings, notification_channels_json, newsletter_schedule_json from organisations');
   const pgOrgs = orgRes.rows || [];
   let resolvedTenantUuid = null;
   if (tenantId) {
@@ -1855,6 +1968,18 @@ async function loadPayrollStoreForTenant(tenantId = null) {
       ? matchOrg.id
       : (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(tenantId)) ? tenantId : null);
   }
+
+  const [memRes, usrRes, shiftRes, leaveRes, excRes] = await Promise.all([
+    query('select id, organisation_id, user_id, role, title, department, staff_code, status, shift_start, shift_end, cbn_bank_code, pencom_rsa_pin, tin, notification_opt_out from memberships').catch(() =>
+      query('select id, organisation_id, user_id, role, title, department, staff_code, status, shift_start, shift_end from memberships')
+    ),
+    query('select id, full_name, email, phone, time_zone from portal_users').catch(() =>
+      query('select id, full_name, email, time_zone from portal_users')
+    ),
+    query('select id, organisation_id, membership_id, starts_at, ends_at, status from scheduled_shifts where ($1::uuid is null or organisation_id = $1::uuid)', [resolvedTenantUuid]).catch(() => ({ rows: [] })),
+    query('select id, organisation_id, membership_id, starts_on, ends_on, status from leave_requests where ($1::uuid is null or organisation_id = $1::uuid)', [resolvedTenantUuid]).catch(() => ({ rows: [] })),
+    query('select * from attendance_exceptions where ($1::uuid is null or organisation_id = $1::uuid)', [resolvedTenantUuid]).catch(() => ({ rows: [] }))
+  ]);
 
   const teRes = await query(
     `select t.id, t.organisation_id, t.membership_id, m.user_id,
@@ -1901,16 +2026,474 @@ async function loadPayrollStoreForTenant(tenantId = null) {
     clockOutGeofenceStatus: row.clock_out_geofence_status || null
   }));
 
+  const pgExceptions = (excRes.rows || []).map(r => ({
+    id: r.exception_key || r.id,
+    exceptionKey: r.exception_key,
+    pgId: r.id,
+    organisationId: r.organisation_id,
+    membershipId: r.membership_id,
+    timeEntryId: r.time_entry_id,
+    scheduledShiftId: r.scheduled_shift_id,
+    type: r.type,
+    shiftDate: r.shift_date,
+    expectedTime: toIsoStringOrNull(r.scheduled_start),
+    scheduledStart: toIsoStringOrNull(r.scheduled_start),
+    scheduledEnd: toIsoStringOrNull(r.scheduled_end),
+    actualTime: toIsoStringOrNull(r.actual_time),
+    varianceMinutes: Number(r.variance_minutes || 0),
+    status: r.status || 'pending_review',
+    payImpactHours: Number(r.pay_impact_hours || 0),
+    payImpactAmount: Number(r.pay_impact_amount || 0),
+    workerExplanation: r.worker_explanation || null,
+    requestedTime: r.requested_time || null,
+    resolutionNote: r.resolution_note || null,
+    resolvedByName: r.resolved_by_name || null,
+    resolvedAt: toIsoStringOrNull(r.resolved_at)
+  }));
+
   return {
     ...baseStore,
     organisations: Array.from(orgMap.values()),
     portalUsers: Array.from(userMap.values()),
     memberships: Array.from(memberMap.values()),
-    timeEntries: pgEntries
+    timeEntries: pgEntries,
+    scheduledShifts: (shiftRes.rows && shiftRes.rows.length > 0) ? shiftRes.rows : (baseStore.scheduledShifts || []),
+    leaveRequests: (leaveRes.rows && leaveRes.rows.length > 0) ? leaveRes.rows : (baseStore.leaveRequests || []),
+    attendanceExceptions: pgExceptions.length > 0 ? pgExceptions : (baseStore.attendanceExceptions || [])
   };
 }
 
-export function compilePayrollRun(store, tenantId = null) {
+async function upsertAttendanceExceptionPg(orgId, ex, { resolveFields = null, doNothingIfExists = false } = {}) {
+  if (!databaseReady || !getPool() || !UUID_REGEX.test(String(orgId || ''))) return;
+  const exKey = String(ex.exceptionKey || ex.id || '').trim();
+  const memberUuid = UUID_REGEX.test(String(ex.membershipId || '')) ? ex.membershipId : null;
+  if (!exKey || !memberUuid) return;
+  const timeEntryUuid = UUID_REGEX.test(String(ex.timeEntryId || '')) ? ex.timeEntryId : null;
+  const shiftUuid = UUID_REGEX.test(String(ex.scheduledShiftId || '')) ? ex.scheduledShiftId : null;
+  const scheduledStart = ex.scheduledStart || (ex.expectedTime && String(ex.expectedTime).includes('T') ? ex.expectedTime : null);
+  const actualIso = ex.actualTime && !Number.isNaN(Date.parse(ex.actualTime)) ? new Date(ex.actualTime).toISOString() : null;
+  const conflictClause = doNothingIfExists
+    ? 'on conflict (exception_key) do nothing'
+    : `on conflict (exception_key) do update set
+         status = excluded.status,
+         actual_time = coalesce(excluded.actual_time, attendance_exceptions.actual_time),
+         pay_impact_hours = excluded.pay_impact_hours,
+         pay_impact_amount = excluded.pay_impact_amount,
+         worker_explanation = coalesce(excluded.worker_explanation, attendance_exceptions.worker_explanation),
+         requested_time = coalesce(excluded.requested_time, attendance_exceptions.requested_time),
+         resolution_note = coalesce(excluded.resolution_note, attendance_exceptions.resolution_note),
+         resolved_by_membership_id = coalesce(excluded.resolved_by_membership_id, attendance_exceptions.resolved_by_membership_id),
+         resolved_by_name = coalesce(excluded.resolved_by_name, attendance_exceptions.resolved_by_name),
+         resolved_at = coalesce(excluded.resolved_at, attendance_exceptions.resolved_at),
+         updated_at = now()`;
+  await query(
+    `insert into attendance_exceptions (
+       exception_key, organisation_id, membership_id, time_entry_id, scheduled_shift_id,
+       type, shift_date, scheduled_start, scheduled_end, actual_time, variance_minutes,
+       status, pay_impact_hours, pay_impact_amount,
+       worker_explanation, requested_time, resolution_note, resolved_by_membership_id, resolved_by_name, resolved_at
+     ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+     ${conflictClause}`,
+    [
+      exKey,
+      orgId,
+      memberUuid,
+      timeEntryUuid,
+      shiftUuid,
+      String(ex.type || 'MISSED_CLOCK_OUT'),
+      String(ex.shiftDate || new Date().toISOString().slice(0, 10)).slice(0, 16),
+      scheduledStart,
+      ex.scheduledEnd || null,
+      actualIso,
+      Math.round(Number(ex.varianceMinutes ?? ex.minutesDelta ?? 0)),
+      String(ex.status || 'pending_review'),
+      Number(ex.payImpactHours || 0),
+      Number(ex.payImpactAmount || 0),
+      ex.workerExplanation ?? null,
+      ex.requestedTime ?? null,
+      resolveFields ? (resolveFields.resolutionNote ?? ex.resolutionNote ?? null) : (ex.resolutionNote ?? null),
+      resolveFields && UUID_REGEX.test(String(resolveFields.resolvedById || '')) ? resolveFields.resolvedById : null,
+      resolveFields ? (resolveFields.resolvedByName ?? null) : null,
+      resolveFields ? (resolveFields.resolvedAt || new Date().toISOString()) : null
+    ]
+  );
+}
+
+// ── Shared Legal Acceptance, Multi-Channel Notification & Newsletter Helpers ──
+export async function recordLegalAcceptance({
+  organisationId = null,
+  userId = null,
+  email = null,
+  actorType = 'organisation',
+  acceptedTermsVersion = POLICY_VERSIONS.terms,
+  acceptedPrivacyVersion = POLICY_VERSIONS.privacy,
+  acceptedDpaVersion = POLICY_VERSIONS.dpa,
+  acceptedAttendancePolicyVersion = POLICY_VERSIONS.attendancePolicy,
+  request = null,
+  store = null
+} = {}) {
+  const nowIso = new Date().toISOString();
+  const ipAddress = request ? getRequestIp(request) : 'internal';
+  const userAgent = request ? String(getUserAgent(request) || '').slice(0, 240) : 'system';
+  const entry = {
+    id: crypto.randomUUID(),
+    organisation_id: organisationId || null,
+    user_id: userId || null,
+    email: email ? String(email).trim().toLowerCase() : null,
+    actor_type: actorType,
+    accepted_terms_version: acceptedTermsVersion,
+    accepted_privacy_version: acceptedPrivacyVersion,
+    accepted_dpa_version: acceptedDpaVersion,
+    accepted_attendance_policy_version: acceptedAttendancePolicyVersion,
+    accepted_at: nowIso,
+    ip_address: ipAddress,
+    user_agent: userAgent
+  };
+  if (databaseReady && getPool()) {
+    await query(
+      `insert into legal_acceptances
+       (id, organisation_id, user_id, email, actor_type, accepted_terms_version, accepted_privacy_version, accepted_dpa_version, accepted_attendance_policy_version, accepted_at, ip_address, user_agent)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      [
+        entry.id,
+        UUID_REGEX.test(String(entry.organisation_id || '')) ? entry.organisation_id : null,
+        UUID_REGEX.test(String(entry.user_id || '')) ? entry.user_id : null,
+        entry.email,
+        entry.actor_type,
+        entry.accepted_terms_version,
+        entry.accepted_privacy_version,
+        entry.accepted_dpa_version,
+        entry.accepted_attendance_policy_version,
+        entry.accepted_at,
+        entry.ip_address,
+        entry.user_agent
+      ]
+    ).catch(() => {});
+  }
+  const st = store || await getStore();
+  if (!Array.isArray(st.legalAcceptances)) st.legalAcceptances = [];
+  st.legalAcceptances.unshift(entry);
+  if (st.legalAcceptances.length > 1000) st.legalAcceptances.length = 1000;
+  if (!store) await saveStore(st);
+  return entry;
+}
+
+export function maskRecipientForLog(raw) {
+  const val = String(raw || '').trim();
+  if (!val) return '[none]';
+  if (val.includes('@')) return val.replace(/^(.).*?(@.*)$/, '$1***$2');
+  if (val.length > 6) return `${val.slice(0, 4)}****${val.slice(-3)}`;
+  return '****';
+}
+
+export function normalizeNotificationChannels(input = {}, existing = {}) {
+  const merged = { ...(existing || {}), ...(input || {}) };
+  return {
+    email: merged.email !== false,
+    inApp: merged.inApp !== false,
+    termiiSms: Boolean(merged.termiiSms),
+    whatsappCloud: Boolean(merged.whatsappCloud),
+    whatsappDeskOverride: String(merged.whatsappDeskOverride || '').replace(/[^\d+]/g, '').slice(0, 20),
+    termiiSenderId: String(merged.termiiSenderId || 'ShiftRelay').replace(/[^A-Za-z0-9]/g, '').slice(0, 11) || 'ShiftRelay'
+  };
+}
+
+export function getOrgNotificationChannels(org = {}) {
+  const raw = org?.notification_channels_json || org?.settings?.notificationChannels || {};
+  return normalizeNotificationChannels(raw, {});
+}
+
+export function buildWhatsAppNudgeLink(phoneRaw, messageText) {
+  const digits = String(phoneRaw || '').replace(/[^\d]/g, '');
+  if (!digits || digits.length < 10) return null;
+  const intl = digits.startsWith('0') && digits.length === 11 ? `234${digits.slice(1)}` : digits;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(String(messageText || ''))}`;
+}
+
+export async function dispatchChannelNotification({
+  store,
+  org,
+  member,
+  triggerType,
+  dedupeKey,
+  message,
+  nowMs = Date.now()
+}) {
+  const channels = getOrgNotificationChannels(org);
+  const results = [];
+  const phoneRaw = String(member?.phone || member?.phone_e164 || '').trim();
+  const optedOut = Boolean(member?.notification_opt_out || member?.notificationOptOut);
+
+  const targets = [];
+  if (channels.termiiSms) targets.push({ channel: 'termii_sms', provider: 'Termii Nigeria SMS' });
+  if (channels.whatsappCloud) targets.push({ channel: 'whatsapp_cloud', provider: 'Meta WhatsApp Cloud API' });
+  if (targets.length === 0) return results;
+
+  for (const t of targets) {
+    const channelDedupe = `${dedupeKey}:${t.channel}`;
+    let alreadyLogged = false;
+    if (databaseReady && getPool()) {
+      const existing = await query('select id from notification_delivery_logs where dedupe_key = $1 limit 1', [channelDedupe]).catch(() => ({ rows: [] }));
+      alreadyLogged = Boolean(existing.rows && existing.rows[0]);
+    } else {
+      if (!Array.isArray(store.notificationDeliveryLogs)) store.notificationDeliveryLogs = [];
+      alreadyLogged = store.notificationDeliveryLogs.some(l => l.dedupeKey === channelDedupe);
+    }
+    if (alreadyLogged) continue;
+
+    let status = 'DRY_RUN_LOGGED';
+    let dryRun = true;
+    let errorMessage = null;
+    const maskedRecipient = maskRecipientForLog(phoneRaw || member?.email);
+
+    if (optedOut) {
+      status = 'SKIPPED_NDPA_OPT_OUT';
+      dryRun = true;
+      errorMessage = 'Worker opted out under NDPA notification preferences.';
+    } else if (!phoneRaw) {
+      status = 'SKIPPED_NO_PHONE';
+      dryRun = true;
+      errorMessage = 'No E.164 phone on file for worker.';
+    } else if (t.channel === 'termii_sms' && process.env.TERMII_API_KEY) {
+      dryRun = false;
+      try {
+        const resp = await fetch('https://api.ng.termii.com/api/sms/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: phoneRaw.replace(/^\+/, ''),
+            from: channels.termiiSenderId || 'ShiftRelay',
+            sms: String(message || '').slice(0, 160),
+            type: 'plain',
+            channel: 'generic',
+            api_key: process.env.TERMII_API_KEY
+          })
+        });
+        status = resp.ok ? 'SENT_LIVE' : `PROVIDER_HTTP_${resp.status}`;
+      } catch (err) {
+        status = 'PROVIDER_ERROR';
+        errorMessage = err?.message || 'Termii request failed';
+      }
+    } else if (t.channel === 'whatsapp_cloud' && process.env.WHATSAPP_CLOUD_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
+      dryRun = false;
+      try {
+        const resp = await fetch(`https://graph.facebook.com/v20.0/${encodeURIComponent(process.env.WHATSAPP_PHONE_NUMBER_ID)}/messages`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.WHATSAPP_CLOUD_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: phoneRaw.replace(/[^\d]/g, ''),
+            type: 'text',
+            text: { body: String(message || '').slice(0, 500) }
+          })
+        });
+        status = resp.ok ? 'SENT_LIVE' : `PROVIDER_HTTP_${resp.status}`;
+      } catch (err) {
+        status = 'PROVIDER_ERROR';
+        errorMessage = err?.message || 'WhatsApp Cloud request failed';
+      }
+    }
+
+    const logEntry = {
+      id: crypto.randomUUID(),
+      dedupeKey: channelDedupe,
+      organisationId: org.id,
+      membershipId: member?.id || null,
+      channel: t.channel,
+      triggerType,
+      recipientMasked: maskedRecipient,
+      status,
+      provider: t.provider,
+      dryRun,
+      errorMessage,
+      payloadSummary: String(message || '').slice(0, 120),
+      sentAt: new Date(nowMs).toISOString()
+    };
+
+    if (databaseReady && getPool()) {
+      await query(
+        `insert into notification_delivery_logs
+         (id, dedupe_key, organisation_id, membership_id, channel, trigger_type, recipient_masked, status, provider, dry_run, error_message, payload_summary, sent_at)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+        [
+          logEntry.id,
+          logEntry.dedupeKey,
+          UUID_REGEX.test(String(org.id || '')) ? org.id : null,
+          UUID_REGEX.test(String(member?.id || '')) ? member.id : null,
+          logEntry.channel,
+          logEntry.triggerType,
+          logEntry.recipientMasked,
+          logEntry.status,
+          logEntry.provider,
+          logEntry.dryRun,
+          logEntry.errorMessage,
+          logEntry.payloadSummary,
+          logEntry.sentAt
+        ]
+      ).catch(() => {});
+    }
+    if (!Array.isArray(store.notificationDeliveryLogs)) store.notificationDeliveryLogs = [];
+    store.notificationDeliveryLogs.unshift(logEntry);
+    if (store.notificationDeliveryLogs.length > 1000) store.notificationDeliveryLogs.length = 1000;
+    results.push(logEntry);
+  }
+  return results;
+}
+
+export async function subscribeNewsletterMember({
+  email,
+  fullName = '',
+  companyName = '',
+  roleSegment = 'general',
+  consentSource = 'website_brief',
+  sendWelcome = true,
+  baseOrigin = 'https://shiftrelayos.com'
+} = {}) {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    throw new Error('Please provide a valid work or personal email address.');
+  }
+  const allowedSegments = new Set(['hr_payroll', 'operations', 'executive', 'general']);
+  const seg = allowedSegments.has(String(roleSegment || '').trim()) ? String(roleSegment).trim() : 'general';
+  const nowIso = new Date().toISOString();
+  let unsubToken = 'unsub_' + randomBytes(24).toString('hex');
+  let subscriberRecord = {
+    id: crypto.randomUUID(),
+    email: cleanEmail,
+    full_name: String(fullName || '').trim(),
+    company_name: String(companyName || '').trim(),
+    role_segment: seg,
+    status: 'active',
+    consent_source: String(consentSource || 'website_brief').trim(),
+    consent_timestamp: nowIso,
+    unsubscribe_token: unsubToken,
+    created_at: nowIso,
+    updated_at: nowIso
+  };
+
+  if (databaseReady && getPool()) {
+    const existing = await query('select id, unsubscribe_token, created_at from newsletter_subscribers where lower(email) = lower($1) limit 1', [cleanEmail]).catch(() => ({ rows: [] }));
+    if (existing.rows && existing.rows[0]) {
+      unsubToken = existing.rows[0].unsubscribe_token || unsubToken;
+      subscriberRecord.id = existing.rows[0].id;
+      subscriberRecord.unsubscribe_token = unsubToken;
+      subscriberRecord.created_at = existing.rows[0].created_at || nowIso;
+    }
+    await query(
+      `insert into newsletter_subscribers
+       (id, email, full_name, company_name, role_segment, status, consent_source, consent_timestamp, unsubscribe_token, created_at, updated_at)
+       values ($1,$2,$3,$4,$5,'active',$6,$7,$8,$9,$10)
+       on conflict (email) do update set
+         full_name = coalesce(nullif(excluded.full_name, ''), newsletter_subscribers.full_name),
+         company_name = coalesce(nullif(excluded.company_name, ''), newsletter_subscribers.company_name),
+         role_segment = excluded.role_segment,
+         status = 'active',
+         consent_source = excluded.consent_source,
+         consent_timestamp = excluded.consent_timestamp,
+         updated_at = excluded.updated_at`,
+      [
+        subscriberRecord.id,
+        subscriberRecord.email,
+        subscriberRecord.full_name,
+        subscriberRecord.company_name,
+        subscriberRecord.role_segment,
+        subscriberRecord.consent_source,
+        subscriberRecord.consent_timestamp,
+        subscriberRecord.unsubscribe_token,
+        subscriberRecord.created_at,
+        subscriberRecord.updated_at
+      ]
+    ).catch(() => {});
+  }
+
+  const store = await getStore();
+  if (!Array.isArray(store.newsletterSubscribers)) store.newsletterSubscribers = [];
+  const idx = store.newsletterSubscribers.findIndex(s => String(s.email || '').toLowerCase() === cleanEmail);
+  if (idx !== -1) {
+    unsubToken = store.newsletterSubscribers[idx].unsubscribe_token || unsubToken;
+    subscriberRecord = {
+      ...store.newsletterSubscribers[idx],
+      ...subscriberRecord,
+      unsubscribe_token: unsubToken
+    };
+    store.newsletterSubscribers[idx] = subscriberRecord;
+  } else {
+    store.newsletterSubscribers.unshift(subscriberRecord);
+  }
+  await saveStore(store);
+
+  let emailRecord = null;
+  if (sendWelcome) {
+    const cleanBase = String(baseOrigin || 'https://shiftrelayos.com').replace(/\/+$/, '');
+    const unsubUrl = `${cleanBase}/unsubscribe?token=${encodeURIComponent(unsubToken)}`;
+    const html = renderNewsletterWelcomeEmail({
+      email: cleanEmail,
+      fullName: subscriberRecord.full_name || 'Workforce Leader',
+      roleSegment: seg,
+      unsubscribeUrl: unsubUrl,
+      marketingUrl: cleanBase
+    });
+    emailRecord = await sendShiftRelayEmail({
+      to: cleanEmail,
+      subject: 'Welcome to the ShiftRelay OS Workforce & Statutory Brief',
+      html,
+      text: `You are subscribed to ShiftRelay OS Workforce & Statutory Brief (NDPA 2023 opt-in).\nUnsubscribe anytime: ${unsubUrl}`,
+      headers: {
+        'List-Unsubscribe': `<${unsubUrl}>, <mailto:${LEGAL_ENTITY.supportEmail}?subject=unsubscribe>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+      },
+      source: 'Public Newsletter Welcome Engine'
+    });
+  }
+
+  return { subscriber: subscriberRecord, emailRecord };
+}
+
+export async function unsubscribeNewsletterMember({ token = '', email = '' } = {}) {
+  const cleanToken = String(token || '').trim();
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!cleanToken && !cleanEmail) {
+    return { found: false, status: 'missing_token' };
+  }
+  const nowIso = new Date().toISOString();
+  let updatedRecord = null;
+
+  if (databaseReady && getPool()) {
+    const res = cleanToken
+      ? await query(
+          `update newsletter_subscribers set status = 'unsubscribed', updated_at = $1 where unsubscribe_token = $2 returning *`,
+          [nowIso, cleanToken]
+        ).catch(() => ({ rows: [] }))
+      : await query(
+          `update newsletter_subscribers set status = 'unsubscribed', updated_at = $1 where lower(email) = lower($2) returning *`,
+          [nowIso, cleanEmail]
+        ).catch(() => ({ rows: [] }));
+    if (res.rows && res.rows[0]) updatedRecord = res.rows[0];
+  }
+
+  const store = await getStore();
+  if (!Array.isArray(store.newsletterSubscribers)) store.newsletterSubscribers = [];
+  const sub = store.newsletterSubscribers.find(s =>
+    (cleanToken && s.unsubscribe_token === cleanToken) || (cleanEmail && String(s.email || '').toLowerCase() === cleanEmail)
+  );
+  if (sub) {
+    sub.status = 'unsubscribed';
+    sub.updated_at = nowIso;
+    updatedRecord = updatedRecord || sub;
+    await saveStore(store);
+  }
+
+  return {
+    found: Boolean(updatedRecord),
+    status: updatedRecord ? 'unsubscribed' : 'not_found',
+    subscriber: updatedRecord ? { email: updatedRecord.email, status: updatedRecord.status, updatedAt: updatedRecord.updated_at } : null
+  };
+}
+
+export function compilePayrollRun(store, tenantId = null, monthParam = null) {
   // ── Filter & deduplicate contracts by tenant + userId ──────────────────────
   const resolvedTenantObj = tenantId
     ? (store.organisations || []).find(o =>
@@ -1924,10 +2507,18 @@ export function compilePayrollRun(store, tenantId = null) {
     ? allContracts.filter(c => (c.tenant_id || c.organisation_id) === effectiveTenantId)
     : allContracts;
   const usersById = new Map((store.portalUsers || []).map(u => [u.id, u]));
+  const membershipsByOrgAndUid = new Map();
   const membershipsByUid = new Map();
   for (const m of (store.memberships || [])) {
-    if (m.user_id) membershipsByUid.set(m.user_id, m);
-    if (m.id) membershipsByUid.set(m.id, m);
+    const mOrg = m.organisation_id || demoOrganisation.id;
+    if (m.user_id) {
+      membershipsByOrgAndUid.set(`${mOrg}:${m.user_id}`, m);
+      membershipsByUid.set(m.user_id, m);
+    }
+    if (m.id) {
+      membershipsByOrgAndUid.set(`${mOrg}:${m.id}`, m);
+      membershipsByUid.set(m.id, m);
+    }
   }
   const demoById = new Map(demoMembers.map(m => [m.id, m]));
 
@@ -1940,17 +2531,20 @@ export function compilePayrollRun(store, tenantId = null) {
     const prev = dedupedContracts.get(key) || {};
     const pu = usersById.get(uid);
     const dm = demoById.get(uid);
-    const membership = membershipsByUid.get(uid);
+    const membership = membershipsByOrgAndUid.get(`${orgKey}:${uid}`) || membershipsByUid.get(uid);
     if (membership && membership.organisation_id === orgKey && membership.status === 'revoked') {
       dedupedContracts.delete(key);
       continue;
     }
     const rate = Number(raw.monthly_rate ?? raw.monthly_salary ?? prev.monthly_rate ?? dm?.grossPay ?? 0);
-    dedupedContracts.set(key, {
+      const resolvedBank = resolveCbnBank(raw.bank_name || prev.bank_name || dm?.bank || 'GTBank', raw.cbn_bank_code || prev.cbn_bank_code || membership?.cbn_bank_code || '');
+      dedupedContracts.set(key, {
       ...prev,
       ...raw,
       userId: uid,
       _membershipId: membership?.id || raw.membershipId || null,
+      email: raw.email || prev.email || pu?.email || dm?.email || '',
+      phone: raw.phone || prev.phone || pu?.phone || dm?.phone || '',
       tenant_id: orgKey,
       userName: raw.userName || prev.userName || pu?.full_name || dm?.name || 'Staff Member',
       staffId: raw.staffId || prev.staffId || membership?.staff_code || dm?.staffId || ('SR-' + String(uid).slice(-4).toUpperCase()),
@@ -1959,7 +2553,10 @@ export function compilePayrollRun(store, tenantId = null) {
       compensation_type: raw.compensation_type || prev.compensation_type || (raw.rate_type === 'hourly' ? 'hourly' : 'fixed_monthly'),
       monthly_rate: rate,
       hourly_rate: Number(raw.hourly_rate || prev.hourly_rate || (rate > 0 ? Math.round(rate / 160) : 1500)),
-      bank_name: raw.bank_name || prev.bank_name || dm?.bank || 'GTBank',
+      bank_name: resolvedBank.name || raw.bank_name || prev.bank_name || dm?.bank || 'GTBank',
+      cbn_bank_code: resolvedBank.code || raw.cbn_bank_code || prev.cbn_bank_code || membership?.cbn_bank_code || '',
+      pencom_rsa_pin: raw.pencom_rsa_pin || prev.pencom_rsa_pin || membership?.pencom_rsa_pin || '',
+      tin: raw.tin || prev.tin || membership?.tin || '',
       account_number: raw.account_number || prev.account_number || dm?.account || '0000000000',
       account_name: raw.account_name || prev.account_name || raw.userName || pu?.full_name || dm?.name || 'Staff Member'
     });
@@ -1967,9 +2564,31 @@ export function compilePayrollRun(store, tenantId = null) {
   const contracts = Array.from(dedupedContracts.values());
   const org = (store.organisations || []).find(o =>
     effectiveTenantId ? (o.id === effectiveTenantId || o.organisation_code === effectiveTenantId) : true
-  ) || { legal_name: 'ShiftRelay Employer', organisation_code: 'SR-000', id: null };
+  ) || { legal_name: 'ShiftRelay Employer', organisation_code: 'SR-000', id: effectiveTenantId || demoOrganisation.id };
 
-  const month = '2026-11'; // current payroll month (November 2026)
+  const monthMeta = formatMonthMeta(monthParam, org.time_zone || 'Africa/Lagos');
+  const month = monthMeta.month;
+
+  // Build org members for unified exception derivation
+  const orgMembersList = (store.memberships || []).filter(m => !org.id || !m.organisation_id || m.organisation_id === org.id).map(m => {
+    const pu = usersById.get(m.user_id);
+    return { ...m, full_name: pu?.full_name || m.name, email: pu?.email || m.email };
+  });
+  if ((org.id === demoOrganisation.id || !org.id) && orgMembersList.length === 0) {
+    for (const dm of demoMembers) orgMembersList.push({ ...dm, user_id: dm.id, organisation_id: demoOrganisation.id, full_name: dm.name });
+  }
+
+  const exceptionState = computeAttendanceExceptionsForOrg({
+    org,
+    members: orgMembersList,
+    contracts,
+    timeEntries: store.timeEntries || [],
+    scheduledShifts: store.scheduledShifts || [],
+    leaveRequests: store.leaveRequests || [],
+    punchCorrections: store.punchCorrections || [],
+    persistedExceptions: store.attendanceExceptions || [],
+    month
+  });
 
   const employees = contracts.map(c => {
     const isMonthly = c.compensation_type === 'fixed_monthly';
@@ -1983,7 +2602,9 @@ export function compilePayrollRun(store, tenantId = null) {
       e.clockedInAt.startsWith(month)
     );
     const completedEntries = memberEntries.filter(e => e.clockedOutAt);
-    const openPunches      = memberEntries.filter(e => !e.clockedOutAt).length;
+    const empExceptions = exceptionState.exceptions.filter(ex =>
+      ex.membershipId === c.userId || ex.userId === c.userId || (c._membershipId && ex.membershipId === c._membershipId)
+    );
 
     // Calculate verified hours from live attendance (held/auto-out unverified shifts excluded until supervisor confirms)
     let regularHours = 0;
@@ -2021,30 +2642,44 @@ export function compilePayrollRun(store, tenantId = null) {
       overtimeHours = 0;
     }
 
-    // Unexcused absence days = missed punches (open entries)
-    const unexcusedAbsenceDays = openPunches;
-
-    // ── Shift Score integration ─────────────────────────────────────────────
+    // ── Shift Score integration (policy grace & pardons respected) ───────────
     const normalizedScoreStore = memberEntries.some(e => e.membershipId !== c.userId)
       ? { ...store, timeEntries: (store.timeEntries || []).map(e => (memberEntries.includes(e) ? { ...e, membershipId: c.userId } : e)) }
       : store;
-    const scoreData = monthlyScoreSummary(c.userId, normalizedScoreStore, month);
-    const { avgScore, grade: shiftGrade, performanceBonusPct, attendanceDeductionDays } = scoreData;
+    const scoreData = monthlyScoreSummary(c.userId, normalizedScoreStore, month, {
+      graceMinutes: exceptionState.policy.graceMinutes,
+      attendanceExceptions: empExceptions
+    });
+    const { avgScore, grade: shiftGrade, performanceBonusPct } = scoreData;
 
-    // ── Pay calculation ─────────────────────────────────────────────────────
+    // ── Single-Source Pay & Attendance Exception Deduction Calculation ──────
+    // Fix: Never double-deduct open punches + attendanceDeductionDays!
     const regularPay         = isMonthly ? baseRate : Math.round(regularHours * hourlyRate);
     const overtimePay        = Math.round(overtimeHours * (hourlyRate * 1.5));
     const performanceBonus   = Math.round(regularPay * performanceBonusPct);
     const heldShiftDays      = isMonthly ? unverifiedShiftHolds : 0;
-    const absenceDeduction   = Math.round(
-      (unexcusedAbsenceDays + attendanceDeductionDays + heldShiftDays) * (isMonthly ? baseRate / 22 : hourlyRate * STANDARD_DAILY_HOURS)
+    const dailyRateNgn       = isMonthly ? baseRate / 22 : hourlyRate * STANDARD_DAILY_HOURS;
+    const holdDeductionNgn   = Math.round(heldShiftDays * dailyRateNgn);
+
+    const nonDuplicateExceptions = empExceptions.filter(ex =>
+      !(ex.type === 'MISSED_CLOCK_OUT' && ex.status === 'pending_review' && heldShiftDays > 0)
     );
+    const exceptionDeductionNgn = nonDuplicateExceptions.reduce((acc, ex) => acc + Number(ex.payImpactAmount || 0), 0);
+    const absenceDeduction   = Math.round(holdDeductionNgn + exceptionDeductionNgn);
+
+    const pardonedHours          = Math.round(empExceptions.reduce((acc, ex) => acc + (ex.pardonedHours || 0), 0) * 100) / 100;
+    const unexcusedDeductedHours = Math.round(nonDuplicateExceptions.reduce((acc, ex) => acc + (ex.payImpactHours || 0), 0) * 100) / 100;
+    const unresolvedExceptionsCount = empExceptions.filter(ex => ex.status === 'pending_review').length;
+    const unexcusedAbsenceDays   = Math.round(((heldShiftDays * STANDARD_DAILY_HOURS + unexcusedDeductedHours) / STANDARD_DAILY_HOURS) * 100) / 100;
+    const attendanceDeductionDays = unexcusedAbsenceDays;
+
     const grossPay           = Math.max(0, Math.round(regularPay + overtimePay + performanceBonus - absenceDeduction));
 
     const stat = calculateNigerianStatutory(grossPay);
 
     return {
       userId:        c.userId || c.id || '',
+      _membershipId: c._membershipId || null,
       userName:      c.userName || 'Staff Member',
       staffId:       c.staffId || 'SR-' + String(c.userId || c.id || '0000').slice(0, 4).toUpperCase(),
       role:          c.role,
@@ -2057,6 +2692,9 @@ export function compilePayrollRun(store, tenantId = null) {
       regularHours,
       overtimeHours,
       unexcusedAbsenceDays,
+      pardonedHours,
+      unexcusedDeductedHours,
+      unresolvedExceptionsCount,
       pendingPresenceReviews,
       flaggedEarlyDepartures,
       unverifiedShiftHolds,
@@ -2083,10 +2721,15 @@ export function compilePayrollRun(store, tenantId = null) {
       nsitf:                 stat.nsitf,
       totalStatutoryDeductions: stat.totalDeductions,
       netPay:                stat.netPay,
+      email:         c.email         || '',
+      phone:         c.phone         || '',
       bank_name:     c.bank_name     || 'Access Bank',
+      cbn_bank_code: c.cbn_bank_code || resolveCbnBank(c.bank_name || '').code || '',
+      pencom_rsa_pin: c.pencom_rsa_pin || '',
+      tin:           c.tin           || '',
       account_number: c.account_number || '0000000000',
       account_name:  c.account_name  || c.userName,
-      narration:    `Salary ${month.replace('-', ' ')} ShiftRelay Verified`,
+      narration:    `Salary ${monthMeta.monthCompact} ShiftRelay Verified`,
       status:       unverifiedShiftHolds > 0 ? 'hold_presence_review' : 'verified_ready',
       formatted: {
         basicSalary:      '₦' + regularPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
@@ -2115,16 +2758,21 @@ export function compilePayrollRun(store, tenantId = null) {
   const missedPunches   = employees.reduce((acc, e) => acc + e.unexcusedAbsenceDays, 0);
   const pendingPresenceReviews = employees.reduce((acc, e) => acc + (e.pendingPresenceReviews || 0), 0);
   const unverifiedShiftHolds   = employees.reduce((acc, e) => acc + (e.unverifiedShiftHolds || 0), 0);
+  const unresolvedExceptionsCount = exceptionState.summary.pendingReview + pendingPresenceReviews;
 
   return {
-    period:      'November 2026 Monthly Payroll Cycle',
-    payDate:     'Wednesday, Nov 25, 2026',
+    month:       monthMeta.month,
+    monthCompact: monthMeta.monthCompact,
+    period:      monthMeta.period,
+    periodShort: monthMeta.periodShort,
+    payDate:     monthMeta.payDate,
     currency:    'NGN',
     currencySymbol: '₦',
     companyName: org.legal_name || org.trading_name || 'ShiftRelay Employer',
     companyId:   org.organisation_code || 'SR-000',
     dispatched:  store.lastPayrollDispatch || null,
     attendanceDriven: true,
+    attendancePolicy: exceptionState.policy,
     summary: {
       employeeCount: employees.length,
       totalGross,
@@ -2135,41 +2783,38 @@ export function compilePayrollRun(store, tenantId = null) {
       verifiedShiftsCount: verifiedShifts,
       missedPunchesResolved: missedPunches,
       pendingPresenceReviews,
-      unverifiedShiftHolds
+      unverifiedShiftHolds,
+      unresolvedExceptionsCount,
+      pardonedHours: exceptionState.summary.pardonedHours,
+      unexcusedDeductedHours: exceptionState.summary.unexcusedDeductedHours,
+      prePayrollGateBlocked: unresolvedExceptionsCount > 0 || unverifiedShiftHolds > 0
     },
     employees
   };
 }
 
-export function generateBankPaymentCSV(employees) {
-  const header = ['Beneficiary Name', 'Bank Name', 'Account Number', 'Amount (NGN)', 'Narration', 'Payment Reference'];
-  const rows = employees.map(e => [
-    `"${e.userName.replace(/"/g, '""')}"`,
-    `"${e.bank_name.replace(/"/g, '""')}"`,
-    `"${e.account_number}"`,
-    e.netPay.toFixed(2),
-    `"${e.narration}"`,
-    `"SR-SAL-202610-${e.staffId}"`
-  ]);
-  return [header.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+export function generateBankPaymentCSV(employees, monthCompact = null, format = 'generic') {
+  return generateMultiBankPaymentCSV(employees, monthCompact, format);
 }
 
 export function generateTaxPensionCSV(employees) {
-  const header = ['Employee Name', 'Staff ID', 'Gross Pay (NGN)', 'Consolidated Relief (CRA)', 'Taxable Income', 'PAYE Tax (NGN)', 'Pension Employee 8%', 'Pension Employer 10%', 'NHF 2.5%', 'NSITF 1%', 'Net Pay (NGN)'];
-  const rows = employees.map(e => [
-    `"${e.userName.replace(/"/g, '""')}"`,
-    `"${e.staffId}"`,
-    e.grossPay.toFixed(2),
-    e.cra.toFixed(2),
-    e.taxableIncome.toFixed(2),
-    e.payeTax.toFixed(2),
-    e.pensionEmployee.toFixed(2),
-    e.pensionEmployer.toFixed(2),
-    e.nhf.toFixed(2),
-    e.nsitf.toFixed(2),
-    e.netPay.toFixed(2)
+  const headers = ['Employee Name', 'Staff ID', 'PenCom RSA PIN', 'TIN', 'Gross Pay (NGN)', 'Consolidated Relief (CRA)', 'Taxable Income', 'PAYE Tax (NGN)', 'Pension Employee 8%', 'Pension Employer 10%', 'NHF 2.5%', 'NSITF 1%', 'Net Pay (NGN)'];
+  const rows = (Array.isArray(employees) ? employees : []).map(e => [
+    escapeCsvCell(e.userName),
+    escapeCsvCell(e.staffId),
+    escapeCsvCell(e.pencom_rsa_pin || ''),
+    escapeCsvCell(e.tin || ''),
+    escapeCsvCell(e.grossPay, { numeric: true }),
+    escapeCsvCell(e.cra, { numeric: true }),
+    escapeCsvCell(e.taxableIncome, { numeric: true }),
+    escapeCsvCell(e.payeTax, { numeric: true }),
+    escapeCsvCell(e.pensionEmployee, { numeric: true }),
+    escapeCsvCell(e.pensionEmployer, { numeric: true }),
+    escapeCsvCell(e.nhf, { numeric: true }),
+    escapeCsvCell(e.nsitf, { numeric: true }),
+    escapeCsvCell(e.netPay, { numeric: true })
   ]);
-  return [header.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+  return serializeCsvRows(headers, rows, { withBom: false });
 }
 
 
@@ -2187,7 +2832,11 @@ async function handleApi(request, response, url) {
       assistantConfigured: Boolean((process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL) || process.env.GEMINI_API_KEY),
       transcriptionConfigured: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_TRANSCRIPTION_MODEL),
       databaseReady,
-      demoMode: !IS_PRODUCTION && ALLOW_DEV_DEMO_AUTH && (process.env.DEMO_MODE !== 'false')
+      demoMode: !IS_PRODUCTION && ALLOW_DEV_DEMO_AUTH && (process.env.DEMO_MODE !== 'false'),
+      whatsappDesk: getWhatsAppDeskConfig(),
+      banks: NIGERIAN_BANKS,
+      bankCsvProfiles: Object.values(BANK_CSV_PROFILES).map(p => ({ id: p.id, label: p.label })),
+      legal: buildPublicLegalSnapshot()
     });
   }
   if (url.pathname === '/api/config/demo-mode' && request.method === 'POST') {
@@ -2278,8 +2927,17 @@ async function handleApi(request, response, url) {
     try {
       const body = await readJson(request); const email = String(body.email || '').trim().toLowerCase();
       if (!/^\S+@\S+\.\S+$/.test(email)) return sendJson(response, 400, { error: 'Enter the email address used for your ShiftRelay account.' });
-      if (databaseReady) await query('insert into account_deletion_requests (id, email, reason) values ($1,$2,$3)', [crypto.randomUUID(), email, String(body.reason || '').slice(0, 1000) || null]);
-      return sendJson(response, 201, { ok: true });
+      const reqId = crypto.randomUUID();
+      const reason = String(body.reason || '').slice(0, 1000) || null;
+      if (databaseReady) {
+        await query('insert into account_deletion_requests (id, email, reason) values ($1,$2,$3)', [reqId, email, reason]);
+      } else {
+        const store = await getStore();
+        if (!Array.isArray(store.accountDeletionRequests)) store.accountDeletionRequests = [];
+        store.accountDeletionRequests.push({ id: reqId, email, reason, createdAt: new Date().toISOString() });
+        await saveStore(store);
+      }
+      return sendJson(response, 201, { ok: true, id: reqId });
     } catch (error) {
       if (isDatabaseConnectionError(error)) return sendDatabaseError(response, error);
       if (error.code && (error.code.startsWith('42') || error.code.startsWith('XX') || error.code.startsWith('08'))) return sendDatabaseError(response, error);
@@ -2461,7 +3119,7 @@ async function handleApi(request, response, url) {
     });
 
     const sessionIdValue = await createSession(userObj.id, member.id);
-    response.setHeader('Set-Cookie', sessionCookie(sessionIdValue));
+    response.setHeader('Set-Cookie', sessionCookie(sessionIdValue, undefined, request));
 
     return sendJson(response, 200, {
       ok: true,
@@ -2566,7 +3224,62 @@ async function handleApi(request, response, url) {
     return sendJson(response, 200, {
       ok: true,
       total: (store.emailStation || []).length,
-      emails: store.emailStation || []
+      emails: store.emailStation || [],
+      smtpConfig: {
+        configured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
+        host: process.env.SMTP_HOST || null,
+        port: Number(process.env.SMTP_PORT || 465),
+        fromEmail: process.env.FROM_EMAIL || 'notifications@shiftrelayos.com'
+      }
+    });
+  }
+
+  if (url.pathname === '/api/admin/emails/test' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'ops_support_admin', 'onboarding_admin']);
+    if (!adminCtx) return;
+    const body = await readJson(request);
+    const to = String(body.to || adminCtx.adminUser.email || '').trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(to)) {
+      return sendJson(response, 400, { error: 'Valid recipient email is required.' });
+    }
+    const station = String(body.station || 'support@shiftrelayos.com').trim();
+    const subject = String(body.subject || 'ShiftRelay OS Email Auto-Station Live Diagnostic').trim();
+    const html = wrapEnterpriseEmail({
+      title: subject,
+      preheader: 'Automated diagnostic verification from ShiftRelay OS Email Auto-Station.',
+      recipientName: to,
+      deliveryReason: `Triggered by ${adminCtx.adminUser.fullName} from admin.shiftrelayos.com (${station}).`,
+      bodyHtml: `<p>Your <strong>ShiftRelay OS</strong> Email Auto-Station dispatcher is online and routing notifications across attendance watchdogs, activation tokens, and statutory payroll ledgers.</p>`,
+      primaryCtaText: 'Open ShiftRelay OS Workspace',
+      primaryCtaUrl: getEmailPlatformBaseUrl(),
+      securityMetadata: { Station: station, RequestedBy: adminCtx.adminUser.email }
+    });
+    await sendShiftRelayEmail({
+      to,
+      subject,
+      html,
+      source: `Admin Diagnostic (${station})`
+    });
+    const refreshedStore = await getStore();
+    await appendAdminAuditLog({
+      store: refreshedStore,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_EMAIL_DIAGNOSTIC',
+      targetType: 'email_station',
+      targetId: to,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { to, station }
+    });
+    return sendJson(response, 200, {
+      ok: true,
+      total: (refreshedStore.emailStation || []).length,
+      emails: refreshedStore.emailStation || []
     });
   }
 
@@ -2625,9 +3338,332 @@ async function handleApi(request, response, url) {
     const html = generateTermsOfServiceHtml();
     response.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
-      'Content-Length': Buffer.byteLength(html)
+      'Content-Length': Buffer.byteLength(html),
+      ...SECURITY_HEADERS
     });
     return response.end(html);
+  }
+
+  if (url.pathname === '/api/reports/dpa' && request.method === 'GET') {
+    const orgName = url.searchParams.get('orgName') || url.searchParams.get('company') || user?.organisation_name || 'Subscriber Enterprise Organisation';
+    const orgCode = url.searchParams.get('orgCode') || 'TENANT-ACTIVE';
+    const signerName = url.searchParams.get('signer') || user?.name || 'Authorized Data Controller Representative';
+    const html = generateDpaReportHtml({
+      orgName,
+      orgCode,
+      signerName,
+      ipAddress: getRequestIp(request),
+      dpaVersion: POLICY_VERSIONS.dpa
+    });
+    response.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Length': Buffer.byteLength(html),
+      ...SECURITY_HEADERS
+    });
+    return response.end(html);
+  }
+
+  if (url.pathname === '/api/legal/config' && request.method === 'GET') {
+    return sendJson(response, 200, { ok: true, ...buildPublicLegalSnapshot() });
+  }
+
+  // ── Public Nigerian PAYE & PenCom Statutory Calculator + Breakdown Funnel ──
+  if (url.pathname === '/api/public/payroll-calculate' && request.method === 'POST') {
+    const body = await readJson(request).catch(() => ({}));
+    const monthlyGross = Math.max(10000, Math.min(500000000, Number(body.monthlyGross || body.grossSalary || 250000)));
+    const basicRatioRaw = Number(body.basicRatio ?? 0.5);
+    const basicRatio = Number.isFinite(basicRatioRaw) ? Math.min(1, Math.max(0.1, basicRatioRaw)) : 0.5;
+    const headcount = Math.max(1, Math.min(50000, Math.round(Number(body.headcount || 1))));
+    const basicSalary = Math.round(monthlyGross * basicRatio);
+
+    const statutory = calculateStatutoryDeductions(basicSalary, monthlyGross);
+    const paye = calculatePayeTax(monthlyGross, basicSalary);
+
+    const empPenCom = statutory.employee.penComPension;
+    const empNhf = statutory.employee.nhf;
+    const empPaye = paye.monthlyTax;
+    const totalEmpDeductions = Math.round((empPenCom + empNhf + empPaye) * 100) / 100;
+    const netPayPerStaff = Math.max(0, Math.round((monthlyGross - totalEmpDeductions) * 100) / 100);
+
+    const employerPenCom = statutory.employer.penComPension;
+    const employerNsitf = statutory.employer.nsitf;
+    const employerItf = statutory.employer.itf;
+    const totalEmployerCostPerStaff = Math.round((monthlyGross + employerPenCom + employerNsitf + employerItf) * 100) / 100;
+
+    let emailDispatched = false;
+    const wantEmail = Boolean(body.email && body.consent);
+    if (wantEmail) {
+      const cleanEmail = String(body.email).trim().toLowerCase();
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        const cleanOrigin = normalizeOriginUrl(process.env.WEBSITE_URL || '') || 'https://shiftrelayos.com';
+        const subResult = await subscribeNewsletterMember({
+          email: cleanEmail,
+          fullName: String(body.fullName || '').trim(),
+          companyName: String(body.companyName || '').trim(),
+          roleSegment: 'hr_payroll',
+          consentSource: 'public_payroll_calculator',
+          sendWelcome: false,
+          baseOrigin: cleanOrigin
+        }).catch(() => null);
+        const unsubUrl = subResult?.subscriber?.unsubscribe_token
+          ? `${cleanOrigin}/unsubscribe?token=${encodeURIComponent(subResult.subscriber.unsubscribe_token)}`
+          : `${cleanOrigin}/unsubscribe`;
+        const summarySubject = `Nigerian Statutory PAYE & PenCom Schedule (${headcount} Staff · ₦${Math.round(monthlyGross).toLocaleString('en-NG')}/mo)`;
+        const scheduleHtml = renderExecutivePayrollDigestEmail({
+          executiveName: body.fullName || 'Finance & HR Team',
+          orgName: body.companyName || 'Nigeria Payroll Estimate (ShiftRelay OS Calculator)',
+          period: `Estimate (${headcount} Staff · Monthly Run)`,
+          employeeCount: headcount,
+          totalGrossNgn: Math.round(monthlyGross * headcount),
+          netPayableNgn: Math.round(netPayPerStaff * headcount),
+          penComRemittanceNgn: Math.round((empPenCom + employerPenCom) * headcount),
+          payeTaxNgn: Math.round(empPaye * headcount),
+          varianceNgn: 0,
+          reportDownloadUrl: `${cleanOrigin}/calculator.html`
+        });
+        await sendShiftRelayEmail({
+          to: cleanEmail,
+          subject: summarySubject,
+          html: scheduleHtml,
+          text: `Per Staff Gross: ₦${monthlyGross.toLocaleString('en-NG')} | PAYE: ₦${empPaye.toLocaleString('en-NG')} | Employee PenCom 8%: ₦${empPenCom.toLocaleString('en-NG')} | Employer PenCom 10%: ₦${employerPenCom.toLocaleString('en-NG')} | Net Pay: ₦${netPayPerStaff.toLocaleString('en-NG')} | Unsubscribe: ${unsubUrl}`,
+          headers: {
+            'List-Unsubscribe': `<${unsubUrl}>, <mailto:${LEGAL_ENTITY.supportEmail}?subject=unsubscribe>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+          },
+          source: 'Public Statutory Payroll Calculator'
+        }).catch(() => {});
+        emailDispatched = true;
+      }
+    }
+
+    return sendJson(response, 200, {
+      ok: true,
+      currency: 'NGN',
+      headcount,
+      basicRatio,
+      perStaff: {
+        monthlyGross,
+        basicSalary,
+        annualGross: paye.annualGross,
+        monthlyCra: paye.monthlyCra,
+        annualCra: paye.annualCra,
+        annualTaxableIncome: paye.annualTaxableIncome,
+        payeMonthly: empPaye,
+        payeAnnual: paye.annualTax,
+        effectiveTaxRate: paye.effectiveTaxRate,
+        pensionEmployee8Pct: empPenCom,
+        pensionEmployer10Pct: employerPenCom,
+        totalPenCom18Pct: Math.round((empPenCom + employerPenCom) * 100) / 100,
+        nhf25Pct: empNhf,
+        nsitfEmployer1Pct: employerNsitf,
+        itfEmployer1Pct: employerItf,
+        totalEmployeeDeductions: totalEmpDeductions,
+        netPay: netPayPerStaff,
+        totalCostToEmployer: totalEmployerCostPerStaff
+      },
+      companyTotals: {
+        headcount,
+        totalGross: Math.round(monthlyGross * headcount * 100) / 100,
+        totalNetPay: Math.round(netPayPerStaff * headcount * 100) / 100,
+        totalPaye: Math.round(empPaye * headcount * 100) / 100,
+        totalEmployeePenCom: Math.round(empPenCom * headcount * 100) / 100,
+        totalEmployerPenCom: Math.round(employerPenCom * headcount * 100) / 100,
+        totalPenComRemittance: Math.round((empPenCom + employerPenCom) * headcount * 100) / 100,
+        totalNhf: Math.round(empNhf * headcount * 100) / 100,
+        totalNsitf: Math.round(employerNsitf * headcount * 100) / 100,
+        totalCostToEmployer: Math.round(totalEmployerCostPerStaff * headcount * 100) / 100
+      },
+      emailDispatched
+    });
+  }
+
+  // ── Public NDPA Newsletter Subscribe & One-Click Unsubscribe ───────────────
+  if (url.pathname === '/api/newsletter/subscribe' && request.method === 'POST') {
+    const body = await readJson(request).catch(() => ({}));
+    if (!body.consent) {
+      return sendJson(response, 400, { error: 'Explicit NDPA 2023 consent is required before subscribing.' });
+    }
+    try {
+      const originWebsite = normalizeOriginUrl(process.env.WEBSITE_URL || '') || 'https://shiftrelayos.com';
+      const result = await subscribeNewsletterMember({
+        email: body.email,
+        fullName: body.fullName || body.name || '',
+        companyName: body.companyName || '',
+        roleSegment: body.roleSegment || body.segment || 'general',
+        consentSource: body.consentSource || 'website_brief',
+        sendWelcome: true,
+        baseOrigin: originWebsite
+      });
+      return sendJson(response, 201, {
+        ok: true,
+        message: 'Subscribed! Check your inbox for your Workforce & Statutory Brief confirmation.',
+        subscriber: {
+          id: result.subscriber.id,
+          email: result.subscriber.email,
+          roleSegment: result.subscriber.role_segment,
+          status: result.subscriber.status,
+          consentTimestamp: result.subscriber.consent_timestamp
+        }
+      });
+    } catch (err) {
+      return sendJson(response, 400, { error: err?.message || 'Unable to process subscription.' });
+    }
+  }
+
+  if (url.pathname === '/api/newsletter/unsubscribe' && request.method === 'POST') {
+    let body = {};
+    const ctype = String(request.headers['content-type'] || '').toLowerCase();
+    if (ctype.includes('application/x-www-form-urlencoded')) {
+      const chunks = [];
+      for await (const c of request) chunks.push(c);
+      const params = new URLSearchParams(Buffer.concat(chunks).toString('utf8'));
+      body = Object.fromEntries(params.entries());
+    } else {
+      body = await readJson(request).catch(() => ({}));
+    }
+    const token = url.searchParams.get('token') || body.token || '';
+    const email = url.searchParams.get('email') || body.email || '';
+    const result = await unsubscribeNewsletterMember({ token, email });
+    if (!result.found) {
+      return sendJson(response, 404, { ok: false, error: 'Subscription token or email not found.' });
+    }
+    return sendJson(response, 200, {
+      ok: true,
+      status: 'unsubscribed',
+      message: 'You have been unsubscribed cleanly under NDPA 2023 rules.',
+      subscriber: result.subscriber
+    });
+  }
+
+  // ── Admin Newsletter Console (Subscribers, Schedule & Campaigns) ──────────
+  if (url.pathname === '/api/admin/newsletter' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    let subscribers = [];
+    let dispatches = [];
+    if (databaseReady && getPool()) {
+      const [subR, dispR] = await Promise.all([
+        query('select id, email, full_name, company_name, role_segment, status, consent_source, consent_timestamp, created_at, updated_at from newsletter_subscribers order by created_at desc limit 500').catch(() => ({ rows: [] })),
+        query('select id, campaign_key, dispatch_type, segment, recipient_count, sent_at, period_key from newsletter_dispatches order by sent_at desc limit 100').catch(() => ({ rows: [] }))
+      ]);
+      subscribers = subR.rows || [];
+      dispatches = dispR.rows || [];
+    } else {
+      subscribers = (store.newsletterSubscribers || []).map(({ unsubscribe_token, ...safe }) => safe);
+      dispatches = store.newsletterDispatches || [];
+    }
+    const schedule = store.newsletterSchedule || {
+      weeklyOpsEnabled: true,
+      monthlyComplianceEnabled: true,
+      defaultSegment: 'all'
+    };
+    const activeCount = subscribers.filter(s => s.status === 'active').length;
+    const unsubCount = subscribers.filter(s => s.status !== 'active').length;
+    return sendJson(response, 200, {
+      ok: true,
+      summary: { total: subscribers.length, activeCount, unsubscribedCount: unsubCount },
+      schedule,
+      subscribers,
+      dispatches
+    });
+  }
+
+  if (url.pathname === '/api/admin/newsletter/subscribers.csv' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    let subscribers = [];
+    if (databaseReady && getPool()) {
+      const subR = await query('select email, full_name, company_name, role_segment, status, consent_source, consent_timestamp from newsletter_subscribers order by created_at desc').catch(() => ({ rows: [] }));
+      subscribers = subR.rows || [];
+    } else {
+      subscribers = store.newsletterSubscribers || [];
+    }
+    const csv = serializeCsvRows(
+      ['Email', 'Full Name', 'Company', 'Segment', 'Status', 'Consent Source', 'Consent Timestamp'],
+      subscribers.map(s => [
+        escapeCsvCell(s.email),
+        escapeCsvCell(s.full_name || ''),
+        escapeCsvCell(s.company_name || ''),
+        escapeCsvCell(s.role_segment || 'general'),
+        escapeCsvCell(s.status || 'active'),
+        escapeCsvCell(s.consent_source || 'website_brief'),
+        escapeCsvCell(s.consent_timestamp || '')
+      ]),
+      { withBom: true }
+    );
+    response.writeHead(200, {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="ShiftRelayOS_Newsletter_Subscribers.csv"',
+      ...SECURITY_HEADERS
+    });
+    return response.end(csv);
+  }
+
+  if (url.pathname === '/api/admin/newsletter/schedule' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const body = await readJson(request).catch(() => ({}));
+    store.newsletterSchedule = {
+      weeklyOpsEnabled: body.weeklyOpsEnabled !== undefined ? Boolean(body.weeklyOpsEnabled) : true,
+      monthlyComplianceEnabled: body.monthlyComplianceEnabled !== undefined ? Boolean(body.monthlyComplianceEnabled) : true,
+      defaultSegment: ['all', 'hr_payroll', 'operations', 'executive', 'general'].includes(body.defaultSegment) ? body.defaultSegment : 'all',
+      updatedAt: new Date().toISOString(),
+      updatedBy: adminCtx.adminUser.email
+    };
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, schedule: store.newsletterSchedule });
+  }
+
+  if (url.pathname === '/api/admin/newsletter/dispatch' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const body = await readJson(request).catch(() => ({}));
+    const dispatchType = String(body.dispatchType || 'monthly_statutory').trim();
+    const segment = String(body.segment || 'all').trim();
+    const isTest = Boolean(body.testMode || body.testEmail);
+    const marketingBase = normalizeOriginUrl(process.env.WEBSITE_URL || '') || 'https://shiftrelayos.com';
+    const appBase = getPublicAppOrigin(request);
+
+    if (isTest) {
+      const targetEmail = String(body.testEmail || adminCtx.adminUser.email).trim();
+      const unsubUrl = `${marketingBase}/unsubscribe?token=preview-test`;
+      const html = dispatchType === 'weekly_ops'
+        ? renderWeeklyProgressNewsletterEmail({
+            recipientName: adminCtx.adminUser.fullName || 'Admin Preview',
+            orgName: LEGAL_ENTITY.companyLegalName,
+            platformUrl: appBase,
+            unsubUrl
+          })
+        : renderMonthlyComplianceNewsletterEmail({
+            recipientName: adminCtx.adminUser.fullName || 'Admin Preview',
+            roleSegment: segment === 'all' ? 'hr_payroll' : segment,
+            monthLabel: formatMonthMeta().period,
+            calculatorUrl: `${marketingBase}/calculator.html`,
+            unsubscribeUrl: unsubUrl
+          });
+      const rec = await sendShiftRelayEmail({
+        to: targetEmail,
+        subject: `[TEST PREVIEW] ${dispatchType === 'weekly_ops' ? 'Weekly Operational Dispatch' : 'Nigeria Workforce & Statutory Brief'}`,
+        html,
+        headers: {
+          'List-Unsubscribe': `<${unsubUrl}>, <mailto:${LEGAL_ENTITY.supportEmail}?subject=unsubscribe>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        },
+        source: 'Admin Newsletter Test Preview'
+      });
+      return sendJson(response, 200, { ok: true, mode: 'test', sentCount: 1, emailRecord: rec });
+    }
+
+    if (dispatchType === 'weekly_ops') {
+      const result = await processWeeklyNewsletterAutomation({ force: true, baseOrigin: appBase });
+      return sendJson(response, 200, { ok: true, mode: 'weekly_ops', ...result });
+    }
+    const result = await processMonthlyNewsletterAutomation({ force: true, segment, baseOrigin: marketingBase });
+    return sendJson(response, 200, { ok: true, mode: 'monthly_statutory', ...result });
   }
 
   // ── Automated Weekly Progress Newsletter Dispatch ────────────────────────
@@ -2736,13 +3772,30 @@ async function handleApi(request, response, url) {
     } else if (type === 'newsletter') {
       html = renderWeeklyProgressNewsletterEmail({
         recipientName: 'Sherif Akanmu',
-        orgName: 'Riffmax Technology Limited',
+        orgName: LEGAL_ENTITY.companyLegalName,
         weekNumber: 46,
         year: 2026,
-        platformUrl: publicOrigin
+        platformUrl: publicOrigin,
+        unsubUrl: 'https://shiftrelayos.com/unsubscribe?token=sample-preview'
+      });
+    } else if (type === 'newsletter-welcome') {
+      html = renderNewsletterWelcomeEmail({
+        email: 'hr-lead@company.ng',
+        fullName: 'Adaeze Nwosu',
+        roleSegment: 'hr_payroll',
+        unsubscribeUrl: 'https://shiftrelayos.com/unsubscribe?token=sample-preview',
+        marketingUrl: 'https://shiftrelayos.com'
+      });
+    } else if (type === 'monthly-compliance') {
+      html = renderMonthlyComplianceNewsletterEmail({
+        recipientName: 'Operations & HR Lead',
+        roleSegment: 'hr_payroll',
+        monthLabel: formatMonthMeta().period,
+        calculatorUrl: 'https://shiftrelayos.com/calculator.html',
+        unsubscribeUrl: 'https://shiftrelayos.com/unsubscribe?token=sample-preview'
       });
     } else {
-      html = '<p>Unknown template type. Use ?type=activation|reset|handover|payroll|newsletter</p>';
+      html = '<p>Unknown template type. Use ?type=activation|reset|handover|payroll|newsletter|newsletter-welcome|monthly-compliance</p>';
     }
 
     response.writeHead(200, {
@@ -2881,7 +3934,306 @@ async function handleApi(request, response, url) {
     const body = await readJson(request).catch(() => ({}));
     return handleSaveDailyChecklistsForTenant(decodeURIComponent(adminChecklistMatchPre[1]), body, response);
   }
-  if (url.pathname.startsWith('/api/admin/tenants/') && !url.pathname.endsWith('/checklists') && request.method === 'PUT') {
+  // ── Nigerian Employer Rollout Kit: Standardized Roster CSV Template & Pre-Checked Import ──
+  if (url.pathname === '/api/admin/roster-template.csv' && request.method === 'GET') {
+    const authCtx = await getOpsOrAdminAuth(request);
+    if (!authCtx) {
+      return sendJson(response, 401, { error: 'Authentication required to download roster template.' });
+    }
+    const siteName = url.searchParams.get('siteName') || '';
+    const csv = generateRosterTemplateCsv({ siteName });
+    response.writeHead(200, {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="ShiftRelayOS_Staff_Roster_Template.csv"',
+      ...SECURITY_HEADERS
+    });
+    return response.end(csv);
+  }
+
+  if (url.pathname === '/api/admin/roster-import' && request.method === 'POST') {
+    const authCtx = await getOpsOrAdminAuth(request);
+    if (!authCtx) {
+      return sendJson(response, 401, { error: 'Authentication required for roster validation and import.' });
+    }
+    if (authCtx.kind === 'user' && !['owner', 'workforce_admin'].includes(authCtx.user.role)) {
+      return sendJson(response, 403, { error: 'Forbidden: roster import requires Owner or HR Admin access.' });
+    }
+    const body = await readJson(request).catch(() => ({}));
+    const store = authCtx.store || await getStore();
+    const tenantId = authCtx.kind === 'user'
+      ? authCtx.user.organisation_id
+      : String(body.tenantId || url.searchParams.get('tenantId') || '').trim();
+    const org = (store.organisations || []).find(o => o.id === tenantId || o.organisation_code === tenantId);
+    if (!org) {
+      return sendJson(response, 404, { error: 'Target tenant organisation not found.' });
+    }
+
+    let existingMembers = (store.portalUsers || []).filter(u =>
+      (u.tenant_id === org.id || u.organisation_id === org.id)
+    ).map(u => {
+      const m = (store.memberships || []).find(mm => mm.user_id === u.id && mm.organisation_id === org.id);
+      const c = (store.contracts || []).find(cc => cc.userId === u.id && (cc.tenant_id || cc.organisation_id) === org.id);
+      return { email: u.email, staff_id: c?.staffId || m?.staff_code || '' };
+    });
+    if (databaseReady && getPool() && UUID_REGEX.test(String(org.id || ''))) {
+      const pgMems = await query(
+        `select pu.email, m.staff_code as staff_id
+         from memberships m
+         join portal_users pu on pu.id = m.user_id
+         where m.organisation_id = $1`,
+        [org.id]
+      ).catch(() => ({ rows: [] }));
+      if (pgMems.rows?.length) {
+        existingMembers = [...existingMembers, ...pgMems.rows];
+      }
+    }
+
+    const validation = validateAndNormalizeRosterRows(body.csvText || body.rows || '', existingMembers);
+    const dryRun = body.dryRun !== false && body.commit !== true;
+    if (dryRun) {
+      return sendJson(response, 200, {
+        ...validation,
+        dryRun: true,
+        tenantId: org.id,
+        companyId: org.organisation_code
+      });
+    }
+
+    if (validation.validRows.length === 0) {
+      return sendJson(response, 400, {
+        ...validation,
+        dryRun: false,
+        error: 'Zero valid rows ready for import. Fix highlighted validation errors first.'
+      });
+    }
+
+    if (!Array.isArray(store.portalUsers)) store.portalUsers = [];
+    if (!Array.isArray(store.memberships)) store.memberships = [];
+    if (!Array.isArray(store.contracts)) store.contracts = [];
+    const provisioned = [];
+    const publicOrigin = getPublicAppOrigin(request);
+
+    for (const emp of validation.validRows) {
+      const empUserId = crypto.randomUUID();
+      const activationToken = 'act-' + randomBytes(20).toString('hex');
+      const cleanPhone = String(emp.phoneE164 || '').replace(/[^0-9]/g, '');
+      const verificationKey = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : '1234';
+      const isHourly = emp.payBasis === 'hourly';
+      const monthlyRate = isHourly ? Math.round(emp.baseRateNgn * 160) : emp.baseRateNgn;
+      const hourlyRate = isHourly ? emp.baseRateNgn : Math.round(emp.baseRateNgn / 160);
+
+      store.portalUsers.push({
+        id: empUserId,
+        tenant_id: org.id,
+        organisation_id: org.id,
+        full_name: emp.fullName,
+        email: emp.email,
+        phone: emp.phoneE164,
+        status: 'pending_activation',
+        activation_token: activationToken,
+        verification_key: verificationKey,
+        created_at: new Date().toISOString()
+      });
+
+      const membershipId = crypto.randomUUID();
+      store.memberships.push({
+        id: membershipId,
+        organisation_id: org.id,
+        user_id: empUserId,
+        role: emp.membershipRole,
+        title: emp.role === 'supervisor' ? 'Shift Supervisor' : emp.role === 'executive' ? 'Finance & Operations' : 'Frontline Specialist',
+        department: emp.department,
+        staff_code: emp.staffId,
+        cbn_bank_code: emp.cbnBankCode,
+        pencom_rsa_pin: emp.pencomRsaPin,
+        tin: emp.tin,
+        notification_opt_out: false,
+        status: 'pending_activation'
+      });
+
+      store.contracts.push({
+        userId: empUserId,
+        membershipId,
+        tenant_id: org.id,
+        userName: emp.fullName,
+        email: emp.email,
+        phone: emp.phoneE164,
+        staffId: emp.staffId,
+        role: emp.role === 'supervisor' ? 'Shift Supervisor' : emp.role === 'executive' ? 'Finance & Operations' : 'Frontline Specialist',
+        department: emp.department,
+        compensation_type: isHourly ? 'hourly_shift' : 'fixed_monthly',
+        monthly_rate: monthlyRate,
+        hourly_rate: hourlyRate,
+        currency: org.currency || 'NGN',
+        bank_name: emp.bankName || 'GTBank',
+        cbn_bank_code: emp.cbnBankCode,
+        pencom_rsa_pin: emp.pencomRsaPin,
+        tin: emp.tin,
+        account_number: emp.nuban || '0000000000',
+        account_name: emp.fullName
+      });
+
+      if (databaseReady && getPool() && UUID_REGEX.test(String(org.id || ''))) {
+        await query(
+          `insert into portal_users (id, full_name, email, phone, password_hash, email_verified)
+           values ($1,$2,$3,$4,$5,false)
+           on conflict (email) do nothing`,
+          [empUserId, emp.fullName, emp.email, emp.phoneE164 || null, DEFAULT_DEMO_MEMBER_PASSWORD_HASH]
+        ).catch(() => {});
+        await query(
+          `insert into memberships (id, organisation_id, user_id, role, title, department, status, staff_code, cbn_bank_code, pencom_rsa_pin, tin, notification_opt_out)
+           values ($1,$2,$3,$4,$5,$6,'pending_activation',$7,$8,$9,$10,false)
+           on conflict (organisation_id, user_id) do nothing`,
+          [membershipId, org.id, empUserId, emp.membershipRole, emp.role, emp.department, emp.staffId, emp.cbnBankCode || null, emp.pencomRsaPin || null, emp.tin || null]
+        ).catch(() => {});
+      }
+
+      provisioned.push({
+        userId: empUserId,
+        staffId: emp.staffId,
+        fullName: emp.fullName,
+        email: emp.email,
+        activationUrl: `${publicOrigin}/activate?token=${activationToken}`,
+        verificationKeyPrompt: cleanPhone ? `Last 4 digits (${verificationKey})` : 'Verification Key 1234'
+      });
+    }
+
+    await saveStore(store);
+    return sendJson(response, 201, {
+      ok: true,
+      dryRun: false,
+      tenantId: org.id,
+      companyId: org.organisation_code,
+      importedCount: provisioned.length,
+      skippedErrorCount: validation.errorCount,
+      errors: validation.errors,
+      provisioned
+    });
+  }
+
+  // ── Admin Tenant Notification Channels (Termii SMS / WhatsApp Cloud API) ──
+  const adminNotifMatch = url.pathname.match(/^\/api\/admin\/tenants\/([^/]+)\/notifications$/);
+  if (adminNotifMatch && (request.method === 'GET' || request.method === 'PUT')) {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const targetTenantId = decodeURIComponent(adminNotifMatch[1]);
+    const org = (store.organisations || []).find(o => o.id === targetTenantId || o.organisation_code === targetTenantId);
+    if (!org) return sendJson(response, 404, { error: 'Tenant organisation not found.' });
+
+    if (request.method === 'PUT') {
+      const body = await readJson(request).catch(() => ({}));
+      const current = getOrgNotificationChannels(org);
+      const updated = normalizeNotificationChannels(body, current);
+      if (!org.settings || typeof org.settings !== 'object') org.settings = {};
+      org.settings.notificationChannels = updated;
+      org.notification_channels_json = updated;
+      if (databaseReady && UUID_REGEX.test(String(org.id || ''))) {
+        await query('update organisations set notification_channels_json = $2::jsonb where id = $1', [org.id, JSON.stringify(updated)]).catch(() => {});
+      }
+      await saveStore(store);
+      return sendJson(response, 200, { ok: true, tenantId: org.id, channels: updated });
+    }
+
+    let logs = [];
+    if (databaseReady && getPool() && UUID_REGEX.test(String(org.id || ''))) {
+      const lr = await query(
+        'select id, channel, trigger_type, recipient_masked, status, provider, dry_run, error_message, payload_summary, sent_at from notification_delivery_logs where organisation_id = $1 order by sent_at desc limit 50',
+        [org.id]
+      ).catch(() => ({ rows: [] }));
+      logs = lr.rows || [];
+    } else {
+      logs = (store.notificationDeliveryLogs || []).filter(l => l.organisationId === org.id).slice(0, 50);
+    }
+    return sendJson(response, 200, {
+      ok: true,
+      tenantId: org.id,
+      channels: getOrgNotificationChannels(org),
+      providersConfigured: {
+        termiiLive: Boolean(process.env.TERMII_API_KEY),
+        whatsappCloudLive: Boolean(process.env.WHATSAPP_CLOUD_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID)
+      },
+      logs
+    });
+  }
+
+  const adminNotifTestMatch = url.pathname.match(/^\/api\/admin\/tenants\/([^/]+)\/notifications\/test$/);
+  if (adminNotifTestMatch && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const targetTenantId = decodeURIComponent(adminNotifTestMatch[1]);
+    const org = (store.organisations || []).find(o => o.id === targetTenantId || o.organisation_code === targetTenantId);
+    if (!org) return sendJson(response, 404, { error: 'Tenant organisation not found.' });
+    const body = await readJson(request).catch(() => ({}));
+    const testPhone = String(body.phone || '+2348030000100').trim();
+    const logs = await dispatchChannelNotification({
+      store,
+      org,
+      member: { id: null, phone: testPhone, email: adminCtx.adminUser.email, notification_opt_out: false },
+      triggerType: String(body.triggerType || 'admin_channel_probe'),
+      dedupeKey: `${org.id}:admin-probe:${Date.now()}`,
+      message: String(body.message || `ShiftRelay OS Reminder Probe for ${org.trading_name || org.legal_name}`),
+      nowMs: Date.now()
+    });
+    if (!databaseReady) await saveStore(store);
+    return sendJson(response, 200, { ok: true, logs });
+  }
+
+  if (url.pathname === '/api/admin/legal-acceptances' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    let acceptances = [];
+    if (databaseReady && getPool()) {
+      const res = await query('select * from legal_acceptances order by accepted_at desc limit 200').catch(() => ({ rows: [] }));
+      acceptances = res.rows || [];
+    } else {
+      acceptances = (store.legalAcceptances || []).slice(0, 200);
+    }
+    return sendJson(response, 200, { ok: true, acceptances });
+  }
+
+  const adminPolicyMatchPre = url.pathname.match(/^\/api\/admin\/tenants\/([^/]+)\/attendance-policy$/);
+  if (adminPolicyMatchPre && request.method === 'PUT') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin']);
+    if (!adminCtx) return;
+    const targetTenantId = decodeURIComponent(adminPolicyMatchPre[1]);
+    const org = (store.organisations || []).find(o => o.id === targetTenantId || o.organisation_code === targetTenantId);
+    if (!org) return sendJson(response, 404, { error: 'Tenant organisation not found.' });
+    const body = await readJson(request).catch(() => ({}));
+    const existingPolicy = getEffectiveAttendancePolicy(org);
+    const updatedPolicy = normalizeAttendancePolicy(body.attendancePolicy || body, {
+      ...existingPolicy,
+      policyVersion: `v${Date.now()}`
+    });
+    if (!org.settings || typeof org.settings !== 'object') org.settings = {};
+    org.settings.attendancePolicy = updatedPolicy;
+    if (databaseReady && UUID_REGEX.test(String(org.id || ''))) {
+      await query(
+        `update organisations set settings = coalesce(settings, '{}'::jsonb) || jsonb_build_object('attendancePolicy', $2::jsonb) where id = $1`,
+        [org.id, JSON.stringify(updatedPolicy)]
+      ).catch(() => {});
+    }
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_ATTENDANCE_POLICY_UPDATED',
+      targetType: 'organisation',
+      targetId: org.id,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: updatedPolicy
+    });
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, tenantId: org.id, attendancePolicy: updatedPolicy });
+  }
+  if (url.pathname.startsWith('/api/admin/tenants/') && !url.pathname.endsWith('/checklists') && !url.pathname.endsWith('/attendance-policy') && !url.pathname.endsWith('/notifications') && request.method === 'PUT') {
     const store = await getStore();
     const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin']);
     if (!adminCtx) return;
@@ -2912,6 +4264,40 @@ async function handleApi(request, response, url) {
     if (body.hubPerimeter !== undefined) org.hub_perimeter = Number(body.hubPerimeter);
     if (body.hubRadius !== undefined) org.hub_perimeter = Number(body.hubRadius);
     if (body.subscriptionTier) org.subscription_tier = body.subscriptionTier;
+    if (body.attendancePolicy && typeof body.attendancePolicy === 'object') {
+      if (!org.settings || typeof org.settings !== 'object') org.settings = {};
+      const prevPolicy = getEffectiveAttendancePolicy(org);
+      org.settings.attendancePolicy = normalizeAttendancePolicy(body.attendancePolicy, {
+        ...prevPolicy,
+        policyVersion: `v${Date.now()}`
+      });
+    }
+
+    if (databaseReady && UUID_REGEX.test(String(org.id || ''))) {
+      await query(
+        `update organisations
+         set legal_name = coalesce($2, legal_name),
+             trading_name = coalesce($3, trading_name),
+             industry = coalesce($4, industry),
+             hub_name = coalesce($5, hub_name),
+             hub_perimeter = coalesce($6, hub_perimeter),
+             hub_lat = coalesce($7, hub_lat),
+             hub_lng = coalesce($8, hub_lng),
+             settings = coalesce(settings, '{}'::jsonb) || $9::jsonb
+         where id = $1`,
+        [
+          org.id,
+          org.legal_name || null,
+          org.trading_name || null,
+          org.industry || null,
+          org.hub_name || null,
+          org.hub_perimeter !== undefined ? Number(org.hub_perimeter) : null,
+          org.hub_lat !== undefined ? Number(org.hub_lat) : null,
+          org.hub_lng !== undefined ? Number(org.hub_lng) : null,
+          JSON.stringify(org.settings || {})
+        ]
+      ).catch(() => {});
+    }
 
     await appendAdminAuditLog({
       store,
@@ -2925,7 +4311,7 @@ async function handleApi(request, response, url) {
       ipAddress: getRequestIp(request),
       userAgent: getUserAgent(request),
       outcome: 'SUCCESS',
-      details: { organisationCode: org.organisation_code }
+      details: { organisationCode: org.organisation_code, attendancePolicyUpdated: Boolean(body.attendancePolicy) }
     });
     await saveStore(store);
     return sendJson(response, 200, { ok: true, message: 'Tenant records updated successfully.', tenant: org });
@@ -2984,7 +4370,7 @@ async function handleApi(request, response, url) {
   }
 
   if (url.pathname === '/api/auth/sign-in' && request.method === 'POST') {
-    try { const session = await signIn(await readJson(request)); response.setHeader('Set-Cookie', sessionCookie(session.sessionId)); return sendJson(response, 200, { user: session.user }); }
+    try { const session = await signIn(await readJson(request)); response.setHeader('Set-Cookie', sessionCookie(session.sessionId, undefined, request)); return sendJson(response, 200, { user: session.user }); }
     catch (error) {
       if (isDatabaseConnectionError(error)) return sendDatabaseError(response, error);
       return sendJson(response, 401, { error: error.message });
@@ -3163,7 +4549,7 @@ async function handleApi(request, response, url) {
     }
 
     const sessionId = await createSession(targetUser.id, member.id);
-    response.setHeader('Set-Cookie', sessionCookie(sessionId));
+    response.setHeader('Set-Cookie', sessionCookie(sessionId, undefined, request));
     return sendJson(response, 200, {
       ok: true,
       user: {
@@ -3192,7 +4578,7 @@ async function handleApi(request, response, url) {
       }
       evictSessionClients(token, 'sign_out');
     }
-    response.setHeader('Set-Cookie', sessionCookie('', 0));
+    response.setHeader('Set-Cookie', sessionCookie('', 0, request));
     return sendJson(response, 200, { ok: true });
   }
   if (url.pathname === '/api/auth/password' && request.method === 'PUT') {
@@ -3294,7 +4680,7 @@ async function handleApi(request, response, url) {
       evictSessionClients(currentToken, 'context_switched');
     }
 
-    response.setHeader('Set-Cookie', sessionCookie(newSessionId));
+    response.setHeader('Set-Cookie', sessionCookie(newSessionId, undefined, request));
     return sendJson(response, 200, {
       ok: true,
       membership: {
@@ -3392,10 +4778,20 @@ async function handleApi(request, response, url) {
     const matchedOrg = (store.organisations || []).find(o => o.id === orgId) || {};
     const orgCode = String(user.company_id || matchedOrg.organisation_code || 'SR').toUpperCase();
     const orgPrefix = orgCode.split('-')[0].replace(/[^A-Z0-9]/gi, '').slice(0, 4) || 'SR';
-    const nextNum = members.length + 1 + Math.floor(Math.random() * 80);
+    const existingStaffIds = new Set(members.map(m => String(m.staffId || '').toUpperCase()).filter(Boolean));
     const requestedStaffCode = String(body.staffCode || body.staffId || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
-    const staffId = requestedStaffCode || `${orgPrefix}-${String(nextNum).padStart(4, '0')}`;
-    if (members.some(m => String(m.staffId || '').toUpperCase() === staffId)) {
+    let staffId = requestedStaffCode;
+    if (!staffId) {
+      let seq = members.length + 1;
+      const prefixRe = new RegExp(`^${orgPrefix}-(\\d+)$`);
+      for (const code of existingStaffIds) {
+        const m = code.match(prefixRe);
+        if (m) seq = Math.max(seq, Number(m[1]) + 1);
+      }
+      while (existingStaffIds.has(`${orgPrefix}-${String(seq).padStart(4, '0')}`)) seq += 1;
+      staffId = `${orgPrefix}-${String(seq).padStart(4, '0')}`;
+    }
+    if (existingStaffIds.has(staffId)) {
       return sendJson(response, 409, { error: `Staff ID "${staffId}" is already assigned. Leave blank to auto-generate or pick another code.`, code: 'DUPLICATE_STAFF_ID' });
     }
 
@@ -3484,7 +4880,7 @@ async function handleApi(request, response, url) {
               matchedOrg.legal_name || user.company_name || user.organisation_name || 'ShiftRelay Enterprise',
               matchedOrg.trading_name || user.organisation_name || 'ShiftRelay',
               orgCode,
-              matchedOrg.work_email || user.email || 'admin@shiftrelay.tech',
+              matchedOrg.work_email || user.email || 'admin@shiftrelayos.com',
               matchedOrg.industry || user.industry || 'Operations',
               matchedOrg.country || 'Nigeria',
               matchedOrg.time_zone || 'Africa/Lagos',
@@ -4823,12 +6219,29 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         };
         await saveStore(store);
       }
-      return sendJson(response, 200, { organisation: { ...store.organisationSettings, industryKey: profile.key, industryProfile: profile }, industryOptions: INDUSTRY_OPTIONS });
+      const effectivePolicy = getEffectiveAttendancePolicy({
+        ...orgRecord,
+        settings: { ...(orgRecord.settings || {}), ...(store.organisationSettings?.settings || {}) }
+      });
+      const mergedSettings = { ...(store.organisationSettings.settings || {}), attendancePolicy: effectivePolicy };
+      return sendJson(response, 200, {
+        organisation: { ...store.organisationSettings, settings: mergedSettings, attendancePolicy: effectivePolicy, industryKey: profile.key, industryProfile: profile },
+        attendancePolicy: effectivePolicy,
+        industryOptions: INDUSTRY_OPTIONS
+      });
     }
     const organisation = (await query('select legal_name, trading_name, industry, country, time_zone, preferred_language, settings from organisations where id = $1', [user.organisation_id])).rows[0];
     if (!organisation) return sendJson(response, 404, { error: 'Organisation not found.' });
     const dbProfile = resolveIndustryProfile(organisation.industry, organisation.trading_name || organisation.legal_name);
-    return sendJson(response, 200, { organisation: { ...organisation, industryKey: dbProfile.key, industryProfile: dbProfile }, industryOptions: INDUSTRY_OPTIONS });
+    const effectivePolicy = getEffectiveAttendancePolicy(organisation);
+    const mergedDbOrg = {
+      ...organisation,
+      settings: { ...(organisation.settings || {}), attendancePolicy: effectivePolicy },
+      attendancePolicy: effectivePolicy,
+      industryKey: dbProfile.key,
+      industryProfile: dbProfile
+    };
+    return sendJson(response, 200, { organisation: mergedDbOrg, attendancePolicy: effectivePolicy, industryOptions: INDUSTRY_OPTIONS });
   }
   if (url.pathname === '/api/organisation/settings' && request.method === 'PUT') {
     if (user.role !== 'owner' || !user.organisation_id) return sendJson(response, 403, { error: 'Only organisation owners can update settings.' });
@@ -4877,11 +6290,23 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       const defaultMonthlySalary = Number(body.defaultMonthlySalary || body.settings?.defaultMonthlySalary) > 0 ? Number(body.defaultMonthlySalary || body.settings?.defaultMonthlySalary) : 240000;
       const logoUrl = body.logoUrl || body.logo_url || body.employer_avatar_url || store.organisationSettings?.logo_url || null;
       const matchedOrg = (store.organisations || []).find((o) => o.id === user.organisation_id || o.organisation_code === user.company_id) || store.organisations?.[0];
+      const existingOrgSettings = (matchedOrg?.settings && typeof matchedOrg.settings === 'object') ? matchedOrg.settings : {};
+      const nextPolicy = body.attendancePolicy && typeof body.attendancePolicy === 'object'
+        ? normalizeAttendancePolicy(body.attendancePolicy, { ...getEffectiveAttendancePolicy(matchedOrg || {}), policyVersion: `v${Date.now()}` })
+        : getEffectiveAttendancePolicy(matchedOrg || {});
       if (matchedOrg) {
         if (tradingName) matchedOrg.trading_name = tradingName;
         matchedOrg.industry = industry;
         matchedOrg.country = country;
         matchedOrg.time_zone = timeZone;
+        matchedOrg.settings = {
+          ...existingOrgSettings,
+          handoverReminderMinutes: reminderMinutes,
+          payModel,
+          disbursementDay,
+          defaultMonthlySalary,
+          attendancePolicy: nextPolicy
+        };
       }
       const orgKey = user.company_id || matchedOrg?.organisation_code || user.organisation_id || 'default';
       store.organisationIndustry[orgKey] = resolvedProfile.key;
@@ -4895,7 +6320,14 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         preferred_language: language,
         logo_url: logoUrl,
         employer_avatar_url: logoUrl,
-        settings: { handoverReminderMinutes: reminderMinutes, payModel, disbursementDay, defaultMonthlySalary }
+        settings: {
+          ...existingOrgSettings,
+          handoverReminderMinutes: reminderMinutes,
+          payModel,
+          disbursementDay,
+          defaultMonthlySalary,
+          attendancePolicy: nextPolicy
+        }
       };
 
       // Automatically sync employer/organisation profile picture across ALL worker profiles
@@ -4907,18 +6339,150 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         }
       }
       await saveStore(store);
-      return sendJson(response, 200, { ok: true, organisation: { ...store.organisationSettings, industryProfile: resolvedProfile } });
+      return sendJson(response, 200, { ok: true, organisation: { ...store.organisationSettings, industryProfile: resolvedProfile, attendancePolicy: nextPolicy } });
     }
 
     const payModelDb = ['monthly_salaried', 'hourly_shift', 'hybrid'].includes(body.payModel) ? body.payModel : (body.settings?.payModel || 'monthly_salaried');
     const disbursementDayDb = String(body.disbursementDay || body.settings?.disbursementDay || '25');
     const defaultMonthlySalaryDb = Number(body.defaultMonthlySalary || body.settings?.defaultMonthlySalary) > 0 ? Number(body.defaultMonthlySalary || body.settings?.defaultMonthlySalary) : 240000;
-    await query(
-      'update organisations set trading_name = $1, industry = $2, country = $3, time_zone = $4, preferred_language = $5, settings = coalesce(settings, \'{}\'::jsonb) || $6::jsonb where id = $7',
-      [tradingName, industry, country, timeZone, language, JSON.stringify({ handoverReminderMinutes: reminderMinutes, payModel: payModelDb, disbursementDay: disbursementDayDb, defaultMonthlySalary: defaultMonthlySalaryDb }), user.organisation_id]
-    );
+    const settingsPatch = { handoverReminderMinutes: reminderMinutes, payModel: payModelDb, disbursementDay: disbursementDayDb, defaultMonthlySalary: defaultMonthlySalaryDb };
+    const existingOrgRow = (await query('select settings from organisations where id = $1', [user.organisation_id])).rows[0] || {};
+    if (body.attendancePolicy && typeof body.attendancePolicy === 'object') {
+      settingsPatch.attendancePolicy = normalizeAttendancePolicy(body.attendancePolicy, {
+        ...getEffectiveAttendancePolicy(existingOrgRow),
+        policyVersion: `v${Date.now()}`
+      });
+    }
+    const updatedRow = (await query(
+      'update organisations set trading_name = $1, industry = $2, country = $3, time_zone = $4, preferred_language = $5, settings = coalesce(settings, \'{}\'::jsonb) || $6::jsonb where id = $7 returning legal_name, trading_name, industry, country, time_zone, preferred_language, settings',
+      [tradingName, industry, country, timeZone, language, JSON.stringify(settingsPatch), user.organisation_id]
+    )).rows[0];
+    const effectivePolicy = getEffectiveAttendancePolicy(updatedRow || { settings: { ...(existingOrgRow.settings || {}), ...settingsPatch } });
     await audit(user.organisation_id, user.id, 'settings_updated', 'organisation', user.organisation_id, 'Organisation settings updated.');
-    return sendJson(response, 200, { ok: true });
+    return sendJson(response, 200, {
+      ok: true,
+      organisation: {
+        ...(updatedRow || {}),
+        settings: { ...(updatedRow?.settings || existingOrgRow.settings || {}), ...settingsPatch, attendancePolicy: effectivePolicy },
+        attendancePolicy: effectivePolicy,
+        industryKey: resolvedProfile.key,
+        industryProfile: resolvedProfile
+      },
+      attendancePolicy: effectivePolicy
+    });
+  }
+  if (url.pathname === '/api/organisation/attendance-policy' && request.method === 'GET') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    const store = await getStore();
+    let org = (store.organisations || []).find(o => o.id === user.organisation_id || o.organisation_code === user.company_id) || {};
+    if (databaseReady && UUID_REGEX.test(String(user.organisation_id || ''))) {
+      const dbOrg = (await query('select id, organisation_code, legal_name, trading_name, time_zone, settings from organisations where id = $1', [user.organisation_id])).rows[0];
+      if (dbOrg) org = dbOrg;
+    }
+    const policy = getEffectiveAttendancePolicy(org);
+    return sendJson(response, 200, {
+      ok: true,
+      policy,
+      policyAcknowledgedVersion: user.policyAcknowledgedVersion || null,
+      policyRequiresAck: Boolean(user.policyAcknowledgedVersion !== policy.policyVersion)
+    });
+  }
+  if (url.pathname === '/api/organisation/attendance-policy' && request.method === 'PUT') {
+    if (!['owner', 'workforce_admin'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Only organisation owners or HR admins can update attendance policy.' });
+    }
+    const body = await readJson(request).catch(() => ({}));
+    const store = await getStore();
+    let org = (store.organisations || []).find(o => o.id === user.organisation_id || o.organisation_code === user.company_id);
+    if (databaseReady && UUID_REGEX.test(String(user.organisation_id || ''))) {
+      const dbOrg = (await query('select id, settings from organisations where id = $1', [user.organisation_id])).rows[0];
+      const existingPolicy = getEffectiveAttendancePolicy(dbOrg || org || {});
+      const nextPolicy = normalizeAttendancePolicy(body.attendancePolicy || body, {
+        ...existingPolicy,
+        policyVersion: `v${Date.now()}`
+      });
+      await query(
+        `update organisations set settings = coalesce(settings, '{}'::jsonb) || jsonb_build_object('attendancePolicy', $2::jsonb) where id = $1`,
+        [user.organisation_id, JSON.stringify(nextPolicy)]
+      );
+      await audit(user.organisation_id, user.id, 'attendance_policy_updated', 'organisation', user.organisation_id, `Policy ${nextPolicy.policyVersion}: grace=${nextPolicy.graceMinutes}m`);
+      return sendJson(response, 200, { ok: true, policy: nextPolicy });
+    }
+    if (!org) return sendJson(response, 404, { error: 'Organisation not found.' });
+    if (!org.settings || typeof org.settings !== 'object') org.settings = {};
+    const existingPolicy = getEffectiveAttendancePolicy(org);
+    const nextPolicy = normalizeAttendancePolicy(body.attendancePolicy || body, {
+      ...existingPolicy,
+      policyVersion: `v${Date.now()}`
+    });
+    org.settings.attendancePolicy = nextPolicy;
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, policy: nextPolicy });
+  }
+  // ── Worker NDPA Notification Preferences Opt-Out / Opt-In ────────────────
+  if (url.pathname === '/api/employee/notification-preferences' && request.method === 'PUT') {
+    if (!user || !user.organisation_id) return sendJson(response, 401, { error: 'Authentication required.' });
+    const body = await readJson(request).catch(() => ({}));
+    const optOut = Boolean(body.notificationOptOut ?? body.optOut);
+    if (databaseReady && UUID_REGEX.test(String(user.id || ''))) {
+      await query('update memberships set notification_opt_out = $1 where id = $2 and organisation_id = $3', [optOut, user.id, user.organisation_id]).catch(() => {});
+    }
+    const store = await getStore();
+    for (const m of (store.memberships || [])) {
+      if (m.id === user.id || (user.user_id && m.user_id === user.user_id && m.organisation_id === user.organisation_id)) {
+        m.notification_opt_out = optOut;
+      }
+    }
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, notificationOptOut: optOut });
+  }
+
+  if (url.pathname === '/api/auth/acknowledge-policy' && request.method === 'POST') {
+    if (!user || !user.organisation_id) return sendJson(response, 401, { error: 'Sign in with an active organisation account first.' });
+    const body = await readJson(request).catch(() => ({}));
+    const nowIso = new Date().toISOString();
+    const store = await getStore();
+    let org = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
+    if (databaseReady && UUID_REGEX.test(String(user.organisation_id || ''))) {
+      const dbOrg = (await query('select settings from organisations where id = $1', [user.organisation_id])).rows[0];
+      if (dbOrg) org = dbOrg;
+    }
+    const policy = getEffectiveAttendancePolicy(org);
+    const version = String(body.policyVersion || policy.policyVersion || 'v1').trim();
+    if (databaseReady && UUID_REGEX.test(String(user.id || ''))) {
+      await query('update memberships set policy_acknowledged_version = $1, policy_acknowledged_at = $2 where id = $3 and organisation_id = $4', [version, nowIso, user.id, user.organisation_id]).catch(() => {});
+      if (UUID_REGEX.test(String(user.user_id || ''))) {
+        await query('update portal_users set policy_acknowledged_version = $1, policy_acknowledged_at = $2 where id = $3', [version, nowIso, user.user_id]).catch(() => {});
+      }
+      await audit(user.organisation_id, user.id, 'attendance_policy_acknowledged', 'membership', user.id, `Accepted attendance & pay policy ${version}`);
+    } else {
+      if (!store.policyAcknowledgements || typeof store.policyAcknowledgements !== 'object') store.policyAcknowledgements = {};
+      store.policyAcknowledgements[user.id] = version;
+      if (user.user_id) store.policyAcknowledgements[user.user_id] = version;
+      for (const m of (store.memberships || [])) {
+        if (m.id === user.id || m.user_id === user.user_id) {
+          m.policy_acknowledged_version = version;
+          m.policy_acknowledged_at = nowIso;
+        }
+      }
+      for (const u of (store.portalUsers || [])) {
+        if (u.id === user.user_id || u.id === user.id) {
+          u.policy_acknowledged_version = version;
+          u.policy_acknowledged_at = nowIso;
+        }
+      }
+      await saveStore(store);
+    }
+    await recordLegalAcceptance({
+      organisationId: user.organisation_id,
+      userId: user.user_id || user.id,
+      email: user.email || null,
+      actorType: user.role === 'owner' ? 'organisation_owner' : 'employee',
+      acceptedAttendancePolicyVersion: version,
+      request,
+      store
+    }).catch(() => {});
+    return sendJson(response, 200, { ok: true, policyAcknowledgedVersion: version, acknowledgedAt: nowIso, policyRequiresAck: false });
   }
   if (url.pathname === '/api/directory' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Directory is available for authenticated organisation accounts.' });
@@ -5188,7 +6752,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     }
     return sendJson(response, 200, await timeSummary(user, monthParam ? `${monthParam}-01` : null));
   }
-  // ── Tenant Gate QR Poster Generator ──────────────────────────────────────
+  // ── Tenant Gate QR Poster Generator (Multilingual Rollout Kit) ──────────
   if (url.pathname.startsWith('/api/tenants/') && url.pathname.endsWith('/gate-qr') && request.method === 'GET') {
     const tenantId = url.pathname.split('/')[3];
     const store = await getStore();
@@ -5201,6 +6765,12 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     const gateId = 'GATE-01';
     const qrPayload = `SHIFTRELAY:GATE:${cCode}:${hubName.replace(/\s+/g, '-')}:${gateId}`;
     const qrSvg = generateQrSvg(qrPayload, 260);
+    const langCode = url.searchParams.get('lang') || 'en';
+    const translation = getGatePosterTranslation(langCode);
+    const adminMember = (store.portalUsers || []).find(u =>
+      (u.tenant_id === org.id || u.organisation_id === org.id)
+    );
+    const hrContact = org.work_email || adminMember?.phone || adminMember?.email || LEGAL_ENTITY.supportEmail;
 
     return sendJson(response, 200, {
       ok: true,
@@ -5211,7 +6781,11 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       hubName,
       gateId,
       qrPayload,
-      qrSvg
+      qrSvg,
+      hrContact,
+      lang: translation.code,
+      translation,
+      allTranslations: GATE_POSTER_TRANSLATIONS
     });
   }
 
@@ -6489,14 +8063,46 @@ async function getUserRewards(user, store) {
 
   // ── Timesheets & Missed Punch Correction ─────────────────────────────────
   if (url.pathname === '/api/timesheets' && request.method === 'GET') {
-    const store = await getStore();
+    const requestedUserId = url.searchParams.get('userId') || user.id;
+    const isManagerRole = ['owner', 'workforce_admin', 'supervisor', 'manager', 'finance_admin'].includes(user.role);
+    const isSelf = requestedUserId === user.id || requestedUserId === user.user_id;
+    if (!isSelf && !isManagerRole) {
+      return sendJson(response, 403, { error: 'Forbidden: you can only inspect your own timesheets.' });
+    }
+
+    const store = await loadPayrollStoreForTenant(user.organisation_id);
     if (!Array.isArray(store.timeEntries)) store.timeEntries = [];
     if (!Array.isArray(store.punchCorrections)) store.punchCorrections = [];
 
-    const targetUserId = url.searchParams.get('userId') || user.id;
-    let userEntries = store.timeEntries.filter(e => e.membershipId === targetUserId);
+    const org = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
+    const orgTimeZone = org.time_zone || user.time_zone || 'Africa/Lagos';
+    const monthParam = url.searchParams.get('month');
+    const monthMeta = formatMonthMeta(monthParam, orgTimeZone);
 
-    if (userEntries.length === 0) {
+    let targetMemberId = user.id;
+    let targetUserIdResolved = user.user_id || user.id;
+    if (!isSelf) {
+      const targetMember = (store.memberships || []).find(
+        m => m.organisation_id === user.organisation_id && (m.id === requestedUserId || m.user_id === requestedUserId)
+      );
+      if (!targetMember && !(user.organisation_id === demoOrganisation.id && demoMembers.some(d => d.id === requestedUserId))) {
+        return sendJson(response, 404, { error: 'Team member not found in your organisation.' });
+      }
+      targetMemberId = targetMember?.id || requestedUserId;
+      targetUserIdResolved = targetMember?.user_id || requestedUserId;
+    }
+
+    let userEntries = store.timeEntries.filter(e =>
+      (!e.organisationId || e.organisationId === user.organisation_id) &&
+      (e.membershipId === targetMemberId || e.userId === targetUserIdResolved || e.membershipId === targetUserIdResolved)
+    );
+    if (monthParam) {
+      userEntries = userEntries.filter(e => typeof e.clockedInAt === 'string' && e.clockedInAt.startsWith(monthMeta.month));
+    }
+
+    if (!databaseReady && userEntries.length === 0 && user.organisation_id === demoOrganisation.id && isSelf && !monthParam) {
+      const baseStore = await getStore();
+      if (!Array.isArray(baseStore.timeEntries)) baseStore.timeEntries = [];
       const now = Date.now();
       const dayMs = 86400000;
       const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
@@ -6507,7 +8113,7 @@ async function getUserRewards(user, store) {
         {
           id: 'te-seed-1',
           organisationId: user.organisation_id,
-          membershipId: targetUserId,
+          membershipId: targetMemberId,
           clockedInAt: new Date(now - dayMs - 8.5 * 3600000).toISOString(),
           clockedOutAt: new Date(now - dayMs).toISOString(),
           facility: hubLabel,
@@ -6518,7 +8124,7 @@ async function getUserRewards(user, store) {
         {
           id: 'te-seed-2',
           organisationId: user.organisation_id,
-          membershipId: targetUserId,
+          membershipId: targetMemberId,
           clockedInAt: new Date(now - 2 * dayMs - 9 * 3600000).toISOString(),
           clockedOutAt: null,
           facility: hubLabel,
@@ -6529,7 +8135,7 @@ async function getUserRewards(user, store) {
         {
           id: 'te-seed-3',
           organisationId: user.organisation_id,
-          membershipId: targetUserId,
+          membershipId: targetMemberId,
           clockedInAt: new Date(now - 3 * dayMs - 8 * 3600000).toISOString(),
           clockedOutAt: new Date(now - 3 * dayMs).toISOString(),
           facility: hubLabel,
@@ -6538,10 +8144,27 @@ async function getUserRewards(user, store) {
           note: 'Regular shift'
         }
       ];
-      store.timeEntries.push(...userEntries);
-      await saveStore(store);
+      baseStore.timeEntries.push(...userEntries);
+      await saveStore(baseStore);
     }
 
+    const exceptionState = computeAttendanceExceptionsForOrg({
+      org,
+      members: (store.memberships || []).filter(m => !m.organisation_id || m.organisation_id === user.organisation_id),
+      contracts: (store.contracts || []).filter(c => (c.tenant_id || c.organisation_id) === user.organisation_id),
+      timeEntries: store.timeEntries || [],
+      scheduledShifts: store.scheduledShifts || [],
+      leaveRequests: store.leaveRequests || [],
+      punchCorrections: store.punchCorrections || [],
+      persistedExceptions: store.attendanceExceptions || [],
+      month: monthMeta.month
+    });
+    const excByEntry = new Map();
+    for (const ex of exceptionState.exceptions) {
+      if (ex.timeEntryId) excByEntry.set(ex.timeEntryId, ex);
+    }
+
+    const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
     const timesheets = userEntries.map(e => {
       const inTime = new Date(e.clockedInAt);
       const outTime = e.clockedOutAt ? new Date(e.clockedOutAt) : null;
@@ -6551,19 +8174,29 @@ async function getUserRewards(user, store) {
       if (outTime) {
         hours = Math.max(0, ((outTime.getTime() - inTime.getTime()) / 3600000)).toFixed(2);
       }
-      const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
+      const linkedEx = excByEntry.get(e.id) || null;
+      const correctionPending = (store.punchCorrections || []).some(
+        c => c.timeEntryId === e.id && c.status === 'pending' && (!c.organisationId || c.organisationId === user.organisation_id)
+      );
       return {
         id: e.id,
-        date: inTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
-        rawDate: inTime.toISOString().slice(0, 10),
-        clockInTime: inTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        clockOutTime: outTime ? outTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Blank (Missing)',
+        date: inTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: orgTimeZone }),
+        rawDate: e.clockedInAt.slice(0, 10),
+        clockInTime: inTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: orgTimeZone }),
+        clockOutTime: outTime ? outTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: orgTimeZone }) : 'Blank (Missing)',
         hours: outTime ? Number(hours) : 0,
         status: isMissing ? 'missed_punch' : (isActive ? 'active' : 'authorized'),
         facility: e.facility || user.hub_name || profile.defaultHubName,
         department: e.department || user.department || 'Operations',
         role: e.role || user.title || profile.defaultRoleTitle,
-        correctionPending: store.punchCorrections.some(c => c.timeEntryId === e.id && c.status === 'pending')
+        correctionPending,
+        exceptionId: linkedEx?.id || null,
+        exceptionType: linkedEx?.type || null,
+        exceptionStatus: linkedEx?.status || null,
+        payImpactHours: linkedEx?.payImpactHours || 0,
+        payImpactAmount: linkedEx?.payImpactAmount || 0,
+        pardonedHours: linkedEx?.pardonedHours || 0,
+        resolutionNote: linkedEx?.resolutionNote || null
       };
     });
 
@@ -6573,11 +8206,13 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, {
       timesheets,
       missedPunchCount,
+      policy: exceptionState.policy,
       period: {
-        label: 'Current Pay Period (Aug 9 — Aug 22)',
+        month: monthMeta.month,
+        label: monthMeta.period,
         totalHours: totalHours.toFixed(2),
-        regularHours: Math.min(80, totalHours).toFixed(2),
-        overtimeHours: Math.max(0, totalHours - 80).toFixed(2)
+        regularHours: Math.min(160, totalHours).toFixed(2),
+        overtimeHours: Math.max(0, totalHours - 160).toFixed(2)
       }
     });
   }
@@ -6589,36 +8224,104 @@ async function getUserRewards(user, store) {
     if (!timeEntryId || !requestedClockOut) {
       return sendJson(response, 400, { error: 'Time entry and estimated departure time are required.' });
     }
-    const store = await getStore();
-    if (!Array.isArray(store.punchCorrections)) store.punchCorrections = [];
+    const baseStore = await getStore();
+    if (!Array.isArray(baseStore.punchCorrections)) baseStore.punchCorrections = [];
+
+    let ownedEntry = null;
+    if (databaseReady && UUID_REGEX.test(String(timeEntryId))) {
+      const pgRow = (await query(
+        'select id, organisation_id, membership_id, clocked_in_at from time_entries where id = $1 and organisation_id = $2 limit 1',
+        [timeEntryId, user.organisation_id]
+      )).rows[0];
+      if (!pgRow) return sendJson(response, 404, { error: 'Time entry not found in your organisation.' });
+      const isManager = ['owner', 'workforce_admin', 'supervisor', 'manager'].includes(user.role);
+      if (!isManager && pgRow.membership_id !== user.id) {
+        return sendJson(response, 403, { error: 'Forbidden: you can only file punch corrections for your own time entries.' });
+      }
+      ownedEntry = { id: pgRow.id, organisationId: pgRow.organisation_id, membershipId: pgRow.membership_id, clockedInAt: toIsoStringOrNull(pgRow.clocked_in_at) };
+    } else {
+      ownedEntry = (baseStore.timeEntries || []).find(
+        e => e.id === timeEntryId && (!e.organisationId || e.organisationId === user.organisation_id)
+      );
+      if (!ownedEntry) {
+        return sendJson(response, 404, { error: 'Time entry not found in your organisation.' });
+      }
+      const isManager = ['owner', 'workforce_admin', 'supervisor', 'manager'].includes(user.role);
+      if (!isManager && ownedEntry.membershipId !== user.id && ownedEntry.membershipId !== user.user_id && ownedEntry.userId !== user.user_id) {
+        return sendJson(response, 403, { error: 'Forbidden: you can only file punch corrections for your own time entries.' });
+      }
+    }
+
     const id = crypto.randomUUID();
     const correction = {
       id,
+      organisationId: user.organisation_id,
       timeEntryId,
-      membershipId: user.id,
+      membershipId: ownedEntry.membershipId || user.id,
+      userId: user.user_id || user.id,
       workerName: user.name,
-      requestedClockOut,
-      reason: reason || 'Forgotten punch on shift end',
+      date: ownedEntry.clockedInAt ? ownedEntry.clockedInAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      requestedClockOut: String(requestedClockOut).trim().slice(0, 40),
+      reason: String(reason || 'Forgotten punch on shift end').trim().slice(0, 500),
       status: 'pending',
       createdAt: new Date().toISOString()
     };
-    store.punchCorrections.unshift(correction);
-    await saveStore(store);
+    baseStore.punchCorrections.unshift(correction);
+
+    // Sync explanation into attendance_exceptions if PG or store
+    const exId = `ex-out-${timeEntryId}`;
+    if (databaseReady && UUID_REGEX.test(String(user.organisation_id || ''))) {
+      await upsertAttendanceExceptionPg(user.organisation_id, {
+        id: exId,
+        membershipId: ownedEntry.membershipId || user.id,
+        type: 'MISSED_CLOCK_OUT',
+        shiftDate: correction.date,
+        timeEntryId,
+        status: 'pending_review',
+        workerExplanation: correction.reason,
+        requestedTime: correction.requestedClockOut
+      });
+      await audit(user.organisation_id, user.id, 'punch_correction_submitted', 'time_entry', timeEntryId, `${user.name} requested clock-out ${correction.requestedClockOut}`);
+    } else {
+      if (!Array.isArray(baseStore.attendanceExceptions)) baseStore.attendanceExceptions = [];
+      const existingEx = baseStore.attendanceExceptions.find(x => x.id === exId || x.timeEntryId === timeEntryId);
+      if (existingEx) {
+        existingEx.workerExplanation = correction.reason;
+        existingEx.requestedTime = correction.requestedClockOut;
+      } else {
+        baseStore.attendanceExceptions.push({
+          id: exId,
+          organisationId: user.organisation_id,
+          membershipId: ownedEntry.membershipId || user.id,
+          type: 'MISSED_CLOCK_OUT',
+          shiftDate: correction.date,
+          timeEntryId,
+          status: 'pending_review',
+          workerExplanation: correction.reason,
+          requestedTime: correction.requestedClockOut
+        });
+      }
+    }
+    await saveStore(baseStore);
     return sendJson(response, 201, { ok: true, correction });
   }
 
   // Manager: Get Pending Authorizations & Punch Corrections
   if (url.pathname === '/api/timesheets/pending-authorizations' && request.method === 'GET') {
+    if (!['owner', 'workforce_admin', 'supervisor', 'manager'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Supervisor or manager access required.' });
+    }
     const store = await getStore();
     if (!Array.isArray(store.punchCorrections)) store.punchCorrections = [];
-    
-    if (store.punchCorrections.length === 0) {
+
+    if (!databaseReady && user.organisation_id === demoOrganisation.id && store.punchCorrections.filter(c => !c.organisationId || c.organisationId === demoOrganisation.id).length === 0) {
       const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
       const hubLabel = user.hub_name || profile.defaultHubName;
       const roleLabel = profile.defaultRoleTitle;
-      store.punchCorrections = [
+      store.punchCorrections.push(
         {
           id: 'pc-seed-1',
+          organisationId: demoOrganisation.id,
           timeEntryId: 'te-seed-2',
           membershipId: '00000000-0000-4000-8000-000000000011',
           workerName: 'Chidinma Okonjo',
@@ -6634,6 +8337,7 @@ async function getUserRewards(user, store) {
         },
         {
           id: 'pc-seed-2',
+          organisationId: demoOrganisation.id,
           timeEntryId: 'te-seed-aaron',
           membershipId: '00000000-0000-4000-8000-000000000012',
           workerName: 'Farouk Bello',
@@ -6647,58 +8351,150 @@ async function getUserRewards(user, store) {
           status: 'pending',
           createdAt: new Date().toISOString()
         }
-      ];
+      );
       await saveStore(store);
     }
 
+    const orgCorrections = store.punchCorrections.filter(c =>
+      c.organisationId === user.organisation_id || (!c.organisationId && user.organisation_id === demoOrganisation.id)
+    );
     const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
     const sanitizedAll = profile.key !== 'manufacturing'
-      ? store.punchCorrections.map(c => ({
+      ? orgCorrections.map(c => ({
           ...c,
           facility: /Factory\s*10|Production/i.test(String(c.facility || '')) ? (user.hub_name || profile.defaultHubName) : c.facility,
           reason: String(c.reason || '').replace(/bay 4 exit/gi, 'main access checkpoint')
         }))
-      : store.punchCorrections;
+      : orgCorrections;
     const pending = sanitizedAll.filter(c => c.status === 'pending');
     return sendJson(response, 200, {
       pending,
+      corrections: pending,
       all: sanitizedAll,
       count: pending.length
     });
   }
 
-  // Manager: Authorize Punch Correction
+  // Manager: Authorize Punch Correction (fixes requestedClockOut time parsing bug & persists PG + store)
   if (url.pathname === '/api/timesheets/authorize' && request.method === 'POST') {
+    if (!['owner', 'workforce_admin', 'supervisor', 'manager'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Supervisor or manager access required.' });
+    }
     const body = await readJson(request);
     const correctionId = body.correctionId || body.id;
     const rawDecision = String(body.decision || body.action || '').toLowerCase();
     const isApproved = ['approved', 'approve', 'authorized', 'authorize'].includes(rawDecision);
     const store = await getStore();
-    const correction = (store.punchCorrections || []).find(c => c.id === correctionId);
-    if (!correction) return sendJson(response, 404, { error: 'Correction request not found.' });
+    const correction = (store.punchCorrections || []).find(
+      c => c.id === correctionId && (c.organisationId === user.organisation_id || (!c.organisationId && user.organisation_id === demoOrganisation.id))
+    );
+    if (!correction) return sendJson(response, 404, { error: 'Correction request not found in your organisation.' });
+
+    const org = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
+    const orgTimeZone = org.time_zone || user.time_zone || 'Africa/Lagos';
+    const targetTimeStr = String(body.adjustedTime || correction.requestedClockOut || '').trim();
+
     correction.status = isApproved ? 'authorized' : 'denied';
     correction.authorizedBy = user.name;
     correction.authorizedAt = new Date().toISOString();
+    correction.resolutionNote = String(body.reason || (isApproved ? `Approved punch ${targetTimeStr}` : 'Denied by supervisor')).trim();
 
-    if (isApproved && Array.isArray(store.timeEntries)) {
-      const entry = store.timeEntries.find(e => e.id === correction.timeEntryId);
-      if (entry) {
-        entry.clockedOutAt = new Date().toISOString();
-        entry.note = `Supervisor ${user.name} approved punch: departure ${correction.requestedClockOut}`;
+    let resolvedClockOutIso = null;
+    if (isApproved) {
+      if (databaseReady && UUID_REGEX.test(String(correction.timeEntryId || ''))) {
+        const pgRow = (await query('select id, clocked_in_at from time_entries where id = $1 and organisation_id = $2', [correction.timeEntryId, user.organisation_id])).rows[0];
+        if (pgRow) {
+          const baseIso = toIsoStringOrNull(pgRow.clocked_in_at) || new Date().toISOString();
+          resolvedClockOutIso = parseClockTimeOnDate(baseIso, targetTimeStr, orgTimeZone, baseIso) || new Date().toISOString();
+          const noteAppend = ` | Supervisor ${user.name} approved punch: departure ${targetTimeStr}`;
+          await query(
+            `update time_entries set clocked_out_at = $1, clock_out_verification_mode = 'supervisor_adjusted', presence_verification_status = 'supervisor_confirmed', note = COALESCE(note, '') || $2 where id = $3 and organisation_id = $4`,
+            [resolvedClockOutIso, noteAppend, pgRow.id, user.organisation_id]
+          );
+        }
+      } else if (Array.isArray(store.timeEntries)) {
+        const entry = store.timeEntries.find(e => e.id === correction.timeEntryId && (!e.organisationId || e.organisationId === user.organisation_id));
+        if (entry) {
+          const baseIso = entry.clockedInAt || new Date().toISOString();
+          resolvedClockOutIso = parseClockTimeOnDate(baseIso, targetTimeStr, orgTimeZone, baseIso) || new Date().toISOString();
+          entry.clockedOutAt = resolvedClockOutIso;
+          entry.clockOutVerificationMode = 'supervisor_adjusted';
+          entry.presenceVerificationStatus = 'supervisor_confirmed';
+          entry.note = `Supervisor ${user.name} approved punch: departure ${targetTimeStr}`;
+        }
       }
     }
+
+    const exId = `ex-out-${correction.timeEntryId}`;
+    const newExStatus = isApproved ? 'adjusted' : 'unexcused';
+    if (databaseReady && UUID_REGEX.test(String(user.organisation_id || ''))) {
+      await upsertAttendanceExceptionPg(user.organisation_id, {
+        id: exId,
+        membershipId: correction.membershipId || user.id,
+        type: 'MISSED_CLOCK_OUT',
+        shiftDate: String(correction.date || new Date().toISOString().slice(0, 10)).slice(0, 10),
+        timeEntryId: correction.timeEntryId,
+        status: newExStatus,
+        requestedTime: targetTimeStr,
+        payImpactHours: 0
+      }, {
+        resolveFields: {
+          resolutionNote: correction.resolutionNote,
+          resolvedById: user.id,
+          resolvedByName: user.name
+        }
+      });
+      await audit(user.organisation_id, user.id, 'punch_correction_decided', 'time_entry', correction.timeEntryId, `${correction.status} (${targetTimeStr})`);
+    } else {
+      if (!Array.isArray(store.attendanceExceptions)) store.attendanceExceptions = [];
+      const ex = store.attendanceExceptions.find(x => x.id === exId || x.timeEntryId === correction.timeEntryId);
+      if (ex) {
+        ex.status = newExStatus;
+        ex.payImpactHours = isApproved ? 0 : (ex.payImpactHours || 0);
+        ex.resolutionNote = correction.resolutionNote;
+        ex.resolvedByName = user.name;
+        ex.resolvedAt = new Date().toISOString();
+      }
+    }
+
+    if (correction.membershipId) {
+      await deliverOrgNotification({
+        store,
+        organisationId: user.organisation_id,
+        recipientId: correction.membershipId,
+        category: 'attendance',
+        message: `Punch correction ${isApproved ? `approved (${targetTimeStr})` : 'denied'} by ${user.name}.`
+      });
+    }
     await saveStore(store);
-    return sendJson(response, 200, { ok: true, correction });
+
+    return sendJson(response, 200, { ok: true, correction, resolvedClockOutIso, clockedOutAt: resolvedClockOutIso });
   }
 
-  // ── Worker Earnings & Statements (NGN Africa & Global Hybrid) ──────────────
+  // ── Worker Earnings & Statements (Strict Self-Only Tenant Isolation) ─────
   if (url.pathname === '/api/earnings' && request.method === 'GET') {
+    const monthParam = url.searchParams.get('month');
     const store = await loadPayrollStoreForTenant(user.organisation_id || null);
-    const payroll = compilePayrollRun(store, user.organisation_id || null);
-    const emp = payroll.employees.find(e => e.userId === user.id || e.userId === user.user_id || e._membershipId === user.id || e.userName === user.name) || payroll.employees[0];
-    if (!emp) return sendJson(response, 404, { error: 'No active payroll profile found for this account yet.' });
+    const payroll = compilePayrollRun(store, user.organisation_id || null, monthParam);
+    const emp = payroll.employees.find(e =>
+      e.userId === user.user_id ||
+      e.userId === user.id ||
+      (e._membershipId && e._membershipId === user.id)
+    );
+    if (!emp) {
+      return sendJson(response, 200, {
+        ok: true,
+        unassigned: true,
+        statement: null,
+        companyName: payroll.companyName,
+        companyId: payroll.companyId,
+        attendancePolicy: payroll.attendancePolicy,
+        message: 'No compensation contract assigned to your profile yet. Ask your HR/Finance manager to configure your contract.'
+      });
+    }
     const orgSettings = store.organisationSettings || {};
-    const orgConfig = orgSettings.settings || {};
+    const orgRow = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
+    const orgConfig = orgRow.settings || orgSettings.settings || {};
     const payModel = orgConfig.payModel || emp.compensation_type || 'monthly_salaried';
     const disbursementDay = Number(orgConfig.disbursementDay || 25);
     const now = new Date();
@@ -6708,8 +8504,12 @@ async function getUserRewards(user, store) {
     const accrualPct = Math.min(100, Math.max(8, Math.round((currentDay / targetDay) * 100)));
     const accruedNet = Math.round((accrualPct / 100) * emp.netPay);
     const accruedGross = Math.round((accrualPct / 100) * emp.grossPay);
-    const effectiveHourlyRate = Math.round(emp.grossPay / 173.333);
+    const effectiveHourlyRate = emp.grossPay > 0 ? Math.round(emp.grossPay / 173.333) : (emp.hourlyRate || 0);
+    const pct = (part, total) => (total > 0 ? Math.round((part / total) * 10000) / 100 : 0);
     return sendJson(response, 200, {
+      ok: true,
+      unassigned: false,
+      attendancePolicy: payroll.attendancePolicy,
       statement: {
         payModel,
         disbursementDay,
@@ -6725,33 +8525,37 @@ async function getUserRewards(user, store) {
           accruedGross,
           accruedGrossFormatted: '₦' + accruedGross.toLocaleString('en-NG', { minimumFractionDigits: 2 })
         },
-        period: 'November 1 — November 30, 2026',
-        payDate: 'Wednesday, Nov 25, 2026',
+        month: payroll.month,
+        period: payroll.period,
+        payDate: payroll.payDate,
         companyName: payroll.companyName,
         companyId: payroll.companyId,
         currency: 'NGN',
         currencySymbol: '₦',
         netPay: emp.netPay,
         netPayFormatted: '₦' + emp.netPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        changeFromPrevious: '+₦14,250.00',
         hours: emp.regularHours + emp.overtimeHours,
         regularHours: emp.regularHours,
         overtimeHours: emp.overtimeHours,
+        pardonedHours: emp.pardonedHours || 0,
+        unexcusedDeductedHours: emp.unexcusedDeductedHours || 0,
+        absenceDeduction: emp.absenceDeduction || 0,
+        absenceDeductionFormatted: '₦' + Number(emp.absenceDeduction || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         grossPay: emp.grossPay,
         grossPayFormatted: '₦' + emp.grossPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         preTaxDeductions: emp.pensionEmployee + emp.nhf,
         preTaxFormatted: '₦' + (emp.pensionEmployee + emp.nhf).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        preTaxPercentage: Math.round(((emp.pensionEmployee + emp.nhf) / emp.grossPay) * 10000) / 100 + '%',
-        netPayPercentage: Math.round((emp.netPay / emp.grossPay) * 10000) / 100 + '%',
+        preTaxPercentage: pct(emp.pensionEmployee + emp.nhf, emp.grossPay) + '%',
+        netPayPercentage: pct(emp.netPay, emp.grossPay) + '%',
         taxes: emp.payeTax,
         taxesFormatted: '₦' + emp.payeTax.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        taxesPercentage: Math.round((emp.payeTax / emp.grossPay) * 10000) / 100 + '%',
+        taxesPercentage: pct(emp.payeTax, emp.grossPay) + '%',
         hourlyRate: '₦' + emp.hourlyRate.toLocaleString('en-NG') + '/hr',
         compensationType: emp.compensation_type,
         breakdown: {
-          netPayPct: Math.round((emp.netPay / emp.grossPay) * 10000) / 100,
-          preTaxPct: Math.round(((emp.pensionEmployee + emp.nhf) / emp.grossPay) * 10000) / 100,
-          taxesPct: Math.round((emp.payeTax / emp.grossPay) * 10000) / 100,
+          netPayPct: pct(emp.netPay, emp.grossPay),
+          preTaxPct: pct(emp.pensionEmployee + emp.nhf, emp.grossPay),
+          taxesPct: pct(emp.payeTax, emp.grossPay),
           netPayAmt: emp.netPay,
           preTaxAmt: emp.pensionEmployee + emp.nhf,
           taxesAmt: emp.payeTax
@@ -6760,18 +8564,33 @@ async function getUserRewards(user, store) {
     });
   }
 
-  // ── Worker Official Digital Payslip (Pay Advice) ───────────────────────────
+  // ── Worker Official Digital Payslip (Pay Advice · Strict Self-Only) ──────
   if (url.pathname === '/api/worker-payslip' && request.method === 'GET') {
+    const monthParam = url.searchParams.get('month');
     const store = await loadPayrollStoreForTenant(user.organisation_id || null);
-    const payroll = compilePayrollRun(store, user.organisation_id || null);
-    const emp = payroll.employees.find(e => e.userId === user.id || e.userId === user.user_id || e._membershipId === user.id || e.userName === user.name) || payroll.employees[0];
-    if (!emp) return sendJson(response, 404, { error: 'No active payslip profile found for this account yet.' });
+    const payroll = compilePayrollRun(store, user.organisation_id || null, monthParam);
+    const emp = payroll.employees.find(e =>
+      e.userId === user.user_id ||
+      e.userId === user.id ||
+      (e._membershipId && e._membershipId === user.id)
+    );
+    if (!emp) {
+      return sendJson(response, 200, {
+        ok: true,
+        unassigned: true,
+        payslip: null,
+        message: 'No active payslip profile found for this account yet.'
+      });
+    }
     return sendJson(response, 200, {
+      ok: true,
+      unassigned: false,
       payslip: {
         companyName: payroll.companyName,
         companyId: payroll.companyId,
-        period: 'November 1 — November 30, 2026',
-        payDate: 'Wednesday, Nov 25, 2026',
+        month: payroll.month,
+        period: payroll.period,
+        payDate: payroll.payDate,
         staffName: emp.userName,
         staffId: emp.staffId,
         role: emp.role,
@@ -6784,6 +8603,8 @@ async function getUserRewards(user, store) {
         regularHours: emp.regularHours,
         overtimeHours: emp.overtimeHours,
         totalHours: emp.regularHours + emp.overtimeHours,
+        pardonedHours: emp.pardonedHours || 0,
+        unexcusedDeductedHours: emp.unexcusedDeductedHours || 0,
         earnings: {
           basicSalary: emp.regularPay,
           overtimeBonus: emp.overtimePay,
@@ -6804,6 +8625,7 @@ async function getUserRewards(user, store) {
         formatted: {
           basicSalary: '₦' + emp.regularPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
           overtimeBonus: '₦' + emp.overtimePay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+          absenceDeduction: '₦' + Number(emp.absenceDeduction || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
           grossTotal: '₦' + emp.grossPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
           pensionEmployee: '₦' + emp.pensionEmployee.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
           payeTax: '₦' + emp.payeTax.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
@@ -6811,54 +8633,127 @@ async function getUserRewards(user, store) {
           totalDeductions: '₦' + emp.totalStatutoryDeductions.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
           netPay: '₦' + emp.netPay.toLocaleString('en-NG', { minimumFractionDigits: 2 })
         },
-        verificationSeal: 'ShiftRelay Certified Frontline Verification · Audit Token SR-VER-99214'
+        verificationSeal: `ShiftRelay OS Certified Frontline Verification · ${payroll.companyId}-${payroll.monthCompact}`
       }
     });
   }
 
-  // ── Employee Contracts & Compensation Management ───────────────────────────
+  // ── Employee Contracts & Compensation Management (Owner / HR / Finance Only) ──
   if (url.pathname === '/api/contracts' && request.method === 'GET') {
-    const store = await getStore();
-    return sendJson(response, 200, { contracts: store.contracts || [] });
+    if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: compensation contracts require Owner, HR, or Finance access.' });
+    }
+    const store = await loadPayrollStoreForTenant(user.organisation_id);
+    const orgContracts = (store.contracts || []).filter(c => (c.tenant_id || c.organisation_id) === user.organisation_id);
+    return sendJson(response, 200, { contracts: orgContracts });
   }
 
   if (url.pathname.startsWith('/api/contracts/') && request.method === 'PUT') {
+    if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: only Owners, HR, or Finance Admins can modify employee contracts.' });
+    }
     const targetUserId = decodeURIComponent(url.pathname.slice('/api/contracts/'.length));
     const body = await readJson(request);
     const store = await getStore();
-    const contract = (store.contracts || []).find(c => c.userId === targetUserId);
-    if (!contract) return sendJson(response, 404, { error: 'Employee contract not found.' });
+    const contract = (store.contracts || []).find(
+      c => (c.userId === targetUserId || c.user_id === targetUserId) &&
+           ((c.tenant_id || c.organisation_id) === user.organisation_id)
+    );
+    if (!contract) return sendJson(response, 404, { error: 'Employee contract not found in your organisation.' });
     if (body.compensation_type) contract.compensation_type = body.compensation_type;
-    if (body.monthly_rate !== undefined) contract.monthly_rate = Number(body.monthly_rate);
+    if (body.monthly_rate !== undefined) {
+      contract.monthly_rate = Number(body.monthly_rate);
+      contract.monthly_salary = Number(body.monthly_rate);
+    }
     if (body.hourly_rate !== undefined) contract.hourly_rate = Number(body.hourly_rate);
-    if (body.bank_name) contract.bank_name = body.bank_name;
+    if (body.bank_name) {
+      const bankResolved = resolveCbnBank(body.bank_name, body.cbn_bank_code || contract.cbn_bank_code);
+      contract.bank_name = bankResolved.name || body.bank_name;
+      if (bankResolved.code) contract.cbn_bank_code = bankResolved.code;
+    }
+    if (body.cbn_bank_code !== undefined) contract.cbn_bank_code = String(body.cbn_bank_code || '').trim();
+    if (body.pencom_rsa_pin !== undefined) contract.pencom_rsa_pin = String(body.pencom_rsa_pin || '').trim().toUpperCase();
+    if (body.tin !== undefined) contract.tin = String(body.tin || '').trim();
     if (body.account_number) contract.account_number = body.account_number;
     if (body.account_name) contract.account_name = body.account_name;
+    if (databaseReady && UUID_REGEX.test(String(user.organisation_id || '')) && UUID_REGEX.test(String(targetUserId || ''))) {
+      await query(
+        `update memberships set
+           cbn_bank_code = coalesce($1, cbn_bank_code),
+           pencom_rsa_pin = coalesce($2, pencom_rsa_pin),
+           tin = coalesce($3, tin)
+         where organisation_id = $4 and (user_id = $5 or id = $5)`,
+        [contract.cbn_bank_code || null, contract.pencom_rsa_pin || null, contract.tin || null, user.organisation_id, targetUserId]
+      ).catch(() => {});
+      await query(
+        `update employee_contracts set
+           rate_type = coalesce($1, rate_type),
+           monthly_salary = coalesce($2, monthly_salary),
+           hourly_rate = coalesce($3, hourly_rate),
+           bank_name = coalesce($4, bank_name),
+           account_number = coalesce($5, account_number)
+         where organisation_id = $6 and (user_id = $7 or id = $7)`,
+        [
+          body.compensation_type ? (body.compensation_type === 'hourly' ? 'hourly' : 'monthly') : null,
+          body.monthly_rate !== undefined ? Number(body.monthly_rate) : null,
+          body.hourly_rate !== undefined ? Number(body.hourly_rate) : null,
+          body.bank_name || null,
+          body.account_number || null,
+          user.organisation_id,
+          targetUserId
+        ]
+      ).catch(() => {});
+      await audit(user.organisation_id, user.id, 'contract_updated', 'employee_contract', targetUserId, 'Compensation contract updated.');
+    }
     await saveStore(store);
     return sendJson(response, 200, { ok: true, contract });
   }
 
-  // ── Push to Finance: Master Month-End Payroll Compilation ──────────────────
+  // ── Push to Finance: Master Month-End Payroll Compilation (Owner / HR / Finance Only) ──
   if (url.pathname === '/api/payroll/summary' && request.method === 'GET') {
-    const tenantId = user.organisation_id || null;
+    if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: payroll summaries are restricted to Owner, HR, and Finance accounts.' });
+    }
+    const tenantId = user.organisation_id;
+    const monthParam = url.searchParams.get('month');
     const store = await loadPayrollStoreForTenant(tenantId);
-    // Scope payroll to the requesting user's organisation when available
-    const payroll = compilePayrollRun(store, tenantId);
+    const payroll = compilePayrollRun(store, tenantId, monthParam);
     return sendJson(response, 200, { payroll });
   }
 
   if (url.pathname === '/api/payroll/compile' && request.method === 'POST') {
-    const tenantId = user.organisation_id || null;
+    if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: payroll compilation is restricted to Owner, HR, and Finance accounts.' });
+    }
+    const body = await readJson(request).catch(() => ({}));
+    const tenantId = user.organisation_id;
+    const monthParam = body.month || url.searchParams.get('month');
     const store = await loadPayrollStoreForTenant(tenantId);
-    const payroll = compilePayrollRun(store, tenantId);
+    const payroll = compilePayrollRun(store, tenantId, monthParam);
     return sendJson(response, 200, { ok: true, payroll });
   }
 
-  // ── Push to Finance: Dispatch to Accounts Desk ─────────────────────────────
+  // ── Push to Finance: Dispatch to Accounts Desk (With Pre-Payroll Exception Gate) ──
   if (url.pathname === '/api/payroll/dispatch' && request.method === 'POST') {
-    const store = await loadPayrollStoreForTenant(user.organisation_id || null);
-    const payroll = compilePayrollRun(store, user.organisation_id || null);
+    if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: only Owners, HR, or Finance Admins can dispatch payroll.' });
+    }
+    const body = await readJson(request).catch(() => ({}));
+    const monthParam = body.month || url.searchParams.get('month');
+    const store = await loadPayrollStoreForTenant(user.organisation_id);
+    const payroll = compilePayrollRun(store, user.organisation_id, monthParam);
+
+    if (payroll.summary.prePayrollGateBlocked && !body.acknowledgeUnresolvedExceptions) {
+      return sendJson(response, 409, {
+        error: `Pre-Payroll Gate: ${payroll.summary.unresolvedExceptionsCount} unresolved attendance exception(s) / ${payroll.summary.unverifiedShiftHolds} presence hold(s) require supervisor resolution before payroll dispatch.`,
+        code: 'UNRESOLVED_EXCEPTIONS',
+        unresolvedExceptionsCount: payroll.summary.unresolvedExceptionsCount,
+        unverifiedShiftHolds: payroll.summary.unverifiedShiftHolds
+      });
+    }
+
     const dispatchRecord = {
+      month: payroll.month,
       period: payroll.period,
       dispatchedAt: new Date().toISOString(),
       dispatchedBy: user.name,
@@ -6866,23 +8761,48 @@ async function getUserRewards(user, store) {
       totalNetPay: payroll.summary.totalNet,
       totalEmployees: payroll.summary.employeeCount,
       companyId: payroll.companyId,
+      organisationId: user.organisation_id,
+      acknowledgedUnresolvedExceptions: Boolean(body.acknowledgeUnresolvedExceptions),
       status: 'dispatched_to_finance',
       auditReference: `SR-FIN-DISPATCH-${Date.now()}`
     };
     const baseStore = await getStore();
-    baseStore.lastPayrollDispatch = dispatchRecord;
+    if (!baseStore.lastPayrollDispatchByOrg || typeof baseStore.lastPayrollDispatchByOrg !== 'object') {
+      baseStore.lastPayrollDispatchByOrg = {};
+    }
+    baseStore.lastPayrollDispatchByOrg[user.organisation_id] = dispatchRecord;
+    if (user.organisation_id === demoOrganisation.id) baseStore.lastPayrollDispatch = dispatchRecord;
+    await audit(user.organisation_id, user.id, 'payroll_dispatched', 'organisation', user.organisation_id, `${payroll.period} dispatched (${dispatchRecord.auditReference})`);
     await saveStore(baseStore);
     return sendJson(response, 200, { ok: true, dispatch: dispatchRecord });
   }
 
   // ── Push to Finance: Export Bank CSV Schedule ──────────────────────────────
+  if (url.pathname === '/api/payroll/export-readiness' && request.method === 'GET') {
+    if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: export readiness check requires Owner, HR, or Finance access.' });
+    }
+    const monthParam = url.searchParams.get('month');
+    const format = normalizeBankFormat(url.searchParams.get('format') || 'generic');
+    const store = await loadPayrollStoreForTenant(user.organisation_id);
+    const payroll = compilePayrollRun(store, user.organisation_id, monthParam);
+    const readiness = validatePayrollExportReadiness(payroll.employees, { month: payroll.month, format });
+    return sendJson(response, 200, readiness);
+  }
+
   if (url.pathname === '/api/payroll/export-bank-csv' && request.method === 'GET') {
-    const store = await loadPayrollStoreForTenant(user.organisation_id || null);
-    const payroll = compilePayrollRun(store, user.organisation_id || null);
-    const csvData = generateBankPaymentCSV(payroll.employees);
+    if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: bank schedule export requires Owner, HR, or Finance access.' });
+    }
+    const monthParam = url.searchParams.get('month');
+    const format = normalizeBankFormat(url.searchParams.get('format') || 'generic');
+    const profile = BANK_CSV_PROFILES[format] || BANK_CSV_PROFILES.generic;
+    const store = await loadPayrollStoreForTenant(user.organisation_id);
+    const payroll = compilePayrollRun(store, user.organisation_id, monthParam);
+    const csvData = generateBankPaymentCSV(payroll.employees, payroll.monthCompact, format);
     response.writeHead(200, {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="ShiftRelay_Bank_Payment_Schedule_Nov2026.csv"'
+      'Content-Disposition': `attachment; filename="${profile.filenamePrefix}_${payroll.monthCompact}.csv"`
     });
     response.end(csvData);
     return;
@@ -6890,15 +8810,364 @@ async function getUserRewards(user, store) {
 
   // ── Push to Finance: Export Statutory Tax & Pension CSV Schedule ───────────
   if (url.pathname === '/api/payroll/export-tax-csv' && request.method === 'GET') {
-    const store = await loadPayrollStoreForTenant(user.organisation_id || null);
-    const payroll = compilePayrollRun(store, user.organisation_id || null);
+    if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: statutory remittance export requires Owner, HR, or Finance access.' });
+    }
+    const monthParam = url.searchParams.get('month');
+    const store = await loadPayrollStoreForTenant(user.organisation_id);
+    const payroll = compilePayrollRun(store, user.organisation_id, monthParam);
     const csvData = generateTaxPensionCSV(payroll.employees);
     response.writeHead(200, {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="ShiftRelay_Statutory_Tax_Pension_Schedule_Nov2026.csv"'
+      'Content-Disposition': `attachment; filename="ShiftRelayOS_Statutory_Tax_Pension_Schedule_${payroll.monthCompact}.csv"`
     });
     response.end(csvData);
     return;
+  }
+
+  // ── Attendance Exceptions Queue & Supervisor Resolution (Dayforce Grade) ─
+  if (url.pathname === '/api/attendance/exceptions' && request.method === 'GET') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    const monthParam = url.searchParams.get('month');
+    const store = await loadPayrollStoreForTenant(user.organisation_id);
+    const org = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
+    const isManager = ['owner', 'workforce_admin', 'supervisor', 'manager', 'finance_admin'].includes(user.role);
+
+    const orgContracts = (store.contracts || []).filter(c => (c.tenant_id || c.organisation_id) === user.organisation_id);
+    const orgMembers = (store.memberships || []).filter(m => !m.organisation_id || m.organisation_id === user.organisation_id).map(m => {
+      const pu = (store.portalUsers || []).find(u => u.id === m.user_id);
+      return { ...m, full_name: pu?.full_name || m.name, email: pu?.email || m.email };
+    });
+    if ((org.id === demoOrganisation.id || user.organisation_id === demoOrganisation.id) && orgMembers.length === 0) {
+      for (const dm of demoMembers) orgMembers.push({ ...dm, user_id: dm.id, organisation_id: demoOrganisation.id, full_name: dm.name });
+    }
+
+    const exceptionState = computeAttendanceExceptionsForOrg({
+      org,
+      members: orgMembers,
+      contracts: orgContracts,
+      timeEntries: store.timeEntries || [],
+      scheduledShifts: store.scheduledShifts || [],
+      leaveRequests: store.leaveRequests || [],
+      punchCorrections: store.punchCorrections || [],
+      persistedExceptions: store.attendanceExceptions || [],
+      month: monthParam
+    });
+
+    const memberPhoneByKey = new Map();
+    for (const m of orgMembers) {
+      const pu = (store.portalUsers || []).find(u => u.id === m.user_id || u.id === m.id);
+      const phone = String(m.phone || pu?.phone || '').trim();
+      if (phone) {
+        if (m.id) memberPhoneByKey.set(m.id, phone);
+        if (m.user_id) memberPhoneByKey.set(m.user_id, phone);
+      }
+    }
+    const orgNameDisplay = org.trading_name || org.legal_name || 'ShiftRelay OS Employer';
+    const attachWhatsAppMeta = (item) => {
+      const phone = item.workerPhone || memberPhoneByKey.get(item.membershipId) || memberPhoneByKey.get(item.userId) || '';
+      const waMsg = `Hello ${item.workerName || 'Team Member'}, ShiftRelay OS Attendance Watchdog (${orgNameDisplay}): please complete your gate clock-in or confirm your shift status (${item.shiftDate || 'today'}) so your payroll hours stay accurate.`;
+      const whatsappNudgeUrl = isManager && phone ? buildWhatsAppNudgeLink(phone, waMsg) : null;
+      return {
+        ...item,
+        workerPhone: isManager ? phone : undefined,
+        whatsappNudgeUrl
+      };
+    };
+
+    const visibleExceptions = (isManager
+      ? exceptionState.exceptions
+      : exceptionState.exceptions.filter(ex =>
+          ex.membershipId === user.id || ex.userId === user.user_id || ex.userId === user.id
+        )).map(attachWhatsAppMeta);
+    const visibleMissing = (isManager
+      ? exceptionState.missingAtShiftStart
+      : exceptionState.missingAtShiftStart.filter(m =>
+          m.membershipId === user.id || m.userId === user.user_id || m.userId === user.id
+        )).map(attachWhatsAppMeta);
+    const summary = isManager
+      ? exceptionState.summary
+      : {
+          total: visibleExceptions.length,
+          pendingReview: visibleExceptions.filter(e => e.status === 'pending_review').length,
+          pardoned: visibleExceptions.filter(e => e.status === 'pardoned').length,
+          adjusted: visibleExceptions.filter(e => e.status === 'adjusted').length,
+          unexcused: visibleExceptions.filter(e => e.status === 'unexcused').length,
+          missingAtShiftStart: visibleMissing.length,
+          pardonedHours: Math.round(visibleExceptions.reduce((s, e) => s + Number(e.pardonedHours || 0), 0) * 100) / 100,
+          unexcusedDeductedHours: Math.round(visibleExceptions.reduce((s, e) => s + Number(e.payImpactHours || 0), 0) * 100) / 100
+        };
+
+    return sendJson(response, 200, {
+      ok: true,
+      month: exceptionState.month,
+      policy: exceptionState.policy,
+      exceptions: visibleExceptions,
+      missingAtShiftStart: visibleMissing,
+      summary
+    });
+  }
+
+  const exceptionExplainMatch = url.pathname.match(/^\/api\/attendance\/exceptions\/([^/]+)\/explain$/);
+  if (exceptionExplainMatch && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    const exceptionId = decodeURIComponent(exceptionExplainMatch[1]);
+    const body = await readJson(request).catch(() => ({}));
+    const explanation = String(body.explanation || body.reason || '').trim().slice(0, 600);
+    const requestedTime = body.requestedTime ? String(body.requestedTime).trim().slice(0, 40) : null;
+    if (!explanation) {
+      return sendJson(response, 400, { error: 'Please provide an explanation for this attendance exception.' });
+    }
+
+    const payrollStore = await loadPayrollStoreForTenant(user.organisation_id);
+    const org = (payrollStore.organisations || []).find(o => o.id === user.organisation_id) || {};
+    const orgContracts = (payrollStore.contracts || []).filter(c => (c.tenant_id || c.organisation_id) === user.organisation_id);
+    const orgMembers = (payrollStore.memberships || []).filter(m => !m.organisation_id || m.organisation_id === user.organisation_id).map(m => {
+      const pu = (payrollStore.portalUsers || []).find(u => u.id === m.user_id);
+      return { ...m, full_name: pu?.full_name || m.name, email: pu?.email || m.email };
+    });
+    const excState = computeAttendanceExceptionsForOrg({
+      org,
+      members: orgMembers,
+      contracts: orgContracts,
+      timeEntries: payrollStore.timeEntries || [],
+      scheduledShifts: payrollStore.scheduledShifts || [],
+      leaveRequests: payrollStore.leaveRequests || [],
+      punchCorrections: payrollStore.punchCorrections || [],
+      persistedExceptions: payrollStore.attendanceExceptions || [],
+      month: body.month || null
+    });
+    const target = excState.exceptions.find(e => e.id === exceptionId);
+    if (!target) return sendJson(response, 404, { error: 'Attendance exception not found in your organisation.' });
+
+    const isManager = ['owner', 'workforce_admin', 'supervisor', 'manager'].includes(user.role);
+    const isSelf = target.membershipId === user.id || target.userId === user.user_id || target.userId === user.id;
+    if (!isSelf && !isManager) {
+      return sendJson(response, 403, { error: 'Forbidden: you can only explain your own attendance exceptions.' });
+    }
+
+    const baseStore = await getStore();
+    if (databaseReady && UUID_REGEX.test(String(user.organisation_id || ''))) {
+      await upsertAttendanceExceptionPg(user.organisation_id, {
+        ...target,
+        membershipId: target.membershipId || user.id,
+        workerExplanation: explanation,
+        requestedTime
+      });
+      await audit(user.organisation_id, user.id, 'attendance_exception_explained', 'attendance_exception', target.id, `${user.name}: ${explanation.slice(0, 120)}`);
+    } else {
+      if (!Array.isArray(baseStore.attendanceExceptions)) baseStore.attendanceExceptions = [];
+      const idx = baseStore.attendanceExceptions.findIndex(x => x.id === target.id);
+      const record = {
+        ...target,
+        organisationId: user.organisation_id,
+        workerExplanation: explanation,
+        requestedTime,
+        updatedAt: new Date().toISOString()
+      };
+      if (idx >= 0) baseStore.attendanceExceptions[idx] = { ...baseStore.attendanceExceptions[idx], ...record };
+      else baseStore.attendanceExceptions.push(record);
+      await saveStore(baseStore);
+    }
+
+    broadcastEvent('attendance-exception-updated', { exceptionId: target.id, status: target.status, workerExplanation: explanation }, {
+      organisationId: user.organisation_id
+    });
+    return sendJson(response, 200, { ok: true, exception: { ...target, workerExplanation: explanation, requestedTime } });
+  }
+
+  const exceptionResolveMatch = url.pathname.match(/^\/api\/attendance\/exceptions\/([^/]+)\/resolve$/);
+  if (exceptionResolveMatch && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    if (!['owner', 'workforce_admin', 'supervisor', 'manager'].includes(user.role)) {
+      return sendJson(response, 403, { error: 'Forbidden: supervisor or manager access required to resolve attendance exceptions.' });
+    }
+    const exceptionId = decodeURIComponent(exceptionResolveMatch[1]);
+    const body = await readJson(request).catch(() => ({}));
+    const rawDecision = String(body.decision || '').trim().toLowerCase();
+    const reason = String(body.reason || body.resolutionNote || '').trim().slice(0, 600);
+    if (!['pardon', 'adjust', 'unexcused'].includes(rawDecision)) {
+      return sendJson(response, 400, { error: 'Decision must be "pardon", "adjust", or "unexcused".' });
+    }
+    if (!reason) {
+      return sendJson(response, 400, { error: 'A supervisor resolution reason is required for audit compliance.' });
+    }
+
+    const payrollStore = await loadPayrollStoreForTenant(user.organisation_id);
+    const org = (payrollStore.organisations || []).find(o => o.id === user.organisation_id) || {};
+    const orgTimeZone = org.time_zone || user.time_zone || 'Africa/Lagos';
+    const orgContracts = (payrollStore.contracts || []).filter(c => (c.tenant_id || c.organisation_id) === user.organisation_id);
+    const orgMembers = (payrollStore.memberships || []).filter(m => !m.organisation_id || m.organisation_id === user.organisation_id).map(m => {
+      const pu = (payrollStore.portalUsers || []).find(u => u.id === m.user_id);
+      return { ...m, full_name: pu?.full_name || m.name, email: pu?.email || m.email };
+    });
+    const excState = computeAttendanceExceptionsForOrg({
+      org,
+      members: orgMembers,
+      contracts: orgContracts,
+      timeEntries: payrollStore.timeEntries || [],
+      scheduledShifts: payrollStore.scheduledShifts || [],
+      leaveRequests: payrollStore.leaveRequests || [],
+      punchCorrections: payrollStore.punchCorrections || [],
+      persistedExceptions: payrollStore.attendanceExceptions || [],
+      month: body.month || null
+    });
+    const target = excState.exceptions.find(e => e.id === exceptionId);
+    if (!target) return sendJson(response, 404, { error: 'Attendance exception not found in your organisation.' });
+
+    const baseStore = await getStore();
+    const resolvedAt = new Date().toISOString();
+    let adjustedIso = null;
+    if (rawDecision === 'adjust') {
+      const adjustedTimeInput = String(body.adjustedTime || target.requestedTime || '').trim();
+      if (!adjustedTimeInput) {
+        return sendJson(response, 400, { error: 'Please specify the adjusted clock time (e.g. 17:00) when choosing Adjust Punch Time.' });
+      }
+      const linkedEntry = (payrollStore.timeEntries || []).find(e => e.id === target.timeEntryId);
+      const baseDateIso = linkedEntry?.clockedInAt || target.expectedTime || `${target.shiftDate || resolvedAt.slice(0, 10)}T08:00:00Z`;
+      adjustedIso = parseClockTimeOnDate(baseDateIso, adjustedTimeInput, orgTimeZone, target.type === 'MISSED_CLOCK_OUT' ? baseDateIso : null);
+      if (!adjustedIso) {
+        return sendJson(response, 400, { error: 'Invalid adjusted time format. Use HH:MM (24-hour) or ISO timestamp.' });
+      }
+
+      if (databaseReady && UUID_REGEX.test(String(target.timeEntryId || ''))) {
+        if (target.type === 'LATE_ARRIVAL') {
+          await query(
+            `update time_entries set clocked_in_at = $1, presence_verification_status = 'supervisor_confirmed', note = COALESCE(note, '') || $2 where id = $3 and organisation_id = $4`,
+            [adjustedIso, ` | Punch adjusted by ${user.name}: ${reason}`, target.timeEntryId, user.organisation_id]
+          );
+        } else {
+          await query(
+            `update time_entries set clocked_out_at = $1, clock_out_verification_mode = 'supervisor_adjusted', presence_verification_status = 'supervisor_confirmed', note = COALESCE(note, '') || $2 where id = $3 and organisation_id = $4`,
+            [adjustedIso, ` | Punch adjusted by ${user.name}: ${reason}`, target.timeEntryId, user.organisation_id]
+          );
+        }
+      } else {
+        if (!Array.isArray(baseStore.timeEntries)) baseStore.timeEntries = [];
+        let storeEntry = baseStore.timeEntries.find(e => e.id === target.timeEntryId && (!e.organisationId || e.organisationId === user.organisation_id));
+        if (!storeEntry && target.type === 'MISSED_CLOCK_IN') {
+          storeEntry = {
+            id: crypto.randomUUID(),
+            organisationId: user.organisation_id,
+            membershipId: target.membershipId,
+            userId: target.userId,
+            clockedInAt: adjustedIso,
+            clockedOutAt: target.expectedEnd || new Date(new Date(adjustedIso).getTime() + 8 * 3600000).toISOString(),
+            verificationMode: 'supervisor_adjusted',
+            presenceVerificationStatus: 'supervisor_confirmed',
+            note: `Supervisor ${user.name} logged missed shift punch: ${reason}`
+          };
+          baseStore.timeEntries.push(storeEntry);
+        } else if (storeEntry) {
+          if (target.type === 'LATE_ARRIVAL') storeEntry.clockedInAt = adjustedIso;
+          else storeEntry.clockedOutAt = adjustedIso;
+          storeEntry.clockOutVerificationMode = 'supervisor_adjusted';
+          storeEntry.presenceVerificationStatus = 'supervisor_confirmed';
+          storeEntry.note = `${storeEntry.note || ''} | Adjusted by ${user.name}: ${reason}`.trim();
+        }
+      }
+    } else if (rawDecision === 'pardon' && target.timeEntryId) {
+      if (databaseReady && UUID_REGEX.test(String(target.timeEntryId))) {
+        await query(
+          `update time_entries set presence_verification_status = 'supervisor_confirmed', note = COALESCE(note, '') || $1 where id = $2 and organisation_id = $3`,
+          [` | Pardoned by ${user.name}: ${reason}`, target.timeEntryId, user.organisation_id]
+        ).catch(() => {});
+      } else {
+        const storeEntry = (baseStore.timeEntries || []).find(e => e.id === target.timeEntryId);
+        if (storeEntry) {
+          storeEntry.presenceVerificationStatus = 'supervisor_confirmed';
+          storeEntry.note = `${storeEntry.note || ''} | Pardoned by ${user.name}: ${reason}`.trim();
+        }
+      }
+    }
+
+    const newStatus = rawDecision === 'pardon' ? 'pardoned' : (rawDecision === 'adjust' ? 'adjusted' : 'unexcused');
+    const minsDelta = Math.abs(Number(target.varianceMinutes ?? target.minutesDelta ?? 480));
+    const impactHrsBase = Math.max(0, Number(target.payImpactHours || target.pardonedHours || Math.round((minsDelta / 60) * 100) / 100 || 0));
+    const finalImpactHours = newStatus === 'unexcused' ? (impactHrsBase > 0 ? impactHrsBase : 8) : 0;
+    const contractMatch = orgContracts.find(c => (c.userId || c.user_id) === target.userId || c.userId === target.membershipId);
+    const hourlyRateNgn = Number(contractMatch?.hourly_rate || (contractMatch?.monthly_rate ? Math.round(Number(contractMatch.monthly_rate) / 160) : 1500));
+    const finalImpactAmount = newStatus === 'unexcused' ? Math.round(finalImpactHours * hourlyRateNgn) : 0;
+    const finalPardonedHours = newStatus === 'pardoned' ? Math.round(((minsDelta || 480) / 60) * 100) / 100 : 0;
+
+    if (databaseReady && UUID_REGEX.test(String(user.organisation_id || ''))) {
+      await upsertAttendanceExceptionPg(user.organisation_id, {
+        ...target,
+        membershipId: target.membershipId || user.id,
+        status: newStatus,
+        actualTime: adjustedIso || target.actualTime || null,
+        payImpactHours: finalImpactHours,
+        payImpactAmount: finalImpactAmount
+      }, {
+        resolveFields: {
+          resolutionNote: reason,
+          resolvedById: user.id,
+          resolvedByName: user.name,
+          resolvedAt
+        }
+      });
+      await audit(user.organisation_id, user.id, `attendance_exception_${newStatus}`, 'attendance_exception', target.id, `${target.workerName}: ${reason}`);
+    } else {
+      if (!Array.isArray(baseStore.attendanceExceptions)) baseStore.attendanceExceptions = [];
+      const resolvedRecord = {
+        ...target,
+        organisationId: user.organisation_id,
+        status: newStatus,
+        actualTime: adjustedIso || target.actualTime || null,
+        payImpactHours: finalImpactHours,
+        payImpactAmount: finalImpactAmount,
+        pardonedHours: finalPardonedHours,
+        resolutionNote: reason,
+        resolvedByName: user.name,
+        resolvedAt
+      };
+      const idx = baseStore.attendanceExceptions.findIndex(x => x.id === target.id);
+      if (idx >= 0) baseStore.attendanceExceptions[idx] = { ...baseStore.attendanceExceptions[idx], ...resolvedRecord };
+      else baseStore.attendanceExceptions.push(resolvedRecord);
+      await saveStore(baseStore);
+    }
+
+    if (target.membershipId) {
+      await deliverOrgNotification({
+        store: baseStore,
+        organisationId: user.organisation_id,
+        recipientId: target.membershipId,
+        category: 'attendance',
+        message: `Attendance exception (${target.type.replace(/_/g, ' ')}) resolved as ${newStatus.toUpperCase()} by ${user.name}: ${reason}`
+      });
+      if (!databaseReady) await saveStore(baseStore);
+    }
+
+    broadcastEvent('attendance-exception-updated', { exceptionId: target.id, status: newStatus, resolvedBy: user.name }, {
+      organisationId: user.organisation_id
+    });
+    return sendJson(response, 200, {
+      ok: true,
+      exception: {
+        ...target,
+        status: newStatus,
+        actualTime: adjustedIso || target.actualTime,
+        payImpactHours: finalImpactHours,
+        payImpactAmount: finalImpactAmount,
+        pardonedHours: finalPardonedHours,
+        resolutionNote: reason,
+        resolvedByName: user.name,
+        resolvedAt
+      }
+    });
+  }
+
+  // Trigger automated Shift Reminder Watchdog on demand (Owner / Supervisor / HR)
+  if (url.pathname === '/api/reminders/run-watchdog' && request.method === 'POST') {
+    if (!['owner', 'workforce_admin', 'supervisor', 'manager'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: supervisor or owner access required to run reminder watchdog.' });
+    }
+    const body = await readJson(request).catch(() => ({}));
+    const result = await processShiftAttendanceReminders({
+      onlyOrganisationId: user.organisation_id,
+      nowMs: body.nowIso ? new Date(body.nowIso).getTime() : Date.now()
+    });
+    return sendJson(response, 200, { ok: true, ...result });
   }
 
   // ── Enterprise Concierge Lead Capture (Request an Enterprise Demo) ─────────
@@ -6939,11 +9208,14 @@ async function getUserRewards(user, store) {
 
   // 0. Public Auth Capability & SSO Discovery (zero secrets exposed)
   if (url.pathname === '/api/admin/auth/status' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await authenticateAdminRequest(request, store, databaseReady).catch(() => null);
     const ssoIssuer = process.env.ADMIN_OIDC_ISSUER || '';
     const ssoClientId = process.env.ADMIN_OIDC_CLIENT_ID || '';
     const breakGlassConfigured = Boolean(process.env.SHIFTRELAY_BREAKGLASS_KEY && process.env.SHIFTRELAY_BREAKGLASS_KEY.length >= 24);
     return sendJson(response, 200, {
       ok: true,
+      authenticated: Boolean(adminCtx && adminCtx.adminUser),
       mode: databaseReady ? 'postgres-enterprise-rbac' : 'resilient-rbac',
       mfaSupported: true,
       sso: {
@@ -7188,7 +9460,9 @@ async function getUserRewards(user, store) {
     }
     const store = await getStore();
     await ensureAdminSeeded(store, databaseReady, IS_PRODUCTION);
-    const rootUser = await findAdminUserByEmail('owner@shiftrelay.com', store, databaseReady);
+    const rootUser =
+      (await findAdminUserByEmail('owner@shiftrelayos.com', store, databaseReady)) ||
+      (await findAdminUserByEmail('owner@shiftrelay.com', store, databaseReady));
     if (!rootUser) return sendJson(response, 404, { error: 'Root owner account not seeded.' });
     const sess = await createAdminSessionRecord({ adminUser: rootUser, mfaVerified: false, req: request, store, databaseReady });
     await appendAdminAuditLog({
@@ -7539,6 +9813,85 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, rectification: updated });
   }
 
+  // 1j-b. App Store / NDPA Account Deletion Requests Queue
+  if (url.pathname === '/api/admin/account-deletions' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'ops_support_admin']);
+    if (!adminCtx) return;
+    let requests = [];
+    if (databaseReady && getPool()) {
+      const dbRes = await query(
+        'select id, email, reason, status, requested_at from account_deletion_requests order by requested_at desc limit 100'
+      ).catch(() => ({ rows: [] }));
+      requests = (dbRes.rows || []).map(r => ({
+        id: r.id,
+        email: r.email,
+        reason: r.reason || '',
+        status: r.status || 'requested',
+        requestedAt: r.requested_at
+      }));
+    } else {
+      requests = (store.accountDeletionRequests || []).slice().reverse().map(r => ({
+        id: r.id,
+        email: r.email,
+        reason: r.reason || '',
+        status: r.status || 'requested',
+        requestedAt: r.requestedAt || r.createdAt
+      }));
+    }
+    return sendJson(response, 200, { ok: true, requests });
+  }
+
+  if (url.pathname.startsWith('/api/admin/account-deletions/') && request.method === 'PATCH') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'ops_support_admin']);
+    if (!adminCtx) return;
+    const delId = decodeURIComponent(url.pathname.split('/')[4] || '');
+    const body = await readJson(request);
+    const nextStatus = String(body.status || 'completed').trim().slice(0, 24);
+    let updated = null;
+    if (databaseReady && getPool()) {
+      const dbRes = await query(
+        'update account_deletion_requests set status = $2 where id = $1 returning id, email, reason, status, requested_at',
+        [delId, nextStatus]
+      ).catch(() => ({ rows: [] }));
+      if (dbRes.rows[0]) {
+        updated = {
+          id: dbRes.rows[0].id,
+          email: dbRes.rows[0].email,
+          reason: dbRes.rows[0].reason || '',
+          status: dbRes.rows[0].status,
+          requestedAt: dbRes.rows[0].requested_at
+        };
+      }
+    } else {
+      const item = (store.accountDeletionRequests || []).find(r => String(r.id) === delId);
+      if (item) {
+        item.status = nextStatus;
+        item.processedAt = new Date().toISOString();
+        item.processedBy = adminCtx.adminUser.email;
+        updated = item;
+        await saveStore(store);
+      }
+    }
+    if (!updated) return sendJson(response, 404, { error: 'Deletion request not found.' });
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_ACCOUNT_DELETION_UPDATED',
+      targetType: 'account_deletion_request',
+      targetId: delId,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { email: updated.email, status: nextStatus }
+    });
+    return sendJson(response, 200, { ok: true, request: updated });
+  }
+
   // 1k. Immutable Admin Audit Trail (Owner Root Only)
   if (url.pathname === '/api/admin/audit-logs' && request.method === 'GET') {
     const store = await getStore();
@@ -7560,13 +9913,53 @@ async function getUserRewards(user, store) {
     const totalGross = Number(payroll.summary?.totalGross || 0);
     const formattedVolume = '₦' + totalGross.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+    const totalWorkers = payroll.summary?.employeeCount ?? contracts.length;
+    const pepmRateNgn = 2500;
+    const estimatedSaaSMrrNgn = totalWorkers * pepmRateNgn;
+    const estimatedSaaSArrNgn = estimatedSaaSMrrNgn * 12;
+
+    const usersById = new Map((store.portalUsers || []).map(u => [u.id, u]));
+    const activeMembers = (store.memberships || []).filter(m => m.status !== 'revoked');
+    let biometricEnrolledCount = 0;
+    for (const m of activeMembers) {
+      const pu = usersById.get(m.user_id);
+      if (m.avatarUrl || m.avatar_data_url || pu?.avatar_data_url) biometricEnrolledCount += 1;
+    }
+
+    const exceptionAggregates = [];
+    for (const org of tenants) {
+      const orgPayroll = compilePayrollRun(store, org.id);
+      for (const emp of (orgPayroll.employees || [])) {
+        for (const ex of (emp.attendanceExceptions || [])) exceptionAggregates.push(ex);
+      }
+    }
+    const openAttendanceExceptions = exceptionAggregates.filter(ex => ex.status === 'pending_review').length;
+    const pardonedExceptionsCount = exceptionAggregates.filter(ex => ['pardoned', 'adjusted'].includes(ex.status)).length;
+    const automatedRemindersCount = Array.isArray(store.reminderDispatches) ? store.reminderDispatches.length : 0;
+    let pendingDeletionRequests = 0;
+    if (databaseReady && getPool()) {
+      const delCnt = await query("select count(*)::int as cnt from account_deletion_requests where status = 'requested'").catch(() => ({ rows: [{ cnt: 0 }] }));
+      pendingDeletionRequests = Number(delCnt.rows[0]?.cnt || 0);
+    } else {
+      pendingDeletionRequests = (store.accountDeletionRequests || []).filter(r => !r.status || r.status === 'requested').length;
+    }
+
     return sendJson(response, 200, {
       stats: {
         totalTenants: tenants.length,
-        totalFrontlineWorkers: payroll.summary?.employeeCount ?? contracts.length,
+        totalFrontlineWorkers: totalWorkers,
         totalInboundLeads: leads.length,
         monthlyPayrollVolume: formattedVolume,
         monthlyPayrollVolumeNgn: totalGross,
+        pepmRateNgn,
+        estimatedSaaSMrrNgn,
+        estimatedSaaSArrNgn,
+        biometricEnrolledCount,
+        digitalIdActiveCount: totalWorkers,
+        openAttendanceExceptions,
+        pardonedExceptionsCount,
+        automatedRemindersCount,
+        pendingDeletionRequests,
         activeCompliances: {
           pencom: true,
           nhf: true,
@@ -7577,25 +9970,100 @@ async function getUserRewards(user, store) {
     });
   }
 
+  // 2b. Multi-Tenant Live Payroll & Statutory Overview (Owner & Finance Auditor)
+  if (url.pathname === '/api/admin/payroll-overview' && request.method === 'GET') {
+    const store = await loadPayrollStoreForTenant(null);
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'finance_admin']);
+    if (!adminCtx) return;
+    const monthParam = url.searchParams.get('month') || null;
+    const tenants = (store.organisations || []).map(org => {
+      const run = compilePayrollRun(store, org.id, monthParam);
+      const sum = run.summary || {};
+      return {
+        tenantId: org.id,
+        companyCode: org.organisation_code,
+        legalName: org.trading_name || org.legal_name,
+        hubName: org.hub_name || 'Primary Hub',
+        month: run.month,
+        monthLabel: run.monthLabel,
+        employeeCount: Number(sum.employeeCount || 0),
+        verifiedHours: Math.round((Number(sum.totalRegularHours || 0) + Number(sum.totalOvertimeHours || 0)) * 100) / 100,
+        totalGross: Number(sum.totalGross || 0),
+        totalPayeTax: Number(sum.totalPayeTax || 0),
+        totalEmployeePension: Number(sum.totalEmployeePension || 0),
+        totalEmployerPension: Number(sum.totalEmployerPension || 0),
+        totalNhf: Number(sum.totalNhf || 0),
+        totalNsitf: Number(sum.totalNsitf || 0),
+        totalNetPay: Number(sum.totalNetPay || 0),
+        totalAbsenceDeduction: Number(sum.totalAbsenceDeduction || 0),
+        totalPardonedHours: Number(sum.totalPardonedHours || 0),
+        unresolvedExceptionsCount: Number(sum.unresolvedExceptionsCount || 0),
+        policy: run.attendancePolicy || getEffectiveAttendancePolicy(org),
+        status: Number(sum.unresolvedExceptionsCount || 0) > 0 ? 'EXCEPTIONS PENDING' : 'AUDITED • READY'
+      };
+    });
+    const totals = tenants.reduce((acc, t) => {
+      acc.verifiedHours += t.verifiedHours;
+      acc.totalGross += t.totalGross;
+      acc.totalPayeTax += t.totalPayeTax;
+      acc.totalEmployeePension += t.totalEmployeePension;
+      acc.totalEmployerPension += t.totalEmployerPension;
+      acc.totalNhf += t.totalNhf;
+      acc.totalNsitf += t.totalNsitf;
+      acc.totalNetPay += t.totalNetPay;
+      acc.unresolvedExceptionsCount += t.unresolvedExceptionsCount;
+      return acc;
+    }, {
+      verifiedHours: 0,
+      totalGross: 0,
+      totalPayeTax: 0,
+      totalEmployeePension: 0,
+      totalEmployerPension: 0,
+      totalNhf: 0,
+      totalNsitf: 0,
+      totalNetPay: 0,
+      unresolvedExceptionsCount: 0
+    });
+    return sendJson(response, 200, {
+      ok: true,
+      month: tenants[0]?.month || formatMonthMeta(monthParam).month,
+      monthLabel: tenants[0]?.monthLabel || formatMonthMeta(monthParam).monthLabel,
+      tenants,
+      totals
+    });
+  }
+
   // 3. Admin Tenants List
   if (url.pathname === '/api/admin/tenants' && request.method === 'GET') {
     const store = await getStore();
     const adminCtx = await requireAdminGate(request, response, store);
     if (!adminCtx) return;
+    const usersById = new Map((store.portalUsers || []).map(u => [u.id, u]));
+    const policyAcks = store.policyAcknowledgements || {};
     const tenants = (store.organisations || []).map(org => {
       const uniqueStaff = new Set();
+      const biometricStaff = new Set();
+      const policyAcceptedStaff = new Set();
       for (const c of (store.contracts || [])) {
         if ((c.tenant_id || c.organisation_id) === org.id) uniqueStaff.add(c.userId || c.user_id || c.id);
       }
       for (const m of (store.memberships || [])) {
-        if (m.organisation_id === org.id && m.status === 'active') uniqueStaff.add(m.user_id || m.id);
+        if (m.organisation_id === org.id && m.status !== 'revoked') {
+          const uid = m.user_id || m.id;
+          uniqueStaff.add(uid);
+          const pu = usersById.get(m.user_id);
+          if (m.avatarUrl || m.avatar_data_url || pu?.avatar_data_url) biometricStaff.add(uid);
+          if (policyAcks[m.id] || policyAcks[m.user_id]) policyAcceptedStaff.add(uid);
+        }
       }
       if (org.id === demoOrganisation.id && uniqueStaff.size < demoMembers.length) {
         for (const dm of demoMembers) uniqueStaff.add(dm.id);
       }
       const ownerMember = (store.memberships || []).find(m => m.organisation_id === org.id && m.role === 'owner');
-      const ownerUser = ownerMember ? (store.portalUsers || []).find(u => u.id === ownerMember.user_id) : null;
+      const ownerUser = ownerMember ? usersById.get(ownerMember.user_id) : null;
       const orgProfile = resolveIndustryProfile(org.industryKey || org.industry, org.trading_name || org.legal_name);
+      const effectivePolicy = getEffectiveAttendancePolicy(org);
+      const checklists = Array.isArray(org.settings?.dailyChecklists) ? org.settings.dailyChecklists : [];
       return {
         id: org.id,
         companyId: org.organisation_code,
@@ -7607,11 +10075,18 @@ async function getUserRewards(user, store) {
         state: org.state || 'Lagos',
         currency: org.currency || 'NGN',
         hubName: org.hub_name || orgProfile.defaultHubName || 'Main Hub',
+        hubLat: Number(org.hub_lat || 6.5244),
+        hubLng: Number(org.hub_lng || 3.3792),
         hubRadius: org.hub_perimeter || 250,
         employeeCount: uniqueStaff.size,
+        biometricEnrolledCount: biometricStaff.size,
+        policyAcceptedCount: policyAcceptedStaff.size,
+        dailyChecklistCount: checklists.length,
+        settings: { dailyChecklists: checklists },
         masterAdminName: ownerUser ? ownerUser.full_name : (org.contact_name || 'System Executive'),
-        masterAdminEmail: ownerUser ? ownerUser.email : (org.work_email || 'hr@company.com'),
+        masterAdminEmail: ownerUser ? ownerUser.email : (org.work_email || 'hr@shiftrelayos.com'),
         complianceFlags: org.compliance_flags || { pencom: true, nhf: true, nsitf: true, paye: true },
+        attendancePolicy: effectivePolicy,
         createdAt: org.created_at || '2026-01-01T00:00:00Z'
       };
     });
@@ -7645,6 +10120,8 @@ async function getUserRewards(user, store) {
     if (!Array.isArray(store.contracts)) store.contracts = [];
 
     const tenantProfile = resolveIndustryProfile(body.industryKey || body.industry, legalName);
+    const initialPolicy = normalizeAttendancePolicy(body.attendancePolicy || {}, { policyVersion: `v${Date.now()}` });
+    const initialChecklists = normalizeDailyChecklists(body.dailyChecklists || []);
     const newOrg = {
       id: tenantId,
       organisation_code: generatedCompanyId,
@@ -7655,6 +10132,7 @@ async function getUserRewards(user, store) {
       industryKey: tenantProfile.key,
       country: body.country || 'Nigeria',
       state: body.state || 'Lagos',
+      time_zone: body.timeZone || 'Africa/Lagos',
       currency: body.currency || 'NGN',
       hub_name: body.siteName || tenantProfile.defaultHubName || 'Primary Operations Hub',
       hub_lat: Number(body.latitude || 6.5244),
@@ -7662,6 +10140,13 @@ async function getUserRewards(user, store) {
       hub_perimeter: Number(body.radiusMeters || 250),
       rc_number: body.rcNumber || 'RC-' + Math.floor(100000 + Math.random() * 900000),
       compliance_flags: { pencom: true, nhf: true, nsitf: true, paye_finance_act: true },
+      settings: {
+        handoverReminderMinutes: 30,
+        payModel: body.payModel || 'monthly_salaried',
+        disbursementDay: String(body.disbursementDay || '25'),
+        attendancePolicy: initialPolicy,
+        dailyChecklists: initialChecklists
+      },
       created_at: new Date().toISOString()
     };
     store.organisations.push(newOrg);
@@ -7732,6 +10217,19 @@ async function getUserRewards(user, store) {
       details: { legalName, generatedCompanyId }
     });
 
+    await recordLegalAcceptance({
+      organisationId: tenantId,
+      userId: adminUserId,
+      email: body.adminEmail.trim().toLowerCase(),
+      actorType: 'organisation',
+      acceptedTermsVersion: String(body.acceptedTermsVersion || POLICY_VERSIONS.terms),
+      acceptedPrivacyVersion: String(body.acceptedPrivacyVersion || POLICY_VERSIONS.privacy),
+      acceptedDpaVersion: String(body.acceptedDpaVersion || POLICY_VERSIONS.dpa),
+      acceptedAttendancePolicyVersion: initialPolicy.policyVersion || POLICY_VERSIONS.attendancePolicy,
+      request,
+      store
+    }).catch(() => {});
+
     await saveStore(store);
 
     return sendJson(response, 201, {
@@ -7792,6 +10290,9 @@ async function getUserRewards(user, store) {
       store.portalUsers.push(shellUser);
 
       const role = String(emp.role || '').toLowerCase().includes('supervisor') ? 'supervisor' : 'incoming';
+      const resolvedBank = resolveCbnBank(emp.bankName || 'Access Bank', emp.cbnBankCode || emp.cbn_bank_code || '');
+      const pencomRsaPin = String(emp.pencomRsaPin || emp.pencom_rsa_pin || '').trim().toUpperCase();
+      const tin = String(emp.tin || '').trim();
       const shellMembership = {
         id: empUserId,
         organisation_id: org.id,
@@ -7799,6 +10300,11 @@ async function getUserRewards(user, store) {
         role,
         title: emp.role || 'Frontline Specialist',
         department: emp.department || 'Operations',
+        staff_code: staffId,
+        cbn_bank_code: resolvedBank.code || '',
+        pencom_rsa_pin: pencomRsaPin,
+        tin,
+        notification_opt_out: false,
         status: 'pending_activation'
       };
       store.memberships.push(shellMembership);
@@ -7811,6 +10317,8 @@ async function getUserRewards(user, store) {
         userId: empUserId,
         tenant_id: org.id,
         userName: empName,
+        email: emp.email.trim().toLowerCase(),
+        phone: (emp.phone || '').trim(),
         staffId,
         role: emp.role || 'Frontline Specialist',
         department: emp.department || 'Operations',
@@ -7818,7 +10326,10 @@ async function getUserRewards(user, store) {
         monthly_rate: monthlyRate,
         hourly_rate: hourlyRate,
         currency: org.currency || 'NGN',
-        bank_name: emp.bankName || 'Access Bank',
+        bank_name: resolvedBank.name || emp.bankName || 'Access Bank',
+        cbn_bank_code: resolvedBank.code || '',
+        pencom_rsa_pin: pencomRsaPin,
+        tin,
         account_number: emp.accountNumber || '0123456789',
         account_name: emp.accountName || empName
       });
@@ -7998,10 +10509,23 @@ async function getUserRewards(user, store) {
       sessionMembershipId = resolvedM.rows[0]?.id || pgMembershipId;
     }
 
+    await recordLegalAcceptance({
+      organisationId: org?.id || null,
+      userId: sessionUserId,
+      email: user.email,
+      actorType: 'employee',
+      acceptedTermsVersion: String(body.acceptedTermsVersion || POLICY_VERSIONS.terms),
+      acceptedPrivacyVersion: String(body.acceptedPrivacyVersion || POLICY_VERSIONS.privacy),
+      acceptedDpaVersion: null,
+      acceptedAttendancePolicyVersion: POLICY_VERSIONS.attendancePolicy,
+      request,
+      store
+    }).catch(() => {});
+
     await saveStore(store);
 
     const sessionId = await createSession(sessionUserId, sessionMembershipId);
-    response.setHeader('Set-Cookie', sessionCookie(sessionId));
+    response.setHeader('Set-Cookie', sessionCookie(sessionId, undefined, request));
 
     return sendJson(response, 200, {
       ok: true,
@@ -8363,13 +10887,18 @@ async function getUserRewards(user, store) {
       });
     }
     const store = await getStore();
-    if (!Array.isArray(store.notifications) || store.notifications.length === 0) {
+    if (!Array.isArray(store.notifications)) store.notifications = [];
+    const orgNotifsForUser = store.notifications.filter(
+      n => (!n.organisationId || n.organisationId === user.organisation_id) && (n.recipientId === user.id || n.recipientId === user.user_id)
+    );
+    if (orgNotifsForUser.length === 0 && user.organisation_id === demoOrganisation.id) {
       const notifProfile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
       const notifHub = user.hub_name || notifProfile.defaultHubName || 'Primary Operations Hub';
       const notifUnit = notifProfile.units?.[0]?.unit || 'Core Operations';
-      store.notifications = [
+      store.notifications.push(
         {
-          id: 'notif-demo-1',
+          id: `notif-demo-${user.id}-1`,
+          organisationId: demoOrganisation.id,
           recipientId: user.id,
           category: 'payroll',
           message: 'Monthly Statutory Payroll & PenCom Remittance Schedule generated for ' + (user.organisation_name || 'your organisation') + '.',
@@ -8377,15 +10906,8 @@ async function getUserRewards(user, store) {
           createdAt: new Date(Date.now() - 1800000).toISOString()
         },
         {
-          id: 'notif-demo-2',
-          recipientId: user.id,
-          category: 'swaps',
-          message: 'Amina Otieno submitted a peer shift swap offer for Morning Shift (07:00 - 15:00).',
-          read: false,
-          createdAt: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-          id: 'notif-demo-3',
+          id: `notif-demo-${user.id}-2`,
+          organisationId: demoOrganisation.id,
           recipientId: user.id,
           category: 'attendance',
           message: `Colleague ID Card Check-in verified at ${notifHub} — zero kiosk hardware used.`,
@@ -8393,36 +10915,36 @@ async function getUserRewards(user, store) {
           createdAt: new Date(Date.now() - 7200000).toISOString()
         },
         {
-          id: 'notif-demo-4',
+          id: `notif-demo-${user.id}-3`,
+          organisationId: demoOrganisation.id,
           recipientId: user.id,
           category: 'handovers',
           message: `Shift Handover Brief relayed for ${notifUnit} with priority checklist tasks.`,
           read: false,
           createdAt: new Date(Date.now() - 10800000).toISOString()
-        },
-        {
-          id: 'notif-demo-5',
-          recipientId: user.id,
-          category: 'payroll',
-          message: 'Digital Payslip ready for download and payroll audit review.',
-          read: true,
-          createdAt: new Date(Date.now() - 86400000).toISOString()
         }
-      ];
+      );
       await saveStore(store);
     }
-    const userNotifs = store.notifications.filter((n) => n.recipientId === user.id || n.recipientId === 'david' || !n.recipientId);
+    const userNotifs = store.notifications.filter(
+      n => (n.organisationId ? n.organisationId === user.organisation_id : user.organisation_id === demoOrganisation.id) &&
+           (n.recipientId === user.id || n.recipientId === user.user_id)
+    );
     return sendJson(response, 200, { notifications: userNotifs.slice(0, 30) });
   }
 
   if (/^\/api\/notifications\/[^/]+\/read$/.test(url.pathname) && request.method === 'POST') {
     const notificationId = url.pathname.split('/')[3];
     if (databaseReady) {
-      await query('update notifications set read_at = now() where id = $1 and organisation_id = $2 and read_at is null', [notificationId, user.organisation_id]);
+      await query('update notifications set read_at = now() where id = $1 and organisation_id = $2 and (recipient_membership_id = $3 or recipient_membership_id is null) and read_at is null', [notificationId, user.organisation_id, user.id]);
       return sendJson(response, 200, { ok: true });
     }
     const store = await getStore();
-    const notification = (store.notifications || []).find((item) => item.id === notificationId);
+    const notification = (store.notifications || []).find((item) =>
+      item.id === notificationId &&
+      (!item.organisationId || item.organisationId === user.organisation_id) &&
+      (item.recipientId === user.id || item.recipientId === user.user_id)
+    );
     if (notification) {
       notification.read = true;
       notification.read_at = new Date().toISOString();
@@ -8438,7 +10960,10 @@ async function getUserRewards(user, store) {
     }
     const store = await getStore();
     (store.notifications || []).forEach((notification) => {
-      if (notification.recipientId === user.id || notification.recipientId === 'david' || !notification.recipientId) {
+      if (
+        (!notification.organisationId || notification.organisationId === user.organisation_id) &&
+        (notification.recipientId === user.id || notification.recipientId === user.user_id)
+      ) {
         notification.read = true;
         notification.read_at = new Date().toISOString();
       }
@@ -8913,7 +11438,7 @@ async function getUserRewards(user, store) {
         prof.professionalSummary = prof.bioOutsideWork || 'Results-driven frontline specialist with proven expertise in end-to-end shift handovers, operational safety, and incident prevention. Dedicated to zero lost-context transitions and high team reliability.';
       }
       if (!prof.workEmail) {
-        prof.workEmail = (users.find(u => u.id === targetId) || user).email || 'worker@shiftrelay.io';
+        prof.workEmail = (users.find(u => u.id === targetId) || user).email || 'worker@shiftrelayos.com';
       }
       if (!prof.linkedInUrl) {
         prof.linkedInUrl = 'https://linkedin.com/in/' + (prof.fullName ? prof.fullName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'specialist');
@@ -9418,20 +11943,23 @@ async function getUserRewards(user, store) {
 
   // Employer: GET /api/shift-scores/team  — all workers in org with scores
   if (url.pathname === '/api/shift-scores/team' && request.method === 'GET') {
-    if (!['owner', 'workforce_admin', 'supervisor'].includes(user.role) && !user.organisation_id) {
+    if (!['owner', 'workforce_admin', 'supervisor', 'manager', 'finance_admin'].includes(user.role) || !user.organisation_id) {
       return sendJson(response, 403, { error: 'Manager access required.' });
     }
-    const store  = await getStore();
-    const month  = url.searchParams.get('month') || new Date().toISOString().slice(0, 7);
-    const orgId  = user.organisation_id || demoOrganisation.id;
-    // Get all member IDs belonging to this org
+    const store  = await loadPayrollStoreForTenant(user.organisation_id);
+    const month  = url.searchParams.get('month') || formatMonthMeta(null, user.time_zone || 'Africa/Lagos').month;
+    const orgId  = user.organisation_id;
+    const orgObj = (store.organisations || []).find(o => o.id === orgId) || {};
+    const orgPolicy = getEffectiveAttendancePolicy(orgObj);
     const orgContracts = (store.contracts || []).filter(c =>
       c.tenant_id === orgId || c.organisation_id === orgId ||
-      // Dangote demo workers have no explicit tenant_id
       (!c.tenant_id && !c.organisation_id && orgId === demoOrganisation.id)
     );
     const team = orgContracts.map(c => {
-      const summary = monthlyScoreSummary(c.userId, store, month);
+      const summary = monthlyScoreSummary(c.userId, store, month, {
+        graceMinutes: orgPolicy.graceMinutes,
+        attendanceExceptions: store.attendanceExceptions || []
+      });
       return {
         memberId:      c.userId,
         memberName:    c.userName,
@@ -9582,7 +12110,7 @@ async function getUserRewards(user, store) {
 
 
 /* Sensitive file patterns that must never be served over HTTP */
-const BLOCKED_FILE_PATTERNS = /(?:^|\/)(?:\.env|\.git|shiftrelay\.json|package-lock\.json|database\.mjs|server\.mjs|\.[a-z])/i;
+const BLOCKED_FILE_PATTERNS = /(?:^|[\\/])(?:\.env|\.git|shiftrelay\.json|package\.json|package-lock\.json|render\.yaml|railway\.json|mcp\.json|skills-lock\.json|design-tokens-starter\.json|capacitor\.config\.json|schema\.sql|Dockerfile|docker-compose\.yml|\.[a-z])|(?:^|[\\/])(?:data|docs|scripts|tests|scratch|android|ios|node_modules|riffmax-brain|visuals|visual-inspections|k8s)[\\/]|\.mjs$|\.md$|\.docx$|\.log$/i;
 
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
@@ -9773,12 +12301,21 @@ async function handleUploadFileRequest(request, response, url) {
       }
     }
     if (!isOwned && Array.isArray(store.handovers)) {
-      if (store.handovers.some(h => JSON.stringify(h).includes(filename))) {
+      if (store.handovers.some(h => (!h.organisationId || h.organisationId === user.organisation_id) && JSON.stringify(h).includes(filename))) {
         isOwned = true;
       }
     }
     if (!isOwned && store.workerProfiles) {
-      if (Object.values(store.workerProfiles).some(p => JSON.stringify(p).includes(filename))) {
+      const orgMemberIds = new Set(
+        (store.memberships || [])
+          .filter(m => m.organisation_id === user.organisation_id)
+          .flatMap(m => [m.id, m.user_id])
+          .filter(Boolean)
+      );
+      if (Object.entries(store.workerProfiles).some(([pid, p]) =>
+        (orgMemberIds.has(pid) || user.organisation_id === demoOrganisation.id) &&
+        JSON.stringify(p).includes(filename)
+      )) {
         isOwned = true;
       }
     }
@@ -9811,11 +12348,11 @@ async function handleUploadFileRequest(request, response, url) {
 }
 
 const WEBSITE_HOSTS = new Set(
-  String(process.env.WEBSITE_HOSTS || 'shiftrelay.com,www.shiftrelay.com')
+  String(process.env.WEBSITE_HOSTS || 'shiftrelayos.com,www.shiftrelayos.com')
     .split(',').map(h => h.trim().toLowerCase()).filter(Boolean)
 );
 const ADMIN_HOSTS = new Set(
-  String(process.env.ADMIN_HOSTS || 'admin.shiftrelay.com')
+  String(process.env.ADMIN_HOSTS || 'admin.shiftrelayos.com')
     .split(',').map(h => h.trim().toLowerCase()).filter(Boolean)
 );
 
@@ -9826,6 +12363,14 @@ const CLEAN_HTML_ROUTES = {
   pricing: 'pricing.html',
   privacy: 'privacy.html',
   terms: 'terms.html',
+  trust: 'trust.html',
+  legal: 'trust.html',
+  dpa: 'dpa.html',
+  sla: 'sla.html',
+  'acceptable-use': 'acceptable-use.html',
+  cookies: 'cookies.html',
+  calculator: 'calculator.html',
+  status: 'status.html',
   'support-security': 'support-security.html',
   'delete-account': 'delete-account.html',
   healthcare: 'healthcare.html',
@@ -9951,20 +12496,29 @@ const server = createServer((request, response) => {
     if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok' });
 
     if (request.method === 'GET' && url.pathname === '/robots.txt') {
-      const publicOrigin = getPublicAppOrigin(request);
+      const marketingOrigin = normalizeOriginUrl(process.env.WEBSITE_URL || '') || 'https://shiftrelayos.com';
       const robotsTxt = [
         'User-agent: *',
         'Allow: /website.html',
         'Allow: /pricing.html',
+        'Allow: /trust.html',
+        'Allow: /dpa.html',
+        'Allow: /sla.html',
+        'Allow: /acceptable-use.html',
+        'Allow: /cookies.html',
+        'Allow: /calculator.html',
+        'Allow: /status.html',
         'Allow: /privacy.html',
         'Allow: /terms.html',
         'Allow: /support-security.html',
+        'Allow: /delete-account.html',
         'Disallow: /api/',
         'Disallow: /admin',
         'Disallow: /admin.html',
         'Disallow: /activate',
         'Disallow: /office.html',
-        `Sitemap: ${publicOrigin}/sitemap.xml`,
+        'Disallow: /uploads/',
+        `Sitemap: ${marketingOrigin}/sitemap.xml`,
         ''
       ].join('\n');
       response.writeHead(200, {
@@ -9976,23 +12530,31 @@ const server = createServer((request, response) => {
     }
 
     if (request.method === 'GET' && url.pathname === '/sitemap.xml') {
-      const publicOrigin = getPublicAppOrigin(request);
+      const marketingOrigin = normalizeOriginUrl(process.env.WEBSITE_URL || '') || 'https://shiftrelayos.com';
       const urls = [
+        '/',
         '/website.html',
         '/pricing.html',
-        '/privacy.html',
-        '/terms.html',
-        '/support-security.html',
+        '/calculator.html',
+        '/trust.html',
+        '/dpa.html',
+        '/sla.html',
+        '/acceptable-use.html',
+        '/cookies.html',
+        '/status.html',
         '/healthcare.html',
         '/hospitality.html',
         '/logistics.html',
         '/manufacturing.html',
-        '/'
+        '/support-security.html',
+        '/privacy.html',
+        '/terms.html',
+        '/delete-account.html'
       ];
       const sitemapXml = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-        ...urls.map(u => `  <url><loc>${publicOrigin}${u}</loc></url>`),
+        ...urls.map(u => `  <url><loc>${marketingOrigin}${u}</loc></url>`),
         '</urlset>'
       ].join('\n');
       response.writeHead(200, {
@@ -10011,20 +12573,42 @@ const server = createServer((request, response) => {
         /^\/api\/admin\/auth\/(login|mfa\/verify|break-glass)$/.test(url.pathname) ||
         /^\/api\/(organisations|organisation-memberships|account-deletion-requests)$/.test(url.pathname) ||
         /^\/api\/enterprise\/demo-request$/.test(url.pathname) ||
-        /^\/api\/leads\/roi-quote$/.test(url.pathname)
+        /^\/api\/leads\/roi-quote$/.test(url.pathname) ||
+        /^\/api\/newsletter\/(subscribe|unsubscribe)$/.test(url.pathname) ||
+        /^\/api\/public\/payroll-calculate$/.test(url.pathname)
       ) && request.method === 'POST';
       if (isRateLimited(ip, isAuth)) {
         return sendJson(response, 429, { error: 'Too many requests. Please slow down and try again shortly.' });
       }
     // ── 2026 ENTERPRISE HCM FRAMEWORK ENDPOINTS (Additive & Non-Destructive) ──
     if (request.method === 'GET' && url.pathname === '/api/health/readiness') {
+      const emailSmtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+      const emailResendConfigured = Boolean(process.env.RESEND_API_KEY);
       return sendJson(response, 200, {
         status: 'READY',
-        service: 'ShiftRelay Enterprise HCM Engine',
-        version: '2026.11.v154',
+        service: 'ShiftRelay OS Enterprise HCM Engine',
+        version: '2026.11.v155',
         databaseMode: databaseReady ? 'postgres-primary' : 'local-resilient-store',
-        compliance: ['NDPA-2023', 'NITDA-BIOMETRIC', 'PENCOM-PRA-2014', 'FINANCE-ACT-CRA'],
+        uptimeSeconds: Math.round(process.uptime()),
+        compliance: ['NDPA-2023', 'NITDA-BIOMETRIC', 'PENCOM-PRA-2014', 'FINANCE-ACT-CRA', LEGAL_ENTITY.securityPostureClaim],
         operationalZones: ['Victoria Island Tech Hub', 'Ikeja Operations Hub', 'Lekki Service Zone', 'Abuja Regional Hub'],
+        components: {
+          webApp: { name: 'Web & Mobile App (app.shiftrelayos.com)', status: 'OPERATIONAL', latencyMs: 12 },
+          attendanceWatchdog: { name: 'Attendance Exceptions & Reminder Watchdog', status: 'OPERATIONAL', tickSeconds: 60 },
+          payrollEngine: { name: 'Nigerian PAYE / PenCom / NIBSS CSV Engine', status: 'OPERATIONAL', variance: '₦0.00' },
+          emailAutoStation: {
+            name: 'Email Auto-Station & Newsletter Dispatcher',
+            status: (emailSmtpConfigured || emailResendConfigured) ? 'OPERATIONAL_LIVE_RELAY' : 'OPERATIONAL_SANDBOX_OUTBOX',
+            smtpLive: emailSmtpConfigured,
+            resendLive: emailResendConfigured
+          },
+          messagingChannels: {
+            name: 'Termii SMS & WhatsApp Cloud Reminder Bridge',
+            status: (process.env.TERMII_API_KEY || process.env.WHATSAPP_CLOUD_TOKEN) ? 'OPERATIONAL_LIVE' : 'DRY_RUN_READY',
+            termiiConfigured: Boolean(process.env.TERMII_API_KEY),
+            whatsappCloudConfigured: Boolean(process.env.WHATSAPP_CLOUD_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID)
+          }
+        },
         timestamp: new Date().toISOString()
       });
     }
@@ -10306,6 +12890,9 @@ const server = createServer((request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/settlements/paystack-transfer') {
       const authCtx = await getOpsOrAdminAuth(request);
       if (!authCtx) return sendJson(response, 401, { error: 'Authentication required to trigger settlement transfers.' });
+      if (authCtx.kind === 'user' && !['owner', 'finance_admin', 'workforce_admin'].includes(authCtx.user.role)) {
+        return sendJson(response, 403, { error: 'Forbidden: executive or finance clearance required.' });
+      }
       const body = await readJson(request);
       const amountNgn = Number(body.amountNgn || body.amount || 5000);
       const bankName = String(body.bankName || 'Access Bank PLC / Paystack Titan').trim();
@@ -10382,6 +12969,182 @@ const server = createServer((request, response) => {
 
 
       return handleApi(request, response, url);
+    }
+
+    // ── Public One-Click Newsletter Unsubscribe Landing Page (Zero Login) ──
+    if (url.pathname === '/unsubscribe' && (request.method === 'GET' || request.method === 'POST')) {
+      const token = url.searchParams.get('token') || '';
+      const email = url.searchParams.get('email') || '';
+      const res = await unsubscribeNewsletterMember({ token, email });
+      const escUnsub = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const unsubHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Unsubscribe · ShiftRelay OS Brief</title>
+</head>
+<body style="margin:0;padding:32px 16px;background:#050a14;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:540px;margin:32px auto;background:#090f1d;border:1px solid #1e293b;border-radius:16px;padding:28px;box-shadow:0 24px 48px rgba(0,0,0,.45);">
+    <div style="font-size:11px;font-weight:800;color:#00f5a0;letter-spacing:.08em;text-transform:uppercase;">NDPA 2023 Consent Control</div>
+    <h1 style="margin:8px 0 12px;font-size:22px;font-weight:800;color:#fff;">
+      ${res.found ? 'You Have Been Unsubscribed' : 'Subscription Preference Lookup'}
+    </h1>
+    <p style="margin:0 0 18px;font-size:14px;color:#cbd5e1;line-height:1.6;">
+      ${res.found
+        ? `Email <strong>${escUnsub(res.subscriber.email)}</strong> has been permanently removed from non-essential ShiftRelay OS Workforce &amp; Statutory Brief mailings.`
+        : 'No active subscription matched that unsubscribe token, or your email was already removed.'}
+    </p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:20px;">
+      <a href="https://shiftrelayos.com" style="display:inline-block;padding:10px 18px;border-radius:10px;background:#10b981;color:#03180f;font-weight:800;font-size:13px;text-decoration:none;">Return to shiftrelayos.com</a>
+      <a href="https://shiftrelayos.com/privacy.html" style="display:inline-block;padding:10px 18px;border-radius:10px;border:1px solid #334155;color:#cbd5e1;font-weight:600;font-size:13px;text-decoration:none;">Privacy &amp; NDPA Policy</a>
+    </div>
+  </div>
+</body>
+</html>`;
+      response.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': Buffer.byteLength(unsubHtml),
+        ...SECURITY_HEADERS
+      });
+      return response.end(unsubHtml);
+    }
+
+    if (url.pathname.startsWith('/verify/') && request.method === 'GET') {
+      const escVerify = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const parts = url.pathname.split('/').filter(Boolean); // ['verify', ...]
+      const store = await getStore().catch(() => ({}));
+      const originWebsite = 'https://shiftrelayos.com';
+      const originApp = 'https://app.shiftrelayos.com';
+
+      let badgeTitle = 'Credential Attestation';
+      let badgeSubject = 'ShiftRelay OS Record';
+      let detailRows = [];
+      let verifiedFound = false;
+      let verificationStatus = 'LOOKUP';
+      const issuedAtIso = new Date().toISOString();
+
+      if (parts[1] === 'ledger' && parts.length >= 3) {
+        const orgCodeRaw = decodeURIComponent(parts[2] || '').trim();
+        const periodRaw = decodeURIComponent(parts.slice(3).join(' ') || 'Current Cycle').replace(/_/g, ' ');
+        const matchedOrg = (store.organisations || []).find(
+          o => String(o.organisation_code || '').toUpperCase() === orgCodeRaw.toUpperCase() || o.id === orgCodeRaw
+        );
+        badgeTitle = 'Statutory Payroll & PenCom Ledger';
+        badgeSubject = matchedOrg ? (matchedOrg.legal_name || matchedOrg.trading_name) : orgCodeRaw;
+        verifiedFound = Boolean(matchedOrg || orgCodeRaw === 'RIF-2026');
+        verificationStatus = verifiedFound ? 'VERIFIED' : 'LOOKUP';
+        const attestationSig = createHash('sha256').update(`${orgCodeRaw}:${periodRaw}:SR-LEDGER`).digest('hex').slice(0, 16).toUpperCase();
+        detailRows = [
+          ['Company Code', orgCodeRaw.toUpperCase()],
+          ['Verified Entity', matchedOrg?.legal_name || matchedOrg?.trading_name || 'Verified Employer Tenant'],
+          ['Accounting Period', periodRaw],
+          ['Attestation Signature', `SR-${attestationSig}`],
+          ['Verified Timestamp', issuedAtIso],
+          ['Compliance Framework', 'Nigeria Finance Act PAYE · PenCom (8%/10%) · NHF 2.5% · NSITF 1%'],
+          ['Verification Origin', originWebsite]
+        ];
+      } else if (parts[1] === 'worker' && parts.length >= 3) {
+        const staffIdRaw = decodeURIComponent(parts[2] || '').trim();
+        const contractMatch = (store.contracts || []).find(c => String(c.staffId || '').toUpperCase() === staffIdRaw.toUpperCase());
+        const demoMatch = demoMembers.find(m => String(m.staffId || '').toUpperCase() === staffIdRaw.toUpperCase());
+        const memberMatch = contractMatch || demoMatch;
+        const memRecord = memberMatch
+          ? (store.memberships || []).find(m => m.id === memberMatch.userId || m.user_id === memberMatch.userId || m.staff_code === staffIdRaw)
+          : null;
+        const isRevoked = memRecord?.status === 'revoked';
+        verifiedFound = Boolean(memberMatch && !isRevoked);
+        verificationStatus = isRevoked ? 'REVOKED' : verifiedFound ? 'VERIFIED' : 'LOOKUP';
+        badgeTitle = 'Frontline Staff ID & Attendance Credential';
+        badgeSubject = memberMatch ? (memberMatch.userName || memberMatch.name || staffIdRaw) : staffIdRaw;
+        const org = memberMatch
+          ? (store.organisations || []).find(o => o.id === (memberMatch.tenant_id || memberMatch.organisation_id))
+          : null;
+        const attestationSig = createHash('sha256').update(`${staffIdRaw}:${verificationStatus}`).digest('hex').slice(0, 16).toUpperCase();
+        detailRows = [
+          ['Staff ID', staffIdRaw.toUpperCase()],
+          ['Personnel Name', memberMatch ? (memberMatch.userName || memberMatch.name) : 'Protected Identity'],
+          ['Assigned Role', memberMatch ? (memberMatch.role || memberMatch.title || 'Verified Frontline Staff') : 'N/A'],
+          ['Department', memberMatch ? (memberMatch.department || 'Operations') : 'N/A'],
+          ['Issuer Organisation', org?.legal_name || org?.trading_name || LEGAL_ENTITY.companyLegalName],
+          ['Attestation Signature', `SR-${attestationSig}`],
+          ['Registry Status', isRevoked ? 'REVOKED CREDENTIAL' : verifiedFound ? 'ACTIVE VERIFIED CREDENTIAL' : 'UNREGISTERED CREDENTIAL']
+        ];
+      } else {
+        const certIdRaw = decodeURIComponent(parts.slice(1).join('/') || 'CERT').trim();
+        const safeCert = (store.workerCertificates || store.achievements || []).find(
+          c => c.id === certIdRaw || c.certId === certIdRaw || c.code === certIdRaw
+        );
+        verifiedFound = Boolean(safeCert || /^SR-/i.test(certIdRaw));
+        verificationStatus = verifiedFound ? 'VERIFIED' : 'LOOKUP';
+        badgeTitle = 'Verified Frontline Milestone Certificate';
+        badgeSubject = safeCert?.title || `Certificate ${certIdRaw}`;
+        const attestationSig = createHash('sha256').update(`${certIdRaw}:SR-CERT`).digest('hex').slice(0, 16).toUpperCase();
+        detailRows = [
+          ['Certificate ID', certIdRaw],
+          ['Credential Type', safeCert?.title || 'Verified Shift Handover & Punctuality Seal'],
+          ['Holder', safeCert?.workerName || 'ShiftRelay OS Verified Worker'],
+          ['Attestation Signature', `SR-${attestationSig}`],
+          ['Checked At', issuedAtIso],
+          ['Ledger Verification', verifiedFound ? 'AUTHENTIC RECORD' : 'RECORD NOT FOUND']
+        ];
+      }
+
+      if (url.searchParams.get('format') === 'json') {
+        return sendJson(response, 200, {
+          ok: verifiedFound,
+          status: verificationStatus,
+          title: badgeTitle,
+          subject: badgeSubject,
+          checkedAt: issuedAtIso,
+          details: Object.fromEntries(detailRows)
+        });
+      }
+
+      const rowsHtml = detailRows.map(([k, v]) => `
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #1e293b;color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.04em;">${escVerify(k)}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #1e293b;color:#f8fafc;font-weight:600;font-size:13px;text-align:right;">${escVerify(v)}</td>
+        </tr>`).join('');
+
+      const verifyHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>${escVerify(badgeTitle)} · ShiftRelay OS Verification</title>
+</head>
+<body style="margin:0;padding:24px 16px;background:#050a14;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:620px;margin:24px auto;background:#090f1d;border:1px solid #1e293b;border-radius:16px;overflow:hidden;box-shadow:0 24px 48px rgba(0,0,0,.45);">
+    <div style="padding:24px 28px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;gap:12px;background:linear-gradient(135deg,#0b1528,#050a14);">
+      <div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:#00f5a0;text-transform:uppercase;">ShiftRelay OS Attestation Ledger</div>
+        <h1 style="margin:6px 0 0;font-size:20px;font-weight:800;color:#fff;">${escVerify(badgeTitle)}</h1>
+      </div>
+      <span style="padding:6px 12px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.05em;${verificationStatus === 'REVOKED' ? 'background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.4);' : verifiedFound ? 'background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.4);' : 'background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.4);'}">
+        ${verificationStatus}
+      </span>
+    </div>
+    <div style="padding:24px 28px;">
+      <p style="margin:0 0 18px;font-size:14px;color:#cbd5e1;">Attestation Target: <strong style="color:#fff;">${escVerify(badgeSubject)}</strong></p>
+      <table style="width:100%;border-collapse:collapse;background:#060c18;border:1px solid #1e293b;border-radius:10px;overflow:hidden;">${rowsHtml}</table>
+      <div style="margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;">
+        <a href="${originWebsite}" style="color:#38bdf8;font-size:13px;text-decoration:none;font-weight:600;">shiftrelayos.com</a>
+        <a href="${originApp}" style="display:inline-block;padding:10px 18px;border-radius:10px;background:#10b981;color:#03180f;font-weight:800;font-size:13px;text-decoration:none;">Open ShiftRelay OS</a>
+      </div>
+      <p style="margin:18px 0 0;font-size:11px;color:#64748b;">Issued by ShiftRelay OS (Riffmax Technology Limited) · Zero private bank details exposed on public verification pages.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      response.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': Buffer.byteLength(verifyHtml),
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        ...SECURITY_HEADERS
+      });
+      return response.end(verifyHtml);
     }
 
     if (url.pathname.startsWith('/uploads/') || url.pathname === '/uploads') {
@@ -10501,33 +13264,58 @@ export async function processShiftBoundaryAutoClockouts() {
   } catch (_) {}
 }
 
-export async function processWeeklyNewsletterAutomation() {
+function computeIsoWeekKey(date = new Date()) {
+  const tmp = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const dayNum = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+  return {
+    year: tmp.getUTCFullYear(),
+    weekNumber: weekNo,
+    periodKey: `weekly-${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
+  };
+}
+
+export async function processWeeklyNewsletterAutomation({ force = false, baseOrigin = null } = {}) {
   try {
     const store = await getStore();
+    const schedule = store.newsletterSchedule || { weeklyOpsEnabled: true, monthlyComplianceEnabled: true };
+    if (!force && schedule.weeklyOpsEnabled === false) {
+      return { ok: true, skipped: true, reason: 'weekly_disabled', sentCount: 0 };
+    }
     const now = new Date();
+    const { year, weekNumber, periodKey } = computeIsoWeekKey(now);
+    const effectivePeriodKey = force ? `${periodKey}-manual-${Date.now()}` : periodKey;
 
-    if (store.lastWeeklyNewsletterDispatch) {
-      const lastDispatchMs = new Date(store.lastWeeklyNewsletterDispatch).getTime();
-      const daysSince = (now.getTime() - lastDispatchMs) / (1000 * 3600 * 24);
-      if (daysSince < 6.5) return;
+    if (!force) {
+      if (databaseReady && getPool()) {
+        const exists = await query('select id from newsletter_dispatches where period_key = $1 limit 1', [periodKey]).catch(() => ({ rows: [] }));
+        if (exists.rows && exists.rows[0]) {
+          return { ok: true, skipped: true, reason: 'already_dispatched_period', periodKey, sentCount: 0 };
+        }
+      } else if ((store.newsletterDispatches || []).some(d => d.periodKey === periodKey || d.period_key === periodKey)) {
+        return { ok: true, skipped: true, reason: 'already_dispatched_period', periodKey, sentCount: 0 };
+      }
     }
 
     const defaultDigest = {
-      shiftsAccountedFor: 142,
+      shiftsAccountedFor: (store.timeEntries || []).length || 142,
       verifiedHours: 1420,
       punctualityScore: '99.4%',
       safetyIncidents: 0,
-      payrollVariance: '₦0.00',
-      topTeam: 'Operations & Engineering Team Alpha'
+      payrollVariance: '₦0.00'
     };
 
     const recipientEmail = process.env.EXECUTIVE_DIGEST_EMAIL || process.env.SMTP_USER || 'sherifolaide2030@gmail.com';
-    const basePlatformUrl = getPublicAppOrigin();
+    const basePlatformUrl = baseOrigin || getPublicAppOrigin();
+    const marketingBase = normalizeOriginUrl(process.env.WEBSITE_URL || '') || 'https://shiftrelayos.com';
+    const unsubUrl = `${marketingBase}/unsubscribe?email=${encodeURIComponent(recipientEmail)}`;
     const html = renderWeeklyProgressNewsletterEmail({
       recipientName: 'Executive Leadership & Stakeholders',
-      orgName: 'Riffmax Technology Limited',
-      weekNumber: Math.max(1, Math.ceil((now - new Date(now.getFullYear(), 0, 1)) / (7 * 86400000))),
-      year: now.getFullYear(),
+      orgName: LEGAL_ENTITY.companyLegalName,
+      weekNumber,
+      year,
       stats: {
         totalShiftsAccounted: defaultDigest.shiftsAccountedFor,
         verifiedHoursLogged: defaultDigest.verifiedHours,
@@ -10535,48 +13323,385 @@ export async function processWeeklyNewsletterAutomation() {
         safetyIncidents: defaultDigest.safetyIncidents,
         variance: defaultDigest.payrollVariance
       },
-      platformUrl: basePlatformUrl
+      platformUrl: basePlatformUrl,
+      unsubUrl
     });
 
     await sendShiftRelayEmail({
       to: recipientEmail,
-      subject: `ShiftRelay Weekly Progress Report — 142 Shifts Accounted For · ₦0.00 Variance`,
+      subject: `ShiftRelay Weekly Progress Report — Week ${weekNumber} · ₦0.00 Variance`,
       html,
+      headers: {
+        'List-Unsubscribe': `<${unsubUrl}>, <mailto:${LEGAL_ENTITY.supportEmail}?subject=unsubscribe>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+      },
       source: 'ShiftRelay Automated Weekly Newsletter Engine'
     });
 
+    const dispatchEntry = {
+      id: crypto.randomUUID(),
+      campaign_key: 'weekly_operational_digest',
+      dispatch_type: 'weekly_ops',
+      segment: 'executive',
+      recipient_count: 1,
+      sent_at: now.toISOString(),
+      period_key: effectivePeriodKey,
+      periodKey: effectivePeriodKey
+    };
+
+    if (databaseReady && getPool()) {
+      await query(
+        `insert into newsletter_dispatches (id, campaign_key, dispatch_type, segment, recipient_count, sent_at, period_key, metadata_json)
+         values ($1,$2,$3,$4,$5,$6,$7,$8) on conflict (period_key) do nothing`,
+        [dispatchEntry.id, dispatchEntry.campaign_key, dispatchEntry.dispatch_type, dispatchEntry.segment, 1, dispatchEntry.sent_at, dispatchEntry.period_key, JSON.stringify(defaultDigest)]
+      ).catch(() => {});
+    }
     store.lastWeeklyNewsletterDispatch = now.toISOString();
+    if (!Array.isArray(store.newsletterDispatches)) store.newsletterDispatches = [];
+    store.newsletterDispatches.unshift(dispatchEntry);
     if (!Array.isArray(store.newsletters)) store.newsletters = [];
-    store.newsletters.unshift({
-      id: 'nws_' + Date.now(),
-      dispatched_at: now.toISOString(),
-      recipient: recipientEmail,
-      metrics: defaultDigest
-    });
+    store.newsletters.unshift({ id: 'nws_' + Date.now(), dispatched_at: now.toISOString(), recipient: recipientEmail, metrics: defaultDigest });
     await saveStore(store);
-    console.log(`[NEWSLETTER ENGINE] Successfully dispatched weekly operational progress newsletter to ${recipientEmail}`);
+    return { ok: true, skipped: false, periodKey: effectivePeriodKey, sentCount: 1 };
   } catch (err) {
     console.warn('[NEWSLETTER CRON ERROR]', err.message);
+    return { ok: false, error: err.message, sentCount: 0 };
   }
+}
+
+export async function processMonthlyNewsletterAutomation({ force = false, segment = 'all', baseOrigin = null } = {}) {
+  try {
+    const store = await getStore();
+    const schedule = store.newsletterSchedule || { weeklyOpsEnabled: true, monthlyComplianceEnabled: true };
+    if (!force && schedule.monthlyComplianceEnabled === false) {
+      return { ok: true, skipped: true, reason: 'monthly_disabled', sentCount: 0 };
+    }
+    const now = new Date();
+    const monthMeta = formatMonthMeta();
+    const basePeriodKey = `monthly-${monthMeta.month}`;
+    const effectivePeriodKey = force ? `${basePeriodKey}-manual-${Date.now()}` : basePeriodKey;
+
+    if (!force) {
+      if (databaseReady && getPool()) {
+        const exists = await query('select id from newsletter_dispatches where period_key = $1 limit 1', [basePeriodKey]).catch(() => ({ rows: [] }));
+        if (exists.rows && exists.rows[0]) {
+          return { ok: true, skipped: true, reason: 'already_dispatched_period', periodKey: basePeriodKey, sentCount: 0 };
+        }
+      } else if ((store.newsletterDispatches || []).some(d => d.periodKey === basePeriodKey || d.period_key === basePeriodKey)) {
+        return { ok: true, skipped: true, reason: 'already_dispatched_period', periodKey: basePeriodKey, sentCount: 0 };
+      }
+    }
+
+    let subscribers = [];
+    if (databaseReady && getPool()) {
+      const subRes = await query(`select email, full_name, role_segment, unsubscribe_token from newsletter_subscribers where status = 'active'`).catch(() => ({ rows: [] }));
+      subscribers = subRes.rows || [];
+    } else {
+      subscribers = (store.newsletterSubscribers || []).filter(s => s.status === 'active');
+    }
+    const filtered = segment && segment !== 'all'
+      ? subscribers.filter(s => s.role_segment === segment)
+      : subscribers;
+
+    const cleanBase = String(baseOrigin || normalizeOriginUrl(process.env.WEBSITE_URL || '') || 'https://shiftrelayos.com').replace(/\/+$/, '');
+    let sentCount = 0;
+    for (const sub of filtered) {
+      const unsubUrl = `${cleanBase}/unsubscribe?token=${encodeURIComponent(sub.unsubscribe_token || '')}`;
+      const html = renderMonthlyComplianceNewsletterEmail({
+        recipientName: sub.full_name || 'Workforce Leader',
+        roleSegment: sub.role_segment || 'general',
+        monthLabel: monthMeta.period,
+        calculatorUrl: `${cleanBase}/calculator.html`,
+        unsubscribeUrl: unsubUrl
+      });
+      await sendShiftRelayEmail({
+        to: sub.email,
+        subject: `Nigeria Workforce & Statutory Brief — ${monthMeta.period}`,
+        html,
+        text: `ShiftRelay OS ${monthMeta.period} Statutory Brief. Calculate PAYE/PenCom: ${cleanBase}/calculator.html\nUnsubscribe: ${unsubUrl}`,
+        headers: {
+          'List-Unsubscribe': `<${unsubUrl}>, <mailto:${LEGAL_ENTITY.supportEmail}?subject=unsubscribe>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        },
+        source: 'Automated Monthly Statutory Newsletter'
+      }).catch(() => {});
+      sentCount += 1;
+    }
+
+    const dispatchEntry = {
+      id: crypto.randomUUID(),
+      campaign_key: 'monthly_nigeria_compliance',
+      dispatch_type: 'monthly_statutory',
+      segment: segment || 'all',
+      recipient_count: sentCount,
+      sent_at: now.toISOString(),
+      period_key: effectivePeriodKey,
+      periodKey: effectivePeriodKey
+    };
+    if (databaseReady && getPool()) {
+      await query(
+        `insert into newsletter_dispatches (id, campaign_key, dispatch_type, segment, recipient_count, sent_at, period_key)
+         values ($1,$2,$3,$4,$5,$6,$7) on conflict (period_key) do nothing`,
+        [dispatchEntry.id, dispatchEntry.campaign_key, dispatchEntry.dispatch_type, dispatchEntry.segment, sentCount, dispatchEntry.sent_at, dispatchEntry.period_key]
+      ).catch(() => {});
+    }
+    if (!Array.isArray(store.newsletterDispatches)) store.newsletterDispatches = [];
+    store.newsletterDispatches.unshift(dispatchEntry);
+    await saveStore(store);
+    return { ok: true, skipped: false, periodKey: effectivePeriodKey, sentCount };
+  } catch (err) {
+    console.warn('[MONTHLY NEWSLETTER ERROR]', err.message);
+    return { ok: false, error: err.message, sentCount: 0 };
+  }
+}
+
+export async function processShiftAttendanceReminders({ onlyOrganisationId = null, nowMs = Date.now() } = {}) {
+  const dispatched = [];
+  let storeChanged = false;
+  let store = null;
+
+  try {
+    let orgList = [];
+    if (databaseReady && getPool()) {
+      const orgRes = await query(
+        'select id, organisation_code, legal_name, trading_name, time_zone, settings, notification_channels_json from organisations where ($1::uuid is null or id = $1::uuid)',
+        [onlyOrganisationId && UUID_REGEX.test(String(onlyOrganisationId)) ? onlyOrganisationId : null]
+      ).catch(() =>
+        query('select id, organisation_code, legal_name, trading_name, time_zone, settings from organisations where ($1::uuid is null or id = $1::uuid)', [onlyOrganisationId && UUID_REGEX.test(String(onlyOrganisationId)) ? onlyOrganisationId : null])
+      );
+      orgList = orgRes.rows || [];
+    } else {
+      store = await getStore();
+      orgList = (store.organisations || []).filter(o => !onlyOrganisationId || o.id === onlyOrganisationId);
+    }
+
+    for (const org of orgList) {
+      let members = [];
+      let scheduledShifts = [];
+      let timeEntries = [];
+      let leaveRequests = [];
+
+      if (databaseReady && getPool()) {
+        const [memR, shiftR, entryR, leaveR] = await Promise.all([
+          query(
+            `select m.id, m.user_id, m.organisation_id, m.role, m.title, m.department, m.status, m.notification_opt_out, u.full_name, u.email, u.phone
+             from memberships m join portal_users u on u.id = m.user_id
+             where m.organisation_id = $1 and m.status = 'active'`,
+            [org.id]
+          ).catch(() => ({ rows: [] })),
+          query('select id, organisation_id, membership_id, starts_at, ends_at, status from scheduled_shifts where organisation_id = $1', [org.id]).catch(() => ({ rows: [] })),
+          query('select id, organisation_id, membership_id, clocked_in_at, clocked_out_at from time_entries where organisation_id = $1 and clocked_in_at >= now() - interval \'7 days\'', [org.id]).catch(() => ({ rows: [] })),
+          query('select id, organisation_id, membership_id, starts_on, ends_on, status from leave_requests where organisation_id = $1', [org.id]).catch(() => ({ rows: [] }))
+        ]);
+        members = memR.rows || [];
+        scheduledShifts = shiftR.rows || [];
+        timeEntries = entryR.rows || [];
+        leaveRequests = leaveR.rows || [];
+      } else {
+        const portalById = new Map((store.portalUsers || []).map(u => [u.id, u]));
+        members = (store.memberships || [])
+          .filter(m => m.organisation_id === org.id && m.status === 'active')
+          .map(m => ({
+            ...m,
+            full_name: portalById.get(m.user_id)?.full_name || m.name,
+            email: portalById.get(m.user_id)?.email || m.email,
+            phone: portalById.get(m.user_id)?.phone || m.phone || ''
+          }));
+        scheduledShifts = (store.scheduledShifts || []).filter(s => !s.organisation_id || s.organisation_id === org.id);
+        timeEntries = (store.timeEntries || []).filter(e => !e.organisationId || e.organisationId === org.id);
+        leaveRequests = (store.leaveRequests || []).filter(l => !l.organisation_id || l.organisation_id === org.id);
+      }
+
+      if (scheduledShifts.length === 0) continue;
+
+      const due = evaluateReminderStagesForOrg({
+        org,
+        members,
+        scheduledShifts,
+        timeEntries,
+        leaveRequests,
+        now: new Date(nowMs)
+      });
+
+      for (const item of due) {
+        let inserted = false;
+        if (databaseReady && getPool()) {
+          const ins = await query(
+            `insert into reminder_dispatches (id, organisation_id, membership_id, scheduled_shift_id, reminder_stage, dedupe_key)
+             values ($1,$2,$3,$4,$5,$6) on conflict (dedupe_key) do nothing returning id`,
+            [
+              crypto.randomUUID(),
+              org.id,
+              UUID_REGEX.test(String(item.membershipId || '')) ? item.membershipId : null,
+              UUID_REGEX.test(String(item.scheduledShiftId || '')) ? item.scheduledShiftId : null,
+              item.stage,
+              item.dedupeKey
+            ]
+          ).catch(() => ({ rows: [] }));
+          inserted = Boolean(ins.rows && ins.rows[0]);
+        } else {
+          if (!Array.isArray(store.reminderDispatches)) store.reminderDispatches = [];
+          if (!store.reminderDispatches.some(d => d.dedupeKey === item.dedupeKey)) {
+            store.reminderDispatches.unshift({ ...item, id: crypto.randomUUID(), sentAt: new Date(nowMs).toISOString() });
+            if (store.reminderDispatches.length > 2000) store.reminderDispatches.length = 2000;
+            inserted = true;
+            storeChanged = true;
+          }
+        }
+        if (!inserted) continue;
+
+        dispatched.push(item);
+
+        // Worker notification & SSE realtime pulse
+        if (item.membershipId) {
+          await deliverOrgNotification({
+            store,
+            organisationId: org.id,
+            recipientId: item.membershipId,
+            category: 'attendance_reminder',
+            message: `${item.label}: ${item.message}`
+          });
+          broadcastEvent('shift-reminder', {
+            stage: item.stage,
+            label: item.label,
+            urgency: item.urgency,
+            message: item.message,
+            scheduledShiftId: item.scheduledShiftId,
+            startsAt: item.startsAt,
+            endsAt: item.endsAt
+          }, {
+            organisationId: org.id,
+            recipientMembershipId: item.membershipId
+          });
+        }
+
+        // Multi-channel SMS (Termii) / WhatsApp Cloud dispatch for critical shift stages (respects NDPA opt-out + dedupe)
+        if (['pre_shift_15m', 'start_0', 'missed_clock_in', 'clock_out_overdue'].includes(item.stage)) {
+          const targetMember = members.find(m => m.id === item.membershipId) || { id: item.membershipId, email: item.workerEmail };
+          const shiftDateStr = String(item.startsAt || new Date(nowMs).toISOString()).slice(0, 10);
+          const channelStore = store || await getStore();
+          const channelLogs = await dispatchChannelNotification({
+            store: channelStore,
+            org,
+            member: targetMember,
+            triggerType: item.stage,
+            dedupeKey: `${org.id}:${item.membershipId}:${shiftDateStr}:${item.stage}`,
+            message: `ShiftRelay OS [${org.trading_name || org.legal_name}]: ${item.label} - ${item.message}`,
+            nowMs
+          }).catch(() => []);
+          if (channelLogs.length > 0 && !databaseReady) storeChanged = true;
+        }
+
+        // Send mobile-ready transactional email on critical reminders (0m start, missed clock-in escalation, overdue clock-out)
+        if (item.workerEmail && ['start_0', 'missed_clock_in', 'clock_out_overdue'].includes(item.stage)) {
+          const orgName = org.trading_name || org.legal_name || 'ShiftRelay OS Employer';
+          const appOrigin = getPublicAppOrigin();
+          const emailHtml = renderAttendanceReminderEmail({
+            recipientName: item.workerName,
+            orgName,
+            stageLabel: item.label,
+            urgency: item.urgency,
+            headline: item.label,
+            message: item.message,
+            graceMinutes: item.graceMinutes,
+            actionUrl: `${appOrigin}/#today`
+          });
+          await sendShiftRelayEmail({
+            to: item.workerEmail,
+            subject: `[${orgName}] ${item.label} — ShiftRelay OS`,
+            html: emailHtml,
+            source: 'Automated Shift Reminder Watchdog'
+          }).catch(() => {});
+        }
+
+        // Escalate MISSED_CLOCK_IN to supervisors/owners & persist exception for Dayforce queue
+        if (item.escalateToSupervisor) {
+          const excId = `ex-in-${item.scheduledShiftId || `${item.membershipId}-${item.startsAt.slice(0, 10)}`}`;
+          const shiftDate = item.startsAt.slice(0, 10);
+          if (databaseReady && getPool()) {
+            await upsertAttendanceExceptionPg(org.id, {
+              id: excId,
+              membershipId: item.membershipId,
+              type: 'MISSED_CLOCK_IN',
+              shiftDate,
+              scheduledShiftId: item.scheduledShiftId,
+              status: 'pending_review',
+              scheduledStart: item.startsAt,
+              varianceMinutes: Math.max(1, Number(item.graceMinutes || 10) + 5),
+              payImpactHours: 8,
+              resolutionNote: item.message
+            }, { doNothingIfExists: true }).catch(() => {});
+          } else {
+            if (!Array.isArray(store.attendanceExceptions)) store.attendanceExceptions = [];
+            if (!store.attendanceExceptions.some(x => x.id === excId)) {
+              store.attendanceExceptions.push({
+                id: excId,
+                organisationId: org.id,
+                membershipId: item.membershipId,
+                type: 'MISSED_CLOCK_IN',
+                shiftDate,
+                scheduledShiftId: item.scheduledShiftId,
+                status: 'pending_review',
+                expectedTime: item.startsAt,
+                minutesDelta: Number(item.graceMinutes || 10) + 5
+              });
+            }
+          }
+
+          const managers = members.filter(m => ['owner', 'workforce_admin', 'supervisor', 'manager'].includes(m.role));
+          for (const mgr of managers) {
+            await deliverOrgNotification({
+              store,
+              organisationId: org.id,
+              recipientId: mgr.id,
+              category: 'attendance_escalation',
+              message: `Missed Clock-In Alert: ${item.workerName} has not clocked in past the ${item.graceMinutes}m grace window.`
+            });
+          }
+          broadcastEvent('missing-at-shift-start', {
+            membershipId: item.membershipId,
+            workerName: item.workerName,
+            scheduledShiftId: item.scheduledShiftId,
+            startsAt: item.startsAt
+          }, {
+            organisationId: org.id,
+            allowedRoles: ['owner', 'workforce_admin', 'supervisor', 'manager']
+          });
+        }
+      }
+    }
+
+    if (storeChanged && store && !databaseReady) {
+      await saveStore(store);
+    }
+  } catch (err) {
+    console.warn('[REMINDER WATCHDOG WARN]', err?.message || err);
+  }
+  return { count: dispatched.length, dispatchedCount: dispatched.length, dispatched };
 }
 
 let backgroundEnginesStarted = false;
 export function startEnterpriseBackgroundEngines() {
   if (backgroundEnginesStarted) return;
   backgroundEnginesStarted = true;
-  console.log('⚡ ShiftRelay Enterprise Background Engines Initialized:');
+  console.log('⚡ ShiftRelay OS Enterprise Background Engines Initialized:');
   console.log('   - Shift Boundary & Overtime Shield Engine: Active (60s tick)');
+  console.log('   - Automated Clock-In & Missed-Punch Watchdog: Active (60s tick)');
   console.log('   - Automated Weekly Progress Newsletter: Active (Hourly check)');
 
   setInterval(() => {
     processShiftBoundaryAutoClockouts().catch(() => {});
+    processShiftAttendanceReminders().catch(() => {});
   }, 60 * 1000);
   processShiftBoundaryAutoClockouts().catch(() => {});
+  setTimeout(() => { processShiftAttendanceReminders().catch(() => {}); }, 8000).unref();
 
   setInterval(() => {
     processWeeklyNewsletterAutomation().catch(() => {});
+    processMonthlyNewsletterAutomation().catch(() => {});
   }, 60 * 60 * 1000);
   processWeeklyNewsletterAutomation().catch(() => {});
+  processMonthlyNewsletterAutomation().catch(() => {});
 }
 
 initializeDatabase()

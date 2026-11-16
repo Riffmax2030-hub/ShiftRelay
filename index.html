@@ -3,15 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="icon" href="icon.svg?v=150" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icon.svg?v=150" />
+    <link rel="icon" href="icon.svg?v=165" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg?v=165" />
     <meta name="theme-color" content="#102033" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="ShiftRelay" />
+    <meta name="apple-mobile-web-app-title" content="ShiftRelay OS" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <meta name="description" content="ShiftRelay gives frontline teams accountable shift handovers." />
-    <title>ShiftRelay | Work moves forward</title>
+    <link rel="canonical" href="https://app.shiftrelayos.com/" />
+    <meta name="description" content="ShiftRelay OS gives Nigerian &amp; global frontline teams verified attendance, AI shift handovers, and transparent statutory payroll." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ShiftRelay OS" />
+    <meta property="og:title" content="ShiftRelay OS — Verified Frontline Attendance, Shift Handovers &amp; Payroll" />
+    <meta property="og:description" content="Audit-grade NFC &amp; Colleague Card attendance, automated clock-in reminders, AI shift handovers, and Finance Act statutory payroll built for Africa's frontline workforce." />
+    <meta property="og:url" content="https://app.shiftrelayos.com/" />
+    <meta property="og:image" content="https://shiftrelayos.com/icon-512.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ShiftRelay OS — Verified Frontline Attendance &amp; Payroll" />
+    <meta name="twitter:description" content="Audit-grade workforce operations by Riffmax Technology Limited." />
+    <meta name="twitter:image" content="https://shiftrelayos.com/icon-512.png" />
+    <title>ShiftRelay OS — Verified Frontline Attendance, Shift Handovers &amp; Payroll</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
@@ -19,19 +30,19 @@
     <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="bento-ui.css" />
     <link rel="stylesheet" href="dark-mode.css" />
-    <link rel="stylesheet" href="splash.css?v=150" />
+    <link rel="stylesheet" href="splash.css?v=165" />
     <link rel="stylesheet" href="offline-queue.css" />
     <link rel="stylesheet" href="me-profile.css" />
-    <link rel="stylesheet" href="phase1-shell.css?v=150" />
+    <link rel="stylesheet" href="phase1-shell.css?v=165" />
     <link rel="stylesheet" href="sr-premium.css" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v154' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v165' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v154');
+              localStorage.setItem('sr_restored_build', 'v165');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { r.update(); });
@@ -42,24 +53,24 @@
         } catch (e) {}
       })();
     </script>
-    <script src="mobile-bridge.js?v=154"></script>
-    <script src="gps-guard.js?v=151"></script>
+    <script src="mobile-bridge.js?v=165"></script>
+    <script src="gps-guard.js?v=165"></script>
     <script src="theme.js"></script>
-    <script src="alarm-engine.js"></script>
+    <script src="alarm-engine.js?v=165"></script>
   </head>
   <body>
     <!-- ======================================================
          SPLASH SCREEN — auto-removed after session check
          ====================================================== -->
     <!-- Clean Professional Logo Loading (Zero Delays, No Sound, No Rotation) -->
-    <div id="sr-splash" role="status" aria-live="polite" aria-label="ShiftRelay loading">
+    <div id="sr-splash" role="status" aria-live="polite" aria-label="ShiftRelay OS loading">
       <div class="sr-splash-clean-stage" id="sr-splash-stage">
         <div class="sr-splash-brand-lockup">
-          <img src="icon.svg?v=148" class="sr-splash-brand-icon" alt="ShiftRelay" width="96" height="96" />
+          <img src="icon.svg?v=162" class="sr-splash-brand-icon" alt="ShiftRelay OS" width="96" height="96" />
           <div class="sr-splash-brand-text">
-            <span class="sr-splash-brand-shift">SHIFT</span><span class="sr-splash-brand-relay">RELAY</span>
+            <span class="sr-splash-brand-shift">SHIFT</span><span class="sr-splash-brand-relay">RELAY OS</span>
           </div>
-          <span class="sr-splash-tagline">WORKFORCE SHIFT OS</span>
+          <span class="sr-splash-tagline">ENTERPRISE WORKFORCE OS</span>
         </div>
         <div class="sr-splash-progress-track">
           <div class="sr-splash-progress-fill"></div>
@@ -73,12 +84,12 @@
          Step 2: Work Email -> Continue
          Step 3: Password -> Login
          ====================================================== -->
-    <div id="sr-login-modal" class="sr-auth-screen" role="dialog" aria-modal="true" aria-label="Sign in to ShiftRelay">
+    <div id="sr-login-modal" class="sr-auth-screen" role="dialog" aria-modal="true" aria-label="Sign in to ShiftRelay OS">
       <div class="sr-login-sheet sr-auth-card">
         <div class="sr-auth-brand-bar">
           <div style="display:flex;align-items:center;gap:10px;">
-            <img src="icon.svg?v=148" width="28" height="28" style="border-radius:7px;" alt="ShiftRelay" />
-            <span style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;"><span style="color:#10b981;font-weight:900;">SHIFT</span>RELAY</span>
+            <img src="icon.svg?v=162" width="28" height="28" style="border-radius:7px;" alt="ShiftRelay OS" />
+            <span style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;"><span style="color:#10b981;font-weight:900;">SHIFT</span>RELAY OS</span>
           </div>
           <span class="sr-auth-step-pill" id="sr-auth-step-label">Step 1 of 3</span>
         </div>
@@ -113,6 +124,19 @@
               <span>Continue</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
+            <div id="sr-employer-provision-notice" style="margin-top:16px;padding:12px 14px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;font-size:12.5px;line-height:1.5;color:#475569;">
+              <strong style="display:block;color:#0f172a;margin-bottom:3px;">Employer-Provisioned Access</strong>
+              Ask your HR or Operations Manager for your <strong>Company ID</strong> and work email credentials. Self-signup is disabled for workplace security.
+              <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                <a href="/website.html#demo-request-section" target="_blank" rel="noopener noreferrer" style="color:#0d9488;font-weight:700;text-decoration:none;">Request Company Pilot →</a>
+                <span style="color:#cbd5e1;">•</span>
+                <a href="/calculator.html" target="_blank" rel="noopener noreferrer" style="color:#0f172a;font-weight:600;text-decoration:none;">PAYE &amp; PenCom Calculator</a>
+                <span style="color:#cbd5e1;">•</span>
+                <a href="/trust.html" target="_blank" rel="noopener noreferrer" style="color:#475569;font-weight:600;text-decoration:none;">Trust &amp; NDPA</a>
+                <span style="color:#cbd5e1;">•</span>
+                <a href="/status.html" target="_blank" rel="noopener noreferrer" style="color:#059669;font-weight:600;text-decoration:none;">System Status</a>
+              </div>
+            </div>
           </div>
 
           <!-- STEP 2: Work Email -->
@@ -321,13 +345,13 @@
             </div>
             <div class="footer-link-col">
               <h4>Support &amp; Security</h4>
-              <a href="mailto:support@shiftrelay.io">support@shiftrelay.io</a>
+              <a href="mailto:support@shiftrelayos.com">support@shiftrelayos.com</a>
               <a href="support-security.html">256-bit Shift Encryption</a>
-              <a href="support-security.html">HIPAA / GDPR Ready</a>
+              <a href="support-security.html">NDPA / GDPR Ready</a>
             </div>
           </div>
           <div class="footer-bottom-row">
-            <span class="footer-copy">&copy; ShiftRelay Frontline OS. All rights reserved.</span>
+            <span class="footer-copy">&copy; 2026 ShiftRelay OS by Riffmax Technology Limited. All rights reserved.</span>
             <span class="footer-confidentiality-note">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
               Workplace confidentiality protected
@@ -411,11 +435,12 @@
     <script src="icons.js"></script>
     <script src="language.js"></script>
     <script src="language-pack.js"></script>
-    <script src="app.js?v=154"></script>
+    <script src="app.js?v=165"></script>
     <script src="biometrics.js"></script>
-    <script type="module" src="qr-svg-generator.js?v=151"></script>
-    <script src="phase1-shell.js?v=153"></script>
-    <script src="splash.js?v=151"></script>
+    <script type="module" src="qr-svg-generator.js?v=165"></script>
+    <script src="attendance-exceptions-ui.js?v=165"></script>
+    <script src="phase1-shell.js?v=165"></script>
+    <script src="splash.js?v=165"></script>
     <script src="notifications.js"></script>
    <script src="profile.js"></script>
    <script src="checklists.js"></script>
@@ -426,12 +451,12 @@
     <script src="community-experience.js"></script>
     <script src="schedule-import.js"></script>
     <script src="direct-messages.js"></script>
-    <script src="team-realtime.js"></script>
+    <script src="team-realtime.js?v=165"></script>
     <script src="onboarding-experience.js"></script>
-    <script src="frontline-social.js"></script>
-    <script src="me-profile.js?v=151"></script>
-    <script src="navigation-fix.js?v=151"></script>
-    <script src="offline-queue.js?v=151"></script>
+    <script src="frontline-social.js?v=165"></script>
+    <script src="me-profile.js?v=165"></script>
+    <script src="navigation-fix.js?v=165"></script>
+    <script src="offline-queue.js?v=165"></script>
     <script src="signature-pad.js"></script>
     <script src="chat-engine.js"></script>
     <script src="gesture-hints.js"></script>
@@ -443,12 +468,12 @@
     <script src="swap-review.js"></script>
     <script src="facility-zones.js"></script>
     <script src="analytics-dashboard.js"></script>
-    <script src="first-shift-onboarding.js"></script>
-    <script src="push-notifications.js"></script>
+    <script src="first-shift-onboarding.js?v=165"></script>
+    <script src="push-notifications.js?v=165"></script>
     <script src="facility-switcher.js"></script>
     <script src="emergency-broadcast.js"></script>
     <script src="live-translation.js"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=154',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=165',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 

@@ -143,29 +143,69 @@
     }
   }
 
-  // Periodic Watchdog: Checks upcoming shift and active handover deadlines
+  // Policy-Driven Periodic Watchdog: Checks upcoming shift, grace window & overdue clock-out
   function startShiftAlarmWatchdog() {
     setInterval(() => {
       try {
         const user = window.state?.user;
         if (!user || !user.shift_start) return;
 
+        const policy = user.attendancePolicy || {};
+        const graceMinutes = Number(policy.graceMinutes ?? 10);
+        const scheduleMins = Array.isArray(policy.reminderScheduleMinutes) && policy.reminderScheduleMinutes.length
+          ? policy.reminderScheduleMinutes
+          : [30, 15, 0, -(graceMinutes + 5)];
+
         const now = new Date();
         const [startH, startM] = String(user.shift_start).split(':').map(Number);
         if (isNaN(startH)) return;
 
-        const targetTime = new Date();
-        targetTime.setHours(startH, startM, 0, 0);
+        const startTarget = new Date();
+        startTarget.setHours(startH, startM, 0, 0);
+        const diffStartMin = Math.round((startTarget.getTime() - now.getTime()) / 60000);
+        const isClockedIn = Boolean(window.state?.time?.activeEntry && !window.state.time.activeEntry.clocked_out_at);
 
-        const diffMinutes = Math.round((targetTime.getTime() - now.getTime()) / 60000);
+        if (!isClockedIn && scheduleMins.includes(diffStartMin)) {
+          const alertedKey = `sr_alert_${startTarget.toDateString()}_start_${diffStartMin}`;
+          if (!sessionStorage.getItem(alertedKey)) {
+            sessionStorage.setItem(alertedKey, 'true');
+            const isEscalation = diffStartMin < 0;
+            playTone(isEscalation ? 'handover_due' : 'shift_alarm');
+            const msg = diffStartMin > 0
+              ? `Shift Clock-In Reminder: Your shift starts in ${diffStartMin} minutes.`
+              : (diffStartMin === 0
+                  ? 'Shift Starting Now: Tap GPS Clock-In or scan Staff ID badge.'
+                  : `Missed Clock-In Escalation: Past ${graceMinutes}m grace window. Clock in or explain immediately.`);
+            if (typeof window.toast === 'function') window.toast(msg);
+            window.ShiftRelayPush?.showSystemNotification?.('ShiftRelay OS Shift Reminder', { body: msg });
+            window.ShiftRelayMobile?.scheduleLocalReminder?.({
+              id: Math.abs(diffStartMin) + 100,
+              title: 'ShiftRelay OS Shift Reminder',
+              body: msg
+            });
+          }
+        }
 
-        // Alert at 15 minutes before shift
-        const alertedKey = `sr_alert_${targetTime.toDateString()}_${diffMinutes}`;
-        if (diffMinutes === 15 && !sessionStorage.getItem(alertedKey)) {
-          sessionStorage.setItem(alertedKey, 'true');
-          playTone('shift_alarm');
-          if (typeof window.toast === 'function') {
-            window.toast('Shift Clock-In Reminder: Your shift starts in 15 minutes!');
+        // Overdue clock-out check
+        if (isClockedIn && user.shift_end) {
+          const [endH, endM] = String(user.shift_end).split(':').map(Number);
+          if (!isNaN(endH)) {
+            const endTarget = new Date();
+            endTarget.setHours(endH, endM, 0, 0);
+            if (endTarget <= startTarget) endTarget.setDate(endTarget.getDate() + 1);
+            const diffEndMin = Math.round((endTarget.getTime() - now.getTime()) / 60000);
+            if (diffEndMin === 10 || diffEndMin === -15) {
+              const outKey = `sr_alert_${endTarget.toDateString()}_out_${diffEndMin}`;
+              if (!sessionStorage.getItem(outKey)) {
+                sessionStorage.setItem(outKey, 'true');
+                playTone('task_alert');
+                const outMsg = diffEndMin > 0
+                  ? `Shift ends in ${diffEndMin} minutes — prepare handover & clock-out punch.`
+                  : 'Overdue Clock-Out: Shift ended 15+ minutes ago. Submit clock-out punch or handover now.';
+                if (typeof window.toast === 'function') window.toast(outMsg);
+                window.ShiftRelayPush?.showSystemNotification?.('ShiftRelay OS Clock-Out Alert', { body: outMsg });
+              }
+            }
           }
         }
       } catch {}

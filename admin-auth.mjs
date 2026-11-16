@@ -178,7 +178,7 @@ export function clearAdminSessionCookie(isProduction = false) {
 const DEFAULT_BOOTSTRAP_ACCOUNTS = [
   {
     id: '00000000-0000-4000-8000-00000000a001',
-    email: 'owner@shiftrelay.com',
+    email: 'owner@shiftrelayos.com',
     fullName: 'Founder / Sovereign Owner',
     role: 'owner_root',
     title: 'Chief Executive & Root Security Officer',
@@ -186,7 +186,7 @@ const DEFAULT_BOOTSTRAP_ACCOUNTS = [
   },
   {
     id: '00000000-0000-4000-8000-00000000a002',
-    email: 'adaeze@shiftrelay.com',
+    email: 'adaeze@shiftrelayos.com',
     fullName: 'Adaeze Obi',
     role: 'onboarding_admin',
     title: 'Enterprise Onboarding Lead',
@@ -194,7 +194,7 @@ const DEFAULT_BOOTSTRAP_ACCOUNTS = [
   },
   {
     id: '00000000-0000-4000-8000-00000000a003',
-    email: 'tunde@shiftrelay.com',
+    email: 'tunde@shiftrelayos.com',
     fullName: 'Tunde Bakare',
     role: 'ops_support_admin',
     title: 'Operations Support & Rectification Officer',
@@ -202,7 +202,7 @@ const DEFAULT_BOOTSTRAP_ACCOUNTS = [
   },
   {
     id: '00000000-0000-4000-8000-00000000a004',
-    email: 'chukwudi@shiftrelay.com',
+    email: 'chukwudi@shiftrelayos.com',
     fullName: 'Chukwudi Eze',
     role: 'finance_admin',
     title: 'Statutory Finance Auditor',
@@ -261,7 +261,22 @@ export async function ensureAdminSeeded(store, databaseReady, isProduction = fal
     process.env.SHIFTRELAY_ADMIN_BOOTSTRAP_PASS ||
     (isProduction ? '' : 'ShiftRelay!DevOps2026');
 
+  const legacyEmailMap = {
+    'owner@shiftrelay.com': 'owner@shiftrelayos.com',
+    'adaeze@shiftrelay.com': 'adaeze@shiftrelayos.com',
+    'tunde@shiftrelay.com': 'tunde@shiftrelayos.com',
+    'chukwudi@shiftrelay.com': 'chukwudi@shiftrelayos.com'
+  };
+
   if (databaseReady) {
+    for (const [oldEmail, newEmail] of Object.entries(legacyEmailMap)) {
+      await query(
+        `UPDATE admin_users SET email = $2
+         WHERE lower(email) = $1
+           AND NOT EXISTS (SELECT 1 FROM admin_users WHERE lower(email) = $2)`,
+        [oldEmail, newEmail]
+      ).catch(() => {});
+    }
     const existing = await query('SELECT count(*)::int AS cnt FROM admin_users');
     if ((existing.rows[0]?.cnt || 0) === 0) {
       if (!bootstrapPassword) {
@@ -306,6 +321,18 @@ export async function ensureAdminSeeded(store, databaseReady, isProduction = fal
   }
 
   let mutated = false;
+  if (Array.isArray(store.adminUsers) && store.adminUsers.length > 0) {
+    const existingEmails = new Set(store.adminUsers.map(u => String(u.email || '').toLowerCase()));
+    for (const u of store.adminUsers) {
+      const cur = String(u.email || '').toLowerCase();
+      const target = legacyEmailMap[cur];
+      if (target && !existingEmails.has(target)) {
+        u.email = target;
+        existingEmails.add(target);
+        mutated = true;
+      }
+    }
+  }
   if (!Array.isArray(store.adminUsers) || store.adminUsers.length === 0) {
     if (bootstrapPassword) {
       const pwHash = await hashAdminPassword(bootstrapPassword);
@@ -370,13 +397,19 @@ export function sanitizeAdminUser(u) {
 }
 
 export async function findAdminUserByEmail(email, store, databaseReady) {
-  const cleanEmail = String(email || '').trim().toLowerCase();
-  if (!cleanEmail) return null;
+  const rawEmail = String(email || '').trim().toLowerCase();
+  if (!rawEmail) return null;
+  const aliasEmail = rawEmail.endsWith('@shiftrelay.com')
+    ? rawEmail.replace(/@shiftrelay\.com$/, '@shiftrelayos.com')
+    : rawEmail;
   if (databaseReady) {
-    const res = await query('SELECT * FROM admin_users WHERE lower(email) = $1 LIMIT 1', [cleanEmail]);
+    const res = await query('SELECT * FROM admin_users WHERE lower(email) = $1 OR lower(email) = $2 LIMIT 1', [rawEmail, aliasEmail]);
     return res.rows[0] || null;
   }
-  return (store.adminUsers || []).find((u) => String(u.email || '').toLowerCase() === cleanEmail) || null;
+  return (store.adminUsers || []).find((u) => {
+    const e = String(u.email || '').toLowerCase();
+    return e === rawEmail || e === aliasEmail;
+  }) || null;
 }
 
 export async function findAdminUserById(id, store, databaseReady) {

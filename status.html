@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live System Status | ShiftRelay OS</title>
+  <link rel="canonical" href="https://shiftrelayos.com/status.html" />
+  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#050a14; --card:rgba(15,25,48,0.78); --border:rgba(255,255,255,0.08); --em:#00f5a0; --sky:#38bdf8; --text:#f8fafc; --muted:#94a3b8; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); line-height:1.65; min-height:100vh; }
+    .legal-nav { position:sticky; top:0; z-index:90; background:rgba(5,10,20,0.92); backdrop-filter:blur(18px); border-bottom:1px solid var(--border); padding:15px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:#fff; font-family:'Outfit',sans-serif; font-weight:800; font-size:19px; }
+    .nav-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .pill { padding:7px 14px; border-radius:999px; font-size:13px; font-weight:600; text-decoration:none; color:var(--muted); border:1px solid var(--border); }
+    .pill.active { color:#fff; border-color:rgba(0,245,160,0.35); background:rgba(0,245,160,0.08); }
+    main { max-width:940px; margin:0 auto; padding:42px 20px 80px; }
+    .banner { background:rgba(16,185,129,0.1); border:1px solid rgba(0,245,160,0.38); border-radius:18px; padding:24px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:24px; }
+    .status-list { display:grid; gap:14px; }
+    .svc-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; }
+    .badge { padding:5px 12px; border-radius:999px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; background:rgba(0,245,160,0.14); color:var(--em); border:1px solid rgba(0,245,160,0.35); }
+    .btn-refresh { background:transparent; border:1px solid rgba(56,189,248,0.4); color:var(--sky); padding:8px 14px; border-radius:8px; font-weight:700; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header class="legal-nav">
+    <a href="/website.html" class="brand"><img src="/assets/logos/logo-brand-motion.svg?v=130" width="34" height="34" alt="" />ShiftRelay <span style="color:var(--em);">OS</span></a>
+    <nav class="nav-actions">
+      <a href="/website.html" class="pill">Home</a>
+      <a href="/trust.html" class="pill">Trust Center</a>
+      <a href="/sla.html" class="pill">SLA</a>
+      <a href="/status.html" class="pill active">System Status</a>
+    </nav>
+  </header>
+  <main>
+    <div class="banner">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--em); font-weight:700;">LIVE READINESS PROBE (/api/health/readiness)</div>
+        <h1 style="font-family:'Outfit',sans-serif; font-size:28px; font-weight:900; margin-top:4px;" id="overall-status-title">Checking ShiftRelay OS Systems...</h1>
+        <div style="font-size:13px; color:var(--muted);" id="overall-status-meta">Contacting Lagos / Edge telemetry...</div>
+      </div>
+      <button type="button" class="btn-refresh" onclick="loadLiveStatus()">Refresh Probe</button>
+    </div>
+
+    <div class="status-list" id="status-components-list"></div>
+  </main>
+
+  <script>
+    async function loadLiveStatus() {
+      const list = document.getElementById('status-components-list');
+      const title = document.getElementById('overall-status-title');
+      const meta = document.getElementById('overall-status-meta');
+      try {
+        const res = await fetch('/api/health/readiness');
+        const data = await res.json();
+        title.textContent = data.status === 'READY' ? 'All Core Subsystems Operational' : 'Degraded Telemetry';
+        meta.textContent = `Release ${data.version} · Storage: ${data.databaseMode} · Uptime: ${data.uptimeSeconds}s · Checked ${new Date(data.timestamp).toLocaleTimeString()}`;
+        const comps = Object.values(data.components || {});
+        list.innerHTML = comps.map(c => `
+          <div class="svc-card">
+            <div>
+              <strong style="font-size:15.5px; color:#fff;">${c.name}</strong>
+              <div style="font-size:12.5px; color:#94a3b8; margin-top:2px;">
+                ${c.tickSeconds ? 'Automated loop every ' + c.tickSeconds + 's' : c.variance ? 'Statutory reconciliation variance: ' + c.variance : c.latencyMs ? 'App & API response ready' : 'Verified relay channel'}
+              </div>
+            </div>
+            <span class="badge">${c.status}</span>
+          </div>
+        `).join('');
+      } catch (err) {
+        title.textContent = 'Telemetry Endpoint Unreachable';
+        meta.textContent = err?.message || 'Network connection error';
+      }
+    }
+    loadLiveStatus();
+  </script>
+</body>
+</html>

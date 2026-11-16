@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Service Level Agreement (SLA) &amp; Offline Continuity | ShiftRelay OS</title>
+  <link rel="canonical" href="https://shiftrelayos.com/sla.html" />
+  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#050a14; --card:rgba(15,25,48,0.74); --border:rgba(255,255,255,0.08); --em:#00f5a0; --sky:#38bdf8; --text:#f8fafc; --muted:#94a3b8; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); line-height:1.7; }
+    .legal-nav { position:sticky; top:0; z-index:90; background:rgba(5,10,20,0.92); backdrop-filter:blur(18px); border-bottom:1px solid var(--border); padding:15px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:#fff; font-family:'Outfit',sans-serif; font-weight:800; font-size:19px; }
+    .nav-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .pill { padding:7px 14px; border-radius:999px; font-size:13px; font-weight:600; text-decoration:none; color:var(--muted); border:1px solid var(--border); }
+    .pill.active { color:#fff; border-color:rgba(0,245,160,0.35); background:rgba(0,245,160,0.08); }
+    .pill.primary { background:linear-gradient(135deg,#10b981,#059669); color:#fff; border:none; }
+    main { max-width:960px; margin:0 auto; padding:44px 20px 80px; }
+    .hero { background:var(--card); border:1px solid rgba(0,245,160,0.28); border-radius:20px; padding:34px; margin-bottom:24px; }
+    .num { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--em); font-weight:700; letter-spacing:.08em; }
+    h1 { font-family:'Outfit',sans-serif; font-size:34px; font-weight:900; margin:10px 0; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:26px; margin-bottom:18px; }
+    h2 { font-family:'Outfit',sans-serif; font-size:20px; margin:6px 0 10px; }
+    p, li { color:#cbd5e1; font-size:14.5px; }
+    ul { padding-left:20px; margin-top:8px; display:grid; gap:8px; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:13px; }
+    th, td { padding:10px; border-bottom:1px solid var(--border); text-align:left; }
+    th { color:var(--em); font-size:11px; text-transform:uppercase; }
+  </style>
+</head>
+<body>
+  <header class="legal-nav">
+    <a href="/website.html" class="brand"><img src="/assets/logos/logo-brand-motion.svg?v=130" width="34" height="34" alt="" />ShiftRelay <span style="color:var(--em);">OS</span></a>
+    <nav class="nav-actions">
+      <a href="/trust.html" class="pill">Trust Center</a>
+      <a href="/sla.html" class="pill active">SLA</a>
+      <a href="/status.html" class="pill">Live Status</a>
+      <a href="/website.html#demo-request-section" class="pill primary">Request Demo</a>
+    </nav>
+  </header>
+  <main>
+    <section class="hero">
+      <span class="num">SERVICE LEVEL AGREEMENT · VERSION 2026.11-SLA</span>
+      <h1>Uptime SLA, Offline Continuity &amp; Nigerian Support Windows</h1>
+      <p>Engineered for factories, hospitals, depots, and security sites operating across West Africa Time (WAT, UTC+1) where GSM/LTE connectivity fluctuates at shift boundaries.</p>
+    </section>
+
+    <article class="card">
+      <span class="num">01 // AVAILABILITY TARGET</span>
+      <h2>99.95% Monthly Platform Uptime Target</h2>
+      <ul>
+        <li><strong>Core Endpoints Covered:</strong> Worker &amp; Supervisor PWA/Mobile APIs (<code>app.shiftrelayos.com</code>), Digital Staff ID validation, Peer Scan verification, Attendance Exception engine, and Payroll CSV generation.</li>
+        <li><strong>Scheduled Maintenance Windows:</strong> Sunday 01:00 – 03:00 WAT (minimum shift overlap), with 72-hour advance notice inside the Admin Console for disruptive upgrades.</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <span class="num">02 // NIGERIA TELCO OUTAGE PROTECTION</span>
+      <h2>Offline Queue Durability &amp; Replay Integrity</h2>
+      <ul>
+        <li><strong>Encrypted Local Buffering:</strong> When MTN/Airtel/Glo connectivity drops at remote gates or basements, ShiftRelay OS queues clock-ins, Peer ID scans, handover notes, and safety checklists locally with deterministic client timestamps.</li>
+        <li><strong>Lossless Reconciliation:</strong> Upon network recovery, queued events sync idempotently without duplicating pay hours or losing verification audit trails.</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <span class="num">03 // INCIDENT RESPONSE TIMES (WAT)</span>
+      <h2>Enterprise Support Matrix</h2>
+      <table>
+        <thead><tr><th>Severity</th><th>Definition</th><th>Initial Response</th><th>Support Channel</th></tr></thead>
+        <tbody>
+          <tr><td><strong>P1 — Critical</strong></td><td>Complete gate clock-in or payroll export unavailability</td><td>&le; 30 minutes (24/7)</td><td>Priority Incident Line + support@shiftrelayos.com</td></tr>
+          <tr><td><strong>P2 — High</strong></td><td>Degraded reminder dispatch or single-site issue</td><td>&le; 2 hours (07:00–21:00 WAT)</td><td>Support Desk + Implementation WhatsApp</td></tr>
+          <tr><td><strong>P3 — Standard</strong></td><td>CSV formatting query or policy configuration assistance</td><td>&le; 1 Nigerian Business Day</td><td>onboarding@shiftrelayos.com</td></tr>
+        </tbody>
+      </table>
+    </article>
+  </main>
+</body>
+</html>

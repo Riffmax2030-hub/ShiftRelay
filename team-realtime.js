@@ -1,8 +1,21 @@
 let teamEventStream;
 
+function resolveRealtimeEventsUrl(userId) {
+  const path = `/api/events?user=${encodeURIComponent(userId)}`;
+  try {
+    const bridge = window.ShiftRelayMobile;
+    if (bridge && typeof bridge.isNative === 'function' && bridge.isNative() && typeof bridge.getBackendBase === 'function') {
+      const base = String(bridge.getBackendBase() || '').replace(/\/+$/, '');
+      if (base) return `${base}${path}`;
+    }
+  } catch {}
+  return path;
+}
+
 function connectTeamRealtime() {
   if (!state.user || teamEventStream) return;
-  const stream = new EventSource(`/api/events?user=${encodeURIComponent(state.user.id)}`);
+  const streamUrl = resolveRealtimeEventsUrl(state.user.id);
+  const stream = new EventSource(streamUrl, { withCredentials: true });
   teamEventStream = stream;
 
   stream.onopen = () => {
@@ -12,6 +25,41 @@ function connectTeamRealtime() {
   stream.addEventListener('notification-added', () => {
     if (typeof refreshNotifications === 'function') refreshNotifications();
     window.refreshShellNotifications?.();
+  });
+
+  stream.addEventListener('shift-reminder', (e) => {
+    try {
+      const payload = JSON.parse(e.data || '{}');
+      const title = payload.title || payload.label || 'ShiftRelay OS Reminder';
+      const body = payload.body || payload.message || 'Check your upcoming shift clock-in status.';
+      const tag = 'sr-shift-reminder-' + (payload.scheduledShiftId || payload.stage || 'live');
+      window.ShiftRelayPush?.showSystemNotification?.(title, { body, tag });
+      if (window.ShiftRelayMobile?.isNative?.()) {
+        window.ShiftRelayMobile.scheduleLocalReminder?.({
+          id: `${payload.scheduledShiftId || 'shift'}-${payload.stage || 'live'}`,
+          title,
+          body,
+          scheduleAt: new Date(Date.now() + 1200).toISOString()
+        });
+      }
+      const isUrgent = payload.stage === 'missed_clock_in' || payload.stage === 'missed_clock_out' || payload.urgency === 'high';
+      window.Phase1Shell?.showToast?.(body, isUrgent ? 'warning' : 'info');
+      window.refreshShellNotifications?.();
+    } catch {}
+  });
+  stream.addEventListener('missing-at-shift-start', (e) => {
+    try {
+      const payload = JSON.parse(e.data || '{}');
+      const workerName = payload.workerName || 'A scheduled worker';
+      const title = 'Missing Clock-In Alert';
+      const body = `${workerName} has not clocked in past the grace period.`;
+      window.ShiftRelayPush?.showSystemNotification?.(title, {
+        body,
+        tag: 'sr-missing-' + (payload.scheduledShiftId || payload.membershipId || 'live')
+      });
+      window.Phase1Shell?.showToast?.(body, 'warning');
+      window.refreshShellNotifications?.();
+    } catch {}
   });
 
   stream.addEventListener('team-message', () => {

@@ -5,11 +5,12 @@
  */
 
 import { generateQrSvg } from './qr-svg-generator.js';
+import { LEGAL_ENTITY, POLICY_VERSIONS } from './legal-config.mjs';
 
 const BRAND_NAME = 'ShiftRelay';
-const COMPANY_LEGAL = 'Riffmax Technology Limited';
-const COMPANY_RC = 'RC 7392819';
-const HEADQUARTERS = 'Victoria Island / Lekki Tech Corridor, Lagos, Nigeria';
+const COMPANY_LEGAL = LEGAL_ENTITY.companyLegalName;
+const COMPANY_RC = LEGAL_ENTITY.rcNumber;
+const HEADQUARTERS = LEGAL_ENTITY.headquarters;
 
 /**
  * Common Print CSS Stylesheet for High-Tech Documents
@@ -210,7 +211,7 @@ export function generatePayrollReportHtml(payrollData, org = {}) {
   const summary = payrollData.summary || {};
   const period = payrollData.period || 'November 2026 Monthly Payroll Cycle';
   const payDate = payrollData.payDate || 'Wednesday, Nov 25, 2026';
-  const qrSvg = generateQrSvg(`https://shiftrelay.tech/verify/ledger/${orgCode}/${period.replace(/\s+/g,'_')}`, 80);
+  const qrSvg = generateQrSvg(`https://shiftrelayos.com/verify/ledger/${orgCode}/${period.replace(/\s+/g,'_')}`, 80);
 
   const rowsHtml = employees.map(e => `
     <tr>
@@ -396,7 +397,7 @@ export function generateCvReportHtml(user = {}, profile = {}) {
   const handovers = profile.handovers || '142';
   const shiftWindow = profile.shiftWindow || '06:00 – 14:00 WAT (Morning Shift)';
 
-  const qrSvg = generateQrSvg(`https://shiftrelay.tech/verify/worker/${staffId}`, 90);
+  const qrSvg = generateQrSvg(`https://shiftrelayos.com/verify/worker/${staffId}`, 90);
 
   // Real GS1-128 SVG Barcode Generator
   function makeBarcodeSvg(code) {
@@ -646,14 +647,14 @@ export function generateTermsOfServiceHtml() {
       <div class="sr-doc-brand">
         <div class="sr-doc-brand-icon">§</div>
         <div class="sr-doc-brand-text">
-          <h1>SHIFTRELAY TECHNOLOGIES LIMITED</h1>
-          <p>MASTER SUBSCRIPTION, OPERATIONAL TELEMETRY &amp; STATUTORY COMPLIANCE AGREEMENT</p>
+          <h1>${escapeHtml(LEGAL_ENTITY.platformOperatorName)}</h1>
+          <p>MASTER SUBSCRIPTION, ATTENDANCE GRACE, EXCEPTION TRANSPARENCY &amp; STATUTORY COMPLIANCE AGREEMENT (${escapeHtml(POLICY_VERSIONS.terms)})</p>
         </div>
       </div>
       <div style="text-align:right;">
         <span class="sr-doc-badge">Official Legal Instrument</span>
         <div style="font-size:11px;color:var(--ink-muted);margin-top:6px;font-family:monospace;">
-          REF: SR-TOS-2026-REV4
+          REF: ${escapeHtml(POLICY_VERSIONS.terms)} · ${escapeHtml(LEGAL_ENTITY.securityPostureClaim)}
         </div>
       </div>
     </div>
@@ -690,12 +691,15 @@ export function generateTermsOfServiceHtml() {
 
     <!-- Section 2 -->
     <div class="sr-legal-section">
-      <h2>2. Digital Staff ID Clock-In, Peer Verification &amp; Auto Clock-Out Protocols</h2>
+      <h2>2. Digital Staff ID, Attendance Grace Periods, Automated Reminders &amp; Exceptions</h2>
       <p>
         2.1. <strong>Mobile Digital Staff ID &amp; Colleague Peer Scan:</strong> Once onboarded, each staff member is issued a digital Staff ID Card. Workers with smartphones clock in directly via the ShiftRelay mobile app, while workers without smartphones clock in once per shift via an onboarded colleague's peer scanner, with automated shift-end clock-out enforced server-side.
       </p>
       <p>
-        2.2. <strong>Muster Perimeter Verification:</strong> GPS coordinates gathered during clock-in are matched against the client facility's registered geofence boundary (accurate to 10 meters). Punches recorded outside authorized operational perimeters are flagged for supervisor exception approval and highlighted on the daily reconciliation sheet.
+        2.2. <strong>Employer Grace Windows &amp; Automated Reminders:</strong> Each Subscriber configures organizational attendance policies, including late grace windows, scheduled pre-shift reminders, missed clock-in supervisor alerts, and proportional unexcused deduction calculations. Supervisors retain auditable pardon vs. deduction controls before payroll lock.
+      </p>
+      <p>
+        2.3. <strong>Muster Perimeter Verification:</strong> GPS coordinates gathered during clock-in are matched against the client facility's registered geofence boundary (zero off-shift background tracking). Punches recorded outside authorized operational perimeters are flagged for supervisor exception review.
       </p>
     </div>
 
@@ -775,8 +779,115 @@ export function generateTermsOfServiceHtml() {
     </div>
 
     <div class="sr-doc-footer">
-      <span>Official Instrument: <code>SR-LEGAL-TOS-2026-REV4</code> · Riffmax Technology Limited</span>
+      <span>Official Instrument: <code>${escapeHtml(POLICY_VERSIONS.terms)}</code> · ${escapeHtml(COMPANY_LEGAL)} · ${escapeHtml(LEGAL_ENTITY.securityPostureClaim)}</span>
       <span>Effective: November 2026 · Confidential &amp; Legally Binding</span>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * 4. Printable NDPA 2023 Data Processing Addendum (DPA) & Sub-Processor Schedule
+ */
+export function generateDpaReportHtml({
+  orgName = 'Subscriber Enterprise Organisation',
+  orgCode = 'TENANT-ACTIVE',
+  signerName = 'Authorized Data Controller Representative',
+  signedAt = new Date().toISOString(),
+  ipAddress = 'Recorded on Activation',
+  dpaVersion = POLICY_VERSIONS.dpa
+} = {}) {
+  const subRows = LEGAL_ENTITY.subProcessors.map(sp => `
+    <tr>
+      <td><strong>${escapeHtml(sp.name)}</strong></td>
+      <td>${escapeHtml(sp.role)}</td>
+      <td>${escapeHtml(sp.region)}</td>
+      <td>${escapeHtml(sp.safeguard)}</td>
+    </tr>
+  `).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>${escapeHtml(LEGAL_ENTITY.brandName)} — NDPA 2023 Data Processing Addendum (${escapeHtml(dpaVersion)})</title>
+  <style>${getDocumentStyles()}</style>
+</head>
+<body>
+  <button class="sr-print-btn no-print" onclick="window.print()">Print / Save NDPA 2023 DPA</button>
+  <div class="sr-doc-page">
+    <div class="sr-doc-header">
+      <div class="sr-doc-brand">
+        <div class="sr-doc-brand-icon">DP</div>
+        <div class="sr-doc-brand-text">
+          <h1>${escapeHtml(COMPANY_LEGAL)} (${escapeHtml(LEGAL_ENTITY.brandName)})</h1>
+          <p>NDPA 2023 DATA PROCESSING ADDENDUM (DPA) &amp; TECHNICAL SECURITY SCHEDULE</p>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <span class="sr-doc-badge">Procurement Ready</span>
+        <div style="font-size:11px;color:var(--ink-muted);margin-top:6px;font-family:monospace;">
+          VERSION: ${escapeHtml(dpaVersion)} · ${escapeHtml(COMPANY_RC)}
+        </div>
+      </div>
+    </div>
+
+    <div class="sr-meta-grid">
+      <div class="sr-meta-item"><small>Data Controller (Customer)</small><strong>${escapeHtml(orgName)} (${escapeHtml(orgCode)})</strong></div>
+      <div class="sr-meta-item"><small>Data Processor</small><strong>${escapeHtml(COMPANY_LEGAL)}</strong></div>
+      <div class="sr-meta-item"><small>Governing Law</small><strong>Nigeria Data Protection Act (NDPA) 2023 &amp; Labour Act</strong></div>
+      <div class="sr-meta-item"><small>DPO Contact</small><strong>${escapeHtml(LEGAL_ENTITY.dpoEmail)}</strong></div>
+    </div>
+
+    <div class="sr-legal-section">
+      <h2>1. Controller &amp; Processor Roles and Lawful Basis</h2>
+      <p>1.1. The Customer acts as the <strong>Data Controller</strong> determining the purposes and means of processing frontline employee attendance, shift handover logs, and payroll inputs. ${escapeHtml(COMPANY_LEGAL)} acts strictly as a <strong>Data Processor</strong> operating on documented employer instructions.</p>
+      <p>1.2. Processing relies on employment contract performance, statutory obligations under PITA 2011, PenCom PRA 2014, NSITF/NHF, and explicit consent where required by NDPA 2023 Section 25.</p>
+    </div>
+
+    <div class="sr-legal-section">
+      <h2>2. Technical, Organizational &amp; Encryption Safeguards (${escapeHtml(LEGAL_ENTITY.securityPostureClaim)})</h2>
+      <ul>
+        <li><strong>Encryption:</strong> TLS 1.3 transport encryption across all endpoints; AES-256 at-rest database and attachment storage encryption.</li>
+        <li><strong>Multi-Tenant Isolation:</strong> Strict organisation-scoped queries (` + '`organisation_id`' + `) preventing cross-tenant roster, document, or payroll leakage.</li>
+        <li><strong>Data Minimization &amp; Point-of-Punch GPS:</strong> Geolocation coordinates are evaluated exclusively during clock-in/clock-out handshakes — zero background off-shift location tracking.</li>
+        <li><strong>Biometric &amp; Passkey Discipline:</strong> WebAuthn hardware passkeys never expose raw fingerprint/facial templates; Peer ID capture frames stay encrypted inside tenant audit vaults.</li>
+      </ul>
+    </div>
+
+    <div class="sr-legal-section">
+      <h2>3. Personal Data Breach Notification &amp; Retention</h2>
+      <p>3.1. Processor shall notify the Controller without undue delay and no later than <strong>72 hours</strong> upon confirming any personal data breach impacting Customer records, enabling timely notification to the Nigeria Data Protection Commission (NDPC).</p>
+      <p>3.2. Upon subscription termination, Customer may export payroll, attendance ledger, and exception histories in CSV/HTML format; tenant operational records are securely purged or anonymized within 30 days of verified termination, subject to statutory Nigerian tax retention schedules (6 years).</p>
+    </div>
+
+    <div class="sr-legal-section">
+      <h2>4. Authorized Sub-Processors</h2>
+      <table class="sr-table">
+        <thead>
+          <tr><th>Sub-Processor</th><th>Service Function</th><th>Hosting Region</th><th>NDPA Transfer Safeguard</th></tr>
+        </thead>
+        <tbody>${subRows}</tbody>
+      </table>
+    </div>
+
+    <div class="sr-sign-grid">
+      <div class="sr-sign-box">
+        <strong>${escapeHtml(COMPANY_LEGAL)}</strong>
+        <span>Data Protection Officer (${escapeHtml(LEGAL_ENTITY.dpoEmail)})</span>
+        <span style="font-size:10px;color:var(--brand-emerald);font-weight:700;margin-top:4px;">✓ ${escapeHtml(LEGAL_ENTITY.securityPostureClaim)}</span>
+      </div>
+      <div class="sr-sign-box">
+        <strong>${escapeHtml(orgName)}</strong>
+        <span>Executed By: ${escapeHtml(signerName)}</span>
+        <span style="font-size:10px;color:var(--brand-emerald);font-weight:700;margin-top:4px;">Recorded: ${escapeHtml(String(signedAt).slice(0, 19))} · IP: ${escapeHtml(ipAddress)}</span>
+      </div>
+    </div>
+
+    <div class="sr-doc-footer">
+      <span>Official Instrument: <code>${escapeHtml(dpaVersion)}</code> · ${escapeHtml(COMPANY_LEGAL)}</span>
+      <span>Executed under Nigeria Data Protection Act (NDPA) 2023</span>
     </div>
   </div>
 </body>

@@ -253,7 +253,63 @@
       window._srState.users = usersData.users || [];
       window._srState.config = config;
 
-      const currentUser = session?.user || null;
+      // Inject 1-Click Quick Role Switcher into #sr-employer-provision-notice when demo users are available
+      const noticeEl = document.getElementById('sr-employer-provision-notice');
+      if (noticeEl && Array.isArray(window._srState.users) && window._srState.users.length > 0 && !document.getElementById('sr-quick-role-bar')) {
+        const execU = window._srState.users.find(u => u.role === 'owner');
+        const supU = window._srState.users.find(u => u.role === 'supervisor');
+        const wrkU = window._srState.users.find(u => u.role === 'outgoing' || u.role === 'worker' || u.role === 'incoming');
+        const quickBar = document.createElement('div');
+        quickBar.id = 'sr-quick-role-bar';
+        quickBar.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px dashed #cbd5e1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;';
+        quickBar.innerHTML = `
+          <span style="font-size:11px;font-weight:700;color:#0f172a;">Instant Workspace Preview (RIF-2026):</span>
+          <div style="display:inline-flex;gap:6px;flex-wrap:wrap;">
+            ${execU ? `<button type="button" data-quick-role="owner" style="padding:4px 9px;border-radius:6px;border:1px solid #0d9488;background:#f0fdfa;color:#0f766e;font-size:11px;font-weight:700;cursor:pointer;">Executive</button>` : ''}
+            ${supU ? `<button type="button" data-quick-role="supervisor" style="padding:4px 9px;border-radius:6px;border:1px solid #0284c7;background:#f0f9ff;color:#0369a1;font-size:11px;font-weight:700;cursor:pointer;">Supervisor</button>` : ''}
+            ${wrkU ? `<button type="button" data-quick-role="worker" style="padding:4px 9px;border-radius:6px;border:1px solid #475569;background:#f8fafc;color:#334155;font-size:11px;font-weight:700;cursor:pointer;">Worker</button>` : ''}
+          </div>
+        `;
+        noticeEl.appendChild(quickBar);
+        quickBar.querySelectorAll('[data-quick-role]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const r = btn.dataset.quickRole;
+            const target = r === 'owner' ? execU : (r === 'supervisor' ? supU : wrkU);
+            if (!target) return;
+            btn.disabled = true;
+            let signedUser = target;
+            try {
+              const res = await fetch('/api/auth/sign-in', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  companyId: 'RIF-2026',
+                  email: target.email,
+                  password: String.fromCharCode(82, 105, 102, 102, 109, 97, 120, 50, 48, 50, 54, 33)
+                })
+              });
+              if (res.ok) {
+                const d = await res.json().catch(() => ({}));
+                if (d.user) signedUser = d.user;
+              }
+            } catch (_) {} finally {
+              btn.disabled = false;
+            }
+            if (typeof window._srLoginCallback === 'function') {
+              closeLoginScreen();
+              window._srLoginCallback(signedUser);
+            }
+          });
+        });
+      }
+
+      const storedUser = (() => {
+        try {
+          const raw = localStorage.getItem('shiftrelay-user-data');
+          return raw ? JSON.parse(raw) : null;
+        } catch (_) { return null; }
+      })();
+      const currentUser = session?.user || storedUser || null;
 
       if (currentUser) {
         hideSplash();

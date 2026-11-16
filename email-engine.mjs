@@ -5,22 +5,27 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { LEGAL_ENTITY } from './legal-config.mjs';
 
-const BRAND_NAME = 'ShiftRelay';
-const COMPANY_LEGAL = 'Riffmax Technology Limited';
-const COMPANY_RC = 'RC 7392819';
-const HEADQUARTERS = 'Victoria Island / Lekki Tech Corridor, Lagos, Nigeria';
-const SUPPORT_EMAIL = 'support@shiftrelay.tech';
+const BRAND_NAME = LEGAL_ENTITY.brandName;
+const COMPANY_LEGAL = LEGAL_ENTITY.companyLegalName;
+const COMPANY_RC = LEGAL_ENTITY.rcNumber;
+const HEADQUARTERS = LEGAL_ENTITY.headquarters;
+const SUPPORT_EMAIL = LEGAL_ENTITY.supportEmail;
 
 export function getEmailPlatformBaseUrl() {
   const raw = (
     process.env.APP_URL ||
     process.env.PUBLIC_BASE_URL ||
     process.env.PUBLIC_URL ||
-    process.env.RENDER_EXTERNAL_URL ||
-    'https://shiftrelay-vjkf.onrender.com'
+    'https://app.shiftrelayos.com'
   ).trim();
-  return (raw || 'https://shiftrelay-vjkf.onrender.com').replace(/\/+$/, '');
+  return (raw || 'https://app.shiftrelayos.com').replace(/\/+$/, '');
+}
+
+export function getEmailMarketingBaseUrl() {
+  const raw = (process.env.WEBSITE_URL || 'https://shiftrelayos.com').trim();
+  return (raw || 'https://shiftrelayos.com').replace(/\/+$/, '');
 }
 
 /**
@@ -225,13 +230,14 @@ export function wrapEnterpriseEmail({
                 Licensed Frontline Operational System · Zero-Lending Boundary Enforced
               </p>
               <div style="font-size:11.5px;color:#94a3b8;">
-                <a href="${escapeHtml(getEmailPlatformBaseUrl())}/terms.html" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Terms of Service</a> ·
-                <a href="${escapeHtml(getEmailPlatformBaseUrl())}/privacy.html" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Privacy Policy</a> ·
+                <a href="${escapeHtml(getEmailMarketingBaseUrl())}/terms.html" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Terms of Service</a> ·
+                <a href="${escapeHtml(getEmailMarketingBaseUrl())}/privacy.html" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Privacy Policy</a> ·
+                <a href="${escapeHtml(getEmailMarketingBaseUrl())}/trust.html" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Trust Center</a> ·
                 <a href="mailto:${SUPPORT_EMAIL}" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Support Desk</a>
-                ${unsubUrl ? `· <a href="${unsubUrl}" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Unsubscribe</a>` : ''}
+                ${unsubUrl ? `· <a href="${escapeHtml(unsubUrl)}" style="color:#94a3b8;text-decoration:none;margin:0 8px;">Unsubscribe</a>` : ''}
               </div>
               <p style="margin:16px 0 0;font-size:10.5px;color:#475569;">
-                &copy; ${currentYear} ShiftRelay Technologies. All operational handovers encrypted with 256-bit SHA-2.
+                &copy; ${currentYear} ${escapeHtml(BRAND_NAME)} by ${escapeHtml(COMPANY_LEGAL)}. All operational handovers encrypted with 256-bit SHA-2.
               </p>
             </td>
           </tr>
@@ -483,7 +489,7 @@ export function renderExecutivePayrollDigestEmail({
  */
 export function renderWeeklyProgressNewsletterEmail({
   recipientName,
-  orgName = 'Riffmax Technology Limited',
+  orgName = LEGAL_ENTITY.companyLegalName,
   weekNumber = 46,
   year = 2026,
   stats = {
@@ -498,7 +504,8 @@ export function renderWeeklyProgressNewsletterEmail({
     { title: 'Zero Overtime Disputes', desc: 'Supervisor real-time shift authorization prevented 100% of retroactive claim delays.' },
     { title: 'Digital ID Modernization', desc: 'Workers can now present ISO 18004 2D QR and Code-128 barcodes directly from their profiles.' }
   ],
-  platformUrl = getEmailPlatformBaseUrl()
+  platformUrl = getEmailPlatformBaseUrl(),
+  unsubUrl = `${getEmailMarketingBaseUrl()}/unsubscribe`
 }) {
   const practicesHtml = topPractices.map(p => `
     <div style="background-color:#0d182b;padding:14px;border-radius:8px;margin-bottom:10px;border-left:3px solid #00f5a0;">
@@ -563,13 +570,208 @@ export function renderWeeklyProgressNewsletterEmail({
     bodyHtml,
     primaryCtaText: 'Open Operational Cockpit',
     primaryCtaUrl: platformUrl,
-    secondaryNote: 'Want to adjust notification delivery frequency? Update your preferences under Profile Settings.',
+    secondaryNote: 'Want to stop receiving weekly digest emails? Use the instant one-click Unsubscribe link below (no login required).',
     securityMetadata: {
       'Digest Cadence': 'WEEKLY_OPERATIONAL_SUMMARY',
       'Reporting Week': `W${weekNumber}-${year}`,
       'Safety Record': `${stats.safetyIncidents} Incidents Logged`
     },
-    unsubUrl: `${platformUrl}/preferences`
+    unsubUrl
+  });
+}
+
+/**
+ * 6. Automated Attendance Reminder & Missed Clock-In Escalation Email (Dayforce Grade)
+ */
+export function renderAttendanceReminderEmail({
+  recipientName,
+  orgName = 'Riffmax Technology Limited',
+  stageLabel = 'Clock-In Reminder',
+  urgency = 'REMINDER',
+  headline = 'Your shift is starting soon',
+  message = 'Open ShiftRelay OS to clock in via verified GPS or colleague ID scan.',
+  shiftWindow = '08:00 – 16:00',
+  graceMinutes = 10,
+  actionUrl = `${getEmailPlatformBaseUrl()}/#today`
+}) {
+  const badgeColor = urgency === 'ESCALATION' ? '#ef4444' : urgency === 'ACTION_REQUIRED' ? '#f59e0b' : '#00f5a0';
+  const bodyHtml = `
+    <div style="background-color:#0d182b;padding:16px;border-radius:10px;border-left:4px solid ${badgeColor};margin:0 0 18px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:${badgeColor};margin-bottom:6px;">
+        ${escapeHtml(stageLabel)} · ${escapeHtml(urgency)}
+      </div>
+      <div style="font-size:16px;font-weight:700;color:#ffffff;margin-bottom:6px;">
+        ${escapeHtml(headline)}
+      </div>
+      <p style="margin:0;font-size:13.5px;color:#cbd5e1;line-height:1.5;">
+        ${escapeHtml(message)}
+      </p>
+    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="6" border="0" style="background-color:#060c18;border:1px solid #1e293b;border-radius:8px;font-size:13px;">
+      <tr>
+        <td style="color:#94a3b8;width:140px;">Employer:</td>
+        <td style="color:#ffffff;font-weight:600;">${escapeHtml(orgName)}</td>
+      </tr>
+      <tr>
+        <td style="color:#94a3b8;">Scheduled Window:</td>
+        <td style="color:#38bdf8;font-family:'JetBrains Mono',monospace,sans-serif;font-weight:700;">${escapeHtml(shiftWindow)}</td>
+      </tr>
+      <tr>
+        <td style="color:#94a3b8;">Grace Policy:</td>
+        <td style="color:#00f5a0;font-weight:600;">${Number(graceMinutes)} minutes (within grace = zero pay deduction)</td>
+      </tr>
+    </table>
+  `;
+
+  return wrapEnterpriseEmail({
+    title: `${stageLabel} — ${orgName}`,
+    preheader: `${headline}: ${message}`,
+    recipientName,
+    deliveryReason: `Automated ShiftRelay OS attendance watchdog for ${orgName}.`,
+    bodyHtml,
+    primaryCtaText: urgency === 'ESCALATION' ? 'Review Attendance Exception' : 'Open ShiftRelay OS Clock-In',
+    primaryCtaUrl: actionUrl,
+    secondaryNote: 'Phone dead or offline? A verified on-site colleague can scan your physical Staff ID card inside ShiftRelay OS.',
+    securityMetadata: {
+      'Organisation': orgName,
+      'Reminder Stage': stageLabel,
+      'Grace Window': `${Number(graceMinutes)} Minutes`
+    }
+  });
+}
+
+/**
+ * 7. Public Newsletter Signup Confirmation / Welcome Email (NDPA 2023 Opt-In)
+ */
+export function renderNewsletterWelcomeEmail({
+  email,
+  fullName = 'Workforce Leader',
+  roleSegment = 'general',
+  unsubscribeUrl,
+  marketingUrl = getEmailMarketingBaseUrl()
+}) {
+  const segmentLabels = {
+    hr_payroll: 'HR, Payroll & PenCom Compliance',
+    operations: 'Shift Operations & Site Supervision',
+    executive: 'Executive & Finance Leadership',
+    general: 'Workforce & Statutory Brief'
+  };
+  const segLabel = segmentLabels[roleSegment] || segmentLabels.general;
+  const bodyHtml = `
+    <p style="margin:0 0 16px;font-size:15px;color:#cbd5e1;">
+      Welcome to the <strong>ShiftRelay OS Workforce &amp; Statutory Brief</strong> by ${escapeHtml(COMPANY_LEGAL)}.
+      Your subscription is active under NDPA 2023 explicit consent rules.
+    </p>
+    <div style="background-color:#0d182b;border:1px solid #1e293b;border-radius:10px;padding:16px;margin:18px 0;">
+      <div style="font-size:11px;font-weight:800;color:#00f5a0;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">What You Will Receive Monthly</div>
+      <ul style="margin:0;padding-left:18px;font-size:13.5px;color:#cbd5e1;line-height:1.7;">
+        <li>Nigeria Finance Act PAYE, PenCom PRA 2014 (8%/10%), NHF &amp; NSITF filing deadlines</li>
+        <li>Frontline attendance exception, geofence &amp; zero-smart-phone Peer ID benchmarks</li>
+        <li>Ready-to-use bank CSV &amp; rollout checklist templates for hospitals, plants &amp; logistics fleets</li>
+      </ul>
+    </div>
+    <p style="margin:0;font-size:13px;color:#94a3b8;">
+      You can immediately run sample salary &amp; PenCom calculations using our free Nigerian Statutory Payroll Calculator.
+    </p>
+  `;
+
+  return wrapEnterpriseEmail({
+    title: 'Subscribed: ShiftRelay OS Workforce & Statutory Brief',
+    preheader: `Your ${segLabel} briefing subscription on shiftrelayos.com is active`,
+    recipientName: fullName || email,
+    deliveryReason: `Explicit NDPA 2023 website newsletter opt-in for ${segLabel}.`,
+    bodyHtml,
+    primaryCtaText: 'Open PAYE & PenCom Calculator',
+    primaryCtaUrl: `${marketingUrl}/calculator.html`,
+    secondaryNote: 'Subscribed by mistake or prefer not to receive monthly compliance briefs? Click Unsubscribe below with one click.',
+    securityMetadata: {
+      'Track / Segment': segLabel,
+      'Subscriber Email': email,
+      'NDPA Legal Basis': 'EXPLICIT_OPT_IN_CONSENT'
+    },
+    unsubUrl: unsubscribeUrl || `${marketingUrl}/unsubscribe`
+  });
+}
+
+/**
+ * 8. Monthly Nigeria Workforce & Statutory Compliance Newsletter
+ */
+export function renderMonthlyComplianceNewsletterEmail({
+  recipientName = 'Operations Leader',
+  roleSegment = 'general',
+  monthLabel = 'November 2026',
+  complianceHighlights = [
+    {
+      title: 'PenCom 7-Working-Day Remittance Window',
+      desc: 'Employers must remit deducted 8% employee + 10% employer pension contributions to PFAs within 7 working days after salary payment to avoid PRA 2014 Section 11 penalties.'
+    },
+    {
+      title: 'Zero Double-Deduction Exception Governance',
+      desc: 'Pair configurable Dayforce-style late grace windows with automatic shift-start reminders and single-source supervisor pardon controls before bank CSV disbursement.'
+    },
+    {
+      title: 'NDPA 2023 Frontline Privacy Standard',
+      desc: 'Ensure point-of-punch geolocation and peer ID scans run strictly on-site during clock events — never background tracking off-shift.'
+    }
+  ],
+  operationalBenchmarks = {
+    avgClockInLatency: '0.4s',
+    exceptionResolutionSla: '< 2h',
+    payrollVariance: '₦0.00'
+  },
+  calculatorUrl = `${getEmailMarketingBaseUrl()}/calculator.html`,
+  unsubscribeUrl = `${getEmailMarketingBaseUrl()}/unsubscribe`
+}) {
+  const highlightsHtml = complianceHighlights.map(item => `
+    <div style="background-color:#0d182b;padding:14px;border-radius:8px;margin-bottom:10px;border-left:3px solid #38bdf8;">
+      <strong style="color:#ffffff;font-size:13.5px;display:block;">${escapeHtml(item.title)}</strong>
+      <span style="color:#94a3b8;font-size:12.5px;line-height:1.5;display:block;margin-top:4px;">${escapeHtml(item.desc)}</span>
+    </div>
+  `).join('');
+
+  const bodyHtml = `
+    <p style="margin:0 0 18px;font-size:15px;color:#cbd5e1;">
+      Here is your <strong>${escapeHtml(monthLabel)}</strong> Nigerian Workforce &amp; Statutory Compliance Brief from ${escapeHtml(COMPANY_LEGAL)}.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 20px;">
+      <tr>
+        <td style="width:33%;padding:12px;background-color:#0d182b;border:1px solid #1e293b;border-radius:8px;text-align:center;">
+          <div style="font-size:20px;font-weight:900;color:#00f5a0;">${escapeHtml(operationalBenchmarks.avgClockInLatency)}</div>
+          <div style="font-size:11px;color:#94a3b8;">Avg Gate Scan</div>
+        </td>
+        <td style="width:8px;"></td>
+        <td style="width:33%;padding:12px;background-color:#0d182b;border:1px solid #1e293b;border-radius:8px;text-align:center;">
+          <div style="font-size:20px;font-weight:900;color:#38bdf8;">${escapeHtml(operationalBenchmarks.exceptionResolutionSla)}</div>
+          <div style="font-size:11px;color:#94a3b8;">Exception SLA</div>
+        </td>
+        <td style="width:8px;"></td>
+        <td style="width:33%;padding:12px;background-color:#0d182b;border:1px solid #1e293b;border-radius:8px;text-align:center;">
+          <div style="font-size:20px;font-weight:900;color:#ffffff;">${escapeHtml(operationalBenchmarks.payrollVariance)}</div>
+          <div style="font-size:11px;color:#94a3b8;">Remittance Drift</div>
+        </td>
+      </tr>
+    </table>
+    <h3 style="margin:0 0 12px;font-size:13px;font-weight:800;color:#ffffff;text-transform:uppercase;letter-spacing:0.06em;">
+      Statutory &amp; Operational Advisories
+    </h3>
+    ${highlightsHtml}
+  `;
+
+  return wrapEnterpriseEmail({
+    title: `Nigeria Workforce & Statutory Brief — ${monthLabel}`,
+    preheader: `${monthLabel}: PenCom PRA 2014 reminders, Finance Act PAYE rules & frontline benchmarks`,
+    recipientName,
+    deliveryReason: `Monthly ShiftRelay OS statutory brief (segment: ${roleSegment}).`,
+    bodyHtml,
+    primaryCtaText: 'Open PAYE & PenCom Calculator',
+    primaryCtaUrl: calculatorUrl,
+    secondaryNote: 'Instant one-click unsubscribe supported below (RFC 8058 compliant).',
+    securityMetadata: {
+      'Edition': monthLabel,
+      'Audience Segment': String(roleSegment).toUpperCase(),
+      'Compliance Authority': 'NDPA 2023 / PITA 2011 / PRA 2014'
+    },
+    unsubUrl: unsubscribeUrl
   });
 }
 

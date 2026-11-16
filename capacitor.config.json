@@ -1,6 +1,6 @@
 {
-  "appId": "com.shiftrelay.app",
-  "appName": "ShiftRelay",
+  "appId": "com.shiftrelayos.app",
+  "appName": "ShiftRelay OS",
   "webDir": "www",
   "server": {
     "androidScheme": "https"

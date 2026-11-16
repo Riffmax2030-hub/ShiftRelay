@@ -1,13 +1,13 @@
-# ShiftRelay Official App Store & Google Play Launch Kit (2026 Edition)
+# ShiftRelay OS Official App Store & Google Play Launch Kit (2026 Edition)
 
 ---
 
 ## 1. App Identifiers & Metadata
 
-- **App ID (Bundle ID / Package Name):** `com.shiftrelay.app`
-- **App Name (Google Play):** `ShiftRelay — Shift Handover & WFM`
-- **App Name (App Store):** `ShiftRelay: Shift Handover` (30 char limit)
-- **Subtitle (iOS):** `Accountable Workforce Handovers` (30 char limit)
+- **App ID (Bundle ID / Package Name):** `com.shiftrelayos.app`
+- **App Name (Google Play):** `ShiftRelay OS — Attendance & WFM`
+- **App Name (App Store):** `ShiftRelay OS: Work & Payroll` (30 char limit)
+- **Subtitle (iOS):** `Attendance, Handovers & Payroll` (30 char limit)
 - **Primary Category:** Business
 - **Secondary Category:** Productivity
 - **Content Rating:** Everyone / 4+ (no age-restricted content)
@@ -15,26 +15,26 @@
 
 ### Short Description (Google Play — 80 chars max)
 ```text
-Biometric clock-in, accountable shift handovers & WFM for frontline teams.
+Verified clock-in, AI shift handovers & statutory payroll for frontline teams.
 ```
 
 ### Full Description (Both Stores — formatted for enterprise buyers)
 ```text
-ShiftRelay is an accountable workforce management and shift handover platform built for frontline enterprise teams across logistics, manufacturing, healthcare, security, and retail operations.
+ShiftRelay OS by Riffmax Technology Limited is an accountable workforce management, verified attendance, shift handover, and statutory payroll platform built for frontline teams across hospitals, factories, logistics, hospitality, security, and offices.
 
 EVERY SHIFT. ACCOUNTED FOR.
-Eliminate lost context, verbal miscommunications, and phantom shifts. ShiftRelay gives frontline workers and operations supervisors end-to-end accountability across every turnaround.
+Eliminate lost context, verbal miscommunications, and payroll errors. ShiftRelay OS gives frontline workers and operations supervisors end-to-end transparency across every turnaround.
 
 KEY FEATURES:
-• Biometric & Gate QR Muster: High-reliability attendance verification with one-touch biometric authentication, Gate QR code scanning, and burst GPS geofence validation.
+• Verified Clock-In, Peer ID Scan & Reminders: Digital Staff ID cards, colleague peer scanning (eliminating hardware kiosks), automated pre-shift reminders, and burst GPS geofence validation.
+• Transparent Attendance Exceptions: Clear employer grace periods, worker exception explanations, and audited supervisor pardon/adjustment workflows.
 • Accountable Shift Handovers: Guided transition workflows that turn shift updates, voice dispatches, and equipment photos into structured, actionable briefs with clear priorities and deadlines.
-• Supervisor Sign-Off & Overrides: Real-time supervisor oversight with cryptographically signed exceptions and automated compliance audits.
 • Schedule & Leave Management: Automated shift rostering, time-off requests, leave balance tracking, and peer-to-peer coworker shift trades with manager sign-off.
-• Pay Transparency & Merit Rewards: Accrued earnings statements, statutory PenCom and PAYE tax breakdown visibility, and performance star incentives.
+• Pay Transparency & Nigerian Statutory Payroll: Accrued earnings statements, Finance Act PAYE, PenCom, NHF, and NSITF statutory breakdown visibility with single-source attendance sync.
 • Offline-First Reliability: Built for intermittent network conditions. Clock-ins and checklist items queue safely on device and synchronize automatically when connectivity resumes.
-• Enterprise Compliance: Engineered to support NDPA 2023, NITDA biometric standards, and international data protection standards with zero raw biometric storage.
+• Enterprise Compliance: Engineered to support NDPA 2023, NITDA biometric standards, and international data protection standards.
 
-Built for frontline leaders who need reliability, transparency, and zero context loss.
+Built by Riffmax Technology Limited (https://shiftrelayos.com) for frontline teams who need reliability and fairness.
 ```
 
 ---
@@ -42,22 +42,24 @@ Built for frontline leaders who need reliability, transparency, and zero context
 ## 2. Reviewer Test Credentials (CRITICAL for App Store & Google Play Review)
 
 > [!IMPORTANT]
-> Because ShiftRelay requires a corporate Company ID to sign in, you **MUST** provide these demo credentials in the **"App Review Information"** section of App Store Connect and Google Play Console so reviewers can test the app immediately without being blocked.
+> Because ShiftRelay OS requires a corporate Company ID to sign in (self-registration is disabled for tenant security), you **MUST** provide these demo credentials in the **"App Review Information"** section of App Store Connect and Google Play Console so reviewers can test the app immediately without being blocked.
 
 | Role | Company ID | Email / Username | Password / Action |
 |---|---|---|---|
-| **Worker / Specialist** | `246701` | `worker@shiftrelay.io` | Tap **"Enterprise Sign In"** or demo login card |
-| **Supervisor / Lead** | `246701` | `supervisor@shiftrelay.io` | Reviewer can inspect gate overrides & shifts |
-| **HR / Executive** | `246701` | `admin@shiftrelay.io` | Access analytics & workforce roster |
+| **Worker / Specialist** | `246701` | `babatunde@riffmax.tech` *(or provisioned reviewer account)* | Tap **"Continue"** -> sign in with provisioned reviewer password (`SHIFTRELAY_DEMO_MEMBER_PASS` in staging) |
+| **Supervisor / Lead** | `246701` | `olaide@riffmax.tech` | Reviewer can inspect attendance exceptions & shift sign-offs |
+| **HR / Executive** | `246701` | `sherif@riffmax.tech` | Access analytics, payroll sync & workforce roster |
+
+> [!CAUTION]
+> Before submitting to Google Play or App Store Connect, provision a dedicated Store Review sandbox tenant on `https://admin.shiftrelayos.com` (or verify Company `246701` credentials match your live `SHIFTRELAY_DEMO_MEMBER_PASS` / reviewer account) and supply the active password only inside App Store Connect / Play Console's private **App Review Information** field — never commit production passwords to Git.
 
 **Reviewer Notes to paste into Store submission:**
 ```text
-ShiftRelay is an enterprise workforce management application. To test the full workflow:
-1. Launch the app and tap "Sign In" on the welcome screen.
-2. Enter Company ID: 246701
-3. Enter Email: worker@shiftrelay.io
-4. The test profile will authenticate into the frontline dashboard where you can test the Biometric Clock-In button, schedule roster, shift handover creation, and profile certifications.
-5. All financial and bank payouts in demo mode operate in Sandbox Escrow with simulated vouchers.
+ShiftRelay OS is an enterprise B2B workforce operating system provisioned by employers. To test the full workflow:
+1. Launch the app and enter Company ID: 246701
+2. Enter Email: babatunde@riffmax.tech (and password supplied separately in reviewer credentials).
+3. Accept the active Employer Attendance & Grace Period policy banner, test Clock-In, Digital Staff ID / Peer Scan, Handover relay, and view Attendance Exceptions & Pay Breakdown.
+4. No public self-signup exists; new employers request onboarding via https://shiftrelayos.com.
 ```
 
 ---
@@ -67,10 +69,10 @@ ShiftRelay is an enterprise workforce management application. To test the full w
 ### Google Play Data Safety Form:
 - **Location:** Approximate & Precise location collected for App Functionality (Shift clock-in geofence verification). Encrypted in transit.
 - **Personal Info:** Name, work email address, and Employee ID for Account Management and Enterprise authentication.
-- **Photos & Videos:** Photos collected only when user voluntarily attaches equipment or shift evidence photos to a handover.
+- **Photos & Videos:** Photos collected only when user voluntarily attaches equipment or shift evidence photos to a handover or verification capture.
 - **Audio:** Audio recordings collected only when user chooses to record a voice handover dispatch note.
 - **Data Encryption:** Yes, all data is encrypted in transit using standard HTTPS/TLS.
-- **Account Deletion:** Supported both in-app (Settings > Account Deletion) and publicly at `https://YOUR_DOMAIN/delete-account.html`.
+- **Account Deletion:** Supported both in-app (Settings > Account Deletion) and publicly at `https://shiftrelayos.com/delete-account.html`.
 
 ### Apple App Store Privacy Labels:
 - **Data Used to Track You:** None (0 tracking).
@@ -85,10 +87,13 @@ ShiftRelay is an enterprise workforce management application. To test the full w
 
 ## 4. Public Legal & Support URLs (Must be live HTTPS before submission)
 
-- **Privacy Policy URL:** `https://YOUR_DOMAIN/privacy.html`
-- **Terms of Service URL:** `https://YOUR_DOMAIN/terms.html`
-- **Account Deletion URL:** `https://YOUR_DOMAIN/delete-account.html`
-- **Support Contact Email:** `support@YOUR_DOMAIN`
+- **Marketing / Support Website:** `https://shiftrelayos.com/`
+- **App / API Origin:** `https://app.shiftrelayos.com/`
+- **Privacy Policy URL:** `https://shiftrelayos.com/privacy.html`
+- **Terms of Service URL:** `https://shiftrelayos.com/terms.html`
+- **Account Deletion URL:** `https://shiftrelayos.com/delete-account.html`
+- **Support Contact Email:** `support@shiftrelayos.com`
+- **Data Protection Officer Email:** `dpo@shiftrelayos.com`
 
 ---
 

@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /website.html
+Allow: /pricing.html
+Allow: /privacy.html
+Allow: /terms.html
+Allow: /support-security.html
+Allow: /delete-account.html
+Disallow: /api/
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /activate
+Disallow: /office.html
+Disallow: /uploads/
+Sitemap: https://shiftrelayos.com/sitemap.xml

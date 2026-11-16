@@ -17,10 +17,22 @@ services:
       - key: ALLOW_DEV_DEMO_AUTH
         value: false
       - key: APP_URL
-        sync: false
+        value: https://app.shiftrelayos.com
+      - key: WEBSITE_URL
+        value: https://shiftrelayos.com
+      - key: WEBSITE_HOSTS
+        value: shiftrelayos.com,www.shiftrelayos.com
+      - key: ADMIN_HOSTS
+        value: admin.shiftrelayos.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://shiftrelayos.com,https://www.shiftrelayos.com,https://app.shiftrelayos.com,https://admin.shiftrelayos.com,https://shiftrelay-vjkf.onrender.com
+      - key: FROM_EMAIL
+        value: '"ShiftRelay OS by Riffmax Technology Limited" <notifications@shiftrelayos.com>'
       - key: DATABASE_URL
         sync: false
       - key: SESSION_SECRET
         sync: false
       - key: CARD_SIGNING_SECRET
+        sync: false
+      - key: SHIFTRELAY_ADMIN_BOOTSTRAP_PASS
         sync: false

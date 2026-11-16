@@ -3,8 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ShiftRelay | Digital Staff ID, Peer Attendance & Automated Statutory Payroll OS</title>
-  <meta name="description" content="ShiftRelay is the enterprise workforce operating system for Digital Staff ID clock-ins, Colleague Peer ID scanning, auto clock-out, verified shift handovers, team swaps, and automated statutory payroll." />
+  <title>ShiftRelay OS | Verified Frontline Attendance, AI Handovers &amp; Statutory Payroll OS</title>
+  <link rel="canonical" href="https://shiftrelayos.com/" />
+  <meta name="description" content="ShiftRelay OS by Riffmax Technology Limited is the enterprise workforce operating system for Digital Staff ID clock-ins, Colleague Peer ID scanning, automated clock-in reminders, AI shift handovers, and Nigerian Finance Act statutory payroll." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="ShiftRelay OS" />
+  <meta property="og:title" content="ShiftRelay OS — Digital Staff ID, Attendance Exceptions &amp; Payroll OS" />
+  <meta property="og:description" content="Audit-grade frontline attendance, automated gate muster reminders, AI shift handovers, and PenCom/PAYE/NHF/NSITF payroll by Riffmax Technology Limited." />
+  <meta property="og:url" content="https://shiftrelayos.com/" />
+  <meta property="og:image" content="https://shiftrelayos.com/icon-512.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="ShiftRelay OS — Workforce &amp; Statutory Payroll OS" />
+  <meta name="twitter:description" content="Built for hospitals, factories, logistics, security, and offices across Nigeria and Africa." />
+  <meta name="twitter:image" content="https://shiftrelayos.com/icon-512.png" />
   <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -64,9 +75,56 @@
       justify-content: space-between;
       gap: 20px;
     }
+    .sr-web-menu-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 11px;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .sr-mobile-nav-drawer {
+      display: none;
+      max-width: 1320px;
+      margin: 12px auto 0;
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(10, 17, 32, 0.98);
+      border: 1px solid var(--border-emerald);
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sr-mobile-nav-drawer.open { display: flex; }
+    .sr-mobile-nav-drawer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 6px 4px;
+    }
+    .sr-mobile-nav-drawer a:hover { color: var(--emerald); }
+    .sr-mobile-nav-drawer a.btn-primary-emerald {
+      color: #02120b;
+      padding: 11px 16px;
+      justify-content: center;
+      margin-top: 4px;
+    }
+    .sr-mobile-nav-drawer a.btn-primary-emerald:hover { color: #02120b; }
+    .sr-mobile-nav-drawer a.btn-outline {
+      color: var(--text-primary);
+      padding: 10px 16px;
+      justify-content: center;
+    }
     @media (max-width: 960px) {
       .site-navbar { padding: 14px 20px; }
       .nav-center-links { display: none !important; }
+      .sr-web-menu-btn { display: inline-flex; }
     }
     /* Clean Static Brand Lockup — NO spinning/bouncing effects on the logo */
     .brand-lockup {
@@ -258,15 +316,16 @@
     .arch-window-bar {
       background: rgba(5, 9, 18, 0.95);
       border-bottom: 1px solid var(--border-hairline);
-      padding: 12px 16px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
     }
     .window-dots {
       display: flex;
       gap: 6px;
+      flex-shrink: 0;
     }
     .window-dots i {
       width: 10px;
@@ -280,18 +339,24 @@
     .window-dots i:nth-child(3) { background: #10b981; }
     .window-tabs {
       display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
+      gap: 4px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
+    .window-tabs::-webkit-scrollbar { display: none; }
     .win-tab {
-      padding: 5px 11px;
+      padding: 5px 9px;
       border-radius: 7px;
       border: 1px solid transparent;
       background: transparent;
       color: var(--text-secondary);
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
       cursor: pointer;
       transition: all 0.15s;
     }
@@ -332,6 +397,8 @@
       background: rgba(0, 245, 160, 0.12);
       color: var(--emerald);
       border: 1px solid rgba(0, 245, 160, 0.25);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     /* ── Enterprise Trust Strip ── */
@@ -643,6 +710,30 @@
       position: relative !important;
       width: 100%;
     }
+    .sector-strip {
+      max-width: 1320px;
+      margin: 24px auto 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .sector-pill {
+      padding: 7px 13px;
+      border-radius: 999px;
+      border: 1px solid var(--border-hairline);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      font-size: 12.5px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.16s ease;
+    }
+    .sector-pill:hover {
+      border-color: var(--emerald);
+      color: var(--emerald);
+      background: rgba(0, 245, 160, 0.08);
+    }
     @media (max-width: 860px) {
       .bento-full-card { grid-template-columns: 1fr; }
     }
@@ -654,8 +745,9 @@
       .container { padding: 48px 16px; }
       .hero-proof-grid { grid-template-columns: 1fr; gap: 12px; }
       .cinema-card, .conversion-box, .bento-cell, .stk-panel { padding: 20px; border-radius: 18px; }
-      .roi-metrics-grid, .social-links-grid { grid-template-columns: 1fr !important; }
-      .arch-window-bar { flex-wrap: wrap; }
+      .roi-metrics-grid, .social-links-grid, .sr-nws-grid { grid-template-columns: 1fr !important; }
+      .arch-window-bar { padding: 10px 12px; }
+      .window-dots { display: none; }
       .arch-window-body { padding: 16px; }
       .corp-footer { padding: 44px 16px 28px; }
     }
@@ -664,42 +756,65 @@
 <body>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       PUBLIC NAVBAR (shiftrelay.com) — CLEAN STATIC BRAND MARK • NO LOGIN/SIGNUP
+       PUBLIC NAVBAR (shiftrelayos.com) — CLEAN STATIC BRAND MARK • NO LOGIN/SIGNUP
        ═══════════════════════════════════════════════════════════════════════ -->
   <header class="site-navbar">
     <div class="navbar-inner">
       <a href="/website.html" class="brand-lockup">
-        <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay Brand Mark" class="brand-mark-static" />
+        <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay OS Brand Mark" class="brand-mark-static" />
         <div>
-          <div class="brand-wordmark">Shift<span>Relay</span></div>
-          <span class="brand-sub-domain">SHIFTRELAY.COM</span>
+          <div class="brand-wordmark">Shift<span>Relay OS</span></div>
+          <span class="brand-sub-domain">SHIFTRELAYOS.COM</span>
         </div>
       </a>
 
       <nav class="nav-center-links">
-        <a href="#platform-bento">Platform Architecture</a>
+        <a href="#platform-bento">Architecture</a>
         <a href="#how-it-works">How It Works</a>
-        <a href="#video-showcase">Product Showcase</a>
-        <a href="#hosting-architecture">Cloud &amp; Email Engine</a>
-        <a href="#legal-center">Legal &amp; Terms</a>
+        <a href="/calculator.html">PAYE Calculator</a>
+        <a href="/pricing.html">Pricing</a>
+        <a href="/trust.html">Trust Center</a>
+        <a href="/status.html">Status</a>
       </nav>
 
       <div class="nav-cta-cluster">
-        <a href="#contact-desk" class="btn-outline">Contact Us</a>
-        <a href="#demo-request-section" class="btn-primary-emerald">Request a Demo →</a>
+        <a href="/index.html" class="btn-outline" style="white-space:nowrap;border-color:var(--border-emerald);color:var(--emerald);">Sign In / Launch App</a>
+        <a href="#contact-desk" class="btn-outline">Contact Desk</a>
+        <a href="#demo-request-section" class="btn-primary-emerald" style="white-space:nowrap;">Request Pilot →</a>
+        <button type="button" id="sr-web-menu-btn" class="sr-web-menu-btn" aria-label="Toggle Menu" aria-expanded="false" onclick="window.toggleWebMobileNav()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        </button>
       </div>
     </div>
+
+    <nav id="sr-web-mobile-nav" class="sr-mobile-nav-drawer" aria-label="Mobile Navigation">
+      <a href="#platform-bento" onclick="window.toggleWebMobileNav(false)">Platform Architecture</a>
+      <a href="#how-it-works" onclick="window.toggleWebMobileNav(false)">How It Works Across 4 Roles</a>
+      <a href="/calculator.html">Free Nigerian PAYE &amp; PenCom Calculator</a>
+      <a href="/pricing.html">Pricing &amp; Plans</a>
+      <a href="/trust.html">Trust &amp; Legal Center (NDPA DPA, SLA)</a>
+      <a href="/status.html">Live System Status</a>
+      <a href="/support-security.html">Support &amp; Security</a>
+      <a href="/healthcare.html">Sector: Healthcare &amp; Hospitals</a>
+      <a href="/manufacturing.html">Sector: Factories &amp; Plants</a>
+      <a href="/logistics.html">Sector: Logistics &amp; Fleets</a>
+      <a href="/hospitality.html">Sector: Hospitality &amp; Security</a>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; padding-top:8px; border-top:1px solid var(--border-hairline);">
+        <a href="/index.html" class="btn-outline" style="flex:1; justify-content:center; padding:9px 12px; border-color:var(--border-emerald); color:var(--emerald);">Sign In / Launch App</a>
+        <a href="#demo-request-section" class="btn-primary-emerald" style="flex:1; justify-content:center; padding:9px 12px;" onclick="window.toggleWebMobileNav(false)">Request Pilot →</a>
+      </div>
+    </nav>
   </header>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       1. HERO SECTION + INTERACTIVE 4-TAB PRODUCT SANDBOX WINDOW
+       1. HERO SECTION + INTERACTIVE 5-TAB PRODUCT SANDBOX WINDOW
        ═══════════════════════════════════════════════════════════════════════ -->
   <section class="container hero-section">
     <div class="hero-split">
       <div>
         <div class="changelog-pill">
           <span class="changelog-dot"></span>
-          <span>SHIFTRELAY OS v1.0 • DIGITAL STAFF ID, PEER SCAN &amp; STATUTORY PAYROLL</span>
+          <span>SHIFTRELAY OS v165 &bull; 3-STEP PEER ID BIOMETRICS, EXCEPTIONS, PAYE CALCULATOR &amp; NDPA TRUST SUITE</span>
         </div>
 
         <h1 class="hero-h1">
@@ -707,57 +822,57 @@
         </h1>
 
         <p class="hero-lead">
-          ShiftRelay eliminates ghost workers, buddy-punching, and manual payroll reconciliation. Engineered for technology teams, transportation fleets, restaurants, fuel stations, farms, healthcare, and industrial enterprises with Digital Staff ID cards, Colleague Peer ID scanning, auto clock-out, and 1-click PenCom &amp; PAYE compliance.
+          ShiftRelay OS eliminates ghost workers, buddy-punching, manual gate musters, and spreadsheet payroll errors. Engineered for Nigerian hospitals, factories, logistics fleets, hospitality, security, and offices with 3-step Peer ID + Live Selfie vs. HR Passport verification, Dayforce-grade attendance exceptions, automated clock-in reminders, and 1-click Finance Act PAYE &amp; PenCom compliance.
         </p>
 
         <div class="hero-actions">
           <a href="#demo-request-section" class="btn-primary-emerald" style="padding:13px 26px; font-size:14px;">
-            Book an Enterprise Demo →
+            Book 30-Day Enterprise Pilot →
           </a>
-          <a href="#video-showcase" class="btn-outline" style="padding:13px 22px; font-size:14px; display:inline-flex; align-items:center; gap:8px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-            <span>Explore Product Showcase</span>
+          <a href="/index.html" class="btn-outline" style="padding:13px 22px; font-size:14px; border-color:var(--border-emerald); color:var(--emerald); font-weight:700;">
+            Launch Workforce App →
           </a>
-          <a href="#how-it-works" class="btn-outline" style="padding:13px 20px; font-size:14px;">
-            How It Works
+          <a href="/calculator.html" class="btn-outline" style="padding:13px 20px; font-size:14px;">
+            Free PAYE Calculator
           </a>
         </div>
 
         <div class="hero-proof-grid">
           <div class="proof-item">
-            <strong>99.98%</strong>
-            <span>Geofence, Biometric &amp; Peer ID Verification</span>
+            <strong>3-Step Gate</strong>
+            <span>QR ID + Live Selfie vs. HR Passport + Safety Checklist</span>
           </div>
           <div class="proof-item">
             <strong>₦0 Hardware</strong>
-            <span>Digital Staff ID Cards + Colleague Mobile Scan</span>
+            <span>Digital Staff ID Cards + Automated Pre-Shift Reminders</span>
           </div>
           <div class="proof-item">
-            <strong>100% Auto</strong>
-            <span>PenCom (8%/10%), PAYE, NHF &amp; NSITF Schedules</span>
+            <strong>100% Statutory</strong>
+            <span>PenCom (8%/10%), Finance Act PAYE, NHF &amp; NSITF</span>
           </div>
         </div>
       </div>
 
-      <!-- Right Column: Interactive Product Architecture Preview Window (No spinning logo gimmick) -->
+      <!-- Right Column: Interactive Product Architecture Preview Window -->
       <div class="arch-window">
         <div class="arch-window-bar">
           <div class="window-dots"><i></i><i></i><i></i></div>
           <div class="window-tabs">
-            <button type="button" class="win-tab active" data-pane="pane-mobile" onclick="window.switchHeroPane('pane-mobile')">01. Mobile Clock</button>
-            <button type="button" class="win-tab" data-pane="pane-peer" onclick="window.switchHeroPane('pane-peer')">02. Peer ID Scanner</button>
-            <button type="button" class="win-tab" data-pane="pane-payroll" onclick="window.switchHeroPane('pane-payroll')">03. Statutory Payroll</button>
-            <button type="button" class="win-tab" data-pane="pane-email" onclick="window.switchHeroPane('pane-email')">04. Email Station</button>
+            <button type="button" class="win-tab active" data-pane="pane-mobile" onclick="window.switchHeroPane('pane-mobile')">01. Clock</button>
+            <button type="button" class="win-tab" data-pane="pane-peer" onclick="window.switchHeroPane('pane-peer')">02. Peer ID + Bio</button>
+            <button type="button" class="win-tab" data-pane="pane-exceptions" onclick="window.switchHeroPane('pane-exceptions')">03. Policy</button>
+            <button type="button" class="win-tab" data-pane="pane-payroll" onclick="window.switchHeroPane('pane-payroll')">04. Payroll</button>
+            <button type="button" class="win-tab" data-pane="pane-email" onclick="window.switchHeroPane('pane-email')">05. Stations</button>
           </div>
         </div>
 
         <div class="arch-window-body">
-          <!-- Pane 1: Mobile App Biometric Water-Pulse & Coworker Swap -->
+          <!-- Pane 1: Mobile App Biometric Water-Pulse & Automated Watchdog Reminders -->
           <div class="arch-pane active" id="pane-mobile">
             <div class="mock-row" style="margin-bottom:14px;">
               <div>
-                <div style="font-size:12px; color:var(--text-secondary);">ACTIVE WORKER SESSION • TODAY TAB</div>
-                <strong style="font-size:17px;">Reactive Water-Pulse Biometric Clock</strong>
+                <div style="font-size:12px; color:var(--text-secondary);">ACTIVE WORKER SESSION &bull; NO MANUAL GATE MUSTER</div>
+                <strong style="font-size:17px;">Water-Pulse Clock &amp; Automated Shift Watchdog</strong>
               </div>
               <span class="mono-tag">GPS PERIMETER VERIFIED</span>
             </div>
@@ -765,72 +880,120 @@
             <div class="mock-card" style="display:flex; align-items:center; justify-content:space-between; gap:16px; background:rgba(0,245,160,0.05); border-color:var(--border-emerald);">
               <div>
                 <div style="font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:800; color:var(--emerald);">06 : 42 : 19</div>
-                <div style="font-size:12.5px; color:var(--text-secondary); margin-top:2px;">Shift: 08:00 – 17:00 • Ikeja Plant Bay 4</div>
-                <div style="font-size:12px; color:#fde68a; margin-top:6px;">★ +15 ShiftCoin Stars Earned (On-Time Streak)</div>
+                <div style="font-size:12.5px; color:var(--text-secondary); margin-top:2px;">Shift: 08:00 &ndash; 17:00 &bull; Ikeja Plant Bay 4</div>
+                <div style="font-size:12px; color:#fde68a; margin-top:6px; display:inline-flex; align-items:center; gap:5px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  +15 ShiftCoin Credits Earned (On-Time Streak)
+                </div>
               </div>
-              <div style="width:74px; height:74px; border-radius:50%; background:radial-gradient(circle, rgba(244,63,94,0.35), rgba(15,23,42,0.95)); border:2px solid #f43f5e; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+              <div style="width:74px; height:74px; flex-shrink:0; border-radius:50%; background:radial-gradient(circle, rgba(244,63,94,0.35), rgba(15,23,42,0.95)); border:2px solid #f43f5e; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
                 <span style="font-size:10px; font-weight:800; color:#fda4af;">ACTIVE</span>
                 <span style="font-size:11px; font-weight:800; color:#fff;">CLOCK OUT</span>
               </div>
             </div>
 
-            <div class="mock-card">
+            <div class="mock-card" style="margin-bottom:0;">
               <div class="mock-row" style="margin-bottom:6px;">
-                <strong style="font-size:13.5px;">Coworker-Scoped Team Shift Swap</strong>
-                <span class="mono-tag" style="color:var(--sky); border-color:var(--border-cyan); background:rgba(56,189,248,0.1);">SAME COMPANY ONLY</span>
+                <strong style="font-size:13.5px;">Automated Pre-Shift &amp; Overdue Watchdog Alerts</strong>
+                <span class="mono-tag" style="color:var(--sky); border-color:var(--border-cyan); background:rgba(56,189,248,0.1);">30m / 15m / 0m / +GRACE</span>
               </div>
               <p style="font-size:12.5px; color:var(--text-secondary);">
-                Workers can offer and claim shifts strictly among verified coworkers in the same enterprise unit. Supervisors also carry a personal shift clock on their own dashboard.
+                Replaces manual gate muster: automatic alerts prompt workers before shift start and immediately flag unclocked scheduled staff on Supervisor &amp; Executive radars.
               </p>
             </div>
           </div>
 
-          <!-- Pane 2: Colleague Peer ID Card Clock-In + Auto Clock-Out -->
+          <!-- Pane 2: Guided 3-Step Peer ID Scanner + Live Selfie vs HR Passport Match -->
           <div class="arch-pane" id="pane-peer">
             <div class="mock-row" style="margin-bottom:14px;">
               <div>
-                <div style="font-size:12px; color:var(--text-secondary);">COLLEAGUE PEER ID SCANNER • ₦0 KIOSK COST</div>
-                <strong style="font-size:17px;">Digital Staff ID Card + Once-Per-Shift Scan</strong>
+                <div style="font-size:12px; color:var(--text-secondary);">DEDICATED 3-STEP PEER SCANNER ON CLOCK-IN PAGE</div>
+                <strong style="font-size:17px;">Digital Staff ID + Live Selfie vs. HR Passport Guardrail</strong>
               </div>
-              <span class="mono-tag">AUTO CLOCK-OUT ON</span>
+              <span class="mono-tag">ANTI-BUDDY-PUNCH</span>
             </div>
 
-            <div class="mock-card" style="display:grid; grid-template-columns:110px 1fr; gap:16px; align-items:center;">
+            <div class="mock-card" style="display:grid; grid-template-columns:104px 1fr; gap:14px; align-items:center;">
               <div style="width:100px; height:100px; border-radius:12px; background:#fff; color:#050912; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:800; font-size:11px; border:3px solid var(--emerald);">
-                <div>[ ID CARD ]</div>
-                <div style="color:#059669; margin-top:4px;">Once / Shift</div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="14" x="3" y="5" rx="2"/><circle cx="9" cy="12" r="2"/><path d="M14 10h4"/><path d="M14 14h4"/></svg>
+                <div style="color:#059669; margin-top:6px;">STAFF ID</div>
               </div>
               <div>
-                <strong style="font-size:14px; display:block; margin-bottom:4px;">No Smartphone? Clock In via a Colleague's App</strong>
+                <strong style="font-size:14px; display:block; margin-bottom:4px;">Dead Battery or No Smartphone? Colleague Peer Scan</strong>
                 <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:8px;">
-                  Every onboarded worker gets a signed Digital Staff ID Card. Colleagues scan the ID card inside ShiftRelay to clock them in—zero kiosk tablets needed.
+                  Step 1: Scan rotating Staff ID token &rarr; Step 2: Live selfie matched biometrically against the worker&rsquo;s locked HR passport photo + GPS perimeter &rarr; Step 3: Accept incoming handover &amp; mandatory daily safety checklist.
                 </p>
-                <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--emerald);">
-                  ✓ Peer ID Scan: Musa Danjuma (RIF-0018) • 07:54:12
+                <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--emerald); display:inline-flex; align-items:center; gap:5px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  Match 94.6% vs. HR Passport &bull; Assisted by Chidi (07:54)
                 </div>
               </div>
             </div>
 
-            <div class="mock-card">
+            <div class="mock-card" style="margin-bottom:0;">
               <div style="font-size:12.5px; color:var(--text-secondary);">
-                <strong style="color:var(--text-primary);">Automated Shift-End Clock-Out:</strong> ShiftRelay enforces one clock-in per shift and triggers automated clock-out when the rostered shift ends.
+                <strong style="color:var(--text-primary);">Zero Cross-Face Proxy Guardrail:</strong> Biometric embedding lock rejects lookalikes or mismatched colleague faces and seals an evidence audit trail.
               </div>
             </div>
           </div>
 
-          <!-- Pane 3: Statutory Payroll & Executive Printout -->
+          <!-- Pane 3: Interactive Exception-to-Payroll Mini Demo -->
+          <div class="arch-pane" id="pane-exceptions">
+            <div class="mock-row" style="margin-bottom:12px;">
+              <div>
+                <div style="font-size:12px; color:var(--text-secondary);">LIVE MINI-DEMO &bull; MISSED PUNCH TO PAYROLL SYNC</div>
+                <strong style="font-size:16.5px;">Attendance Exception &rarr; Instant Net Pay &amp; PenCom</strong>
+              </div>
+              <span class="mono-tag" id="sr-demo-exc-badge">MISSED CLOCK-IN ALERT</span>
+            </div>
+
+            <div class="mock-card" style="padding:12px; background:rgba(245,158,11,0.06); border-color:rgba(245,158,11,0.3);">
+              <div style="font-size:12.5px; color:#f8fafc; font-weight:700; margin-bottom:4px;">
+                Tunde Adeyemi &middot; Shift 08:00 WAT (10m Grace Window)
+              </div>
+              <div style="font-size:11.5px; color:var(--text-secondary); margin-bottom:10px;" id="sr-demo-exc-status">
+                Automated reminder sent at 07:45 &amp; 08:11. Supervisor decides whether to pardon or mark unexcused before bank CSV export:
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="win-tab active" id="sr-mini-btn-pending" onclick="window.setMiniExceptionDemo('pending')">1. Alert Open (-₦11,364 Hold)</button>
+                <button type="button" class="win-tab" id="sr-mini-btn-pardon" onclick="window.setMiniExceptionDemo('pardoned')">2. Supervisor Pardon (₦0 Loss)</button>
+                <button type="button" class="win-tab" id="sr-mini-btn-unexcused" onclick="window.setMiniExceptionDemo('unexcused')">3. Mark Unexcused (-1 Day)</button>
+              </div>
+            </div>
+
+            <div class="mock-card" style="margin-bottom:0;">
+              <div class="mock-row" style="margin-bottom:6px; font-size:12.5px;">
+                <span style="color:var(--text-secondary);">Base Monthly Gross</span>
+                <span style="font-family:'JetBrains Mono',monospace;">₦250,000.00</span>
+              </div>
+              <div class="mock-row" style="margin-bottom:6px; font-size:12.5px;">
+                <span style="color:var(--text-secondary);">Attendance Variance Adjustment</span>
+                <span style="font-family:'JetBrains Mono',monospace; color:#fbbf24;" id="sr-mini-deduction">-₦11,363.64 (Held Pending Review)</span>
+              </div>
+              <div class="mock-row" style="margin-bottom:6px; font-size:12.5px;">
+                <span style="color:var(--text-secondary);">PenCom (8% Emp / 10% Employer) &amp; PAYE Tax</span>
+                <span style="font-family:'JetBrains Mono',monospace; color:var(--sky);" id="sr-mini-statutory">PenCom ₦28,636.36 &middot; PAYE ₦17,910.22</span>
+              </div>
+              <div class="mock-row" style="padding-top:8px; margin-top:6px; border-top:1px solid var(--border-hairline);">
+                <strong style="font-size:13px;">Recalculated Net Bank Payout</strong>
+                <strong style="font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--emerald);" id="sr-mini-net">₦197,385.11</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 4: Statutory Payroll & Executive Printout -->
           <div class="arch-pane" id="pane-payroll">
             <div class="mock-row" style="margin-bottom:14px;">
               <div>
-                <div style="font-size:12px; color:var(--text-secondary);">EXECUTIVE TREASURY &amp; COMPLIANCE</div>
-                <strong style="font-size:17px;">Automated Nigerian Statutory Payroll Run</strong>
+                <div style="font-size:12px; color:var(--text-secondary);">EXECUTIVE TREASURY &amp; SELF-SERVICE ROSTER</div>
+                <strong style="font-size:17px;">Nigerian Statutory Payroll + Instant Add Staff</strong>
               </div>
-              <span class="mono-tag">PENCOM &amp; PAYE READY</span>
+              <span class="mono-tag">FINANCE ACT &amp; PENCOM</span>
             </div>
 
             <div class="mock-card">
               <div class="mock-row" style="padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid var(--border-hairline);">
-                <span style="font-size:12.5px; color:var(--text-secondary);">Verified Gross Shift Payroll (142 Staff)</span>
+                <span style="font-size:12.5px; color:var(--text-secondary);">Verified Gross Shift Payroll (Sample Cycle)</span>
                 <strong style="font-family:'JetBrains Mono',monospace; font-size:14px;">₦14,820,000.00</strong>
               </div>
               <div class="mock-row" style="margin-bottom:6px; font-size:12.5px;">
@@ -848,43 +1011,51 @@
             </div>
 
             <div style="font-size:12px; color:var(--text-secondary);">
-              Owners &amp; Managers can export Bank CSVs, PenCom schedules, and print official <strong>Monthly Payment Data Vouchers</strong> in one click.
+              Executives also add new hires directly into departments with Digital Staff IDs and daily safety checklists without waiting on support.
             </div>
           </div>
 
-          <!-- Pane 4: Email Auto-Station & Rectification Receipts -->
+          <!-- Pane 5: Email Auto-Station & Rectification Receipts -->
           <div class="arch-pane" id="pane-email">
             <div class="mock-row" style="margin-bottom:14px;">
               <div>
-                <div style="font-size:12px; color:var(--text-secondary);">EMAIL AUTO-STATION ENGINE</div>
-                <strong style="font-size:17px;">Automated Receipts, Gate OTPs &amp; Support Routing</strong>
+                <div style="font-size:12px; color:var(--text-secondary);">EMAIL AUTO-STATION &amp; NDPA ENGINE</div>
+                <strong style="font-size:17px;">Fixed @shiftrelayos.com Mailboxes &amp; Receipts</strong>
               </div>
               <span class="mono-tag">SMTP / API READY</span>
             </div>
 
             <div class="mock-card">
               <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky); margin-bottom:4px;">
-                AUTO-DISPATCHED: support@shiftrelay.com → amara@cleanpro.ng
+                AUTO-DISPATCHED: support@shiftrelayos.com &rarr; worker@enterprise.ng
               </div>
               <strong style="font-size:13.5px; display:block; margin-bottom:4px;">Official Rectification Receipt #SR-REC-849201</strong>
               <p style="font-size:12.5px; color:var(--text-secondary);">
-                When a worker reports an incorrect shift hour or bank record in the Support Desk, ShiftRelay stamps a verified receipt with their email and routes it to the Support Admin Queue.
+                Discrepancy reports, NDPA data deletion requests, and tenant activation OTPs dispatch automatically with QR-verifiable audit trails.
               </p>
             </div>
 
             <div class="mock-card" style="margin-bottom:0;">
               <div style="font-size:12.5px; color:var(--text-secondary);">
-                Includes dedicated corporate stations for <code>onboarding@</code>, <code>support@</code>, <code>finance@</code>, and <code>gate-otp@shiftrelay.com</code>.
+                Dedicated corporate stations: <code>onboarding@</code>, <code>support@</code>, <code>notifications@</code>, <code>finance@</code>, <code>dpo@</code>, <code>legal@</code> &amp; <code>security@shiftrelayos.com</code>.
               </div>
             </div>
           </div>
 
-          <div class="mock-row" style="padding-top:14px; border-top:1px solid var(--border-hairline); font-size:12px; color:var(--text-muted);">
-            <span>Click any module tab above to inspect ShiftRelay's architecture</span>
-            <a href="#demo-request-section" style="color:var(--emerald); text-decoration:none; font-weight:700;">Request Live Walkthrough →</a>
+          <div class="mock-row" style="padding-top:14px; border-top:1px solid var(--border-hairline); font-size:12px; color:var(--text-muted); gap:12px;">
+            <span>Click any module tab above to inspect ShiftRelay OS</span>
+            <a href="#demo-request-section" style="color:var(--emerald); text-decoration:none; font-weight:700; white-space:nowrap;">Request Live Walkthrough →</a>
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="sector-strip" aria-label="Nigerian Industry Solutions & Employer Access">
+      <a href="/healthcare.html" class="sector-pill">Hospitals &amp; Clinics</a>
+      <a href="/manufacturing.html" class="sector-pill">Factories &amp; Plants</a>
+      <a href="/logistics.html" class="sector-pill">Logistics &amp; Fleets</a>
+      <a href="/hospitality.html" class="sector-pill">Hospitality &amp; Security</a>
+      <a href="https://app.shiftrelayos.com" class="sector-pill" style="border-color:var(--border-emerald); color:var(--emerald);">Employer-Provisioned App Login &rarr;</a>
     </div>
   </section>
 
@@ -920,14 +1091,14 @@
       <!-- Cell 1 (Span 7) -->
       <article class="bento-cell span-7">
         <div>
-          <span class="mono-tag">BIOMETRIC &amp; GEOLOCATION ENGINE</span>
-          <h3>Reactive Water-Pulse Clock &amp; Point-of-Punch Geofencing</h3>
+          <span class="mono-tag">WATCHDOG REMINDERS &amp; GEOFENCE ENGINE</span>
+          <h3>Water-Pulse Clock, GPS Bounds &amp; Automated Shift Watchdog</h3>
           <p>
-            Workers clock in with our thumbprint water-fill push button that turns emerald on active shift and crimson on clock-out. GPS coordinates are verified strictly at the moment of punch—zero off-shift background tracking. Shift Supervisors also carry their own personal shift clock alongside team oversight.
+            Workers clock in with our thumbprint water-fill push button while automated pre-shift and post-grace reminders notify scheduled staff and flag unclocked arrivals directly on Supervisor &amp; Executive dashboards—eliminating manual gate muster. Point-of-punch GPS stays private off shift.
           </p>
         </div>
         <div class="bento-spec-list">
-          <span class="spec-chip">Orbital Liquid Timer</span>
+          <span class="spec-chip">No Manual Gate Muster</span>
           <span class="spec-chip">Zero Off-Shift Tracking</span>
           <span class="spec-chip">Supervisor Personal Clock</span>
           <span class="spec-chip">Offline Queue Sync</span>
@@ -937,61 +1108,61 @@
       <!-- Cell 2 (Span 5) -->
       <article class="bento-cell span-5">
         <div>
-          <span class="mono-tag" style="color:var(--sky); border-color:var(--border-cyan); background:rgba(56,189,248,0.1);">ZERO-HARDWARE ATTENDANCE</span>
-          <h3>Digital Staff ID Cards &amp; Colleague Peer Scan</h3>
+          <span class="mono-tag" style="color:var(--sky); border-color:var(--border-cyan); background:rgba(56,189,248,0.1);">3-STEP BIOMETRIC PEER GATE</span>
+          <h3>Digital Staff ID &amp; Live Selfie vs. HR Passport Match</h3>
           <p>
-            Onboard every team member with a signed Digital Staff ID Card. Staff with smartphones clock in directly, while workers without smartphones scan once per shift via a colleague's mobile phone—eliminating gate tablets and NFC hardware costs.
+            Built straight into the Clock-In page for staff without smartphones or with dead batteries: scan their Digital Staff ID token, capture a live verification selfie matched against their locked HR passport picture, and confirm incoming shift handover &amp; safety checklists.
           </p>
         </div>
         <div class="bento-spec-list">
-          <span class="spec-chip">Digital Staff IDs</span>
-          <span class="spec-chip">Colleague Peer Scan</span>
-          <span class="spec-chip">Auto Clock-Out</span>
+          <span class="spec-chip">Live Passport Match</span>
+          <span class="spec-chip">Peer ID Scanner</span>
+          <span class="spec-chip">Daily Safety Checklist</span>
         </div>
       </article>
 
       <!-- Cell 3 (Span 4) -->
       <article class="bento-cell span-4">
         <div>
-          <span class="mono-tag">TEAM INTEGRITY</span>
-          <h3>Coworker-Only Shift Swaps</h3>
+          <span class="mono-tag">ATTENDANCE EXCEPTIONS</span>
+          <h3>Dayforce-Grade Grace &amp; Exception Queue</h3>
           <p>
-            Workers can offer and claim shift swaps strictly with verified coworkers inside their own company and operational unit—preventing external cross-company access.
+            Configurable grace minutes, missed clock-in/out resolution, supervisor pardon with audit trail, and clear worker pay-impact status with zero arbitrary double deductions.
           </p>
         </div>
         <div class="bento-spec-list">
-          <span class="spec-chip">Tenant-Isolated Pool</span>
-          <span class="spec-chip">Supervisor Approval</span>
+          <span class="spec-chip">Configurable Grace</span>
+          <span class="spec-chip">Supervisor Pardon / Adjust</span>
         </div>
       </article>
 
       <!-- Cell 4 (Span 4) -->
       <article class="bento-cell span-4">
         <div>
-          <span class="mono-tag">RECOGNITION &amp; RETENTION</span>
-          <h3>ShiftCoin Stars (★) &amp; Instant Rewards</h3>
+          <span class="mono-tag">SELF-SERVICE HR &amp; REWARDS</span>
+          <h3>Executive Add-Staff, Checklists &amp; ShiftCoin</h3>
           <p>
-            On-time clock-ins, verified room/bay checklists, and coworker shift coverage automatically credit ShiftCoin stars to the worker's one-line activity strip.
+            Company Owners add new hires directly into departments with live safety checklists synced to every shift—plus on-time ShiftCoin rewards for verified completions.
           </p>
         </div>
         <div class="bento-spec-list">
-          <span class="spec-chip">Punctuality Streaks</span>
-          <span class="spec-chip">Cash Bonus Exchange</span>
+          <span class="spec-chip">Instant Department Hire</span>
+          <span class="spec-chip">ShiftCoin Credits</span>
         </div>
       </article>
 
       <!-- Cell 5 (Span 4) -->
       <article class="bento-cell span-4">
         <div>
-          <span class="mono-tag">RECORDS &amp; SUPPORT DESK</span>
-          <h3>Email Rectification Receipts (`RECT-*`)</h3>
+          <span class="mono-tag">RECORDS &amp; NDPA COMPLIANCE</span>
+          <h3>Rectification Receipts (<code>SR-REC-*</code>)</h3>
           <p>
-            Instead of messy chat complaints, workers generate official, email-stamped Rectification Receipts for any hour, profile, or bank discrepancy.
+            Official email-stamped rectification receipts track pay/bank queries cleanly, paired with transparent Privacy Policy terms and App Store self-service deletion flows.
           </p>
         </div>
         <div class="bento-spec-list">
           <span class="spec-chip">Auto-Emailed Receipt</span>
-          <span class="spec-chip">Admin Support Queue</span>
+          <span class="spec-chip">NDPA 2023 Ready</span>
         </div>
       </article>
 
@@ -1001,7 +1172,7 @@
           <span class="mono-tag">NIGERIAN STATUTORY &amp; TREASURY ENGINE</span>
           <h3>Automated Gross-to-Net Payroll, PenCom, PAYE &amp; Monthly Payment Printouts</h3>
           <p style="margin-bottom:14px;">
-            Actual clock-in/clock-out attendance logs (separated cleanly from scheduled hours) flow directly into the Executive Payroll Engine. Automatically compute overtime, PenCom (8% Employee / 10% Employer), Finance Act PAYE, NHF (2.5%), and NSITF (1%), and print official Monthly Payment Data sheets.
+            Approved clock-in/clock-out logs and resolved attendance exceptions flow directly into our single-source Nigerian Payroll Engine—calculating overtime, PenCom (8% Employee / 10% Employer), Finance Act PAYE, NHF (2.5%), and NSITF (1%) with 1-click Monthly Payment Data printouts.
           </p>
           <div class="bento-spec-list">
             <span class="spec-chip">PenCom PRA 2014</span>
@@ -1013,11 +1184,28 @@
         <div style="background:rgba(5,9,18,0.85); border:1px solid var(--border-emerald); border-radius:16px; padding:20px; font-family:'JetBrains Mono',monospace; font-size:12px;">
           <div style="color:var(--emerald); font-weight:700; margin-bottom:8px;">// MONTHLY PAYMENT VOUCHER EXPORT</div>
           <div style="color:var(--text-secondary);">Tenant: <span style="color:#fff;">Riffmax Technology Limited</span></div>
-          <div style="color:var(--text-secondary);">Verified Punches: <span style="color:#fff;">4,820 hrs (0 Variance)</span></div>
+          <div style="color:var(--text-secondary);">Verified Punches: <span style="color:#fff;">4,820 hrs (0 Exceptions Open)</span></div>
           <div style="color:var(--text-secondary);">PenCom + PAYE CSV: <span style="color:var(--emerald);">READY</span></div>
-          <div style="color:var(--text-secondary); margin-top:8px;">Owner Sign-Off: <span style="color:#fde68a;">AUTHORIZED ✓</span></div>
+          <div style="color:var(--text-secondary); margin-top:8px; display:flex; align-items:center; gap:6px;">
+            <span>Owner Sign-Off:</span>
+            <span style="color:#fde68a; display:inline-flex; align-items:center; gap:4px;">AUTHORIZED <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </div>
         </div>
       </article>
+    </div>
+
+    <div style="margin-top:26px; padding:20px 24px; border-radius:18px; background:rgba(56,189,248,0.06); border:1px solid var(--border-cyan); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+      <div style="max-width:760px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky); margin-bottom:4px;">EMPLOYER-PROVISIONED ACCESS MODEL (WEB, ANDROID &amp; IOS)</div>
+        <strong style="font-size:15.5px; display:block; margin-bottom:4px;">Company-Issued Credentials Prevent Rogue Signups</strong>
+        <p style="font-size:13px; color:var(--text-secondary); margin:0;">
+          Workers log into <code>app.shiftrelayos.com</code> and our Android/iOS apps using their employer-assigned Company Code, email, or colleague-assisted Digital Staff ID—never an open consumer marketplace signup.
+        </p>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="https://app.shiftrelayos.com" class="btn-outline" style="white-space:nowrap;">Launch App Portal</a>
+        <a href="#demo-request-section" class="btn-primary-emerald" style="white-space:nowrap;">Provision Your Company →</a>
+      </div>
     </div>
   </section>
 
@@ -1054,13 +1242,13 @@
         </div>
       </div>
       <div class="mock-card" style="margin:0;">
-        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--emerald); margin-bottom:10px;">5-STEP OWNER WORKFLOW</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--emerald); margin-bottom:10px;">5-STEP OWNER &amp; HR WORKFLOW</div>
         <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
-          <li>Inspect real-time facility attendance &amp; geofence compliance.</li>
-          <li>Review department overtime exposure &amp; unit SLA scores.</li>
-          <li>Verify automated PenCom (8%/10%), PAYE, NHF &amp; NSITF deductions.</li>
-          <li>Approve worker contracts &amp; lock monthly disbursement batch.</li>
-          <li>Print official Monthly Payment Data &amp; Bank Payout CSV.</li>
+          <li>Add new hires straight into company departments with auto-issued Digital Staff IDs.</li>
+          <li>Configure Attendance Grace Policies, Pre-Shift Reminders &amp; Daily Safety Checklists.</li>
+          <li>Clear Pre-Payroll Exception Readiness checks &amp; review unit SLA scores.</li>
+          <li>Verify automated PenCom (8%/10%), Finance Act PAYE, NHF &amp; NSITF schedules.</li>
+          <li>Print official Monthly Payment Data &amp; export Bank Payout CSVs.</li>
         </ol>
       </div>
     </div>
@@ -1068,19 +1256,19 @@
     <div class="stk-panel" id="stk-supervisor">
       <div>
         <span class="mono-tag">SUPERVISOR DUAL-CAPACITY WORKFLOW</span>
-        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Manage the Floor &amp; Clock Your Own Shift</h3>
+        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Manage Exceptions Live &amp; Clock Your Own Shift</h3>
         <p style="color:var(--text-secondary); font-size:15px; margin-bottom:18px;">
-          Shift Supervisors are workers too. Their dashboard includes a personal Clock-In / Clock-Out card and ShiftCoin star strip right alongside live team attendance radar, handover approvals, and coworker swap sign-offs.
+          Replacing manual gate musters: Shift Supervisors view automated Missing-at-Shift-Start flags live, pardon or adjust exceptions with an audit trail, verify safety checklists, and carry their own personal shift clock.
         </p>
       </div>
       <div class="mock-card" style="margin:0;">
         <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--sky); margin-bottom:10px;">5-STEP SUPERVISOR WORKFLOW</div>
         <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
-          <li>Clock in for your own supervisory shift &amp; collect ShiftCoin stars.</li>
-          <li>Monitor live team roster (who is clocked in, late, or on break).</li>
-          <li>Verify incoming/outgoing shift handover notes &amp; safety checklists.</li>
-          <li>Approve or deny coworker-to-coworker shift swap requests.</li>
-          <li>Broadcast pinned shift memos &amp; export unit timesheets.</li>
+          <li>Clock in for your own supervisory shift &amp; collect ShiftCoin credits.</li>
+          <li>Monitor live Missing-at-Shift-Start watchdog radar (zero manual gate muster).</li>
+          <li>Pardon, adjust punch timestamps, or log reason codes on Attendance Exceptions.</li>
+          <li>Verify incoming/outgoing AI shift handovers &amp; coworker swap approvals.</li>
+          <li>Confirm mandatory workplace PPE &amp; safety checklist compliance.</li>
         </ol>
       </div>
     </div>
@@ -1088,39 +1276,39 @@
     <div class="stk-panel" id="stk-worker">
       <div>
         <span class="mono-tag">FRONTLINE WORKER WORKFLOW</span>
-        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Biometric Clock-In, Team Swaps, Earnings &amp; CV Profile</h3>
+        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Biometric Clock-In, Clear Exception Pay &amp; CV Profile</h3>
         <p style="color:var(--text-secondary); font-size:15px; margin-bottom:18px;">
-          Workers press the circular reactive water-fill button on the Today tab to clock in, check actual recorded hours in the dedicated Attendance tab, swap shifts with team coworkers, track live earnings, and maintain a verified professional CV profile.
+          Workers receive automated reminders before every shift, clock in with the circular water-pulse timer, see transparent exception statuses (Pending, Pardoned, Adjusted), complete safety checklists, and access verified earnings.
         </p>
       </div>
       <div class="mock-card" style="margin:0;">
         <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--emerald); margin-bottom:10px;">5-STEP WORKER WORKFLOW</div>
         <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
-          <li>Tap the green circular water-pulse button on Today to clock in.</li>
-          <li>Complete shift tasks &amp; tap the one-line Star strip to view rewards.</li>
-          <li>Offer or claim shift swaps strictly with coworkers in your team.</li>
-          <li>Check verified clock-in/out logs in Attendance &amp; net pay in Earnings.</li>
-          <li>Open an Email Rectification Receipt in Support if any info needs fixing.</li>
+          <li>Receive pre-shift reminder &amp; tap the water-pulse clock within site GPS bounds.</li>
+          <li>Complete daily workplace safety &amp; shift handover checklists.</li>
+          <li>Track exception statuses &amp; request punch corrections in 1 tap (zero silent cuts).</li>
+          <li>Swap shifts strictly with verified unit coworkers &amp; review Net Naira earnings.</li>
+          <li>Submit an official Email Rectification Receipt (<code>SR-REC-*</code>) if pay details change.</li>
         </ol>
       </div>
     </div>
 
     <div class="stk-panel" id="stk-peer">
       <div>
-        <span class="mono-tag">PEER ID SCAN &amp; AUTO CLOCK-OUT WORKFLOW</span>
-        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Zero-Phone Attendance with Digital Staff ID Cards</h3>
+        <span class="mono-tag">3-STEP PEER ID + LIVE PASSPORT GUARDRAIL</span>
+        <h3 style="font-family:'Outfit',sans-serif; font-size:26px; margin:12px 0;">Zero-Phone Clock-In With Live Selfie vs. HR Passport Match</h3>
         <p style="color:var(--text-secondary); font-size:15px; margin-bottom:18px;">
-          Every onboarded worker receives a Digital Staff ID Card in ShiftRelay. Workers without smartphones simply have an onboarded colleague scan their Staff ID Card once per shift inside the ShiftRelay mobile app—and Auto Clock-Out handles shift completion automatically.
+          For workers without a smartphone or with a dead battery, any teammate opens the built-in Peer ID Scanner on the Clock-In page, verifies their live selfie against the worker&rsquo;s locked HR passport photo inside geofence bounds, and records shift handover acceptance.
         </p>
       </div>
       <div class="mock-card" style="margin:0;">
-        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#fde68a; margin-bottom:10px;">PEER SCAN &amp; AUTO CLOCK-OUT PROTOCOL</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#fde68a; margin-bottom:10px;">GUIDED 3-STEP PEER SCANNER PROTOCOL</div>
         <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
-          <li>Employer onboards company roster and issues signed Digital Staff ID Cards.</li>
-          <li>On-site colleague opens Peer ID Scanner inside the ShiftRelay mobile app.</li>
-          <li>Scans worker's Staff ID Card (or verifies Employee ID) to clock in once per shift.</li>
-          <li>Supervisor list view updates live with peer-verified timestamp and audit badge.</li>
-          <li>Auto Clock-Out closes open shifts automatically when the shift window completes.</li>
+          <li>Step 1 (ID Verification): Scan colleague&rsquo;s rotating Digital Staff ID Card token.</li>
+          <li>Step 2 (Biometric + GPS): Capture live selfie compared against locked HR passport file.</li>
+          <li>Anti-Proxy Lock: Mismatched faces fail biometric threshold immediately (audit logged).</li>
+          <li>Step 3 (Handover &amp; Safety): Colleague accepts shift handover &amp; mandatory daily checklist.</li>
+          <li>Worker closes shift on peer exit scan or automated shift-end policy completion.</li>
         </ol>
       </div>
     </div>
@@ -1191,7 +1379,7 @@
               <button type="button" class="btn-primary-emerald" style="padding:9px 14px;" onclick="window.updateShowcaseYoutubeUrl()">Save</button>
             </div>
             <div id="sr-yt-saved-toast" style="display:none; color:var(--emerald); font-size:12px; margin-top:6px;">
-              ✓ Walkthrough video link updated!
+              Walkthrough video link updated.
             </div>
           </div>
         </div>
@@ -1207,29 +1395,29 @@
       <span class="section-eyebrow">PRODUCTION CLOUD &amp; EMAIL INFRASTRUCTURE</span>
       <h2>Partitioned for Enterprise Hosting &amp; Automated Email Routing</h2>
       <p>
-        ShiftRelay is architected into clean, isolated deployment surfaces with a built-in <strong>Email Auto-Station Engine</strong> for support receipts, security OTPs, and statutory payroll dispatches.
+        ShiftRelay OS is architected into clean, isolated deployment surfaces with a built-in <strong>Email Auto-Station Engine</strong> for support receipts, security OTPs, and statutory payroll dispatches.
       </p>
     </div>
 
     <div class="partition-grid">
       <div class="partition-card">
-        <span class="partition-domain">shiftrelay.com</span>
+        <span class="partition-domain">shiftrelayos.com</span>
         <h3 style="font-size:17px; font-weight:700; margin-bottom:6px;">Public Corporate SaaS Site</h3>
         <p style="font-size:13px; color:var(--text-secondary);">
-          Zero public login surface. Handles enterprise discovery, architecture walkthroughs, legal/NDPR governance, and routes demo leads to the Admin Block.
+          Zero public login surface. Handles enterprise discovery, architecture walkthroughs, legal/NDPA governance, and routes demo leads to the Admin Block.
         </p>
       </div>
 
       <div class="partition-card">
-        <span class="partition-domain" style="color:var(--sky);">app.shiftrelay.com</span>
+        <span class="partition-domain" style="color:var(--sky);">app.shiftrelayos.com</span>
         <h3 style="font-size:17px; font-weight:700; margin-bottom:6px;">Role-Aware Mobile Workspace</h3>
         <p style="font-size:13px; color:var(--text-secondary);">
-          Single PWA serving Workers, Supervisors, Executives, and built-in Colleague Peer ID Card scanning—eliminating dedicated hardware kiosks.
+          Single PWA &amp; Native App serving Workers, Supervisors, Executives, and built-in 3-Step Peer ID Card scanning—eliminating dedicated hardware kiosks.
         </p>
       </div>
 
       <div class="partition-card">
-        <span class="partition-domain" style="color:#fde68a;">admin.shiftrelay.com</span>
+        <span class="partition-domain" style="color:#fde68a;">admin.shiftrelayos.com</span>
         <h3 style="font-size:17px; font-weight:700; margin-bottom:6px;">Sovereign &amp; Staff Admin Block</h3>
         <p style="font-size:13px; color:var(--text-secondary);">
           Separates Onboarding, Support Rectification, and Finance Auditors by task while reserving Master Approvals &amp; SaaS Treasury strictly for the Owner.
@@ -1237,36 +1425,36 @@
       </div>
 
       <div class="partition-card">
-        <span class="partition-domain" style="color:#c4b5fd;">mail.shiftrelay.com</span>
+        <span class="partition-domain" style="color:#c4b5fd;">mail.shiftrelayos.com</span>
         <h3 style="font-size:17px; font-weight:700; margin-bottom:6px;">Email Auto-Station Engine</h3>
         <p style="font-size:13px; color:var(--text-secondary);">
-          Automated transactional dispatch for `support@`, `onboarding@`, `finance@`, and `security@shiftrelay.com` (Rectification Receipts, Security OTPs, Payslips).
+          Automated transactional dispatch for <code>support@</code>, <code>onboarding@</code>, <code>notifications@</code>, <code>finance@</code>, <code>dpo@</code>, <code>legal@</code> &amp; <code>security@shiftrelayos.com</code>.
         </p>
       </div>
     </div>
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       5B. SUNDAY LAUNCH PROMO HUB, INTERACTIVE ROI CALCULATOR & SOCIAL MEDIA MATRIX
+       5B. ENTERPRISE ROLLOUT PILOT HUB, INTERACTIVE ROI CALCULATOR & CHANNELS
        ═══════════════════════════════════════════════════════════════════════ -->
   <section class="container" id="sunday-launch-promo" style="padding-top:20px;">
     <div class="section-header">
-      <span class="section-eyebrow">RIFFMAX TECHNOLOGY LIMITED · SUNDAY LAUNCH &amp; GROWTH HUB</span>
-      <h2>Calculate Your Shift-Gap Savings &amp; Follow @ShiftRelayHQ</h2>
+      <span class="section-eyebrow">RIFFMAX TECHNOLOGY LIMITED &bull; ENTERPRISE ROLLOUT &amp; ROI HUB</span>
+      <h2>Calculate Your Shift-Gap Savings &amp; Connect With @ShiftRelayHQ</h2>
       <p>
-        See how much payroll leakage and shift-turnover downtime your facility eliminates with ShiftRelay, and connect with our official launch channels across every platform.
+        Estimate the payroll leakage, open-punch delays, and manual gate muster hours your facility eliminates with ShiftRelay OS.
       </p>
     </div>
 
     <div class="conversion-split" style="margin-bottom:24px;">
-      <!-- Interactive ROI & Shift-Loss Calculator (Tunde Bakare - RIFA-14) -->
+      <!-- Interactive ROI & Shift-Loss Calculator -->
       <div class="conversion-box" style="border-color:var(--border-emerald);">
         <span class="mono-tag">INTERACTIVE ROI &amp; PAYROLL SAVINGS CALCULATOR</span>
         <h3 style="font-family:'Outfit',sans-serif; font-size:24px; font-weight:800; margin:10px 0 8px;">
           Estimate Your Annual Facility Savings
         </h3>
         <p style="font-size:13.5px; color:var(--text-secondary); margin-bottom:18px;">
-          Adjust the sliders below for your shift workforce size and daily shift rotations to calculate prevented handover incidents and verified attendance savings.
+          Adjust the sliders below for your shift workforce size and daily shift rotations to calculate prevented handover gaps and verified attendance savings.
         </p>
 
         <div style="margin-bottom:16px;">
@@ -1302,22 +1490,22 @@
 
         <div style="padding:12px 14px; border-radius:12px; background:rgba(0,245,160,0.08); border:1px solid var(--border-emerald); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
           <span style="font-size:12.5px; color:#e2e8f0; display:inline-flex; align-items:center; gap:7px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3Z"/></svg>
-            <span><strong>Sunday Launch Offer:</strong> 30-Day Free Enterprise Pilot + Zero Hardware Cost Setup</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+            <span><strong>Enterprise Pilot Offer:</strong> 30-Day Guided Facility Rollout + Zero Hardware Cost Setup</span>
           </span>
-          <a href="#demo-request-section" class="btn-primary-emerald" style="padding:8px 14px; font-size:12px;">Claim Sunday Pilot →</a>
+          <a href="#demo-request-section" class="btn-primary-emerald" style="padding:8px 14px; font-size:12px;">Claim 30-Day Pilot →</a>
         </div>
       </div>
 
-      <!-- Official Social Media & Brand Kit Hub (Amara Okeke & Adanna Adeleke - RIFA-13) -->
+      <!-- Official Social Media & Brand Kit Hub -->
       <div class="conversion-box" style="border-color:var(--border-cyan); display:flex; flex-direction:column; justify-content:space-between;">
         <div>
-          <span class="mono-tag" style="color:var(--sky); border-color:var(--border-cyan); background:rgba(56,189,248,0.1);">OFFICIAL SOCIAL MEDIA CHANNELS · @SHIFTRELAYHQ</span>
+          <span class="mono-tag" style="color:var(--sky); border-color:var(--border-cyan); background:rgba(56,189,248,0.1);">OFFICIAL SOCIAL MEDIA CHANNELS &bull; @SHIFTRELAYHQ</span>
           <h3 style="font-family:'Outfit',sans-serif; font-size:24px; font-weight:800; margin:10px 0 8px;">
-            Connect With ShiftRelay by Riffmax Tech
+            Connect With ShiftRelay OS by Riffmax Tech
           </h3>
           <p style="font-size:13.5px; color:var(--text-secondary); margin-bottom:16px;">
-            Follow our official business accounts for frontline operations tips, live facility rollouts, and Sunday product drops:
+            Follow our official enterprise accounts for Nigerian statutory updates, frontline case studies, and feature announcements:
           </p>
 
           <div class="social-links-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
@@ -1345,13 +1533,13 @@
         </div>
 
         <div style="padding:14px; border-radius:12px; background:rgba(255,255,255,0.03); border:1px solid var(--border-hairline);">
-          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald); margin-bottom:6px;">SUNDAY VIRAL LAUNCH ANNOUNCEMENT</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald); margin-bottom:6px;">SHAREABLE ENTERPRISE LAUNCH BRIEF</div>
           <p id="sr-launch-post-copy" style="font-size:12px; color:#cbd5e1; margin-bottom:10px; line-height:1.45;">
-            Introducing ShiftRelay by Riffmax Technology Limited! No more buried WhatsApp voice notes or paper logbooks at shift change. Voice-to-text AI handovers, Digital Staff ID &amp; Peer Scan attendance, auto clock-out, and PenCom/PAYE payroll in one OS. Claim your 30-day free pilot at shiftrelay.com #ShiftRelay #FutureOfWork
+            Introducing ShiftRelay OS by Riffmax Technology Limited! Eliminate buried WhatsApp handovers and manual gate musters with 3-Step Peer ID + Live Selfie vs. HR Passport checks, Dayforce attendance policies, automated shift reminders, and Nigerian PenCom/PAYE payroll. Claim your 30-day pilot at shiftrelayos.com #ShiftRelayOS #WorkforceOps
           </p>
           <button type="button" class="btn-outline" id="sr-copy-launch-post-btn" onclick="window.copySundayLaunchPost()" style="width:100%; justify-content:center; font-size:12px; padding:8px 12px; display:inline-flex; align-items:center; gap:7px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-            <span id="sr-copy-launch-post-label">Copy Sunday Launch Post for Social Media</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span id="sr-copy-launch-post-label">Copy Enterprise Rollout Brief</span>
           </button>
         </div>
       </div>
@@ -1448,34 +1636,67 @@
           <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
             <div class="mock-card" style="margin:0;">
               <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">01 // ONBOARDING &amp; IMPLEMENTATION DESK</div>
-              <strong style="font-size:15px;">onboarding@shiftrelay.com</strong>
+              <strong style="font-size:15px;">onboarding@shiftrelayos.com</strong>
               <div style="font-size:12.5px; color:var(--text-secondary);">Tenant setup, CSV roster imports &amp; Digital Staff ID provisioning</div>
             </div>
 
             <div class="mock-card" style="margin:0;">
               <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">02 // WORKER RECTIFICATION &amp; SUPPORT STATION</div>
-              <strong style="font-size:15px;">support@shiftrelay.com</strong>
-              <div style="font-size:12.5px; color:var(--text-secondary);">Automated `RECT-*` receipt verification &amp; 24/7 tenant SLA desk</div>
+              <strong style="font-size:15px;">support@shiftrelayos.com</strong>
+              <div style="font-size:12.5px; color:var(--text-secondary);">Automated <code>SR-REC-*</code> receipt verification &amp; 24/7 tenant SLA desk</div>
             </div>
 
             <div class="mock-card" style="margin:0;">
               <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#c4b5fd;">03 // FINANCE, PENCOM &amp; LEGAL COMPLIANCE</div>
-              <strong style="font-size:15px;">finance@shiftrelay.com • legal@shiftrelay.com</strong>
-              <div style="font-size:12.5px; color:var(--text-secondary);">Statutory payroll schedules, NDPA/NDPR audits &amp; enterprise SLAs</div>
+              <strong style="font-size:15px;">finance@shiftrelayos.com &bull; legal@shiftrelayos.com &bull; dpo@shiftrelayos.com</strong>
+              <div style="font-size:12.5px; color:var(--text-secondary);">Statutory payroll schedules, NDPA/NDPR biometric audits &amp; enterprise SLAs</div>
             </div>
           </div>
         </div>
 
         <div id="legal-center" style="padding:18px; border-radius:14px; background:rgba(255,255,255,0.03); border:1px solid var(--border-hairline);">
-          <div style="font-size:13px; font-weight:700; margin-bottom:6px;">Unified Legal Documents (Linked with Mobile App)</div>
+          <div style="font-size:13px; font-weight:700; margin-bottom:6px;">Enterprise Trust &amp; Legal Center + Free Statutory Tools</div>
           <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:12px;">
-            Review our Terms of Service, Digital ID Security Charter, and NDPA Biometric Privacy Policy:
+            Review our NDPA 2023 Data Processing Addendum (DPA), Terms, SLA, Acceptable Use &amp; CBN Boundary, Live Status, or run free Nigeria PAYE &amp; PenCom calculations:
           </p>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <a href="/terms.html" class="btn-outline" style="font-size:12px; padding:7px 13px;">Terms of Service →</a>
-            <a href="/privacy.html" class="btn-outline" style="font-size:12px; padding:7px 13px;">Privacy &amp; NDPR Policy →</a>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="/trust.html" class="btn-outline" style="font-size:12px; padding:7px 12px; border-color:var(--border-emerald); color:var(--emerald);">Trust &amp; Legal Center →</a>
+            <a href="/dpa.html" class="btn-outline" style="font-size:12px; padding:7px 12px;">NDPA 2023 DPA →</a>
+            <a href="/calculator.html" class="btn-outline" style="font-size:12px; padding:7px 12px;">PAYE &amp; PenCom Calculator →</a>
+            <a href="/status.html" class="btn-outline" style="font-size:12px; padding:7px 12px;">Live System Status →</a>
+            <a href="/terms.html" class="btn-outline" style="font-size:12px; padding:7px 12px;">Terms →</a>
+            <a href="/privacy.html" class="btn-outline" style="font-size:12px; padding:7px 12px;">Privacy →</a>
+            <a href="/delete-account.html" class="btn-outline" style="font-size:12px; padding:7px 12px;">Delete Account →</a>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Automated Workforce & Statutory Brief Newsletter Subscription Bar -->
+    <div id="newsletter-brief-section" style="margin-top:28px; padding:26px 28px; border-radius:20px; background:linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.07)); border:1px solid var(--border-emerald);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap;">
+        <div style="max-width:480px;">
+          <span class="section-eyebrow" style="color:var(--emerald);">MONTHLY NIGERIA STATUTORY &amp; OPS DISPATCH</span>
+          <h3 style="font-family:'Outfit',sans-serif; font-size:22px; font-weight:800; margin:4px 0 6px;">ShiftRelay OS Workforce &amp; Statutory Brief</h3>
+          <p style="font-size:13.5px; color:var(--text-secondary);">Not ready for a full pilot? Receive monthly PenCom PRA 2014 &amp; Finance Act PAYE reminders, bank CSV templates, and frontline shift ops benchmarks. NDPA 2023 opt-in with instant one-click unsubscribe.</p>
+        </div>
+        <form id="sr-newsletter-signup-form" onsubmit="window.submitPublicNewsletter(event)" style="flex:1; min-width:290px; max-width:660px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:grid; grid-template-columns:1.3fr 1fr auto; gap:10px;" class="sr-nws-grid">
+            <input type="email" id="nws-email" required placeholder="Work Email (e.g., hr@company.ng)" style="background:#060c18; border:1px solid #1e293b; border-radius:10px; padding:11px 13px; color:#fff; font-size:13.5px;" />
+            <select id="nws-segment" style="background:#060c18; border:1px solid #1e293b; border-radius:10px; padding:11px 12px; color:#fff; font-size:13px;">
+              <option value="hr_payroll">HR &amp; Payroll / PenCom</option>
+              <option value="operations">Operations &amp; Shift Leads</option>
+              <option value="executive">Executive / Finance</option>
+              <option value="general">General Brief</option>
+            </select>
+            <button type="submit" id="nws-submit-btn" class="btn-primary-emerald" style="padding:11px 18px; white-space:nowrap;">Subscribe Brief →</button>
+          </div>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#cbd5e1; cursor:pointer;">
+            <input type="checkbox" id="nws-consent" required />
+            <span>I give explicit consent under NDPA 2023 to receive monthly ShiftRelay OS statutory &amp; workforce updates (one-click unsubscribe anytime).</span>
+          </label>
+          <div id="nws-feedback" style="display:none; font-size:12.5px; font-weight:700; color:var(--emerald);"></div>
+        </form>
       </div>
     </div>
   </section>
@@ -1487,49 +1708,65 @@
     <div class="footer-grid">
       <div>
         <a href="/website.html" class="brand-lockup" style="margin-bottom:14px;">
-          <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay Logo" class="brand-mark-static" />
+          <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay OS Logo" class="brand-mark-static" />
           <div>
-            <div class="brand-wordmark">Shift<span>Relay</span></div>
-            <span class="brand-sub-domain">SHIFTRELAY.COM</span>
+            <div class="brand-wordmark">Shift<span>Relay OS</span></div>
+            <span class="brand-sub-domain">SHIFTRELAYOS.COM</span>
           </div>
         </a>
         <p style="font-size:13px; color:var(--text-secondary); max-width:320px;">
-          Riffmax Technology Limited. Enterprise shift handovers, Digital Staff ID &amp; peer attendance, auto clock-out, and automated statutory payroll.
+          Riffmax Technology Limited. Enterprise shift handovers, 3-step Peer ID &amp; biometric gate attendance, automated reminders, and statutory payroll.
         </p>
       </div>
 
       <div class="footer-col">
-        <h4>Platform</h4>
+        <h4>Platform &amp; Tools</h4>
         <a href="#platform-bento">Bento Architecture</a>
-        <a href="#how-it-works">How It Works</a>
-        <a href="#video-showcase">Product Showcase</a>
-        <a href="#hosting-architecture">Cloud &amp; Email Auto-Station</a>
+        <a href="/calculator.html">Nigeria PAYE &amp; PenCom Calculator</a>
+        <a href="/pricing.html">Pricing &amp; Rollout Plans</a>
+        <a href="/healthcare.html">Healthcare &amp; Hospitals</a>
+        <a href="/manufacturing.html">Factories &amp; Manufacturing</a>
+        <a href="/logistics.html">Logistics &amp; Fleets</a>
       </div>
 
       <div class="footer-col">
-        <h4>Legal &amp; Compliance</h4>
-        <a href="/terms.html">Terms of Service &amp; SLA</a>
-        <a href="/privacy.html">Privacy &amp; NDPR Policy</a>
-        <a href="/terms.html#clause-2">Digital ID &amp; Peer Scan Terms</a>
-        <a href="/terms.html#clause-5">PenCom &amp; PAYE Charter</a>
+        <h4>Trust &amp; Legal Center</h4>
+        <a href="/trust.html">Trust &amp; Legal Hub</a>
+        <a href="/terms.html">Terms of Service &amp; MSA</a>
+        <a href="/privacy.html">Privacy &amp; NDPA 2023 Policy</a>
+        <a href="/dpa.html">Data Processing Addendum (DPA)</a>
+        <a href="/sla.html">Uptime SLA &amp; Offline Continuity</a>
+        <a href="/acceptable-use.html">Acceptable Use &amp; CBN Boundary</a>
+        <a href="/cookies.html">Strictly Necessary Cookies</a>
+        <a href="/delete-account.html">Account &amp; Biometric Deletion</a>
       </div>
 
       <div class="footer-col">
-        <h4>Portals</h4>
-        <a href="/admin">Sovereign &amp; Staff Web Admin</a>
-        <a href="/">Open ShiftRelay Web &amp; Mobile App</a>
-        <a href="#demo-request-section">Request an Enterprise Demo</a>
-        <a href="#contact-desk">Contact Enterprise Desk</a>
+        <h4>Portals &amp; Telemetry</h4>
+        <a href="/status.html">Live System Status</a>
+        <a href="https://admin.shiftrelayos.com">Sovereign &amp; Staff Web Admin</a>
+        <a href="https://app.shiftrelayos.com">Open ShiftRelay OS App Portal</a>
+        <a href="#newsletter-brief-section">Workforce &amp; Statutory Brief</a>
+        <a href="#demo-request-section">Request 30-Day Pilot</a>
       </div>
     </div>
 
     <div style="max-width:1320px; margin:40px auto 0; padding-top:24px; border-top:1px solid var(--border-hairline); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:12.5px; color:var(--text-muted);">
-      <span>© 2026 Riffmax Technology Limited (shiftrelay.com). All rights reserved.</span>
-      <span>ISO/IEC 27001 • NDPA 2023 • PenCom PRA 2014 Compliant</span>
+      <span>© 2026 Riffmax Technology Limited (shiftrelayos.com). All rights reserved.</span>
+      <span>ISO/IEC 27001 Security Controls Aligned &bull; NDPA 2023 &bull; PenCom PRA 2014 Compliant</span>
     </div>
   </footer>
 
   <script>
+    window.toggleWebMobileNav = function (forceState) {
+      const drawer = document.getElementById('sr-web-mobile-nav');
+      const btn = document.getElementById('sr-web-menu-btn');
+      if (!drawer) return;
+      const open = typeof forceState === 'boolean' ? forceState : !drawer.classList.contains('open');
+      drawer.classList.toggle('open', open);
+      if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+
     // 1. Hero Product Window Tab Switcher
     window.switchHeroPane = function (paneId) {
       document.querySelectorAll('.arch-pane').forEach(p => p.classList.remove('active'));
@@ -1645,14 +1882,89 @@
         navigator.clipboard.writeText(text).catch(() => {});
       }
       if (btn && lbl) {
-        lbl.textContent = '✓ Launch Post Copied! Ready to Paste on LinkedIn, X & Instagram';
+        lbl.textContent = 'Copied! Ready to Paste on LinkedIn, X & Instagram';
         btn.style.borderColor = 'var(--emerald)';
         btn.style.color = 'var(--emerald)';
         setTimeout(() => {
-          lbl.textContent = 'Copy Sunday Launch Post for Social Media';
+          lbl.textContent = 'Copy Enterprise Rollout Brief';
           btn.style.borderColor = '';
           btn.style.color = '';
         }, 3500);
+      }
+    };
+
+    let srPublicWhatsAppDesk = null;
+    fetch('/api/config').then(r => r.ok ? r.json() : null).then(cfg => {
+      if (cfg && cfg.whatsappDesk && cfg.whatsappDesk.configured) {
+        srPublicWhatsAppDesk = cfg.whatsappDesk;
+      }
+    }).catch(() => {});
+
+    window.setMiniExceptionDemo = function (stateKey) {
+      const states = {
+        pending: {
+          badge: 'MISSED CLOCK-IN ALERT',
+          status: 'Automated reminder sent at 07:45 & 08:11 WAT. Pay held provisionally until supervisor acts:',
+          deduction: '-₦11,363.64 (1 Day Held Pending Review)',
+          statutory: 'PenCom ₦28,636.36 (8%/10%) · PAYE ₦17,910.22',
+          net: '₦197,385.11'
+        },
+        pardoned: {
+          badge: 'SUPERVISOR PARDONED (100% PAY)',
+          status: 'Supervisor verified peer gate handover note and pardoned exception — full pay restored with zero variance:',
+          deduction: '₦0.00 Deduction (Pardoned Within Audit Trail)',
+          statutory: 'PenCom ₦30,000.00 (8%/10%) · PAYE ₦19,122.73',
+          net: '₦206,752.27'
+        },
+        unexcused: {
+          badge: 'MARKED UNEXCUSED (-1 SHIFT)',
+          status: 'Supervisor logged mandatory reason for unexcused absence. Proportional 1-day deduction synced once to payroll:',
+          deduction: '-₦11,363.64 (Single-Source Unexcused Deduction)',
+          statutory: 'PenCom ₦28,636.36 (8%/10%) · PAYE ₦17,910.22',
+          net: '₦197,385.11'
+        }
+      };
+      const s = states[stateKey] || states.pending;
+      const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      setTxt('sr-demo-exc-badge', s.badge);
+      setTxt('sr-demo-exc-status', s.status);
+      setTxt('sr-mini-deduction', s.deduction);
+      setTxt('sr-mini-statutory', s.statutory);
+      setTxt('sr-mini-net', s.net);
+      document.getElementById('sr-mini-btn-pending')?.classList.toggle('active', stateKey === 'pending');
+      document.getElementById('sr-mini-btn-pardon')?.classList.toggle('active', stateKey === 'pardoned');
+      document.getElementById('sr-mini-btn-unexcused')?.classList.toggle('active', stateKey === 'unexcused');
+    };
+
+    window.submitPublicNewsletter = async function (e) {
+      e.preventDefault();
+      const btn = document.getElementById('nws-submit-btn');
+      const feedback = document.getElementById('nws-feedback');
+      const email = document.getElementById('nws-email')?.value?.trim() || '';
+      const roleSegment = document.getElementById('nws-segment')?.value || 'hr_payroll';
+      const consent = Boolean(document.getElementById('nws-consent')?.checked);
+      if (btn) { btn.disabled = true; btn.textContent = 'Subscribing...'; }
+      try {
+        const res = await fetch('/api/newsletter/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, roleSegment, consent, consentSource: 'website_brief' })
+        });
+        const data = await res.json();
+        if (feedback) {
+          feedback.style.display = 'block';
+          feedback.style.color = res.ok ? 'var(--emerald)' : '#fda4af';
+          feedback.textContent = data.message || data.error || 'Subscription updated.';
+        }
+        if (res.ok) document.getElementById('sr-newsletter-signup-form')?.reset();
+      } catch (err) {
+        if (feedback) {
+          feedback.style.display = 'block';
+          feedback.style.color = '#fda4af';
+          feedback.textContent = 'Network error submitting subscription. Please try again.';
+        }
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Subscribe Brief →'; }
       }
     };
 
@@ -1680,13 +1992,27 @@
         const data = await res.json();
         if (banner) {
           banner.style.display = 'block';
-          banner.textContent = data.message || '✓ Demo request logged! Auto-confirmation dispatched and routed to the Admin Onboarding Queue.';
+          banner.innerHTML = '';
+          const msgDiv = document.createElement('div');
+          msgDiv.textContent = data.message || 'Demo request logged! Auto-confirmation dispatched and routed to the Admin Onboarding Queue.';
+          banner.appendChild(msgDiv);
+          if (srPublicWhatsAppDesk && srPublicWhatsAppDesk.waBaseUrl) {
+            const waText = `Hello ShiftRelay OS Implementation Desk, we just submitted an enterprise pilot request for ${payload.companyName} (${payload.headcount} staff, ${payload.industry}). Contact email: ${payload.workEmail}.`;
+            const waLink = document.createElement('a');
+            waLink.href = `${srPublicWhatsAppDesk.waBaseUrl}?text=${encodeURIComponent(waText)}`;
+            waLink.target = '_blank';
+            waLink.rel = 'noopener noreferrer';
+            waLink.className = 'btn-primary-emerald';
+            waLink.style.cssText = 'margin-top:10px;display:inline-flex;align-items:center;gap:8px;padding:9px 15px;font-size:12.5px;text-decoration:none;';
+            waLink.textContent = 'Message Implementation Desk on WhatsApp →';
+            banner.appendChild(waLink);
+          }
         }
         document.getElementById('sr-public-demo-form').reset();
       } catch (_) {
         if (banner) {
           banner.style.display = 'block';
-          banner.textContent = '✓ Request recorded and queued for ShiftRelay Implementation Desk.';
+          banner.textContent = 'Request recorded and queued for ShiftRelay OS Implementation Desk.';
         }
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'Submit Enterprise Demo Request →'; }

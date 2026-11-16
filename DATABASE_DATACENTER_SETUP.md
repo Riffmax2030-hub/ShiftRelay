@@ -123,7 +123,7 @@ S3_REGION=auto
 S3_BUCKET=shiftrelay-media-production
 S3_ACCESS_KEY_ID=r2_access_key_placeholder
 S3_SECRET_ACCESS_KEY=r2_secret_key_placeholder
-CDN_PUBLIC_DOMAIN=https://media.shiftrelay.io
+CDN_PUBLIC_DOMAIN=https://media.shiftrelayos.com
 
 # AI Shift Summarizer & Handover Parsing
 OPENAI_API_KEY=sk-proj-your-production-openai-key

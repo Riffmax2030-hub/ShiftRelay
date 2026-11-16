@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NDPA 2023 Data Processing Addendum (DPA) | ShiftRelay OS</title>
+  <link rel="canonical" href="https://shiftrelayos.com/dpa.html" />
+  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#050a14; --card:rgba(15,25,48,0.74); --border:rgba(255,255,255,0.08); --em:#00f5a0; --sky:#38bdf8; --text:#f8fafc; --muted:#94a3b8; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); line-height:1.7; }
+    .legal-nav { position:sticky; top:0; z-index:90; background:rgba(5,10,20,0.92); backdrop-filter:blur(18px); border-bottom:1px solid var(--border); padding:15px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:#fff; font-family:'Outfit',sans-serif; font-weight:800; font-size:19px; }
+    .nav-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .pill { padding:7px 14px; border-radius:999px; font-size:13px; font-weight:600; text-decoration:none; color:var(--muted); border:1px solid var(--border); }
+    .pill.active { color:#fff; border-color:rgba(0,245,160,0.35); background:rgba(0,245,160,0.08); }
+    .pill.primary { background:linear-gradient(135deg,#10b981,#059669); color:#fff; border:none; }
+    main { max-width:960px; margin:0 auto; padding:44px 20px 80px; }
+    .hero { background:var(--card); border:1px solid rgba(0,245,160,0.28); border-radius:20px; padding:34px; margin-bottom:28px; }
+    h1 { font-family:'Outfit',sans-serif; font-size:34px; font-weight:900; margin:10px 0; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:26px; margin-bottom:18px; }
+    .num { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--em); font-weight:700; letter-spacing:.08em; }
+    h2 { font-family:'Outfit',sans-serif; font-size:20px; margin:6px 0 10px; }
+    p, li { color:#cbd5e1; font-size:14.5px; }
+    ul { padding-left:20px; margin-top:8px; display:grid; gap:8px; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:13px; }
+    th, td { padding:10px; border-bottom:1px solid var(--border); text-align:left; }
+    th { color:var(--em); font-size:11px; text-transform:uppercase; }
+  </style>
+</head>
+<body>
+  <header class="legal-nav">
+    <a href="/website.html" class="brand"><img src="/assets/logos/logo-brand-motion.svg?v=130" width="34" height="34" alt="" />ShiftRelay <span style="color:var(--em);">OS</span></a>
+    <nav class="nav-actions">
+      <a href="/trust.html" class="pill">Trust Center</a>
+      <a href="/terms.html" class="pill">Terms</a>
+      <a href="/privacy.html" class="pill">Privacy</a>
+      <a href="/dpa.html" class="pill active">DPA</a>
+      <a href="/api/reports/dpa" target="_blank" class="pill primary">Printable / PDF DPA ↗</a>
+    </nav>
+  </header>
+  <main>
+    <section class="hero">
+      <span class="num">NDPA 2023 SECTION 29 PROCESSOR INSTRUMENT · VERSION 2026.11-DPA</span>
+      <h1>Data Processing Addendum (DPA)</h1>
+      <p>Executed between the Subscribed Employer (<strong>Data Controller</strong>) and <strong>Riffmax Technology Limited</strong> operating <strong>ShiftRelay OS</strong> (<strong>Data Processor</strong>). Aligned with the Nigeria Data Protection Act (NDPA 2023) and Nigerian Labour Act.</p>
+      <div style="margin-top:18px; display:flex; gap:12px; flex-wrap:wrap;">
+        <a href="/api/reports/dpa" target="_blank" class="pill primary">Open Printable Signed DPA Instrument ↗</a>
+        <a href="/trust.html" class="pill">All Trust Documents</a>
+      </div>
+    </section>
+
+    <article class="card">
+      <span class="num">01 // ROLES &amp; LAWFUL BASIS</span>
+      <h2>Controller vs. Processor Responsibilities</h2>
+      <ul>
+        <li><strong>Data Controller:</strong> The onboarded Employer determines lawful bases for processing employee attendance, shift handovers, payroll inputs, PenCom RSA PINs, and NUBAN disbursement details.</li>
+        <li><strong>Data Processor:</strong> Riffmax Technology Limited processes personal data strictly on documented Controller instructions, never monetizes employee data, and never pools personnel across tenants.</li>
+        <li><strong>Governing Frameworks:</strong> NDPA 2023, Nigerian Labour Act (Cap L1 LFN 2004), PITA 2011 Finance Acts, and PenCom PRA 2014.</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <span class="num">02 // TECHNICAL &amp; ORGANISATIONAL CONTROLS</span>
+      <h2>Encryption, Tenant Isolation &amp; Security Posture</h2>
+      <p>ShiftRelay OS is <strong>ISO/IEC 27001 Security Controls Aligned</strong> across application and storage tiers:</p>
+      <ul>
+        <li><strong>In-Transit &amp; At-Rest Encryption:</strong> TLS 1.3 across all edge and API channels; AES-256 encryption on PostgreSQL volumes and document vaults.</li>
+        <li><strong>Strict Tenant Isolation:</strong> Every query scopes by authenticated <code>organisation_id</code> with role-based access control (RBAC) across Worker, Supervisor, Finance/HR, and Platform Admin surfaces.</li>
+        <li><strong>Point-of-Punch GPS Minimization:</strong> Geofence validation runs strictly during clock-in and clock-out events — zero background location collection off-shift.</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <span class="num">03 // INCIDENT SLA &amp; RETENTION</span>
+      <h2>72-Hour Breach Notification &amp; Termination Deletion</h2>
+      <ul>
+        <li><strong>72-Hour Notification SLA:</strong> Processor notifies Controller without undue delay and within 72 hours of confirming any security incident affecting Customer personal data, supporting NDPC reporting duties.</li>
+        <li><strong>Data Return &amp; Purge:</strong> Upon contract termination, Customer exports payroll ledgers, attendance exceptions, and audit logs in CSV/HTML format; active tenant operational records are purged or anonymized within 30 days, subject to 6-year Nigerian statutory tax retention rules where required by law.</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <span class="num">04 // AUTHORIZED SUB-PROCESSORS</span>
+      <h2>Sub-Processor Schedule</h2>
+      <table>
+        <thead><tr><th>Provider</th><th>Role</th><th>Region</th><th>Safeguard</th></tr></thead>
+        <tbody>
+          <tr><td>Cloudflare, Inc.</td><td>Edge TLS 1.3 &amp; WAF</td><td>Lagos PoP / Global</td><td>NDPA Cross-Border Clauses</td></tr>
+          <tr><td>Managed PostgreSQL</td><td>Tenant Relational Storage</td><td>EU / West Africa</td><td>AES-256 + TLS + RBAC</td></tr>
+          <tr><td>Mail Relay (SMTP/Resend)</td><td>SPF/DKIM/DMARC Email</td><td>Dedicated Relay</td><td>RFC 8058 Opt-Out Support</td></tr>
+          <tr><td>Termii / WhatsApp Cloud</td><td>Optional Shift Alerts</td><td>Nigeria / Meta Cloud</td><td>Worker Opt-Out Enforced</td></tr>
+        </tbody>
+      </table>
+    </article>
+  </main>
+</body>
+</html>

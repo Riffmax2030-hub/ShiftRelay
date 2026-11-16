@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync } from 'node:fs';
 import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { execFileSync, spawn } from 'node:child_process';
+import net from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { chromium } from 'playwright';
@@ -20,10 +21,24 @@ import {
 const { Pool } = pg;
 const USE_PG = process.argv.includes('--pg');
 const UNIT_ONLY = process.argv.includes('--unit');
-const PG_PORT = 54323;
+let PG_PORT = Number(process.env.SR_PG_PORT) || 55432;
 const PG_BIN = 'C:\\Program Files\\PostgreSQL\\18\\bin';
 const PG_DATA = join(process.env.TEMP || process.cwd(), 'disposable_pg_cluster_utf8');
-const PG_URL = `postgres://postgres@127.0.0.1:${PG_PORT}/postgres`;
+let PG_URL = `postgres://postgres@127.0.0.1:${PG_PORT}/postgres`;
+
+async function pickBindablePort(preferred) {
+  const tryBind = (port) => new Promise((resolve) => {
+    const srv = net.createServer();
+    srv.unref();
+    srv.once('error', () => resolve(null));
+    srv.listen(port, '127.0.0.1', () => {
+      const addr = srv.address();
+      const chosen = typeof addr === 'object' && addr ? addr.port : null;
+      srv.close(() => resolve(chosen));
+    });
+  });
+  return (await tryBind(preferred)) || (await tryBind(0)) || preferred;
+}
 
 const WIN_ARTIFACT_DIR = 'C:\\Users\\DATA ENG. OLA\\.gemini\\antigravity\\brain\\af65195c-f6f5-4f1b-843a-e3eb86a344fb';
 const ARTIFACT_DIR = process.env.SR_ARTIFACT_DIR || (process.platform === 'win32' && existsSync(WIN_ARTIFACT_DIR) ? WIN_ARTIFACT_DIR : join(tmpdir(), 'shiftrelay-verify-artifacts'));
@@ -249,6 +264,8 @@ async function main() {
 
   try {
     if (USE_PG) {
+      PG_PORT = await pickBindablePort(PG_PORT);
+      PG_URL = `postgres://postgres@127.0.0.1:${PG_PORT}/postgres`;
       console.log(`1b. Booting local PostgreSQL 18 cluster (${PG_DATA}) on port ${PG_PORT}...`);
       if (!existsSync(join(PG_DATA, 'PG_VERSION'))) {
         execFileSync(join(PG_BIN, 'initdb.exe'), ['-D', PG_DATA, '-U', 'postgres', '-A', 'trust', '-E', 'UTF8', '--no-locale'], { stdio: 'inherit' });
@@ -259,7 +276,7 @@ async function main() {
       pgPool = new Pool({ connectionString: PG_URL, max: 5 });
       const pgReady = await waitForPg(pgPool);
       if (!pgReady) throw new Error(`PostgreSQL 18 did not become ready on port ${PG_PORT}`);
-      for (const tbl of ['user_sessions', 'time_entries', 'app_kv_store', 'work_events', 'work_items', 'audit_events']) {
+      for (const tbl of ['user_sessions', 'time_entries', 'attendance_exceptions', 'reminder_dispatches', 'scheduled_shifts', 'leave_requests', 'notifications', 'app_kv_store', 'work_events', 'work_items', 'audit_events']) {
         try { await pgPool.query(`DELETE FROM ${tbl}`); } catch (_) {}
       }
       console.log('   PostgreSQL 18 ready (production database mode).');
@@ -875,10 +892,19 @@ async function main() {
     const sitemapXml = await (await fetch(`${BASE_URL}/sitemap.xml`)).text();
     assert.ok(sitemapXml.includes('<urlset') && sitemapXml.includes('/website.html'));
 
-    const marketingHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'shiftrelay.com' } })).text();
-    assert.ok(marketingHostHome.includes('ShiftRelay | Digital Staff ID'), 'Apex domain should serve website.html on /');
-    const adminHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'admin.shiftrelay.com' } })).text();
-    assert.ok(adminHostHome.includes('ShiftRelay Web Admin'), 'admin subdomain should serve admin.html on /');
+    const marketingHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'shiftrelayos.com' } })).text();
+    assert.ok(marketingHostHome.includes('ShiftRelay OS'), 'Apex domain should serve website.html on /');
+    const wwwHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'www.shiftrelayos.com' } })).text();
+    assert.ok(wwwHostHome.includes('ShiftRelay OS'), 'www subdomain should serve website.html on /');
+    const appHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'app.shiftrelayos.com' } })).text();
+    assert.ok(appHostHome.includes('ShiftRelay OS') && appHostHome.includes('sr-login-modal'), 'app subdomain should serve index.html on /');
+    const adminHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'admin.shiftrelayos.com' } })).text();
+    assert.ok(adminHostHome.includes('ShiftRelay OS Web Admin'), 'admin subdomain should serve admin.html on /');
+
+    for (const verifyPath of ['/verify/ledger/RIF-2026/2026-11', '/verify/worker/RIF-0001', '/verify/SR-CERT-2026']) {
+      const verifyRes = await fetch(`${BASE_URL}${verifyPath}`);
+      assert.equal(verifyRes.status, 200, `Public verification route ${verifyPath} must return 200`);
+    }
 
     console.log('7. Testing Biometric HR Passport Enrollment, Executive Add-Staff & Daily Safety Checklists...');
     const PASSPORT_TEST_IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
@@ -993,6 +1019,358 @@ async function main() {
     await adminUiPage.waitForSelector('#ob-checklists-panel', { state: 'attached', timeout: 8000 });
     await adminUiPage.waitForSelector('#csv-checklist-items', { state: 'attached', timeout: 8000 });
     await execUiContext.close();
+
+    console.log('8. Testing Dayforce Attendance Policy, Exceptions, Watchdog Reminders, Payroll Sync & Mobile 390x844 Walkthrough...');
+    // 8a) Non-manager 403 isolation across payroll, contracts, reminders, team scores & exception resolution
+    for (const [m, p, b] of [
+      ['GET', '/api/contracts', null],
+      ['POST', '/api/payroll/compile', {}],
+      ['POST', '/api/payroll/dispatch', {}],
+      ['GET', '/api/timesheets/pending-authorizations', null],
+      ['POST', '/api/settlements/paystack-transfer', { amountNgn: 5000 }],
+      ['GET', '/api/shift-scores/team', null],
+      ['POST', '/api/reminders/run-watchdog', {}],
+      ['POST', '/api/attendance/exceptions/ex-fake/resolve', { decision: 'pardon', reason: 'Attempted self pardon' }]
+    ]) {
+      const isolatedRes = await apiJson(p, babatunde2.cookie, b ? { method: m, body: b } : { method: m });
+      assert.equal(isolatedRes.status, 403, `Worker must receive 403 on ${m} ${p}, got ${isolatedRes.status}`);
+    }
+
+    // Activate freshly created staff member Ngozi & verify isolated /api/earnings (no cross-user leak / dummy fallback)
+    const activationTokenMatch = String(execAddStaff.data.activationUrl || '').match(/token=([^&]+)/);
+    assert.ok(activationTokenMatch?.[1], 'Activation token must be generated for newly added staff');
+    const activateNgozi = await apiJson('/api/auth/activate', '', {
+      method: 'POST',
+      body: {
+        token: activationTokenMatch[1],
+        verificationCode: '1234',
+        newPassword: String.fromCharCode(82, 105, 102, 102, 109, 97, 120, 50, 48, 50, 54, 33)
+      }
+    });
+    assert.equal(activateNgozi.status, 200, `Failed to activate added worker: ${JSON.stringify(activateNgozi.data)}`);
+    const ngozi2 = await signInApi(uniqueNewEmail);
+    const ngoziEarnings = await apiJson('/api/earnings', ngozi2.cookie);
+    assert.equal(ngoziEarnings.status, 200);
+    assert.equal(ngoziEarnings.data.ok, true);
+    assert.equal(ngoziEarnings.data.statement?.grossPay, 185000, 'Newly created worker must see only their own provisioned ₦185,000 contract');
+    const ngoziPayslip = await apiJson('/api/worker-payslip', ngozi2.cookie);
+    assert.equal(ngoziPayslip.status, 200);
+    assert.equal(ngoziPayslip.data.payslip?.staffName, 'Ngozi Okeke', 'Worker payslip must belong strictly to signed-in worker');
+    assert.notEqual(ngoziPayslip.data.payslip?.staffName, babatunde2.user.name, 'Worker payslip must never leak colleague payslip');
+    const babatundeEarnings = await apiJson('/api/earnings', babatunde2.cookie);
+    assert.equal(babatundeEarnings.status, 200);
+    assert.equal(babatundeEarnings.data.ok, true);
+    const babatundePayslip = await apiJson('/api/worker-payslip', babatunde2.cookie);
+    assert.equal(babatundePayslip.status, 200);
+    assert.equal(babatundePayslip.data.payslip?.staffName, babatunde2.user.name, 'Babatunde /api/worker-payslip must stay scoped strictly to Babatunde');
+
+    // 8b) Employer Configurable Attendance Policy + Persistent Worker Policy Acknowledgement
+    const savePolicyRes = await apiJson('/api/organisation/attendance-policy', owner2.cookie, {
+      method: 'PUT',
+      body: {
+        graceMinutes: 15,
+        missedClockInAction: 'exception_review',
+        missedClockOutAction: 'exception_review',
+        earlyDepartureAction: 'exception_review',
+        lateArrivalDeductionMode: 'pro_rata_minutes',
+        reminderScheduleMinutes: [30, 15, 0, 20]
+      }
+    });
+    assert.equal(savePolicyRes.status, 200);
+    assert.equal(savePolicyRes.data.policy?.graceMinutes, 15);
+    assert.ok(savePolicyRes.data.policy?.policyVersion, 'Updated policy must stamp a policyVersion');
+
+    const farouk2 = await signInApi('farouk@riffmax.tech');
+    const faroukPolBefore = await apiJson('/api/organisation/attendance-policy', farouk2.cookie);
+    assert.equal(faroukPolBefore.status, 200);
+    assert.equal(faroukPolBefore.data.policyRequiresAck, true, 'Updated policy version must require fresh worker acknowledgement');
+
+    const ackBabatunde = await apiJson('/api/auth/acknowledge-policy', babatunde2.cookie, { method: 'POST', body: {} });
+    assert.equal(ackBabatunde.status, 200);
+    assert.equal(ackBabatunde.data.policyRequiresAck, false);
+    const sessionBabatunde = await apiJson('/api/auth/session', babatunde2.cookie);
+    assert.equal(sessionBabatunde.status, 200);
+    assert.equal(sessionBabatunde.data.user?.policyRequiresAck, false, 'Worker policy acknowledgement must persist across session fetches');
+
+    // 8c) Schedule a shift starting 25m ago for Ngozi (no clock-in today) -> Watchdog Idempotency & Missing-at-Shift-Start Queue
+    const nowMs = Date.now();
+    const ngoziShiftStart = new Date(nowMs - 25 * 60 * 1000).toISOString();
+    const ngoziShiftEnd = new Date(nowMs + 7 * 3600 * 1000).toISOString();
+    const schedNgoziShift = await apiJson('/api/calendar/shifts', owner2.cookie, {
+      method: 'POST',
+      body: { membershipId: execAddStaff.data.staff.id, startsAt: ngoziShiftStart, endsAt: ngoziShiftEnd }
+    });
+    assert.equal(schedNgoziShift.status, 201, `Scheduling test shift failed: ${JSON.stringify(schedNgoziShift.data)}`);
+
+    // Also schedule an unclocked shift earlier in this month for Babatunde (contracted worker) so exception payroll impact & 409 gate are tested end-to-end
+    const nowDate = new Date();
+    const sameMonthStartMs = nowDate.getUTCDate() > 2
+      ? Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth(), nowDate.getUTCDate() - 1, 7, 0, 0)
+      : nowMs - 40 * 60 * 1000;
+    const babatundeShiftEndMs = sameMonthStartMs + 8 * 3600 * 1000;
+    const schedBabatundeShift = await apiJson('/api/calendar/shifts', owner2.cookie, {
+      method: 'POST',
+      body: {
+        membershipId: babatunde2.user.id,
+        startsAt: new Date(sameMonthStartMs).toISOString(),
+        endsAt: new Date(babatundeShiftEndMs).toISOString()
+      }
+    });
+    assert.equal(schedBabatundeShift.status, 201, `Scheduling Babatunde exception shift failed: ${JSON.stringify(schedBabatundeShift.data)}`);
+
+    const watchdog1 = await apiJson('/api/reminders/run-watchdog', supervisor2.cookie, { method: 'POST', body: {} });
+    assert.equal(watchdog1.status, 200);
+    assert.equal(watchdog1.data.ok, true);
+    const watchdog2 = await apiJson('/api/reminders/run-watchdog', supervisor2.cookie, { method: 'POST', body: {} });
+    assert.equal(watchdog2.status, 200);
+    assert.equal(watchdog2.data.dispatchedCount, 0, 'Immediate second watchdog run must be idempotent and emit 0 duplicate alerts');
+
+    const excListBefore = await apiJson('/api/attendance/exceptions', supervisor2.cookie);
+    assert.equal(excListBefore.status, 200);
+    assert.ok(
+      (excListBefore.data.missingAtShiftStart || []).some(m => m.membershipId === execAddStaff.data.staff.id),
+      'Missing-at-Shift-Start queue must flag overdue unclocked worker past grace period'
+    );
+
+    // 8d) Punch Correction fixes requestedClockOut on shift date + Single-Source Exception Deduction + 409 Payroll Dispatch Gate
+    const faroukEntries = await apiJson('/api/time-entries', farouk2.cookie);
+    assert.equal(faroukEntries.status, 200);
+    const faroukEntry = faroukEntries.data.active || faroukEntries.data.entries?.[0];
+    assert.ok(faroukEntry?.id, 'Expected open time entry for Farouk');
+
+    // Cross-worker punch correction attempt blocked (403)
+    const hijackPunch = await apiJson('/api/timesheets/punch-correction', babatunde2.cookie, {
+      method: 'POST',
+      body: { timeEntryId: faroukEntry.id, requestedClockOut: '17:30', reason: 'Cross-worker attempt' }
+    });
+    assert.equal(hijackPunch.status, 403, 'Worker must not file punch corrections for another worker time entry');
+
+    const submitPunch = await apiJson('/api/timesheets/punch-correction', farouk2.cookie, {
+      method: 'POST',
+      body: { timeEntryId: faroukEntry.id, requestedClockOut: '17:30', reason: 'Gate scanner queue at shift close' }
+    });
+    assert.equal(submitPunch.status, 201);
+    const pendingCorrections = await apiJson('/api/timesheets/pending-authorizations', supervisor2.cookie);
+    assert.equal(pendingCorrections.status, 200);
+    const targetCorrection = (pendingCorrections.data.corrections || []).find(c => c.timeEntryId === faroukEntry.id);
+    assert.ok(targetCorrection?.id, 'Submitted punch correction must appear in supervisor pending queue');
+
+    const authCorrection = await apiJson('/api/timesheets/authorize', supervisor2.cookie, {
+      method: 'POST',
+      body: { correctionId: targetCorrection.id, decision: 'authorized', reason: 'Verified gate logbook departure 17:30' }
+    });
+    assert.equal(authCorrection.status, 200);
+    assert.ok(authCorrection.data.clockedOutAt, 'Authorized punch correction must apply clockedOutAt');
+    const authHourUtc = new Date(authCorrection.data.clockedOutAt).getUTCHours();
+    const authMinUtc = new Date(authCorrection.data.clockedOutAt).getUTCMinutes();
+    assert.equal(`${String(authHourUtc).padStart(2, '0')}:${String(authMinUtc).padStart(2, '0')}`, '16:30', '17:30 WAT (Africa/Lagos) must resolve cleanly to 16:30 UTC on the shift date');
+
+    // Test 409 UNRESOLVED_EXCEPTIONS gate + worker explain + resolve missing reason guard + pardon vs unexcused single deduction
+    const pendingExcList = await apiJson('/api/attendance/exceptions', supervisor2.cookie);
+    const pendingEx = (pendingExcList.data.exceptions || []).find(ex => ex.status === 'pending_review');
+    assert.ok(pendingEx?.id, 'Expected at least one pending_review attendance exception');
+
+    const blockedDispatch = await apiJson('/api/payroll/dispatch', owner2.cookie, { method: 'POST', body: {} });
+    assert.equal(blockedDispatch.status, 409, 'Payroll dispatch without override must return 409 when exceptions remain unresolved');
+    assert.equal(blockedDispatch.data.code, 'UNRESOLVED_EXCEPTIONS');
+
+    // Find Babatunde's missed/pending exception (or any contracted worker's exception) to verify single-source payroll math
+    const babatundeEx = (pendingExcList.data.exceptions || []).find(
+      ex => (ex.membershipId === babatunde2.user.id || ex.userId === babatunde2.user.user_id || ex.userId === babatunde2.user.id) && ex.status === 'pending_review'
+    ) || pendingEx;
+    const explainOwnerCookie = babatundeEx.membershipId === babatunde2.user.id ? babatunde2.cookie : supervisor2.cookie;
+    const explainRes = await apiJson(`/api/attendance/exceptions/${encodeURIComponent(babatundeEx.id)}/explain`, explainOwnerCookie, {
+      method: 'POST',
+      body: { explanation: 'Security perimeter verification delay at north gate' }
+    });
+    assert.equal(explainRes.status, 200);
+
+    const noReasonResolve = await apiJson(`/api/attendance/exceptions/${encodeURIComponent(babatundeEx.id)}/resolve`, supervisor2.cookie, {
+      method: 'POST',
+      body: { decision: 'pardon', reason: '' }
+    });
+    assert.equal(noReasonResolve.status, 400, 'Resolving an exception without a reason note must return 400');
+
+    const unexcusedRes = await apiJson(`/api/attendance/exceptions/${encodeURIComponent(babatundeEx.id)}/resolve`, supervisor2.cookie, {
+      method: 'POST',
+      body: { decision: 'unexcused', reason: 'Confirmed no prior supervisor notice' }
+    });
+    assert.equal(unexcusedRes.status, 200);
+    assert.equal(unexcusedRes.data.exception?.status, 'unexcused');
+
+    const payrollUnexcused = await apiJson('/api/payroll/summary', owner2.cookie);
+    assert.equal(payrollUnexcused.status, 200);
+    const babatundeRowUnexcused = payrollUnexcused.data.payroll.employees.find(e => e.userName === babatunde2.user.name || e.staffId === babatunde2.user.staffId);
+    assert.ok(babatundeRowUnexcused, 'Contracted worker row must exist in payroll summary');
+    assert.equal(babatundeRowUnexcused.attendanceDeductionDays, babatundeRowUnexcused.unexcusedAbsenceDays, 'Single-source payroll must not double-deduct open punch + exception days');
+    const deductionWhenUnexcused = Number(babatundeRowUnexcused.absenceDeduction || 0);
+
+    const pardonRes = await apiJson(`/api/attendance/exceptions/${encodeURIComponent(babatundeEx.id)}/resolve`, supervisor2.cookie, {
+      method: 'POST',
+      body: { decision: 'pardon', reason: 'Pardoned after gate log verification' }
+    });
+    assert.equal(pardonRes.status, 200);
+    assert.equal(pardonRes.data.exception?.status, 'pardoned');
+
+    const payrollPardoned = await apiJson('/api/payroll/summary', owner2.cookie);
+    const babatundeRowPardoned = payrollPardoned.data.payroll.employees.find(e => e.userName === babatunde2.user.name || e.staffId === babatunde2.user.staffId);
+    assert.ok(Number(babatundeRowPardoned.pardonedHours || 0) >= 0);
+    assert.ok(Number(babatundeRowPardoned.absenceDeduction || 0) <= deductionWhenUnexcused, 'Pardoning an exception must not increase deductions');
+
+    // Executive override dispatches cleanly even with remaining pending exception from Ngozi shift
+    const overrideDispatch = await apiJson('/api/payroll/dispatch', owner2.cookie, {
+      method: 'POST',
+      body: { acknowledgeUnresolvedExceptions: true, overrideReason: 'QA automated override test' }
+    });
+    assert.equal(overrideDispatch.status, 200);
+
+    // 8e) Mobile Viewport (390x844) Play Store Sign-In, Reload Persistence, Supervisor Muster & Executive Payroll Audit
+    const guestMobileCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const guestMobilePage = await guestMobileCtx.newPage();
+    const guestPageErrors = [];
+    guestMobilePage.on('pageerror', e => guestPageErrors.push(e.message));
+    await guestMobilePage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await guestMobilePage.waitForSelector('#sr-employer-provision-notice', { state: 'visible', timeout: 15000 });
+    const noticeText = await guestMobilePage.textContent('#sr-employer-provision-notice');
+    assert.ok(noticeText.includes('Company ID') && noticeText.includes('Request Company Pilot'), 'Sign-In screen must clearly guide workers to HR Company ID & pilot link');
+    assert.equal(guestPageErrors.length, 0, `Mobile Sign-In pageErrors: ${JSON.stringify(guestPageErrors)}`);
+    await guestMobileCtx.close();
+
+    // Farouk Mobile 390x844: Ack Policy Banner -> Reload Persistence -> Earnings View
+    const [fCookieName, fCookieVal] = farouk2.cookie.split('=');
+    const faroukMobCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const faroukMobPage = await faroukMobCtx.newPage();
+    const faroukPageErrors = [];
+    const faroukAckResponses = [];
+    faroukMobPage.on('pageerror', e => faroukPageErrors.push(e.message));
+    faroukMobPage.on('response', r => {
+      if (r.url().includes('/api/auth/acknowledge-policy')) {
+        faroukAckResponses.push(`${r.status()} ${r.url()}`);
+      }
+    });
+    await faroukMobCtx.addCookies([{ name: fCookieName, value: fCookieVal, domain: '127.0.0.1', path: '/' }]);
+    await faroukMobPage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await faroukMobPage.waitForSelector('#sr-btn-ack-attendance-policy', { state: 'visible', timeout: 15000 });
+    await faroukMobPage.click('#sr-btn-ack-attendance-policy');
+    try {
+      await faroukMobPage.waitForSelector('#sr-policy-ack-banner', { state: 'detached', timeout: 8000 });
+    } catch (waitErr) {
+      const btnText = await faroukMobPage.textContent('#sr-btn-ack-attendance-policy').catch(() => null);
+      const userDebug = await faroukMobPage.evaluate(() => ({
+        srStateRequiresAck: window._srState?.user?.policyRequiresAck,
+        activeRequiresAck: window._srActiveUser?.policyRequiresAck,
+        hasUiModule: Boolean(window.ShiftRelayAttendanceUI?.bindPolicyAckHandlers),
+        lsData: localStorage.getItem('shiftrelay-user-data')?.slice(0, 220)
+      })).catch(() => null);
+      throw new Error(`Policy banner did not detach (${waitErr.message}) | ackResponses=${JSON.stringify(faroukAckResponses)} | btnText=${JSON.stringify(btnText)} | pageErrors=${JSON.stringify(faroukPageErrors)} | userDebug=${JSON.stringify(userDebug)}`);
+    }
+    await faroukMobPage.reload({ waitUntil: 'domcontentloaded' });
+    await faroukMobPage.waitForSelector('#sr-btn-water-clock', { timeout: 15000 });
+    assert.equal(await faroukMobPage.locator('#sr-policy-ack-banner').count(), 0, 'Acknowledged policy banner must stay dismissed across page reload');
+    await faroukMobPage.click('.sr-mobile-dock [data-sr-view="earnings"]');
+    await faroukMobPage.waitForSelector('#sr-earnings-view-switch', { timeout: 10000 });
+    assert.equal(faroukPageErrors.length, 0, `Worker Mobile pageErrors: ${JSON.stringify(faroukPageErrors)}`);
+    await faroukMobCtx.close();
+
+    // Supervisor Mobile 390x844: Missing-at-Shift-Start Muster & Watchdog Button
+    const supMobCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const supMobPage = await supMobCtx.newPage();
+    const supPageErrors = [];
+    supMobPage.on('pageerror', e => supPageErrors.push(e.message));
+    await supMobCtx.addCookies([{ name: sCookieName, value: sCookieVal, domain: '127.0.0.1', path: '/' }]);
+    await supMobPage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await supMobPage.waitForSelector('#sr-sup-missing-muster-card', { timeout: 15000 });
+    await supMobPage.waitForSelector('#sr-btn-run-reminder-watchdog', { timeout: 8000 });
+    await supMobPage.click('#sr-btn-run-reminder-watchdog');
+    await supMobPage.waitForTimeout(400);
+    assert.equal(supPageErrors.length, 0, `Supervisor Mobile pageErrors: ${JSON.stringify(supPageErrors)}`);
+    await supMobCtx.close();
+
+    // Executive Mobile 390x844: Month Picker & Pre-Payroll Gate on Push to Finance
+    const execMobCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const execMobPage = await execMobCtx.newPage();
+    const execPageErrors = [];
+    execMobPage.on('pageerror', e => execPageErrors.push(e.message));
+    await execMobCtx.addCookies([{ name: oCookieName, value: oCookieVal, domain: '127.0.0.1', path: '/' }]);
+    await execMobPage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await execMobPage.click('.sr-mobile-dock [data-sr-view="payroll"]');
+    await execMobPage.waitForSelector('#sr-payroll-month-picker', { timeout: 15000 });
+
+    // Owner Settings: open App Settings -> Admin tab -> Organisation Config -> Time, Attendance & Grace Policy UI renders & saves end-to-end
+    await execMobPage.click('#sr-shell-settings');
+    await execMobPage.waitForSelector('#sr-settings-subnav [data-stab="admin"]', { timeout: 15000 });
+    await execMobPage.click('#sr-settings-subnav [data-stab="admin"]');
+    await execMobPage.waitForSelector('#sr-btn-launch-org-settings', { timeout: 15000 });
+    await execMobPage.click('#sr-btn-launch-org-settings');
+    await execMobPage.waitForSelector('#sr-settings-attendance-policy-card', { timeout: 15000 });
+    const policyGraceVal = await execMobPage.$eval('#sr-set-ap-grace', el => el.value);
+    assert.ok(Number(policyGraceVal) >= 0 && Number(policyGraceVal) <= 60, `Expected valid graceMinutes input, got ${policyGraceVal}`);
+    await execMobPage.fill('#sr-set-ap-grace', '12');
+    await execMobPage.selectOption('#sr-set-ap-missed-out', 'exception_review');
+    await Promise.all([
+      execMobPage.waitForResponse(r => r.url().includes('/api/organisation/settings') && r.request().method() === 'PUT' && r.status() === 200, { timeout: 10000 }),
+      execMobPage.click('#sr-settings-save')
+    ]);
+    await execMobPage.waitForSelector('#sr-settings-banner', { timeout: 10000 });
+
+    // In-App Account Deletion UI (Apple App Store 5.1.1(v) & Google Play requirement)
+    await execMobPage.click('#sr-shell-settings');
+    await execMobPage.waitForSelector('#sr-settings-subnav [data-stab="account"]', { timeout: 15000 });
+    await execMobPage.click('#sr-settings-subnav [data-stab="account"]');
+    await execMobPage.waitForSelector('#sr-btn-toggle-delete-account', { timeout: 10000 });
+    await execMobPage.click('#sr-btn-toggle-delete-account');
+    await execMobPage.waitForSelector('#sr-account-delete-panel', { state: 'visible', timeout: 8000 });
+    await execMobPage.fill('#sr-account-delete-reason', 'Play Store QA verification test');
+    await execMobPage.check('#sr-account-delete-confirm');
+    await Promise.all([
+      execMobPage.waitForResponse(r => r.url().includes('/api/account-deletion-requests') && r.request().method() === 'POST' && r.status() === 201, { timeout: 10000 }),
+      execMobPage.click('#sr-btn-submit-delete-account')
+    ]);
+    await execMobPage.waitForSelector('#sr-account-delete-msg', { state: 'visible', timeout: 8000 });
+    const delMsg = await execMobPage.textContent('#sr-account-delete-msg');
+    assert.match(delMsg || '', /received/i, 'In-app account deletion should display confirmation receipt');
+
+    assert.equal(execPageErrors.length, 0, `Executive Mobile pageErrors: ${JSON.stringify(execPageErrors)}`);
+    await execMobCtx.close();
+
+    // Static Security Block & Public SEO Crawl Files
+    for (const sensitivePath of ['/server.mjs', '/admin-auth.mjs', '/package.json', '/render.yaml', '/schema.sql', '/Dockerfile']) {
+      const blockedRes = await fetch(`${BASE_URL}${sensitivePath}`);
+      assert.equal(blockedRes.status, 403, `Sensitive path ${sensitivePath} must be blocked over static HTTP (got ${blockedRes.status})`);
+    }
+    const robotsRes = await fetch(`${BASE_URL}/robots.txt`);
+    assert.equal(robotsRes.status, 200, 'robots.txt must return 200');
+    assert.match(await robotsRes.text(), /Sitemap:\s*https:\/\/shiftrelayos\.com\/sitemap\.xml/);
+    const sitemapRes = await fetch(`${BASE_URL}/sitemap.xml`);
+    assert.equal(sitemapRes.status, 200, 'sitemap.xml must return 200');
+    assert.match(await sitemapRes.text(), /https:\/\/shiftrelayos\.com\//);
+
+    // Verify GET /api/organisation/settings reflects saved Attendance Policy
+    const ownerMobCookie = `${oCookieName}=${oCookieVal}`;
+    const orgSettingsAfter = await (await fetch(`${BASE_URL}/api/organisation/settings`, {
+      headers: { Cookie: ownerMobCookie }
+    })).json();
+    assert.equal(orgSettingsAfter.attendancePolicy?.graceMinutes, 12, 'GET /api/organisation/settings should persist graceMinutes=12');
+    assert.equal(orgSettingsAfter.attendancePolicy?.missedClockOutAction, 'exception_review', 'GET /api/organisation/settings should persist missedClockOutAction=exception_review');
+
+    // Restore baseline graceMinutes=10 so subsequent checks/demo state stay predictable
+    const restoreOrgSettingsRes = await fetch(`${BASE_URL}/api/organisation/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Cookie: ownerMobCookie },
+      body: JSON.stringify({
+        tradingName: orgSettingsAfter.organisation?.trading_name || 'Riffmax Technology',
+        industry: orgSettingsAfter.organisation?.industry || 'operations',
+        country: orgSettingsAfter.organisation?.country || 'Nigeria',
+        timeZone: orgSettingsAfter.organisation?.time_zone || 'Africa/Lagos',
+        language: orgSettingsAfter.organisation?.preferred_language || 'en',
+        handoverReminderMinutes: orgSettingsAfter.organisation?.settings?.handoverReminderMinutes ?? 30,
+        payModel: orgSettingsAfter.organisation?.settings?.payModel || 'monthly_salaried',
+        disbursementDay: orgSettingsAfter.organisation?.settings?.disbursementDay || '25',
+        defaultMonthlySalary: orgSettingsAfter.organisation?.settings?.defaultMonthlySalary || 240000,
+        attendancePolicy: { graceMinutes: 10, missedClockOutAction: 'auto_cap_shift_end' }
+      })
+    });
+    assert.equal(restoreOrgSettingsRes.status, 200, 'Should restore baseline owner attendance policy');
 
     console.log(`ALL STRICT GPS, ID CARD ANTI-BYPASS & PRESENCE VERIFICATION TESTS PASSED (${USE_PG ? 'POSTGRES PRODUCTION' : 'LOCAL-DEMO'})!`);
   } finally {

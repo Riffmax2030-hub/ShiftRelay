@@ -1396,7 +1396,7 @@
                   </g>
                 </svg>
               </span>
-              <span class="sr-brand-text"><span class="sr-brand-shift">SHIFT</span><span class="sr-brand-relay">RELAY</span></span>
+              <span class="sr-brand-text"><span class="sr-brand-shift">SHIFT</span><span class="sr-brand-relay">RELAY OS</span></span>
             </a>
           </div>
 
@@ -1523,67 +1523,67 @@
               <!-- 5 Priority Tabs: Corporate Executive Dashboard -->
               <button class="sr-nav-btn ${view === 'analytics' ? 'active' : ''}" data-sr-view="analytics">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-                <span>1. Pulse</span>
+                <span>Pulse</span>
               </button>
               <button class="sr-nav-btn ${view === 'payroll' ? 'active' : ''}" data-sr-view="payroll">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                <span>2. Payroll</span>
+                <span>Payroll</span>
               </button>
               <button class="sr-nav-btn ${(view === 'team' || view === 'approvals') ? 'active' : ''}" data-sr-view="team">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                <span>3. Workforce</span>
+                <span>Workforce</span>
               </button>
               <button class="sr-nav-btn ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                <span>4. Operations</span>
+                <span>Operations</span>
               </button>
               <button class="sr-nav-btn ${(view === 'compliance' || view === 'settings') ? 'active' : ''}" data-sr-view="compliance">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>5. Governance</span>
+                <span>Governance</span>
               </button>
             ` : isSupervisor ? `
               <!-- 5 Priority Tabs: Shift Supervisor Mode (Active Duty) -->
               <button class="sr-nav-btn ${view === 'overview' ? 'active' : ''}" data-sr-view="overview">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-                <span>1. Live Floor</span>
+                <span>Live Floor</span>
               </button>
               <button class="sr-nav-btn ${view === 'handovers' ? 'active' : ''}" data-sr-view="handovers">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-                <span>2. Handovers</span>
+                <span>Handovers</span>
               </button>
               <button class="sr-nav-btn ${view === 'approvals' ? 'active' : ''}" data-sr-view="approvals">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
-                <span>3. Approvals</span>
+                <span>Approvals</span>
               </button>
               <button class="sr-nav-btn ${view === 'schedule' ? 'active' : ''}" data-sr-view="schedule">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                <span>4. Roster</span>
+                <span>Roster</span>
               </button>
               <button class="sr-nav-btn ${(view === 'team' || view === 'timesheets') ? 'active' : ''}" data-sr-view="team">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                <span>5. My Team</span>
+                <span>My Team</span>
               </button>
             ` : `
               <!-- 5 Priority Tabs: Frontline Worker (and Supervisor in Worker Mode) -->
               <button class="sr-nav-btn ${view === 'today' ? 'active' : ''}" data-sr-view="today">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span>1. My Shift</span>
+                <span>My Shift</span>
               </button>
               <button class="sr-nav-btn ${view === 'handovers' ? 'active' : ''}" data-sr-view="handovers">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-                <span>2. Handover</span>
+                <span>Handover</span>
               </button>
               <button class="sr-nav-btn ${(view === 'schedule' || view === 'open-shifts') ? 'active' : ''}" data-sr-view="schedule">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                <span>3. Schedule</span>
+                <span>Schedule</span>
               </button>
               <button class="sr-nav-btn ${(view === 'earnings' || view === 'timesheets' || view === 'rewards') ? 'active' : ''}" data-sr-view="earnings">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                <span>4. Earnings</span>
+                <span>Earnings</span>
               </button>
               <button class="sr-nav-btn ${view === 'me' ? 'active' : ''}" data-sr-view="me">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>5. Profile</span>
+                <span>Profile</span>
               </button>
             `}
 
@@ -3114,6 +3114,7 @@
         }));
 
       const html = `
+        ${window.ShiftRelayAttendanceUI?.renderPolicyAckBannerHtml?.(user) || ''}
         <!-- Today's Assigned Shift Duty Station Card -->
         <div class="sr-card" style="padding:14px 16px;margin-bottom:12px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:12px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
@@ -3331,6 +3332,8 @@
       `;
 
       container.innerHTML = html;
+
+      window.ShiftRelayAttendanceUI?.bindPolicyAckHandlers?.(container, user, () => renderWorkerToday(true));
 
       let autoClockOutInFlight = false;
 
@@ -3772,16 +3775,17 @@
     `;
 
     try {
-      // Parallel fetch of actionable manager metrics, live directory roster, presence reviews, and payroll summary
-      const [pendingRes, handoversRes, timeRes, leaveRes, announcementsRes, dirRes, payrollRes, presenceRes] = await Promise.all([
+      // Parallel fetch of actionable manager metrics, live directory roster, presence reviews, attendance exceptions, and payroll summary
+      const [pendingRes, handoversRes, timeRes, leaveRes, announcementsRes, dirRes, payrollRes, presenceRes, excRes] = await Promise.all([
         fetch('/api/memberships/pending').catch(() => null),
         fetch('/api/handovers').catch(() => null),
         fetch('/api/time-entries').catch(() => null),
         user.role === 'owner' ? fetch('/api/leave-requests').catch(() => null) : Promise.resolve(null),
         fetch('/api/announcements').catch(() => null),
         fetch('/api/directory').catch(() => null),
-        user.role === 'owner' ? fetch('/api/payroll/summary').catch(() => null) : Promise.resolve(null),
-        fetch('/api/time-entries/presence-reviews').catch(() => null)
+        ['owner', 'workforce_admin', 'finance_admin'].includes(user.role) ? fetch('/api/payroll/summary').catch(() => null) : Promise.resolve(null),
+        fetch('/api/time-entries/presence-reviews').catch(() => null),
+        fetch('/api/attendance/exceptions').catch(() => null)
       ]);
 
       const pendingData = pendingRes && pendingRes.ok ? await pendingRes.json() : { requests: [], workflows: [] };
@@ -3792,6 +3796,7 @@
       const dirData = dirRes && dirRes.ok ? await dirRes.json() : { members: [], summary: null };
       const payrollData = payrollRes && payrollRes.ok ? await payrollRes.json() : { payroll: null };
       const presenceData = presenceRes && presenceRes.ok ? await presenceRes.json() : { reviews: [] };
+      const excData = excRes && excRes.ok ? await excRes.json() : null;
       const presenceReviews = Array.isArray(presenceData.reviews) ? presenceData.reviews : [];
 
       const accessRequests = pendingData.requests || [];
@@ -3946,6 +3951,8 @@
             </div>
           ` : ''}
         </div>
+
+        ${window.ShiftRelayAttendanceUI?.renderSupervisorMissingHtml?.(excData) || ''}
 
         <!-- 1. Live Shift Roster & Colleague ID Verification Cockpit -->
         <section class="sr-card" aria-label="Live Roster Presence" style="border-top: 3px solid var(--sr-primary);">
@@ -4446,6 +4453,7 @@
         window.ShiftRelayOpenAddStaffModal?.({ user, onSuccess: () => renderManagerOverview() });
       });
       document.getElementById('sr-btn-view-team-roster')?.addEventListener('click', () => navigate('team'));
+      window.ShiftRelayAttendanceUI?.bindSupervisorExceptionHandlers?.(container, () => renderManagerOverview());
 
       // ── 1-Click Batch Payroll Disbursement Binding ───────────────────────
     document.getElementById('sr-btn-view-handovers-shortcut')?.addEventListener('click', () => {
@@ -4886,7 +4894,7 @@
       const end = formatICSDate(s.ends_at);
       if (!start || !end) return;
 
-      const uid = s.id ? `${s.id}@shiftrelay.com` : `shift-${idx}-${Date.now()}@shiftrelay.com`;
+      const uid = s.id ? `${s.id}@shiftrelayos.com` : `shift-${idx}-${Date.now()}@shiftrelayos.com`;
       const title = s.worker_name ? `Shift Duty: ${s.worker_name}` : `Shift Duty - ${siteName || 'Workplace'}`;
       const desc = `ShiftRelay Scheduled Duty Shift\\nOrganisation: ${orgName || 'ShiftRelay'}\\nAssigned Unit: ${siteName || 'Operations'}\\nStatus: ${(s.status || 'Scheduled').toUpperCase()}`;
       const location = `${siteName || 'Duty Station'}, ${orgName || 'Workplace'}`;
@@ -7829,7 +7837,16 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
                 <span>Staff ID Cards</span>
               </button>
+              ${['owner', 'workforce_admin', 'manager', 'supervisor'].includes(user.role) ? `
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-gate-poster-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7z"/><path d="M13 7h4v4h-4z"/><path d="M7 13h4v4H7z"/><path d="M13 13h4v4h-4z"/></svg>
+                <span>A4 Gate Poster</span>
+              </button>` : ''}
               ${['owner', 'workforce_admin', 'manager'].includes(user.role) ? `
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-csv-import-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>Bulk CSV Import</span>
+              </button>
               <button type="button" class="sr-btn sr-btn-primary" id="sr-team-add-staff-btn" style="min-height:32px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
                 <span>+ Add New Staff</span>
@@ -7875,6 +7892,176 @@
       });
       document.getElementById('sr-team-add-staff-btn')?.addEventListener('click', () => {
         window.ShiftRelayOpenAddStaffModal?.({ user, knownDepartments: uniqueDepts, onSuccess: () => renderTeamScreen() });
+      });
+      document.getElementById('sr-team-gate-poster-btn')?.addEventListener('click', () => {
+        const tenantId = user.company_id || user.organisation_id || 'RIF-2026';
+        const posterModal = document.createElement('div');
+        posterModal.id = 'sr-gate-poster-modal';
+        posterModal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.78);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        posterModal.innerHTML = `
+          <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;max-width:760px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.45);">
+            <div style="padding:14px 20px;border-bottom:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+              <div>
+                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Multilingual A4 Gate Rollout Poster (${escapeHtml(tenantId)})</h3>
+                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">Printable workplace gate instructions with live QR code, Company ID &amp; 5 Nigerian language options</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <select id="sr-gate-poster-lang" aria-label="Gate Poster Language" style="width:auto;min-height:34px;padding:4px 10px;border-radius:8px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-elevated);color:var(--sr-text-main);font-size:12px;font-weight:700;">
+                  <option value="en">English (Standard)</option>
+                  <option value="pcm">Nigerian Pidgin</option>
+                  <option value="yo">Yorùbá</option>
+                  <option value="ha">Hausa</option>
+                  <option value="ig">Igbo</option>
+                </select>
+                <button type="button" id="sr-gate-poster-print-btn" class="sr-btn sr-btn-primary" style="min-height:34px;padding:0 14px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">
+                  <span>Print A4 Poster</span>
+                </button>
+                <button type="button" class="sr-btn sr-btn-secondary" id="sr-gate-poster-close" style="min-height:34px;padding:0 12px;font-size:12px;">Close</button>
+              </div>
+            </div>
+            <div id="sr-gate-poster-body" style="padding:24px;overflow-y:auto;background:#f8fafc;color:#0f172a;text-align:center;">
+              <div style="font-size:13px;color:#64748b;">Generating live gate QR poster...</div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(posterModal);
+        const langSel = posterModal.querySelector('#sr-gate-poster-lang');
+        const bodyEl = posterModal.querySelector('#sr-gate-poster-body');
+        const loadPoster = async (lang) => {
+          if (!bodyEl) return;
+          try {
+            const res = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}/gate-qr?lang=${encodeURIComponent(lang)}`);
+            const data = await res.json();
+            const steps = (data.instructions && Array.isArray(data.instructions.steps)) ? data.instructions.steps : [
+              'Scan QR Code at the workplace gate or open app.shiftrelayos.com',
+              `Enter Company ID: ${data.tenantId || tenantId}`,
+              'Clock In or use Peer 3-Step ID + Live Face Verification'
+            ];
+            bodyEl.innerHTML = `
+              <div style="background:#ffffff;border:2px solid #0f172a;border-radius:16px;padding:28px 24px;max-width:540px;margin:0 auto;box-shadow:0 10px 25px rgba(15,23,42,0.08);">
+                <div style="font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#2563eb;margin-bottom:6px;">SHIFTRELAY OS • WORKPLACE GATE STATION</div>
+                <h2 style="margin:0 0 6px;font-size:22px;font-weight:900;color:#0f172a;">${escapeHtml(data.companyName || 'Riffmax Operations Group')}</h2>
+                <div style="display:inline-block;padding:4px 12px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800;margin-bottom:16px;">COMPANY ID: ${escapeHtml(data.tenantId || tenantId)}</div>
+                <div style="margin:0 auto 16px;width:210px;height:210px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;border-radius:12px;padding:10px;background:#fff;">
+                  ${data.qrSvg || ''}
+                </div>
+                <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:10px;">${escapeHtml((data.instructions && data.instructions.headline) || data.label || 'Gate Clock-In Instructions')}</div>
+                <ol style="text-align:left;margin:0 auto 14px;max-width:420px;padding-left:20px;font-size:13px;line-height:1.6;color:#334155;">
+                  ${steps.map(s => `<li style="margin-bottom:6px;">${escapeHtml(s)}</li>`).join('')}
+                </ol>
+                <div style="font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:10px;">NDPA 2023 Compliant • Cryptographic Gate Token: <code style="font-family:monospace;">${escapeHtml(data.qrPayload || '')}</code></div>
+              </div>
+            `;
+          } catch (_) {
+            bodyEl.innerHTML = `<div style="color:#dc2626;font-size:13px;">Unable to load Gate QR poster right now.</div>`;
+          }
+        };
+        loadPoster('en');
+        langSel?.addEventListener('change', () => loadPoster(langSel.value));
+        posterModal.querySelector('#sr-gate-poster-print-btn')?.addEventListener('click', () => window.print());
+        posterModal.querySelector('#sr-gate-poster-close')?.addEventListener('click', () => posterModal.remove());
+        posterModal.addEventListener('click', (e) => { if (e.target === posterModal) posterModal.remove(); });
+      });
+      document.getElementById('sr-team-csv-import-btn')?.addEventListener('click', () => {
+        const csvModal = document.createElement('div');
+        csvModal.id = 'sr-csv-roster-modal';
+        csvModal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.78);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        const sampleCsv = 'full_name,email,phone,role,department,job_title,staff_id,shift_window,compensation_type,monthly_salary_ngn,bank_name,cbn_bank_code,nuban_account_number,pencom_rsa_pin,tin\nAdaeze Nwosu,adaeze.nwosu@shiftrelayos.com,+2348031234567,worker,Operations,Shift Specialist,RIF-2099,06:00-14:00,fixed_monthly,280000,GTBank,058,0123456789,PEN100200300999,10482910-0099';
+        const csvDownloadHref = 'data:text/csv;charset=utf-8,' + encodeURIComponent(sampleCsv);
+        csvModal.innerHTML = `
+          <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;max-width:680px;width:100%;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,0.45);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;">
+              <div>
+                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">14-Column Bulk Staff &amp; Statutory CSV Onboarding</h3>
+                <p style="margin:4px 0 0;font-size:12px;color:var(--sr-text-muted);">Pre-validates 10-digit NUBAN, 3-digit CBN Bank Code, PenCom RSA PIN (PEN + 12 digits), and TIN before onboarding.</p>
+              </div>
+              <a href="${csvDownloadHref}" download="shiftrelay-nigeria-roster-template.csv" class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 12px;font-size:11.5px;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;">Download CSV Template</a>
+            </div>
+            <textarea id="sr-exec-csv-input" class="sr-input" rows="6" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:11.5px;margin-bottom:12px;box-sizing:border-box;">${sampleCsv}</textarea>
+            <div id="sr-exec-csv-status" style="display:none;padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;"></div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-exec-csv-close">Cancel</button>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-exec-csv-precheck">Run Pre-Check</button>
+              <button type="button" class="sr-btn sr-btn-primary" id="sr-exec-csv-submit">Import Verified Rows</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(csvModal);
+        const closeCsv = () => csvModal.remove();
+        csvModal.querySelector('#sr-exec-csv-close')?.addEventListener('click', closeCsv);
+        csvModal.addEventListener('click', (e) => { if (e.target === csvModal) closeCsv(); });
+        const statusBox = csvModal.querySelector('#sr-exec-csv-status');
+        const parseRows = () => {
+          const raw = (csvModal.querySelector('#sr-exec-csv-input')?.value || '').trim();
+          const lines = raw.split(/\r?\n/).filter(Boolean);
+          if (lines.length < 2) return [];
+          const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+          return lines.slice(1).map((line, i) => {
+            const cols = line.split(',').map(c => c.trim());
+            const obj = { _row: i + 2 };
+            headers.forEach((h, idx) => { obj[h] = cols[idx] || ''; });
+            return obj;
+          });
+        };
+        csvModal.querySelector('#sr-exec-csv-precheck')?.addEventListener('click', () => {
+          const rows = parseRows();
+          if (!rows.length) {
+            statusBox.style.display = 'block';
+            statusBox.style.background = 'rgba(239,68,68,0.1)';
+            statusBox.style.color = '#dc2626';
+            statusBox.textContent = 'Add at least 1 data row below the header.';
+            return;
+          }
+          let valid = 0;
+          const issues = [];
+          rows.forEach(r => {
+            const nubanOk = !r.nuban_account_number || /^\d{10}$/.test(r.nuban_account_number);
+            const rsaOk = !r.pencom_rsa_pin || /^PEN\d{12}$/i.test(r.pencom_rsa_pin);
+            if (r.full_name && r.email && nubanOk && rsaOk) valid++;
+            else issues.push(`Row ${r._row}: check email, 10-digit NUBAN, or PEN+12 digits RSA PIN`);
+          });
+          statusBox.style.display = 'block';
+          statusBox.style.background = issues.length ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.12)';
+          statusBox.style.color = issues.length ? '#b45309' : '#059669';
+          statusBox.innerHTML = `<strong>Pre-Check Complete:</strong> ${valid}/${rows.length} row(s) ready for statutory onboarding.${issues.length ? '<br>' + issues.map(escapeHtml).join('<br>') : ''}`;
+        });
+        csvModal.querySelector('#sr-exec-csv-submit')?.addEventListener('click', async () => {
+          const rows = parseRows();
+          const submitBtn = csvModal.querySelector('#sr-exec-csv-submit');
+          if (!rows.length) return;
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Importing...';
+          let imported = 0;
+          for (const r of rows) {
+            if (!r.full_name || !r.email) continue;
+            try {
+              const res = await fetch('/api/executive/add-staff', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  fullName: r.full_name,
+                  email: r.email,
+                  phone: r.phone || '',
+                  role: r.role || 'worker',
+                  department: r.department || 'Operations',
+                  jobTitle: r.job_title || 'Shift Specialist',
+                  staffId: r.staff_id || undefined,
+                  compensationType: r.compensation_type || 'fixed_monthly',
+                  monthlySalary: Number(r.monthly_salary_ngn || 250000),
+                  bankName: r.bank_name || 'GTBank',
+                  cbnBankCode: r.cbn_bank_code || '058',
+                  accountNumber: r.nuban_account_number || '0123456789',
+                  pencomRsaPin: r.pencom_rsa_pin || '',
+                  tin: r.tin || ''
+                })
+              });
+              if (res.ok) imported++;
+            } catch (_) {}
+          }
+          if (typeof showToast === 'function') showToast(`Imported ${imported} staff member(s) into workforce roster.`, 'success');
+          closeCsv();
+          renderTeamScreen();
+        });
       });
       document.getElementById('sr-team-print-ids-btn')?.addEventListener('click', async () => {
         const printBtn = document.getElementById('sr-team-print-ids-btn');
@@ -8833,7 +9020,7 @@
     const orgName = profile.currentOrganisation || user.organisation_name || 'ShiftRelay Global Ops';
     const deptName = user.department || 'Operations';
     const summaryText = profile.professionalSummary || profile.bioOutsideWork || 'Results-driven frontline specialist with proven expertise in end-to-end shift handovers, operational safety, and incident prevention. Dedicated to zero lost-context transitions and high team reliability.';
-    const workEmail = profile.workEmail || user.email || 'worker@shiftrelay.io';
+    const workEmail = profile.workEmail || user.email || 'worker@shiftrelayos.com';
     const linkedInUrl = profile.linkedInUrl || ('https://linkedin.com/in/' + (user.name ? user.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'specialist'));
     const githubUrl = profile.githubUrl || ('https://github.com/' + (user.name ? user.name.toLowerCase().replace(/[^a-z0-9]+/g, '') : 'worker'));
 
@@ -10405,7 +10592,7 @@
 
     // Loading skeleton
     container.innerHTML = `
-      <div style="max-width:620px;margin:0 auto;padding:20px 16px 48px;">
+      <div style="max-width:620px;margin:0 auto;padding:20px 16px 96px;">
         <h2 style="font-size:20px;font-weight:700;color:var(--sr-text);margin:0 0 4px;">Settings</h2>
         <p style="font-size:13px;color:var(--sr-text-muted);margin:0 0 24px;">
           Configure your organisation profile. Changes apply immediately to all staff.
@@ -10450,8 +10637,20 @@
       const wrap = document.getElementById('sr-settings-form-wrap');
       if (!wrap) return;
 
+      let pendingOrgLogoUrl = org.logo_url || org.employer_avatar_url || null;
       const tz = org.time_zone || 'UTC';
       const reminder = org.settings?.handoverReminderMinutes ?? 30;
+      const ap = org.attendancePolicy || org.settings?.attendancePolicy || {};
+      const apGrace = Number.isFinite(Number(ap.graceMinutes)) ? Number(ap.graceMinutes) : 10;
+      const apLateMode = ap.lateArrivalDeductionMode || 'none_within_grace';
+      const apMissedIn = ap.missedClockInAction || 'exception_review';
+      const apMissedOut = ap.missedClockOutAction || 'auto_cap_shift_end';
+      const apEarlyOut = ap.earlyDepartureAction || 'exception_review';
+      const apReminders = Array.isArray(ap.reminderScheduleMinutes) && ap.reminderScheduleMinutes.length
+        ? ap.reminderScheduleMinutes.join(', ')
+        : '30, 15, 0';
+      const apEscOffset = Number.isFinite(Number(ap.missedClockInEscalationOffsetMinutes)) ? Number(ap.missedClockInEscalationOffsetMinutes) : 5;
+      const apPreOut = Number.isFinite(Number(ap.preClockOutReminderMinutes)) ? Number(ap.preClockOutReminderMinutes) : 10;
 
       wrap.innerHTML = `
         <form id="sr-settings-form" novalidate>
@@ -10575,7 +10774,7 @@
             </div>
           </div>
 
-          <div class="sr-card" style="padding:20px 20px 4px;margin-bottom:24px;">
+          <div class="sr-card" style="padding:20px 20px 4px;margin-bottom:16px;">
             <h3 style="font-size:14px;font-weight:700;color:var(--sr-text-main);margin:0 0 16px;text-transform:uppercase;letter-spacing:.04em;opacity:.65;">Handover Settings</h3>
 
             <div style="margin-bottom:16px;">
@@ -10586,6 +10785,73 @@
               <p style="font-size:12px;color:var(--sr-text-muted);margin:4px 0 0;line-height:1.4;">
                 Must be between 5 and 240 minutes. Stored preference only.
               </p>
+            </div>
+          </div>
+
+          <div class="sr-card" style="padding:20px 20px 14px;margin-bottom:24px;" id="sr-settings-attendance-policy-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h3 style="font-size:14px;font-weight:700;color:var(--sr-text-main);margin:0;text-transform:uppercase;letter-spacing:.04em;opacity:.75;">Time, Attendance &amp; Grace Policy</h3>
+              <span class="sr-ts-status-pill approved" style="font-size:11px;">Policy v${escapeHtml(ap.policyVersion || '2026.11-NG-v1')}</span>
+            </div>
+            <p style="font-size:12.5px;color:var(--sr-text-muted);margin:0 0 16px;line-height:1.45;">
+              Defines transparent clock-in grace periods, automated muster reminders, missed punch handling, and proportional Nigerian payroll deductions across your organisation.
+            </p>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px;">
+              <div>
+                <label for="sr-set-ap-grace" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text-main);margin-bottom:5px;">Arrival Grace Period (Minutes)</label>
+                <input id="sr-set-ap-grace" class="sr-input" type="number" min="0" max="60" value="${apGrace}" style="width:100%;box-sizing:border-box;" />
+              </div>
+              <div>
+                <label for="sr-set-ap-late-mode" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text-main);margin-bottom:5px;">Late Arrival Pay Rule</label>
+                <select id="sr-set-ap-late-mode" class="sr-input" style="width:100%;box-sizing:border-box;">
+                  <option value="none_within_grace"${apLateMode === 'none_within_grace' ? ' selected' : ''}>Pardon Within Grace Period (Pro-Rata Beyond)</option>
+                  <option value="pro_rata_minutes"${apLateMode === 'pro_rata_minutes' ? ' selected' : ''}>Deduct Exact Late Minutes Pro-Rata</option>
+                  <option value="shift_score_only"${apLateMode === 'shift_score_only' ? ' selected' : ''}>Shift Score Tracking Only (No Salary Deduction)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-bottom:14px;">
+              <div>
+                <label for="sr-set-ap-missed-in" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text-main);margin-bottom:5px;">Missed Clock-In Action</label>
+                <select id="sr-set-ap-missed-in" class="sr-input" style="width:100%;box-sizing:border-box;">
+                  <option value="exception_review"${apMissedIn === 'exception_review' ? ' selected' : ''}>Queue Exception Review</option>
+                  <option value="pro_rata_deduct"${apMissedIn === 'pro_rata_deduct' ? ' selected' : ''}>Pro-Rata Deduction</option>
+                  <option value="pardon_with_flag"${apMissedIn === 'pardon_with_flag' ? ' selected' : ''}>Pardon With Audit Flag</option>
+                </select>
+              </div>
+              <div>
+                <label for="sr-set-ap-missed-out" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text-main);margin-bottom:5px;">Missed Clock-Out Action</label>
+                <select id="sr-set-ap-missed-out" class="sr-input" style="width:100%;box-sizing:border-box;">
+                  <option value="auto_cap_shift_end"${apMissedOut === 'auto_cap_shift_end' ? ' selected' : ''}>Auto-Cap at Scheduled Shift End</option>
+                  <option value="exception_review"${apMissedOut === 'exception_review' ? ' selected' : ''}>Queue Exception Review</option>
+                  <option value="pro_rata_deduct"${apMissedOut === 'pro_rata_deduct' ? ' selected' : ''}>Pro-Rata Deduction</option>
+                </select>
+              </div>
+              <div>
+                <label for="sr-set-ap-early-out" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text-main);margin-bottom:5px;">Early Departure Action</label>
+                <select id="sr-set-ap-early-out" class="sr-input" style="width:100%;box-sizing:border-box;">
+                  <option value="exception_review"${apEarlyOut === 'exception_review' ? ' selected' : ''}>Queue Exception Review</option>
+                  <option value="pro_rata_deduct"${apEarlyOut === 'pro_rata_deduct' ? ' selected' : ''}>Pro-Rata Unworked Minutes</option>
+                  <option value="pardon_with_flag"${apEarlyOut === 'pardon_with_flag' ? ' selected' : ''}>Pardon With Audit Flag</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:6px;">
+              <div>
+                <label for="sr-set-ap-reminders" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text-main);margin-bottom:5px;">Clock-In Reminder Schedule (Mins Before Shift)</label>
+                <input id="sr-set-ap-reminders" class="sr-input" type="text" value="${escapeHtml(apReminders)}" placeholder="30, 15, 0" style="width:100%;box-sizing:border-box;" />
+              </div>
+              <div>
+                <label for="sr-set-ap-escalation" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text-main);margin-bottom:5px;">Escalation After Grace (Min)</label>
+                <input id="sr-set-ap-escalation" class="sr-input" type="number" min="1" max="60" value="${apEscOffset}" style="width:100%;box-sizing:border-box;" />
+              </div>
+              <div>
+                <label for="sr-set-ap-preout" style="display:block;font-size:13px;font-weight:600;color:var(--sr-text-main);margin-bottom:5px;">Pre-Clock-Out Alert (Min)</label>
+                <input id="sr-set-ap-preout" class="sr-input" type="number" min="0" max="60" value="${apPreOut}" style="width:100%;box-sizing:border-box;" />
+              </div>
             </div>
           </div>
 
@@ -10611,10 +10877,38 @@
         if (dirtyWarn) dirtyWarn.style.display = 'none';
       }
 
-      ['sr-set-trading-name','sr-set-industry','sr-set-country','sr-set-timezone','sr-set-language','sr-set-reminder']
+      document.getElementById('sr-btn-upload-org-logo')?.addEventListener('click', () => {
+        document.getElementById('sr-org-logo-input')?.click();
+      });
+      document.getElementById('sr-org-logo-input')?.addEventListener('change', (ev) => {
+        const file = ev.target?.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string' && reader.result.startsWith('data:image/')) {
+            pendingOrgLogoUrl = reader.result;
+            const preview = document.getElementById('sr-org-logo-preview');
+            if (preview) preview.src = reader.result;
+            markDirty();
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+
+      ['sr-set-trading-name','sr-set-industry','sr-set-country','sr-set-timezone','sr-set-language','sr-set-reminder','sr-set-default-salary','sr-set-ap-grace','sr-set-ap-reminders','sr-set-ap-escalation','sr-set-ap-preout']
         .forEach(id => document.getElementById(id)?.addEventListener('input', markDirty));
-      ['sr-set-industry','sr-set-language']
+      ['sr-set-industry','sr-set-language','sr-set-pay-model','sr-set-disbursement-day','sr-set-ap-late-mode','sr-set-ap-missed-in','sr-set-ap-missed-out','sr-set-ap-early-out']
         .forEach(id => document.getElementById(id)?.addEventListener('change', markDirty));
+
+      // Live recalculation on salary change
+      document.getElementById('sr-set-default-salary')?.addEventListener('input', (ev) => {
+        const sal = Number(ev.target.value) || 0;
+        const rateEl = document.getElementById('sr-preview-hourly-rate');
+        if (rateEl) {
+          const hRate = sal > 0 ? Math.round(sal / 173.333) : 0;
+          rateEl.textContent = '₦' + hRate.toLocaleString('en-NG') + ' / hr';
+        }
+      });
 
       // Cancel — restore loaded values
       document.getElementById('sr-settings-cancel')?.addEventListener('click', () => {
@@ -10635,15 +10929,10 @@
         if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
         if (cancelBtn) cancelBtn.disabled = true;
 
-        // Live recalculation on salary change
-        document.getElementById('sr-set-default-salary')?.addEventListener('input', (e) => {
-          const sal = Number(e.target.value) || 0;
-          const rateEl = document.getElementById('sr-preview-hourly-rate');
-          if (rateEl) {
-            const hRate = sal > 0 ? Math.round(sal / 173.333) : 0;
-            rateEl.textContent = '₦' + hRate.toLocaleString('en-NG') + ' / hr';
-          }
-        });
+        const reminderScheduleMinutes = String(document.getElementById('sr-set-ap-reminders')?.value || '30, 15, 0')
+          .split(',')
+          .map(v => Math.round(Number(v.trim())))
+          .filter(n => Number.isFinite(n) && n >= 0 && n <= 240);
 
         const payload = {
           tradingName: (document.getElementById('sr-set-trading-name')?.value || '').trim(),
@@ -10656,7 +10945,17 @@
           disbursementDay: document.getElementById('sr-set-disbursement-day')?.value || '25',
           defaultMonthlySalary: Number(document.getElementById('sr-set-default-salary')?.value || 240000),
           logoUrl: pendingOrgLogoUrl,
-          employer_avatar_url: pendingOrgLogoUrl
+          employer_avatar_url: pendingOrgLogoUrl,
+          attendancePolicy: {
+            graceMinutes: Math.max(0, Math.min(60, parseInt(document.getElementById('sr-set-ap-grace')?.value || '10', 10) || 0)),
+            lateArrivalDeductionMode: document.getElementById('sr-set-ap-late-mode')?.value || 'none_within_grace',
+            missedClockInAction: document.getElementById('sr-set-ap-missed-in')?.value || 'exception_review',
+            missedClockOutAction: document.getElementById('sr-set-ap-missed-out')?.value || 'auto_cap_shift_end',
+            earlyDepartureAction: document.getElementById('sr-set-ap-early-out')?.value || 'exception_review',
+            reminderScheduleMinutes: reminderScheduleMinutes.length ? reminderScheduleMinutes : [30, 15, 0],
+            missedClockInEscalationOffsetMinutes: Math.max(1, Math.min(60, parseInt(document.getElementById('sr-set-ap-escalation')?.value || '5', 10) || 5)),
+            preClockOutReminderMinutes: Math.max(0, Math.min(60, parseInt(document.getElementById('sr-set-ap-preout')?.value || '10', 10) || 0))
+          }
         };
 
         try {
@@ -10671,6 +10970,10 @@
             return;
           }
           loadedSettings = data.organisation || loadedSettings;
+          if (data.attendancePolicy && loadedSettings) {
+            loadedSettings.attendancePolicy = data.attendancePolicy;
+            loadedSettings.settings = { ...(loadedSettings.settings || {}), attendancePolicy: data.attendancePolicy };
+          }
           if (payload.industry) {
             const nextKey = resolveClientIndustryKey(payload.industry, payload.tradingName || getUser()?.organisation_name);
             try { localStorage.setItem('shiftrelay-company-industry', nextKey); } catch (_) {}
@@ -10688,7 +10991,7 @@
         } catch (err) {
           showFieldErr(err.message || 'Network error. Please try again.');
         } finally {
-          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Settings'; }
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
           if (cancelBtn) cancelBtn.disabled = false;
         }
       });
@@ -11571,6 +11874,23 @@
                 </button>
               </div>
 
+              <!-- NDPA 2023 SMS & WhatsApp Clock-In Reminder Consent -->
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--sr-border-subtle);">
+                <div style="display:flex;align-items:center;gap:11px;">
+                  <div style="width:38px;height:38px;border-radius:10px;background:rgba(16,185,129,0.12);color:#059669;display:flex;align-items:center;justify-content:center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                  </div>
+                  <div>
+                    <div style="font-size:13.5px;font-weight:700;color:var(--sr-text-main);">SMS &amp; WhatsApp Clock-In Reminders (NDPA 2023)</div>
+                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Receive T-15m pre-shift &amp; grace-window alerts on your mobile number</div>
+                  </div>
+                </div>
+                <button id="sr-ndpa-sms-whatsapp-toggle" role="switch" aria-checked="${notifPrefs.smsWhatsapp !== false}"
+                  style="width:48px;height:26px;border-radius:99px;border:none;cursor:pointer;position:relative;transition:background .2s;background:${notifPrefs.smsWhatsapp !== false ? 'var(--sr-primary)' : '#d1d5db'};">
+                  <span style="position:absolute;top:3px;${notifPrefs.smsWhatsapp !== false ? 'right:3px' : 'left:3px'};width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);transition:all .2s;display:block;"></span>
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
@@ -11643,6 +11963,33 @@
               <span>Sign Out</span>
             </button>
           </div>
+
+          <div class="sr-card" id="sr-account-deletion-card" style="border-color:rgba(239,68,68,0.22);">
+            <h3 style="margin:0 0 8px;font-size:15px;font-weight:700;color:var(--sr-text-main);">Data Privacy &amp; Account Deletion</h3>
+            <p style="margin:0 0 14px;font-size:12.5px;color:var(--sr-text-muted);line-height:1.5;">
+              Submit a verified deletion request for <strong>${escapeHtml(user?.email || 'your account')}</strong>. Statutory Nigerian payroll, tax, and workplace safety audit records may be retained only as required by law.
+            </p>
+            <button type="button" id="sr-btn-toggle-delete-account" class="sr-btn sr-btn-secondary" style="border-color:rgba(239,68,68,0.35);color:#ef4444;width:100%;justify-content:center;">
+              Request Account Deletion
+            </button>
+            <form id="sr-account-delete-panel" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--sr-border-subtle);flex-direction:column;gap:10px;">
+              <div>
+                <label for="sr-account-delete-reason" style="display:block;font-size:12px;font-weight:600;color:var(--sr-text-main);margin-bottom:5px;">Reason (optional)</label>
+                <textarea id="sr-account-delete-reason" class="sr-input" rows="2" maxlength="1000" placeholder="Optional note for Data Protection Officer" style="width:100%;box-sizing:border-box;"></textarea>
+              </div>
+              <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--sr-text-muted);cursor:pointer;line-height:1.4;">
+                <input type="checkbox" id="sr-account-delete-confirm" required style="margin-top:2px;" />
+                <span>I confirm I want ShiftRelay OS to process account deletion for ${escapeHtml(user?.email || 'this account')}.</span>
+              </label>
+              <button type="submit" id="sr-btn-submit-delete-account" class="sr-btn sr-btn-primary" style="background:#dc2626;border-color:#dc2626;color:#fff;">
+                Submit Deletion Request
+              </button>
+              <div id="sr-account-delete-msg" style="display:none;padding:10px 12px;border-radius:8px;font-size:12.5px;"></div>
+            </form>
+            <p style="margin:12px 0 0;font-size:11.5px;color:var(--sr-text-muted);">
+              Public web form: <a href="/delete-account" target="_blank" rel="noopener noreferrer" style="color:var(--sr-primary);">shiftrelayos.com/delete-account</a>
+            </p>
+          </div>
         </div>
 
       </div>
@@ -11705,6 +12052,29 @@
       });
     });
 
+    document.getElementById('sr-ndpa-sms-whatsapp-toggle')?.addEventListener('click', async (ev) => {
+      const btn = ev.currentTarget;
+      const prefs = JSON.parse(localStorage.getItem('sr-notif-prefs') || '{"sound":true,"vibration":true,"push":true,"email":false}');
+      const nextOn = prefs.smsWhatsapp === false;
+      prefs.smsWhatsapp = nextOn;
+      localStorage.setItem('sr-notif-prefs', JSON.stringify(prefs));
+      btn.style.background = nextOn ? 'var(--sr-primary)' : '#d1d5db';
+      btn.setAttribute('aria-checked', String(nextOn));
+      const knob = btn.querySelector('span');
+      if (knob) { knob.style.right = nextOn ? '3px' : ''; knob.style.left = nextOn ? '' : '3px'; }
+      try {
+        await fetch('/api/employee/notification-preferences', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationOptOut: !nextOn })
+        });
+      } catch (_) {}
+      if (typeof showToast === 'function') {
+        showToast(nextOn ? 'SMS & WhatsApp clock-in reminders enabled (NDPA 2023).' : 'Opted out of SMS & WhatsApp clock-in reminders (NDPA 2023).', 'info');
+      }
+    });
+
     // ── Admin Quick Tools ──────────────────────────────────────────────
     document.getElementById('sr-btn-launch-kiosk')?.addEventListener('click', () => {
       openPeerIdScannerModal(user?.company_id || user?.organisation_id, user?.hub_name || '', () => {
@@ -11713,9 +12083,56 @@
     });
     document.getElementById('sr-btn-launch-org-settings')?.addEventListener('click', () => renderOwnerSettings());
 
-    // ── Sign Out ───────────────────────────────────────────────────────
+    // ── Sign Out & Account Deletion ────────────────────────────────────
     document.getElementById('sr-btn-settings-signout')?.addEventListener('click', () => {
       handleSafeSignOut();
+    });
+    document.getElementById('sr-btn-toggle-delete-account')?.addEventListener('click', () => {
+      const panel = document.getElementById('sr-account-delete-panel');
+      if (panel) panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+    });
+    document.getElementById('sr-account-delete-panel')?.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const msgEl = document.getElementById('sr-account-delete-msg');
+      const submitBtn = document.getElementById('sr-btn-submit-delete-account');
+      const confirmed = document.getElementById('sr-account-delete-confirm')?.checked;
+      const reason = (document.getElementById('sr-account-delete-reason')?.value || '').trim();
+      const email = String(getUser()?.email || '').trim();
+      if (!confirmed || !email) {
+        if (msgEl) {
+          msgEl.style.display = 'block';
+          msgEl.style.background = 'rgba(239,68,68,0.1)';
+          msgEl.style.color = '#dc2626';
+          msgEl.textContent = !email ? 'No email is associated with this session.' : 'Please confirm account deletion first.';
+        }
+        return;
+      }
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting...'; }
+      try {
+        const res = await fetch('/api/account-deletion-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, reason })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Unable to submit request.');
+        if (msgEl) {
+          msgEl.style.display = 'block';
+          msgEl.style.background = '#f0fdf4';
+          msgEl.style.color = '#15803d';
+          msgEl.textContent = `Deletion request ${data.id || ''} received for ${email}. Support will verify and confirm via email.`;
+        }
+      } catch (err) {
+        if (msgEl) {
+          msgEl.style.display = 'block';
+          msgEl.style.background = 'rgba(239,68,68,0.1)';
+          msgEl.style.color = '#dc2626';
+          msgEl.textContent = err.message || 'Request failed. Please contact support@shiftrelayos.com.';
+        }
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Deletion Request'; }
+      }
     });
 
     // ── Password Form ──────────────────────────────────────────────────
@@ -11881,9 +12298,10 @@
     let members = [];
     let payrollEmployees = new Map();
     try {
+      const canReadPayroll = ['owner', 'workforce_admin', 'finance_admin'].includes(activeUser.role);
       const [dirRes, payRes] = await Promise.all([
         fetch('/api/directory'),
-        fetch('/api/payroll/summary')
+        canReadPayroll ? fetch('/api/payroll/summary') : Promise.resolve({ ok: false })
       ]);
       if (dirRes.ok) {
         const d = await dirRes.json();
@@ -12252,9 +12670,12 @@
   }
 
   // ── 3. High-Tech Executive Statutory Remittance Ledger Modal ─────────────
-  function openPayrollLedgerModal() {
+  function openPayrollLedgerModal(monthParam) {
     const existing = document.getElementById('sr-ledger-modal');
     if (existing) existing.remove();
+    const ledgerUrl = monthParam
+      ? `/api/reports/payroll-ledger?month=${encodeURIComponent(monthParam)}`
+      : '/api/reports/payroll-ledger';
 
     const modalHtml = `
       <div id="sr-ledger-modal" class="sr-audit-modal-backdrop" style="position:fixed;inset:0;background:rgba(2,6,23,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;justify-content:center;align-items:flex-start;padding:24px;overflow-y:auto;">
@@ -12269,7 +12690,7 @@
               </div>
             </div>
             <div style="display:flex;gap:8px;">
-              <a href="/api/reports/payroll-ledger" target="_blank" class="sr-btn sr-btn-secondary" style="font-size:12px;padding:6px 14px;text-decoration:none;">
+              <a href="${ledgerUrl}" target="_blank" class="sr-btn sr-btn-secondary" style="font-size:12px;padding:6px 14px;text-decoration:none;">
                 Fullscreen View
               </a>
               <button type="button" class="sr-btn sr-btn-primary" onclick="window.print()" style="font-size:12px;padding:6px 14px;">
@@ -12281,7 +12702,7 @@
             </div>
           </div>
 
-          <iframe src="/api/reports/payroll-ledger" style="width:100%;height:70vh;border:1px solid #cbd5e1;border-radius:8px;"></iframe>
+          <iframe src="${ledgerUrl}" style="width:100%;height:70vh;border:1px solid #cbd5e1;border-radius:8px;"></iframe>
 
         </div>
       </div>
@@ -12617,13 +13038,16 @@
   async function renderWorkerTimesheetsContent(slot) {
     slot.innerHTML = `<div class="sr-skeleton" style="height:300px;"></div>`;
     try {
-      const [res, timeEntriesRes] = await Promise.all([
+      const [res, timeEntriesRes, excRes] = await Promise.all([
         fetch('/api/timesheets'),
-        fetch('/api/time-entries').catch(() => null)
+        fetch('/api/time-entries').catch(() => null),
+        fetch('/api/attendance/exceptions').catch(() => null)
       ]);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
       const timeSummary = (timeEntriesRes && timeEntriesRes.ok) ? await timeEntriesRes.json() : {};
+      const excData = (excRes && excRes.ok) ? await excRes.json() : null;
+      const workerExceptionsHtml = window.ShiftRelayAttendanceUI?.renderWorkerExceptionsHtml?.(excData) || '';
       const entries = data.entries || [];
       const period = data.period || {};
       const missedCount = data.missedPunchCount || 0;
@@ -12698,6 +13122,7 @@
           </div>
         </div>
         ${alertBanner}
+        ${workerExceptionsHtml}
         <div class="sr-cv-section">
           <div class="sr-cv-section-header">
             <h3 class="sr-cv-section-title">
@@ -12728,11 +13153,14 @@
 
       slot.querySelectorAll('[data-entry-id]').forEach(btn => {
         btn.addEventListener('click', () => {
-          if (typeof openPunchCorrectionModal === 'function') {
+          if (window.ShiftRelayAttendanceUI?.openPunchCorrectionModal) {
+            window.ShiftRelayAttendanceUI.openPunchCorrectionModal(btn.dataset.entryId, () => renderTimeAndLeave('timesheets'));
+          } else if (typeof openPunchCorrectionModal === 'function') {
             openPunchCorrectionModal(btn.dataset.entryId);
           }
         });
       });
+      window.ShiftRelayAttendanceUI?.bindWorkerExceptionHandlers?.(slot, () => renderTimeAndLeave('timesheets'));
     } catch (err) {
       slot.innerHTML = `<div class="sr-card" style="border-color:var(--sr-status-red-border);background:var(--sr-status-red-bg);padding:18px;">
         <p style="color:var(--sr-status-red-text);margin:0 0 10px;">${escapeHtml(err.message)}</p>
@@ -12744,12 +13172,18 @@
   async function renderManagerTimesheetsContent(slot) {
     slot.innerHTML = `<div class="sr-skeleton" style="height:250px;"></div>`;
     try {
-      const res = await fetch('/api/timesheets/pending-authorizations');
+      const [res, excRes] = await Promise.all([
+        fetch('/api/timesheets/pending-authorizations'),
+        fetch('/api/attendance/exceptions').catch(() => null)
+      ]);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
+      const excData = (excRes && excRes.ok) ? await excRes.json() : null;
       const pending = data.pending || [];
+      const managerExceptionsHtml = window.ShiftRelayAttendanceUI?.renderManagerExceptionsHtml?.(excData) || '';
 
       slot.innerHTML = `
+        ${managerExceptionsHtml}
         <div class="sr-cv-section">
           <div class="sr-cv-section-header">
             <h3 class="sr-cv-section-title">
@@ -12807,6 +13241,7 @@
           }
         });
       });
+      window.ShiftRelayAttendanceUI?.bindSupervisorExceptionHandlers?.(slot, () => renderTimeAndLeave('timesheets'));
     } catch (err) {
       slot.innerHTML = `<p style="color:var(--sr-status-red-text);">${escapeHtml(err.message)}</p>`;
     }
@@ -12955,10 +13390,15 @@
       </div>`;
 
     let data;
+    let excData = null;
     try {
-      const res = await fetch('/api/timesheets');
+      const [res, excRes] = await Promise.all([
+        fetch('/api/timesheets'),
+        fetch('/api/attendance/exceptions').catch(() => null)
+      ]);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       data = await res.json();
+      if (excRes && excRes.ok) excData = await excRes.json();
     } catch (err) {
       container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:var(--sr-status-red-border);background:var(--sr-status-red-bg);padding:20px;">
         <p style="color:var(--sr-status-red-text);margin:0 0 12px;font-size:14px;">${escapeHtml(err.message)}</p>
@@ -12970,6 +13410,7 @@
     const entries = data.entries || [];
     const period = data.period || {};
     const missedCount = data.missedPunchCount || 0;
+    const workerExceptionsHtml = window.ShiftRelayAttendanceUI?.renderWorkerExceptionsHtml?.(excData) || '';
 
     const alertBanner = missedCount > 0 ? `
       <div class="sr-missed-punch-alert">
@@ -13043,6 +13484,7 @@
           </div>
         </div>
         ${alertBanner}
+        ${workerExceptionsHtml}
         <div class="sr-cv-section">
           <div class="sr-cv-section-header">
             <h3 class="sr-cv-section-title">
@@ -13074,6 +13516,7 @@
     container.querySelectorAll('[data-entry-id]').forEach(btn => {
       btn.addEventListener('click', () => openPunchCorrectionModal(btn.dataset.entryId));
     });
+    window.ShiftRelayAttendanceUI?.bindWorkerExceptionHandlers?.(container, () => renderWorkerTimesheets());
 
     function openPunchCorrectionModal(entryId) {
       const existing = document.getElementById('sr-punch-modal-backdrop');
@@ -13124,7 +13567,7 @@
           const res = await fetch('/api/timesheets/punch-correction', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ entryId, departureTime: timeVal, reason })
+            body: JSON.stringify({ timeEntryId: entryId, requestedClockOut: timeVal, reason })
           });
           const d = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
@@ -13147,10 +13590,15 @@
     container.innerHTML = `<div class="sr-page-wrap"><div class="sr-skeleton" style="height:300px;"></div></div>`;
 
     let data;
+    let excData = null;
     try {
-      const res = await fetch('/api/timesheets/pending-authorizations');
+      const [res, excRes] = await Promise.all([
+        fetch('/api/timesheets/pending-authorizations'),
+        fetch('/api/attendance/exceptions').catch(() => null)
+      ]);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       data = await res.json();
+      if (excRes && excRes.ok) excData = await excRes.json();
     } catch (err) {
       container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:var(--sr-status-red-border);background:var(--sr-status-red-bg);padding:20px;">
         <p style="color:var(--sr-status-red-text);margin:0 0 12px;font-size:14px;">${escapeHtml(err.message)}</p>
@@ -13160,6 +13608,7 @@
     }
 
     const pending = data.pending || [];
+    const managerExceptionsHtml = window.ShiftRelayAttendanceUI?.renderManagerExceptionsHtml?.(excData) || '';
     const infoBanner = pending.length > 0 ? `
       <div class="sr-missed-punch-alert" style="border-left-color:var(--sr-primary);background:rgba(13,82,77,0.05);border-color:rgba(13,82,77,0.2);">
         <svg class="sr-missed-punch-alert-icon" style="color:var(--sr-primary);" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -13202,6 +13651,7 @@
           </div>
         </div>
         ${infoBanner}
+        ${managerExceptionsHtml}
         <div class="sr-cv-section">
           <div class="sr-cv-section-header">
             <h3 class="sr-cv-section-title">
@@ -13236,6 +13686,7 @@
     container.querySelectorAll('[data-correction-id]').forEach(btn => {
       btn.addEventListener('click', () => reviewCorrection(btn.dataset.correctionId, btn.dataset.action));
     });
+    window.ShiftRelayAttendanceUI?.bindSupervisorExceptionHandlers?.(container, () => renderManagerTimesheets());
   }
 
   // ── Time Away ─────────────────────────────────────────────────────────────────
@@ -13531,8 +13982,11 @@
 
     container.innerHTML = '<div class="sr-page-wrap"><div class="sr-skeleton" style="height:500px;"></div></div>';
 
+    const activeUser = getUser();
     let statementData = null;
     let payslipData = null;
+    let earningsMeta = null;
+    let fetchFailed = false;
 
     try {
       const [resEarnings, resPayslip] = await Promise.all([
@@ -13541,17 +13995,21 @@
       ]);
       if (resEarnings.ok) {
         const jsonE = await resEarnings.json();
-        statementData = jsonE.statement;
+        earningsMeta = jsonE;
+        statementData = jsonE.statement || null;
+      } else {
+        fetchFailed = true;
       }
       if (resPayslip.ok) {
         const jsonP = await resPayslip.json();
-        payslipData = jsonP.payslip;
+        payslipData = jsonP.payslip || null;
       }
     } catch (err) {
+      fetchFailed = true;
       console.warn('Earnings fetch error:', err);
     }
 
-    if (!statementData) {
+    if (fetchFailed && !earningsMeta) {
       container.innerHTML = `<div class="sr-page-wrap"><div class="sr-card" style="border-color:var(--sr-status-red-border);background:var(--sr-status-red-bg);padding:20px;">
         <p style="color:var(--sr-status-red-text);margin:0 0 12px;font-size:14px;">Unable to retrieve pay statement. Please try again or contact HR.</p>
         <button class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('earnings')">Retry</button>
@@ -13559,34 +14017,71 @@
       return;
     }
 
-    const net = statementData.netPay || 198450;
-    const gross = statementData.grossPay || 240000;
-    const taxes = statementData.taxes || 15150;
-    const preTax = statementData.preTaxDeductions || 26400;
-    const hours = statementData.hours || 172.5;
-    const period = statementData.period || 'November 1 — November 30, 2026';
-    const nextPay = statementData.payDate || 'Wednesday, Nov 25, 2026';
-    const payModel = statementData.payModel || 'monthly_salaried';
-    const effRate = statementData.effectiveHourlyFormatted || ('₦' + Math.round(gross / 173.333).toLocaleString('en-NG') + '/hr');
-    
-    // Nigerian monthly statutory accrual calculation
+    const isUnassignedContract = Boolean(earningsMeta?.unassigned || !statementData);
+    if (!statementData) {
+      statementData = {
+        payModel: 'fixed_monthly',
+        netPay: 0,
+        netPayFormatted: '₦0.00',
+        grossPay: 0,
+        grossPayFormatted: '₦0.00',
+        taxes: 0,
+        taxesFormatted: '₦0.00',
+        preTaxDeductions: 0,
+        preTaxFormatted: '₦0.00',
+        hours: 0,
+        pardonedHours: 0,
+        unexcusedDeductedHours: 0,
+        absenceDeduction: 0,
+        absenceDeductionFormatted: '₦0.00',
+        period: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+        payDate: 'Monthly on 25th',
+        effectiveHourlyFormatted: 'Not Assigned',
+        companyName: earningsMeta?.companyName || activeUser?.organisation_name || 'Workplace',
+        companyId: earningsMeta?.companyId || activeUser?.company_id || ''
+      };
+    }
+
+    const net = Number(statementData.netPay ?? 0);
+    const gross = Number(statementData.grossPay ?? 0);
+    const taxes = Number(statementData.taxes ?? 0);
+    const preTax = Number(statementData.preTaxDeductions ?? 0);
+    const hours = Number(statementData.hours ?? 0);
+    const pardonedHours = Number(statementData.pardonedHours ?? 0);
+    const unexcusedHours = Number(statementData.unexcusedDeductedHours ?? 0);
+    const absenceDeduction = Number(statementData.absenceDeduction ?? 0);
+    const period = statementData.period || 'Current Pay Cycle';
+    const nextPay = statementData.payDate || 'Monthly on 25th';
+    const effRate = statementData.effectiveHourlyFormatted || (gross > 0 ? '₦' + Math.round(gross / 173.333).toLocaleString('en-NG') + '/hr' : '₦0/hr');
+
+    const nowDate = new Date();
+    const totalCycleDays = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate();
+    const curCycleDay = nowDate.getDate();
     const progress = statementData.cycleProgress || {
-      currentDay: 24,
-      totalDays: 31,
-      targetDay: 25,
-      accrualPct: 77,
-      accruedNetFormatted: '₦152,806.50',
-      accruedGrossFormatted: '₦184,800.00'
+      currentDay: curCycleDay,
+      totalDays: totalCycleDays,
+      targetDay: Math.min(25, totalCycleDays),
+      accrualPct: isUnassignedContract ? 0 : Math.min(100, Math.round((curCycleDay / Math.min(25, totalCycleDays)) * 100)),
+      accruedNetFormatted: '₦0.00',
+      accruedGrossFormatted: '₦0.00'
     };
 
-    const netPct = Math.round((net / gross) * 100);
-    const preTaxPct = Math.round((preTax / gross) * 100);
-    const taxesPct = Math.max(0, 100 - netPct - preTaxPct);
+    const netPct = gross > 0 ? Math.round((net / gross) * 100) : 0;
+    const preTaxPct = gross > 0 ? Math.round((preTax / gross) * 100) : 0;
+    const taxesPct = gross > 0 ? Math.max(0, 100 - netPct - preTaxPct) : 0;
 
     const circumference = 2 * Math.PI * 45;
     const seg1 = (netPct / 100) * circumference;
     const seg2 = (preTaxPct / 100) * circumference;
-    const seg3 = Math.max(0, circumference - seg1 - seg2);
+    const seg3 = gross > 0 ? Math.max(0, circumference - seg1 - seg2) : 0;
+
+    const unassignedBannerHtml = isUnassignedContract ? `
+      <div class="sr-card" style="margin-bottom:14px;padding:14px 18px;border-left:4px solid #f59e0b;background:rgba(245,158,11,0.08);">
+        <strong style="display:block;font-size:13.5px;color:var(--sr-text-main);margin-bottom:4px;">Compensation Contract Pending</strong>
+        <p style="margin:0;font-size:12.5px;color:var(--sr-text-muted);line-height:1.45;">
+          ${escapeHtml(earningsMeta?.message || 'Your compensation contract has not been configured by HR/Finance yet. Rewards cashout remains available below.')}
+        </p>
+      </div>` : '';
 
     container.innerHTML = `
       <div class="sr-page-wrap">
@@ -13616,6 +14111,7 @@
         </div>
 
         <!-- Progressive Month-End Accrual Meter (Nigerian Corporate Benchmark) -->
+        ${unassignedBannerHtml}
         <div class="sr-accrual-card" id="sr-salaried-accrual-card">
           <div class="sr-accrual-header">
             <div>
@@ -13861,12 +14357,21 @@
               <span class="sr-earnings-breakdown-label">Gross Earnings</span>
               <span class="sr-earnings-breakdown-val">${statementData.grossPayFormatted || '₦' + gross.toLocaleString('en-NG', {minimumFractionDigits:2})}</span>
             </div>
+            ${(pardonedHours > 0 || unexcusedHours > 0 || absenceDeduction > 0) ? `
             <div class="sr-earnings-breakdown-row">
-              <span class="sr-earnings-breakdown-label">Deductions</span>
+              <span class="sr-earnings-breakdown-label">Attendance Exceptions Impact</span>
+              <span class="sr-earnings-breakdown-val" style="font-size:12.5px;">
+                ${pardonedHours > 0 ? `<span style="color:#059669;">${pardonedHours}h Pardoned (Paid)</span>` : ''}
+                ${(pardonedHours > 0 && (unexcusedHours > 0 || absenceDeduction > 0)) ? ' &middot; ' : ''}
+                ${(unexcusedHours > 0 || absenceDeduction > 0) ? `<span style="color:#ef4444;">-${unexcusedHours}h (-${statementData.absenceDeductionFormatted || '₦' + absenceDeduction.toLocaleString('en-NG', {minimumFractionDigits:2})})</span>` : ''}
+              </span>
+            </div>` : ''}
+            <div class="sr-earnings-breakdown-row">
+              <span class="sr-earnings-breakdown-label">Deductions (Pension + NHF)</span>
               <span class="sr-earnings-breakdown-val" style="color:var(--sr-status-yellow-text);">-${statementData.preTaxFormatted || '₦' + preTax.toLocaleString('en-NG', {minimumFractionDigits:2})}</span>
             </div>
             <div class="sr-earnings-breakdown-row">
-              <span class="sr-earnings-breakdown-label">Taxes</span>
+              <span class="sr-earnings-breakdown-label">PAYE Tax Withheld</span>
               <span class="sr-earnings-breakdown-val" style="color:#ef4444;">-${statementData.taxesFormatted || '₦' + taxes.toLocaleString('en-NG', {minimumFractionDigits:2})}</span>
             </div>
             <div class="sr-earnings-breakdown-row">
@@ -13897,16 +14402,16 @@
             <div class="sr-payslip-sheet" id="sr-payslip-content-print" style="padding:28px;">
               <div class="sr-payslip-header-box">
                 <div style="display:flex;align-items:center;gap:12px;">
-                  <img src="icon.svg?v=145" width="48" height="48" style="border-radius:12px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="ShiftRelay" />
+                  <img src="icon.svg?v=145" width="48" height="48" style="border-radius:12px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="ShiftRelay OS" />
                   <div>
-                    <h2 style="font-size:19px;font-weight:900;color:var(--sr-text-main);margin:0 0 4px;">${escapeHtml(payslipData?.companyName || 'Riffmax Technology Limited (Nigeria)')}</h2>
-                    <p style="font-size:12px;color:var(--sr-text-muted);margin:0;">Tenant ID: <strong style="color:var(--sr-text-main);">${escapeHtml(payslipData?.companyId || 'RIF-2026')}</strong> • PenCom Reg: <strong>PEN-NG-770182</strong> • TIN: <strong>23019847-0001</strong></p>
+                    <h2 style="font-size:19px;font-weight:900;color:var(--sr-text-main);margin:0 0 4px;">${escapeHtml(payslipData?.companyName || statementData.companyName || activeUser?.organisation_name || 'Workplace')}</h2>
+                    <p style="font-size:12px;color:var(--sr-text-muted);margin:0;">Tenant ID: <strong style="color:var(--sr-text-main);">${escapeHtml(payslipData?.companyId || statementData.companyId || activeUser?.company_id || '—')}</strong></p>
                   </div>
                 </div>
                 <div style="text-align:right;">
                   <div class="sr-payslip-stamp-seal">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>VERIFIED FOR BANK DISBURSEMENT</span>
+                    <span>${isUnassignedContract ? 'AWAITING CONTRACT' : 'VERIFIED FOR BANK DISBURSEMENT'}</span>
                   </div>
                   <div style="font-size:11.5px;color:var(--sr-text-muted);margin-top:6px;font-weight:600;">Period: ${escapeHtml(payslipData?.period || period)}</div>
                 </div>
@@ -13916,20 +14421,20 @@
                 <div class="sr-payslip-section-box">
                   <h5 style="margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--sr-text-muted);font-weight:700;">Employee Identification</h5>
                   <div style="font-size:13px;line-height:1.7;color:var(--sr-text-main);">
-                    <div><strong>Staff Name:</strong> ${escapeHtml(payslipData?.staffName || 'Active Worker')}</div>
-                    <div><strong>Staff ID:</strong> ${escapeHtml(payslipData?.staffId || 'SR-NG-001')}</div>
-                    <div><strong>Role:</strong> ${escapeHtml(payslipData?.role || 'Operations Specialist')}</div>
-                    <div><strong>Department:</strong> ${escapeHtml(payslipData?.department || 'Field Logistics')}</div>
+                    <div><strong>Staff Name:</strong> ${escapeHtml(payslipData?.staffName || activeUser?.name || 'Staff Member')}</div>
+                    <div><strong>Staff ID:</strong> ${escapeHtml(payslipData?.staffId || activeUser?.staffId || '—')}</div>
+                    <div><strong>Role:</strong> ${escapeHtml(payslipData?.role || activeUser?.title || activeUser?.role || 'Staff')}</div>
+                    <div><strong>Department:</strong> ${escapeHtml(payslipData?.department || activeUser?.department || 'Operations')}</div>
                   </div>
                 </div>
 
                 <div class="sr-payslip-section-box">
                   <h5 style="margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--sr-text-muted);font-weight:700;">Banking & Profile</h5>
                   <div style="font-size:13px;line-height:1.7;color:var(--sr-text-main);">
-                    <div><strong>Contract Type:</strong> ${escapeHtml(payslipData?.compensationType || 'fixed_monthly')}</div>
-                    <div><strong>Bank:</strong> ${escapeHtml(payslipData?.bankName || 'Access Bank Nigeria')}</div>
-                    <div><strong>Account No:</strong> ${escapeHtml(payslipData?.accountNumber || '0123456789')}</div>
-                    <div><strong>Verified Timecard:</strong> ${payslipData?.regularHours || 160} hrs regular + ${payslipData?.overtimeHours || 0} hrs OT</div>
+                    <div><strong>Contract Type:</strong> ${escapeHtml(payslipData?.compensationType || statementData.payModel || 'fixed_monthly')}</div>
+                    <div><strong>Bank:</strong> ${escapeHtml(payslipData?.bankName || 'Not Assigned')}</div>
+                    <div><strong>Account No:</strong> ${escapeHtml(payslipData?.accountNumber || '—')}</div>
+                    <div><strong>Verified Timecard:</strong> ${payslipData?.regularHours ?? statementData.regularHours ?? 0} hrs regular + ${payslipData?.overtimeHours ?? statementData.overtimeHours ?? 0} hrs OT</div>
                   </div>
                 </div>
               </div>
@@ -13939,7 +14444,7 @@
                   <h5 style="margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--sr-primary);font-weight:700;">Gross Earnings</h5>
                   <div class="sr-payslip-line-item">
                     <span>Base Salary / Regular Pay</span>
-                    <span>${payslipData?.formatted?.basicSalary || '₦200,000.00'}</span>
+                    <span>${payslipData?.formatted?.basicSalary || '₦0.00'}</span>
                   </div>
                   <div class="sr-payslip-line-item">
                     <span>Overtime Allowance (1.5x Rate)</span>
@@ -13947,7 +14452,7 @@
                   </div>
                   <div class="sr-payslip-total-row" style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--sr-border-medium);display:flex;justify-content:space-between;font-weight:700;font-size:13px;">
                     <span>Total Gross Earnings</span>
-                    <span style="color:var(--sr-text-main);">${payslipData?.formatted?.grossTotal || '₦200,000.00'}</span>
+                    <span style="color:var(--sr-text-main);">${payslipData?.formatted?.grossTotal || statementData.grossPayFormatted || '₦0.00'}</span>
                   </div>
                 </div>
 
@@ -13955,19 +14460,19 @@
                   <h5 style="margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#f87171;font-weight:700;">Statutory Deductions</h5>
                   <div class="sr-payslip-line-item">
                     <span>PenCom Pension (Employee 8%)</span>
-                    <span>-${payslipData?.formatted?.pensionEmployee || '₦16,000.00'}</span>
+                    <span>-${payslipData?.formatted?.pensionEmployee || '₦0.00'}</span>
                   </div>
                   <div class="sr-payslip-line-item">
                     <span>PAYE Income Tax (Finance Act)</span>
-                    <span>-${payslipData?.formatted?.payeTax || '₦15,150.00'}</span>
+                    <span>-${payslipData?.formatted?.payeTax || '₦0.00'}</span>
                   </div>
                   <div class="sr-payslip-line-item">
                     <span>National Housing Fund (NHF 2.5%)</span>
-                    <span>-${payslipData?.formatted?.nhf || '₦5,000.00'}</span>
+                    <span>-${payslipData?.formatted?.nhf || '₦0.00'}</span>
                   </div>
                   <div class="sr-payslip-total-row" style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--sr-border-medium);display:flex;justify-content:space-between;font-weight:700;font-size:13px;">
                     <span>Total Deductions</span>
-                    <span style="color:#f87171;">-${payslipData?.formatted?.totalDeductions || '₦36,150.00'}</span>
+                    <span style="color:#f87171;">-${payslipData?.formatted?.totalDeductions || '₦0.00'}</span>
                   </div>
                 </div>
               </div>
@@ -13979,14 +14484,14 @@
                   <div style="font-size:11px;color:var(--sr-text-muted);margin-top:2px;">Disbursement cleared via Corporate Account Transfer</div>
                 </div>
                 <div style="font-size:24px;font-weight:900;color:var(--sr-primary);font-family:'JetBrains Mono',monospace;">
-                  ${payslipData?.formatted?.netPay || statementData.netPayFormatted || '₦163,850.00'}
+                  ${payslipData?.formatted?.netPay || statementData.netPayFormatted || '₦0.00'}
                 </div>
               </div>
 
               <!-- Employer Statutory Contributions Info -->
               <div style="margin-top:14px;padding:10px 14px;background:var(--sr-bg-elevated);border-radius:6px;border:1px solid var(--sr-border-subtle);font-size:11px;color:var(--sr-text-muted);display:flex;justify-content:space-between;">
-                <span><strong>Employer Direct Contributions:</strong> Pension (10%): ${payslipData?.formatted?.pensionEmployer || '₦20,000.00'} | NSITF (1%): ${payslipData?.formatted?.nsitf || '₦2,000.00'}</span>
-                <span>Audit Verified: ShiftRelay HCM</span>
+                <span><strong>Employer Direct Contributions:</strong> Pension (10%): ${payslipData?.formatted?.pensionEmployer || '₦0.00'} | NSITF (1%): ${payslipData?.formatted?.nsitf || '₦0.00'}</span>
+                <span>Audit Verified: ShiftRelay OS HCM</span>
               </div>
             </div>
           </div>
@@ -14312,15 +14817,20 @@
   }
 
   // ── Push to Finance: Month-End Dispatch & Audit Suite ────────────────────────
-  async function renderPushToFinance() {
+  async function renderPushToFinance(selectedMonth) {
     const container = document.getElementById('sr-content-area');
     if (!container) return;
+
+    const currentMonth = /^\d{4}-\d{2}$/.test(String(selectedMonth || ''))
+      ? String(selectedMonth)
+      : (window._srFinanceSelectedMonth || new Date().toISOString().slice(0, 7));
+    window._srFinanceSelectedMonth = currentMonth;
 
     container.innerHTML = '<div class="sr-page-wrap"><div class="sr-skeleton" style="height:500px;"></div></div>';
 
     let payroll = null;
     try {
-      const res = await fetch('/api/payroll/summary');
+      const res = await fetch(`/api/payroll/summary?month=${encodeURIComponent(currentMonth)}`);
       if (res.ok) {
         const json = await res.json();
         payroll = json?.payroll || json;
@@ -14341,11 +14851,16 @@
     const fmtNaira = (n) => '₦' + Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const rawSummary = payroll.summary || {};
     const employees = payroll.employees || [];
+    const unresolvedCount = Number(rawSummary.unresolvedExceptionsCount || 0);
+    const presenceHoldCount = Number(rawSummary.unverifiedShiftHolds || 0);
+    const prePayrollBlocked = Boolean(rawSummary.prePayrollGateBlocked || unresolvedCount > 0 || presenceHoldCount > 0);
     const summary = {
       ...rawSummary,
       employeeCount: rawSummary.employeeCount ?? employees.length,
       verifiedShiftsCount: rawSummary.verifiedShiftsCount ?? 0,
       missedPunchesResolved: rawSummary.missedPunchesResolved ?? 0,
+      pardonedHours: Number(rawSummary.pardonedHours || 0),
+      unexcusedDeductedHours: Number(rawSummary.unexcusedDeductedHours || 0),
       totalNetFormatted: rawSummary.totalNetFormatted || fmtNaira(rawSummary.totalNet ?? employees.reduce((s, e) => s + Number(e.netPay || 0), 0)),
       totalGrossFormatted: rawSummary.totalGrossFormatted || fmtNaira(rawSummary.totalGross ?? employees.reduce((s, e) => s + Number(e.grossPay || 0), 0)),
       totalStatutoryFormatted: rawSummary.totalStatutoryFormatted || fmtNaira(rawSummary.totalDeductions ?? employees.reduce((s, e) => s + Number(e.totalStatutoryDeductions || 0), 0))
@@ -14353,13 +14868,17 @@
     const dispatch = payroll.dispatched || payroll.lastPayrollDispatch || null;
 
     container.innerHTML = `
-      <div class="sr-page-wrap">
-        <div class="sr-page-header">
+      <div class="sr-page-wrap" style="max-width:1080px;">
+        <div class="sr-page-header" style="flex-wrap:wrap;gap:12px;">
           <div>
             <h2 class="sr-page-title">Finance</h2>
             <p class="sr-page-subtitle">Payroll & Remittance (${escapeHtml(payroll.period)})</p>
           </div>
-          <div style="display:flex;gap:10px;align-items:center;">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--sr-text-muted);white-space:nowrap;">
+              <span>Period:</span>
+              <input type="month" id="sr-payroll-month-picker" class="sr-input" value="${escapeHtml(currentMonth)}" style="width:auto;min-height:36px;padding:4px 10px;font-size:12.5px;" />
+            </div>
             <button class="sr-btn sr-btn-secondary" id="sr-btn-print-audit" style="display:inline-flex;align-items:center;gap:6px;">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
               <span>Print</span>
@@ -14370,6 +14889,24 @@
             </button>
           </div>
         </div>
+
+        ${prePayrollBlocked ? `
+        <div id="sr-pre-payroll-gate-card" style="margin-bottom:16px;padding:14px 18px;background:rgba(245,158,11,0.09);border:1.5px solid rgba(245,158,11,0.4);border-radius:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:260px;">
+              <strong style="display:block;font-size:13.5px;color:#b45309;margin-bottom:4px;">Pre-Payroll Exception Gate Active</strong>
+              <div style="font-size:12.5px;color:var(--sr-text-secondary);line-height:1.45;">
+                ${unresolvedCount} pending attendance exception(s) and ${presenceHoldCount} auto clock-out hold(s) await Supervisor review.
+                Pardoned hours (${summary.pardonedHours}h) are protected at full pay; unexcused hours (${summary.unexcusedDeductedHours}h) deduct once only.
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                <input type="checkbox" id="sr-payroll-ack-exceptions-cb" style="width:16px !important;height:16px !important;min-height:16px !important;margin:0;flex-shrink:0;accent-color:var(--sr-primary);cursor:pointer;" />
+                <label for="sr-payroll-ack-exceptions-cb" style="margin:0 !important;display:inline !important;font-size:12px;font-weight:700;color:var(--sr-text-main);cursor:pointer;">Executive Override: Acknowledge unresolved exceptions and release batch anyway</label>
+              </div>
+            </div>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-gate-review-exceptions" style="font-size:12px;padding:6px 12px;white-space:nowrap;">Review Exceptions Queue</button>
+          </div>
+        </div>` : ''}
 
         <!-- Dispatch Banner if already dispatched -->
         <div id="sr-dispatch-status-banner" style="${dispatch ? 'display:block;' : 'display:none;'}margin-bottom:20px;padding:14px 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
@@ -14422,93 +14959,110 @@
 
         <!-- Unified Corporate Banking & Statutory Remittance Export Hub (Deduplicated) -->
         <div class="sr-card" style="margin-bottom:20px;padding:18px 22px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
-          <div style="display:flex;align-items:center;gap:14px;max-width:540px;">
+          <div style="display:flex;align-items:center;gap:14px;max-width:480px;">
             <div style="width:40px;height:40px;border-radius:10px;background:var(--sr-accent-light);color:#3b82f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
             <div>
-              <div style="font-size:14px;font-weight:700;color:var(--sr-text-main);">Statutory Schedules</div>
+              <div style="font-size:14px;font-weight:700;color:var(--sr-text-main);">Statutory &amp; Bank Disbursement Schedules</div>
               <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;line-height:1.4;">
-                Cut-Off: <strong>25th monthly</strong> &bull; Visual schedules for your company's finance team (GTBank GAPS, Access Online, Zenith, PenCom/LIRS portals). Your finance department handles remittances.
+                Cut-Off: <strong>25th monthly</strong> &bull; Ready for GTBank GAPS, AccessPay, Zenith Corporate, NIBSS &amp; PenCom/LIRS portals.
               </div>
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-export-payroll-ledger" style="font-size:12.5px;padding:8px 14px;display:inline-flex;align-items:center;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-export-payroll-ledger" style="font-size:12px;padding:8px 12px;display:inline-flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               <span>Remittance Ledger (PDF)</span>
             </button>
-            <a href="/api/payroll/export-bank-csv" download class="sr-btn sr-btn-secondary" id="sr-btn-export-bank-csv" style="font-size:12.5px;padding:8px 14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span>Bank Disbursement CSV</span>
-            </a>
-            <a href="/api/payroll/export-tax-csv" download class="sr-btn sr-btn-secondary" id="sr-btn-export-tax-csv" style="font-size:12.5px;padding:8px 14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div style="display:inline-flex;align-items:center;gap:6px;background:var(--sr-bg-elevated);padding:3px 6px;border-radius:9px;border:1px solid var(--sr-border-subtle);">
+              <select id="sr-bank-csv-format" aria-label="Nigerian Bank CSV Upload Profile" style="width:auto;max-width:210px;min-height:32px;padding:4px 8px;border-radius:6px;border:none;background:transparent;color:var(--sr-text-main);font-size:12px;font-weight:600;cursor:pointer;">
+                <option value="generic">Bank Profile: Generic CSV</option>
+                <option value="gtbank_gaps">GTBank GAPS Bulk Upload</option>
+                <option value="access_bank">Access Bank AccessPay</option>
+                <option value="zenith_bank">Zenith Bank Corporate</option>
+                <option value="nibss">NIBSS e-BillsPay / NIP</option>
+              </select>
+              <a href="/api/payroll/export-bank-csv?month=${encodeURIComponent(currentMonth)}&format=generic" download class="sr-btn sr-btn-secondary" id="sr-btn-export-bank-csv" style="font-size:12px;min-height:30px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Bank CSV</span>
+              </a>
+            </div>
+            <a href="/api/payroll/export-tax-csv?month=${encodeURIComponent(currentMonth)}" download class="sr-btn sr-btn-secondary" id="sr-btn-export-tax-csv" style="font-size:12px;padding:8px 12px;display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               <span>Statutory CSV</span>
             </a>
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-open-email-lab" style="font-size:12.5px;padding:8px 14px;display:inline-flex;align-items:center;gap:6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <a href="/calculator.html" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="font-size:12px;padding:8px 12px;display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+              <span>PAYE Calculator</span>
+            </a>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-open-email-lab" style="font-size:12px;padding:8px 12px;display:inline-flex;align-items:center;gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
               <span>Email &amp; Newsletter Lab</span>
             </button>
           </div>
         </div>
+        <div id="sr-export-readiness-banner" style="margin:-8px 0 16px;padding:10px 14px;border-radius:10px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-elevated);font-size:12px;color:var(--sr-text-muted);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <span>Checking NUBAN, CBN Bank Codes &amp; PenCom RSA readiness...</span>
+        </div>
 
         <!-- Master Frontline Verification Table -->
         <div class="sr-cv-section" style="padding:0;overflow:hidden;">
-          <div style="padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;">
-            <h4 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">Staff Roster</h4>
+          <div style="padding:14px 18px;border-bottom:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <h4 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">Staff Roster &amp; Verified Compensation (${employees.length} Staff)</h4>
             <span style="font-size:12px;color:var(--sr-text-muted);">Tenant: ${escapeHtml(payroll.companyName)} (${escapeHtml(payroll.companyId)})</span>
           </div>
 
-          <div style="overflow-x:auto;">
-            <table class="sr-ts-table sr-payroll-table" style="width:100%;font-size:12px;">
+          <div style="overflow-x:auto;width:100%;">
+            <table class="sr-ts-table sr-payroll-table" style="width:100%;font-size:11.5px;border-collapse:collapse;">
               <thead>
                 <tr>
-                  <th>Staff</th>
-                  <th>Bank</th>
-                  <th>Hours</th>
-                  <th>Gross</th>
-                  <th>PenCom / PAYE</th>
-                  <th>Net</th>
-                  <th style="text-align:right;">Edit</th>
+                  <th style="padding:10px 12px;">Staff</th>
+                  <th style="padding:10px 8px;">Bank / NUBAN</th>
+                  <th style="padding:10px 8px;">Hours / Exceptions</th>
+                  <th style="padding:10px 8px;">Gross</th>
+                  <th style="padding:10px 8px;">PenCom / PAYE</th>
+                  <th style="padding:10px 8px;">Net</th>
+                  <th style="padding:10px 12px;text-align:right;">Action</th>
                 </tr>
               </thead>
               <tbody>
                 ${employees.map(emp => `
                   <tr>
-                    <td>
+                    <td style="padding:9px 12px;">
                       <div style="display:flex;align-items:center;gap:8px;min-width:0;">
-                        <span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg, #0d9488, #059669);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:800;flex-shrink:0;">
+                        <span style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg, #0d9488, #059669);color:#fff;display:grid;place-items:center;font-size:10.5px;font-weight:800;flex-shrink:0;">
                           ${emp.userName.split(' ').map(n=>n[0]).join('')}
                         </span>
                         <div style="min-width:0;">
-                          <div style="font-weight:700;color:var(--sr-text-main);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">${escapeHtml(emp.userName)}</div>
-                          <div style="font-size:10.5px;color:var(--sr-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;"><strong style="font-family:'JetBrains Mono',monospace;color:var(--sr-text-main);">${escapeHtml(emp.staffId)}</strong> &bull; ${escapeHtml(emp.compensation_type === 'fixed_monthly' ? 'Fixed' : 'Hourly')}</div>
+                          <div style="font-weight:700;color:var(--sr-text-main);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;">${escapeHtml(emp.userName)}</div>
+                          <div style="font-size:10px;color:var(--sr-text-muted);white-space:nowrap;"><strong style="font-family:'JetBrains Mono',monospace;color:var(--sr-text-main);">${escapeHtml(emp.staffId)}</strong> &bull; ${escapeHtml(emp.compensation_type === 'fixed_monthly' ? 'Fixed' : 'Hourly')}</div>
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <div style="font-size:11.5px;color:var(--sr-text-main);white-space:nowrap;">${escapeHtml(emp.bank_name)}</div>
-                      <div style="font-size:10.5px;color:var(--sr-text-muted);font-family:monospace;">${escapeHtml(emp.account_number)}</div>
+                    <td style="padding:9px 8px;">
+                      <div style="font-size:11px;color:var(--sr-text-main);white-space:nowrap;">${escapeHtml(emp.bank_name)}</div>
+                      <div style="font-size:10px;color:var(--sr-text-muted);font-family:monospace;">${escapeHtml(emp.account_number)}</div>
                     </td>
-                    <td style="white-space:nowrap;">
-                      <div style="font-size:11.5px;">${emp.regularHours}h${emp.overtimeHours > 0 ? ` <span style="color:var(--sr-primary);font-weight:700;">+${emp.overtimeHours}h OT</span>` : ''}</div>
-                      ${emp.absenceDeduction > 0 ? `<div style="font-size:10.5px;color:#dc2626;">-${emp.absenceDays}d abs</div>` : `<div style="font-size:10px;color:var(--sr-primary);font-weight:600;">Peer / GPS</div>`}
+                    <td style="padding:9px 8px;white-space:nowrap;">
+                      <div style="font-size:11px;">${emp.regularHours}h${emp.overtimeHours > 0 ? ` <span style="color:var(--sr-primary);font-weight:700;">+${emp.overtimeHours}h OT</span>` : ''}</div>
+                      ${Number(emp.pardonedHours || 0) > 0 ? `<div style="font-size:9.5px;color:#059669;font-weight:700;">+${emp.pardonedHours}h pardoned</div>` : ''}
+                      ${(Number(emp.unexcusedDeductedHours || 0) > 0 || emp.absenceDeduction > 0) ? `<div style="font-size:10px;color:#dc2626;font-weight:700;">-${Number(emp.unexcusedDeductedHours || 0)}h unexcused (-₦${Number(emp.absenceDeduction || 0).toLocaleString('en-NG')})</div>` : `<div style="font-size:9.5px;color:var(--sr-primary);font-weight:600;">Peer / GPS Verified</div>`}
                     </td>
-                    <td style="font-weight:600;color:var(--sr-text-main);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11.5px;">
+                    <td style="padding:9px 8px;font-weight:600;color:var(--sr-text-main);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px;">
                       ${emp.formatted.grossTotal}
                     </td>
-                    <td style="white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px;">
+                    <td style="padding:9px 8px;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:10.5px;">
                       <div style="color:var(--sr-status-yellow-text);">Pen -${emp.formatted.pensionEmployee}</div>
                       <div style="color:#ef4444;">PAYE -${emp.formatted.payeTax}</div>
                     </td>
-                    <td style="white-space:nowrap;">
-                      <div style="display:inline-block;padding:4px 8px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:7px;font-weight:800;color:#166534;font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:-0.02em;">
+                    <td style="padding:9px 8px;white-space:nowrap;">
+                      <div style="display:inline-block;padding:3px 7px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:6px;font-weight:800;color:#166534;font-size:11.5px;font-family:'JetBrains Mono',monospace;letter-spacing:-0.02em;">
                         ${emp.formatted.netPay}
                       </div>
                     </td>
-                    <td style="text-align:right;white-space:nowrap;">
-                      <button class="sr-btn sr-btn-secondary sr-btn-edit-contract" data-user-id="${emp.userId}" style="font-size:11px;padding:4px 8px;display:inline-flex;align-items:center;gap:4px;">
+                    <td style="padding:9px 12px;text-align:right;white-space:nowrap;">
+                      <button class="sr-btn sr-btn-secondary sr-btn-edit-contract" data-user-id="${emp.userId}" style="font-size:10.5px;min-height:28px;padding:3px 8px;display:inline-flex;align-items:center;gap:4px;">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                         <span>Edit</span>
                       </button>
@@ -14563,6 +15117,13 @@
         </div>
       </div>`;
 
+    document.getElementById('sr-payroll-month-picker')?.addEventListener('change', (e) => {
+      if (e.target.value) renderPushToFinance(e.target.value);
+    });
+    document.getElementById('sr-btn-gate-review-exceptions')?.addEventListener('click', () => {
+      navigate('timesheets');
+    });
+
     // Hook Dispatch Action
 
     const dispatchBtn = document.getElementById('sr-btn-dispatch-finance');
@@ -14570,24 +15131,37 @@
     const dispatchText = document.getElementById('sr-dispatch-text');
     if (dispatchBtn) {
       dispatchBtn.addEventListener('click', async () => {
+        const acknowledgeUnresolvedExceptions = Boolean(document.getElementById('sr-payroll-ack-exceptions-cb')?.checked);
         dispatchBtn.disabled = true;
         dispatchBtn.textContent = 'Pushing to Accounts...';
         try {
-          const res = await fetch('/api/payroll/dispatch', { method: 'POST' });
+          const res = await fetch('/api/payroll/dispatch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ month: currentMonth, acknowledgeUnresolvedExceptions })
+          });
           const data = await res.json();
+          if (res.status === 409) {
+            throw new Error(data.error || 'Pre-Payroll Gate blocked dispatch: resolve exceptions or check Executive Override.');
+          }
+          if (!res.ok) throw new Error(data.error || 'Failed to dispatch payroll');
           if (data.ok) {
             banner.style.display = 'block';
             dispatchText.textContent = `Locked and dispatched on ${new Date(data.dispatch.dispatchedAt).toLocaleString()} by ${escapeHtml(data.dispatch.dispatchedBy)} (Ref: ${escapeHtml(data.dispatch.auditReference)})`;
             dispatchBtn.textContent = 'Dispatched to Finance';
             dispatchBtn.style.background = '#059669';
             if (typeof window.Phase1Shell.showToast === 'function') {
-              window.Phase1Shell.showToast('Verified payroll package pushed to Finance Desk successfully.');
+              window.Phase1Shell.showToast('Verified payroll package pushed to Finance Desk successfully.', 'success');
             }
           }
         } catch (err) {
-          alert('Failed to dispatch payroll: ' + err.message);
+          if (typeof window.Phase1Shell.showToast === 'function') {
+            window.Phase1Shell.showToast(err.message, 'error');
+          } else {
+            alert(err.message);
+          }
           dispatchBtn.disabled = false;
-          dispatchBtn.textContent = 'Push to Finance Desk';
+          dispatchBtn.textContent = 'Dispatch';
         }
       });
     }
@@ -14595,12 +15169,37 @@
     // Hook Print Audit -> Dedicated Printable Monthly Payment Data & Statutory Sheet
     const printAuditBtn = document.getElementById('sr-btn-print-audit');
     document.getElementById('sr-btn-export-payroll-ledger')?.addEventListener('click', () => {
-      openPayrollLedgerModal();
+      openPayrollLedgerModal(currentMonth);
     });
 
     document.getElementById('sr-btn-open-email-lab')?.addEventListener('click', () => {
       openEmailTestingLabModal();
     });
+
+    const bankFmtSel = document.getElementById('sr-bank-csv-format');
+    const bankCsvLink = document.getElementById('sr-btn-export-bank-csv');
+    const readinessEl = document.getElementById('sr-export-readiness-banner');
+    async function refreshBankExportReadiness() {
+      const fmt = bankFmtSel ? bankFmtSel.value : 'generic';
+      if (bankCsvLink) {
+        bankCsvLink.href = `/api/payroll/export-bank-csv?month=${encodeURIComponent(currentMonth)}&format=${encodeURIComponent(fmt)}`;
+      }
+      if (!readinessEl) return;
+      try {
+        const res = await fetch(`/api/payroll/export-readiness?month=${encodeURIComponent(currentMonth)}&format=${encodeURIComponent(fmt)}`);
+        if (!res.ok) return;
+        const rData = await res.json();
+        const readyBadge = rData.exportReady
+          ? `<span style="color:#059669;font-weight:700;">Bank Export Ready (${rData.readyEmployees}/${rData.totalEmployees} staff verified for ${escapeHtml(rData.formatLabel)})</span>`
+          : `<span style="color:#d97706;font-weight:700;">${rData.blockingCount} Blocking Bank/NUBAN Issue(s) for ${escapeHtml(rData.formatLabel)}</span>`;
+        const warnText = rData.warningCount > 0 ? `<span>${rData.warningCount} PenCom RSA warning(s)</span>` : '<span>All PenCom RSA PINs verified</span>';
+        readinessEl.innerHTML = `${readyBadge}<span>${warnText}</span>`;
+      } catch (_) {}
+    }
+    if (bankFmtSel) {
+      bankFmtSel.addEventListener('change', refreshBankExportReadiness);
+    }
+    refreshBankExportReadiness();
 
     if (printAuditBtn) {
       printAuditBtn.addEventListener('click', () => {
@@ -15452,8 +16051,16 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
               <span>Refresh</span>
             </button>
+            <a href="/api/reports/dpa" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Signed NDPA DPA</span>
+            </a>
+            <a href="/trust.html" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>Trust &amp; SLA Center</span>
+            </a>
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-gov-open-settings" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               <span>Organisation Settings</span>
             </button>
             <button type="button" class="sr-btn sr-btn-primary" id="sr-gov-open-kiosk" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
@@ -15478,6 +16085,20 @@
             <div style="font-size:10.5px;font-weight:800;color:var(--sr-text-muted);text-transform:uppercase;">Access Verification</div>
             <div style="font-size:20px;font-weight:900;color:#f59e0b;margin-top:4px;font-family:'JetBrains Mono',monospace;">0 Flags</div>
             <div style="font-size:11px;color:var(--sr-text-muted);margin-top:2px;">QR + GPS Locked</div>
+          </div>
+        </div>
+
+        <div class="sr-card" style="margin-bottom:16px;padding:16px 18px;border-left:4px solid #0d9488;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
+          <div>
+            <div style="font-size:13.5px;font-weight:800;color:var(--sr-text-main);">NDPA 2023 Compliance &amp; Multi-Channel Attendance Reminder Routing</div>
+            <div style="font-size:12px;color:var(--sr-text-muted);margin-top:3px;">
+              Pre-shift T-15m &amp; Grace-Expiry T+15m alerts route via <strong>Email + Termii SMS + WhatsApp Cloud API</strong> (with deep-link fallback &amp; per-worker NDPA opt-out).
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="/dpa.html" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="font-size:12px;min-height:32px;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center;">View DPA Policy</a>
+            <a href="/sla.html" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="font-size:12px;min-height:32px;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center;">99.9% SLA</a>
+            <a href="/status.html" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="font-size:12px;min-height:32px;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center;">Live Status</a>
           </div>
         </div>
 

@@ -1,30 +1,29 @@
-# ShiftRelay Store Launch
+# ShiftRelay OS Store Launch
 
 ## What is ready in this repository
 
+- Production domains standardized on `https://shiftrelayos.com` (Website), `https://app.shiftrelayos.com` (Mobile App & API), and `https://admin.shiftrelayos.com` (Executive / Tenant Admin Console), with Bundle/Package ID `com.shiftrelayos.app`.
 - Installable web application with manifest and service worker.
-- Responsive workforce portal, account sign-in, and role permissions.
-- Organisation onboarding, worker approval, shift handovers, schedule, attendance, and notifications.
+- Responsive workforce portal, account sign-in with employer provisioning guidance, and role permissions.
+- Organisation onboarding with configurable Attendance & Grace Policy, worker approval, shift handovers, automated clock-in reminders, attendance exceptions, schedule, and payroll sync.
 - Server-side AI and transcription integration; browser clients never receive the API key.
-- Language preference for English, French, Spanish, Portuguese, Dutch, German, Chinese, Japanese, and Arabic.
-- Capacitor configuration for Android and iOS packaging.
+- Language preference for English, Hausa, Yoruba, Igbo, French, Spanish, Portuguese, Dutch, German, Chinese, Japanese, and Arabic.
+- Capacitor configuration for Android and iOS packaging (`com.shiftrelayos.app` / `ShiftRelay OS`).
 
 ## Before creating store binaries
 
-1. Deploy the app to a stable HTTPS domain; do not package `localhost`.
-2. Create public `Privacy Policy`, `Terms of Service`, support, and account-deletion pages on that domain.
+1. Verify `https://shiftrelayos.com`, `https://app.shiftrelayos.com`, and `https://admin.shiftrelayos.com` HTTPS DNS + SSL are live; do not package `localhost`.
+2. Verify public links: `https://shiftrelayos.com/privacy.html`, `https://shiftrelayos.com/terms.html`, `https://shiftrelayos.com/support-security.html`, and `https://shiftrelayos.com/delete-account.html`, plus support inbox `support@shiftrelayos.com`.
 3. Implement completed account deletion and a retention policy before public store submission.
-4. Replace demo roles/data with production accounts and test the real sign-in journey.
-5. Prepare 1024×1024 app icon, Android adaptive icon, screenshots, store description, support email, and privacy-policy URL.
+4. Provide closed B2B demo reviewer credentials (see [`STORE_LISTING.md`](file:///c:/Users/DATA%20ENG.%20OLA/Documents/openAI%20build week/STORE_LISTING.md)) so reviewers do not hit a dead end at employer-provisioned sign-in.
+5. Prepare 1024x1024 app icon, Android adaptive icon, screenshots, store description, support email, and privacy-policy URL.
 
 ## Capacitor commands
 
 After Capacitor dependencies are installed:
 
 ```bash
-npx cap add android
-npx cap add ios
-npx cap sync
+npm run cap:sync
 npx cap open android
 npx cap open ios
 ```

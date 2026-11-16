@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cookies &amp; Strictly Necessary Session Policy | ShiftRelay OS</title>
+  <link rel="canonical" href="https://shiftrelayos.com/cookies.html" />
+  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#050a14; --card:rgba(15,25,48,0.74); --border:rgba(255,255,255,0.08); --em:#00f5a0; --text:#f8fafc; --muted:#94a3b8; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); line-height:1.7; }
+    .legal-nav { position:sticky; top:0; z-index:90; background:rgba(5,10,20,0.92); backdrop-filter:blur(18px); border-bottom:1px solid var(--border); padding:15px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:#fff; font-family:'Outfit',sans-serif; font-weight:800; font-size:19px; }
+    .nav-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .pill { padding:7px 14px; border-radius:999px; font-size:13px; font-weight:600; text-decoration:none; color:var(--muted); border:1px solid var(--border); }
+    .pill.active { color:#fff; border-color:rgba(0,245,160,0.35); background:rgba(0,245,160,0.08); }
+    .pill.primary { background:linear-gradient(135deg,#10b981,#059669); color:#fff; border:none; }
+    main { max-width:960px; margin:0 auto; padding:44px 20px 80px; }
+    .hero { background:var(--card); border:1px solid rgba(0,245,160,0.28); border-radius:20px; padding:34px; margin-bottom:24px; }
+    .num { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--em); font-weight:700; letter-spacing:.08em; }
+    h1 { font-family:'Outfit',sans-serif; font-size:34px; font-weight:900; margin:10px 0; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:26px; margin-bottom:18px; }
+    h2 { font-family:'Outfit',sans-serif; font-size:20px; margin:6px 0 10px; }
+    p, li { color:#cbd5e1; font-size:14.5px; }
+    table { width:100%; border-collapse:collapse; margin-top:14px; font-size:13px; }
+    th, td { padding:11px 12px; border-bottom:1px solid var(--border); text-align:left; }
+    th { color:var(--em); font-size:11px; text-transform:uppercase; }
+    code { font-family:'JetBrains Mono',monospace; color:var(--em); font-size:12.5px; }
+  </style>
+</head>
+<body>
+  <header class="legal-nav">
+    <a href="/website.html" class="brand"><img src="/assets/logos/logo-brand-motion.svg?v=130" width="34" height="34" alt="" />ShiftRelay <span style="color:var(--em);">OS</span></a>
+    <nav class="nav-actions">
+      <a href="/trust.html" class="pill">Trust Center</a>
+      <a href="/privacy.html" class="pill">Privacy</a>
+      <a href="/cookies.html" class="pill active">Cookies</a>
+      <a href="/website.html#demo-request-section" class="pill primary">Request Demo</a>
+    </nav>
+  </header>
+  <main>
+    <section class="hero">
+      <span class="num">COOKIES &amp; TELEMETRY TRANSPARENCY · VERSION 2026.11-COOKIES</span>
+      <h1>Strictly Necessary Cookies Only — Zero Ad Trackers</h1>
+      <p>ShiftRelay OS uses only strictly necessary security and authentication cookies to keep frontline sessions safe. We never load third-party ad pixels, Meta tracking pixels, behavioral retargeting cookies, or cross-site brokers.</p>
+    </section>
+
+    <article class="card">
+      <span class="num">01 // STRICTLY NECESSARY COOKIES INVENTORY</span>
+      <h2>Audited Session &amp; Security Cookies</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Cookie / Key Name</th><th>Surface</th><th>Security Attributes</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>shiftrelay_session</code></td><td><code>app.shiftrelayos.com</code></td><td>HttpOnly · Secure · SameSite</td><td>Authenticates Worker, Supervisor, and Executive sessions after password or passkey sign-in.</td></tr>
+            <tr><td><code>sr_admin_sid</code></td><td><code>admin.shiftrelayos.com</code></td><td>HttpOnly · Secure · SameSite</td><td>Protects Platform Admin Console sessions with mandatory MFA and idle expiration.</td></tr>
+            <tr><td><code>shiftrelay_theme</code></td><td>Local Storage</td><td>First-Party Client Storage</td><td>Stores user Dark/Light UI theme preference locally inside browser/WebView.</td></tr>
+            <tr><td><code>shiftrelay_offline_queue</code></td><td>IndexedDB / Local Storage</td><td>First-Party Client Storage</td><td>Buffers clock-in and handover payloads when cellular coverage drops at remote Nigerian worksites.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="card">
+      <span class="num">02 // ZERO THIRD-PARTY AD TRACKING</span>
+      <h2>No Consent Banner Pop-Up Clutter Required</h2>
+      <p>Because ShiftRelay OS deploys zero advertising or cross-site profiling trackers on <code>shiftrelayos.com</code>, users experience zero invasive third-party cookie trackers. Email communications strictly honor NDPA 2023 explicit opt-in consent and RFC 8058 one-click unsubscribe.</p>
+    </article>
+  </main>
+</body>
+</html>

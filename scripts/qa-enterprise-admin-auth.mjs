@@ -53,7 +53,7 @@ async function run() {
     console.log('[2/7] Enterprise login DOM verified zero-secret & screenshot saved');
 
     // 3. Sign in as partitioned onboarding_admin (Adaeze) & verify RBAC 403 + HttpOnly cookie
-    await page.fill('#adm-email-input', 'adaeze@shiftrelay.com');
+    await page.fill('#adm-email-input', 'adaeze@shiftrelayos.com');
     await page.fill('#adm-password-input', DEV_PASS);
     await page.click('#adm-login-submit');
     await page.waitForSelector('#console-root.active', { timeout: 8000 });
@@ -92,7 +92,7 @@ async function run() {
     console.log('[3/7] Partitioned RBAC (403 checks, HttpOnly cookie, locked Vault UI) verified');
 
     // 4. Sign in as owner_root & inspect Owner Vault, Staff, Audit Trail
-    await page.fill('#adm-email-input', 'owner@shiftrelay.com');
+    await page.fill('#adm-email-input', 'owner@shiftrelayos.com');
     await page.fill('#adm-password-input', DEV_PASS);
     await page.click('#adm-login-submit');
     await page.waitForSelector('#console-root.active', { timeout: 8000 });
@@ -112,7 +112,7 @@ async function run() {
     assert.ok(auditRows >= 2, `Expected >=2 audit log rows, got ${auditRows}`);
 
     // Create a QA admin user via backend API while signed in as owner_root
-    const uniqueEmail = `qa-mfa-${Date.now()}@shiftrelay.com`;
+    const uniqueEmail = `qa-mfa-${Date.now()}@shiftrelayos.com`;
     const createStaff = await page.evaluate(async (email) => {
       const r = await fetch('/api/admin/staff', {
         method: 'POST',

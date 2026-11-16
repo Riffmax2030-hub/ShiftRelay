@@ -20,8 +20,8 @@
         renderPushBanner(); // Updates or removes banner
 
         // Show welcome push
-        showSystemNotification('ShiftRelay Alerts Active', {
-          body: 'You will receive immediate alerts for handover handoffs and shift swap requests.',
+        showSystemNotification('ShiftRelay OS Alerts Active', {
+          body: 'You will receive immediate alerts for clock-in reminders, attendance exceptions, handovers, and shift swaps.',
           icon: '/icon.svg'
         });
         return true;
@@ -101,6 +101,7 @@
   window.requestPushPermission = requestPushPermission;
   window.showSystemNotification = showSystemNotification;
   window.renderPushBanner = renderPushBanner;
+  window.ShiftRelayPush = { requestPushPermission, showSystemNotification, renderPushBanner };
 
   // Auto-check on dashboard load
   window.addEventListener('load', () => {

@@ -16,7 +16,7 @@
  * @module shift-score-engine
  */
 
-const GRACE_MINUTES = 5;          // late within 5 min → full punctuality score
+const DEFAULT_GRACE_MINUTES = 10; // default grace unless overridden by organisation attendance policy
 const LATE_PENALTY_PER_MIN = 1;   // lose 1pt per extra minute late (floor 0)
 const STANDARD_SHIFT_HOURS = 8;   // expected shift duration for full-duration score
 
@@ -26,9 +26,15 @@ const STANDARD_SHIFT_HOURS = 8;   // expected shift duration for full-duration s
  * @param {object} entry          - time entry record from store.timeEntries
  * @param {object} [shift]        - scheduled shift { starts_at, ends_at } — optional
  * @param {object[]} [corrections]- punch corrections for this entry
+ * @param {object} [options]      - { graceMinutes, pardonedEntryIds }
  * @returns {{ score: number, grade: string, breakdown: object, explanation: string[] }}
  */
-export function calculateShiftScore(entry, shift = null, corrections = []) {
+export function calculateShiftScore(entry, shift = null, corrections = [], options = {}) {
+  const graceMinutes = Number.isFinite(Number(options?.graceMinutes))
+    ? Math.max(0, Math.min(60, Number(options.graceMinutes)))
+    : DEFAULT_GRACE_MINUTES;
+  const pardonedSet = options?.pardonedEntryIds instanceof Set ? options.pardonedEntryIds : new Set();
+  const isEntryPardoned = pardonedSet.has(entry.id);
   const breakdown = {};
   const explanation = [];
 
@@ -38,16 +44,19 @@ export function calculateShiftScore(entry, shift = null, corrections = []) {
     const scheduledStart = new Date(shift.starts_at);
     const actualStart   = new Date(entry.clockedInAt);
     const lateMinutes   = Math.max(0, Math.floor((actualStart - scheduledStart) / 60000));
-    if (lateMinutes <= GRACE_MINUTES) {
-      explanation.push(`✅ Clocked in on time (${lateMinutes} min — within ${GRACE_MINUTES}-min grace)`);
+    if (lateMinutes <= graceMinutes || isEntryPardoned) {
+      explanation.push(isEntryPardoned && lateMinutes > graceMinutes
+        ? `Clocked in ${lateMinutes}m late — pardoned by supervisor policy`
+        : `Clocked in on time (${lateMinutes} min — within ${graceMinutes}-min grace)`);
     } else {
-      const penalty = Math.min(30, lateMinutes * LATE_PENALTY_PER_MIN);
+      const billableLate = Math.max(1, lateMinutes - graceMinutes);
+      const penalty = Math.min(30, billableLate * LATE_PENALTY_PER_MIN);
       punctuality = Math.max(0, 30 - penalty);
-      explanation.push(`⚠️ Clocked in ${lateMinutes} min late — punctuality reduced by ${penalty} pts`);
+      explanation.push(`Clocked in ${lateMinutes} min late (${graceMinutes}m grace) — punctuality reduced by ${penalty} pts`);
     }
   } else {
     // No scheduled shift to compare against → award full punctuality
-    explanation.push('✅ No scheduled start time — punctuality not penalised');
+    explanation.push('No scheduled start time — punctuality within policy');
   }
   breakdown.punctuality = { score: punctuality, max: 30, label: 'Punctuality' };
 
@@ -136,19 +145,19 @@ export function calculateShiftScore(entry, shift = null, corrections = []) {
  * @param {object[]} punchCorrections
  * @returns {object[]}
  */
-export function scoreWorkerEntries(memberId, timeEntries, scheduledShifts = [], punchCorrections = []) {
+export function scoreWorkerEntries(memberId, timeEntries, scheduledShifts = [], punchCorrections = [], options = {}) {
   const entries = (timeEntries || [])
-    .filter(e => e.membershipId === memberId && e.clockedOutAt)
+    .filter(e => (e.membershipId === memberId || e.userId === memberId) && e.clockedOutAt)
     .sort((a, b) => new Date(b.clockedInAt) - new Date(a.clockedInAt));
 
   return entries.map(entry => {
     // Match to closest scheduled shift that started within 2h of actual clock-in
     const clockIn = new Date(entry.clockedInAt);
     const shift = (scheduledShifts || []).find(s =>
-      s.membershipId === memberId &&
+      (s.membershipId === memberId || s.membership_id === memberId) &&
       Math.abs(new Date(s.starts_at) - clockIn) < 7200000
     ) || null;
-    const result = calculateShiftScore(entry, shift, punchCorrections);
+    const result = calculateShiftScore(entry, shift, punchCorrections, options);
     return {
       entryId: entry.id,
       membershipId: memberId,
@@ -167,32 +176,39 @@ export function scoreWorkerEntries(memberId, timeEntries, scheduledShifts = [], 
 
 /**
  * Calculate a monthly shift score summary for payroll integration.
- * Returns { avgScore, grade, totalShifts, attendedShifts, missedPunches,
- *           performanceBonus, attendanceDeduction }.
- *
- * @param {string} memberId
- * @param {object} store
- * @param {string} [month]  - ISO month prefix e.g. '2026-10'
- * @returns {object}
+ * Respects pardoned attendance exceptions so pardoned entries carry zero deduction.
  */
-export function monthlyScoreSummary(memberId, store, month) {
+export function monthlyScoreSummary(memberId, store, month, options = {}) {
   const prefix = month || new Date().toISOString().slice(0, 7);
+  const exceptions = Array.isArray(options?.attendanceExceptions) ? options.attendanceExceptions : [];
+  const pardonedEntryIds = new Set(
+    exceptions
+      .filter(ex => (ex.status === 'pardoned' || ex.status === 'adjusted') && ex.timeEntryId)
+      .map(ex => ex.timeEntryId)
+  );
+  const mergedOptions = {
+    graceMinutes: options?.graceMinutes,
+    pardonedEntryIds
+  };
+
   const monthEntries = (store.timeEntries || []).filter(e =>
-    e.membershipId === memberId &&
-    e.clockedInAt.startsWith(prefix)
+    (e.membershipId === memberId || e.userId === memberId) &&
+    String(e.clockedInAt || '').startsWith(prefix)
   );
 
   const scored = scoreWorkerEntries(
     memberId,
     monthEntries,
     store.scheduledShifts || [],
-    store.punchCorrections || []
+    store.punchCorrections || [],
+    mergedOptions
   );
 
   const missedPunches = (store.timeEntries || []).filter(e =>
-    e.membershipId === memberId &&
-    e.clockedInAt.startsWith(prefix) &&
-    !e.clockedOutAt
+    (e.membershipId === memberId || e.userId === memberId) &&
+    String(e.clockedInAt || '').startsWith(prefix) &&
+    !e.clockedOutAt &&
+    !pardonedEntryIds.has(e.id)
   ).length;
 
   const avgScore = scored.length > 0
@@ -207,17 +223,19 @@ export function monthlyScoreSummary(memberId, store, month) {
 
   // Performance bonus: score >= 90 → +3% gross; score >= 75 → +1.5%
   const performanceBonusPct = avgScore >= 90 ? 0.03 : avgScore >= 75 ? 0.015 : 0;
-  // Attendance deduction: each unresolved missed punch = 1 day deduction (÷22 working days)
+  // Attendance deduction: exposed solely as informational missedPunches count (actual NGN deduction is computed once by payroll/policy engine)
   const attendanceDeductionDays = missedPunches;
 
   return {
     memberId,
     month: prefix,
+    graceMinutesUsed: Number.isFinite(Number(options?.graceMinutes)) ? Number(options.graceMinutes) : DEFAULT_GRACE_MINUTES,
     avgScore,
     grade,
     totalShifts: monthEntries.length,
     attendedShifts: scored.length,
     missedPunches,
+    pardonedCount: pardonedEntryIds.size,
     performanceBonusPct,
     attendanceDeductionDays,
     scoredShifts: scored

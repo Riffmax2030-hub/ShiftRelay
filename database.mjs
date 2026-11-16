@@ -447,6 +447,116 @@ const schema = `
   alter table time_entries add column if not exists face_match_confidence integer;
   alter table time_entries add column if not exists face_photo_hash varchar(64);
   alter table time_entries add column if not exists face_match_reason text;
+  alter table portal_users add column if not exists policy_acknowledged_version text;
+  alter table portal_users add column if not exists policy_acknowledged_at timestamptz;
+  alter table memberships add column if not exists policy_acknowledged_version text;
+  alter table memberships add column if not exists policy_acknowledged_at timestamptz;
+  create table if not exists attendance_exceptions (
+    id uuid primary key default gen_random_uuid(),
+    exception_key text not null unique,
+    organisation_id uuid not null references organisations(id) on delete cascade,
+    membership_id uuid not null references memberships(id) on delete cascade,
+    time_entry_id uuid references time_entries(id) on delete set null,
+    scheduled_shift_id uuid references scheduled_shifts(id) on delete set null,
+    type varchar(48) not null,
+    shift_date varchar(16) not null,
+    scheduled_start timestamptz,
+    scheduled_end timestamptz,
+    actual_time timestamptz,
+    variance_minutes integer not null default 0,
+    status varchar(32) not null default 'pending_review',
+    pay_impact_hours numeric(6,2) not null default 0,
+    pay_impact_amount numeric(12,2) not null default 0,
+    worker_explanation text,
+    requested_time text,
+    resolution_note text,
+    resolved_by_membership_id uuid references memberships(id) on delete set null,
+    resolved_by_name text,
+    resolved_at timestamptz,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+  );
+  create index if not exists idx_attendance_exceptions_org_date on attendance_exceptions(organisation_id, shift_date desc);
+  create index if not exists idx_attendance_exceptions_member on attendance_exceptions(membership_id, status);
+  create table if not exists reminder_dispatches (
+    dedupe_key text primary key,
+    organisation_id uuid not null references organisations(id) on delete cascade,
+    membership_id uuid not null references memberships(id) on delete cascade,
+    scheduled_shift_id uuid references scheduled_shifts(id) on delete set null,
+    stage varchar(64) not null,
+    channel varchar(32) not null default 'in_app',
+    sent_at timestamptz not null default now()
+  );
+  create index if not exists idx_reminder_dispatches_org on reminder_dispatches(organisation_id, sent_at desc);
+
+  alter table memberships add column if not exists notification_opt_out boolean not null default false;
+  alter table memberships add column if not exists cbn_bank_code varchar(8);
+  alter table memberships add column if not exists pencom_rsa_pin varchar(32);
+  alter table memberships add column if not exists tin varchar(32);
+  alter table organisations add column if not exists notification_channels_json jsonb;
+  alter table organisations add column if not exists newsletter_schedule_json jsonb;
+
+  create table if not exists newsletter_subscribers (
+    id uuid primary key default gen_random_uuid(),
+    email varchar(255) not null unique,
+    full_name varchar(160),
+    company_name varchar(200),
+    role_segment varchar(32) not null default 'general',
+    status varchar(24) not null default 'active',
+    consent_source varchar(80) not null default 'website_brief',
+    consent_timestamp timestamptz not null default now(),
+    unsubscribe_token varchar(128) not null unique,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+  );
+  create index if not exists idx_newsletter_subscribers_status on newsletter_subscribers(status, role_segment);
+
+  create table if not exists newsletter_dispatches (
+    id uuid primary key default gen_random_uuid(),
+    campaign_key varchar(120) not null,
+    dispatch_type varchar(48) not null,
+    segment varchar(32) not null default 'all',
+    recipient_count integer not null default 0,
+    sent_at timestamptz not null default now(),
+    period_key varchar(64) not null unique,
+    metadata_json jsonb
+  );
+  create index if not exists idx_newsletter_dispatches_sent on newsletter_dispatches(sent_at desc);
+
+  create table if not exists legal_acceptances (
+    id uuid primary key default gen_random_uuid(),
+    organisation_id uuid references organisations(id) on delete set null,
+    user_id uuid references users(id) on delete set null,
+    email varchar(255),
+    actor_type varchar(48) not null default 'organisation',
+    accepted_terms_version varchar(48) not null,
+    accepted_privacy_version varchar(48) not null,
+    accepted_dpa_version varchar(48),
+    accepted_attendance_policy_version varchar(48),
+    accepted_at timestamptz not null default now(),
+    ip_address varchar(64),
+    user_agent text
+  );
+  create index if not exists idx_legal_acceptances_org on legal_acceptances(organisation_id, accepted_at desc);
+  create index if not exists idx_legal_acceptances_email on legal_acceptances(email, accepted_at desc);
+
+  create table if not exists notification_delivery_logs (
+    id uuid primary key default gen_random_uuid(),
+    dedupe_key text,
+    organisation_id uuid references organisations(id) on delete cascade,
+    membership_id uuid references memberships(id) on delete set null,
+    channel varchar(32) not null,
+    trigger_type varchar(64) not null,
+    recipient_masked varchar(64),
+    status varchar(32) not null,
+    provider varchar(48),
+    dry_run boolean not null default false,
+    error_message text,
+    payload_summary text,
+    sent_at timestamptz not null default now()
+  );
+  create index if not exists idx_notif_delivery_logs_org on notification_delivery_logs(organisation_id, sent_at desc);
+  create index if not exists idx_notif_delivery_logs_dedupe on notification_delivery_logs(dedupe_key);
 `;
 
 export function databaseConfigured() {

@@ -4,7 +4,8 @@ import {
   renderPasswordResetEmail,
   renderShiftHandoverEmail,
   renderExecutivePayrollDigestEmail,
-  renderWeeklyProgressNewsletterEmail
+  renderWeeklyProgressNewsletterEmail,
+  renderAttendanceReminderEmail
 } from './email-engine.mjs';
 import {
   generatePayrollReportHtml,
@@ -22,11 +23,13 @@ const activationHtml = renderAccountActivationEmail({
   orgCode: 'RIF-2026',
   roleTitle: 'Senior Distributed Systems Engineer',
   department: 'Backend Infrastructure',
-  activationUrl: 'https://shiftrelay-vjkf.onrender.com/activate?token=test-123',
+  activationUrl: 'https://app.shiftrelayos.com/activate?token=test-123',
   expiresHours: 48
 });
 if (!activationHtml.includes('Activate My Workplace Profile')) throw new Error('Missing activation button');
-if (!activationHtml.includes('https://shiftrelay-vjkf.onrender.com/activate?token=test-123')) throw new Error('Missing unbroken fallback URL');
+if (!activationHtml.includes('https://app.shiftrelayos.com/activate?token=test-123')) throw new Error('Missing unbroken fallback URL');
+if (!activationHtml.includes('shiftrelayos.com')) throw new Error('Missing shiftrelayos.com link in activation footer');
+if (!activationHtml.includes('ShiftRelay OS by Riffmax Technology Limited')) throw new Error('Missing ShiftRelay OS footer brand');
 if (!activationHtml.includes('Why you received this:')) throw new Error('Missing delivery explanation');
 if (!activationHtml.includes('Enterprise Security &amp; Audit Trace')) throw new Error('Missing security metadata');
 console.log('✔ Activation email template passed (Single CTA + Unbroken link + Security trace)');
@@ -35,11 +38,11 @@ console.log('✔ Activation email template passed (Single CTA + Unbroken link + 
 const resetHtml = renderPasswordResetEmail({
   recipientName: 'Olaide Emmanuela',
   recipientEmail: 'olaide@riffmax.tech',
-  resetUrl: 'https://shiftrelay-vjkf.onrender.com/reset-password?token=reset-456',
+  resetUrl: 'https://app.shiftrelayos.com/reset-password?token=reset-456',
   requestIp: '102.89.34.12 (Lagos, NG)',
   expiresMinutes: 30
 });
-if (!resetHtml.includes('Reset ShiftRelay Password')) throw new Error('Missing reset button');
+if (!resetHtml.includes('Reset ShiftRelay OS Password') && !resetHtml.includes('Reset ShiftRelay Password')) throw new Error('Missing reset button');
 if (!resetHtml.includes('30 Minutes')) throw new Error('Missing expiry metadata');
 console.log('✔ Password reset email template passed (30-min window + Fallback URL)');
 
@@ -54,7 +57,7 @@ const handoverHtml = renderShiftHandoverEmail({
   checklistTotal: 8,
   priority: 'NORMAL',
   handoverSummary: 'All services green. Database connection pool stabilized. 0 open safety alarms.',
-  reviewUrl: 'https://shiftrelay-vjkf.onrender.com/#handovers'
+  reviewUrl: 'https://app.shiftrelayos.com/#handovers'
 });
 if (!handoverHtml.includes('Review &amp; Authorize Handover')) throw new Error('Missing handover review button');
 if (!handoverHtml.includes('8 of 8 Tasks Certified')) throw new Error('Missing checklist status');
@@ -71,7 +74,7 @@ const payrollDigestHtml = renderExecutivePayrollDigestEmail({
   penComRemittanceNgn: 2505600,
   payeTaxNgn: 1842000,
   varianceNgn: 0,
-  reportDownloadUrl: 'https://shiftrelay-vjkf.onrender.com/api/reports/payroll-ledger'
+  reportDownloadUrl: 'https://app.shiftrelayos.com/api/reports/payroll-ledger'
 });
 if (!payrollDigestHtml.includes('₦0.00 (100% RECONCILED)')) throw new Error('Missing zero variance verification');
 if (!payrollDigestHtml.includes('Download Statutory Payroll Ledger')) throw new Error('Missing ledger CTA button');
@@ -83,12 +86,30 @@ const newsletterHtml = renderWeeklyProgressNewsletterEmail({
   orgName: 'Riffmax Technology Limited',
   weekNumber: 46,
   year: 2026,
-  platformUrl: 'https://shiftrelay-vjkf.onrender.com'
+  platformUrl: 'https://app.shiftrelayos.com'
 });
-if (!newsletterHtml.includes('ShiftRelay Weekly Operational Dispatch')) throw new Error('Missing newsletter header');
+if (!newsletterHtml.includes('ShiftRelay Weekly Operational Dispatch') && !newsletterHtml.includes('ShiftRelay OS Weekly Operational Dispatch')) throw new Error('Missing newsletter header');
 if (!newsletterHtml.includes('99.4%')) throw new Error('Missing punctuality score');
 if (!newsletterHtml.includes('1,420 hrs')) throw new Error('Missing verified hours');
 console.log('✔ Automated weekly progress newsletter template passed');
+
+// 6. Automated Attendance Reminder & Missed Clock-In Escalation Email
+const reminderHtml = renderAttendanceReminderEmail({
+  recipientName: 'Babatunde Adeleke',
+  orgName: 'Riffmax Technology Limited',
+  stageLabel: 'Missed Clock-In Escalation',
+  urgency: 'ESCALATION',
+  headline: 'Clock-in overdue beyond 15m grace window',
+  message: 'Morning shift started 20 minutes ago. Clock in or contact your supervisor.',
+  shiftWindow: '08:00 - 16:00',
+  graceMinutes: 15,
+  actionUrl: 'https://app.shiftrelayos.com/#today'
+});
+if (!reminderHtml.includes('ShiftRelay OS')) throw new Error('Missing ShiftRelay OS brand in attendance reminder');
+if (!reminderHtml.includes('shiftrelayos.com')) throw new Error('Missing shiftrelayos.com link in attendance reminder');
+if (!reminderHtml.includes('15 minutes (within grace = zero pay deduction)')) throw new Error('Missing transparent grace policy text');
+if (!reminderHtml.includes('Review Attendance Exception')) throw new Error('Missing escalation CTA');
+console.log('✔ Automated attendance reminder & escalation email template passed');
 
 console.log('\n=== 2. TESTING HIGH-TECH REPORT TEMPLATES ===');
 

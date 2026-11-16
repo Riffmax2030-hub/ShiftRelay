@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nigerian Statutory PAYE &amp; PenCom Payroll Calculator | ShiftRelay OS</title>
+  <meta name="description" content="Calculate accurate Nigerian Finance Act PAYE Tax, Consolidated Relief Allowance (CRA), PenCom (8% Employee / 10% Employer), NHF 2.5%, NSITF 1%, and Net Pay for single employees or multi-staff teams." />
+  <link rel="canonical" href="https://shiftrelayos.com/calculator.html" />
+  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#050a14; --panel:rgba(13,22,42,0.88); --border:rgba(255,255,255,0.08); --em:#00f5a0; --sky:#38bdf8; --text:#f8fafc; --muted:#94a3b8; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Inter',sans-serif; background:var(--bg); background-image:radial-gradient(circle at 18% 12%,rgba(0,245,160,0.09),transparent 45%),radial-gradient(circle at 82% 20%,rgba(56,189,248,0.09),transparent 45%); color:var(--text); line-height:1.6; min-height:100vh; }
+    .legal-nav { position:sticky; top:0; z-index:90; background:rgba(5,10,20,0.92); backdrop-filter:blur(18px); border-bottom:1px solid var(--border); padding:15px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:#fff; font-family:'Outfit',sans-serif; font-weight:800; font-size:19px; }
+    .nav-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .pill { padding:7px 14px; border-radius:999px; font-size:13px; font-weight:600; text-decoration:none; color:var(--muted); border:1px solid var(--border); }
+    .pill.active { color:#fff; border-color:rgba(0,245,160,0.35); background:rgba(0,245,160,0.08); }
+    .pill.primary { background:linear-gradient(135deg,#10b981,#059669); color:#fff; border:none; }
+    main { max-width:1120px; margin:0 auto; padding:38px 20px 80px; }
+    .hero-top { margin-bottom:28px; }
+    .eyebrow { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--em); font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    h1 { font-family:'Outfit',sans-serif; font-size:clamp(26px,4vw,40px); font-weight:900; margin:8px 0 10px; }
+    .calc-grid { display:grid; grid-template-columns:1fr 1.15fr; gap:24px; align-items:start; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:26px; }
+    label { display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+    input, select { width:100%; background:#060c18; border:1px solid #1e293b; border-radius:10px; padding:11px 13px; color:#fff; font-size:14px; outline:none; }
+    input:focus, select:focus { border-color:var(--em); }
+    .field { margin-bottom:16px; }
+    .preset-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+    .preset-btn { background:rgba(255,255,255,0.04); border:1px solid var(--border); color:#cbd5e1; border-radius:8px; padding:6px 11px; font-size:12px; font-weight:600; cursor:pointer; }
+    .preset-btn.active { border-color:var(--em); color:var(--em); background:rgba(0,245,160,0.1); }
+    .mode-switch { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+    .btn-main { width:100%; padding:13px; border:none; border-radius:10px; background:linear-gradient(135deg,#00f5a0,#059669); color:#021810; font-weight:800; font-size:14px; cursor:pointer; }
+    .kpi-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:18px; }
+    .kpi-box { background:#060c18; border:1px solid #1e293b; border-radius:12px; padding:14px; }
+    .kpi-box small { display:block; font-size:11px; color:var(--muted); text-transform:uppercase; }
+    .kpi-box strong { font-family:'Outfit',sans-serif; font-size:22px; color:#fff; }
+    table { width:100%; border-collapse:collapse; font-size:13.5px; }
+    th, td { padding:10px 6px; border-bottom:1px solid var(--border); }
+    td:last-child { text-align:right; font-family:'JetBrains Mono',monospace; font-weight:700; color:#f8fafc; }
+    .email-capture { margin-top:20px; padding-top:18px; border-top:1px solid var(--border); }
+    @media (max-width:860px) { .calc-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header class="legal-nav">
+    <a href="/website.html" class="brand"><img src="/assets/logos/logo-brand-motion.svg?v=130" width="34" height="34" alt="" />ShiftRelay <span style="color:var(--em);">OS</span></a>
+    <nav class="nav-actions">
+      <a href="/website.html" class="pill">Home</a>
+      <a href="/calculator.html" class="pill active">PAYE &amp; PenCom Calculator</a>
+      <a href="/trust.html" class="pill">Trust Center</a>
+      <a href="/status.html" class="pill">System Status</a>
+      <a href="/website.html#demo-request-section" class="pill primary">Request Demo</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero-top">
+      <span class="eyebrow">FREE NIGERIAN STATUTORY COMPLIANCE TOOL · PITA 2011 · PENCOM PRA 2014</span>
+      <h1>Nigeria PAYE Tax &amp; PenCom Payroll Calculator</h1>
+      <p style="color:var(--muted); max-width:780px;">Powered directly by ShiftRelay OS's production Nigerian statutory engine: Consolidated Relief Allowance (CRA), 8% Employee / 10% Employer PenCom, 2.5% NHF, 1% NSITF, and progressive PITA PAYE brackets.</p>
+    </div>
+
+    <div class="calc-grid">
+      <section class="card">
+        <label>Calculation Scope</label>
+        <div class="mode-switch">
+          <button type="button" class="preset-btn active" id="mode-single" onclick="setCalcScope(1, this)">Single Employee</button>
+          <button type="button" class="preset-btn" id="mode-team" onclick="setCalcScope(50, this)">Team / 50-Staff Payroll</button>
+        </div>
+
+        <label>Quick Gross Salary Presets (NGN / Month)</label>
+        <div class="preset-row">
+          <button type="button" class="preset-btn" onclick="applyGrossPreset(120000)">₦120,000</button>
+          <button type="button" class="preset-btn active" onclick="applyGrossPreset(250000)">₦250,000</button>
+          <button type="button" class="preset-btn" onclick="applyGrossPreset(500000)">₦500,000</button>
+          <button type="button" class="preset-btn" onclick="applyGrossPreset(1200000)">₦1,200,000</button>
+        </div>
+
+        <div class="field">
+          <label for="calc-gross">Monthly Gross Salary per Staff (NGN)</label>
+          <input id="calc-gross" type="number" min="10000" step="1000" value="250000" />
+        </div>
+        <div class="field">
+          <label for="calc-headcount">Staff Headcount Multiplier</label>
+          <input id="calc-headcount" type="number" min="1" max="50000" value="1" />
+        </div>
+        <div class="field">
+          <label for="calc-basic-ratio">Basic Salary Ratio (PenCom &amp; NHF Base)</label>
+          <select id="calc-basic-ratio">
+            <option value="0.5">50% of Gross (Standard Nigeria Structure)</option>
+            <option value="0.6">60% of Gross</option>
+            <option value="0.4">40% of Gross</option>
+          </select>
+        </div>
+        <button type="button" class="btn-main" onclick="runPayrollCalculator()">Calculate Nigerian Statutory Breakdown</button>
+
+        <form id="calc-email-form" class="email-capture">
+          <label style="color:var(--sky); margin-bottom:8px;">Email Me Full Schedule &amp; PenCom Breakdown</label>
+          <div style="display:grid; gap:10px;">
+            <input id="calc-email-name" type="text" placeholder="Full Name (optional)" />
+            <input id="calc-email-company" type="text" placeholder="Company Name (optional)" />
+            <input id="calc-email-addr" type="email" required placeholder="Work Email (e.g., finance@company.ng)" />
+            <label style="display:flex; align-items:flex-start; gap:8px; text-transform:none; letter-spacing:0; font-weight:500; font-size:12px; color:#cbd5e1; cursor:pointer;">
+              <input id="calc-email-consent" type="checkbox" required style="width:auto; margin-top:2px;" />
+              <span>Yes, email my statutory breakdown and monthly Nigeria PAYE / PenCom briefs under NDPA 2023 rules (one-click unsubscribe anytime).</span>
+            </label>
+            <button type="submit" class="btn-main" style="background:linear-gradient(135deg,#38bdf8,#0284c7); color:#fff;">Send Full Breakdown to Email</button>
+            <div id="calc-email-status" style="font-size:12.5px; color:var(--em);"></div>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px;">
+          <h2 style="font-family:'Outfit',sans-serif; font-size:20px; font-weight:800;">Verified Statutory Schedule (<span id="res-headcount-label">1 Staff</span>)</h2>
+          <button type="button" class="preset-btn" onclick="window.print()">Print PDF</button>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-box"><small>Total Take-Home Net Pay</small><strong id="kpi-net" style="color:var(--em);">₦—</strong></div>
+          <div class="kpi-box"><small>Total PenCom Remittance (18%)</small><strong id="kpi-pencom" style="color:var(--sky);">₦—</strong></div>
+          <div class="kpi-box"><small>Monthly PAYE Income Tax</small><strong id="kpi-paye">₦—</strong></div>
+          <div class="kpi-box"><small>Total Cost to Employer</small><strong id="kpi-employer-cost">₦—</strong></div>
+        </div>
+
+        <table>
+          <tbody id="calc-breakdown-rows"></tbody>
+        </table>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const fmtNgn = (n) => '₦' + Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    function setCalcScope(count, btn) {
+      document.getElementById('calc-headcount').value = String(count);
+      document.getElementById('mode-single').classList.toggle('active', count === 1);
+      document.getElementById('mode-team').classList.toggle('active', count > 1);
+      runPayrollCalculator();
+    }
+
+    function applyGrossPreset(amount) {
+      document.getElementById('calc-gross').value = String(amount);
+      runPayrollCalculator();
+    }
+
+    async function runPayrollCalculator(extraEmailPayload = null) {
+      const monthlyGross = Number(document.getElementById('calc-gross').value || 250000);
+      const headcount = Math.max(1, Number(document.getElementById('calc-headcount').value || 1));
+      const basicRatio = Number(document.getElementById('calc-basic-ratio').value || 0.5);
+      const payload = { monthlyGross, headcount, basicRatio, ...(extraEmailPayload || {}) };
+      const res = await fetch('/api/public/payroll-calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) return data;
+
+      const t = data.companyTotals;
+      const s = data.perStaff;
+      document.getElementById('res-headcount-label').textContent = headcount === 1 ? '1 Staff' : headcount + ' Staff';
+      document.getElementById('kpi-net').textContent = fmtNgn(t.totalNetPay);
+      document.getElementById('kpi-pencom').textContent = fmtNgn(t.totalPenComRemittance);
+      document.getElementById('kpi-paye').textContent = fmtNgn(t.totalPaye);
+      document.getElementById('kpi-employer-cost').textContent = fmtNgn(t.totalCostToEmployer);
+
+      document.getElementById('calc-breakdown-rows').innerHTML = [
+        ['Total Gross Payroll', fmtNgn(t.totalGross)],
+        ['Consolidated Relief Allowance (Monthly / Staff)', fmtNgn(s.monthlyCra)],
+        ['Annual Taxable Income (Per Staff)', fmtNgn(s.annualTaxableIncome)],
+        ['PAYE Tax Liability (' + s.effectiveTaxRate + ' eff.)', fmtNgn(t.totalPaye)],
+        ['Employee PenCom Contribution (8%)', fmtNgn(t.totalEmployeePenCom)],
+        ['Employer PenCom Contribution (10%)', fmtNgn(t.totalEmployerPenCom)],
+        ['NHF Employee Contribution (2.5% Basic)', fmtNgn(t.totalNhf)],
+        ['NSITF Employer ECA Levy (1% Gross)', fmtNgn(t.totalNsitf)],
+        ['Net Salary Payable to Staff Bank CSV', fmtNgn(t.totalNetPay)]
+      ].map(([k, v]) => `<tr><td style="color:#94a3b8;">${k}</td><td>${v}</td></tr>`).join('');
+      return data;
+    }
+
+    ['calc-gross', 'calc-headcount', 'calc-basic-ratio'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => runPayrollCalculator());
+    });
+
+    document.getElementById('calc-email-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const statusEl = document.getElementById('calc-email-status');
+      statusEl.textContent = 'Generating & dispatching schedule...';
+      const data = await runPayrollCalculator({
+        email: document.getElementById('calc-email-addr').value.trim(),
+        fullName: document.getElementById('calc-email-name').value.trim(),
+        companyName: document.getElementById('calc-email-company').value.trim(),
+        consent: document.getElementById('calc-email-consent').checked
+      });
+      statusEl.textContent = data?.emailDispatched
+        ? 'Full statutory breakdown sent to your email cleanly.'
+        : (data?.error || 'Could not send email. Verify address and consent checkbox.');
+    });
+
+    runPayrollCalculator();
+  </script>
+</body>
+</html>

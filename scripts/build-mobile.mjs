@@ -1,5 +1,5 @@
 import { cpSync, mkdirSync, rmSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, basename } from 'node:path';
 
 const ROOT = resolve(process.cwd());
 const WWW = resolve(ROOT, 'www');
@@ -21,7 +21,12 @@ const excludedFiles = new Set([
   'package.json',
   'package-lock.json',
   'capacitor.config.json',
-  'schema.sql'
+  'schema.sql',
+  'mcp.json',
+  'railway.json',
+  'render.yaml',
+  'skills-lock.json',
+  'design-tokens-starter.json'
 ]);
 const excludedDirs = new Set([
   'node_modules',
@@ -34,14 +39,20 @@ const excludedDirs = new Set([
   'tests',
   'www',
   'scripts',
-  'k8s'
+  'k8s',
+  'docs',
+  'riffmax-brain',
+  'visual-inspections',
+  'visuals'
 ]);
 
 function copyDir(src, dest) {
   if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
+  const isUploadsRoot = basename(src) === 'uploads';
   const entries = readdirSync(src);
   for (const entry of entries) {
-    if (excludedFiles.has(entry) || excludedDirs.has(entry)) continue;
+    if (entry.startsWith('.') || excludedFiles.has(entry) || excludedDirs.has(entry)) continue;
+    if (isUploadsRoot && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(entry)) continue;
     const srcPath = join(src, entry);
     const destPath = join(dest, entry);
     const stat = statSync(srcPath);
@@ -49,8 +60,8 @@ function copyDir(src, dest) {
     if (stat.isDirectory()) {
       copyDir(srcPath, destPath);
     } else {
-      const ext = entry.slice(entry.lastIndexOf('.')).toLowerCase();
-      if (allowedExtensions.includes(ext) || entry.endsWith('.mp4')) {
+      const ext = entry.includes('.') ? entry.slice(entry.lastIndexOf('.')).toLowerCase() : '';
+      if (allowedExtensions.includes(ext)) {
         cpSync(srcPath, destPath);
         console.log(`  Copied: ${entry}`);
       }
