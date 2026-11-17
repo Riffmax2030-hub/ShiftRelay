@@ -10260,7 +10260,7 @@ async function getUserRewards(user, store) {
           const m = String(img?.dataUrl || '').match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
           if (m) parts.push({ inlineData: { mimeType: m[1], data: m[2] } });
         }
-        const gModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const gModel = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
         const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
