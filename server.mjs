@@ -9519,7 +9519,7 @@ async function getUserRewards(user, store) {
         issuer: ssoIssuer ? ssoIssuer.replace(/\/+$/, '') : null
       },
       breakGlassEnabled: breakGlassConfigured,
-      aiEngine: process.env.OPENAI_API_KEY ? 'openai' : (process.env.GEMINI_API_KEY ? 'gemini' : 'local'),
+      aiEngine: process.env.GEMINI_API_KEY ? 'gemini' : 'local',
       devDefaultAccounts,
       devDefaultPassHint: !IS_PRODUCTION ? (process.env.SHIFTRELAY_ADMIN_BOOTSTRAP_PASS || 'ShiftRelay!DevOps2026') : null
     });
@@ -10240,7 +10240,7 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, files, nodeVersion: process.version, uptimeSeconds: Math.floor(process.uptime()) });
   }
 
-  // 1m. Onboarding Agent AI Extraction (OpenAI / Gemini Vision + Local Fallback)
+  // 1m. Onboarding Agent AI Extraction (Gemini Vision + Local Fallback)
   if (url.pathname === '/api/admin/onboarding-agent/parse' && request.method === 'POST') {
     const store = await getStore();
     const adminCtx = await requireAdminGate(request, response, store);
@@ -10251,35 +10251,6 @@ async function getUserRewards(user, store) {
     const images = Array.isArray(body.images) ? body.images.slice(0, 4) : [];
 
     const sysPrompt = 'Extract company profile and staff payroll rows from the supplied text or images. Return strict JSON: {"company":{"companyName":"","industry":"operations","ownerName":"","ownerEmail":"","siteName":"","radius":250},"staffs":[{"staff_id":"","full_name":"","email":"","phone_e164":"","department":"Operations","role":"worker","pay_basis":"monthly","base_rate_ngn":"150000","pencom_rsa_pin":"","bank_name":"","cbn_bank_code":"","nuban_account_number":"","tin":""}]}. Only output valid JSON.';
-
-    if (process.env.OPENAI_API_KEY) {
-      try {
-        const contentParts = [];
-        if (rawText) contentParts.push({ type: 'text', text: rawText });
-        for (const img of images) {
-          if (img?.dataUrl && String(img.dataUrl).startsWith('data:image/')) {
-            contentParts.push({ type: 'image_url', image_url: { url: img.dataUrl } });
-          }
-        }
-        const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-          body: JSON.stringify({
-            model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-            response_format: { type: 'json_object' },
-            messages: [
-              { role: 'system', content: sysPrompt },
-              { role: 'user', content: contentParts.length ? contentParts : 'No input' }
-            ]
-          })
-        });
-        if (aiRes.ok) {
-          const aiJson = await aiRes.json();
-          const parsed = JSON.parse(aiJson.choices?.[0]?.message?.content || '{}');
-          return sendJson(response, 200, { ok: true, engine: 'openai-vision', fallback: false, extracted: parsed });
-        }
-      } catch (_) {}
-    }
 
     if (process.env.GEMINI_API_KEY) {
       try {
