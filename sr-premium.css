@@ -1947,4 +1947,579 @@ body:has(#sr-app-shell) .app-header,
   }
 }
 
+/* ==========================================================================
+   SHIFTRELAY OS 2.0 DESIGN SYSTEM — Next-Gen Workspace & Fintech Depth
+   ========================================================================== */
+
+/* 1. Wider Desktop Canvas & Tabular Numerals */
+@media (min-width: 1024px) {
+  #sr-app-shell .sr-main-content {
+    max-width: 1180px !important;
+    padding: 26px 34px 48px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  #sr-app-shell .sr-main-content {
+    padding: 12px 14px 96px !important;
+  }
+}
+
+#sr-app-shell .sr-v2-num,
+#sr-app-shell .sr-stat-val,
+#sr-app-shell .sr-metric-val {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* 2. Unified 1-Line Page Header */
+#sr-app-shell .sr-v2-page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+#sr-app-shell .sr-v2-page-title-wrap {
+  min-width: 0;
+}
+
+#sr-app-shell .sr-v2-page-title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--p-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#sr-app-shell .sr-v2-page-sub {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  color: var(--p-text-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#sr-app-shell .sr-v2-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#sr-app-shell .sr-v2-pill-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: var(--p-teal-light);
+  color: var(--p-teal);
+  border: 1px solid var(--p-teal-mid);
+  white-space: nowrap;
+}
+
+/* 3. Symmetrical 4-Col & 3-Col KPI Bento Rows (eliminates 3+1 orphan cards) */
+#sr-app-shell .sr-v2-kpi-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+#sr-app-shell .sr-v2-kpi-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 960px) {
+  #sr-app-shell .sr-v2-kpi-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  #sr-app-shell .sr-v2-kpi-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  #sr-app-shell .sr-v2-kpi-3 .sr-v2-kpi-card {
+    padding: 10px 10px;
+  }
+
+  #sr-app-shell .sr-v2-kpi-3 .sr-v2-kpi-val {
+    font-size: 1.05rem !important;
+  }
+}
+
+#sr-app-shell .sr-v2-kpi-card {
+  background: var(--p-surface);
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius-lg);
+  padding: 15px 17px;
+  box-shadow: var(--p-shadow-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  text-align: left;
+  transition: transform var(--p-dur-fast) ease, box-shadow var(--p-dur-fast) ease, border-color var(--p-dur-fast) ease;
+}
+
+#sr-app-shell button.sr-v2-kpi-card {
+  cursor: pointer;
+  font: inherit;
+}
+
+#sr-app-shell button.sr-v2-kpi-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--p-teal-mid);
+  box-shadow: var(--p-shadow-sm);
+}
+
+#sr-app-shell .sr-v2-kpi-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--p-text-3);
+}
+
+#sr-app-shell .sr-v2-kpi-val {
+  font-size: 1.48rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--p-text);
+  font-variant-numeric: tabular-nums;
+}
+
+#sr-app-shell .sr-v2-kpi-sub {
+  font-size: 0.75rem;
+  color: var(--p-text-3);
+  line-height: 1.35;
+}
+
+/* 4. Asymmetric & Symmetric 2-Column Workspaces */
+#sr-app-shell .sr-v2-2col {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 18px;
+  align-items: start;
+}
+
+#sr-app-shell .sr-v2-fintech-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 18px;
+  align-items: start;
+}
+
+#sr-app-shell .sr-v2-2col-even {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  #sr-app-shell .sr-v2-2col,
+  #sr-app-shell .sr-v2-fintech-grid,
+  #sr-app-shell .sr-v2-2col-even {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+}
+
+/* 5. Underline Section Tabs (single-line, zero multi-line wrapping) */
+#sr-app-shell .sr-tabs-header,
+#sr-app-shell .sr-v2-tabs {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scrollbar-width: none;
+  gap: 4px !important;
+  margin-bottom: 18px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--p-border) !important;
+  border-radius: 0 !important;
+}
+
+#sr-app-shell .sr-tabs-header::-webkit-scrollbar,
+#sr-app-shell .sr-v2-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+#sr-app-shell .sr-tabs-header .sr-tab-btn,
+#sr-app-shell .sr-v2-tab {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 10px 14px !important;
+  margin-bottom: -1px !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 6px 6px 0 0 !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  color: var(--p-text-3) !important;
+  cursor: pointer;
+  box-shadow: none !important;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+#sr-app-shell .sr-tabs-header .sr-tab-btn:hover,
+#sr-app-shell .sr-v2-tab:hover {
+  color: var(--p-text) !important;
+  background: var(--p-surface-hover) !important;
+}
+
+#sr-app-shell .sr-tabs-header .sr-tab-btn.active,
+#sr-app-shell .sr-v2-tab.active {
+  color: var(--p-teal) !important;
+  border-bottom-color: var(--p-teal) !important;
+  background: transparent !important;
+  font-weight: 700 !important;
+}
+
+#sr-app-shell .sr-v2-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--p-amber-bg);
+  color: var(--p-amber);
+  border: 1px solid var(--p-amber-border);
+}
+
+#sr-app-shell .sr-tab-btn.active .sr-v2-tab-badge,
+#sr-app-shell .sr-v2-tab.active .sr-v2-tab-badge {
+  background: var(--p-teal-light);
+  color: var(--p-teal);
+  border-color: var(--p-teal-mid);
+}
+
+/* Compact Segmented Pill Switch (Pay | Rewards, Pending | History, All | On Shift) */
+#sr-app-shell .sr-comp-switch,
+#sr-app-shell .sr-v2-pill-switch {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  background: var(--p-surface-hover) !important;
+  border: 1px solid var(--p-border) !important;
+  border-radius: 10px !important;
+  padding: 3px !important;
+  gap: 2px !important;
+  margin: 0 !important;
+}
+
+#sr-app-shell .sr-comp-switch .sr-comp-tab,
+#sr-app-shell .sr-v2-pill-switch button {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  padding: 6px 14px !important;
+  border-radius: 7px !important;
+  border: none !important;
+  background: transparent;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  color: var(--p-text-3);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#sr-app-shell .sr-comp-switch .sr-comp-tab.active,
+#sr-app-shell .sr-v2-pill-switch button.active {
+  background: var(--p-surface) !important;
+  color: var(--p-text) !important;
+  box-shadow: var(--p-shadow-xs) !important;
+}
+
+/* Sidebar & Mobile Dock Live Action Count Badges */
+#sr-app-shell .sr-nav-btn {
+  position: relative;
+}
+
+#sr-app-shell .sr-nav-count {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  background: var(--p-amber-bg);
+  color: var(--p-amber);
+  border: 1px solid var(--p-amber-border);
+}
+
+#sr-app-shell .sr-dock-item {
+  position: relative;
+}
+
+#sr-app-shell .sr-dock-item .sr-nav-count {
+  position: absolute;
+  top: 4px;
+  right: 16%;
+  margin-left: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 0.625rem;
+}
+
+@media (min-width: 768px) {
+  #sr-app-shell .sr-header #sr-shell-signout {
+    display: none !important;
+  }
+
+  #sr-app-shell .sr-team-list-wrap {
+    overflow-x: auto;
+  }
+
+  #sr-app-shell .sr-team-list-head,
+  #sr-app-shell .sr-team-row-item {
+    grid-template-columns: 74px minmax(160px, 1.3fr) minmax(145px, 1.15fr) minmax(112px, 0.9fr) 90px 64px 124px;
+    gap: 8px;
+    padding: 12px 12px;
+  }
+
+  #sr-app-shell .sr-team-row-no-actions .sr-team-list-head,
+  #sr-app-shell .sr-team-row-no-actions .sr-team-row-item {
+    grid-template-columns: 82px minmax(195px, 1.45fr) minmax(175px, 1.3fr) minmax(135px, 1fr) 104px 82px;
+  }
+}
+
+/* 6. Unified 1-Row Filter Toolbar (Workforce & My Team) */
+#sr-app-shell .sr-v2-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--p-surface);
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius-lg);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  box-shadow: var(--p-shadow-xs);
+}
+
+#sr-app-shell .sr-v2-filter-search {
+  flex: 1 1 240px;
+  min-width: 180px;
+}
+
+#sr-app-shell .sr-v2-filter-select {
+  flex: 0 1 220px;
+  min-width: 160px;
+  padding: 8px 12px;
+  border-radius: var(--p-radius-sm);
+  border: 1px solid var(--p-border);
+  background: var(--p-surface-alt);
+  color: var(--p-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* 7. Worker My Shift Condensed Context Bar & Mobile Fold Optimization */
+#sr-app-shell .sr-v2-shift-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--p-surface);
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius-lg);
+  margin-bottom: 14px;
+  box-shadow: var(--p-shadow-xs);
+}
+
+@media (max-width: 640px) {
+  #sr-app-shell .sr-v2-shift-bar {
+    padding: 8px 12px;
+    margin-bottom: 10px;
+  }
+
+  #sr-app-shell #sr-clock-card {
+    padding: 12px 14px !important;
+    margin-bottom: 12px !important;
+  }
+
+  #sr-app-shell .sr-orbital-timer-wrap {
+    width: 152px !important;
+    height: 152px !important;
+    margin: 2px auto 4px !important;
+  }
+
+  #sr-app-shell .sr-orbital-inner-sphere {
+    width: 114px !important;
+    height: 114px !important;
+  }
+
+  #sr-app-shell .sr-orbital-time-readout {
+    font-size: 1.25rem !important;
+  }
+
+  #sr-app-shell .sr-water-conduit {
+    height: 14px !important;
+  }
+
+  #sr-app-shell .sr-water-push-btn {
+    width: 100px !important;
+    height: 100px !important;
+  }
+
+  #sr-app-shell .sr-water-btn-icon {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  #sr-app-shell .sr-floating-ai-beacon,
+  .sr-floating-ai-beacon {
+    bottom: 78px !important;
+    right: 12px !important;
+    width: 44px !important;
+    height: 44px !important;
+  }
+}
+
+/* 8. Fintech Hero Wallet Card (Earnings) & Sleek Digital Staff Pass (Profile) */
+#sr-app-shell .sr-v2-wallet-hero {
+  background: linear-gradient(135deg, #0D1C2E 0%, #0F2F3A 56%, #075953 100%);
+  color: #FFFFFF;
+  border-radius: 18px;
+  padding: 22px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: var(--p-shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+#sr-app-shell .sr-v2-id-pass {
+  background: linear-gradient(155deg, #0B1626 0%, #112A3E 58%, #09524C 100%);
+  color: #FFFFFF;
+  border-radius: 18px;
+  padding: 20px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: var(--p-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#sr-app-shell .sr-v2-id-scan-tray {
+  background: #FFFFFF;
+  color: #0D1821;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* 9. Worker Schedule 7-Day Interactive Week Strip */
+#sr-app-shell .sr-v2-week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 720px) {
+  #sr-app-shell .sr-v2-week-strip {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  #sr-app-shell .sr-v2-week-day {
+    flex: 0 0 82px;
+  }
+}
+
+#sr-app-shell .sr-v2-week-day {
+  background: var(--p-surface);
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius);
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+#sr-app-shell .sr-v2-week-day:hover {
+  border-color: var(--p-teal-mid);
+  transform: translateY(-1px);
+}
+
+#sr-app-shell .sr-v2-week-day.active,
+#sr-app-shell .sr-v2-week-day.is-today {
+  border-color: var(--p-teal);
+  background: var(--p-teal-light);
+}
+
+#sr-app-shell .sr-v2-week-day.is-off {
+  opacity: 0.68;
+}
+
+/* Fix WCAG contrast on danger buttons overridden by phase1-shell.css !important gradient */
+#sr-app-shell .sr-btn-danger {
+  background: var(--p-red-bg) !important;
+  color: var(--p-red) !important;
+  border: 1px solid var(--p-red-border) !important;
+  box-shadow: none !important;
+}
+
+#sr-app-shell .sr-btn-danger:hover:not(:disabled) {
+  background: #fde8e8 !important;
+  color: #7f1d1d !important;
+  border-color: var(--p-red) !important;
+}
+
+[data-theme="dark"] #sr-app-shell .sr-btn-danger:hover:not(:disabled) {
+  background: rgba(252, 125, 125, 0.2) !important;
+  color: #fecaca !important;
+}
+
 

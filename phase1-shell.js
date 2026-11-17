@@ -1966,6 +1966,9 @@
     // Check & Render Pinned Shift Announcement Banner
     await checkAndRenderActiveBroadcastBanner();
 
+    // Non-blocking hydration of sidebar & mobile dock action count badges
+    hydrateShellNavCounts(user, isManager, isSupervisor).catch(() => {});
+
     // Render requested screen
     if (view === 'today') {
       await renderWorkerToday();
@@ -2028,6 +2031,53 @@
 
   async function navigate(viewName) {
     return await mountShell(viewName);
+  }
+
+  function applyShellNavCount(viewKey, count) {
+    document.querySelectorAll(`[data-sr-view="${viewKey}"]`).forEach(btn => {
+      btn.querySelectorAll('.sr-nav-count').forEach(el => el.remove());
+      if (count > 0) {
+        const badge = document.createElement('span');
+        badge.className = 'sr-nav-count';
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.setAttribute('aria-label', `${count} pending`);
+        btn.appendChild(badge);
+      }
+    });
+  }
+
+  async function hydrateShellNavCounts(user, isManager, isSupervisor) {
+    if (!navigator.onLine || !user) return;
+    const hRes = await fetch('/api/handovers').catch(() => null);
+    if (hRes && hRes.ok) {
+      const hData = await hRes.json().catch(() => ({}));
+      const list = Array.isArray(hData.handovers) ? hData.handovers : [];
+      const hoCount = isManager
+        ? list.filter(h => h.status === 'awaiting_review').length
+        : list.filter(h => h.status === 'relayed').length;
+      applyShellNavCount('handovers', hoCount);
+    }
+    if (isSupervisor) {
+      const [excRes, pendRes, swapRes] = await Promise.all([
+        fetch('/api/attendance/exceptions').catch(() => null),
+        fetch('/api/memberships/pending').catch(() => null),
+        fetch('/api/shift-swaps').catch(() => null)
+      ]);
+      let approvalsTotal = 0;
+      if (excRes && excRes.ok) {
+        const excData = await excRes.json().catch(() => ({}));
+        approvalsTotal += (excData.exceptions || []).filter(e => e.status === 'pending_review').length;
+      }
+      if (pendRes && pendRes.ok) {
+        const pData = await pendRes.json().catch(() => ({}));
+        approvalsTotal += (pData.requests || []).length;
+      }
+      if (swapRes && swapRes.ok) {
+        const sData = await swapRes.json().catch(() => ({}));
+        approvalsTotal += (sData.swaps || []).filter(s => s.status === 'pending' || s.status === 'claimed').length;
+      }
+      applyShellNavCount('approvals', approvalsTotal);
+    }
   }
 
   // ── 1.9 Assisted Worker Physical ID Card + Live Facial Capture + Handover Scanner ──
@@ -3159,45 +3209,53 @@
           done: savedTaskStates[t.id] !== undefined ? Boolean(savedTaskStates[t.id]) : Boolean(t.done)
         }));
 
+      const policyInfo = window.ShiftRelayAttendanceUI?.policySummaryLabels?.(user.attendancePolicy) || { grace: 10, version: 'v1' };
+      const doneTaskCount = tasks.filter(t => t.done).length;
+      const doneTaskPct = Math.round((doneTaskCount / Math.max(1, tasks.length)) * 100);
+
       const html = `
-        ${window.ShiftRelayAttendanceUI?.renderPolicyAckBannerHtml?.(user) || ''}
-        <!-- Today's Assigned Shift Duty Station Card -->
-        <div class="sr-card" style="padding:14px 16px;margin-bottom:12px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,0.15);color:#10b981;display:inline-flex;align-items:center;justify-content:center;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </span>
-              <div>
-                <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.04em;display:block;">Today's Assigned Shift</span>
-                <strong style="font-size:14px;color:var(--sr-text-main);">Shift Window &bull; ${escapeHtml(shiftStartLabel)} &ndash; ${escapeHtml(shiftEndLabel)} WAT</strong>
+        <!-- Slim Single-Row Shift & Grace Policy Context Bar -->
+        <div class="sr-v2-shift-bar" aria-label="Today's Assigned Shift">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap;">
+            <span style="width:28px;height:28px;border-radius:8px;background:var(--p-green-bg);color:var(--p-green);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            <div style="min-width:0;">
+              <div style="font-size:13.5px;font-weight:700;color:var(--p-text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span class="sr-v2-num">${escapeHtml(shiftStartLabel)} &ndash; ${escapeHtml(shiftEndLabel)} WAT</span>
+                <span style="color:var(--p-text-3);font-weight:500;">&middot; ${escapeHtml(siteName)}</span>
               </div>
             </div>
-            <span class="sr-status-pill active" style="font-size:11px;">Roster Assigned</span>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;padding-top:8px;border-top:1px solid var(--sr-border-subtle);font-size:12px;">
-            <div><span style="color:var(--sr-text-muted);">Duty Station:</span> <strong style="color:var(--sr-text-main);">${escapeHtml(siteName)}</strong></div>
-            <div><span style="color:var(--sr-text-muted);">Shift Supervisor:</span> <strong style="color:var(--sr-text-main);">Olaide Emmanuela</strong></div>
-            <div><span style="color:var(--sr-text-muted);">Handover Lead:</span> <strong style="color:var(--sr-text-main);">Babatunde Adeleke</strong></div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            ${user.policyRequiresAck ? `
+              <div id="sr-policy-ack-banner" style="display:inline-flex;align-items:center;gap:8px;padding:3px 4px 3px 10px;border-radius:999px;background:var(--p-teal-light);border:1px solid var(--p-teal-mid);">
+                <span style="font-size:11.5px;font-weight:700;color:var(--p-teal);">${policyInfo.grace}m Grace Policy</span>
+                <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-ack-attendance-policy" data-policy-version="${escapeHtml(String(policyInfo.version || 'v1'))}" style="min-height:26px !important;padding:0 10px !important;font-size:11.5px !important;font-weight:700;border-radius:999px;">
+                  Acknowledge
+                </button>
+              </div>
+            ` : `
+              <span class="sr-status-pill active" style="font-size:11px;">Roster Verified &middot; ${policyInfo.grace}m Grace</span>
+            `}
           </div>
         </div>
 
-        <!-- Cosmic Orbital Liquid Timer & Biometric Thumbprint Water-Fill Push Button -->
+        <!-- Center Hero: Orbital Time Clock & Primary Action Above the Fold -->
         <section class="sr-clock-card sr-cosmic-clock-card ${isClockedIn ? 'clocked-in' : ''}" id="sr-clock-card" aria-label="Shift Time Tracking">
           <div class="sr-cosmic-clock-header">
             <span class="sr-status-pill ${isClockedIn ? 'active' : (hasCompletedShiftToday ? 'completed' : 'inactive')}" id="sr-today-shift-status">
               ${isClockedIn ? '<span class="sr-pulse-dot"></span> Active on Shift' : (hasCompletedShiftToday ? 'Shift Completed · Off Duty' : 'Off Duty · Ready')}
             </span>
-            <small style="font-size:12px;font-weight:600;color:var(--sr-text-muted);font-family:\'JetBrains Mono\',monospace;">
+            <small class="sr-v2-num" style="font-size:12px;font-weight:600;color:var(--sr-text-muted);font-family:'JetBrains Mono',monospace;">
               ${isClockedIn && clockedInTime ? `In · ${new Date(clockedInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : (hasCompletedShiftToday ? 'Today Logged: 8h 00m Verified' : '8h Shift Target')}
             </small>
           </div>
-          <div id="sr-gps-status-pill" style="margin:6px 0 2px;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:rgba(13,148,136,0.1);color:#0f766e;border:1px solid rgba(13,148,136,0.22);">
+          <div id="sr-gps-status-pill" style="margin:4px 0 2px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:rgba(13,148,136,0.1);color:#0f766e;border:1px solid rgba(13,148,136,0.22);">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2.5"/></svg>
             <span id="sr-gps-status-text">On-Site GPS Active</span>
           </div>
 
-          <!-- Advanced Orbital Dial + Rising Water Sphere Timer -->
           <div class="sr-orbital-timer-wrap" id="sr-orbital-timer-wrap">
             <svg class="sr-orbital-ring-svg" viewBox="0 0 200 200" aria-hidden="true">
               <defs>
@@ -3216,19 +3274,17 @@
               <div class="sr-timer-water-tank">
                 <div class="sr-timer-water-fill" id="sr-timer-liquid-level" style="${hasCompletedShiftToday && !isClockedIn ? 'height:100%;background:linear-gradient(180deg, rgba(16,185,129,0.7) 0%, rgba(13,148,136,0.9) 100%);' : ''}"></div>
               </div>
-              <div class="sr-orbital-time-readout" id="sr-elapsed-timer" style="${hasCompletedShiftToday && !isClockedIn ? 'font-size:19px;color:#10b981;font-weight:800;' : ''}">
+              <div class="sr-orbital-time-readout sr-v2-num" id="sr-elapsed-timer" style="${hasCompletedShiftToday && !isClockedIn ? 'font-size:19px;color:#10b981;font-weight:800;' : ''}">
                 ${isClockedIn ? '00:00:00' : (hasCompletedShiftToday ? 'COMPLETED' : '00:00:00')}
               </div>
-              <span class="sr-orbital-time-sub">${isClockedIn ? 'LIVE SHIFT FLOW' : (hasCompletedShiftToday ? 'OFF DUTY · HOURS VERIFIED' : 'READY TO FLOW')}</span>
+              <span class="sr-orbital-time-sub">${isClockedIn ? 'LIVE SHIFT FLOW' : (hasCompletedShiftToday ? 'OFF DUTY · VERIFIED' : 'READY TO CLOCK IN')}</span>
             </div>
           </div>
 
-          <!-- Liquid Conduit Connecting Thumbprint Button into Orbital Timer -->
           <div class="sr-water-conduit" aria-hidden="true">
             <div class="sr-water-conduit-stream"></div>
           </div>
 
-          <!-- Circular Biometric Thumbprint Reactive Water Push Button (Green = Clock In, Locked During Shift, Auto Clock-Out at Shift End) -->
           <div class="sr-water-btn-stage">
             <button type="button"
               class="sr-water-push-btn ${isClockedIn ? (isShiftLockedUntilEnd ? 'sr-water-btn-locked' : 'sr-water-btn-out') : 'sr-water-btn-in'}"
@@ -3236,7 +3292,7 @@
               ${isShiftLockedUntilEnd ? 'disabled aria-disabled="true"' : ''}
               aria-label="${isClockedIn ? (isShiftLockedUntilEnd ? 'Clock Out Locked Until Shift End' : 'Clock Out') : 'Clock In'}">
               <div class="sr-btn-water-wave"></div>
-              <svg class="sr-water-btn-icon" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="sr-water-btn-icon" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 ${isShiftLockedUntilEnd
                   ? '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
                   : '<circle cx="12" cy="12" r="10" stroke-opacity="0.35"/><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12" stroke-width="2.8"/>'}
@@ -3244,7 +3300,7 @@
               <span class="sr-water-btn-label" id="sr-water-btn-label">${isClockedIn ? (isShiftLockedUntilEnd ? 'SHIFT LOCKED' : 'CLOCK OUT') : 'CLOCK IN'}</span>
             </button>
             ${isClockedIn ? `
-              <div id="sr-shift-lock-note" style="margin-top:8px;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);text-align:center;">
+              <div id="sr-shift-lock-note" style="margin-top:6px;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);text-align:center;">
                 ${isShiftLockedUntilEnd
                   ? `Clock-out unlocks at ${escapeHtml(shiftUnlockClock)} &bull; Auto clock-out active`
                   : 'Shift ended &bull; Processing automatic clock-out'}
@@ -3264,111 +3320,124 @@
               </button>
             </div>
           ` : ''}
-          <div style="margin-top:14px;padding:10px 14px;border-radius:12px;background:rgba(13,148,136,0.06);border:1px solid rgba(13,148,136,0.22);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;text-align:left;">
-            <div>
-              <div style="font-size:13px;font-weight:700;color:var(--sr-text);">Assist a Teammate</div>
-              <div style="font-size:11.5px;color:var(--sr-text-sec);">Colleague Staff ID &amp; face check-in</div>
-            </div>
-            <button type="button" id="sr-btn-scan-peer-id" style="min-height:36px;padding:0 14px;border-radius:9px;border:none;background:#0d9488;color:#ffffff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
+
+          <div style="margin-top:12px;padding:8px 12px;border-radius:10px;background:rgba(13,148,136,0.06);border:1px solid rgba(13,148,136,0.2);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;text-align:left;">
+            <span style="font-size:12px;font-weight:700;color:var(--p-text-2);">Assist a Teammate &middot; <span style="font-weight:500;color:var(--p-text-3);">Colleague ID &amp; live face</span></span>
+            <button type="button" id="sr-btn-scan-peer-id" style="min-height:32px;padding:0 12px;border-radius:8px;border:none;background:#0d9488;color:#ffffff;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
               <span>Peer Check-In</span>
             </button>
           </div>
         </section>
 
-        <!-- One-Line Recent Star Activity Strip (Tap opens Rewards Page for Exchange & History) -->
-        <div class="sr-star-strip-line" id="sr-today-star-strip" role="button" tabindex="0" aria-label="Recent stars earned. Tap to open Rewards and Exchange">
-          <div class="sr-star-strip-left">
-            <span class="sr-star-strip-orb">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </span>
-            <span class="sr-star-strip-text" id="sr-today-star-strip-text">
-              <strong>${escapeHtml(starState.recentText)}</strong> &middot; ${starState.balance.toLocaleString()} PTS (₦${starState.balance.toLocaleString()})
-            </span>
-          </div>
-          <span class="sr-star-strip-cta">
-            <span>Rewards</span>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-          </span>
-        </div>
-
-        <!-- Incoming Shift Handover Briefing Card -->
-        <section class="sr-card" aria-label="Shift Handover Briefing">
-          <div class="sr-card-title-row">
-            <h3>${effectiveHandover.status === 'acknowledged' ? 'Shift Briefing Verified' : 'Incoming Shift Briefing'}</h3>
-            <span class="sr-status-pill ${effectiveHandover.status === 'acknowledged' || effectiveHandover.status === 'relayed' ? 'active' : 'inactive'}">${escapeHtml(effectiveHandover.status.replace('_', ' ').toUpperCase())}</span>
-          </div>
-
-          <div style="margin-bottom:${effectiveHandover.status !== 'acknowledged' ? '14px' : '8px'};">
-            <h4 style="margin:0 0 4px;font-size:15px;color:var(--sr-text-main);">${escapeHtml(effectiveHandover.handover?.summary || getUserIndustryProfile(user).defaultHandoverSummary || 'Shift Handoff Readiness Active')}</h4>
-            <p style="margin:0 0 6px;font-size:12px;color:var(--sr-text-muted);">
-              From: <strong style="color:var(--sr-text-main);">${escapeHtml(effectiveHandover.handover?.author || effectiveHandover.authorName || 'Babatunde Adeleke')}</strong> &bull; Priority: <span style="color:#10b981;font-weight:700;">NORMAL</span>
-            </p>
-            <div style="font-size:12.5px;color:var(--sr-text-secondary);background:var(--sr-bg-card-subtle);padding:10px 12px;border-radius:8px;border:1px solid var(--sr-border-subtle);line-height:1.5;">
-              ${escapeHtml(effectiveHandover.handover?.notes || getUserIndustryProfile(user).defaultHandoverNotes || 'All systems checked and ready for active shift coverage.')}
+        <!-- Bottom 2-Column Action Deck (7/5 on Desktop, Stacked on Mobile) -->
+        <div class="sr-v2-2col">
+          <!-- Left: Priority Shift Task Checklist -->
+          <section class="sr-card sr-task-section" aria-label="Shift Task Checklist" style="margin-bottom:0;">
+            <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Shift Checklist</h3>
+                <span class="sr-task-industry-chip">${escapeHtml(activeIndustrySuite.badge)}</span>
+              </div>
+              <span class="sr-task-counter-pill sr-v2-num" id="sr-task-counter-display">
+                <span id="sr-task-done-count">${doneTaskCount}</span> / <span id="sr-task-total-count">${tasks.length}</span> Verified
+              </span>
             </div>
-          </div>
-          ${effectiveHandover.status !== 'acknowledged' ? `
-            <button class="sr-btn sr-btn-primary sr-btn-block" id="sr-btn-ack-handover" data-id="${effectiveHandover.id}" style="min-height:40px !important;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
-              <span>Take Over Shift</span>
-            </button>
-          ` : `
-            <div style="font-size:12px;font-weight:700;color:#059669;display:flex;align-items:center;gap:6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Briefing acknowledged &amp; archived in Handover History.</span>
-            </div>
-          `}
-        </section>
 
-        <!-- Priority Shift Task Checklist (Industry Tailored & Highly Reactive) -->
-        <section class="sr-card sr-task-section" aria-label="Shift Task Checklist">
-          <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Shift Checklist</h3>
-              <span class="sr-task-industry-chip">${escapeHtml(activeIndustrySuite.badge)}</span>
+            <div class="sr-task-progress-track" style="width:100%;height:6px;background:var(--sr-border-subtle);border-radius:99px;margin-bottom:12px;overflow:hidden;">
+              <div class="sr-task-progress-bar" id="sr-task-progress-bar" style="height:100%;width:${doneTaskPct}%;background:linear-gradient(90deg, #10b981 0%, #06b6d4 100%);border-radius:99px;transition:width 0.3s cubic-bezier(0.16,1,0.3,1);"></div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="sr-task-counter-pill" id="sr-task-counter-display">
-                <span id="sr-task-done-count">${tasks.filter(t => t.done).length}</span> / <span id="sr-task-total-count">${tasks.length}</span> Verified
+
+            <div class="sr-task-list" id="sr-task-list-root">
+              ${tasks.map(task => `
+                <div class="sr-task-item ${task.done ? 'done' : ''}" data-task-id="${task.id}">
+                  <div class="sr-task-check-wrap">
+                    <input type="checkbox" class="sr-task-checkbox" ${task.done ? 'checked' : ''} data-task-id="${task.id}" id="chk_${task.id}" />
+                    <label for="chk_${task.id}" class="sr-custom-check-box" aria-label="Toggle task ${escapeHtml(task.text || task.title)}">
+                      <svg class="sr-check-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </label>
+                  </div>
+                  <div class="sr-task-content">
+                    <span class="sr-task-text">${escapeHtml(task.text || task.title)}</span>
+                  </div>
+                  ${task.priority === 'urgent' ? '<span class="sr-task-urgent-badge">URGENT</span>' : '<span class="sr-task-normal-badge">NORMAL</span>'}
+                </div>
+              `).join('')}
+            </div>
+
+            <form class="sr-task-quick-add" id="sr-form-add-task" style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--sr-border-subtle);">
+              <input type="text" class="sr-input" id="sr-input-new-task" placeholder="+ Add shift task or verification item..." style="flex:1;min-height:36px;font-size:12.5px;padding:6px 12px;border-radius:8px;" />
+              <button type="submit" class="sr-btn sr-btn-secondary" style="min-height:36px;padding:0 14px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Add</span>
+              </button>
+            </form>
+          </section>
+
+          <!-- Right: Briefing, Shift Contacts & Rewards Strip -->
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <section class="sr-card" aria-label="Shift Handover Briefing" style="margin-bottom:0;">
+              <div class="sr-card-title-row">
+                <h3>${effectiveHandover.status === 'acknowledged' ? 'Shift Briefing Verified' : 'Incoming Shift Briefing'}</h3>
+                <span class="sr-status-pill ${effectiveHandover.status === 'acknowledged' || effectiveHandover.status === 'relayed' ? 'active' : 'inactive'}">${escapeHtml(effectiveHandover.status.replace('_', ' ').toUpperCase())}</span>
+              </div>
+
+              <div style="margin-bottom:${effectiveHandover.status !== 'acknowledged' ? '12px' : '8px'};">
+                <h4 style="margin:0 0 4px;font-size:14.5px;color:var(--sr-text-main);">${escapeHtml(effectiveHandover.handover?.summary || getUserIndustryProfile(user).defaultHandoverSummary || 'Shift Handoff Readiness Active')}</h4>
+                <p style="margin:0 0 6px;font-size:12px;color:var(--sr-text-muted);">
+                  From: <strong style="color:var(--sr-text-main);">${escapeHtml(effectiveHandover.handover?.author || effectiveHandover.authorName || 'Babatunde Adeleke')}</strong> &bull; Priority: <span style="color:#10b981;font-weight:700;">NORMAL</span>
+                </p>
+                <div style="font-size:12.5px;color:var(--sr-text-secondary);background:var(--sr-bg-card-subtle);padding:10px 12px;border-radius:8px;border:1px solid var(--sr-border-subtle);line-height:1.5;">
+                  ${escapeHtml(effectiveHandover.handover?.notes || getUserIndustryProfile(user).defaultHandoverNotes || 'All systems checked and ready for active shift coverage.')}
+                </div>
+              </div>
+              ${effectiveHandover.status !== 'acknowledged' ? `
+                <button class="sr-btn sr-btn-primary sr-btn-block" id="sr-btn-ack-handover" data-id="${effectiveHandover.id}" style="min-height:40px !important;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+                  <span>Take Over Shift</span>
+                </button>
+              ` : `
+                <div style="font-size:12px;font-weight:700;color:#059669;display:flex;align-items:center;gap:6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Briefing acknowledged &amp; archived in Handover History.</span>
+                </div>
+              `}
+            </section>
+
+            <!-- Compact Shift Leadership & Duty Metadata -->
+            <section class="sr-card" aria-label="Shift Contacts" style="margin-bottom:0;padding:14px 16px;">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--p-text-3);margin-bottom:10px;">Shift Supervision &amp; Station</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px;">
+                <div>
+                  <div style="font-size:11px;color:var(--p-text-3);">Shift Supervisor</div>
+                  <strong style="color:var(--p-text);">Olaide Emmanuela</strong>
+                </div>
+                <div>
+                  <div style="font-size:11px;color:var(--p-text-3);">Handover Lead</div>
+                  <strong style="color:var(--p-text);">Babatunde Adeleke</strong>
+                </div>
+              </div>
+            </section>
+
+            <!-- One-Line Recent Star Activity Strip -->
+            <div class="sr-star-strip-line" id="sr-today-star-strip" role="button" tabindex="0" aria-label="Recent stars earned. Tap to open Rewards and Exchange" style="margin:0;">
+              <div class="sr-star-strip-left">
+                <span class="sr-star-strip-orb">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </span>
+                <span class="sr-star-strip-text sr-v2-num" id="sr-today-star-strip-text">
+                  <strong>${escapeHtml(starState.recentText)}</strong> &middot; ${starState.balance.toLocaleString()} PTS (₦${starState.balance.toLocaleString()})
+                </span>
+              </div>
+              <span class="sr-star-strip-cta">
+                <span>Rewards</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
               </span>
             </div>
           </div>
-
-          <!-- Dynamic Reactive Progress Bar -->
-          <div class="sr-task-progress-track" style="width:100%;height:6px;background:var(--sr-border-subtle);border-radius:99px;margin-bottom:14px;overflow:hidden;">
-            <div class="sr-task-progress-bar" id="sr-task-progress-bar" style="height:100%;width:${Math.round((tasks.filter(t => t.done).length / Math.max(1, tasks.length)) * 100)}%;background:linear-gradient(90deg, #10b981 0%, #06b6d4 100%);border-radius:99px;transition:width 0.3s cubic-bezier(0.16,1,0.3,1);"></div>
-          </div>
-
-          <!-- Reactive Vertical Task List with Custom Checkbox in Front -->
-          <div class="sr-task-list" id="sr-task-list-root">
-            ${tasks.map(task => `
-              <div class="sr-task-item ${task.done ? 'done' : ''}" data-task-id="${task.id}">
-                <div class="sr-task-check-wrap">
-                  <input type="checkbox" class="sr-task-checkbox" ${task.done ? 'checked' : ''} data-task-id="${task.id}" id="chk_${task.id}" />
-                  <label for="chk_${task.id}" class="sr-custom-check-box" aria-label="Toggle task ${escapeHtml(task.text || task.title)}">
-                    <svg class="sr-check-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </label>
-                </div>
-                <div class="sr-task-content">
-                  <span class="sr-task-text">${escapeHtml(task.text || task.title)}</span>
-                </div>
-                ${task.priority === 'urgent' ? '<span class="sr-task-urgent-badge">URGENT</span>' : '<span class="sr-task-normal-badge">NORMAL</span>'}
-              </div>
-            `).join('')}
-          </div>
-
-          <!-- Quick Add Impromptu Task Input Bar -->
-          <form class="sr-task-quick-add" id="sr-form-add-task" style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--sr-border-subtle);">
-            <input type="text" class="sr-input" id="sr-input-new-task" placeholder="+ Add operational task or shift verification item..." style="flex:1;min-height:36px;font-size:12.5px;padding:6px 12px;border-radius:8px;" />
-            <button type="submit" class="sr-btn sr-btn-secondary" style="min-height:36px;padding:0 14px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              <span>Add</span>
-            </button>
-          </form>
-        </section>
+        </div>
       `;
 
       container.innerHTML = html;
@@ -3863,79 +3932,88 @@
       const supClockedInTime = supActiveEntry ? (supActiveEntry.clocked_in_at || supActiveEntry.clockedInAt) : null;
       const supStarState = getStarActivityState();
 
+      const openExcCount = Array.isArray(excData?.exceptions)
+        ? excData.exceptions.filter(e => e.status === 'pending_review').length
+        : (excData?.missing?.length || 0);
+      const pendingApprovalsTotal = accessRequests.length + pendingLeave.length + presenceReviews.length;
+
       const html = `
-        <!-- Distinct Company vs Site Context Banner with 2-Layer Dashboard Switcher -->
-        <div class="sr-context-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-          <div class="sr-context-banner-text" style="cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
-            <span class="sr-context-banner-company" style="font-weight:700;display:flex;align-items:center;gap:6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
-              ${escapeHtml(companyName)}
-            </span>
-            <span class="sr-context-banner-site">${escapeHtml(siteName)} &bull; <strong style="color:#0d9488;">${escapeHtml(roleTitle)}</strong></span>
+        <!-- 1-Line Live Floor Page Header -->
+        <div class="sr-v2-page-head">
+          <div class="sr-v2-page-title-wrap">
+            <h2 class="sr-v2-page-title">
+              <span>Live Floor</span>
+              <span class="sr-v2-pill-meta">Morning &middot; 06:00 &ndash; 14:00 WAT</span>
+            </h2>
+            <p class="sr-v2-page-sub">
+              <span>${escapeHtml(getUserIndustryProfile(user).zones?.[0]?.name || user.department || 'Core Operations Zone')}</span>
+              &middot;
+              <span style="color:#10b981;font-weight:700;">Geofence Active</span>
+            </p>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px; flex-wrap:wrap;">
+          <div class="sr-v2-page-actions">
             <button class="sr-btn sr-btn-secondary" id="sr-sup-scan-peer-btn" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;border-color:rgba(13,148,136,0.35);color:var(--sr-primary);" title="Scan a colleague's Staff ID card">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
               <span>Scan ID</span>
             </button>
             ${['owner', 'workforce_admin', 'manager'].includes(user.role) ? `
-            <button class="sr-btn sr-btn-primary" id="sr-exec-overview-add-staff-btn" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;" title="Add new staff member directly into a company department">
+            <button class="sr-btn sr-btn-secondary" id="sr-exec-overview-add-staff-btn" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;" title="Add new staff member directly into a company department">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-              <span>+ Add New Staff</span>
+              <span>+ Add Staff</span>
             </button>` : ''}
-            <!-- 2-Layer Executive vs Shift Operations Switcher -->
             <button class="sr-btn sr-btn-secondary" id="sr-btn-toggle-executive-view" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Corporate Executive Analytics Layer">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-              <span>Executive Layer</span>
+              <span>Executive View</span>
             </button>
             <button class="sr-btn sr-btn-primary" id="sr-btn-open-broadcast" style="min-height:36px;padding:0 14px;font-size:12.5px;display:flex;align-items:center;gap:6px;">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
-              Broadcast
+              <span>Broadcast</span>
             </button>
-            <span class="sr-context-banner-badge">
-              ${user.role === 'owner' ? 'ORGANISATION OWNER' : 'SHIFT SUPERVISOR (FLOOR OPS)'}
-            </span>
           </div>
         </div>
 
-        <!-- Supervisor Floor Command & Active Duty Header (No Duplicate Clock In/Out) -->
-        <div class="sr-card" style="padding:16px 20px;margin-bottom:14px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:14px;border-left:4px solid #0284c7;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="width:36px;height:36px;border-radius:10px;background:rgba(2,132,199,0.15);color:#0284c7;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-              </span>
-              <div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(getUserIndustryProfile(user).shortLabel)} Operations Command</h3>
-                  <span class="sr-status-pill active" style="font-size:10.5px;">Active Duty</span>
-                </div>
-                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">
-                  Personal attendance is logged via <strong>My Shift</strong> &bull; Supervised Zone: <strong>${escapeHtml(getUserIndustryProfile(user).zones?.[0]?.name || user.department || 'Core Operations Zone')}</strong>
-                </div>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="sr-badge-certified" style="font-size:11.5px;background:rgba(2,132,199,0.1);color:#0284c7;border-color:rgba(2,132,199,0.25);">
-                Morning Rotation &bull; 06:00 &ndash; 14:00 WAT
-              </span>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding-top:10px;border-top:1px solid var(--sr-border-subtle);font-size:12px;">
-            <div><span style="color:var(--sr-text-muted);">Shift Lead:</span> <strong style="color:var(--sr-text-main);">${escapeHtml(user.name)}</strong></div>
-            <div><span style="color:var(--sr-text-muted);">${escapeHtml(getUserIndustryProfile(user).telemetryLabel)}:</span> <strong style="color:#10b981;">${escapeHtml(getUserIndustryProfile(user).telemetryValue)}</strong></div>
-            <div><span style="color:var(--sr-text-muted);">Site Perimeter:</span> <strong style="color:#10b981;">Geofence Active</strong></div>
-            <div><span style="color:var(--sr-text-muted);">Check-In Mode:</span> <strong style="color:var(--sr-text-main);">Mobile + Peer ID Scan</strong></div>
-          </div>
+        <!-- 4-Column Symmetrical KPI Row -->
+        <div class="sr-v2-kpi-4">
+          <button type="button" class="sr-v2-kpi-card" data-sr-kpi-jump="team" style="border-top:3px solid #0d9488;">
+            <span class="sr-v2-kpi-label">On Shift Now</span>
+            <span class="sr-v2-kpi-val" style="color:#0d9488;">${activeHeadcount} / ${totalApprovedStaff}</span>
+            <span class="sr-v2-kpi-sub">${totalApprovedStaff} approved roster</span>
+          </button>
+
+          <button type="button" class="sr-v2-kpi-card" data-sr-kpi-jump="approvals" style="border-top:3px solid ${openExcCount > 0 ? '#f59e0b' : '#10b981'};">
+            <span class="sr-v2-kpi-label">Open Exceptions</span>
+            <span class="sr-v2-kpi-val" style="color:${openExcCount > 0 ? '#d97706' : '#10b981'};">${openExcCount}</span>
+            <span class="sr-v2-kpi-sub">${openExcCount > 0 ? 'Tap to triage' : 'Floor on schedule'}</span>
+          </button>
+
+          <button type="button" class="sr-v2-kpi-card" data-sr-kpi-jump="handovers" style="border-top:3px solid #0284c7;">
+            <span class="sr-v2-kpi-label">Handovers to Relay</span>
+            <span class="sr-v2-kpi-val" style="color:${handoversAwaitingRelay.length > 0 ? '#0284c7' : 'var(--p-text)'};">${handoversAwaitingRelay.length}</span>
+            <span class="sr-v2-kpi-sub">${handoversAwaitingRelay.length > 0 ? 'Awaiting sign-off' : 'All relayed'}</span>
+          </button>
+
+          ${user.role === 'owner' ? `
+            <button type="button" class="sr-v2-kpi-card" data-sr-kpi-jump="payroll" style="border-top:3px solid #10b981;">
+              <span class="sr-v2-kpi-label">Payroll Batch</span>
+              <span class="sr-v2-kpi-val" style="color:#10b981;font-size:1.25rem;">${fmtNairaCompact(payrollTotalNet)}</span>
+              <span class="sr-v2-kpi-sub">${payrollWorkerCount} staff &middot; ${pendingApprovalsTotal} alerts</span>
+            </button>
+          ` : `
+            <button type="button" class="sr-v2-kpi-card" data-sr-kpi-jump="approvals" style="border-top:3px solid #6366f1;">
+              <span class="sr-v2-kpi-label">Pending Approvals</span>
+              <span class="sr-v2-kpi-val">${pendingApprovalsTotal}</span>
+              <span class="sr-v2-kpi-sub">${accessRequests.length} access &middot; ${presenceReviews.length} presence</span>
+            </button>
+          `}
         </div>
 
-        <!-- One-Line Supervisor Recent Star Strip -->
-        <div class="sr-star-strip-line" id="sr-sup-star-strip" role="button" tabindex="0" aria-label="Recent supervisor stars earned. Tap to open Rewards and Exchange">
+        <!-- Compact Rewards Progress Strip -->
+        <div class="sr-star-strip-line" id="sr-sup-star-strip" role="button" tabindex="0" aria-label="Recent supervisor stars earned. Tap to open Rewards and Exchange" style="margin-bottom:16px;">
           <div class="sr-star-strip-left">
             <span class="sr-star-strip-orb">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
             </span>
-            <span class="sr-star-strip-text">
+            <span class="sr-star-strip-text sr-v2-num">
               <strong>${escapeHtml(supStarState.recentText)}</strong> &middot; ${supStarState.balance.toLocaleString()} PTS (₦${supStarState.balance.toLocaleString()})
             </span>
           </div>
@@ -3945,406 +4023,297 @@
           </span>
         </div>
 
-        <!-- Metric Action Tiles (Real Unified Roster Data Only) -->
-        <div class="sr-metric-grid">
-          <div class="sr-metric-tile ${accessRequests.length > 0 ? 'highlight' : ''}">
-            <span>Access Requests</span>
-            <strong style="${accessRequests.length > 0 ? 'color:var(--sr-primary);' : ''}">${accessRequests.length}</strong>
-            <small style="color:var(--sr-text-muted);font-size:11.5px;">Pending</small>
-          </div>
+        <!-- Asymmetric 2-Column Operational Workspace (7 / 5) -->
+        <div class="sr-v2-2col">
+          <!-- Left Column (7fr): Priority Exception, Presence & Approval Queues -->
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            ${window.ShiftRelayAttendanceUI?.renderSupervisorMissingHtml?.(excData) || ''}
 
-          <div class="sr-metric-tile ${handoversAwaitingRelay.length > 0 ? 'highlight' : ''}">
-            <span>Handovers</span>
-            <strong style="${handoversAwaitingRelay.length > 0 ? 'color:var(--sr-primary);' : ''}">${handoversAwaitingRelay.length}</strong>
-            <small style="color:var(--sr-text-muted);font-size:11.5px;">To Relay</small>
-          </div>
+            <!-- Auto Clock-Out Presence Verification -->
+            <section class="sr-card" id="sr-presence-reviews-card" aria-label="Auto Clock-Out Presence Verification" style="margin:0;${presenceReviews.length > 0 ? 'border-top:3px solid #f59e0b;' : ''}">
+              <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                <h3>Presence Verification (${presenceReviews.length})</h3>
+                <span class="sr-badge-certified" style="${presenceReviews.length > 0 ? 'background:rgba(245,158,11,0.12);color:#b45309;border-color:rgba(245,158,11,0.35);' : ''}">
+                  ${presenceReviews.length > 0 ? `${presenceReviews.length} Held From Payroll` : 'All Auto Clock-Outs Verified'}
+                </span>
+              </div>
 
-          <div class="sr-metric-tile highlight">
-            <span>Approved Staff</span>
-            <strong>${totalApprovedStaff}</strong>
-            <small style="color:var(--sr-text-muted);font-size:11.5px;">${activeHeadcount} On Shift Now</small>
-          </div>
-
-          ${user.role === 'owner' ? `
-            <div class="sr-metric-tile">
-              <span>Payroll Batch</span>
-              <strong style="color:#10b981;">${fmtNairaCompact(payrollTotalNet)}</strong>
-              <small style="color:var(--sr-text-muted);font-size:11.5px;">${payrollWorkerCount} Workers Ready</small>
-            </div>
-          ` : `
-            <div class="sr-metric-tile">
-              <span>Active Floor</span>
-              <strong style="color:#0d9488;">${activeHeadcount} / ${totalApprovedStaff}</strong>
-              <small style="color:var(--sr-text-muted);font-size:11.5px;">Auto Clock-Out Active</small>
-            </div>
-          `}
-
-          ${user.role === 'owner' ? `
-            <div class="sr-metric-tile ${pendingLeave.length > 0 ? 'highlight' : ''}">
-              <span>Leave Requests</span>
-              <strong>${pendingLeave.length}</strong>
-              <small style="color:var(--sr-text-muted);font-size:11.5px;">Review</small>
-            </div>
-          ` : ''}
-        </div>
-
-        ${window.ShiftRelayAttendanceUI?.renderSupervisorMissingHtml?.(excData) || ''}
-
-        <!-- 1. Live Shift Roster & Colleague ID Verification Cockpit -->
-        <section class="sr-card" aria-label="Live Roster Presence" style="border-top: 3px solid var(--sr-primary);">
-          <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span class="sr-pulse-dot"></span>
-              <h3 style="margin:0;">Live Roster Presence</h3>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <span class="sr-badge-certified">${activeHeadcount} On Shift &middot; ${totalApprovedStaff} Approved</span>
-              <button type="button" class="sr-btn sr-btn-primary" id="sr-sup-scan-peer-btn" style="padding:4px 10px;min-height:28px;font-size:11.5px;">Scan Worker ID &amp; Face</button>
-              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-view-team-roster" style="padding:4px 10px;min-height:28px;font-size:11.5px;">Full List (${totalApprovedStaff})</button>
-            </div>
-          </div>
-
-          <div class="sr-live-roster-list" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
-            ${liveOnShiftMembers.length > 0 ? liveOnShiftMembers.slice(0, 8).map(m => {
-              const ini = (m.name || 'S').split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
-              const inTime = m.clockedInAt ? new Date(m.clockedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-              const modeText = m.verificationMode === 'colleague_card_scan'
-                ? `Peer ID Scan${m.scannedByName ? ' by ' + m.scannedByName : ''}`
-                : (m.verificationMode === 'gps_snapshot' ? 'GPS Perimeter Verified' : 'Mobile App Clock-In');
-              return `
-                <div class="sr-review-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:10px;border:1px solid var(--sr-border-subtle);flex-wrap:wrap;gap:10px;">
-                  <div style="display:flex;align-items:center;gap:12px;">
-                    <div style="width:34px;height:34px;border-radius:50%;background:rgba(13,148,136,0.15);color:var(--sr-primary);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px;">${escapeHtml(ini)}</div>
-                    <div>
-                      <div style="font-size:13.5px;font-weight:700;color:var(--sr-text-main);display:flex;align-items:center;gap:6px;">
-                        <span>${escapeHtml(m.staffId || '')}</span>
-                        <span>&middot;</span>
-                        <span>${escapeHtml(m.name)}</span>
-                        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;" title="On Shift"></span>
-                      </div>
-                      <small style="color:var(--sr-text-muted);font-size:11.5px;">${escapeHtml(m.title)} &middot; In: ${escapeHtml(inTime)} &middot; Auto-out: ${escapeHtml(m.shift_end || '14:00')}</small>
-                    </div>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span class="sr-attendance-badge gps-valid" style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(16,185,129,0.1);color:#059669;border:1px solid rgba(16,185,129,0.25);">
-                      ${escapeHtml(modeText)}
-                    </span>
-                  </div>
-                </div>
-              `;
-            }).join('') : `
-              <div style="padding:18px 14px;background:var(--sr-bg-card-subtle);border-radius:10px;border:1px dashed var(--sr-border-medium);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+              ${presenceReviews.length > 0 ? `
                 <div>
-                  <div style="font-size:13px;font-weight:700;color:var(--sr-text-main);">0 active floor punches right now</div>
-                  <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">All ${totalApprovedStaff} approved personnel are currently off-shift or scheduled for incoming rotation. Staff can clock in on mobile or via a colleague&rsquo;s ID card scan.</div>
-                </div>
-                <button type="button" class="sr-btn sr-btn-secondary" id="sr-empty-floor-scan-btn" style="font-size:12px;padding:7px 12px;">Scan Colleague ID</button>
-              </div>
-            `}
-          </div>
-        </section>
-
-        ${user.role === 'owner' ? `
-          <!-- 2. 1-Click Batch Payroll Disbursement Cockpit (Executive Only) -->
-          <section class="sr-card" aria-label="Shift Payroll Disbursement" style="border-top: 3px solid #10b981; background: linear-gradient(135deg, var(--sr-bg-card) 0%, rgba(16,185,129,0.03) 100%);">
-            <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-              <div>
-                <h3 style="margin:0;font-size:16px;">Verified Shift Payroll</h3>
-                <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Live roster &amp; verified attendance ready for batch disbursement</p>
-              </div>
-              <span class="sr-badge-certified" id="sr-payroll-batch-badge" style="${Number(payrollObj?.summary?.unverifiedShiftHolds || 0) > 0 ? 'background:rgba(245,158,11,0.12);color:#b45309;border-color:rgba(245,158,11,0.35);' : ''}">${Number(payrollObj?.summary?.unverifiedShiftHolds || 0) > 0 ? `${payrollObj.summary.unverifiedShiftHolds} Presence Hold(s)` : `${payrollWorkerCount} Verified`}</span>
-            </div>
-
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;margin:16px 0;">
-              <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
-                <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Eligible Staff</span>
-                <div style="font-size:20px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">${payrollWorkerCount} Workers</div>
-              </div>
-              <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
-                <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Verified Hours</span>
-                <div style="font-size:20px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">${payrollVerifiedHours} hrs</div>
-              </div>
-              <div style="padding:10px 14px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
-                <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Net Batch Total</span>
-                <div style="font-size:20px;font-weight:800;color:var(--sr-primary);margin-top:2px;">${fmtNairaExact(payrollTotalNet)}</div>
-              </div>
-            </div>
-
-            <div style="display:flex;justify-content:flex-end;">
-              <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-batch-payroll" style="min-height:42px;padding:0 22px;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;background:var(--sr-primary);border-color:var(--sr-primary);">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                <span>Batch Authorize Payroll</span>
-              </button>
-            </div>
-          </section>
-        ` : `
-          <!-- 2. Shift Relay & Handover Briefings (Supervisor Floor Focus) -->
-          <section class="sr-card" aria-label="Shift Handover Briefings" style="border-top: 3px solid #10b981;">
-            <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-              <div>
-                <h3 style="margin:0;font-size:16px;">Shift Relay &amp; Handover Briefings</h3>
-                <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Incoming &amp; outgoing equipment turnover, critical safety sign-offs</p>
-              </div>
-              <span class="sr-badge-certified" style="background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.3);">
-                ${handoversAwaitingRelay.length} Pending Relay
-              </span>
-            </div>
-
-            <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--sr-bg-card-subtle);border-radius:10px;border:1px solid var(--sr-border-subtle);flex-wrap:wrap;gap:8px;">
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <span style="width:34px;height:34px;border-radius:8px;background:rgba(16,185,129,0.15);color:#10b981;display:flex;align-items:center;justify-content:center;font-weight:700;">H1</span>
-                  <div>
-                    <strong style="font-size:13.5px;color:var(--sr-text-main);">Morning Shift to Afternoon Shift Handover</strong>
-                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Main inverter bank at 98% &middot; Peer mobile ID verified &middot; Babatunde Adeleke</div>
-                  </div>
-                </div>
-                <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-view-handovers-shortcut" style="padding:4px 12px;font-size:12px;min-height:30px;color:var(--sr-primary);border-color:var(--sr-primary);">
-                  Review Briefing
-                </button>
-              </div>
-            </div>
-          </section>
-        `}
-        <!-- 3. Enterprise Shift Audit & Client Billing Kit -->
-        <section class="sr-card" aria-label="Enterprise Audit and Export Kit" style="border-top: 3px solid #3b82f6;">
-          <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <div>
-              <h3 style="margin:0;font-size:16px;">Enterprise Audit &amp; Client Billing Kit</h3>
-              <p style="margin:2px 0 0;font-size:12.5px;color:var(--sr-text-muted);">Verified export certificates for facility management and client invoice backing</p>
-            </div>
-            <span class="sr-badge-certified" style="background:rgba(59,130,246,0.1);color:#3b82f6;border-color:rgba(59,130,246,0.3);">Audit-Ready</span>
-          </div>
-
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin:16px 0;">
-            <!-- Export 1: Printable Geofence Certificate -->
-            <button type="button" class="sr-audit-btn" id="sr-btn-export-geofence-cert">
-              <span class="sr-audit-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-              <div class="sr-audit-btn-body">
-                <strong>Shift Attendance &amp; GPS Certificate</strong>
-                <span>Print-ready PDF with verified coordinates &amp; QR verification stamps</span>
-              </div>
-            </button>
-
-            <!-- Export 2: Download Shift Attendance Timesheet Audit CSV -->
-            <button type="button" class="sr-audit-btn" id="sr-btn-export-attendance-csv">
-              <span class="sr-audit-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg></span>
-              <div class="sr-audit-btn-body">
-                <strong>Shift Attendance Audit (CSV)</strong>
-                <span>Export verified floor attendance, shift hours, overtime &amp; stations</span>
-              </div>
-            </button>
-
-            <!-- Export 3: Daily Turnover Log -->
-            <button type="button" class="sr-audit-btn" id="sr-btn-export-turnover-log">
-              <span class="sr-audit-btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2.2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></span>
-              <div class="sr-audit-btn-body">
-                <strong>Shift Handover &amp; Safety Log</strong>
-                <span>Printable executive report of completed tasks &amp; equipment status</span>
-              </div>
-            </button>
-          </div>
-        </section>
-
-        <!-- Actionable Section: Active Shift Broadcasts & Real-Time Sign-Offs -->
-        <section class="sr-card" aria-label="Shift Broadcasts and Acknowledgements">
-          <div class="sr-card-title-row" style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>Broadcasts (${activeAnnouncements.length})</h3>
-            <button class="sr-btn sr-btn-secondary" id="sr-btn-card-broadcast" style="min-height:32px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              New Notice
-            </button>
-          </div>
-
-          ${activeAnnouncements.length > 0 ? `
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              ${activeAnnouncements.map(a => {
-                const acks = Array.isArray(a.acknowledgements) ? a.acknowledgements : [];
-                const sev = a.severity || 'info';
-                const sevBadge = {
-                  critical: '<span class="sr-badge sr-badge-danger" style="background:var(--sr-status-red-bg);color:var(--sr-status-red-text);border:1px solid var(--sr-status-red-border);font-weight:700;">CRITICAL ALERT</span>',
-                  warning: '<span class="sr-badge sr-badge-warning" style="background:var(--sr-status-yellow-bg);color:var(--sr-status-yellow-text);border:1px solid var(--sr-status-yellow-border);font-weight:700;">WARNING</span>',
-                  info: '<span class="sr-badge" style="background:var(--sr-accent-light);color:var(--sr-accent);border:1px solid var(--sr-border-subtle);font-weight:700;">TEAM MEMO</span>'
-                }[sev] || '';
-                return `
-                  <div class="sr-review-item" style="border-left: 4px solid ${sev === 'critical' ? '#dc2626' : sev === 'warning' ? '#d97706' : 'var(--p-teal)'};">
-                    <div class="sr-review-info" style="flex:1;">
-                      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
-                        ${sevBadge}
-                        <strong style="font-size:14px;color:var(--p-text);">${escapeHtml(a.title)}</strong>
-                        <small style="color:var(--p-text-3);">Issued by ${escapeHtml(a.authorName)} · ${a.createdAt ? new Date(a.createdAt).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : ''}</small>
-                      </div>
-                      <p style="margin:4px 0 8px;font-size:13px;color:var(--p-text-2);line-height:1.4;">${escapeHtml(a.message)}</p>
-                      <div style="font-size:12px;color:var(--p-text-3);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        <strong>${acks.length} Staff Acknowledged:</strong>
-                        <span>${acks.length > 0 ? acks.map(ack => escapeHtml(ack.userName)).join(', ') : 'None yet (waiting for clocked-in workers)'}</span>
-                      </div>
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          ` : `
-            <div class="sr-empty-state">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
-              <p>No announcements yet.</p>
-            </div>
-          `}
-        </section>
-
-        <!-- Actionable Section 1: Membership Access Requests -->
-        <section class="sr-card" aria-label="Worker Access Requests Queue">
-          <div class="sr-card-title-row">
-            <h3>Access Requests (${accessRequests.length})</h3>
-          </div>
-
-          ${accessRequests.length > 0 ? `
-            <div>
-              ${accessRequests.map(req => `
-                <div class="sr-review-item">
-                  <div class="sr-review-info">
-                    <strong>${escapeHtml(req.name)}</strong>
-                    <small>${escapeHtml(req.email)} · Role: ${escapeHtml(req.title || 'Frontline Worker')}</small>
-                  </div>
-                  <div class="sr-review-actions">
-                    <button class="sr-btn sr-btn-primary" style="min-height:44px;padding:0 14px;font-size:13px;" data-action="approve-member" data-id="${req.id}">
-                      Approve
-                    </button>
-                    <button class="sr-btn sr-btn-secondary" style="min-height:44px;padding:0 14px;font-size:13px;" data-action="reject-member" data-id="${req.id}">
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          ` : `
-            <div class="sr-empty-state">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <p>No pending requests.</p>
-            </div>
-          `}
-        </section>
-
-        <!-- Actionable Section 2: Handovers Awaiting Review & Relay -->
-        <section class="sr-card" aria-label="Shift Handover Review Queue">
-          <div class="sr-card-title-row">
-            <h3>Handovers (${handoversAwaitingRelay.length})</h3>
-          </div>
-
-          ${handoversAwaitingRelay.length > 0 ? `
-            <div>
-              ${handoversAwaitingRelay.map(item => `
-                <div class="sr-review-item">
-                  <div class="sr-review-info">
-                    <strong>${escapeHtml(item.handover?.summary || 'Shift Turnover')}</strong>
-                    <small>Logged ${new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · Priority: ${escapeHtml(item.handover?.shiftStatus || 'normal').toUpperCase()}</small>
-                  </div>
-                  <div class="sr-review-actions">
-                    <button class="sr-btn sr-btn-primary" style="min-height:44px;padding:0 14px;font-size:13px;" data-action="relay-handover" data-id="${item.id}">
-                      Relay
-                    </button>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          ` : `
-            <div class="sr-empty-state">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              <p>All shift turnovers have been reviewed and relayed to incoming shifts.</p>
-            </div>
-          `}
-        </section>
-
-        <!-- Actionable Section 3: Auto Clock-Out Presence Verification -->
-        <section class="sr-card" id="sr-presence-reviews-card" aria-label="Auto Clock-Out Presence Verification" style="${presenceReviews.length > 0 ? 'border-top: 3px solid #f59e0b;' : ''}">
-          <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-            <h3>Auto Clock-Out Presence Verification (${presenceReviews.length})</h3>
-            <span class="sr-badge-certified" style="${presenceReviews.length > 0 ? 'background:rgba(245,158,11,0.12);color:#b45309;border-color:rgba(245,158,11,0.35);' : ''}">
-              ${presenceReviews.length > 0 ? `${presenceReviews.length} Held From Payroll` : 'All Auto Clock-Outs Verified'}
-            </span>
-          </div>
-
-          ${presenceReviews.length > 0 ? `
-            <div>
-              ${presenceReviews.map(rev => {
-                const inStr = rev.clockedInAt ? new Date(rev.clockedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                const outStr = rev.clockedOutAt ? new Date(rev.clockedOutAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
-                const proofBadge = rev.cardProofMode === 'physical_badge_facial_verify'
-                  ? 'Badge + Live Face Verified'
-                  : (rev.cardProofMode === 'static_badge_fallback' ? 'Printed Badge Verify' : '');
-                const matchStatusLabel = rev.faceMatchStatus === 'verified_match'
-                  ? `Vision Match ${rev.faceMatchConfidence || ''}%`
-                  : (rev.faceMatchStatus === 'no_reference_passport' ? 'No Passport Enrolled' : (rev.faceMatchStatus ? 'Compare Passport vs Live' : ''));
-                const safeThumbUrl = (typeof rev.scanPhotoDataUrl === 'string' && /^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/i.test(rev.scanPhotoDataUrl))
-                  ? rev.scanPhotoDataUrl
-                  : '';
-                const safeRefUrl = (typeof rev.referencePhotoUrl === 'string' && /^(data:image\/(jpeg|webp|png);base64,|https?:\/\/|\/)/i.test(rev.referencePhotoUrl))
-                  ? rev.referencePhotoUrl
-                  : '';
-                return `
-                  <div class="sr-review-item" data-presence-entry-id="${escapeHtml(rev.id)}">
-                    <div class="sr-review-info" style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
-                      ${(safeRefUrl || safeThumbUrl) ? `
-                        <div style="display:flex;gap:4px;flex-shrink:0;">
-                          ${safeRefUrl ? `<img src="${escapeHtml(safeRefUrl)}" title="Official HR Passport" alt="HR Passport" style="width:38px;height:38px;object-fit:cover;border-radius:6px;border:1.5px solid #0d9488;" />` : ''}
-                          ${safeThumbUrl ? `<img src="${safeThumbUrl}" title="Live Check-In Selfie" alt="Live scan snapshot" style="width:44px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--sr-border-medium);" />` : ''}
+                  ${presenceReviews.map(rev => {
+                    const inStr = rev.clockedInAt ? new Date(rev.clockedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                    const outStr = rev.clockedOutAt ? new Date(rev.clockedOutAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                    const proofBadge = rev.cardProofMode === 'physical_badge_facial_verify'
+                      ? 'Badge + Live Face Verified'
+                      : (rev.cardProofMode === 'static_badge_fallback' ? 'Printed Badge Verify' : '');
+                    const matchStatusLabel = rev.faceMatchStatus === 'verified_match'
+                      ? `Vision Match ${rev.faceMatchConfidence || ''}%`
+                      : (rev.faceMatchStatus === 'no_reference_passport' ? 'No Passport Enrolled' : (rev.faceMatchStatus ? 'Compare Passport vs Live' : ''));
+                    const safeThumbUrl = (typeof rev.scanPhotoDataUrl === 'string' && /^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/i.test(rev.scanPhotoDataUrl))
+                      ? rev.scanPhotoDataUrl
+                      : '';
+                    const safeRefUrl = (typeof rev.referencePhotoUrl === 'string' && /^(data:image\/(jpeg|webp|png);base64,|https?:\/\/|\/)/i.test(rev.referencePhotoUrl))
+                      ? rev.referencePhotoUrl
+                      : '';
+                    return `
+                      <div class="sr-review-item" data-presence-entry-id="${escapeHtml(rev.id)}">
+                        <div class="sr-review-info" style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
+                          ${(safeRefUrl || safeThumbUrl) ? `
+                            <div style="display:flex;gap:4px;flex-shrink:0;">
+                              ${safeRefUrl ? `<img src="${escapeHtml(safeRefUrl)}" title="Official HR Passport" alt="HR Passport" style="width:38px;height:38px;object-fit:cover;border-radius:6px;border:1.5px solid #0d9488;" />` : ''}
+                              ${safeThumbUrl ? `<img src="${safeThumbUrl}" title="Live Check-In Selfie" alt="Live scan snapshot" style="width:44px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--sr-border-medium);" />` : ''}
+                            </div>
+                          ` : ''}
+                          <div style="min-width:0;flex:1;">
+                            <strong>${escapeHtml(rev.workerName)} (${escapeHtml(rev.staffId || rev.membershipId)})${proofBadge ? ` <span style="font-size:10px;padding:2px 6px;border-radius:99px;background:rgba(13,148,136,0.12);color:#0f766e;font-weight:700;vertical-align:middle;">${escapeHtml(proofBadge)}</span>` : ''}${matchStatusLabel ? ` <span style="font-size:10px;padding:2px 6px;border-radius:99px;background:rgba(59,130,246,0.12);color:#1d4ed8;font-weight:700;vertical-align:middle;">${escapeHtml(matchStatusLabel)}</span>` : ''}</strong>
+                            <small style="display:block;white-space:normal;line-height:1.35;">${escapeHtml(rev.role || 'Staff')} &middot; ${escapeHtml(inStr)} &rarr; ${escapeHtml(outStr)} (${Number(rev.workedHours || 0)}h) &middot; ${escapeHtml(rev.details || 'No exit scan / exit GPS verified')}</small>
+                          </div>
                         </div>
-                      ` : ''}
-                      <div style="min-width:0;flex:1;">
-                        <strong>${escapeHtml(rev.workerName)} (${escapeHtml(rev.staffId || rev.membershipId)})${proofBadge ? ` <span style="font-size:10px;padding:2px 6px;border-radius:99px;background:rgba(13,148,136,0.12);color:#0f766e;font-weight:700;vertical-align:middle;">${escapeHtml(proofBadge)}</span>` : ''}${matchStatusLabel ? ` <span style="font-size:10px;padding:2px 6px;border-radius:99px;background:rgba(59,130,246,0.12);color:#1d4ed8;font-weight:700;vertical-align:middle;">${escapeHtml(matchStatusLabel)}</span>` : ''}</strong>
-                        <small style="display:block;white-space:normal;line-height:1.35;">${escapeHtml(rev.role || 'Staff')} &middot; ${escapeHtml(inStr)} &rarr; ${escapeHtml(outStr)} (${Number(rev.workedHours || 0)}h) &middot; ${escapeHtml(rev.details || 'No exit scan / exit GPS verified')}</small>
+                        <div class="sr-review-actions">
+                          <button type="button" class="sr-btn sr-btn-primary" style="min-height:38px;padding:0 12px;font-size:12px;" data-action="confirm-presence" data-id="${escapeHtml(rev.id)}">
+                            Confirm Full Shift
+                          </button>
+                          <button type="button" class="sr-btn sr-btn-secondary" style="min-height:38px;padding:0 12px;font-size:12px;border-color:rgba(239,68,68,0.4);color:#b91c1c;" data-action="flag-early-presence" data-id="${escapeHtml(rev.id)}">
+                            Flag Left Early
+                          </button>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              ` : `
+                <div class="sr-empty-state" style="padding:18px 12px;">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  <p>No unverified auto clock-outs awaiting confirmation.</p>
+                </div>
+              `}
+            </section>
+
+            <!-- Handovers & Access Queues -->
+            <section class="sr-card" aria-label="Shift Handover Review Queue" style="margin:0;">
+              <div class="sr-card-title-row">
+                <h3>Handovers Awaiting Relay (${handoversAwaitingRelay.length})</h3>
+                <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-view-handovers-shortcut" style="padding:4px 10px;font-size:11.5px;min-height:28px;">Open All</button>
+              </div>
+              ${handoversAwaitingRelay.length > 0 ? `
+                <div>
+                  ${handoversAwaitingRelay.map(item => `
+                    <div class="sr-review-item">
+                      <div class="sr-review-info">
+                        <strong>${escapeHtml(item.handover?.summary || 'Shift Turnover')}</strong>
+                        <small>Logged ${new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} &middot; Priority: ${escapeHtml(item.handover?.shiftStatus || 'normal').toUpperCase()}</small>
+                      </div>
+                      <div class="sr-review-actions">
+                        <button class="sr-btn sr-btn-primary" style="min-height:36px;padding:0 14px;font-size:12.5px;" data-action="relay-handover" data-id="${item.id}">
+                          Relay
+                        </button>
                       </div>
                     </div>
-                    <div class="sr-review-actions">
-                      <button type="button" class="sr-btn sr-btn-primary" style="min-height:40px;padding:0 14px;font-size:12.5px;" data-action="confirm-presence" data-id="${escapeHtml(rev.id)}">
-                        Confirm Full Shift
-                      </button>
-                      <button type="button" class="sr-btn sr-btn-secondary" style="min-height:40px;padding:0 14px;font-size:12.5px;border-color:rgba(239,68,68,0.4);color:#b91c1c;" data-action="flag-early-presence" data-id="${escapeHtml(rev.id)}">
-                        Flag Left Early
-                      </button>
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          ` : `
-            <div class="sr-empty-state">
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-              <p>No unverified auto clock-outs awaiting confirmation.</p>
-            </div>
-          `}
-        </section>
+                  `).join('')}
+                </div>
+              ` : `
+                <div class="sr-empty-state" style="padding:16px 12px;">
+                  <p>All shift turnovers have been reviewed and relayed.</p>
+                </div>
+              `}
+            </section>
 
-        <!-- Actionable Section 4: Owner-Only Leave Approvals -->
-        ${user.role === 'owner' ? `
-          <section class="sr-card" aria-label="Leave Requests Review">
-            <div class="sr-card-title-row">
-              <h3>Leave Requests (${pendingLeave.length})</h3>
-            </div>
-            ${pendingLeave.length > 0 ? `
+            ${accessRequests.length > 0 ? `
+            <section class="sr-card" aria-label="Worker Access Requests Queue" style="margin:0;border-left:4px solid var(--p-amber);">
+              <div class="sr-card-title-row">
+                <h3>Access Requests (${accessRequests.length})</h3>
+              </div>
               <div>
-                ${pendingLeave.map(lr => `
+                ${accessRequests.map(req => `
                   <div class="sr-review-item">
                     <div class="sr-review-info">
-                      <strong>Leave from ${escapeHtml(lr.starts_on)} to ${escapeHtml(lr.ends_on)}</strong>
-                      <small>Reason: ${escapeHtml(lr.reason || 'Personal / Annual leave')}</small>
+                      <strong>${escapeHtml(req.name)}</strong>
+                      <small>${escapeHtml(req.email)} &middot; Role: ${escapeHtml(req.title || 'Frontline Worker')}</small>
                     </div>
                     <div class="sr-review-actions">
-                      <button class="sr-btn sr-btn-primary" style="min-height:44px;padding:0 14px;font-size:13px;" data-action="review-leave" data-id="${lr.id}" data-decision="approved">Approve</button>
-                      <button class="sr-btn sr-btn-secondary" style="min-height:44px;padding:0 14px;font-size:13px;" data-action="review-leave" data-id="${lr.id}" data-decision="rejected">Reject</button>
+                      <button class="sr-btn sr-btn-primary" style="min-height:36px;padding:0 12px;font-size:12.5px;" data-action="approve-member" data-id="${req.id}">Approve</button>
+                      <button class="sr-btn sr-btn-secondary" style="min-height:36px;padding:0 12px;font-size:12.5px;" data-action="reject-member" data-id="${req.id}">Reject</button>
                     </div>
                   </div>
                 `).join('')}
               </div>
-            ` : `
-              <div class="sr-empty-state">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                <p>No pending leave requests requiring owner review.</p>
+            </section>` : ''}
+
+            ${user.role === 'owner' ? `
+              <section class="sr-card" aria-label="Shift Payroll Disbursement" style="margin:0;border-top:3px solid #10b981;">
+                <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                  <div>
+                    <h3 style="margin:0;font-size:15px;">Verified Shift Payroll</h3>
+                    <p style="margin:2px 0 0;font-size:12px;color:var(--sr-text-muted);">Live roster &amp; verified attendance ready for disbursement</p>
+                  </div>
+                  <span class="sr-badge-certified" id="sr-payroll-batch-badge" style="${Number(payrollObj?.summary?.unverifiedShiftHolds || 0) > 0 ? 'background:rgba(245,158,11,0.12);color:#b45309;border-color:rgba(245,158,11,0.35);' : ''}">${Number(payrollObj?.summary?.unverifiedShiftHolds || 0) > 0 ? `${payrollObj.summary.unverifiedShiftHolds} Presence Hold(s)` : `${payrollWorkerCount} Verified`}</span>
+                </div>
+                <div class="sr-v2-kpi-3" style="margin:12px 0;">
+                  <div style="padding:10px 12px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
+                    <span style="font-size:10.5px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Staff</span>
+                    <div class="sr-v2-num" style="font-size:16px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">${payrollWorkerCount}</div>
+                  </div>
+                  <div style="padding:10px 12px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
+                    <span style="font-size:10.5px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Hours</span>
+                    <div class="sr-v2-num" style="font-size:16px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">${payrollVerifiedHours}h</div>
+                  </div>
+                  <div style="padding:10px 12px;background:var(--sr-bg-card-subtle);border-radius:8px;border:1px solid var(--sr-border-subtle);">
+                    <span style="font-size:10.5px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;">Net Batch</span>
+                    <div class="sr-v2-num" style="font-size:15px;font-weight:800;color:var(--sr-primary);margin-top:2px;">${fmtNairaExact(payrollTotalNet)}</div>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;">
+                  <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-batch-payroll" style="min-height:38px;padding:0 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;background:var(--sr-primary);border-color:var(--sr-primary);">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    <span>Batch Authorize Payroll</span>
+                  </button>
+                </div>
+              </section>
+              ${pendingLeave.length > 0 ? `
+                <section class="sr-card" aria-label="Leave Requests Review" style="margin:0;">
+                  <div class="sr-card-title-row"><h3>Leave Requests (${pendingLeave.length})</h3></div>
+                  <div>
+                    ${pendingLeave.map(lr => `
+                      <div class="sr-review-item">
+                        <div class="sr-review-info">
+                          <strong>Leave: ${escapeHtml(lr.starts_on)} to ${escapeHtml(lr.ends_on)}</strong>
+                          <small>Reason: ${escapeHtml(lr.reason || 'Personal / Annual leave')}</small>
+                        </div>
+                        <div class="sr-review-actions">
+                          <button class="sr-btn sr-btn-primary" style="min-height:34px;padding:0 12px;font-size:12px;" data-action="review-leave" data-id="${lr.id}" data-decision="approved">Approve</button>
+                          <button class="sr-btn sr-btn-secondary" style="min-height:34px;padding:0 12px;font-size:12px;" data-action="review-leave" data-id="${lr.id}" data-decision="rejected">Reject</button>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </section>
+              ` : ''}
+            ` : ''}
+          </div>
+
+          <!-- Right Column (5fr): Live Roster Presence, Broadcasts & Compact Export Kit -->
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <section class="sr-card" aria-label="Live Roster Presence" style="margin:0;border-top:3px solid var(--sr-primary);">
+              <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span class="sr-pulse-dot"></span>
+                  <h3 style="margin:0;">Live Roster</h3>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <button type="button" class="sr-btn sr-btn-primary" data-sr-scan-peer="1" style="padding:4px 10px;min-height:28px;font-size:11.5px;">Scan ID &amp; Face</button>
+                  <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-view-team-roster" style="padding:4px 10px;min-height:28px;font-size:11.5px;">All (${totalApprovedStaff})</button>
+                </div>
               </div>
-            `}
-          </section>
-        ` : ''}
+
+              <div class="sr-live-roster-list" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+                ${liveOnShiftMembers.length > 0 ? liveOnShiftMembers.slice(0, 8).map(m => {
+                  const ini = (m.name || 'S').split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+                  const inTime = m.clockedInAt ? new Date(m.clockedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                  const modeText = m.verificationMode === 'colleague_card_scan'
+                    ? `Peer Scan${m.scannedByName ? ' by ' + m.scannedByName : ''}`
+                    : (m.verificationMode === 'gps_snapshot' ? 'GPS Verified' : 'Mobile Punch');
+                  return `
+                    <div class="sr-review-item" style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--sr-bg-card-subtle);border-radius:10px;border:1px solid var(--sr-border-subtle);gap:8px;">
+                      <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                        <div style="width:32px;height:32px;border-radius:50%;background:rgba(13,148,136,0.15);color:var(--sr-primary);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:11.5px;flex-shrink:0;">${escapeHtml(ini)}</div>
+                        <div style="min-width:0;">
+                          <div style="font-size:13px;font-weight:700;color:var(--sr-text-main);display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            <span>${escapeHtml(m.name)}</span>
+                            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#10b981;flex-shrink:0;"></span>
+                          </div>
+                          <small class="sr-v2-num" style="color:var(--sr-text-muted);font-size:11px;">${escapeHtml(m.staffId || '')} &middot; In ${escapeHtml(inTime)}</small>
+                        </div>
+                      </div>
+                      <span style="padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:600;background:rgba(16,185,129,0.1);color:#059669;white-space:nowrap;">${escapeHtml(modeText)}</span>
+                    </div>
+                  `;
+                }).join('') : `
+                  <div style="padding:14px;background:var(--sr-bg-card-subtle);border-radius:10px;border:1px dashed var(--sr-border-medium);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                    <div>
+                      <div style="font-size:13px;font-weight:700;color:var(--sr-text-main);">0 active punches right now</div>
+                      <div style="font-size:11.5px;color:var(--sr-text-muted);margin-top:2px;">${totalApprovedStaff} rostered personnel scheduled</div>
+                    </div>
+                    <button type="button" class="sr-btn sr-btn-secondary" id="sr-empty-floor-scan-btn" style="font-size:11.5px;padding:6px 10px;">Scan ID</button>
+                  </div>
+                `}
+              </div>
+            </section>
+
+            <!-- Active Shift Broadcasts -->
+            <section class="sr-card" aria-label="Shift Broadcasts and Acknowledgements" style="margin:0;">
+              <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;">
+                <h3>Broadcasts (${activeAnnouncements.length})</h3>
+                <button class="sr-btn sr-btn-secondary" id="sr-btn-card-broadcast" style="min-height:28px;padding:0 10px;font-size:11.5px;display:flex;align-items:center;gap:4px;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>New</span>
+                </button>
+              </div>
+
+              ${activeAnnouncements.length > 0 ? `
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  ${activeAnnouncements.map(a => {
+                    const acks = Array.isArray(a.acknowledgements) ? a.acknowledgements : [];
+                    const sev = a.severity || 'info';
+                    const sevBadge = {
+                      critical: '<span class="sr-badge sr-badge-danger" style="background:var(--sr-status-red-bg);color:var(--sr-status-red-text);border:1px solid var(--sr-status-red-border);font-weight:700;">CRITICAL</span>',
+                      warning: '<span class="sr-badge sr-badge-warning" style="background:var(--sr-status-yellow-bg);color:var(--sr-status-yellow-text);border:1px solid var(--sr-status-yellow-border);font-weight:700;">WARNING</span>',
+                      info: '<span class="sr-badge" style="background:var(--sr-accent-light);color:var(--sr-accent);border:1px solid var(--sr-border-subtle);font-weight:700;">MEMO</span>'
+                    }[sev] || '';
+                    return `
+                      <div class="sr-review-item" style="border-left:4px solid ${sev === 'critical' ? '#dc2626' : sev === 'warning' ? '#d97706' : 'var(--p-teal)'};">
+                        <div class="sr-review-info" style="flex:1;">
+                          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap;">
+                            ${sevBadge}
+                            <strong style="font-size:13px;color:var(--p-text);">${escapeHtml(a.title)}</strong>
+                          </div>
+                          <p style="margin:2px 0 6px;font-size:12.5px;color:var(--p-text-2);line-height:1.4;">${escapeHtml(a.message)}</p>
+                          <div style="font-size:11.5px;color:var(--p-text-3);">
+                            ${acks.length} acknowledged
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              ` : `
+                <div class="sr-empty-state" style="padding:16px 12px;">
+                  <p>No active announcements.</p>
+                </div>
+              `}
+            </section>
+
+            <!-- Compact Shift Audit Exports -->
+            <section class="sr-card" aria-label="Enterprise Audit and Export Kit" style="margin:0;">
+              <div class="sr-card-title-row" style="margin-bottom:10px;">
+                <h3 style="margin:0;font-size:14.5px;">Shift Exports &amp; Audit Kit</h3>
+                <span class="sr-badge-certified" style="background:rgba(59,130,246,0.1);color:#3b82f6;border-color:rgba(59,130,246,0.3);font-size:10.5px;">Audit-Ready</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button type="button" class="sr-audit-btn" id="sr-btn-export-geofence-cert" style="margin:0;">
+                  <span class="sr-audit-btn-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+                  <div class="sr-audit-btn-body">
+                    <strong>Attendance &amp; GPS Certificate</strong>
+                    <span>Print-ready PDF with coordinates</span>
+                  </div>
+                </button>
+                <button type="button" class="sr-audit-btn" id="sr-btn-export-attendance-csv" style="margin:0;">
+                  <span class="sr-audit-btn-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg></span>
+                  <div class="sr-audit-btn-body">
+                    <strong>Attendance Audit (CSV)</strong>
+                    <span>Hours, overtime &amp; stations</span>
+                  </div>
+                </button>
+                <button type="button" class="sr-audit-btn" id="sr-btn-export-turnover-log" style="margin:0;">
+                  <span class="sr-audit-btn-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2.2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></span>
+                  <div class="sr-audit-btn-body">
+                    <strong>Handover &amp; Safety Log</strong>
+                    <span>Signed shift turnover report</span>
+                  </div>
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
       `;
 
       container.innerHTML = html;
@@ -4485,6 +4454,14 @@
       const openOverviewPeerScanner = () => openPeerIdScannerModal(user.company_id || user.organisation_id, user.hub_name || '', () => renderManagerOverview());
       document.getElementById('sr-sup-scan-peer-btn')?.addEventListener('click', openOverviewPeerScanner);
       document.getElementById('sr-empty-floor-scan-btn')?.addEventListener('click', openOverviewPeerScanner);
+      document.querySelectorAll('[data-sr-scan-peer]').forEach(btn => btn.addEventListener('click', openOverviewPeerScanner));
+      document.querySelectorAll('[data-sr-kpi-jump]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const dest = btn.dataset.srKpiJump;
+          if (dest === 'approvals') approvalsTab = 'exceptions';
+          if (dest) navigate(dest);
+        });
+      });
       document.getElementById('sr-exec-overview-add-staff-btn')?.addEventListener('click', () => {
         window.ShiftRelayOpenAddStaffModal?.({ user, onSuccess: () => renderManagerOverview() });
       });
@@ -5584,107 +5561,110 @@
     const thirdCondLabel = activeWorkerHoProfile.key === 'tech' ? 'Access / Blocker Note' : 'Resource / Supply Flag';
 
     container.innerHTML = `
-      <div class="sr-context-banner" style="margin-bottom:14px;cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
-        <div class="sr-context-banner-text">
-          <span class="sr-context-banner-company" style="font-weight:700;display:flex;align-items:center;gap:6px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
-            ${escapeHtml(user.organisation_name || 'Riffmax Technology Limited')}
-          </span>
-          <span class="sr-context-banner-site">${escapeHtml(user.department || activeWorkerHoProfile.departments?.[0] || 'Operations')} &bull; <strong style="color:#0d9488;">${escapeHtml(user.title || user.role)}</strong></span>
+      <div class="sr-v2-page-head">
+        <div class="sr-v2-page-title-wrap">
+          <h2 class="sr-v2-page-title">
+            <span>Handover</span>
+            ${pendingBaton ? '<span class="sr-v2-tab-badge">1 Incoming</span>' : ''}
+          </h2>
+          <p class="sr-v2-page-sub">${escapeHtml(user.department || activeWorkerHoProfile.departments?.[0] || 'Operations')} &middot; Shift Relay &amp; Outgoing Log</p>
         </div>
-        <span class="sr-context-banner-badge">SHIFT BATON</span>
+        <div class="sr-v2-page-actions">
+          <span class="sr-v2-pill-meta">${historyItems.length} Logged Relays</span>
+        </div>
       </div>
 
-      <!-- Section A: Incoming Shift Baton Card (1-Tap Acknowledge) -->
-      ${pendingBaton ? `
-      <div class="sr-card" style="margin-bottom:16px;border-left:4px solid #0284c7;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="width:32px;height:32px;border-radius:9px;background:rgba(2,132,199,0.12);color:#0284c7;display:inline-flex;align-items:center;justify-content:center;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-            </span>
-            <div>
-              <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Incoming Shift Briefing</h3>
-              <div style="font-size:11.5px;color:var(--sr-text-muted);">From <strong>${escapeHtml(pendingBaton.author)}</strong> &bull; ${escapeHtml(pendingBaton.timestamp)}</div>
-            </div>
-          </div>
-          <span class="sr-status-pill pending" id="sr-baton-status-pill">Awaiting Your Takeover</span>
-        </div>
-
-        <div style="padding:12px 14px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);font-size:13.5px;line-height:1.55;color:var(--sr-text-main);margin-bottom:12px;">
-          ${escapeHtml(pendingBaton.summary)}
-        </div>
-
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
-          ${(pendingBaton.checklist || []).map(chk => `
-            <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.1);color:#059669;font-size:11.5px;font-weight:700;">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="8"/></svg>
-              ${escapeHtml(chk)}
-            </span>
-          `).join('')}
-        </div>
-
-        <button type="button" id="sr-btn-ack-baton" class="sr-btn sr-btn-primary" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
-          <span>Take Over Shift</span>
-        </button>
-      </div>
-      ` : `
-      <div class="sr-card" style="margin-bottom:16px;border-left:4px solid #10b981;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="width:34px;height:34px;border-radius:9px;background:rgba(16,185,129,0.12);color:#059669;display:inline-flex;align-items:center;justify-content:center;">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="20 6 9 17 4 12"/></svg>
-          </span>
-          <div>
-            <h3 style="margin:0;font-size:14.5px;font-weight:800;color:var(--sr-text-main);">All Caught Up &mdash; Zero Pending Briefings</h3>
-            <div style="font-size:12px;color:var(--sr-text-muted);">Acknowledged handovers move automatically into your Shift Relay History below.</div>
-          </div>
-        </div>
-        <span class="sr-status-pill active">Verified</span>
-      </div>
-      `}
-
-      <!-- Section B: Quick 30-Second Outgoing Handover Builder -->
-      <div class="sr-card" style="margin-bottom:16px;">
-        <h3 style="margin:0 0 4px;font-size:15px;font-weight:800;color:var(--sr-text-main);">Log Outgoing Shift Handover</h3>
-        <p style="margin:0 0 12px;font-size:12px;color:var(--sr-text-muted);">Select operational status and leave a structured note for the incoming team.</p>
-
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;" id="sr-ho-condition-group">
-          <button type="button" class="sr-ho-cond-btn active" data-cond="All Systems Normal" style="padding:10px 8px;border-radius:10px;border:1.5px solid #10b981;background:rgba(16,185,129,0.12);color:var(--sr-text-main);font-size:11.5px;font-weight:800;cursor:pointer;">
-            All Normal
-          </button>
-          <button type="button" class="sr-ho-cond-btn" data-cond="${escapeHtml(secondCondLabel)}" style="padding:10px 8px;border-radius:10px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);color:var(--sr-text-main);font-size:11.5px;font-weight:800;cursor:pointer;">
-            ${escapeHtml(secondCondLabel)}
-          </button>
-          <button type="button" class="sr-ho-cond-btn" data-cond="${escapeHtml(thirdCondLabel)}" style="padding:10px 8px;border-radius:10px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);color:var(--sr-text-main);font-size:11.5px;font-weight:800;cursor:pointer;">
-            ${escapeHtml(thirdCondLabel)}
-          </button>
-        </div>
-
-        <textarea id="sr-quick-ho-note" rows="3" placeholder="${escapeHtml(activeWorkerHoProfile.defaultHandoverNotes || 'Write key handover note for the next shift...')}" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--sr-border-subtle);border-radius:10px;background:var(--sr-bg-card);color:var(--sr-text-main);font-size:13px;font-family:inherit;margin-bottom:12px;"></textarea>
-
-        <button type="button" id="sr-btn-submit-quick-ho" class="sr-btn sr-btn-primary" style="width:100%;">
-          Submit Handover to Next Shift
-        </button>
-      </div>
-
-      <!-- Section C: Recent Shift Relay History -->
-      <div class="sr-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <h3 style="margin:0;font-size:14.5px;font-weight:800;color:var(--sr-text-main);">Shift Relay History (${historyItems.length})</h3>
-          <span style="font-size:11.5px;color:var(--sr-text-muted);font-weight:600;">Tamper-Evident Log</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          ${historyItems.length > 0 ? historyItems.map(item => `
-            <div style="padding:12px 14px;border-radius:10px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);">
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
-                <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(item.author)} &bull; <span style="font-weight:600;color:var(--sr-text-muted);">${escapeHtml(item.station)}</span></span>
-                <span class="sr-status-pill ${item.status === 'acknowledged' ? 'active' : 'pending'}" style="font-size:10.5px;">${escapeHtml(item.status === 'acknowledged' ? 'Acknowledged' : (item.condition || 'Logged'))}</span>
+      <div class="sr-v2-2col">
+        <!-- Left Column: Incoming Briefing & Outgoing Composer -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          ${pendingBaton ? `
+          <div class="sr-card" style="margin:0;border-left:4px solid #0284c7;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="width:32px;height:32px;border-radius:9px;background:rgba(2,132,199,0.12);color:#0284c7;display:inline-flex;align-items:center;justify-content:center;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                </span>
+                <div>
+                  <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Incoming Shift Briefing</h3>
+                  <div style="font-size:11.5px;color:var(--sr-text-muted);">From <strong>${escapeHtml(pendingBaton.author)}</strong> &bull; ${escapeHtml(pendingBaton.timestamp)}</div>
+                </div>
               </div>
-              <div style="font-size:12.5px;color:var(--sr-text-main);line-height:1.45;">${escapeHtml(item.summary)}</div>
-              <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">${escapeHtml(item.timestamp)}</div>
+              <span class="sr-status-pill pending" id="sr-baton-status-pill">Awaiting Takeover</span>
             </div>
-          `).join('') : `<p style="margin:0;font-size:12.5px;color:var(--sr-text-muted);">No historical handovers archived yet.</p>`}
+
+            <div style="padding:12px 14px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);font-size:13.5px;line-height:1.55;color:var(--sr-text-main);margin-bottom:12px;">
+              ${escapeHtml(pendingBaton.summary)}
+            </div>
+
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+              ${(pendingBaton.checklist || []).map(chk => `
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.1);color:#059669;font-size:11.5px;font-weight:700;">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="8"/></svg>
+                  ${escapeHtml(chk)}
+                </span>
+              `).join('')}
+            </div>
+
+            <button type="button" id="sr-btn-ack-baton" class="sr-btn sr-btn-primary" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+              <span>Accept &amp; Take Over</span>
+            </button>
+          </div>
+          ` : `
+          <div class="sr-card" style="margin:0;padding:12px 16px;border-left:4px solid #10b981;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="width:30px;height:30px;border-radius:8px;background:rgba(16,185,129,0.12);color:#059669;display:inline-flex;align-items:center;justify-content:center;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <span style="font-size:13.5px;font-weight:700;color:var(--sr-text-main);">No pending incoming handovers</span>
+            </div>
+            <span class="sr-status-pill active">Up to Date</span>
+          </div>
+          `}
+
+          <!-- Outgoing Handover Composer -->
+          <div class="sr-card" style="margin:0;">
+            <h3 style="margin:0 0 4px;font-size:15px;font-weight:800;color:var(--sr-text-main);">Log Outgoing Handover</h3>
+            <p style="margin:0 0 12px;font-size:12px;color:var(--sr-text-muted);">Select status and record notes for the oncoming team.</p>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;" id="sr-ho-condition-group">
+              <button type="button" class="sr-ho-cond-btn active" data-cond="All Systems Normal" style="padding:9px 8px;border-radius:10px;border:1.5px solid #10b981;background:rgba(16,185,129,0.12);color:var(--sr-text-main);font-size:11.5px;font-weight:800;cursor:pointer;">
+                Normal
+              </button>
+              <button type="button" class="sr-ho-cond-btn" data-cond="${escapeHtml(secondCondLabel)}" style="padding:9px 8px;border-radius:10px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);color:var(--sr-text-main);font-size:11.5px;font-weight:800;cursor:pointer;">
+                ${escapeHtml(secondCondLabel)}
+              </button>
+              <button type="button" class="sr-ho-cond-btn" data-cond="${escapeHtml(thirdCondLabel)}" style="padding:9px 8px;border-radius:10px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);color:var(--sr-text-main);font-size:11.5px;font-weight:800;cursor:pointer;">
+                ${escapeHtml(thirdCondLabel)}
+              </button>
+            </div>
+
+            <textarea id="sr-quick-ho-note" rows="4" placeholder="${escapeHtml(activeWorkerHoProfile.defaultHandoverNotes || 'Write key handover note for the next shift...')}" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--sr-border-subtle);border-radius:10px;background:var(--sr-bg-card);color:var(--sr-text-main);font-size:13px;font-family:inherit;margin-bottom:12px;"></textarea>
+
+            <button type="button" id="sr-btn-submit-quick-ho" class="sr-btn sr-btn-primary" style="width:100%;">
+              Submit Handover
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Column: Shift Relay Log -->
+        <div class="sr-card" style="margin:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h3 style="margin:0;font-size:14.5px;font-weight:800;color:var(--sr-text-main);">Shift Relay Log (${historyItems.length})</h3>
+            <span style="font-size:11.5px;color:var(--sr-text-muted);font-weight:600;">Signed Off</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            ${historyItems.length > 0 ? historyItems.map(item => `
+              <div style="padding:12px 14px;border-radius:10px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+                  <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(item.author)} &bull; <span style="font-weight:600;color:var(--sr-text-muted);">${escapeHtml(item.station)}</span></span>
+                  <span class="sr-status-pill ${item.status === 'acknowledged' ? 'active' : 'pending'}" style="font-size:10.5px;">${escapeHtml(item.status === 'acknowledged' ? 'Acknowledged' : (item.condition || 'Logged'))}</span>
+                </div>
+                <div style="font-size:12.5px;color:var(--sr-text-main);line-height:1.45;">${escapeHtml(item.summary)}</div>
+                <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">${escapeHtml(item.timestamp)}</div>
+              </div>
+            `).join('') : `<p style="margin:0;font-size:12.5px;color:var(--sr-text-muted);">No historical handovers archived yet.</p>`}
+          </div>
         </div>
       </div>
     `;
@@ -6131,35 +6111,34 @@
       const completedItems = handovers.filter(h => h.status !== 'awaiting_review');
 
       const html = `
-        <div class="sr-context-banner" style="cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
-          <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company" style="font-weight:700;display:flex;align-items:center;gap:6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
-              ${escapeHtml(user.organisation_name || 'Riffmax Technology')}
-            </span>
-            <span class="sr-context-banner-site">${escapeHtml(user.department || 'Operations Leadership')} &bull; <strong style="color:#0d9488;">${escapeHtml(user.title || user.role)}</strong></span>
+        <div class="sr-v2-page-head">
+          <div class="sr-v2-page-title-wrap">
+            <h2 class="sr-v2-page-title">
+              <span>Handovers</span>
+              ${pendingItems.length > 0 ? `<span class="sr-v2-tab-badge">${pendingItems.length} Pending</span>` : ''}
+            </h2>
+            <p class="sr-v2-page-sub">${escapeHtml(user.department || 'Floor Operations')} &middot; Shift Turnover Audit &amp; Relay Queue</p>
           </div>
-          <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
+          <div class="sr-v2-page-actions">
+            <button id="sr-btn-print-turnover-mgr" class="sr-btn sr-btn-secondary" title="Print Shift Turnover Log" style="min-height:34px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              <span>Print Log</span>
+            </button>
+            <button id="sr-btn-export-all-mgr" class="sr-btn sr-btn-secondary" title="Export all handovers to CSV" style="min-height:34px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Export CSV</span>
+            </button>
+          </div>
         </div>
 
         <div class="sr-tabs-header" style="position:relative;">
           <button class="sr-tab-btn ${managerHandoversTab === 'pending' ? 'active' : ''}" data-sr-mgr-tab="pending">
-            <span>Pending</span>
-            ${pendingItems.length > 0 ? `<span class="sr-tab-badge">${pendingItems.length}</span>` : ''}
+            <span>Pending Review</span>
+            ${pendingItems.length > 0 ? `<span class="sr-v2-tab-badge">${pendingItems.length}</span>` : ''}
           </button>
           <button class="sr-tab-btn ${managerHandoversTab === 'completed' ? 'active' : ''}" data-sr-mgr-tab="completed">
             <span>Completed (${completedItems.length})</span>
           </button>
-          <div style="margin-left:auto;display:flex;align-items:center;gap:6px;align-self:center;">
-            <button id="sr-btn-print-turnover-mgr" class="sr-btn sr-btn-secondary" title="Print Shift Turnover Log" style="min-height:32px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-              <span>Print Shift Log</span>
-            </button>
-            <button id="sr-btn-export-all-mgr" class="sr-btn sr-btn-secondary" title="Export all handovers to CSV" style="min-height:32px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span>CSV Export</span>
-            </button>
-          </div>
         </div>
 
         <div id="sr-mgr-handovers-panel"></div>
@@ -6392,24 +6371,21 @@
     );
     const displayList = mine.length > 0 ? mine : merged.slice(0, 4);
 
-    // 7-Day Visual Shift Strip
+    // 7-Day Interactive Week Strip
     const stripDays = ['Mon 10', 'Tue 11', 'Wed 12', 'Thu 13', 'Fri 14', 'Sat 15', 'Sun 16'];
     const stripHtml = `
       <div style="padding:14px 16px;background:var(--sr-bg-card-subtle);border-bottom:1px solid var(--sr-border-subtle);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--sr-text-muted);">Active Week Shift Strip</span>
-          <span style="font-size:11px;font-weight:700;color:#10b981;">Synced Live with Supervisor Roster</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">
+        <div class="sr-v2-week-strip">
           ${stripDays.map((lbl, idx) => {
             const dayNum = String(10 + idx);
             const hasShift = displayList.find(s => String(s.date || s.starts_at || '').includes(`-${dayNum}`));
+            const [dow, num] = lbl.split(' ');
             return `
-              <div style="padding:8px 4px;border-radius:10px;text-align:center;border:1.5px solid ${hasShift ? '#10b981' : 'var(--sr-border-subtle)'};background:${hasShift ? 'rgba(16,185,129,0.09)' : 'var(--sr-bg-card)'};">
-                <div style="font-size:10px;font-weight:700;color:var(--sr-text-muted);">${lbl.split(' ')[0]}</div>
-                <div style="font-size:13px;font-weight:800;color:var(--sr-text-main);margin:2px 0;">${lbl.split(' ')[1]}</div>
-                <div style="font-size:9.5px;font-weight:800;color:${hasShift ? '#059669' : '#94a3b8'};">${hasShift ? (hasShift.start_time || '06:00') : 'OFF'}</div>
-              </div>
+              <button type="button" class="sr-v2-week-day ${idx === 0 ? 'is-today' : ''} ${!hasShift ? 'is-off' : ''}" data-week-day="${dayNum}">
+                <span style="font-size:10px;font-weight:700;color:var(--p-text-3);text-transform:uppercase;">${dow}</span>
+                <span class="sr-v2-num" style="font-size:15px;font-weight:800;color:var(--p-text);">${num}</span>
+                <span class="sr-v2-num" style="font-size:10px;font-weight:700;color:${hasShift ? 'var(--p-green)' : 'var(--p-text-3)'};">${hasShift ? (hasShift.start_time || '06:00') : 'OFF'}</span>
+              </button>
             `;
           }).join('')}
         </div>
@@ -6426,19 +6402,18 @@
       const supLabel = s.supervisor_name || 'Olaide Emmanuela';
 
       return `
-        <div class="sr-review-item" style="align-items:center;gap:12px;padding:15px 16px;border-bottom:1px solid var(--sr-border-subtle);">
+        <div class="sr-review-item" data-shift-date-row="${escapeHtml(dateStr.slice(-2))}" style="align-items:center;gap:12px;padding:15px 16px;border-bottom:1px solid var(--sr-border-subtle);">
           <div style="width:44px;height:44px;border-radius:12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#059669;">
             <span style="font-size:10px;font-weight:800;text-transform:uppercase;line-height:1;">NOV</span>
-            <span style="font-size:15px;font-weight:800;line-height:1.15;">${escapeHtml(dateStr.slice(-2))}</span>
+            <span class="sr-v2-num" style="font-size:15px;font-weight:800;line-height:1.15;">${escapeHtml(dateStr.slice(-2))}</span>
           </div>
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
               <span style="font-size:13.5px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(rotationLabel)}</span>
-              <span class="sr-status-pill active" style="font-size:10.5px;">Verified Roster</span>
               ${s.is_shift_supervisor ? '<span style="font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:99px;background:#e0f2fe;color:#0369a1;">Shift Lead</span>' : ''}
             </div>
-            <div style="font-size:12.5px;color:var(--sr-text-main);font-weight:600;">${escapeHtml(timeWindow)} &bull; ${escapeHtml(stationLabel)}</div>
-            <div style="font-size:11.5px;color:var(--sr-text-muted);margin-top:2px;">Shift Supervisor: <strong>${escapeHtml(supLabel)}</strong></div>
+            <div class="sr-v2-num" style="font-size:12.5px;color:var(--sr-text-main);font-weight:600;">${escapeHtml(timeWindow)} &bull; ${escapeHtml(stationLabel)}</div>
+            <div style="font-size:11.5px;color:var(--sr-text-muted);margin-top:2px;">Supervisor: <strong>${escapeHtml(supLabel)}</strong></div>
           </div>
           <button type="button" class="sr-btn sr-btn-secondary sr-btn-sm" 
                   data-swap-shift-btn 
@@ -6452,88 +6427,40 @@
     }).join('');
 
     const teamPartnersHtml = `
-      <div style="padding:16px;background:var(--sr-bg-card-subtle);border-top:1px solid var(--sr-border-subtle);border-bottom:1px solid var(--sr-border-subtle);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="width:26px;height:26px;border-radius:8px;background:rgba(16,185,129,0.12);color:#10b981;display:inline-flex;align-items:center;justify-content:center;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </span>
-            <span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--sr-text-main);">Shift Roster Partners &amp; Handover Relay</span>
-          </div>
-          <span class="sr-status-pill active" style="font-size:10px;">Facility Verified</span>
+      <div style="padding:16px;background:var(--sr-bg-card-subtle);border-top:1px solid var(--sr-border-subtle);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--p-text-3);">Shift Crew &amp; Relay Contacts</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
           <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;gap:10px;">
-            <div style="width:34px;height:34px;border-radius:9px;background:rgba(13,148,136,0.12);color:#0d9488;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;">BA</div>
+            <div style="width:32px;height:32px;border-radius:8px;background:rgba(13,148,136,0.12);color:#0d9488;font-weight:800;font-size:11.5px;display:flex;align-items:center;justify-content:center;">BA</div>
             <div style="flex:1;min-width:0;">
               <div style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);">Babatunde Adeleke</div>
-              <div style="font-size:11px;color:var(--sr-text-muted);">Lead Frontend Architect &bull; Morning Relay</div>
+              <div style="font-size:11px;color:var(--sr-text-muted);">Lead Frontend &bull; Morning Relay</div>
             </div>
             <span style="width:8px;height:8px;border-radius:50%;background:#10b981;" title="Active on duty"></span>
           </div>
           <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;gap:10px;">
-            <div style="width:34px;height:34px;border-radius:9px;background:rgba(2,132,199,0.12);color:#0284c7;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;">CO</div>
+            <div style="width:32px;height:32px;border-radius:8px;background:rgba(2,132,199,0.12);color:#0284c7;font-weight:800;font-size:11.5px;display:flex;align-items:center;justify-content:center;">CO</div>
             <div style="flex:1;min-width:0;">
               <div style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);">Chidinma Okonjo</div>
-              <div style="font-size:11px;color:var(--sr-text-muted);">Mobile Native Lead &bull; Afternoon Handover</div>
+              <div style="font-size:11px;color:var(--sr-text-muted);">Mobile Lead &bull; Afternoon Relay</div>
             </div>
             <span style="width:8px;height:8px;border-radius:50%;background:#10b981;" title="Scheduled today"></span>
           </div>
           <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;gap:10px;">
-            <div style="width:34px;height:34px;border-radius:9px;background:rgba(245,158,11,0.12);color:#d97706;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;">OE</div>
+            <div style="width:32px;height:32px;border-radius:8px;background:rgba(245,158,11,0.12);color:#d97706;font-weight:800;font-size:11.5px;display:flex;align-items:center;justify-content:center;">OE</div>
             <div style="flex:1;min-width:0;">
               <div style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);">Olaide Emmanuela</div>
-              <div style="font-size:11px;color:var(--sr-text-muted);">Operations Lead &bull; Shift Supervisor</div>
+              <div style="font-size:11px;color:var(--sr-text-muted);">Operations Lead &bull; Supervisor</div>
             </div>
-            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;" title="Shift Supervisor Active"></span>
+            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;" title="Shift Supervisor"></span>
           </div>
         </div>
       </div>
     `;
 
-    const openShiftsDeskHtml = `
-      <div style="padding:16px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="width:26px;height:26px;border-radius:8px;background:rgba(245,158,11,0.14);color:#d97706;display:inline-flex;align-items:center;justify-content:center;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            </span>
-            <span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--sr-text-main);">Open Shift Overtime &amp; Marketplace Opportunities</span>
-          </div>
-          <button type="button" class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('open-shifts')" style="min-height:30px;padding:0 10px;font-size:11.5px;font-weight:700;">
-            Browse All Open Shifts &rarr;
-          </button>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;">
-          <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:space-between;gap:12px;">
-            <div>
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-                <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">Weekend Core Systems Coverage</span>
-                <span class="sr-badge" style="background:rgba(16,185,129,0.12);color:#10b981;font-size:10px;font-weight:800;">+₦24,000</span>
-              </div>
-              <div style="font-size:11.5px;color:var(--sr-text-muted);">Saturday &bull; 06:00 – 14:00 WAT &bull; Backend Bay</div>
-            </div>
-            <button type="button" class="sr-btn sr-btn-primary" onclick="window.Phase1Shell.mount('open-shifts')" style="min-height:32px;padding:0 12px;font-size:11.5px;font-weight:700;white-space:nowrap;">
-              Claim Shift
-            </button>
-          </div>
-          <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card);border:1px solid rgba(2,132,199,0.3);display:flex;align-items:center;justify-content:space-between;gap:12px;">
-            <div>
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-                <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">Sunday Evening High-Availability Relay</span>
-                <span class="sr-badge" style="background:rgba(2,132,199,0.12);color:#0284c7;font-size:10px;font-weight:800;">+₦28,000</span>
-              </div>
-              <div style="font-size:11.5px;color:var(--sr-text-muted);">Sunday &bull; 14:00 – 22:00 WAT &bull; Operations Hub</div>
-            </div>
-            <button type="button" class="sr-btn sr-btn-primary" onclick="window.Phase1Shell.mount('open-shifts')" style="min-height:32px;padding:0 12px;font-size:11.5px;font-weight:700;white-space:nowrap;background:#0284c7;">
-              Claim Shift
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    return stripHtml + cardsHtml + teamPartnersHtml + openShiftsDeskHtml;
+    return stripHtml + cardsHtml + teamPartnersHtml;
   }
 
   function renderLeaveTab(requests, tz) {
@@ -6647,44 +6574,39 @@
     const [year, mon] = scheduleMonth.split('-').map(Number);
     const monthLabel = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(year, mon - 1, 1));
 
-    // Render chrome immediately (tabs + month nav); panel shows loading skeleton
-    container.innerHTML = `
-      <div class="sr-card" style="padding:0;overflow:hidden;">
-        <div style="padding:16px 16px 0;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-            <div>
-              <h2 style="margin:0 0 3px;font-size:18px;font-weight:800;color:var(--sr-text-main);">My Schedule</h2>
-              <div style="font-size:12px;color:var(--sr-text-muted);">Your assignments from the company roster &bull; Timezone: <strong>${escapeHtml(tz)}</strong></div>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;" aria-label="Month navigation">
-              <button id="sr-btn-sync-calendar-worker" class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;" title="Export shifts to Outlook, Google Calendar, or Apple Calendar">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
-                Sync Calendar (.ics)
-              </button>
-              <button id="sr-sched-prev" aria-label="Previous month" style="padding:6px 10px;border:1.5px solid var(--sr-border-subtle);border-radius:8px;background:var(--sr-bg-card);cursor:pointer;font-size:14px;color:var(--sr-text-main);">&#8249;</button>
-              <span style="font-size:13px;font-weight:600;color:var(--sr-text-main);min-width:110px;text-align:center;">${escapeHtml(monthLabel)}</span>
-              <button id="sr-sched-next" aria-label="Next month" style="padding:6px 10px;border:1.5px solid var(--sr-border-subtle);border-radius:8px;background:var(--sr-bg-card);cursor:pointer;font-size:14px;color:var(--sr-text-main);">&#8250;</button>
-            </div>
-          </div>
+    if (!['shifts', 'swaps', 'leave', 'handovers', 'attendance'].includes(scheduleTab)) {
+      scheduleTab = 'shifts';
+    }
+    if (scheduleTab === 'handovers' || scheduleTab === 'attendance') {
+      scheduleTab = 'shifts';
+    }
 
-          <div role="tablist" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;border-bottom:2px solid var(--sr-border-subtle);margin-bottom:0;">
-            <div style="display:flex;gap:0;">
-            ${['shifts', 'handovers'].map(t => {
-              if (scheduleTab === 'attendance') scheduleTab = 'shifts';
-              const labels = { shifts: 'My Shifts', handovers: 'Relays' };
-              const isActive = scheduleTab === t;
-              return `<button role="tab" aria-selected="${isActive}" id="sr-sched-tab-${t}" data-sched-tab="${t}"
-                style="padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13.5px;font-weight:700;
-                color:${isActive ? 'var(--sr-primary)' : 'var(--sr-text-muted)'};
-                border-bottom:${isActive ? '2px solid var(--sr-primary)' : '2px solid transparent'};
-                margin-bottom:-2px;transition:color .15s ease;">${labels[t]}</button>`;
-            }).join('')}
-            </div>
-            <button type="button" class="sr-btn sr-btn-secondary" onclick="window.Phase1Shell.mount('open-shifts')" style="margin-bottom:6px;min-height:34px;padding:0 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
-              <span>Shift Swaps</span>
-            </button>
+    container.innerHTML = `
+      <div class="sr-v2-page-head">
+        <div class="sr-v2-page-title-wrap">
+          <h2 class="sr-v2-page-title">Schedule</h2>
+          <p class="sr-v2-page-sub">${escapeHtml(monthLabel)} &middot; Timezone: <strong>${escapeHtml(tz)}</strong></p>
+        </div>
+        <div class="sr-v2-page-actions">
+          <div style="display:inline-flex;align-items:center;gap:4px;" aria-label="Month navigation">
+            <button id="sr-sched-prev" aria-label="Previous month" style="padding:6px 10px;border:1px solid var(--p-border);border-radius:8px;background:var(--p-surface);cursor:pointer;font-size:14px;color:var(--p-text);">&#8249;</button>
+            <span style="font-size:13px;font-weight:700;color:var(--p-text);min-width:104px;text-align:center;">${escapeHtml(monthLabel)}</span>
+            <button id="sr-sched-next" aria-label="Next month" style="padding:6px 10px;border:1px solid var(--p-border);border-radius:8px;background:var(--p-surface);cursor:pointer;font-size:14px;color:var(--p-text);">&#8250;</button>
           </div>
+          <button id="sr-btn-sync-calendar-worker" class="sr-btn sr-btn-secondary" style="min-height:34px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;" title="Export shifts to Outlook, Google Calendar, or Apple Calendar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+            <span>Sync Calendar (.ics)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="sr-card" style="padding:0;overflow:hidden;">
+        <div class="sr-v2-tabs" role="tablist" style="margin:0 !important;padding:0 16px !important;">
+          ${['shifts', 'swaps', 'leave'].map(t => {
+            const labels = { shifts: 'My Shifts', swaps: 'Open Shifts & Swaps', leave: 'Leave' };
+            const isActive = scheduleTab === t;
+            return `<button role="tab" aria-selected="${isActive}" id="sr-sched-tab-${t}" data-sched-tab="${t}" class="sr-v2-tab ${isActive ? 'active' : ''}">${labels[t]}</button>`;
+          }).join('')}
         </div>
 
         <div id="sr-sched-panel" role="tabpanel" aria-live="polite" style="min-height:180px;padding-bottom:8px;">
@@ -6740,6 +6662,27 @@
           });
         });
 
+        panel.querySelectorAll('[data-week-day]').forEach(dayBtn => {
+          dayBtn.addEventListener('click', () => {
+            const wasActive = dayBtn.classList.contains('active');
+            panel.querySelectorAll('[data-week-day]').forEach(b => b.classList.remove('active'));
+            const rows = panel.querySelectorAll('[data-shift-date-row]');
+            if (wasActive) {
+              rows.forEach(r => { r.style.display = 'flex'; });
+              return;
+            }
+            dayBtn.classList.add('active');
+            const targetDay = dayBtn.dataset.weekDay;
+            let matched = 0;
+            rows.forEach(r => {
+              const ok = r.dataset.shiftDateRow === targetDay;
+              r.style.display = ok ? 'flex' : 'none';
+              if (ok) matched++;
+            });
+            if (matched === 0) rows.forEach(r => { r.style.display = 'flex'; });
+          });
+        });
+
         // Bind Calendar Sync for Worker
         document.getElementById('sr-btn-sync-calendar-worker')?.addEventListener('click', () => {
           const mine = shifts.filter(s => s.membership_id === user.id || s.membershipId === user.id);
@@ -6751,68 +6694,47 @@
           );
         });
 
-      } else if (scheduleTab === 'handovers') {
-        const hRes = await fetch('/api/handovers');
-        const hData = hRes.ok ? await hRes.json() : { handovers: [] };
-        const handovers = hData.handovers || [];
-        const canCreate = ['outgoing', 'supervisor', 'manager', 'owner'].includes(user.role);
-        const needsAction = handovers.filter(h => {
-          if (user.role === 'incoming') {
-            return h.status === 'relayed' && (h.assignedTo === user.id || user.role === 'owner');
-          }
-          return false;
-        });
-        const historyItems = user.role === 'outgoing'
-          ? handovers
-          : handovers.filter(h => !needsAction.some(na => na.id === h.id));
-
+      } else if (scheduleTab === 'swaps') {
         panel.innerHTML = `
-          <div style="padding:14px 16px 0;">
-            <div class="sr-tabs-header" style="position:relative;margin-bottom:12px;">
-              <button class="sr-tab-btn ${workerHandoversTab === 'actions' ? 'active' : ''}" data-sr-h-tab="actions">
-                <span>Actions</span>
-                ${needsAction.length > 0 ? `<span class="sr-tab-badge">${needsAction.length}</span>` : ''}
-              </button>
-              <button class="sr-tab-btn ${workerHandoversTab === 'history' ? 'active' : ''}" data-sr-h-tab="history">
-                <span>History (${historyItems.length})</span>
-              </button>
-              ${canCreate ? `
-                <button class="sr-tab-btn ${workerHandoversTab === 'create' ? 'active' : ''}" data-sr-h-tab="create">
-                  <span>+ New Handover</span>
-                </button>
-              ` : ''}
+          <div style="padding:16px;">
+            <div style="margin-bottom:18px;">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--p-text-3);margin-bottom:10px;">Open Overtime Opportunities</div>
+              <div class="sr-v2-2col-even">
+                <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                  <div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap;">
+                      <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">Weekend Core Systems Coverage</span>
+                      <span class="sr-badge" style="background:rgba(16,185,129,0.12);color:#10b981;font-size:10px;font-weight:800;">+₦24,000</span>
+                    </div>
+                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Saturday &bull; 06:00 – 14:00 WAT &bull; Backend Bay</div>
+                  </div>
+                  <button type="button" class="sr-btn sr-btn-primary" onclick="window.Phase1Shell.mount('open-shifts')" style="min-height:32px;padding:0 12px;font-size:11.5px;font-weight:700;white-space:nowrap;">Claim</button>
+                </div>
+                <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card);border:1px solid rgba(2,132,199,0.3);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                  <div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap;">
+                      <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">Sunday High-Availability Relay</span>
+                      <span class="sr-badge" style="background:rgba(2,132,199,0.12);color:#0284c7;font-size:10px;font-weight:800;">+₦28,000</span>
+                    </div>
+                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Sunday &bull; 14:00 – 22:00 WAT &bull; Operations Hub</div>
+                  </div>
+                  <button type="button" class="sr-btn sr-btn-primary" onclick="window.Phase1Shell.mount('open-shifts')" style="min-height:32px;padding:0 12px;font-size:11.5px;font-weight:700;white-space:nowrap;background:#0284c7;">Claim</button>
+                </div>
+              </div>
             </div>
-            <div id="sr-sched-handover-subpanel"></div>
+            <div id="sr-inline-swaps-marketplace"></div>
           </div>
         `;
-
-        panel.querySelectorAll('[data-sr-h-tab]').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            workerHandoversTab = btn.dataset.srHTab;
-            renderWorkerSchedule();
-          });
-        });
-
-        const subpanel = document.getElementById('sr-sched-handover-subpanel');
-        if (subpanel) {
-          if (workerHandoversTab === 'create' && canCreate) {
-            renderWorkerHandoverCreateForm(subpanel, user);
-          } else if (workerHandoversTab === 'history') {
-            renderHandoverList(subpanel, historyItems, false, user);
-          } else {
-            renderHandoverList(subpanel, needsAction, true, user);
-          }
+        const inlineTarget = document.getElementById('sr-inline-swaps-marketplace');
+        if (inlineTarget) {
+          await renderOpenShiftMarketplace(inlineTarget);
         }
 
-      } else if (scheduleTab === 'attendance') {
-        const res = await fetch(`/api/time-entries?month=${encodeURIComponent(scheduleMonth)}`);
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || `Server error ${res.status}`);
-        }
-        const summary = await res.json();
-        panel.innerHTML = renderAttendanceTab(summary, tz);
+      } else if (scheduleTab === 'leave') {
+        const res = await fetch(`/api/calendar?month=${encodeURIComponent(scheduleMonth)}`);
+        const data = res.ok ? await res.json() : { leave: [] };
+        panel.innerHTML = renderLeaveTab(data.leave || [], tz);
+        bindLeaveForm(panel);
       }
     } catch (err) {
       const isOffline = !navigator.onLine;
@@ -6909,56 +6831,42 @@
     const monthLabel = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(year, mon - 1, 1));
 
     container.innerHTML = `
+      <div class="sr-v2-page-head">
+        <div class="sr-v2-page-title-wrap">
+          <h2 class="sr-v2-page-title">
+            <span>${user.role === 'owner' ? 'Operations' : 'Roster'}</span>
+            <span class="sr-v2-pill-meta">${escapeHtml(monthLabel)}</span>
+          </h2>
+          <p class="sr-v2-page-sub">Monthly shift coverage &amp; leave roster &middot; ${escapeHtml(tz)}</p>
+        </div>
+        <div class="sr-v2-page-actions">
+          <div style="display:inline-flex;align-items:center;gap:4px;" aria-label="Month navigation">
+            <button id="sr-mgr-sched-prev" aria-label="Previous month" style="padding:6px 10px;border:1px solid var(--p-border);border-radius:8px;background:var(--p-surface);cursor:pointer;font-size:14px;color:var(--p-text);">&#8249;</button>
+            <span style="font-size:13px;font-weight:700;color:var(--p-text);min-width:104px;text-align:center;">${escapeHtml(monthLabel)}</span>
+            <button id="sr-mgr-sched-next" aria-label="Next month" style="padding:6px 10px;border:1px solid var(--p-border);border-radius:8px;background:var(--p-surface);cursor:pointer;font-size:14px;color:var(--p-text);">&#8250;</button>
+          </div>
+          <button id="sr-btn-sync-calendar-mgr" class="sr-btn sr-btn-secondary" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;" title="Export roster to Outlook, Google Calendar, or Apple Calendar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+            <span>Export (.ics)</span>
+          </button>
+          <button id="sr-btn-open-assign-modal" class="sr-btn sr-btn-primary" style="min-height:34px;padding:0 14px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Assign Shift</span>
+          </button>
+        </div>
+      </div>
+
       <div class="sr-card" style="padding:0;overflow:hidden;">
-        <div style="padding:16px 16px 0;">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-            <div>
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-                <h2 style="margin:0;font-size:18px;font-weight:800;color:var(--sr-text-main);">Shift Roster</h2>
-                <span class="sr-status-pill active" style="font-size:11px;">Interactive Scheduling Active</span>
-              </div>
-              <div style="font-size:12px;color:var(--sr-text-muted);">Drag any worker onto a calendar date to assign shift hours &bull; Timezone: <strong>${escapeHtml(tz)}</strong></div>
-            </div>
-
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <button id="sr-btn-open-assign-modal" class="sr-btn sr-btn-primary" style="padding:7px 14px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;min-height:36px !important;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <span>Assign Shift</span>
-              </button>
-
-              <button id="sr-btn-sync-calendar-mgr" class="sr-btn sr-btn-secondary" style="padding:7px 12px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;min-height:36px !important;" title="Export roster to Outlook, Google Calendar, or Apple Calendar">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
-                <span>Export (.ics)</span>
-              </button>
-
-              <div style="display:flex;align-items:center;gap:4px;" aria-label="Month navigation">
-                <button id="sr-mgr-sched-prev" aria-label="Previous month" style="padding:6px 10px;border:1.5px solid var(--sr-border-subtle);border-radius:8px;background:var(--sr-bg-card);cursor:pointer;font-size:14px;color:var(--sr-text-main);">&#8249;</button>
-                <span style="font-size:13px;font-weight:700;color:var(--sr-text-main);min-width:110px;text-align:center;">${escapeHtml(monthLabel)}</span>
-                <button id="sr-mgr-sched-next" aria-label="Next month" style="padding:6px 10px;border:1.5px solid var(--sr-border-subtle);border-radius:8px;background:var(--sr-bg-card);cursor:pointer;font-size:14px;color:var(--sr-text-main);">&#8250;</button>
-              </div>
-            </div>
+        <div style="padding:0 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--p-border);flex-wrap:wrap;gap:8px;">
+          <div class="sr-v2-tabs" role="tablist" style="margin:0 !important;border-bottom:none !important;">
+            <button role="tab" aria-selected="${managerScheduleTab === 'shifts'}" id="sr-mgr-tab-shifts" data-mgr-sched-tab="shifts" class="sr-v2-tab ${managerScheduleTab === 'shifts' ? 'active' : ''}">Shift Calendar</button>
+            <button role="tab" aria-selected="${managerScheduleTab === 'leave'}" id="sr-mgr-tab-leave" data-mgr-sched-tab="leave" class="sr-v2-tab ${managerScheduleTab === 'leave' ? 'active' : ''}">Leave Requests</button>
           </div>
 
-          <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--sr-border-subtle);flex-wrap:wrap;gap:8px;">
-            <div role="tablist" style="display:flex;gap:0;">
-              <button role="tab" aria-selected="${managerScheduleTab === 'shifts'}" id="sr-mgr-tab-shifts" data-mgr-sched-tab="shifts"
-                style="padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13.5px;font-weight:800;
-                color:${managerScheduleTab === 'shifts' ? 'var(--sr-primary)' : 'var(--sr-text-muted)'};
-                border-bottom:${managerScheduleTab === 'shifts' ? '2px solid var(--sr-primary)' : '2px solid transparent'};
-                margin-bottom:-2px;transition:color .15s ease;">Interactive Shift Calendar</button>
-              <button role="tab" aria-selected="${managerScheduleTab === 'leave'}" id="sr-mgr-tab-leave" data-mgr-sched-tab="leave"
-                style="padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13.5px;font-weight:800;
-                color:${managerScheduleTab === 'leave' ? 'var(--sr-primary)' : 'var(--sr-text-muted)'};
-                border-bottom:${managerScheduleTab === 'leave' ? '2px solid var(--sr-primary)' : '2px solid transparent'};
-                margin-bottom:-2px;transition:color .15s ease;">Leave</button>
-            </div>
-
-            <div style="padding-bottom:6px;display:flex;align-items:center;gap:6px;">
-              <label for="sr-mgr-staff-filter" style="font-size:12px;font-weight:700;color:var(--sr-text-muted);">Filter:</label>
-              <select id="sr-mgr-staff-filter" style="padding:5px 8px;font-size:12.5px;border:1.5px solid var(--sr-border-subtle);border-radius:8px;background:var(--sr-bg-card);color:var(--sr-text-main);">
-                <option value="all">All Staff</option>
-              </select>
-            </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;">
+            <select id="sr-mgr-staff-filter" aria-label="Filter roster by staff" class="sr-v2-filter-select" style="padding:6px 10px;min-width:170px;">
+              <option value="all">All Staff</option>
+            </select>
           </div>
         </div>
 
@@ -7118,15 +7026,10 @@
     }
 
     panel.innerHTML = `
-      <div style="padding:14px 16px;background:var(--sr-bg-card-subtle);border-bottom:1px solid var(--sr-border-subtle);">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="width:22px;height:22px;border-radius:6px;background:rgba(16,185,129,0.15);color:#10b981;display:inline-flex;align-items:center;justify-content:center;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-            </span>
-            <span style="font-size:12.5px;font-weight:800;color:var(--sr-text-main);">Step 1: Drag a Worker Chip (or Tap to Select)</span>
-          </div>
-          <span style="font-size:11.5px;color:var(--sr-text-muted);font-weight:600;">Step 2: Drop onto any Calendar Date below to pick Shift Time &amp; Save</span>
+      <div style="padding:12px 16px;background:var(--sr-bg-card-subtle);border-bottom:1px solid var(--sr-border-subtle);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--p-text-3);">Quick-Assign Crew</span>
+          <span style="font-size:11.5px;color:var(--p-text-3);">Drag or select staff onto a date</span>
         </div>
 
         <div class="sr-dnd-staff-dock" id="sr-dnd-worker-dock">
@@ -7812,33 +7715,58 @@
         });
       }
 
+      const teamScreenTitle = isOwner ? 'Workforce' : 'My Team';
+
       container.innerHTML = `
-        <div class="sr-context-banner" style="cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
-          <div class="sr-context-banner-text">
-            <span class="sr-context-banner-company" style="font-weight:700;display:flex;align-items:center;gap:6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
-              ${escapeHtml(user.organisation_name || 'Riffmax Technology')}
-            </span>
-            <span class="sr-context-banner-site">${escapeHtml(user.department || 'Operations')} &bull; <strong style="color:#0d9488;">${escapeHtml(user.title || user.role)}</strong></span>
+        <div class="sr-v2-page-head">
+          <div class="sr-v2-page-title-wrap">
+            <h2 class="sr-v2-page-title">
+              <span>${teamScreenTitle}</span>
+              <span class="sr-v2-pill-meta sr-v2-num">${activeMembers.length} Staff</span>
+            </h2>
+            <p class="sr-v2-page-sub sr-v2-num">${onShiftMembers.length} on shift now &middot; Verified personnel directory</p>
           </div>
-          <span class="sr-context-banner-badge">${allMembers.length} Members</span>
+          <div class="sr-v2-page-actions">
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-scan-id-btn" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;border-color:rgba(13,148,136,0.35);color:var(--sr-primary);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
+              <span>Scan ID</span>
+            </button>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-print-ids-btn" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+              <span>ID Cards</span>
+            </button>
+            ${['owner', 'workforce_admin', 'manager', 'supervisor'].includes(user.role) ? `
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-gate-poster-btn" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7z"/><path d="M13 7h4v4h-4z"/><path d="M7 13h4v4H7z"/><path d="M13 13h4v4h-4z"/></svg>
+              <span>Gate Poster</span>
+            </button>` : ''}
+            ${['owner', 'workforce_admin', 'manager'].includes(user.role) ? `
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-csv-import-btn" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Import CSV</span>
+            </button>
+            <button type="button" class="sr-btn sr-btn-primary" id="sr-team-add-staff-btn" style="min-height:34px;padding:0 14px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+              <span>+ Add Staff</span>
+            </button>` : ''}
+          </div>
         </div>
 
         ${pendingRequests.length > 0 ? `
-          <section class="sr-card" style="border-left: 4px solid var(--p-amber); margin-bottom: 20px;" aria-label="Pending Worker Access Requests">
+          <section class="sr-card" style="border-left: 4px solid var(--p-amber); margin-bottom: 18px;" aria-label="Pending Worker Access Requests">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
               <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="sr-badge sr-badge-warning" style="font-weight: 700;">${pendingRequests.length} Pending Approval</span>
+                <span class="sr-badge sr-badge-warning" style="font-weight: 700;">${pendingRequests.length} Pending</span>
                 <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--sr-text-main);">Worker Join Requests</h3>
               </div>
-              <span style="font-size: 12px; color: var(--sr-text-muted);">Awaiting company onboarding review</span>
+              <span style="font-size: 12px; color: var(--sr-text-muted);">Awaiting onboarding review</span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
               ${pendingRequests.map(req => `
                 <div class="sr-pending-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--p-surface-alt); border-radius: var(--p-radius-md); border: 1px solid var(--p-border); flex-wrap: wrap; gap: 10px;">
                   <div>
                     <div style="font-weight: 600; color: var(--p-text); font-size: 13.5px;">${escapeHtml(req.name)} <span style="font-weight: normal; font-size: 12px; color: var(--p-text-3);">&lt;${escapeHtml(req.email)}&gt;</span></div>
-                    <div style="font-size: 12px; color: var(--p-text-2); margin-top: 2px;">Applied as <strong>${escapeHtml(req.title || 'Shift Specialist')}</strong> · Unit: ${escapeHtml(req.department || 'Operations')}</div>
+                    <div style="font-size: 12px; color: var(--p-text-2); margin-top: 2px;">Applied as <strong>${escapeHtml(req.title || 'Shift Specialist')}</strong> &middot; Unit: ${escapeHtml(req.department || 'Operations')}</div>
                   </div>
                   <div style="display: flex; gap: 8px;">
                     <button type="button" class="sr-btn sr-btn-primary sr-btn-approve-request" data-id="${req.id}" data-name="${escapeHtml(req.name)}" style="min-height: 32px; padding: 0 14px; font-size: 12px;">
@@ -7854,61 +7782,33 @@
           </section>
         ` : ''}
 
-        <section class="sr-card" aria-label="Team Directory">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-            <div>
-              <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--sr-text-main);">Workforce Roster (${activeMembers.length} Approved Staff)</h3>
-              <div style="font-size:12px;color:var(--sr-text-muted);">${onShiftMembers.length} on shift now &bull; Listed directory with Staff IDs</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-scan-id-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;border-color:rgba(13,148,136,0.35);color:var(--sr-primary);">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-                <span>Scan ID</span>
-              </button>
-              <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-print-ids-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-                <span>ID Cards</span>
-              </button>
-              ${['owner', 'workforce_admin', 'manager', 'supervisor'].includes(user.role) ? `
-              <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-gate-poster-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7z"/><path d="M13 7h4v4h-4z"/><path d="M7 13h4v4H7z"/><path d="M13 13h4v4h-4z"/></svg>
-                <span>Gate Poster</span>
-              </button>` : ''}
-              ${['owner', 'workforce_admin', 'manager'].includes(user.role) ? `
-              <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-csv-import-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>Import CSV</span>
-              </button>
-              <button type="button" class="sr-btn sr-btn-primary" id="sr-team-add-staff-btn" style="min-height:32px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-                <span>+ Add Staff</span>
-              </button>` : ''}
-            </div>
+        <!-- Unified 1-Row Search, Department Select & Status Toggle -->
+        <div class="sr-v2-filter-row" role="search">
+          <div class="sr-search-input-wrap sr-v2-filter-search" style="flex:1 1 240px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" id="sr-team-search" class="sr-search-input" placeholder="Search Staff ID, name, title, or email..." value="${escapeHtml(teamSearchQuery)}" aria-label="Search team members" />
           </div>
 
-          <div class="sr-search-bar">
-            <div class="sr-search-input-wrap">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="search" id="sr-team-search" class="sr-search-input" placeholder="Search by Staff ID, name, title, email, or department..." value="${escapeHtml(teamSearchQuery)}" aria-label="Search team members" />
-            </div>
-            <span class="sr-search-count" id="sr-team-count">${allMembers.length} of ${allMembers.length} staff</span>
-          </div>
-
-          <!-- Dynamic Department Filter Pills -->
-          <div style="display:flex;align-items:center;gap:6px;padding:6px 0 14px;overflow-x:auto;scrollbar-width:none;flex-wrap:wrap;">
-            <button type="button" class="sr-team-filter-pill active" data-dept-filter="all" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:99px;border:1.5px solid var(--sr-primary);background:rgba(16,185,129,0.1);color:var(--sr-primary);cursor:pointer;">
-              All Staff (${allMembers.length})
-            </button>
-            <button type="button" class="sr-team-filter-pill" data-dept-filter="__on_shift__" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:99px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;">
-              On Shift Now (${onShiftMembers.length})
-            </button>
+          <select id="sr-team-dept-select" class="sr-v2-filter-select" aria-label="Filter by department">
+            <option value="all" ${teamDeptFilter === 'all' ? 'selected' : ''}>All Departments (${uniqueDepts.length})</option>
             ${uniqueDepts.map(dept => `
-              <button type="button" class="sr-team-filter-pill" data-dept-filter="${escapeHtml(dept)}" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:99px;border:1.5px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-muted);cursor:pointer;">
-                ${escapeHtml(dept)}
-              </button>
+              <option value="${escapeHtml(dept)}" ${teamDeptFilter === dept ? 'selected' : ''}>${escapeHtml(dept)}</option>
             `).join('')}
+          </select>
+
+          <div class="sr-v2-pill-switch" role="group" aria-label="Shift presence filter">
+            <button type="button" class="${teamDeptFilter !== '__on_shift__' ? 'active' : ''}" data-dept-filter="all">
+              All (${allMembers.length})
+            </button>
+            <button type="button" class="${teamDeptFilter === '__on_shift__' ? 'active' : ''}" data-dept-filter="__on_shift__">
+              On Shift (${onShiftMembers.length})
+            </button>
           </div>
 
+          <span class="sr-search-count sr-v2-num" id="sr-team-count" style="margin-left:auto;font-size:12px;font-weight:700;color:var(--p-text-3);">${allMembers.length} of ${allMembers.length} staff</span>
+        </div>
+
+        <section class="sr-card" aria-label="Team Directory" style="padding:0;overflow:hidden;">
           <div id="sr-team-list-container"></div>
         </section>
       `;
@@ -8163,17 +8063,26 @@
         idModal.querySelector('#sr-print-ids-now-btn')?.addEventListener('click', () => window.print());
       });
 
-      // Bind department filter pills
+      // Bind unified department dropdown & All / On Shift pill toggle
+      const deptSelectEl = document.getElementById('sr-team-dept-select');
+      const syncPillButtons = (mode) => {
+        container.querySelectorAll('[data-dept-filter]').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.deptFilter === mode);
+        });
+      };
+
+      deptSelectEl?.addEventListener('change', () => {
+        teamDeptFilter = deptSelectEl.value || 'all';
+        syncPillButtons('all');
+        filterAndRender();
+      });
+
       container.querySelectorAll('[data-dept-filter]').forEach(pill => {
         pill.addEventListener('click', () => {
-          teamDeptFilter = pill.dataset.deptFilter;
-          container.querySelectorAll('[data-dept-filter]').forEach(p => {
-            const isActive = p === pill;
-            p.classList.toggle('active', isActive);
-            p.style.borderColor = isActive ? 'var(--sr-primary)' : 'var(--sr-border-subtle)';
-            p.style.background = isActive ? 'rgba(16,185,129,0.1)' : 'var(--sr-bg-card)';
-            p.style.color = isActive ? 'var(--sr-primary)' : 'var(--sr-text-muted)';
-          });
+          const val = pill.dataset.deptFilter || 'all';
+          teamDeptFilter = val;
+          if (deptSelectEl) deptSelectEl.value = 'all';
+          syncPillButtons(val);
           filterAndRender();
         });
       });
@@ -8259,7 +8168,7 @@
   }
 
   // ── 8. Unified Floor Approvals Queue: Shift Swaps, Timecard Overrides & Access ([RIFA-28]) ──
-  let approvalsTab = 'swaps'; // 'swaps' | 'timecards' | 'access'
+  let approvalsTab = 'exceptions'; // 'exceptions' | 'swaps' | 'timecards' | 'access'
   let approvalsViewMode = 'pending'; // 'pending' | 'history'
 
   function getOrSeedFloorApprovals() {
@@ -8346,14 +8255,19 @@
     let apiSwaps = [];
     let apiTimecards = [];
     let accessRequests = [];
+    let excData = { exceptions: [] };
     let hasSwapApi = false;
     let hasTimecardApi = false;
     try {
-      const [swapRes, tcRes, pendingRes] = await Promise.all([
+      const [swapRes, tcRes, pendingRes, excRes] = await Promise.all([
         fetch('/api/shift-swaps').catch(() => null),
         fetch('/api/timesheets/pending-authorizations').catch(() => null),
-        fetch('/api/memberships/pending').catch(() => null)
+        fetch('/api/memberships/pending').catch(() => null),
+        fetch('/api/attendance/exceptions').catch(() => null)
       ]);
+      if (excRes && excRes.ok) {
+        excData = await excRes.json().catch(() => ({ exceptions: [] }));
+      }
       if (swapRes && swapRes.ok) {
         hasSwapApi = true;
         const sd = await swapRes.json();
@@ -8392,62 +8306,87 @@
 
     const swapsList = hasSwapApi ? apiSwaps : floorData.swaps;
     const timecardsList = hasTimecardApi ? apiTimecards : floorData.timecards;
+    const allExceptions = Array.isArray(excData?.exceptions) ? excData.exceptions : [];
+    const pendingExceptions = allExceptions.filter(e => e.status === 'pending_review');
+    const historyExceptions = allExceptions.filter(e => e.status !== 'pending_review');
     const pendingSwaps = swapsList.filter(s => s.status === 'pending');
     const historySwaps = swapsList.filter(s => s.status !== 'pending');
     const pendingTimecards = timecardsList.filter(t => t.status === 'pending');
     const historyTimecards = timecardsList.filter(t => t.status !== 'pending');
 
-    if (!['swaps', 'timecards', 'access'].includes(approvalsTab)) {
-      approvalsTab = 'swaps';
+    if (!['exceptions', 'swaps', 'timecards', 'access'].includes(approvalsTab)) {
+      approvalsTab = pendingExceptions.length > 0 ? 'exceptions' : 'swaps';
     }
 
-    const totalHistoryCount = historySwaps.length + historyTimecards.length;
+    const totalOpenQueue = pendingExceptions.length + pendingSwaps.length + pendingTimecards.length + accessRequests.length;
+    const totalHistoryCount = historyExceptions.length + historySwaps.length + historyTimecards.length;
     const activeSwapsToRender = approvalsViewMode === 'history' ? historySwaps : pendingSwaps;
     const activeTimecardsToRender = approvalsViewMode === 'history' ? historyTimecards : pendingTimecards;
+    const activeExceptionsToRender = approvalsViewMode === 'history' ? historyExceptions : pendingExceptions;
 
     container.innerHTML = `
-      <div class="sr-context-banner" style="margin-bottom:14px;cursor:pointer;" onclick="window.openShiftRelayContextModal && window.openShiftRelayContextModal()" title="View full personnel & company dossier">
-        <div class="sr-context-banner-text">
-          <span class="sr-context-banner-company" style="font-weight:700;display:flex;align-items:center;gap:6px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></svg>
-            ${escapeHtml(user.organisation_name || 'Riffmax Technology Limited')}
-          </span>
-          <span class="sr-context-banner-site">${escapeHtml(user.department || 'Operations & Delivery')} &bull; <strong style="color:#0d9488;">${escapeHtml(user.title || user.role)}</strong></span>
+      <div class="sr-v2-page-head">
+        <div class="sr-v2-page-title-wrap">
+          <h2 class="sr-v2-page-title">
+            <span>Approvals</span>
+            ${totalOpenQueue > 0 ? `<span class="sr-v2-tab-badge sr-v2-num">${totalOpenQueue} Open</span>` : ''}
+          </h2>
+          <p class="sr-v2-page-sub">${escapeHtml(user.department || 'Operations')} &middot; Exception triage, shift swaps &amp; timecard sign-off</p>
         </div>
-        <span class="sr-context-banner-badge">${escapeHtml(user.role.toUpperCase())}</span>
-      </div>
-
-      <div class="sr-tabs-header" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="sr-tab-btn ${approvalsTab === 'swaps' ? 'active' : ''}" data-sr-approval-tab="swaps">
-            <span>Shift Swaps</span>
-            ${pendingSwaps.length > 0 ? `<span class="sr-tab-badge">${pendingSwaps.length}</span>` : ''}
-          </button>
-          <button class="sr-tab-btn ${approvalsTab === 'timecards' ? 'active' : ''}" data-sr-approval-tab="timecards">
-            <span>Timecards</span>
-            ${pendingTimecards.length > 0 ? `<span class="sr-tab-badge">${pendingTimecards.length}</span>` : ''}
-          </button>
-          <button class="sr-tab-btn ${approvalsTab === 'access' ? 'active' : ''}" data-sr-approval-tab="access">
-            <span>Staff Access</span>
-            ${accessRequests.length > 0 ? `<span class="sr-tab-badge">${accessRequests.length}</span>` : ''}
-          </button>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <div style="display:inline-flex;border:1px solid var(--sr-border-subtle);border-radius:999px;padding:2px;background:var(--sr-bg-card-subtle);">
-            <button type="button" data-sr-approval-mode="pending" style="padding:4px 10px;border-radius:999px;border:none;font-size:11.5px;font-weight:700;cursor:pointer;${approvalsViewMode === 'pending' ? 'background:var(--sr-primary);color:#fff;' : 'background:transparent;color:var(--sr-text-muted);'}">
-              Pending Queue
+        <div class="sr-v2-page-actions">
+          <div class="sr-v2-pill-switch" role="group" aria-label="Queue mode">
+            <button type="button" data-sr-approval-mode="pending" class="${approvalsViewMode === 'pending' ? 'active' : ''}">
+              Pending (${totalOpenQueue})
             </button>
-            <button type="button" data-sr-approval-mode="history" style="padding:4px 10px;border-radius:999px;border:none;font-size:11.5px;font-weight:700;cursor:pointer;${approvalsViewMode === 'history' ? 'background:var(--sr-primary);color:#fff;' : 'background:transparent;color:var(--sr-text-muted);'}">
+            <button type="button" data-sr-approval-mode="history" class="${approvalsViewMode === 'history' ? 'active' : ''}">
               History (${totalHistoryCount})
             </button>
           </div>
           ${(approvalsViewMode === 'pending' && approvalsTab === 'swaps' && pendingSwaps.length > 0) ? `
-            <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-bulk-approve-swaps" style="min-height:32px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;" title="Approve all pending swaps for upcoming shift">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+            <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-bulk-approve-swaps" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;" title="Approve all pending swaps for upcoming shift">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 6 9 17 4 12"/></svg>
               <span>Approve All (${pendingSwaps.length})</span>
             </button>
           ` : ''}
         </div>
+      </div>
+
+      <!-- 3-Tile Triage Summary Strip -->
+      <div class="sr-v2-kpi-3">
+        <div class="sr-v2-kpi-card" style="border-top:3px solid ${totalOpenQueue > 0 ? '#f59e0b' : '#10b981'};">
+          <span class="sr-v2-kpi-label">Open Queue</span>
+          <span class="sr-v2-kpi-val" style="color:${totalOpenQueue > 0 ? '#d97706' : '#10b981'};">${totalOpenQueue}</span>
+          <span class="sr-v2-kpi-sub">${pendingExceptions.length} exceptions &middot; ${pendingSwaps.length} swaps</span>
+        </div>
+        <div class="sr-v2-kpi-card" style="border-top:3px solid #0284c7;">
+          <span class="sr-v2-kpi-label">Resolved</span>
+          <span class="sr-v2-kpi-val">${totalHistoryCount}</span>
+          <span class="sr-v2-kpi-sub">Archived in audit log</span>
+        </div>
+        <div class="sr-v2-kpi-card" style="border-top:3px solid ${pendingExceptions.length > 0 ? '#ef4444' : '#10b981'};">
+          <span class="sr-v2-kpi-label">Payroll Gate</span>
+          <span class="sr-v2-kpi-val" style="font-size:1.12rem;color:${pendingExceptions.length > 0 ? '#b45309' : '#10b981'};">${pendingExceptions.length > 0 ? `${pendingExceptions.length} Holds` : 'Clear'}</span>
+          <span class="sr-v2-kpi-sub">${pendingExceptions.length > 0 ? 'Resolve before payroll' : 'Ready for release'}</span>
+        </div>
+      </div>
+
+      <div class="sr-tabs-header">
+        <button class="sr-tab-btn ${approvalsTab === 'exceptions' ? 'active' : ''}" data-sr-approval-tab="exceptions">
+          <span>Exceptions</span>
+          ${pendingExceptions.length > 0 ? `<span class="sr-v2-tab-badge">${pendingExceptions.length}</span>` : ''}
+        </button>
+        <button class="sr-tab-btn ${approvalsTab === 'swaps' ? 'active' : ''}" data-sr-approval-tab="swaps">
+          <span>Swaps</span>
+          ${pendingSwaps.length > 0 ? `<span class="sr-v2-tab-badge">${pendingSwaps.length}</span>` : ''}
+        </button>
+        <button class="sr-tab-btn ${approvalsTab === 'timecards' ? 'active' : ''}" data-sr-approval-tab="timecards">
+          <span>Timecards</span>
+          ${pendingTimecards.length > 0 ? `<span class="sr-v2-tab-badge">${pendingTimecards.length}</span>` : ''}
+        </button>
+        <button class="sr-tab-btn ${approvalsTab === 'access' ? 'active' : ''}" data-sr-approval-tab="access">
+          <span>Access</span>
+          ${accessRequests.length > 0 ? `<span class="sr-v2-tab-badge">${accessRequests.length}</span>` : ''}
+        </button>
       </div>
 
       <div id="sr-approval-feedback"></div>
@@ -8500,7 +8439,19 @@
     const panel = document.getElementById('sr-approvals-panel');
     if (!panel) return;
 
-    if (approvalsTab === 'swaps') {
+    if (approvalsTab === 'exceptions') {
+      const excMarkup = window.ShiftRelayAttendanceUI?.renderManagerExceptionsHtml?.({
+        ...excData,
+        exceptions: activeExceptionsToRender
+      });
+      panel.innerHTML = excMarkup || `
+        <div class="sr-empty-state">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <p>${approvalsViewMode === 'history' ? 'No resolved attendance exceptions yet.' : 'No open attendance exceptions right now.'}</p>
+        </div>
+      `;
+      window.ShiftRelayAttendanceUI?.bindSupervisorExceptionHandlers?.(panel, () => renderApprovalsScreen());
+    } else if (approvalsTab === 'swaps') {
       panel.innerHTML = activeSwapsToRender.length > 0 ? activeSwapsToRender.map(sw => `
         <div class="sr-card" style="margin-bottom:12px;border-left:4px solid ${sw.status === 'approved' ? '#10b981' : sw.status === 'declined' ? '#ef4444' : '#f59e0b'};">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
@@ -9049,7 +9000,8 @@
     const isDark = currentTheme === 'dark';
     const initials = user.name ? user.name.slice(0, 2).toUpperCase() : 'U';
     const roleDisplay = profile.headline || user.title || user.role || 'Frontline Specialist';
-    const orgName = profile.currentOrganisation || user.organisation_name || 'ShiftRelay Global Ops';
+    const cleanProfileOrg = (profile.currentOrganisation && !/network partner/i.test(profile.currentOrganisation)) ? profile.currentOrganisation : '';
+    const orgName = user.organisation_name || cleanProfileOrg || 'Riffmax Technology';
     const deptName = user.department || 'Operations';
     const summaryText = profile.professionalSummary || profile.bioOutsideWork || 'Results-driven frontline specialist with proven expertise in end-to-end shift handovers, operational safety, and incident prevention. Dedicated to zero lost-context transitions and high team reliability.';
     const workEmail = profile.workEmail || user.email || 'worker@shiftrelayos.com';
@@ -9150,8 +9102,7 @@
                 <div class="sr-cv-hero-meta-chips">
                   <span class="sr-cv-meta-chip">${escapeHtml(orgName)}</span>
                   <span class="sr-cv-meta-chip">${escapeHtml(deptName)}</span>
-                  <span class="sr-cv-meta-chip">ID: <strong style="color:#ffffff;">${escapeHtml(staffCode)}</strong></span>
-                  <span class="sr-cv-meta-chip">Badge Mode: <strong style="color:#34d399;">Physical Card + Face</strong></span>
+                  <span class="sr-cv-meta-chip sr-v2-num">ID: <strong style="color:#ffffff;">${escapeHtml(staffCode)}</strong></span>
                   <span class="sr-cv-meta-chip">${escapeHtml(workEmail)}</span>
                 </div>
               </div>
@@ -9169,77 +9120,77 @@
           </div>
         </div>
 
-        <!-- Section: Digital ID & Operational Reliability Grid (Side-by-Side) -->
-        <div class="sr-bento-grid">
-          <!-- Left: Official Scannable Digital ID & Gate Pass (Span 6) -->
-          <div class="sr-bento-card sr-barcode-pass-card sr-bento-span-6">
-            <div class="sr-bento-card-header" style="border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:12px;">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="width:28px;height:28px;border-radius:8px;background:rgba(52,211,153,0.18);color:#34d399;display:inline-flex;align-items:center;justify-content:center;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <!-- Section: Digital Staff Pass & Employee Scorecard (5 / 7 Split) -->
+        <div class="sr-v2-fintech-grid" style="margin-bottom:18px;">
+          <!-- Left (5 cols): Apple Wallet Style Digital Staff ID Pass -->
+          <div class="sr-v2-id-pass">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:12px;">
+              <div style="display:flex;align-items:center;gap:9px;">
+                <span style="width:30px;height:30px;border-radius:8px;background:rgba(52,211,153,0.18);color:#34d399;display:inline-flex;align-items:center;justify-content:center;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><line x1="6" x2="10" y1="15" y2="15"/></svg>
                 </span>
                 <div>
-                  <div style="font-size:14px;font-weight:800;color:#ffffff;">Official Staff ID Card</div>
-                  <div style="font-size:11px;color:#94a3b8;">Printable Physical Badge Pass &bull; For Clock-In Page Assisted Scanner When Phone Unavailable</div>
+                  <div style="font-size:14px;font-weight:800;color:#ffffff;">${escapeHtml(orgName)}</div>
+                  <div style="font-size:11px;color:#94a3b8;">Digital Staff Pass</div>
                 </div>
               </div>
-              <span style="padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#34d399;font-size:10.5px;font-weight:800;letter-spacing:0.04em;white-space:nowrap;flex-shrink:0;">GPS + LIVE FACE</span>
+              <span style="padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#34d399;font-size:10.5px;font-weight:800;letter-spacing:0.04em;white-space:nowrap;">Verified</span>
             </div>
 
-            <div class="sr-barcode-codes-row">
-              <!-- Official Physical Staff ID Badge QR Code -->
-              <div class="sr-barcode-qr-box" title="Official Staff ID badge QR for assisted Clock-In scanner when phone unavailable">
+            <div class="sr-v2-id-scan-tray">
+              <div style="text-align:center;flex-shrink:0;">
                 <div id="sr-profile-qr-svg">${qrSvg}</div>
-                <div style="font-size:9.5px;font-weight:800;color:#0f172a;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;">Staff ID: <span id="sr-profile-staff-code">${escapeHtml(staffCode)}</span></div>
+                <div class="sr-v2-num" style="font-size:9.5px;font-weight:800;color:#0f172a;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;"><span id="sr-profile-staff-code">${escapeHtml(staffCode)}</span></div>
               </div>
-
-              <!-- Real 1D Code-128 Barcode Box -->
-              <div class="sr-barcode-1d-box" title="Scan with any barcode laser scanner">
-                <div style="font-size:9px;font-weight:800;color:#64748b;letter-spacing:0.06em;text-transform:uppercase;">GS1 Code-128 Staff ID: ${escapeHtml(staffCode)}</div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+                <div class="sr-v2-num" style="font-size:9.5px;font-weight:700;color:#64748b;letter-spacing:0.06em;text-transform:uppercase;">Staff Barcode</div>
                 ${barcodeSvg}
               </div>
             </div>
 
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;color:#94a3b8;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
-              <span>Assisted Gate Scan: <strong>Strict GPS + Physical Badge + Live Face</strong></span>
-              <span style="color:#34d399;font-weight:700;">NIBSS &amp; PenCom Compliant</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;color:#cbd5e1;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;">
+              <span>Face &amp; GPS Verified</span>
+              <span style="color:#34d399;font-weight:700;">NIBSS &amp; PenCom Ready</span>
             </div>
           </div>
 
-          <!-- Right: Workers Operational Reliability (Span 6) -->
-          <div class="sr-bento-card sr-bento-span-6">
+          <!-- Right (7 cols): Employee Scorecard & Identity Metrics -->
+          <div class="sr-bento-card" style="margin:0;">
             <div class="sr-bento-card-header">
               <h3 class="sr-bento-card-title">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
                 <span>Operational Reliability</span>
               </h3>
-              <span class="sr-status-pill active" style="font-size:10.5px;">Level 1 Operational Clear</span>
+              <span class="sr-status-pill active" style="font-size:10.5px;">Verified</span>
             </div>
 
             <div class="sr-metrics-bento-grid">
               <div class="sr-metric-bento-item">
-                <div class="sr-metric-bento-val">1,420</div>
+                <div class="sr-metric-bento-val sr-v2-num">1,420</div>
                 <div class="sr-metric-bento-label">Verified Hours</div>
               </div>
               <div class="sr-metric-bento-item">
-                <div class="sr-metric-bento-val" style="color:#10b981;">99.4%</div>
-                <div class="sr-metric-bento-label">Punctuality Score</div>
+                <div class="sr-metric-bento-val sr-v2-num" style="color:#10b981;">99.4%</div>
+                <div class="sr-metric-bento-label">On-Time Rate</div>
               </div>
               <div class="sr-metric-bento-item">
-                <div class="sr-metric-bento-val" style="color:#38bdf8;">0</div>
+                <div class="sr-metric-bento-val sr-v2-num" style="color:#38bdf8;">0</div>
                 <div class="sr-metric-bento-label">Safety Incidents</div>
               </div>
               <div class="sr-metric-bento-item">
-                <div class="sr-metric-bento-val" style="color:#a855f7;">142</div>
-                <div class="sr-metric-bento-label">Verified Handovers</div>
+                <div class="sr-metric-bento-val sr-v2-num" style="color:#a855f7;">142</div>
+                <div class="sr-metric-bento-label">Handovers</div>
               </div>
             </div>
 
-            <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;justify-content:space-between;font-size:12px;">
-              <span style="color:var(--sr-text-muted);">Default Shift Window</span>
-              <span style="font-weight:800;color:var(--sr-text-main);">06:00 – 14:00 WAT (Morning)</span>
+            <div style="padding:11px 14px;border-radius:10px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;justify-content:space-between;font-size:12.5px;flex-wrap:wrap;gap:8px;">
+              <span style="color:var(--sr-text-muted);">Assigned Shift Window</span>
+              <span class="sr-v2-num" style="font-weight:800;color:var(--sr-text-main);">06:00 – 14:00 WAT (Morning)</span>
             </div>
           </div>
+        </div>
+
+        <div class="sr-bento-grid">
         </div>
 
         <!-- Section: Professional Summary (Full Width) -->
@@ -14117,304 +14068,243 @@
 
     container.innerHTML = `
       <div class="sr-page-wrap">
-        <div class="sr-page-header">
-          <div>
-            <h2 class="sr-page-title">Earnings</h2>
-            <p class="sr-page-subtitle">${escapeHtml(period)}</p>
+        <div class="sr-v2-page-head">
+          <div class="sr-v2-page-title-wrap">
+            <h2 class="sr-v2-page-title">
+              <span>Earnings</span>
+              <span class="sr-v2-pill-meta">${escapeHtml(period)}</span>
+            </h2>
+            <p class="sr-v2-page-sub">Monthly salary disbursement ledger &amp; shift merit rewards</p>
           </div>
-          <div style="display:flex;gap:10px;">
-            <button class="sr-btn sr-btn-primary" id="sr-btn-view-payslip" style="display:inline-flex;align-items:center;gap:6px;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
-              <span>Payslip</span>
+          <div class="sr-v2-page-actions">
+            <div class="sr-comp-switch" id="sr-earnings-view-switch" role="tablist">
+              <button type="button" class="sr-comp-option sr-comp-tab active" id="sr-btn-view-salaried" role="tab" aria-selected="true">
+                Pay
+              </button>
+              <button type="button" class="sr-comp-option sr-comp-tab" id="sr-btn-view-rewards" role="tab" aria-selected="false">
+                Rewards
+              </button>
+            </div>
+            <button class="sr-btn sr-btn-primary" id="sr-btn-view-payslip" style="min-height:36px;padding:0 14px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+              <span>View Payslip</span>
             </button>
           </div>
         </div>
 
-        <!-- Clean Compensation Model Switcher -->
-        <div class="sr-comp-switch" id="sr-earnings-view-switch" role="tablist" style="margin-bottom:16px;">
-          <button class="sr-comp-option active" id="sr-btn-view-salaried" role="tab" aria-selected="true">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span>Monthly Salary</span>
-          </button>
-          <button class="sr-comp-option" id="sr-btn-view-rewards" role="tab" aria-selected="false">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <span>Rewards</span>
-          </button>
-        </div>
-
-        <!-- Progressive Month-End Accrual Meter (Nigerian Corporate Benchmark) -->
         ${unassignedBannerHtml}
-        <div class="sr-accrual-card" id="sr-salaried-accrual-card">
-          <div class="sr-accrual-header">
-            <div>
-              <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.06em;">Monthly Pay Progress</span>
-              <div style="font-size:16px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">
-                Day ${progress.currentDay} of ${progress.totalDays} &bull; ${progress.accrualPct}% Accrued
-              </div>
-            </div>
-            <div style="text-align:right;">
-              <span class="sr-accrual-badge">Effective Rate: ${effRate}</span>
-              <div style="font-size:12px;color:var(--sr-text-muted);margin-top:3px;"></div>
-            </div>
-          </div>
-          
-          <div class="sr-accrual-track" role="progressbar" aria-valuenow="${progress.accrualPct}" aria-valuemin="0" aria-valuemax="100">
-            <div class="sr-accrual-fill" style="width: ${progress.accrualPct}%;"></div>
-          </div>
 
-          <div class="sr-accrual-meta">
-            <span>Accrued to Date: <strong style="color:var(--sr-primary);">${progress.accruedNetFormatted}</strong> of ${statementData.netPayFormatted || '₦' + net.toLocaleString('en-NG')}</span>
-            <span>Month-End Payout on <strong style="color:var(--sr-text-main);">Day ${progress.targetDay}</strong></span>
-          </div>
-        </div>
-
-        <!-- ══ Rewards & ShiftCoin Cashout Panel (ShiftRelay-funded, not employer pay) ══ -->
+        <!-- ══ Rewards & ShiftCoin Cashout Panel (ShiftRelay-funded) ══ -->
         <div class="sr-hourly-ledger-card" id="sr-hourly-ledger-card">
-
-          <!-- Balance Hero -->
           <div id="sr-rwd-loading" style="text-align:center;padding:28px 0;color:var(--sr-text-muted);font-size:13px;">Loading rewards…</div>
           <div id="sr-rwd-panel" style="display:none;">
-
-            <!-- Source Badge -->
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
               <div style="display:flex;align-items:center;gap:7px;">
                 <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 8px #f59e0b;display:inline-block;"></span>
-                <span style="font-size:11px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:var(--sr-text-main);">ShiftRelay Operational Merit & Activity Rewards</span>
+                <span style="font-size:11px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:var(--sr-text-main);">ShiftCoin Operational Merit</span>
               </div>
-              <span style="font-size:10.5px;padding:3px 10px;background:rgba(16,185,129,0.12);color:#10b981;border-radius:99px;font-weight:700;border:1px solid rgba(16,185,129,0.25);">1 Star = ₦1.00 Direct Cash Equivalent</span>
+              <span style="font-size:10.5px;padding:3px 10px;background:rgba(16,185,129,0.12);color:#10b981;border-radius:99px;font-weight:700;border:1px solid rgba(16,185,129,0.25);">1 Star = ₦1.00</span>
             </div>
 
-            <!-- Career Progression & Rank Tier -->
-            <div style="background:var(--sr-bg-card);border:1px solid rgba(13,148,136,0.28);border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 4px 20px rgba(0,0,0,0.18);">
-              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-                <div style="display:flex;align-items:center;gap:12px;">
-                  <div style="width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,#0d9488,#10b981);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(16,185,129,0.35);flex-shrink:0;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-                  </div>
-                  <div>
-                    <div style="font-size:10.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--sr-text-muted);">Frontline Personnel Career Grade</div>
-                    <div style="font-size:15px;font-weight:800;color:var(--sr-text-main);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                      <span>Level 4 &bull; Shift Specialist</span>
-                      <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(13,148,136,0.16);color:#0d9488;font-weight:700;border:1px solid rgba(13,148,136,0.3);">Top 5% Facility Standing</span>
-                    </div>
-                  </div>
-                </div>
-                <div style="text-align:right;">
-                  <div style="font-size:11px;color:var(--sr-text-muted);">Promotion Target: <strong>Level 5 Veteran</strong></div>
-                  <div style="font-size:13px;font-family:'JetBrains Mono',monospace;font-weight:700;color:#10b981;margin-top:2px;">2,450 / 3,000 XP</div>
-                </div>
-              </div>
-              <div style="margin-top:12px;">
-                <div style="height:6px;background:var(--sr-bg-subtle);border-radius:99px;overflow:hidden;">
-                  <div style="height:100%;width:81.6%;background:linear-gradient(90deg,#0d9488,#10b981);border-radius:99px;"></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--sr-text-muted);margin-top:5px;">
-                  <span>Lvl 4: 2,000 XP</span>
-                  <span style="color:#0ea5e9;font-weight:600;">550 XP to Next Promotion</span>
-                  <span style="color:#10b981;font-weight:700;">Lvl 5: 3,000 XP</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Collectible Merit Insignias -->
-            <div style="margin-bottom:16px;">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                <span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--sr-text-muted);">Verified Operational Insignias</span>
-                <span style="font-size:10.5px;color:var(--sr-primary);font-weight:700;background:rgba(13,148,136,0.12);padding:2px 8px;border-radius:99px;">4 of 4 Badges Unlocked</span>
-              </div>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;">
-                <!-- Badge 1: Punctuality Champion -->
-                <div style="background:var(--sr-bg-card);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);">
-                  <div style="width:36px;height:36px;border-radius:50%;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(245,158,11,0.2);">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  </div>
-                  <div style="font-size:11.5px;font-weight:800;color:var(--sr-text-main);line-height:1.2;">Punctual Sentinel</div>
-                  <div style="font-size:10px;color:var(--sr-text-muted);margin-top:2px;">99.4% On-Time Record</div>
-                  <div style="font-size:9.5px;font-weight:700;color:#f59e0b;margin-top:5px;background:rgba(245,158,11,0.1);border-radius:4px;padding:1px 5px;display:inline-block;">Gold Tier</div>
-                </div>
-                <!-- Badge 2: Zero-Incident Sentinel -->
-                <div style="background:var(--sr-bg-card);border:1px solid rgba(16,185,129,0.25);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);">
-                  <div style="width:36px;height:36px;border-radius:50%;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(16,185,129,0.2);">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                  </div>
-                  <div style="font-size:11.5px;font-weight:800;color:var(--sr-text-main);line-height:1.2;">Zero Incident</div>
-                  <div style="font-size:10px;color:var(--sr-text-muted);margin-top:2px;">0 Safety Violations</div>
-                  <div style="font-size:9.5px;font-weight:700;color:#10b981;margin-top:5px;background:rgba(16,185,129,0.1);border-radius:4px;padding:1px 5px;display:inline-block;">Pristine Safety</div>
-                </div>
-                <!-- Badge 3: 100-Relay Master -->
-                <div style="background:var(--sr-bg-card);border:1px solid rgba(14,165,233,0.25);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);">
-                  <div style="width:36px;height:36px;border-radius:50%;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.3);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(14,165,233,0.2);">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
-                  </div>
-                  <div style="font-size:11.5px;font-weight:800;color:var(--sr-text-main);line-height:1.2;">Relay Master</div>
-                  <div style="font-size:10px;color:var(--sr-text-muted);margin-top:2px;">142 Verified Handovers</div>
-                  <div style="font-size:9.5px;font-weight:700;color:#0ea5e9;margin-top:5px;background:rgba(14,165,233,0.1);border-radius:4px;padding:1px 5px;display:inline-block;">100+ Relays</div>
-                </div>
-                <!-- Badge 4: Geofence Guardian -->
-                <div style="background:var(--sr-bg-card);border:1px solid rgba(168,85,247,0.25);border-radius:12px;padding:12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.12);">
-                  <div style="width:36px;height:36px;border-radius:50%;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(168,85,247,0.2);">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                  </div>
-                  <div style="font-size:11.5px;font-weight:800;color:var(--sr-text-main);line-height:1.2;">Geofence Sentinel</div>
-                  <div style="font-size:10px;color:var(--sr-text-muted);margin-top:2px;">100% Perimeter Lock</div>
-                  <div style="font-size:9.5px;font-weight:700;color:#a855f7;margin-top:5px;background:rgba(168,85,247,0.1);border-radius:4px;padding:1px 5px;display:inline-block;">GPS Verified</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Coin Balance Card -->
-            <div style="background:linear-gradient(135deg,rgba(245,158,11,0.10) 0%,rgba(16,185,129,0.07) 100%);border:1px solid rgba(245,158,11,0.3);border-radius:14px;padding:18px 20px;margin-bottom:16px;">
-              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                <div>
-                  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--sr-text-muted);font-weight:700;margin-bottom:4px;">Your ShiftCoin Balance</div>
+            <div class="sr-v2-fintech-grid" style="margin-bottom:16px;">
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <!-- Coin Balance Card -->
+                <div style="background:linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(16,185,129,0.08) 100%);border:1px solid rgba(245,158,11,0.3);border-radius:16px;padding:18px 20px;">
+                  <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--sr-text-muted);font-weight:700;margin-bottom:4px;">ShiftCoin Balance</div>
                   <div style="display:flex;align-items:baseline;gap:8px;">
-                    <span id="sr-rwd-balance" style="font-size:34px;font-weight:900;color:#f59e0b;font-family:'JetBrains Mono',monospace;">0</span>
+                    <span id="sr-rwd-balance" class="sr-v2-num" style="font-size:32px;font-weight:900;color:#f59e0b;font-family:'JetBrains Mono',monospace;">0</span>
                     <span style="font-size:14px;color:var(--sr-text-muted);font-weight:600;">Stars</span>
                   </div>
-                  <div style="font-size:12px;color:var(--sr-text-muted);margin-top:3px;">1 Star = ₦1.00 &bull; <span id="sr-rwd-naira-equiv" style="color:#10b981;font-weight:700;">₦0.00</span> cash value</div>
+                  <div style="font-size:12px;color:var(--sr-text-muted);margin-top:3px;"><span id="sr-rwd-naira-equiv" class="sr-v2-num" style="color:#10b981;font-weight:700;">₦0.00</span> cash value</div>
+
+                  <div style="margin-top:14px;">
+                    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--sr-text-muted);margin-bottom:5px;">
+                      <span>Target: ₦3,000 Payout</span>
+                      <span id="sr-rwd-pct" class="sr-v2-num" style="font-weight:700;color:#f59e0b;">0%</span>
+                    </div>
+                    <div style="height:8px;background:var(--sr-bg-subtle);border-radius:99px;overflow:hidden;">
+                      <div id="sr-rwd-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#f59e0b,#10b981);border-radius:99px;transition:width 0.9s cubic-bezier(0.16,1,0.3,1);"></div>
+                    </div>
+                  </div>
+
+                  <button id="sr-rwd-cashout-btn" disabled style="margin-top:14px;width:100%;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;opacity:0.5;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    <span>Exchange Stars for Cash</span>
+                  </button>
                 </div>
-                <button id="sr-rwd-cashout-btn" disabled style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:12px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;opacity:0.5;transition:opacity .2s,transform .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                  <span>Exchange Stars for Cash</span>
-                </button>
+
+                <!-- Career Progression Card -->
+                <div class="sr-card" style="margin:0;padding:16px 18px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#0d9488,#10b981);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                      </div>
+                      <div>
+                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--p-text-3);">Career Grade</div>
+                        <div style="font-size:14.5px;font-weight:800;color:var(--p-text);">Level 4 &bull; Shift Specialist</div>
+                      </div>
+                    </div>
+                    <span class="sr-v2-num" style="font-size:12.5px;font-family:'JetBrains Mono',monospace;font-weight:700;color:#10b981;">2,450 / 3,000 XP</span>
+                  </div>
+                  <div style="margin-top:10px;height:6px;background:var(--sr-bg-subtle);border-radius:99px;overflow:hidden;">
+                    <div style="height:100%;width:81.6%;background:linear-gradient(90deg,#0d9488,#10b981);border-radius:99px;"></div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--sr-text-muted);margin-top:5px;">
+                    <span>Top 5% Facility Standing</span>
+                    <span style="color:#0ea5e9;font-weight:600;">550 XP to Level 5</span>
+                  </div>
+                </div>
               </div>
 
-              <!-- Coin Progress Bar -->
-              <div style="margin-top:14px;">
-                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--sr-text-muted);margin-bottom:5px;">
-                  <span>Progress to ₦3,000 Direct Disbursement</span>
-                  <span id="sr-rwd-pct" style="font-weight:700;color:#f59e0b;">0%</span>
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <div class="sr-card" style="margin:0;padding:16px;">
+                  <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--sr-text-muted);margin-bottom:10px;">Today's Activity Coins</div>
+                  <div id="sr-rwd-activities" style="display:flex;flex-direction:column;gap:7px;"></div>
                 </div>
-                <div style="height:8px;background:var(--sr-bg-subtle);border-radius:99px;overflow:hidden;">
-                  <div id="sr-rwd-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#f59e0b,#10b981);border-radius:99px;transition:width 0.9s cubic-bezier(0.16,1,0.3,1);"></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--sr-text-muted);margin-top:4px;">
-                  <span>0 Stars</span><span>1,500 Stars</span><span style="color:#f59e0b;font-weight:700;">3,000 Stars &rarr; ₦3,000 Direct Transfer</span>
+                <div class="sr-card" style="margin:0;padding:16px;">
+                  <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--sr-text-muted);margin-bottom:10px;">Exchange Options</div>
+                  <div id="sr-rwd-shop" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
                 </div>
               </div>
             </div>
 
-            <!-- Daily Activity Feed: What earns today -->
-            <div style="margin-bottom:16px;">
-              <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--sr-text-muted);margin-bottom:10px;">Today's Activity Coins</div>
-              <div id="sr-rwd-activities" style="display:flex;flex-direction:column;gap:7px;"></div>
-            </div>
-
-            <!-- Exchange Options Grid -->
-            <div style="margin-bottom:16px;">
-              <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--sr-text-muted);margin-bottom:10px;">Exchange Options</div>
-              <div id="sr-rwd-shop" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
-            </div>
-
-            <!-- Recent Ledger (last 5 entries) -->
-            <div>
+            <div class="sr-card" style="margin:0;padding:16px;">
               <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--sr-text-muted);margin-bottom:10px;">Recent Activity</div>
               <div id="sr-rwd-ledger" style="display:flex;flex-direction:column;gap:6px;"></div>
             </div>
           </div>
-
-          <!-- Cashout Confirmation Modal (appended to body on demand) -->
         </div>
 
-        <div id="sr-pay-only-section" class="sr-cv-section" style="gap:20px;">
-          <div class="sr-earnings-hero">
-            <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--sr-text-muted);">Net Take-Home Pay</span>
-            <div class="sr-earnings-amount" style="color:var(--sr-primary); font-family:'JetBrains Mono',monospace;">${statementData.netPayFormatted || '₦' + net.toLocaleString('en-NG', {minimumFractionDigits:2})}</div>
-            <div class="sr-earnings-period">${escapeHtml(period)}</div>
-            <div class="sr-earnings-delta positive">${statementData.changeFromPrevious || '+₦14,250.00'} vs baseline</div>
-          </div>
-
-          <div style="border-top:1px solid var(--sr-border-subtle);"></div>
-
-          <div class="sr-stat-row" style="margin-bottom:0;">
-            <div class="sr-stat-box">
-              <span class="sr-stat-val">${Number(hours).toFixed(1)} hrs</span>
-              <span class="sr-stat-label">Hours</span>
-            </div>
-            <div class="sr-stat-box">
-              <span class="sr-stat-val" style="font-size:14px;letter-spacing:-0.01em;">${escapeHtml(nextPay)}</span>
-              <span class="sr-stat-label">Pay Date</span>
-            </div>
-            <div class="sr-stat-box">
-              <span class="sr-stat-val" style="font-size:13px;letter-spacing:0;color:var(--sr-primary);">Verified</span>
-              <span class="sr-stat-label">Status</span>
-            </div>
-          </div>
-
-          <div style="border-top:1px solid var(--sr-border-subtle);"></div>
-
-          <h4 style="font-size:14px;font-weight:700;color:var(--sr-text-main);margin:0;">Statutory Breakdown</h4>
-          <p style="font-size:11.5px;color:var(--sr-text-muted);margin:3px 0 8px;">Displayed for transparency only. Your employer's finance team and bank handle salary disbursements and statutory remittances.</p>
-
-          <div class="sr-earnings-donut-wrap">
-            <div class="sr-earnings-donut">
-              <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="60" cy="60" r="45" fill="none" stroke="var(--sr-bg-elevated)" stroke-width="18"/>
-                <circle cx="60" cy="60" r="45" fill="none" stroke="#10b981" stroke-width="18"
-                  stroke-dasharray="${seg1.toFixed(2)} ${(circumference - seg1).toFixed(2)}"
-                  stroke-dashoffset="0"/>
-                <circle cx="60" cy="60" r="45" fill="none" stroke="#f59e0b" stroke-width="18"
-                  stroke-dasharray="${seg2.toFixed(2)} ${(circumference - seg2).toFixed(2)}"
-                  stroke-dashoffset="${(-seg1).toFixed(2)}"/>
-                <circle cx="60" cy="60" r="45" fill="none" stroke="#ef4444" stroke-width="18"
-                  stroke-dasharray="${seg3.toFixed(2)} ${(circumference - seg3).toFixed(2)}"
-                  stroke-dashoffset="${(-(seg1 + seg2)).toFixed(2)}"/>
-              </svg>
-              <div class="sr-earnings-donut-center">
-                <span class="sr-earnings-donut-pct">${netPct}%</span>
-                <span class="sr-earnings-donut-label">Take-Home</span>
+        <!-- ══ Monthly Pay Fintech Wallet Bento (5 / 7 Split) ══ -->
+        <div id="sr-pay-only-section" class="sr-v2-fintech-grid">
+          <!-- Left Column (5 cols): Wallet Hero Card + Accrual Progress + Key Chips -->
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="sr-v2-wallet-hero">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
+                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;">Net Take-Home Pay</span>
+                <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(52,211,153,0.16);color:#34d399;border:1px solid rgba(52,211,153,0.3);">Payday: ${escapeHtml(nextPay)}</span>
+              </div>
+              <div class="sr-v2-num" style="font-size:clamp(1.75rem,3vw,2.25rem);font-weight:800;letter-spacing:-0.03em;color:#ffffff;font-family:'JetBrains Mono',monospace;">
+                ${statementData.netPayFormatted || '₦' + net.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+              </div>
+              <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px;color:#cbd5e1;">
+                <span>${escapeHtml(period)}</span>
+                <span style="color:#34d399;font-weight:700;">${statementData.changeFromPrevious || '+₦14,250.00'} vs baseline</span>
               </div>
             </div>
-            <div class="sr-earnings-legend">
-              <div class="sr-earnings-legend-item">
-                <span class="sr-earnings-legend-swatch" style="background:#10b981;"></span>
-                <span class="sr-earnings-legend-label">Net Take-Home</span>
-                <span class="sr-earnings-legend-pct">${netPct}%</span>
+
+            <div class="sr-accrual-card" id="sr-salaried-accrual-card" style="margin:0;">
+              <div class="sr-accrual-header">
+                <div>
+                  <span style="font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.06em;">Monthly Pay Progress</span>
+                  <div class="sr-v2-num" style="font-size:15px;font-weight:800;color:var(--sr-text-main);margin-top:2px;">
+                    Day ${progress.currentDay} of ${progress.totalDays} &bull; ${progress.accrualPct}% Accrued
+                  </div>
+                </div>
+                <span class="sr-accrual-badge sr-v2-num">${effRate}</span>
               </div>
-              <div class="sr-earnings-legend-item">
-                <span class="sr-earnings-legend-swatch" style="background:#f59e0b;"></span>
-                <span class="sr-earnings-legend-label">PenCom Pension</span>
-                <span class="sr-earnings-legend-pct">${preTaxPct}%</span>
+
+              <div class="sr-accrual-track" role="progressbar" aria-valuenow="${progress.accrualPct}" aria-valuemin="0" aria-valuemax="100">
+                <div class="sr-accrual-fill" style="width:${progress.accrualPct}%;"></div>
               </div>
-              <div class="sr-earnings-legend-item">
-                <span class="sr-earnings-legend-swatch" style="background:#ef4444;"></span>
-                <span class="sr-earnings-legend-label">PAYE Tax Withheld</span>
-                <span class="sr-earnings-legend-pct">${taxesPct}%</span>
+
+              <div class="sr-accrual-meta">
+                <span>Accrued: <strong class="sr-v2-num" style="color:var(--sr-primary);">${progress.accruedNetFormatted}</strong></span>
+                <span>Payout: <strong style="color:var(--sr-text-main);">Day ${progress.targetDay}</strong></span>
+              </div>
+            </div>
+
+            <div class="sr-v2-kpi-3" style="margin-bottom:0;">
+              <div class="sr-v2-kpi-card" style="padding:12px 14px;">
+                <span class="sr-v2-kpi-label">Hours</span>
+                <span class="sr-v2-kpi-val" style="font-size:1.1rem;">${Number(hours).toFixed(1)}h</span>
+              </div>
+              <div class="sr-v2-kpi-card" style="padding:12px 14px;">
+                <span class="sr-v2-kpi-label">Cycle</span>
+                <span class="sr-v2-kpi-val" style="font-size:1.05rem;">Monthly</span>
+              </div>
+              <div class="sr-v2-kpi-card" style="padding:12px 14px;">
+                <span class="sr-v2-kpi-label">Status</span>
+                <span class="sr-v2-kpi-val" style="font-size:1.05rem;color:var(--p-green);">Verified</span>
               </div>
             </div>
           </div>
 
-          <div>
-            <div class="sr-earnings-breakdown-row">
-              <span class="sr-earnings-breakdown-label">Gross Earnings</span>
-              <span class="sr-earnings-breakdown-val">${statementData.grossPayFormatted || '₦' + gross.toLocaleString('en-NG', {minimumFractionDigits:2})}</span>
+          <!-- Right Column (7 cols): Statutory Breakdown Donut & Aligned Ledger -->
+          <div class="sr-card" style="margin:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+              <h4 style="font-size:15px;font-weight:800;color:var(--p-text);margin:0;">Statutory Breakdown</h4>
+              <span style="font-size:11px;color:var(--p-text-3);">NIBSS &amp; Finance Act</span>
             </div>
-            ${(pardonedHours > 0 || unexcusedHours > 0 || absenceDeduction > 0) ? `
-            <div class="sr-earnings-breakdown-row">
-              <span class="sr-earnings-breakdown-label">Attendance Exceptions Impact</span>
-              <span class="sr-earnings-breakdown-val" style="font-size:12.5px;">
-                ${pardonedHours > 0 ? `<span style="color:#059669;">${pardonedHours}h Pardoned (Paid)</span>` : ''}
-                ${(pardonedHours > 0 && (unexcusedHours > 0 || absenceDeduction > 0)) ? ' &middot; ' : ''}
-                ${(unexcusedHours > 0 || absenceDeduction > 0) ? `<span style="color:#ef4444;">-${unexcusedHours}h (-${statementData.absenceDeductionFormatted || '₦' + absenceDeduction.toLocaleString('en-NG', {minimumFractionDigits:2})})</span>` : ''}
-              </span>
-            </div>` : ''}
-            <div class="sr-earnings-breakdown-row">
-              <span class="sr-earnings-breakdown-label">Deductions (Pension + NHF)</span>
-              <span class="sr-earnings-breakdown-val" style="color:var(--sr-status-yellow-text);">-${statementData.preTaxFormatted || '₦' + preTax.toLocaleString('en-NG', {minimumFractionDigits:2})}</span>
+            <p style="font-size:12px;color:var(--p-text-3);margin:0 0 16px;">Employer handles direct salary disbursement and statutory remittances.</p>
+
+            <div class="sr-earnings-donut-wrap">
+              <div class="sr-earnings-donut">
+                <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="60" cy="60" r="45" fill="none" stroke="var(--sr-bg-elevated)" stroke-width="18"/>
+                  <circle cx="60" cy="60" r="45" fill="none" stroke="#10b981" stroke-width="18"
+                    stroke-dasharray="${seg1.toFixed(2)} ${(circumference - seg1).toFixed(2)}"
+                    stroke-dashoffset="0"/>
+                  <circle cx="60" cy="60" r="45" fill="none" stroke="#f59e0b" stroke-width="18"
+                    stroke-dasharray="${seg2.toFixed(2)} ${(circumference - seg2).toFixed(2)}"
+                    stroke-dashoffset="${(-seg1).toFixed(2)}"/>
+                  <circle cx="60" cy="60" r="45" fill="none" stroke="#ef4444" stroke-width="18"
+                    stroke-dasharray="${seg3.toFixed(2)} ${(circumference - seg3).toFixed(2)}"
+                    stroke-dashoffset="${(-(seg1 + seg2)).toFixed(2)}"/>
+                </svg>
+                <div class="sr-earnings-donut-center">
+                  <span class="sr-earnings-donut-pct sr-v2-num">${netPct}%</span>
+                  <span class="sr-earnings-donut-label">Take-Home</span>
+                </div>
+              </div>
+              <div class="sr-earnings-legend">
+                <div class="sr-earnings-legend-item">
+                  <span class="sr-earnings-legend-swatch" style="background:#10b981;"></span>
+                  <span class="sr-earnings-legend-label">Net Take-Home</span>
+                  <span class="sr-earnings-legend-pct sr-v2-num">${netPct}%</span>
+                </div>
+                <div class="sr-earnings-legend-item">
+                  <span class="sr-earnings-legend-swatch" style="background:#f59e0b;"></span>
+                  <span class="sr-earnings-legend-label">PenCom Pension</span>
+                  <span class="sr-earnings-legend-pct sr-v2-num">${preTaxPct}%</span>
+                </div>
+                <div class="sr-earnings-legend-item">
+                  <span class="sr-earnings-legend-swatch" style="background:#ef4444;"></span>
+                  <span class="sr-earnings-legend-label">PAYE Tax Withheld</span>
+                  <span class="sr-earnings-legend-pct sr-v2-num">${taxesPct}%</span>
+                </div>
+              </div>
             </div>
-            <div class="sr-earnings-breakdown-row">
-              <span class="sr-earnings-breakdown-label">PAYE Tax Withheld</span>
-              <span class="sr-earnings-breakdown-val" style="color:#ef4444;">-${statementData.taxesFormatted || '₦' + taxes.toLocaleString('en-NG', {minimumFractionDigits:2})}</span>
-            </div>
-            <div class="sr-earnings-breakdown-row">
-              <span class="sr-earnings-breakdown-label" style="font-weight:800;font-size:15px;">Net Transferred to Bank</span>
-              <span class="sr-earnings-breakdown-val" style="font-size:18px;color:#10b981;font-weight:800;">${statementData.netPayFormatted || '₦' + net.toLocaleString('en-NG', {minimumFractionDigits:2})}</span>
+
+            <div style="margin-top:14px;">
+              <div class="sr-earnings-breakdown-row">
+                <span class="sr-earnings-breakdown-label">Gross Earnings</span>
+                <span class="sr-earnings-breakdown-val sr-v2-num">${statementData.grossPayFormatted || '₦' + gross.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+              </div>
+              ${(pardonedHours > 0 || unexcusedHours > 0 || absenceDeduction > 0) ? `
+              <div class="sr-earnings-breakdown-row">
+                <span class="sr-earnings-breakdown-label">Attendance Exceptions Impact</span>
+                <span class="sr-earnings-breakdown-val sr-v2-num" style="font-size:12.5px;">
+                  ${pardonedHours > 0 ? `<span style="color:#059669;">${pardonedHours}h Pardoned (Paid)</span>` : ''}
+                  ${(pardonedHours > 0 && (unexcusedHours > 0 || absenceDeduction > 0)) ? ' &middot; ' : ''}
+                  ${(unexcusedHours > 0 || absenceDeduction > 0) ? `<span style="color:#ef4444;">-${unexcusedHours}h (-${statementData.absenceDeductionFormatted || '₦' + absenceDeduction.toLocaleString('en-NG', { minimumFractionDigits: 2 })})</span>` : ''}
+                </span>
+              </div>` : ''}
+              <div class="sr-earnings-breakdown-row">
+                <span class="sr-earnings-breakdown-label">Deductions (Pension + NHF)</span>
+                <span class="sr-earnings-breakdown-val sr-v2-num" style="color:var(--sr-status-yellow-text);">-${statementData.preTaxFormatted || '₦' + preTax.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div class="sr-earnings-breakdown-row">
+                <span class="sr-earnings-breakdown-label">PAYE Tax Withheld</span>
+                <span class="sr-earnings-breakdown-val sr-v2-num" style="color:#ef4444;">-${statementData.taxesFormatted || '₦' + taxes.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div class="sr-earnings-breakdown-row">
+                <span class="sr-earnings-breakdown-label" style="font-weight:800;font-size:15px;">Net Bank Payout</span>
+                <span class="sr-earnings-breakdown-val sr-v2-num" style="font-size:18px;color:#10b981;font-weight:800;">${statementData.netPayFormatted || '₦' + net.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+              </div>
             </div>
           </div>
-
-          <p style="font-size:12.5px;color:var(--sr-text-muted);text-align:center;margin:0;">
-            Next pay scheduled for <strong>${escapeHtml(nextPay)}</strong>
-          </p>
         </div>
 
         <!-- Hidden Payslip Sheet Modal Container -->
@@ -14900,88 +14790,90 @@
     const dispatch = payroll.dispatched || payroll.lastPayrollDispatch || null;
 
     container.innerHTML = `
-      <div class="sr-page-wrap" style="max-width:1080px;">
-        <div class="sr-page-header" style="flex-wrap:wrap;gap:12px;">
-          <div>
-            <h2 class="sr-page-title">Finance</h2>
-            <p class="sr-page-subtitle">Payroll & Remittance (${escapeHtml(payroll.period)})</p>
+      <div class="sr-page-wrap">
+        <div class="sr-v2-page-head">
+          <div class="sr-v2-page-title-wrap">
+            <h2 class="sr-v2-page-title">
+              <span>Payroll</span>
+              <span class="sr-v2-pill-meta">${escapeHtml(payroll.period)}</span>
+            </h2>
+            <p class="sr-v2-page-sub">Statutory remittance, bank batch export &amp; roster ledger</p>
           </div>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div class="sr-v2-page-actions">
             <div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--sr-text-muted);white-space:nowrap;">
-              <span>Period:</span>
-              <input type="month" id="sr-payroll-month-picker" class="sr-input" value="${escapeHtml(currentMonth)}" style="width:auto;min-height:36px;padding:4px 10px;font-size:12.5px;" />
+              <input type="month" id="sr-payroll-month-picker" aria-label="Payroll period month" class="sr-input" value="${escapeHtml(currentMonth)}" style="width:auto;min-height:34px;padding:4px 10px;font-size:12.5px;" />
             </div>
-            <button class="sr-btn sr-btn-secondary" id="sr-btn-print-audit" style="display:inline-flex;align-items:center;gap:6px;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-              <span>Print</span>
+            <button class="sr-btn sr-btn-secondary" id="sr-btn-print-audit" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+              <span>Print Ledger</span>
             </button>
-            <button class="sr-btn sr-btn-primary" id="sr-btn-dispatch-finance" style="display:inline-flex;align-items:center;gap:6px;background:var(--sr-primary);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Dispatch</span>
+            <button class="sr-btn sr-btn-primary" id="sr-btn-dispatch-finance" style="min-height:34px;padding:0 14px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;background:var(--sr-primary);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Dispatch Payroll</span>
             </button>
           </div>
         </div>
 
         ${prePayrollBlocked ? `
-        <div id="sr-pre-payroll-gate-card" style="margin-bottom:16px;padding:12px 16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.35);border-radius:10px;">
+        <div id="sr-pre-payroll-gate-card" style="margin-bottom:16px;padding:10px 14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.35);border-radius:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
             <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex:1;">
-              <strong style="font-size:13px;color:#b45309;">${unresolvedCount} attendance exception(s) pending review</strong>
+              <strong style="font-size:12.5px;color:#b45309;">${unresolvedCount} exception(s) pending review</strong>
               <div style="display:inline-flex;align-items:center;gap:6px;">
                 <input type="checkbox" id="sr-payroll-ack-exceptions-cb" style="width:15px !important;height:15px !important;min-height:15px !important;margin:0;flex-shrink:0;accent-color:var(--sr-primary);cursor:pointer;" />
                 <label for="sr-payroll-ack-exceptions-cb" style="margin:0 !important;display:inline !important;font-size:12px;font-weight:600;color:var(--sr-text-secondary);cursor:pointer;">Override and release batch</label>
               </div>
             </div>
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-gate-review-exceptions" style="font-size:12px;padding:5px 12px;min-height:30px;white-space:nowrap;">Review</button>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-gate-review-exceptions" style="font-size:12px;padding:4px 12px;min-height:28px;white-space:nowrap;">Review</button>
           </div>
         </div>` : ''}
 
         <!-- Dispatch Banner if already dispatched -->
-        <div id="sr-dispatch-status-banner" style="${dispatch ? 'display:block;' : 'display:none;'}margin-bottom:20px;padding:14px 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div id="sr-dispatch-status-banner" style="${dispatch ? 'display:block;' : 'display:none;'}margin-bottom:16px;padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <div style="display:flex;align-items:center;gap:10px;">
               <span class="sr-finance-dispatch-badge">Dispatched to Accounts</span>
-              <span style="font-size:13px;color:#166534;" id="sr-dispatch-text">
-                ${dispatch ? `Locked and dispatched on ${new Date(dispatch.dispatchedAt).toLocaleString()} by ${escapeHtml(dispatch.dispatchedBy)} (Ref: ${escapeHtml(dispatch.auditReference)})` : ''}
+              <span style="font-size:12.5px;color:#166534;" id="sr-dispatch-text">
+                ${dispatch ? `Locked on ${new Date(dispatch.dispatchedAt).toLocaleString()} by ${escapeHtml(dispatch.dispatchedBy)} (Ref: ${escapeHtml(dispatch.auditReference)})` : ''}
               </span>
             </div>
-            <span style="font-size:12px;color:#15803d;font-weight:600;">Tamper-Proof Audit Lock Active</span>
+            <span style="font-size:11.5px;color:#15803d;font-weight:600;">Audit Lock Active</span>
           </div>
         </div>
 
-        <!-- Top Metric Cards -->
-        <div class="sr-stat-row" style="margin-bottom:20px;">
-          <div class="sr-stat-box" style="border-top:3px solid #0d9488;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span class="sr-stat-label" style="margin:0;font-size:11.5px;">Net Pay</span>
-              <span class="sr-finance-dispatch-badge" style="padding:2px 8px;font-size:10px;">Bank-Ready</span>
+        <!-- 4-Column Statutory Metric Strip -->
+        <div class="sr-v2-kpi-4">
+          <div class="sr-v2-kpi-card" style="border-top:3px solid #0d9488;padding:14px 15px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span class="sr-v2-kpi-label">Net Pay</span>
+              <span class="sr-finance-dispatch-badge" style="padding:2px 7px;font-size:10px;">Bank-Ready</span>
             </div>
-            <span class="sr-stat-val" style="color:var(--sr-primary);font-size:clamp(14px,1.25vw,17px);font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-0.04em;white-space:nowrap;">${summary.totalNetFormatted || '₦0.00'}</span>
-            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">Disbursement via GAPS / Access Switch</div>
+            <span class="sr-v2-kpi-val" style="color:var(--sr-primary);font-size:clamp(0.95rem,1.2vw,1.16rem);white-space:nowrap;">${summary.totalNetFormatted || '₦0.00'}</span>
+            <span class="sr-v2-kpi-sub">Disbursement via GAPS / NIBSS</span>
           </div>
-          <div class="sr-stat-box" style="border-top:3px solid #3b82f6;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span class="sr-stat-label" style="margin:0;font-size:11.5px;">Gross</span>
-              <span style="font-size:10.5px;color:var(--sr-text-muted);font-weight:600;">${summary.verifiedShiftsCount} Shifts</span>
+          <div class="sr-v2-kpi-card" style="border-top:3px solid #3b82f6;padding:14px 15px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span class="sr-v2-kpi-label">Gross Pay</span>
+              <span class="sr-v2-num" style="font-size:10.5px;color:var(--sr-text-muted);font-weight:600;">${summary.verifiedShiftsCount} Shifts</span>
             </div>
-            <span class="sr-stat-val" style="font-size:clamp(14px,1.25vw,17px);font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-0.04em;white-space:nowrap;">${summary.totalGrossFormatted || '₦0.00'}</span>
-            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">Base Salaries + Verified OT Hours</div>
+            <span class="sr-v2-kpi-val" style="font-size:clamp(0.95rem,1.2vw,1.16rem);white-space:nowrap;">${summary.totalGrossFormatted || '₦0.00'}</span>
+            <span class="sr-v2-kpi-sub">Base salaries + OT hours</span>
           </div>
-          <div class="sr-stat-box" style="border-top:3px solid #d97706;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span class="sr-stat-label" style="margin:0;font-size:11.5px;">Deductions</span>
-              <span style="font-size:10px;padding:2px 8px;background:rgba(217,119,6,0.12);color:var(--sr-status-yellow-text);border-radius:99px;font-weight:700;">PenCom + PAYE</span>
+          <div class="sr-v2-kpi-card" style="border-top:3px solid #d97706;padding:14px 15px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span class="sr-v2-kpi-label">PenCom + PAYE</span>
+              <span style="font-size:10px;padding:2px 7px;background:rgba(217,119,6,0.12);color:var(--sr-status-yellow-text);border-radius:99px;font-weight:700;">Statutory</span>
             </div>
-            <span class="sr-stat-val" style="color:var(--sr-status-yellow-text);font-size:clamp(14px,1.25vw,17px);font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-0.04em;white-space:nowrap;">${summary.totalStatutoryFormatted || '₦0.00'}</span>
-            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">Finance Act 2020 Compliant</div>
+            <span class="sr-v2-kpi-val" style="color:var(--sr-status-yellow-text);font-size:clamp(0.95rem,1.2vw,1.16rem);white-space:nowrap;">${summary.totalStatutoryFormatted || '₦0.00'}</span>
+            <span class="sr-v2-kpi-sub">Finance Act compliant</span>
           </div>
-          <div class="sr-stat-box" style="border-top:3px solid #10b981;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span class="sr-stat-label" style="margin:0;font-size:11.5px;">Staff</span>
-              <span style="font-size:10px;padding:2px 8px;background:rgba(16,185,129,0.12);color:var(--sr-status-green-text);border-radius:99px;font-weight:700;">100% Verified</span>
+          <div class="sr-v2-kpi-card" style="border-top:3px solid #10b981;padding:14px 15px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span class="sr-v2-kpi-label">Verified Staff</span>
+              <span style="font-size:10px;padding:2px 7px;background:rgba(16,185,129,0.12);color:var(--sr-status-green-text);border-radius:99px;font-weight:700;">100%</span>
             </div>
-            <span class="sr-stat-val" style="font-size:clamp(14px,1.25vw,17px);font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-0.04em;white-space:nowrap;">${summary.employeeCount || 0}</span>
-            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:4px;">${summary.missedPunchesResolved || 0} Open Punches</div>
+            <span class="sr-v2-kpi-val" style="font-size:clamp(1.1rem,1.35vw,1.35rem);">${summary.employeeCount || 0}</span>
+            <span class="sr-v2-kpi-sub">${summary.missedPunchesResolved || 0} resolved punches</span>
           </div>
         </div>
 
@@ -15621,15 +15513,17 @@
 
   let teamSwapFilter = 'all'; // 'all' | 'available' | 'mine'
 
-  async function renderOpenShiftMarketplace() {
-    const container = document.getElementById('sr-content-area');
+  async function renderOpenShiftMarketplace(targetEl = null) {
+    const isEmbedded = Boolean(targetEl);
+    const container = targetEl || document.getElementById('sr-content-area');
     if (!container) return;
+    const rerenderMarketplace = () => renderOpenShiftMarketplace(targetEl);
     const user = getUser();
     const isManager = isManagerRole(user?.role || '');
-    const companyName = user?.organisation_name || 'Apex Healthcare';
+    const companyName = user?.organisation_name || 'Riffmax Technology';
     const unitName = user?.department || 'Operations Unit';
 
-    container.innerHTML = `<div class="sr-page-wrap"><div class="sr-skeleton" style="height:360px;"></div></div>`;
+    container.innerHTML = `<div class="sr-page-wrap"><div class="sr-skeleton" style="height:260px;"></div></div>`;
 
     let swapsData = { swaps: [] };
     try {
@@ -15699,7 +15593,7 @@
         await recordStarActivity(20, 'Claimed Team Coworker Shift Swap', claimKey);
         SRAudio.playClockIn();
         showToast('Shift claimed from coworker! Sent to supervisor for final sign-off.', 'success');
-        await renderOpenShiftMarketplace();
+        await rerenderMarketplace();
         return;
       }
       try {
@@ -15714,7 +15608,7 @@
         await recordStarActivity(20, 'Claimed Team Coworker Shift Swap', claimKey);
         SRAudio.playClockIn();
         showToast('Shift swap claimed! Awaiting supervisor approval.', 'success');
-        await renderOpenShiftMarketplace();
+        await rerenderMarketplace();
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -15726,7 +15620,7 @@
         localSwaps.splice(idx, 1);
         saveLocalSwaps(localSwaps);
         showToast('Shift swap offer withdrawn.', 'info');
-        await renderOpenShiftMarketplace();
+        await rerenderMarketplace();
         return;
       }
       try {
@@ -15738,7 +15632,7 @@
         const d = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
         showToast('Shift swap cancelled.', 'info');
-        await renderOpenShiftMarketplace();
+        await rerenderMarketplace();
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -15752,7 +15646,7 @@
         saveLocalSwaps(localSwaps);
         SRAudio.playClockIn();
         showToast(`Team shift swap ${decision}!`, 'success');
-        await renderOpenShiftMarketplace();
+        await rerenderMarketplace();
         return;
       }
       try {
@@ -15765,7 +15659,7 @@
         if (!res.ok) throw new Error(d.error || `Error ${res.status}`);
         SRAudio.playClockIn();
         showToast(`Shift swap ${decision} successfully.`, 'success');
-        await renderOpenShiftMarketplace();
+        await rerenderMarketplace();
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -15865,31 +15759,32 @@
     const availableCount = allSwaps.filter(s => s.status === 'pending' && s.requester_membership_id !== user?.id).length;
 
     container.innerHTML = `
-      <div class="sr-page-wrap">
-        <div class="sr-page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-          <div>
-            <h2 class="sr-page-title">Team Shift Swaps</h2>
-            <p class="sr-page-subtitle">Offer your shift or claim available shifts from coworkers in <strong>${escapeHtml(companyName)} (${escapeHtml(unitName)})</strong></p>
+      <div class="${isEmbedded ? '' : 'sr-page-wrap'}">
+        <div class="sr-v2-page-head" style="margin-bottom:14px;">
+          <div class="sr-v2-page-title-wrap">
+            <h3 style="margin:0;font-size:${isEmbedded ? '15.5px' : '22px'};font-weight:800;color:var(--p-text);">Team Shift Swaps</h3>
+            <p class="sr-v2-page-sub">${escapeHtml(companyName)} &middot; ${escapeHtml(unitName)}</p>
           </div>
-          <div style="display:flex;gap:8px;">
-            <button class="sr-btn sr-btn-primary" id="sr-offer-swap-btn" style="display:flex;align-items:center;gap:6px;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+          <div class="sr-v2-page-actions">
+            <button class="sr-btn sr-btn-primary" id="sr-offer-swap-btn" style="min-height:34px;padding:0 14px;font-size:12px;display:flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
               <span>Offer My Shift</span>
             </button>
           </div>
         </div>
 
-        <!-- Team-Only Filter Bar (Zero External Companies) -->
-        <div role="tablist" style="display:flex;gap:8px;margin-bottom:18px;border-bottom:2px solid var(--sr-border-subtle);padding-bottom:8px;flex-wrap:wrap;">
-          <button id="sr-swap-filter-all" class="sr-btn ${teamSwapFilter === 'all' ? 'sr-btn-primary' : 'sr-btn-secondary'}" style="font-size:13px;padding:7px 14px;">
-            All Team Swaps (${allSwaps.length})
-          </button>
-          <button id="sr-swap-filter-avail" class="sr-btn ${teamSwapFilter === 'available' ? 'sr-btn-primary' : 'sr-btn-secondary'}" style="font-size:13px;padding:7px 14px;">
-            Available to Claim (${availableCount})
-          </button>
-          <button id="sr-swap-filter-mine" class="sr-btn ${teamSwapFilter === 'mine' ? 'sr-btn-primary' : 'sr-btn-secondary'}" style="font-size:13px;padding:7px 14px;">
-            My Offered / Claimed
-          </button>
+        <div style="margin-bottom:16px;">
+          <div class="sr-v2-pill-switch" role="tablist">
+            <button type="button" id="sr-swap-filter-all" class="${teamSwapFilter === 'all' ? 'active' : ''}">
+              All (${allSwaps.length})
+            </button>
+            <button type="button" id="sr-swap-filter-avail" class="${teamSwapFilter === 'available' ? 'active' : ''}">
+              Available (${availableCount})
+            </button>
+            <button type="button" id="sr-swap-filter-mine" class="${teamSwapFilter === 'mine' ? 'active' : ''}">
+              Mine
+            </button>
+          </div>
         </div>
 
         ${swapsHtml}
@@ -15897,15 +15792,15 @@
 
     document.getElementById('sr-swap-filter-all')?.addEventListener('click', () => {
       teamSwapFilter = 'all';
-      renderOpenShiftMarketplace();
+      rerenderMarketplace();
     });
     document.getElementById('sr-swap-filter-avail')?.addEventListener('click', () => {
       teamSwapFilter = 'available';
-      renderOpenShiftMarketplace();
+      rerenderMarketplace();
     });
     document.getElementById('sr-swap-filter-mine')?.addEventListener('click', () => {
       teamSwapFilter = 'mine';
-      renderOpenShiftMarketplace();
+      rerenderMarketplace();
     });
 
     document.getElementById('sr-offer-swap-btn')?.addEventListener('click', () => openOfferSwapModal());
@@ -16066,15 +15961,15 @@
 
     container.innerHTML = `
       <div class="sr-page-wrap">
-        <div class="sr-page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
-          <div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-              <h2 class="sr-page-title" style="margin:0;">Statutory &amp; Sector Governance</h2>
-              <span class="sr-status-pill active" style="font-size:11px;">${escapeHtml(industryLabel)}</span>
-            </div>
-            <p class="sr-page-subtitle" style="margin:0;">${escapeHtml(hubLabel)} &bull; Tailored safety regulations, payroll taxes, and workflow controls</p>
+        <div class="sr-v2-page-head">
+          <div class="sr-v2-page-title-wrap">
+            <h2 class="sr-v2-page-title">
+              <span>Governance</span>
+              <span class="sr-v2-pill-meta">${escapeHtml(industryLabel)}</span>
+            </h2>
+            <p class="sr-v2-page-sub">${escapeHtml(hubLabel)} &middot; Statutory regulations, payroll taxes &amp; access controls</p>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <div class="sr-v2-page-actions">
             <a href="/api/reports/dpa" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               <span>Download DPA</span>
@@ -16094,27 +15989,28 @@
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
-          <div class="sr-card" style="padding:14px;margin:0;border-top:3px solid #10b981;">
-            <div style="font-size:10.5px;font-weight:800;color:var(--sr-text-muted);text-transform:uppercase;">Statutory</div>
-            <div style="font-size:20px;font-weight:900;color:#10b981;margin-top:4px;font-family:'JetBrains Mono',monospace;">100%</div>
-            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:2px;">Remittance Ready</div>
+        <div class="sr-v2-kpi-3">
+          <div class="sr-v2-kpi-card" style="border-top:3px solid #10b981;">
+            <span class="sr-v2-kpi-label">Statutory</span>
+            <span class="sr-v2-kpi-val" style="color:#10b981;">100%</span>
+            <span class="sr-v2-kpi-sub">Remittance ready</span>
           </div>
-          <div class="sr-card" style="padding:14px;margin:0;border-top:3px solid #0284c7;">
-            <div style="font-size:10.5px;font-weight:800;color:var(--sr-text-muted);text-transform:uppercase;">Rest-Window Rule</div>
-            <div style="font-size:20px;font-weight:900;color:#0284c7;margin-top:4px;font-family:'JetBrains Mono',monospace;">94.2%</div>
-            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:2px;">12h Min Shift Gap</div>
+          <div class="sr-v2-kpi-card" style="border-top:3px solid #0284c7;">
+            <span class="sr-v2-kpi-label">Rest-Window Rule</span>
+            <span class="sr-v2-kpi-val" style="color:#0284c7;">94.2%</span>
+            <span class="sr-v2-kpi-sub">12h min shift gap</span>
           </div>
-          <div class="sr-card" style="padding:14px;margin:0;border-top:3px solid #f59e0b;">
-            <div style="font-size:10.5px;font-weight:800;color:var(--sr-text-muted);text-transform:uppercase;">Access Verification</div>
-            <div style="font-size:20px;font-weight:900;color:#f59e0b;margin-top:4px;font-family:'JetBrains Mono',monospace;">0 Flags</div>
-            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:2px;">QR + GPS Locked</div>
+          <div class="sr-v2-kpi-card" style="border-top:3px solid #f59e0b;">
+            <span class="sr-v2-kpi-label">Access Verification</span>
+            <span class="sr-v2-kpi-val" style="color:#d97706;">0 Flags</span>
+            <span class="sr-v2-kpi-sub">QR &amp; GPS locked</span>
           </div>
         </div>
 
-        ${sections}
-        ${taxMarkup}
-        ${ideasMarkup}
+        <div class="sr-v2-2col-even">
+          <div>${sections}</div>
+          <div>${taxMarkup}${ideasMarkup}</div>
+        </div>
       </div>`;
 
     document.getElementById('sr-gov-open-settings')?.addEventListener('click', () => {
@@ -16656,107 +16552,108 @@
     const gpsW = Math.min(100, Number(attendance.gpsSnapshotPercent) || 0);
     const flagW = Math.min(100, attendance.outOfBoundsFlagged > 0 ? Math.round((attendance.outOfBoundsFlagged / attendance.totalPunches) * 100) : 0);
 
+    const activeStatusSub = Number(headcount.activeOnShift) > 0
+      ? `${fmt(headcount.totalRoster)} rostered &middot; ${fmt(headcount.onLeave)} on leave`
+      : `${fmt(headcount.totalRoster)} rostered &middot; Scheduled 06:00 WAT`;
+
     main.innerHTML = `
-      <!-- ── Page Header ── -->
-      <div style="padding:24px 28px 0;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px;">
-          <div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <h1 style="margin:0;font-size:22px;font-weight:800;color:var(--sr-text-main);letter-spacing:-0.4px;">Executive Analytics</h1>
-              <span style="font-size:11px;padding:3px 9px;background:rgba(13,148,136,0.12);color:#0d9488;border-radius:999px;font-weight:700;">${escapeHtml(execIndustryLabel)}</span>
-            </div>
-            <p style="margin:4px 0 0;font-size:13px;color:var(--sr-text-muted);">
-              ${escapeHtml(tenant.companyId || '')} &nbsp;·&nbsp; ${escapeHtml(tenant.companyName || '')} &nbsp;·&nbsp; ${escapeHtml(tenant.hubName || '')}
+      <div class="sr-page-wrap" style="padding:0;">
+        <!-- 1-Line Executive Pulse Header -->
+        <div class="sr-v2-page-head">
+          <div class="sr-v2-page-title-wrap">
+            <h1 class="sr-v2-page-title" style="font-size:1.5rem;">
+              <span>Executive Pulse</span>
+              <span class="sr-v2-pill-meta">${escapeHtml(execIndustryLabel)}</span>
+            </h1>
+            <p class="sr-v2-page-sub">
+              <span>${escapeHtml(tenant.companyId || '')}</span>
+              &middot;
+              <span>${escapeHtml(tenant.companyName || '')}</span>
+              &middot;
+              <span>${escapeHtml(tenant.hubName || '')}</span>
             </p>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <span style="font-size:11px;padding:4px 10px;background:var(--sr-bg-card-subtle,#f1f5f9);color:var(--sr-text-muted);border-radius:20px;border:1px solid var(--sr-border-subtle);">
-              ${escapeHtml(tenant.reportPeriod || '')}
-            </span>
-            <button type="button" class="sr-btn sr-btn-primary" id="sr-analytics-add-staff-btn" style="font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:6px;" title="Add a new staff member and assign department">
+          <div class="sr-v2-page-actions">
+            <span class="sr-v2-pill-meta" style="background:var(--p-surface-hover);color:var(--p-text-2);border-color:var(--p-border);">${escapeHtml(tenant.reportPeriod || '')}</span>
+            <button type="button" class="sr-btn sr-btn-primary" id="sr-analytics-add-staff-btn" style="min-height:34px;font-size:12px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;" title="Add a new staff member and assign department">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
               <span>+ Add Staff</span>
             </button>
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-switch-to-shiftops" style="font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Frontline Shift Operations Layer">
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-switch-to-shiftops" style="min-height:34px;font-size:12px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Frontline Shift Operations Layer">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-              <span>Shift Floor Layer</span>
+              <span>Shift Floor</span>
             </button>
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-analytics-export-btn" style="font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:6px;">
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-analytics-export-btn" style="min-height:34px;font-size:12px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Export Audit Brief
+              <span>Export Brief</span>
             </button>
           </div>
         </div>
 
         <!-- ── Compliance Status Bar ── -->
-        <div style="display:flex;align-items:center;gap:10px;margin:14px 0 20px;padding:10px 14px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);border-radius:10px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;margin:0 0 18px;padding:10px 14px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);border-radius:10px;flex-wrap:wrap;">
           <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;flex-shrink:0;"></span>
           <span style="font-size:12px;color:var(--sr-text-muted);font-weight:500;">Payroll Status:</span>
           <span style="font-size:12px;color:var(--sr-text-main);font-weight:700;">${escapeHtml(payrollBurn.statusLabel || 'Pending')}</span>
-          <span style="margin-left:auto;font-size:11px;color:var(--sr-text-muted);">Statutory remittance due: <b>${escapeHtml(statutory.remittanceDueDate || '—')}</b></span>
+          <span style="margin-left:auto;font-size:11.5px;color:var(--sr-text-muted);">Statutory remittance due: <b>${escapeHtml(statutory.remittanceDueDate || '—')}</b></span>
         </div>
 
-        <!-- ── KPI Stat Cards ── -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
-
+        <!-- ── 4-Column Symmetrical KPI Row (No 3+1 Orphan Card) ── -->
+        <div class="sr-v2-kpi-4" id="sr-exec-kpi-grid">
           <!-- Card 1: Attendance Rate -->
-          <div class="sr-card" style="padding:20px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-              <span style="font-size:12px;font-weight:600;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.6px;">Attendance Rate</span>
-              <div style="width:34px;height:34px;border-radius:10px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              </div>
+          <div class="sr-v2-kpi-card" style="border-top:3px solid #10b981;padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span class="sr-v2-kpi-label">Attendance Rate</span>
+              <span style="width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,0.12);color:#10b981;display:inline-flex;align-items:center;justify-content:center;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              </span>
             </div>
-            <div style="font-size:32px;font-weight:800;color:#10b981;letter-spacing:-1px;line-height:1;">${pct(attendance.attendanceRatePercent)}</div>
-            <div style="font-size:12px;color:var(--sr-text-muted);margin-top:6px;">${pct(attendance.punctualityRatePercent)} on-time punctuality</div>
-            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:3px;">${fmt(headcount.absentToday)} absent · ${fmt(headcount.onLeave)} on leave</div>
+            <div class="sr-v2-kpi-val" style="color:#10b981;font-size:1.75rem;">${pct(attendance.attendanceRatePercent)}</div>
+            <div class="sr-v2-kpi-sub sr-v2-num">${pct(attendance.punctualityRatePercent)} punctuality &middot; ${fmt(headcount.absentToday)} absent</div>
           </div>
 
           <!-- Card 2: Payroll Burn -->
-          <div class="sr-card" style="padding:20px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-              <span style="font-size:12px;font-weight:600;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.6px;">Payroll Burn vs Budget</span>
-              <div style="width:34px;height:34px;border-radius:10px;background:#fffbeb;display:flex;align-items:center;justify-content:center;">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              </div>
+          <div class="sr-v2-kpi-card" style="border-top:3px solid #f59e0b;padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span class="sr-v2-kpi-label">Payroll Burn</span>
+              <span style="width:28px;height:28px;border-radius:8px;background:rgba(245,158,11,0.14);color:#d97706;display:inline-flex;align-items:center;justify-content:center;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </span>
             </div>
-            <div style="font-size:22px;font-weight:800;color:var(--sr-text-main);letter-spacing:-0.5px;line-height:1;">${fmtM(payrollBurn.monthlyGrossBurnNgn)}</div>
-            <div style="font-size:12px;color:var(--sr-text-muted);margin:4px 0 10px;">of ${fmtM(payrollBurn.monthlyBudgetNgn)} approved budget</div>
-            <div style="background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:6px;overflow:hidden;">
-              <div style="width:${budgetUsed}%;height:100%;background:${budgetColor};border-radius:999px;transition:width 0.8s ease;"></div>
+            <div class="sr-v2-kpi-val" style="font-size:1.55rem;">${fmtM(payrollBurn.monthlyGrossBurnNgn)} <span style="font-size:0.8rem;font-weight:600;color:var(--p-text-3);">/ ${fmtM(payrollBurn.monthlyBudgetNgn)}</span></div>
+            <div style="background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:5px;overflow:hidden;margin:6px 0 4px;">
+              <div style="width:${budgetUsed}%;height:100%;background:${budgetColor};border-radius:999px;"></div>
             </div>
-            <div style="font-size:11px;color:${budgetColor};font-weight:700;margin-top:5px;">${pct(payrollBurn.budgetUtilizationPercent)} Budget Utilized</div>
+            <div class="sr-v2-kpi-sub sr-v2-num" style="color:${budgetColor};font-weight:700;">${pct(payrollBurn.budgetUtilizationPercent)} budget utilized</div>
           </div>
 
           <!-- Card 3: Active Workforce -->
-          <div class="sr-card" style="padding:20px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-              <span style="font-size:12px;font-weight:600;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.6px;">Active Workforce</span>
-              <div style="width:34px;height:34px;border-radius:10px;background:var(--sr-accent-light);display:flex;align-items:center;justify-content:center;">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              </div>
+          <div class="sr-v2-kpi-card" style="border-top:3px solid #3b82f6;padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span class="sr-v2-kpi-label">Active Workforce</span>
+              <span style="width:28px;height:28px;border-radius:8px;background:rgba(59,130,246,0.12);color:#3b82f6;display:inline-flex;align-items:center;justify-content:center;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              </span>
             </div>
-            <div style="font-size:32px;font-weight:800;color:#3b82f6;letter-spacing:-1px;line-height:1;">${fmt(headcount.activeOnShift)}</div>
-            <div style="font-size:12px;color:var(--sr-text-muted);margin-top:6px;">on-shift now</div>
-            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:3px;">${fmt(headcount.totalRoster)} total rostered staff</div>
+            <div class="sr-v2-kpi-val" style="color:#3b82f6;font-size:1.75rem;">${fmt(headcount.activeOnShift)} <span style="font-size:0.9rem;font-weight:600;color:var(--p-text-3);">on shift</span></div>
+            <div class="sr-v2-kpi-sub sr-v2-num">${activeStatusSub}</div>
           </div>
 
           <!-- Card 4: Overtime Exposure -->
-          <div class="sr-card" style="padding:20px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-              <span style="font-size:12px;font-weight:600;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.6px;">Overtime Exposure</span>
-              <div style="width:34px;height:34px;border-radius:10px;background:#fef2f2;display:flex;align-items:center;justify-content:center;">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
+          <div class="sr-v2-kpi-card" style="border-top:3px solid #ef4444;padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span class="sr-v2-kpi-label">Overtime Exposure</span>
+              <span style="width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,0.12);color:#ef4444;display:inline-flex;align-items:center;justify-content:center;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
             </div>
-            <div style="font-size:32px;font-weight:800;color:#ef4444;letter-spacing:-1px;line-height:1;">${fmt(hoursAndOvertime.overtimeHours)}<span style="font-size:16px;font-weight:600;"> hrs</span></div>
-            <div style="font-size:12px;color:var(--sr-text-muted);margin-top:6px;">₦${fmt(hoursAndOvertime.overtimeSpendNgn)} accrued spend</div>
-            <div style="font-size:11px;color:var(--sr-text-muted);margin-top:3px;">${fmt(hoursAndOvertime.totalHours)} total hrs · ${pct(hoursAndOvertime.complianceRate)} compliance</div>
+            <div class="sr-v2-kpi-val" style="color:#ef4444;font-size:1.75rem;">${fmt(hoursAndOvertime.overtimeHours)} <span style="font-size:0.9rem;font-weight:600;">hrs</span></div>
+            <div class="sr-v2-kpi-sub sr-v2-num">₦${fmt(hoursAndOvertime.overtimeSpendNgn)} OT &middot; ${pct(hoursAndOvertime.complianceRate)} compliance</div>
           </div>
         </div>
 
-        <!-- ── Row 2: Dual-Mode Attendance Compliance + Statutory Remittance ── -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;" class="sr-analytics-2col">
+        <!-- ── Row 2: Verification Channels + Statutory Remittance ── -->
+        <div class="sr-v2-2col-even" style="margin-bottom:20px;">
 
           <!-- Dual-Mode Compliance Gauge -->
           <div class="sr-card" style="padding:22px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
@@ -16900,7 +16797,7 @@
         </div>
 
         <!-- ── Row 4: Sector Safety Regulations, Tax Matrix & Workflow Ideas ── -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;" class="sr-analytics-2col">
+        <div class="sr-v2-2col-even" style="margin-bottom:24px;">
           <div class="sr-card" style="padding:20px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;">
               <h3 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">Safety &amp; Regulatory Governance</h3>
