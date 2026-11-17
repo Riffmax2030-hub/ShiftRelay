@@ -1447,15 +1447,14 @@
         ${isSupervisorAccount ? `
           <!-- Mobile Sticky Supervisor Dual-Mode Bar (Zero Header Overflow on Phones) -->
           <div class="sr-sup-mobile-mode-bar" role="group" aria-label="Mobile Supervisor Mode Switcher">
-            <span style="font-size:11px;font-weight:800;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.04em;">Active View:</span>
-            <div style="display:inline-flex;align-items:center;background:var(--sr-bg-card-subtle,#0f172a);border:1px solid var(--sr-border-subtle,rgba(148,163,184,0.25));border-radius:999px;padding:3px;gap:2px;flex:1;max-width:290px;">
-              <button type="button" data-sup-mode="worker" class="sr-sup-mode-btn ${!isSupervisor ? 'active' : ''}" style="flex:1;justify-content:center;display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;border:none;font-size:11.5px;font-weight:700;cursor:pointer;${!isSupervisor ? 'background:#10b981;color:#ffffff;' : 'background:transparent;color:var(--sr-text-muted,#94a3b8);'}">
+            <div style="display:flex;align-items:center;width:100%;background:var(--sr-bg-card-subtle,#0f172a);border:1px solid var(--sr-border-subtle,rgba(148,163,184,0.25));border-radius:999px;padding:3px;gap:3px;">
+              <button type="button" data-sup-mode="worker" class="sr-sup-mode-btn ${!isSupervisor ? 'active' : ''}" style="flex:1;justify-content:center;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:none;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;${!isSupervisor ? 'background:#10b981;color:#ffffff;' : 'background:transparent;color:var(--sr-text-muted,#94a3b8);'}">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <span>My Shift</span>
               </button>
-              <button type="button" data-sup-mode="supervisor" class="sr-sup-mode-btn ${isSupervisor ? 'active' : ''}" style="flex:1;justify-content:center;display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;border:none;font-size:11.5px;font-weight:700;cursor:pointer;${isSupervisor ? 'background:#0284c7;color:#ffffff;' : 'background:transparent;color:var(--sr-text-muted,#94a3b8);'}">
+              <button type="button" data-sup-mode="supervisor" class="sr-sup-mode-btn ${isSupervisor ? 'active' : ''}" style="flex:1;justify-content:center;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:none;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;${isSupervisor ? 'background:#0284c7;color:#ffffff;' : 'background:transparent;color:var(--sr-text-muted,#94a3b8);'}">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                <span>Supervisor Mode</span>
+                <span>Supervisor</span>
               </button>
             </div>
           </div>
@@ -6816,6 +6815,7 @@
   let assignShiftSubmitting = false;
   let assignShiftIdempotencyKey = null;
   let selectedWorkerForDrop = DEFAULT_RIFFMAX_STAFF[0];
+  let selectedMobileRosterDate = '';
 
   async function renderManagerSchedule() {
     const user = getUser();
@@ -6985,6 +6985,17 @@
       ? allShifts
       : allShifts.filter(s => s.membership_id === managerStaffFilter || s.membershipId === managerStaffFilter);
 
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const firstShiftDate = filteredShifts
+      .map(s => s.date || (s.starts_at ? s.starts_at.slice(0, 10) : ''))
+      .find(d => d && d.startsWith(managerScheduleMonth + '-'));
+    if (!selectedMobileRosterDate || !selectedMobileRosterDate.startsWith(managerScheduleMonth + '-')) {
+      const hasTodayShift = filteredShifts.some(s => (s.date || (s.starts_at ? s.starts_at.slice(0, 10) : '')) === todayIso);
+      selectedMobileRosterDate = hasTodayShift
+        ? todayIso
+        : (firstShiftDate || (todayIso.startsWith(managerScheduleMonth + '-') ? todayIso : `${managerScheduleMonth}-10`));
+    }
+
     const firstDayOfMonth = new Date(year, mon - 1, 1);
     const daysInMonth = new Date(year, mon, 0).getDate();
     // Monday-based offset (0 = Mon ... 6 = Sun)
@@ -7003,15 +7014,23 @@
         const d = s.date || (s.starts_at ? s.starts_at.slice(0, 10) : '');
         return d === dateStr;
       });
-      const isToday = day === 10;
+      const isToday = day === 10 || dateStr === todayIso;
+      const isSelectedMobile = dateStr === selectedMobileRosterDate;
+
+      const dotHtml = dayShifts.slice(0, 3).map(ds => {
+        const isMorning = (ds.start_time || '06:00').startsWith('06') || (ds.start_time || '').startsWith('07') || (ds.start_time || '').startsWith('08');
+        const dotColor = ds.is_shift_supervisor ? '#0284c7' : (isMorning ? '#10b981' : '#f59e0b');
+        return `<span class="sr-dnd-dot" style="background:${dotColor};"></span>`;
+      }).join('') + (dayShifts.length > 3 ? `<span class="sr-dnd-dot-more">+${dayShifts.length - 3}</span>` : '');
 
       calendarCellsHtml += `
-        <div class="sr-dnd-cal-day" data-drop-date="${dateStr}" title="Drop a worker here or tap to assign shift on ${dateStr}" style="${isToday ? 'border-color:#10b981;background:rgba(16,185,129,0.04);' : ''}">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-size:11.5px;font-weight:800;color:${isToday ? '#10b981' : 'var(--sr-text-main)'};">${day}</span>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.35;color:var(--sr-text-muted);" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <div class="sr-dnd-cal-day${isSelectedMobile ? ' is-selected-mobile' : ''}" data-drop-date="${dateStr}" title="Drop a worker here or tap to assign shift on ${dateStr}" style="${isToday ? 'border-color:#10b981;background:rgba(16,185,129,0.04);' : ''}">
+          <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+            <span class="sr-dnd-day-num" style="font-size:11.5px;font-weight:800;color:${isToday ? '#10b981' : 'var(--sr-text-main)'};">${day}</span>
+            <svg class="sr-dnd-add-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.35;color:var(--sr-text-muted);" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </div>
-          <div style="display:flex;flex-direction:column;gap:3px;margin-top:2px;">
+          <div class="sr-dnd-mobile-dots">${dotHtml}</div>
+          <div class="sr-dnd-desktop-pills" style="display:flex;flex-direction:column;gap:3px;margin-top:2px;">
             ${dayShifts.map(ds => {
               const firstName = (ds.worker_name || 'Staff').split(' ')[0];
               const hrs = ds.start_time ? `${ds.start_time}–${ds.end_time || '14:00'}` : '06:00–14:00';
@@ -7065,7 +7084,71 @@
           ${calendarCellsHtml}
         </div>
       </div>
+      <div id="sr-mobile-day-agenda" class="sr-v2-mobile-agenda"></div>
     `;
+
+    function renderMobileAgenda(activeDateStr) {
+      const agendaEl = panel.querySelector('#sr-mobile-day-agenda');
+      if (!agendaEl) return;
+      const dayShifts = filteredShifts.filter(s => {
+        const d = s.date || (s.starts_at ? s.starts_at.slice(0, 10) : '');
+        return d === activeDateStr;
+      });
+      const dateLabel = new Intl.DateTimeFormat('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      }).format(new Date(activeDateStr + 'T08:00:00'));
+
+      agendaEl.innerHTML = `
+        <div class="sr-v2-agenda-card">
+          <div class="sr-v2-agenda-head">
+            <div>
+              <div class="sr-v2-agenda-date">${escapeHtml(dateLabel)}</div>
+              <div class="sr-v2-agenda-count sr-v2-num">${dayShifts.length} ${dayShifts.length === 1 ? 'shift' : 'shifts'} scheduled</div>
+            </div>
+            <button type="button" class="sr-btn sr-btn-primary" id="sr-mobile-agenda-assign-btn" style="min-height:32px;padding:0 12px;font-size:12px;">+ Assign Shift</button>
+          </div>
+          ${dayShifts.length === 0 ? `
+            <div class="sr-v2-agenda-empty">No shifts assigned for this date. Tap "+ Assign Shift" or select crew above.</div>
+          ` : `
+            <div class="sr-v2-agenda-list">
+              ${dayShifts.map(ds => {
+                const hrs = ds.start_time ? `${ds.start_time}–${ds.end_time || '14:00'}` : '06:00–14:00';
+                const isMorning = (ds.start_time || '06:00').startsWith('06') || (ds.start_time || '').startsWith('07') || (ds.start_time || '').startsWith('08');
+                const barColor = ds.is_shift_supervisor ? '#0284c7' : (isMorning ? '#10b981' : '#f59e0b');
+                return `
+                  <div class="sr-v2-agenda-item">
+                    <span class="sr-v2-agenda-bar" style="background:${barColor};"></span>
+                    <div style="flex:1;min-width:0;">
+                      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        <span style="font-size:13px;font-weight:700;color:var(--p-text);">${escapeHtml(ds.worker_name || 'Staff Member')}</span>
+                        ${ds.is_shift_supervisor ? '<span class="sr-v2-pill-meta" style="padding:1px 7px;font-size:10px;">Supervisor</span>' : ''}
+                      </div>
+                      <div style="font-size:11.5px;color:var(--p-text-3);margin-top:2px;">
+                        <span class="sr-v2-num" style="font-weight:600;color:var(--p-text-2);">${escapeHtml(hrs)}</span>
+                        &middot; ${escapeHtml(ds.station || 'Main Floor')}
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+
+      const assignBtn = agendaEl.querySelector('#sr-mobile-agenda-assign-btn');
+      if (assignBtn) {
+        assignBtn.addEventListener('click', () => {
+          const worker = selectedWorkerForDrop || directoryMembers[0];
+          openDragDropShiftModal(worker, activeDateStr, tz, directoryMembers);
+        });
+      }
+    }
+
+    renderMobileAgenda(selectedMobileRosterDate);
 
     // Bind HTML5 Drag-and-Drop + Touch/Click Fallback
     let draggedWorker = null;
@@ -7179,6 +7262,13 @@
       });
 
       dayCell.addEventListener('click', () => {
+        if (window.innerWidth < 768) {
+          selectedMobileRosterDate = dateStr;
+          panel.querySelectorAll('.sr-dnd-cal-day.is-selected-mobile').forEach(el => el.classList.remove('is-selected-mobile'));
+          dayCell.classList.add('is-selected-mobile');
+          renderMobileAgenda(dateStr);
+          return;
+        }
         const worker = selectedWorkerForDrop || directoryMembers[0];
         openDragDropShiftModal(worker, dateStr, tz, directoryMembers);
       });

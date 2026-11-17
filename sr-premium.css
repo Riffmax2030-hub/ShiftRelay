@@ -1961,7 +1961,7 @@ body:has(#sr-app-shell) .app-header,
 
 @media (max-width: 767px) {
   #sr-app-shell .sr-main-content {
-    padding: 12px 14px 96px !important;
+    padding: 12px 14px 116px !important;
   }
 }
 
@@ -2412,10 +2412,17 @@ body:has(#sr-app-shell) .app-header,
 
   #sr-app-shell .sr-floating-ai-beacon,
   .sr-floating-ai-beacon {
-    bottom: 78px !important;
-    right: 12px !important;
-    width: 44px !important;
-    height: 44px !important;
+    bottom: 70px !important;
+    right: 8px !important;
+    width: 38px !important;
+    height: 38px !important;
+    opacity: 0.9 !important;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25) !important;
+  }
+
+  #sr-app-shell .sr-floating-ai-beacon:active,
+  .sr-floating-ai-beacon:hover {
+    opacity: 1 !important;
   }
 }
 
@@ -2521,5 +2528,266 @@ body:has(#sr-app-shell) .app-header,
   background: rgba(252, 125, 125, 0.2) !important;
   color: #fecaca !important;
 }
+
+/* 9. Mobile-First Native App Polish (v171) */
+#sr-app-shell .sr-dnd-mobile-dots,
+#sr-app-shell .sr-v2-mobile-agenda {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  #sr-app-shell .sr-floating-ai-beacon svg,
+  .sr-floating-ai-beacon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  #sr-app-shell .sr-sup-mobile-mode-bar {
+    padding: 6px 12px !important;
+  }
+
+  /* Single-row horizontal swipe toolbar for multi-button page headers */
+  #sr-app-shell .sr-v2-page-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  #sr-app-shell .sr-v2-page-actions {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+    padding-bottom: 2px;
+  }
+
+  #sr-app-shell .sr-v2-page-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  #sr-app-shell .sr-v2-page-actions > * {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+
+  #sr-app-shell .sr-v2-page-actions .sr-btn {
+    min-height: 32px !important;
+    padding: 0 10px !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Native Mobile Dot Calendar + Selected-Day Agenda (Roster / Operations) */
+  #sr-app-shell .sr-dnd-desktop-pills,
+  #sr-app-shell .sr-dnd-add-icon {
+    display: none !important;
+  }
+
+  #sr-app-shell .sr-dnd-cal-day {
+    min-height: 46px !important;
+    padding: 5px 4px !important;
+    border-radius: 10px !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+  }
+
+  #sr-app-shell .sr-dnd-cal-day > div:first-child {
+    justify-content: center !important;
+  }
+
+  #sr-app-shell .sr-dnd-day-num {
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+  }
+
+  #sr-app-shell .sr-dnd-cal-day.is-selected-mobile {
+    border-color: var(--p-teal) !important;
+    background: var(--p-teal-light) !important;
+    box-shadow: 0 0 0 1px var(--p-teal) inset !important;
+  }
+
+  #sr-app-shell .sr-dnd-mobile-dots {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    flex-wrap: wrap;
+    min-height: 10px;
+  }
+
+  #sr-app-shell .sr-dnd-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  #sr-app-shell .sr-dnd-dot-more {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--p-text-3);
+    line-height: 1;
+  }
+
+  #sr-app-shell .sr-v2-mobile-agenda {
+    display: block !important;
+    padding: 2px 14px 16px;
+  }
+
+  #sr-app-shell .sr-v2-agenda-card {
+    background: var(--p-surface-subtle, var(--p-surface-hover));
+    border: 1px solid var(--p-border);
+    border-radius: var(--p-radius-lg);
+    padding: 12px 14px;
+  }
+
+  #sr-app-shell .sr-v2-agenda-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  #sr-app-shell .sr-v2-agenda-date {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--p-text);
+  }
+
+  #sr-app-shell .sr-v2-agenda-count {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--p-text-3);
+  }
+
+  #sr-app-shell .sr-v2-agenda-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #sr-app-shell .sr-v2-agenda-item {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    background: var(--p-surface);
+    border: 1px solid var(--p-border);
+    border-radius: 10px;
+    padding: 9px 11px;
+  }
+
+  #sr-app-shell .sr-v2-agenda-bar {
+    width: 3px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+
+  #sr-app-shell .sr-v2-agenda-empty {
+    font-size: 0.78rem;
+    color: var(--p-text-3);
+    padding: 10px 4px 2px;
+  }
+
+  /* Compact Native List Cards for Team & Workforce Directories */
+  #sr-app-shell .sr-team-row-item,
+  #sr-app-shell .sr-team-row-no-actions .sr-team-row-item {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 4px 10px !important;
+    padding: 11px 12px !important;
+    align-items: center !important;
+  }
+
+  #sr-app-shell .sr-team-row-item > div:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  #sr-app-shell .sr-team-row-item > div:nth-child(6) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  #sr-app-shell .sr-team-row-item > .sr-team-person-cell {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin: 2px 0;
+  }
+
+  #sr-app-shell .sr-team-row-item > div:nth-child(3) {
+    grid-column: 1;
+    grid-row: 3;
+    font-size: 0.75rem;
+    min-width: 0;
+  }
+
+  #sr-app-shell .sr-team-row-item > div:nth-child(4) {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: end;
+    text-align: right;
+    font-size: 0.72rem;
+    color: var(--p-text-3);
+  }
+
+  #sr-app-shell .sr-team-row-item > div:nth-child(5) {
+    grid-column: 1;
+    grid-row: 4;
+    font-size: 0.72rem;
+    color: var(--p-text-3);
+  }
+
+  #sr-app-shell .sr-team-row-item > .sr-team-actions-cell {
+    grid-column: 2;
+    grid-row: 4;
+    justify-self: end;
+    justify-content: flex-end !important;
+    padding-top: 0 !important;
+  }
+
+  #sr-app-shell .sr-team-actions-cell .sr-btn {
+    min-height: 28px !important;
+    height: 28px !important;
+    padding: 0 10px !important;
+    font-size: 0.72rem !important;
+    border-radius: 7px !important;
+  }
+
+  #sr-app-shell .sr-team-cell-sub {
+    display: inline;
+    margin-left: 4px;
+    font-size: 0.68rem;
+    opacity: 0.82;
+  }
+}
+
+@media (max-width: 430px) {
+  /* Ensure 4 underline tabs (Exceptions | Swaps | Timecards | Access) fit crisp at 390px */
+  #sr-app-shell .sr-tabs-header,
+  #sr-app-shell .sr-v2-tabs {
+    gap: 2px !important;
+    margin-bottom: 14px !important;
+  }
+
+  #sr-app-shell .sr-tabs-header .sr-tab-btn,
+  #sr-app-shell .sr-v2-tab {
+    padding: 9px 9px !important;
+    gap: 5px !important;
+    font-size: 0.8rem !important;
+  }
+
+  #sr-app-shell .sr-v2-tab-badge {
+    min-width: 17px;
+    height: 17px;
+    padding: 0 5px;
+    font-size: 0.65rem;
+  }
+}
+
 
 
