@@ -99,7 +99,7 @@ export async function sendShiftRelayEmail({ to, subject, html, text, headers = {
 import { createServer } from 'node:http';
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { basename, extname, join, normalize, resolve } from 'node:path';
 import { databaseConfigured, demoMembers, demoOrganisation, getPool, initializeDatabase, isDatabaseConnectionError, sanitizeDatabaseError, query, seedDemoOrganisation, DEFAULT_DEMO_MEMBER_PASSWORD_HASH } from './database.mjs';
@@ -184,6 +184,7 @@ import {
 } from './attendance-policy-engine.mjs';
 import {
   generatePayrollReportHtml,
+  generateAttendanceSheetHtml,
   generateCvReportHtml,
   generateTermsOfServiceHtml,
   generateDpaReportHtml
@@ -2817,6 +2818,317 @@ export function generateTaxPensionCSV(employees) {
   return serializeCsvRows(headers, rows, { withBom: false });
 }
 
+const CLEAN_RESET_MARKER = 'riffmax_clean_start_2026_11_18_v1';
+
+async function cleanTenantOperationalData(store, targetOrgId, { isPg = false } = {}) {
+  if (!store || !targetOrgId) return store;
+  const isSameOrg = (item) => {
+    if (!item || typeof item !== 'object') return false;
+    const itemOrg = item.organisationId || item.organisation_id || item.tenant_id || item.tenantId || null;
+    return itemOrg === targetOrgId || (!itemOrg && targetOrgId === demoOrganisation.id);
+  };
+  const filterKeepOtherOrgs = (arr) => (Array.isArray(arr) ? arr.filter(x => !isSameOrg(x)) : []);
+
+  const orgMemberIds = new Set(
+    (store.memberships || [])
+      .filter(m => !m.organisation_id || m.organisation_id === targetOrgId)
+      .flatMap(m => [m.id, m.user_id].filter(Boolean))
+  );
+  if (targetOrgId === demoOrganisation.id) {
+    for (const dm of demoMembers) orgMemberIds.add(dm.id);
+  }
+
+  for (const key of [
+    'timeEntries',
+    'scheduledShifts',
+    'openShifts',
+    'openShiftApplications',
+    'leaveRequests',
+    'shiftSwaps',
+    'punchCorrections',
+    'attendanceExceptions',
+    'handovers',
+    'notifications',
+    'incidents',
+    'announcements',
+    'rectificationReceipts',
+    'adminApprovals',
+    'faceVerificationLog',
+    'payrollDispatches',
+    'payrollRuns',
+    'directMessages',
+    'communityMessages'
+  ]) {
+    store[key] = filterKeepOtherOrgs(store[key]);
+  }
+
+  if (store.lastPayrollDispatch && isSameOrg(store.lastPayrollDispatch)) {
+    delete store.lastPayrollDispatch;
+  }
+  if (targetOrgId === demoOrganisation.id) {
+    store.emailStation = [];
+  }
+  if (store.rewards && typeof store.rewards === 'object') {
+    for (const uid of Object.keys(store.rewards)) {
+      if (orgMemberIds.has(uid)) delete store.rewards[uid];
+    }
+  }
+  if (store.shiftTaskState && typeof store.shiftTaskState === 'object') {
+    delete store.shiftTaskState[targetOrgId];
+    if (targetOrgId === demoOrganisation.id) delete store.shiftTaskState['RIF-2026'];
+  }
+  if (store.customShiftTasks && typeof store.customShiftTasks === 'object') {
+    delete store.customShiftTasks[targetOrgId];
+    if (targetOrgId === demoOrganisation.id) delete store.customShiftTasks['RIF-2026'];
+  }
+  if (store.workerTaskState && typeof store.workerTaskState === 'object') {
+    for (const uid of Object.keys(store.workerTaskState)) {
+      if (orgMemberIds.has(uid)) delete store.workerTaskState[uid];
+    }
+  }
+
+  if (isPg && getPool()) {
+    const pgOrgTables = [
+      'time_entries',
+      'attendance_exceptions',
+      'scheduled_shifts',
+      'open_shifts',
+      'leave_requests',
+      'shift_swap_requests',
+      'incidents',
+      'announcements',
+      'shift_announcements',
+      'direct_messages',
+      'work_items',
+      'workflow_runs',
+      'notifications',
+      'audit_events'
+    ];
+    for (const tbl of pgOrgTables) {
+      await query(`DELETE FROM ${tbl} WHERE organisation_id = $1`, [targetOrgId]).catch(() => {});
+    }
+    await query(
+      'DELETE FROM quote_reactions WHERE membership_id IN (SELECT id FROM memberships WHERE organisation_id = $1)',
+      [targetOrgId]
+    ).catch(() => {});
+  }
+  return store;
+}
+
+async function applyCleanSlateResetIfNeeded(isPg = false, storeOverride = null) {
+  const store = storeOverride || await getStore();
+  if (!store.cleanResetMarkers || typeof store.cleanResetMarkers !== 'object') {
+    store.cleanResetMarkers = {};
+  }
+  if (store.cleanResetMarkers[CLEAN_RESET_MARKER]) return false;
+  await cleanTenantOperationalData(store, demoOrganisation.id, { isPg });
+  store.cleanResetMarkers[CLEAN_RESET_MARKER] = new Date().toISOString();
+  await saveStore(store);
+  return true;
+}
+
+function compileAttendanceSheet({ store, payrollStore, members, org, monthParam = null, department = 'all', generatedBy = 'Management' }) {
+  const orgTimeZone = org?.time_zone || 'Africa/Lagos';
+  const monthMeta = formatMonthMeta(monthParam, orgTimeZone);
+  const targetMonth = monthMeta.month;
+  const orgId = org?.id || demoOrganisation.id;
+  const activeMembers = (Array.isArray(members) ? members : []).filter(m => m.status === 'active');
+  const normalizedDept = String(department || 'all').trim();
+  const filteredMembers = (normalizedDept && normalizedDept.toLowerCase() !== 'all')
+    ? activeMembers.filter(m => String(m.department || 'Operations').toLowerCase() === normalizedDept.toLowerCase())
+    : activeMembers;
+
+  const orgEntries = (payrollStore.timeEntries || []).filter(e =>
+    (!e.organisationId || e.organisationId === orgId) &&
+    typeof e.clockedInAt === 'string' &&
+    e.clockedInAt.startsWith(targetMonth)
+  );
+  const exceptionState = computeAttendanceExceptionsForOrg({
+    org,
+    members: activeMembers,
+    contracts: (payrollStore.contracts || []).filter(c => (c.tenant_id || c.organisation_id) === orgId),
+    timeEntries: payrollStore.timeEntries || [],
+    scheduledShifts: payrollStore.scheduledShifts || [],
+    leaveRequests: payrollStore.leaveRequests || [],
+    punchCorrections: payrollStore.punchCorrections || [],
+    persistedExceptions: payrollStore.attendanceExceptions || [],
+    month: targetMonth
+  });
+  const approvedLeaves = (payrollStore.leaveRequests || []).filter(l =>
+    (!l.organisationId || l.organisationId === orgId) && l.status === 'approved'
+  );
+
+  let totalPunches = 0;
+  let totalHours = 0;
+  let totalRegHours = 0;
+  let totalOtHours = 0;
+  let totalGps = 0;
+  let totalCard = 0;
+  let totalFlagged = 0;
+  let totalExceptions = 0;
+  let onShiftCount = 0;
+  const deptAgg = new Map();
+
+  const rows = filteredMembers.map(m => {
+    const uid = m.user_id || m.id;
+    const dept = m.department || 'Operations';
+    const memberEntries = orgEntries.filter(e => e.membershipId === m.id || e.membershipId === uid || e.userId === uid);
+    const presentDays = new Set();
+    let regHours = 0;
+    let otHours = 0;
+    let gpsCount = 0;
+    let cardCount = 0;
+    let flaggedCount = 0;
+
+    for (const e of memberEntries) {
+      if (e.clockedInAt) presentDays.add(String(e.clockedInAt).slice(0, 10));
+      if (e.verificationMode === 'colleague_card_scan' || e.verificationMode === 'gate_qr') cardCount += 1;
+      else gpsCount += 1;
+      if (e.geofenceStatus === 'outside_geofence_flagged') flaggedCount += 1;
+      if (e.clockedOutAt && e.presenceVerificationStatus !== 'pending_supervisor_confirm') {
+        const worked = Math.max(0, (new Date(e.clockedOutAt) - new Date(e.clockedInAt)) / 3600000);
+        const credited = e.presenceVerificationStatus === 'flagged_early_departure'
+          ? Math.max(0, Number(e.verifiedHours ?? 0))
+          : worked;
+        regHours += Math.min(8, credited);
+        otHours += Math.max(0, credited - 8);
+      }
+    }
+
+    regHours = Math.round(regHours * 10) / 10;
+    otHours = Math.round(otHours * 10) / 10;
+    const empTotalHours = Math.round((regHours + otHours) * 10) / 10;
+    const empEx = exceptionState.exceptions.filter(ex => ex.membershipId === m.id || ex.membershipId === uid || ex.userId === uid);
+    const unresolvedEx = empEx.filter(ex => ex.status === 'pending_review').length;
+    const empLeaveDays = approvedLeaves.filter(l => l.membership_id === m.id || l.membershipId === m.id || l.membershipId === uid).length;
+    const hasCompletedShifts = memberEntries.some(e => e.clockedOutAt);
+    const scoreData = (hasCompletedShifts || empEx.length > 0)
+      ? monthlyScoreSummary(uid, payrollStore, targetMonth, {
+          graceMinutes: exceptionState.policy.graceMinutes,
+          attendanceExceptions: empEx
+        })
+      : { avgScore: null, grade: null };
+
+    const verificationParts = [];
+    if (gpsCount > 0) verificationParts.push(`${gpsCount} GPS`);
+    if (cardCount > 0) verificationParts.push(`${cardCount} Card`);
+    const currentStatus = m.onShift
+      ? 'On Shift'
+      : (flaggedCount > 0 || unresolvedEx > 0)
+        ? 'Flagged'
+        : presentDays.size > 0
+          ? 'Verified'
+          : 'Ready';
+
+    totalPunches += memberEntries.length;
+    totalRegHours += regHours;
+    totalOtHours += otHours;
+    totalHours += empTotalHours;
+    totalGps += gpsCount;
+    totalCard += cardCount;
+    totalFlagged += flaggedCount;
+    totalExceptions += empEx.length;
+    if (m.onShift) onShiftCount += 1;
+
+    if (!deptAgg.has(dept)) deptAgg.set(dept, { department: dept, staffCount: 0, activeCount: 0, punchesCount: 0, totalHours: 0, exceptionsCount: 0 });
+    const da = deptAgg.get(dept);
+    da.staffCount += 1;
+    if (m.onShift) da.activeCount += 1;
+    da.punchesCount += memberEntries.length;
+    da.totalHours += empTotalHours;
+    da.exceptionsCount += empEx.length;
+
+    const shiftWindow = (m.shift_start && m.shift_end)
+      ? `${String(m.shift_start).slice(0, 5)}–${String(m.shift_end).slice(0, 5)}`
+      : '06:00–14:00';
+
+    return {
+      id: m.id,
+      staffId: m.staffId || 'SR-0000',
+      name: m.name || 'Staff Member',
+      title: m.title || 'Staff',
+      department: dept,
+      shiftWindow,
+      daysPresent: presentDays.size,
+      punchesCount: memberEntries.length,
+      regularHours: regHours,
+      overtimeHours: otHours,
+      totalHours: empTotalHours,
+      exceptionsCount: empEx.length,
+      unresolvedExceptions: unresolvedEx,
+      leaveDays: empLeaveDays,
+      shiftScore: scoreData.avgScore,
+      shiftGrade: scoreData.grade,
+      gpsCount,
+      cardCount,
+      verificationMix: verificationParts.length > 0 ? verificationParts.join(' · ') : 'No punches yet',
+      currentStatus
+    };
+  });
+
+  const departmentSummary = Array.from(deptAgg.values()).map(d => ({
+    ...d,
+    totalHours: Math.round(d.totalHours * 10) / 10,
+    attendanceRatePct: d.staffCount > 0 && d.activeCount > 0
+      ? Math.round((d.activeCount / d.staffCount) * 1000) / 10
+      : (d.punchesCount > 0 ? Math.min(100, Math.round((d.punchesCount / d.staffCount) * 1000) / 10) : 0)
+  }));
+
+  const staffCount = rows.length;
+  const attendanceRatePct = staffCount > 0 && onShiftCount > 0
+    ? Math.round((onShiftCount / staffCount) * 1000) / 10
+    : (totalPunches > 0 ? Math.min(100, Math.round((totalPunches / Math.max(1, staffCount)) * 1000) / 10) : 0);
+  const punctualityRatePct = totalPunches > 0
+    ? Math.max(0, Math.round(((totalPunches - totalFlagged) / totalPunches) * 1000) / 10)
+    : 100;
+
+  return {
+    month: targetMonth,
+    monthCompact: monthMeta.monthCompact,
+    periodLabel: monthMeta.period,
+    department: normalizedDept || 'all',
+    departmentLabel: (!normalizedDept || normalizedDept.toLowerCase() === 'all') ? 'All Departments' : normalizedDept,
+    generatedBy,
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalStaff: staffCount,
+      onShiftNow: onShiftCount,
+      totalPunches,
+      regularHours: Math.round(totalRegHours * 10) / 10,
+      overtimeHours: Math.round(totalOtHours * 10) / 10,
+      totalHours: Math.round(totalHours * 10) / 10,
+      gpsVerifiedCount: totalGps,
+      cardScanCount: totalCard,
+      exceptionsCount: totalExceptions,
+      attendanceRatePct,
+      punctualityRatePct
+    },
+    departmentSummary,
+    rows
+  };
+}
+
+function generateAttendanceSheetCsv(sheetData = {}) {
+  const headers = ['Staff ID', 'Name', 'Department', 'Title', 'Shift Window', 'Days Present', 'Punches', 'Regular Hours', 'Overtime Hours', 'Total Hours', 'Exceptions', 'Score', 'Verification Mix', 'Status'];
+  const rows = (Array.isArray(sheetData.rows) ? sheetData.rows : []).map(r => [
+    escapeCsvCell(r.staffId),
+    escapeCsvCell(r.name),
+    escapeCsvCell(r.department),
+    escapeCsvCell(r.title),
+    escapeCsvCell(r.shiftWindow),
+    escapeCsvCell(r.daysPresent, { numeric: true }),
+    escapeCsvCell(r.punchesCount, { numeric: true }),
+    escapeCsvCell(r.regularHours, { numeric: true }),
+    escapeCsvCell(r.overtimeHours, { numeric: true }),
+    escapeCsvCell(r.totalHours, { numeric: true }),
+    escapeCsvCell(r.exceptionsCount, { numeric: true }),
+    escapeCsvCell(r.shiftGrade ? `${r.shiftGrade} (${r.shiftScore}%)` : 'Ready'),
+    escapeCsvCell(r.verificationMix),
+    escapeCsvCell(r.currentStatus)
+  ]);
+  return serializeCsvRows(headers, rows, { withBom: true });
+}
+
 
 
 async function handleApi(request, response, url) {
@@ -3310,6 +3622,84 @@ async function handleApi(request, response, url) {
     return response.end(html);
   }
 
+  // ── Supervisor & Executive Official Attendance Sheet Generator (JSON / CSV / Print HTML) ──
+  if (url.pathname === '/api/reports/attendance-sheet' && request.method === 'GET') {
+    const authCtx = await getOpsOrAdminAuth(request);
+    if (!authCtx) {
+      return sendJson(response, 401, { error: 'Authentication required to generate attendance sheets.' });
+    }
+    if (authCtx.kind === 'user' && !['owner', 'manager', 'supervisor', 'workforce_admin', 'finance_admin'].includes(authCtx.user.role)) {
+      return sendJson(response, 403, { error: 'Forbidden: supervisor, manager, or executive clearance required.' });
+    }
+    const requestedTenant = url.searchParams.get('tenantId') || null;
+    const tenantId = authCtx.kind === 'user' ? authCtx.user.organisation_id : requestedTenant;
+    if (authCtx.kind === 'user' && requestedTenant && requestedTenant !== authCtx.user.organisation_id) {
+      return sendJson(response, 403, { error: 'Forbidden: cross-tenant attendance sheet access denied.' });
+    }
+    const monthParam = url.searchParams.get('month') || null;
+    const department = url.searchParams.get('department') || 'all';
+    const format = String(url.searchParams.get('format') || 'json').toLowerCase();
+
+    const activeUserCtx = authCtx.kind === 'user'
+      ? authCtx.user
+      : { organisation_id: tenantId || demoOrganisation.id, name: 'Enterprise Admin', role: 'owner' };
+    const { members, store } = await getOrganisationRosterState(activeUserCtx);
+    const payrollStore = await loadPayrollStoreForTenant(activeUserCtx.organisation_id);
+    const org = (payrollStore.organisations || store.organisations || []).find(o =>
+      o.id === activeUserCtx.organisation_id || o.organisation_code === activeUserCtx.organisation_id
+    ) || { id: activeUserCtx.organisation_id, legal_name: 'Riffmax Technology Limited', organisation_code: 'RIF-2026', time_zone: 'Africa/Lagos' };
+
+    const sheetData = compileAttendanceSheet({
+      store,
+      payrollStore,
+      members,
+      org,
+      monthParam,
+      department,
+      generatedBy: `${activeUserCtx.name || 'Management'} (${String(activeUserCtx.role || 'supervisor').toUpperCase()})`
+    });
+
+    if (format === 'csv') {
+      const csv = generateAttendanceSheetCsv(sheetData);
+      const safeDept = String(department || 'all').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+      response.writeHead(200, {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="ShiftRelay-Attendance-${org.organisation_code || 'ORG'}-${sheetData.month}-${safeDept}.csv"`,
+        'Content-Length': Buffer.byteLength(csv),
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        ...SECURITY_HEADERS
+      });
+      return response.end(csv);
+    }
+
+    if (format === 'html' || format === 'print' || format === 'pdf') {
+      const html = generateAttendanceSheetHtml(sheetData, org);
+      response.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': Buffer.byteLength(html),
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        ...SECURITY_HEADERS
+      });
+      return response.end(html);
+    }
+
+    return sendJson(response, 200, { ok: true, org: { id: org.id, code: org.organisation_code, name: org.legal_name || org.trading_name }, sheet: sheetData });
+  }
+
+  // ── Executive Clean-Slate Operational Data Reset (Preserves Workers & Contracts) ──
+  if (url.pathname === '/api/executive/reset-operational-data' && request.method === 'POST') {
+    const authCtx = await getOpsOrAdminAuth(request);
+    if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
+    if (authCtx.kind === 'user' && authCtx.user.role !== 'owner') {
+      return sendJson(response, 403, { error: 'Only organisation owners can reset operational records.' });
+    }
+    const targetOrgId = authCtx.kind === 'user' ? authCtx.user.organisation_id : demoOrganisation.id;
+    const store = await getStore();
+    await cleanTenantOperationalData(store, targetOrgId, { isPg: databaseReady });
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, message: 'All operational attendance, exception, handover, swap, and reward logs cleared while preserving approved workers.' });
+  }
+
   if (url.pathname === '/api/reports/worker-cv' && request.method === 'GET') {
     const store = await getStore();
     const staffId = url.searchParams.get('staffId') || 'SR-0042';
@@ -3683,16 +4073,17 @@ async function handleApi(request, response, url) {
 
     const platformUrl = getPublicAppOrigin(request);
 
+    const orgEntryCount = (store.timeEntries || []).length;
     const newsletterHtml = renderWeeklyProgressNewsletterEmail({
       recipientName,
       orgName: org.legal_name || 'Riffmax Technology Limited',
       weekNumber: 46,
       year: 2026,
       stats: {
-        totalShiftsAccounted: (store.timeEntries || []).length || 142,
-        verifiedHoursLogged: 1420,
-        punctualityRate: '99.4%',
-        safetyIncidents: 0,
+        totalShiftsAccounted: orgEntryCount,
+        verifiedHoursLogged: Math.round(orgEntryCount * 8),
+        punctualityRate: orgEntryCount > 0 ? '99.4%' : '100%',
+        safetyIncidents: (store.incidents || []).length,
         variance: '₦0.00'
       },
       platformUrl
@@ -3700,9 +4091,9 @@ async function handleApi(request, response, url) {
 
     const emailRecord = await sendShiftRelayEmail({
       to: recipientEmail,
-      subject: `ShiftRelay Weekly Operational Dispatch — Issue #46 (Verified ₦0.00 Variance)`,
+      subject: `ShiftRelay Weekly Operational Dispatch — Verified ₦0.00 Variance`,
       html: newsletterHtml,
-      text: `ShiftRelay Weekly Operational Dispatch (Week 46, 2026)\n\n142 shifts accounted for with 99.4% punctuality score and zero safety incidents.\n\nOpen your operational cockpit: ${platformUrl}`,
+      text: `ShiftRelay Weekly Operational Dispatch\n\n${orgEntryCount} shifts accounted for with zero payroll variance.\n\nOpen your operational cockpit: ${platformUrl}`,
       source: 'Automated Weekly Dispatcher'
     });
 
@@ -5608,29 +5999,85 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       payrollMonth: payroll.period || new Date().toLocaleDateString('en-NG', { month: 'long', year: 'numeric' })
     };
 
-    // Build dynamic Operating Unit breakdown from actual approved staff grouped by department
+    // Build dynamic Operating Unit breakdown from actual approved staff + real timeEntries grouped by department
     const deptBuckets = new Map();
+    const memberDeptMap = new Map();
     const payrollByUid = new Map(payroll.employees.map(e => [e.userId, e]));
     for (const m of activeMembers) {
       const dept = m.department || 'Operations';
-      if (!deptBuckets.has(dept)) deptBuckets.set(dept, { unit: dept, headcount: 0, onShift: 0, overtimeHours: 0 });
+      memberDeptMap.set(m.id, dept);
+      if (m.user_id) memberDeptMap.set(m.user_id, dept);
+      if (!deptBuckets.has(dept)) {
+        deptBuckets.set(dept, {
+          unit: dept,
+          headcount: 0,
+          onShift: 0,
+          punches: 0,
+          gpsPunches: 0,
+          cardPunches: 0,
+          flaggedPunches: 0,
+          regularHours: 0,
+          overtimeHours: 0
+        });
+      }
       const b = deptBuckets.get(dept);
       b.headcount += 1;
       if (m.onShift) b.onShift += 1;
       const pe = payrollByUid.get(m.user_id) || payrollByUid.get(m.id);
-      if (pe) b.overtimeHours += Number(pe.overtimeHours || 0);
+      if (pe) {
+        if (pe.completedShifts > 0) b.regularHours += Number(pe.regularHours || 0);
+        b.overtimeHours += Number(pe.overtimeHours || 0);
+      }
     }
+    for (const e of orgEntries) {
+      const dept = memberDeptMap.get(e.membershipId) || memberDeptMap.get(e.userId) || e.department || 'Operations';
+      const b = deptBuckets.get(dept);
+      if (!b) continue;
+      b.punches += 1;
+      if (e.verificationMode === 'colleague_card_scan' || e.verificationMode === 'gate_qr') b.cardPunches += 1;
+      else b.gpsPunches += 1;
+      if (e.geofenceStatus === 'outside_geofence_flagged') b.flaggedPunches += 1;
+    }
+
     const unitBreakdown = Array.from(deptBuckets.values()).map(b => {
-      const attPct = b.onShift > 0 ? Math.round((b.onShift / b.headcount) * 1000) / 10 : 100;
+      const attPct = b.onShift > 0
+        ? Math.round((b.onShift / b.headcount) * 1000) / 10
+        : (b.punches > 0 ? Math.min(100, Math.round((b.punches / b.headcount) * 1000) / 10) : 0);
+      const statusLabel = b.flaggedPunches > 0 || b.overtimeHours > 20
+        ? 'Review Needed'
+        : (b.onShift > 0 || b.punches > 0 ? 'On Track' : 'Ready');
       return {
         unit: b.unit,
         headcount: b.headcount,
         onShift: b.onShift,
+        punchesCount: b.punches,
+        gpsPunches: b.gpsPunches,
+        cardPunches: b.cardPunches,
+        regularHours: Math.round(b.regularHours * 10) / 10,
         attendancePercent: attPct,
         overtimeHours: Math.round(b.overtimeHours * 10) / 10,
-        status: b.overtimeHours > 20 ? 'Review Needed' : 'On Track'
+        status: statusLabel
       };
     });
+
+    // Build 7-day verification graphic series from real orgEntries
+    const dailyAttendanceSeries = [];
+    for (let offset = 6; offset >= 0; offset--) {
+      const d = new Date(Date.now() - offset * 86400000);
+      const isoDay = d.toISOString().slice(0, 10);
+      const label = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayEntries = orgEntries.filter(e => typeof e.clockedInAt === 'string' && e.clockedInAt.slice(0, 10) === isoDay);
+      const gpsCount = dayEntries.filter(e => e.verificationMode !== 'colleague_card_scan' && e.verificationMode !== 'gate_qr').length;
+      const cardCount = dayEntries.filter(e => e.verificationMode === 'colleague_card_scan' || e.verificationMode === 'gate_qr').length;
+      dailyAttendanceSeries.push({
+        date: isoDay,
+        label,
+        totalPunches: dayEntries.length,
+        gpsCount,
+        cardCount,
+        target: totalRoster
+      });
+    }
 
     const statutory = {
       penComPercent: 18,
@@ -5648,6 +6095,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       hoursAndOvertime,
       payrollBurn,
       unitBreakdown,
+      dailyAttendanceSeries,
       statutory,
       industryProfile: profile,
       safetyRegulations: profile.safetyRegulations || [],
@@ -5675,37 +6123,16 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Calendar requires an organisation account.' });
     if (!databaseReady) {
       const store = await getStore();
-      if (!Array.isArray(store.scheduledShifts) || store.scheduledShifts.length === 0) {
-        const now = Date.now();
-        store.scheduledShifts = [
-          {
-            id: 'shift-demo-1',
-            membership_id: 'mem-1',
-            worker_name: 'Alex Rivera (Floor Lead)',
-            starts_at: new Date(now - 2 * 3600000).toISOString(),
-            ends_at: new Date(now + 6 * 3600000).toISOString(),
-            status: 'in_progress'
-          },
-          {
-            id: 'shift-demo-2',
-            membership_id: 'mem-2',
-            worker_name: 'Sarah Chen (Kitchen Dispatch)',
-            starts_at: new Date(now + 1.5 * 3600000).toISOString(),
-            ends_at: new Date(now + 9.5 * 3600000).toISOString(),
-            status: 'scheduled'
-          },
-          {
-            id: 'shift-demo-3',
-            membership_id: 'mem-3',
-            worker_name: 'Marcus Brody (Night Supervisor)',
-            starts_at: new Date(now + 86400000).toISOString(),
-            ends_at: new Date(now + 86400000 + 8 * 3600000).toISOString(),
-            status: 'scheduled'
-          }
-        ];
-        await saveStore(store);
-      }
-      return sendJson(response, 200, { shifts: store.scheduledShifts, leave: [] });
+      if (!Array.isArray(store.scheduledShifts)) store.scheduledShifts = [];
+      const month = url.searchParams.get('month') || new Date().toISOString().slice(0, 7);
+      const orgShifts = store.scheduledShifts.filter(s =>
+        (!s.organisationId && !s.organisation_id && user.organisation_id === demoOrganisation.id || s.organisationId === user.organisation_id || s.organisation_id === user.organisation_id) &&
+        String(s.starts_at || s.date || '').startsWith(month)
+      );
+      const orgLeave = (Array.isArray(store.leaveRequests) ? store.leaveRequests : []).filter(l =>
+        (!l.organisationId || l.organisationId === user.organisation_id)
+      );
+      return sendJson(response, 200, { shifts: orgShifts, leave: orgLeave });
     }
     const month = url.searchParams.get('month') || new Date().toISOString().slice(0, 7); const start = `${month}-01`;
     const shifts = await query(`select s.id, s.starts_at, s.ends_at, s.status, m.id as membership_id, u.full_name as worker_name from scheduled_shifts s join memberships m on m.id = s.membership_id join portal_users u on u.id = m.user_id where s.organisation_id = $1 and s.starts_at >= date_trunc('month',$2::date) and s.starts_at < date_trunc('month',$2::date) + interval '1 month' order by s.starts_at`, [user.organisation_id, start]);
@@ -6081,49 +6508,10 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
 
   if (url.pathname === '/api/shift-swaps' && request.method === 'GET') {
     const store = await getStore();
-    const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
-    const unitA = profile.units?.[0]?.unit || 'Core Operations';
-    const unitB = profile.units?.[1]?.unit || 'Operations Support';
-    if (!Array.isArray(store.shiftSwaps)) {
-      store.shiftSwaps = [
-        {
-          id: 'swap-demo-1',
-          shift_id: 'shift-1',
-          requester_membership_id: '00000000-0000-4000-8000-000000000011',
-          requester_name: 'Amina Otieno',
-          requester_role: 'outgoing',
-          target_membership_id: null,
-          target_name: 'Open Shift Pool',
-          swap_type: 'cover',
-          shift_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
-          shift_time: 'Morning Shift (07:00 - 15:00)',
-          department: unitA,
-          reason: 'Medical checkup before evening rotation',
-          status: 'pending',
-          created_at: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-          id: 'swap-demo-2',
-          shift_id: 'shift-2',
-          requester_membership_id: '00000000-0000-4000-8000-000000000013',
-          requester_name: 'Faith Wanjiku',
-          requester_role: 'incoming',
-          target_membership_id: '00000000-0000-4000-8000-000000000011',
-          target_name: 'Amina Otieno',
-          swap_type: 'trade',
-          shift_date: new Date(Date.now() + 172800000).toISOString().slice(0, 10),
-          shift_time: 'Night Shift (23:00 - 07:00)',
-          department: unitB,
-          reason: 'Direct swap trade with Amina',
-          status: 'claimed',
-          created_at: new Date(Date.now() - 7200000).toISOString()
-        }
-      ];
-      await saveStore(store);
-    }
-    const swaps = profile.key !== 'manufacturing'
-      ? store.shiftSwaps.map(s => /Grain Milling|Main Production Floor|Apapa/i.test(String(s.department || '')) ? { ...s, department: unitA } : s)
-      : store.shiftSwaps;
+    if (!Array.isArray(store.shiftSwaps)) store.shiftSwaps = [];
+    const swaps = store.shiftSwaps.filter(s =>
+      !user.organisation_id || !s.organisationId || s.organisationId === user.organisation_id
+    );
     return sendJson(response, 200, { swaps });
   }
 
@@ -7559,27 +7947,17 @@ async function getUserRewards(user, store) {
   if (!store.rewards) store.rewards = {};
   if (!store.rewards[user.id]) {
     store.rewards[user.id] = {
-      starsBalance: 2450, // Pre-seeded so user can experience claiming/redeeming 3,000 cash gift immediately
-      coinsBalance: 2450,
-      lifetimeEarned: 3450,
-      level: 4,
-      levelName: 'Shift Specialist',
-      currentTenureYears: 2.5,
-      hireDate: '2024-05-15',
-      claimedQuests: ['quest-profile'],
-      claimedKeys: [
-        'lifetime_milestone_profile_' + user.id,
-        'lifetime_milestone_education_' + user.id,
-        'lifetime_milestone_certification_' + user.id
-      ],
+      starsBalance: 0,
+      coinsBalance: 0,
+      lifetimeEarned: 0,
+      level: 1,
+      levelName: 'Shift Starter',
+      currentTenureYears: 0,
+      hireDate: new Date().toISOString().slice(0, 10),
+      claimedQuests: [],
+      claimedKeys: [],
       redemptions: [],
-      ledger: [
-        { id: 'tx-seed-1', type: 'earn', title: 'Full Frontline Profile Setup & Verification', stars: 300, timestamp: new Date(Date.now() - 3 * 86400000).toISOString() },
-        { id: 'tx-seed-2', type: 'earn', title: 'GPS On-Premises Clock-In (Verified Geofence)', stars: 25, timestamp: new Date(Date.now() - 2 * 86400000).toISOString() },
-        { id: 'tx-seed-3', type: 'earn', title: 'Shift Handover Briefing Approved', stars: 30, timestamp: new Date(Date.now() - 2 * 86400000 + 28800000).toISOString() },
-        { id: 'tx-seed-4', type: 'earn', title: 'Scheduled Shift Clock-Out (Closing Hour Cap Enforced)', stars: 25, timestamp: new Date(Date.now() - 1 * 86400000).toISOString() },
-        { id: 'tx-seed-5', type: 'earn', title: 'Monthly Frontline Attendance Star Bonus', stars: 500, timestamp: new Date(Date.now() - 1 * 86400000 + 3600000).toISOString() }
-      ]
+      ledger: []
     };
     await saveStore(store);
   }
@@ -8100,54 +8478,6 @@ async function getUserRewards(user, store) {
       userEntries = userEntries.filter(e => typeof e.clockedInAt === 'string' && e.clockedInAt.startsWith(monthMeta.month));
     }
 
-    if (!databaseReady && userEntries.length === 0 && user.organisation_id === demoOrganisation.id && isSelf && !monthParam) {
-      const baseStore = await getStore();
-      if (!Array.isArray(baseStore.timeEntries)) baseStore.timeEntries = [];
-      const now = Date.now();
-      const dayMs = 86400000;
-      const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
-      const hubLabel = user.hub_name || profile.defaultHubName;
-      const roleLabel = user.title || profile.defaultRoleTitle;
-      const deptLabel = user.department || profile.units?.[0]?.unit || 'Operations';
-      userEntries = [
-        {
-          id: 'te-seed-1',
-          organisationId: user.organisation_id,
-          membershipId: targetMemberId,
-          clockedInAt: new Date(now - dayMs - 8.5 * 3600000).toISOString(),
-          clockedOutAt: new Date(now - dayMs).toISOString(),
-          facility: hubLabel,
-          department: deptLabel,
-          role: roleLabel,
-          note: 'Completed regular shift + handover relay'
-        },
-        {
-          id: 'te-seed-2',
-          organisationId: user.organisation_id,
-          membershipId: targetMemberId,
-          clockedInAt: new Date(now - 2 * dayMs - 9 * 3600000).toISOString(),
-          clockedOutAt: null,
-          facility: hubLabel,
-          department: deptLabel,
-          role: roleLabel,
-          note: 'Shift completed - clock-out punch missing'
-        },
-        {
-          id: 'te-seed-3',
-          organisationId: user.organisation_id,
-          membershipId: targetMemberId,
-          clockedInAt: new Date(now - 3 * dayMs - 8 * 3600000).toISOString(),
-          clockedOutAt: new Date(now - 3 * dayMs).toISOString(),
-          facility: hubLabel,
-          department: deptLabel,
-          role: roleLabel,
-          note: 'Regular shift'
-        }
-      ];
-      baseStore.timeEntries.push(...userEntries);
-      await saveStore(baseStore);
-    }
-
     const exceptionState = computeAttendanceExceptionsForOrg({
       org,
       members: (store.memberships || []).filter(m => !m.organisation_id || m.organisation_id === user.organisation_id),
@@ -8313,47 +8643,6 @@ async function getUserRewards(user, store) {
     }
     const store = await getStore();
     if (!Array.isArray(store.punchCorrections)) store.punchCorrections = [];
-
-    if (!databaseReady && user.organisation_id === demoOrganisation.id && store.punchCorrections.filter(c => !c.organisationId || c.organisationId === demoOrganisation.id).length === 0) {
-      const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
-      const hubLabel = user.hub_name || profile.defaultHubName;
-      const roleLabel = profile.defaultRoleTitle;
-      store.punchCorrections.push(
-        {
-          id: 'pc-seed-1',
-          organisationId: demoOrganisation.id,
-          timeEntryId: 'te-seed-2',
-          membershipId: '00000000-0000-4000-8000-000000000011',
-          workerName: 'Chidinma Okonjo',
-          role: roleLabel,
-          facility: hubLabel,
-          date: 'Tue, Sep 8, 2026',
-          clockIn: '09:00',
-          requestedClockOut: '17:30',
-          hours: '8.50',
-          reason: 'Badge scanner sync delayed at main checkpoint',
-          status: 'pending',
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'pc-seed-2',
-          organisationId: demoOrganisation.id,
-          timeEntryId: 'te-seed-aaron',
-          membershipId: '00000000-0000-4000-8000-000000000012',
-          workerName: 'Farouk Bello',
-          role: roleLabel,
-          facility: hubLabel,
-          date: 'Tue, Sep 8, 2026',
-          clockIn: '09:00',
-          requestedClockOut: '17:30',
-          hours: '8.50',
-          reason: 'Shift handover extended triage',
-          status: 'pending',
-          createdAt: new Date().toISOString()
-        }
-      );
-      await saveStore(store);
-    }
 
     const orgCorrections = store.punchCorrections.filter(c =>
       c.organisationId === user.organisation_id || (!c.organisationId && user.organisation_id === demoOrganisation.id)
@@ -9213,6 +9502,12 @@ async function getUserRewards(user, store) {
     const ssoIssuer = process.env.ADMIN_OIDC_ISSUER || '';
     const ssoClientId = process.env.ADMIN_OIDC_CLIENT_ID || '';
     const breakGlassConfigured = Boolean(process.env.SHIFTRELAY_BREAKGLASS_KEY && process.env.SHIFTRELAY_BREAKGLASS_KEY.length >= 24);
+    const devDefaultAccounts = !IS_PRODUCTION ? [
+      { role: 'owner_root', label: 'Owner Root', email: 'owner@shiftrelayos.com' },
+      { role: 'onboarding_admin', label: 'Setup / Onboarding', email: 'adaeze@shiftrelayos.com' },
+      { role: 'ops_support_admin', label: 'Customer Care', email: 'tunde@shiftrelayos.com' },
+      { role: 'finance_admin', label: 'Finance Audit', email: 'chukwudi@shiftrelayos.com' }
+    ] : [];
     return sendJson(response, 200, {
       ok: true,
       authenticated: Boolean(adminCtx && adminCtx.adminUser),
@@ -9223,7 +9518,10 @@ async function getUserRewards(user, store) {
         provider: process.env.ADMIN_OIDC_PROVIDER || 'Microsoft Entra ID / Okta OIDC',
         issuer: ssoIssuer ? ssoIssuer.replace(/\/+$/, '') : null
       },
-      breakGlassEnabled: breakGlassConfigured
+      breakGlassEnabled: breakGlassConfigured,
+      aiEngine: process.env.OPENAI_API_KEY ? 'openai' : (process.env.GEMINI_API_KEY ? 'gemini' : 'local'),
+      devDefaultAccounts,
+      devDefaultPassHint: !IS_PRODUCTION ? (process.env.SHIFTRELAY_ADMIN_BOOTSTRAP_PASS || 'ShiftRelay!DevOps2026') : null
     });
   }
 
@@ -9899,6 +10197,118 @@ async function getUserRewards(user, store) {
     if (!adminCtx) return;
     const logs = await listAuditLogs(url.searchParams.get('limit') || 100, store, databaseReady);
     return sendJson(response, 200, { ok: true, logs });
+  }
+
+  // 1l. Core Backend Files & Engine Registry (Read-Only Metadata)
+  if (url.pathname === '/api/admin/system-files' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const registry = [
+      { file: 'server.mjs', category: 'Core HTTP & API', role: 'Primary router, auth, tenant & payroll APIs' },
+      { file: 'admin-auth.mjs', category: 'Security & RBAC', role: 'Admin sessions, scrypt, TOTP MFA & audit trail' },
+      { file: 'database.mjs', category: 'Persistence', role: 'PostgreSQL pool, resilient store & seeders' },
+      { file: 'schema.sql', category: 'Database Schema', role: 'Tables, indexes & RBAC DDL' },
+      { file: 'attendance-policy-engine.mjs', category: 'Setup Engine', role: 'Grace windows, geofence & exception rules' },
+      { file: 'attendance-security.mjs', category: 'Gate Security', role: 'QR/NFC, biometric & anti-farming checks' },
+      { file: 'compliance-engine.mjs', category: 'Compliance', role: 'NDPA retention, deletion & legal policy' },
+      { file: 'email-engine.mjs', category: 'Email Station', role: 'SMTP transport, templates & outbox dispatch' },
+      { file: 'nigerian-banking.mjs', category: 'Payroll & Tax', role: 'PenCom, PAYE, NHF & NUBAN validation' },
+      { file: 'shift-score-engine.mjs', category: 'Analytics', role: 'Shift reliability & attendance scoring' },
+      { file: 'report-engine.mjs', category: 'Exports', role: 'CSV & statutory schedule generators' },
+      { file: 'industry-profiles.mjs', category: 'Setup Engine', role: 'Sector checklist & onboarding presets' },
+      { file: 'legal-config.mjs', category: 'Legal', role: 'Terms, DPA & consent versioning' },
+      { file: 'admin.html', category: 'Control UI', role: 'Desktop admin console & login gateway' },
+      { file: 'package.json', category: 'Manifest', role: 'Dependencies, Node engine & verify scripts' }
+    ];
+    const files = await Promise.all(registry.map(async (item) => {
+      try {
+        const fullPath = resolve(process.cwd(), item.file);
+        const st = await stat(fullPath);
+        const raw = await readFile(fullPath, 'utf8');
+        return {
+          ...item,
+          exists: true,
+          sizeBytes: st.size,
+          lines: raw.split('\n').length,
+          modifiedAt: st.mtime.toISOString()
+        };
+      } catch {
+        return { ...item, exists: false, sizeBytes: 0, lines: 0, modifiedAt: null };
+      }
+    }));
+    return sendJson(response, 200, { ok: true, files, nodeVersion: process.version, uptimeSeconds: Math.floor(process.uptime()) });
+  }
+
+  // 1m. Onboarding Agent AI Extraction (OpenAI / Gemini Vision + Local Fallback)
+  if (url.pathname === '/api/admin/onboarding-agent/parse' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+
+    const body = await readJson(request);
+    const rawText = String(body.text || '').trim();
+    const images = Array.isArray(body.images) ? body.images.slice(0, 4) : [];
+
+    const sysPrompt = 'Extract company profile and staff payroll rows from the supplied text or images. Return strict JSON: {"company":{"companyName":"","industry":"operations","ownerName":"","ownerEmail":"","siteName":"","radius":250},"staffs":[{"staff_id":"","full_name":"","email":"","phone_e164":"","department":"Operations","role":"worker","pay_basis":"monthly","base_rate_ngn":"150000","pencom_rsa_pin":"","bank_name":"","cbn_bank_code":"","nuban_account_number":"","tin":""}]}. Only output valid JSON.';
+
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const contentParts = [];
+        if (rawText) contentParts.push({ type: 'text', text: rawText });
+        for (const img of images) {
+          if (img?.dataUrl && String(img.dataUrl).startsWith('data:image/')) {
+            contentParts.push({ type: 'image_url', image_url: { url: img.dataUrl } });
+          }
+        }
+        const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+          body: JSON.stringify({
+            model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: sysPrompt },
+              { role: 'user', content: contentParts.length ? contentParts : 'No input' }
+            ]
+          })
+        });
+        if (aiRes.ok) {
+          const aiJson = await aiRes.json();
+          const parsed = JSON.parse(aiJson.choices?.[0]?.message?.content || '{}');
+          return sendJson(response, 200, { ok: true, engine: 'openai-vision', fallback: false, extracted: parsed });
+        }
+      } catch (_) {}
+    }
+
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const parts = [];
+        if (rawText) parts.push({ text: rawText });
+        for (const img of images) {
+          const m = String(img?.dataUrl || '').match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+          if (m) parts.push({ inlineData: { mimeType: m[1], data: m[2] } });
+        }
+        const gModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: sysPrompt }] },
+            contents: [{ parts }],
+            generationConfig: { responseMimeType: 'application/json' }
+          })
+        });
+        if (gRes.ok) {
+          const gJson = await gRes.json();
+          const txt = gJson.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+          const parsed = JSON.parse(txt);
+          return sendJson(response, 200, { ok: true, engine: 'gemini-vision', fallback: false, extracted: parsed });
+        }
+      } catch (_) {}
+    }
+
+    return sendJson(response, 200, { ok: true, engine: 'local-rule-engine', fallback: true });
   }
 
   // 2. Admin Overview Stats
@@ -12381,6 +12791,18 @@ const CLEAN_HTML_ROUTES = {
 };
 
 async function serveStatic(request, response, url) {
+  if (url.pathname === '/vendor/xlsx.full.min.js') {
+    try {
+      const xlsxBuf = await readFile(resolve(publicDirectory, 'node_modules', 'xlsx', 'dist', 'xlsx.full.min.js'));
+      response.writeHead(200, {
+        'Content-Type': 'application/javascript; charset=utf-8',
+        'Cache-Control': 'public, max-age=86400',
+        ...SECURITY_HEADERS
+      });
+      response.end(xlsxBuf);
+      return;
+    } catch (_) {}
+  }
   const reqHost = String(request.headers['x-forwarded-host'] || request.headers.host || '').split(',')[0].trim().split(':')[0].toLowerCase();
   let requestedPath = url.pathname === '/'
     ? (WEBSITE_HOSTS.has(reqHost) ? 'website.html' : (ADMIN_HOSTS.has(reqHost) ? 'admin.html' : 'index.html'))
@@ -13734,9 +14156,11 @@ initializeDatabase()
         );
       `);
       await seedDemoOrganisation();
+      await applyCleanSlateResetIfNeeded(true).catch((e) => console.warn('[CLEAN RESET PG]', e?.message || e));
       await ensureAdminSeeded({}, true, IS_PRODUCTION);
     } else {
       const st = await getStore();
+      await applyCleanSlateResetIfNeeded(false, st);
       if (await ensureAdminSeeded(st, false, IS_PRODUCTION)) await saveStore(st);
     }
     server.listen(port, () => {
@@ -13765,6 +14189,7 @@ initializeDatabase()
 
     try {
       const st = await getStore();
+      await applyCleanSlateResetIfNeeded(false, st);
       if (await ensureAdminSeeded(st, false, IS_PRODUCTION)) await saveStore(st);
     } catch (_) {}
 

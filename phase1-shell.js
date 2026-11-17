@@ -2990,11 +2990,27 @@
   }
   const openGateQrScannerModal = openPeerIdScannerModal;
 
+  // One-time browser localStorage purge for clean operational start (preserves auth & theme)
+  try {
+    if (localStorage.getItem('sr_clean_reset_v173') !== '1') {
+      [
+        'sr_roster_shifts_v2',
+        'sr_live_handovers_v2',
+        'sr_floor_approvals_v2',
+        'sr_star_balance',
+        'sr_recent_star_event',
+        'sr_awarded_rewards',
+        'sr_sup_active_shift'
+      ].forEach(k => localStorage.removeItem(k));
+      localStorage.setItem('sr_clean_reset_v173', '1');
+    }
+  } catch (_) {}
+
   // ── Star Activity Helper (1-Line Recent Star Strip across Worker & Supervisor) ──
   function getStarActivityState() {
-    let balance = parseInt(localStorage.getItem('sr_star_balance') || '3120', 10);
-    if (isNaN(balance) || balance < 100) balance = 3120;
-    const recentText = localStorage.getItem('sr_recent_star_event') || '+25 PTS earned from On-Time Clock-In';
+    let balance = parseInt(localStorage.getItem('sr_star_balance') || '0', 10);
+    if (isNaN(balance) || balance < 0) balance = 0;
+    const recentText = localStorage.getItem('sr_recent_star_event') || 'Clock in on site to earn your first +25 PTS';
     return { balance, recentText };
   }
 
@@ -4044,6 +4060,10 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
               <span>Scan ID</span>
             </button>
+            <button class="sr-btn sr-btn-secondary" id="sr-sup-attendance-sheet-btn" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;" title="Generate Official Attendance Sheet (PDF / CSV)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>Attendance Sheet</span>
+            </button>
             ${['owner', 'workforce_admin', 'manager'].includes(user.role) ? `
             <button class="sr-btn sr-btn-secondary" id="sr-exec-overview-add-staff-btn" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;" title="Add new staff member directly into a company department">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
@@ -4541,6 +4561,9 @@
       });
       const openOverviewPeerScanner = () => openPeerIdScannerModal(user.company_id || user.organisation_id, user.hub_name || '', () => renderManagerOverview());
       document.getElementById('sr-sup-scan-peer-btn')?.addEventListener('click', openOverviewPeerScanner);
+      document.getElementById('sr-sup-attendance-sheet-btn')?.addEventListener('click', () => {
+        window.ShiftRelayOpenAttendanceSheetModal?.({ user, defaultDepartment: 'all' });
+      });
       document.getElementById('sr-empty-floor-scan-btn')?.addEventListener('click', openOverviewPeerScanner);
       document.querySelectorAll('[data-sr-scan-peer]').forEach(btn => btn.addEventListener('click', openOverviewPeerScanner));
       document.querySelectorAll('[data-sr-kpi-jump]').forEach(btn => {
@@ -5558,54 +5581,13 @@
 
   function getOrSeedLiveHandovers() {
     const key = 'sr_live_handovers_v2';
-    const user = getUser();
-    const profile = getUserIndustryProfile(user);
     let list = [];
     try {
       const raw = localStorage.getItem(key);
       if (raw) list = JSON.parse(raw);
     } catch (_) {}
-
-    // Purge stale legacy factory seed when active company is not manufacturing
-    const hasStaleFactorySeed = Array.isArray(list) && list.some(item =>
-      item && item.id === 'ho-riffmax-101' && profile.key !== 'manufacturing' &&
-      /Main Production Floor|generator fuel|Safety & PPE/i.test(String(item.station || '') + ' ' + String(item.summary || '') + ' ' + String((item.checklist || []).join(' ')))
-    );
-    if (hasStaleFactorySeed) list = [];
-
-    if (!Array.isArray(list) || list.length === 0) {
-      const zone0 = profile.zones?.[0]?.name || 'Primary Operations Desk';
-      const zone1 = profile.zones?.[1]?.name || 'Operations Command';
-      const checks = Array.isArray(profile.handoverChecklist) && profile.handoverChecklist.length > 0
-        ? profile.handoverChecklist.slice(0, 3).map(c => c.label || c.title || String(c))
-        : ['Workstation & Queue Clean', 'Access & Credentials Verified', 'Open Tickets Logged'];
-      list = [
-        {
-          id: 'ho-seed-' + profile.key + '-101',
-          author: 'Chidinma Okonjo',
-          authorRole: 'Outgoing Shift Lead',
-          station: zone0,
-          timestamp: 'Today · 05:55 WAT',
-          status: 'relayed',
-          condition: 'All Systems Normal',
-          summary: profile.defaultHandoverNotes || 'All primary systems verified healthy, access queues clear, and shift handoff notes synced for incoming team.',
-          checklist: checks
-        },
-        {
-          id: 'ho-seed-' + profile.key + '-100',
-          author: 'Tariq Al-Hassan',
-          authorRole: 'Operations Specialist',
-          station: zone1,
-          timestamp: 'Yesterday · 21:50 WAT',
-          status: 'acknowledged',
-          condition: 'All Systems Normal',
-          summary: 'Completed evening shift telemetry sync and verified all active roster timecards for statutory payroll cut-off.',
-          checklist: ['Telemetry Synced', 'Zero Open Incidents']
-        }
-      ];
-      try { localStorage.setItem(key, JSON.stringify(list)); } catch (_) {}
-    }
-    return list;
+    if (!Array.isArray(list)) list = [];
+    return list.filter(item => item && !String(item.id || '').startsWith('ho-seed-'));
   }
 
   async function renderWorkerHandovers() {
@@ -6410,27 +6392,12 @@
       const raw = localStorage.getItem(storageKey);
       if (raw) all = JSON.parse(raw);
     } catch (_) {}
-
-    if (!Array.isArray(all) || !all.some(s => String(s.date || '').startsWith(ym))) {
-      const user = getUser() || {};
-      const profile = getUserIndustryProfile(user);
-      const stationDefault = profile.zones?.[0]?.name || user.department || 'Operations Desk';
-      const stationSecond = profile.zones?.[1]?.name || 'Service & Support Desk';
-      const seeded = [
-        { id: `sr-s-${ym}-01`, membership_id: '00000000-0000-4000-8000-000000000003', worker_name: 'Babatunde Adeleke', department: 'Frontend Engineering', date: `${ym}-10`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-10T06:00:00.000Z`, ends_at: `${ym}-10T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-02`, membership_id: '00000000-0000-4000-8000-000000000004', worker_name: 'Chidinma Okonjo', department: 'Mobile Engineering', date: `${ym}-10`, start_time: '14:00', end_time: '22:00', starts_at: `${ym}-10T14:00:00.000Z`, ends_at: `${ym}-10T22:00:00.000Z`, station: stationSecond, rotation: 'Afternoon Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-03`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-11`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-11T06:00:00.000Z`, ends_at: `${ym}-11T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-04`, membership_id: '00000000-0000-4000-8000-000000000003', worker_name: 'Babatunde Adeleke', department: 'Frontend Engineering', date: `${ym}-12`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-12T06:00:00.000Z`, ends_at: `${ym}-12T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-05`, membership_id: '00000000-0000-4000-8000-000000000002', worker_name: 'Olaide Emmanuela', department: 'Operations & Delivery', date: `${ym}-12`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-12T06:00:00.000Z`, ends_at: `${ym}-12T14:00:00.000Z`, station: 'Operations Command Desk', rotation: 'Morning Shift', status: 'scheduled', is_shift_supervisor: true, supervisor_name: 'Sherif Akanmu' },
-        { id: `sr-s-${ym}-06`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-13`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-13T06:00:00.000Z`, ends_at: `${ym}-13T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-07`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-14`, start_time: '14:00', end_time: '22:00', starts_at: `${ym}-14T14:00:00.000Z`, ends_at: `${ym}-14T22:00:00.000Z`, station: stationSecond, rotation: 'Afternoon Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-08`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-16`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-16T06:00:00.000Z`, ends_at: `${ym}-16T14:00:00.000Z`, station: stationDefault, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' },
-        { id: `sr-s-${ym}-09`, membership_id: '00000000-0000-4000-8000-000000000005', worker_name: 'Tariq Al-Hassan', department: 'Backend Infrastructure', date: `${ym}-18`, start_time: '06:00', end_time: '14:00', starts_at: `${ym}-18T06:00:00.000Z`, ends_at: `${ym}-18T14:00:00.000Z`, station: stationSecond, rotation: 'Morning Shift', status: 'scheduled', supervisor_name: 'Olaide Emmanuela' }
-      ];
-      all = [...(Array.isArray(all) ? all : []), ...seeded];
-      try { localStorage.setItem(storageKey, JSON.stringify(all)); } catch (_) {}
-    }
-    return all.filter(s => String(s.date || s.starts_at || '').startsWith(ym));
+    if (!Array.isArray(all)) all = [];
+    return all.filter(s =>
+      s &&
+      !String(s.id || '').startsWith('sr-s-') &&
+      String(s.date || s.starts_at || '').startsWith(ym)
+    );
   }
 
   function saveNewRosterShift(shiftObj) {
@@ -6548,7 +6515,11 @@
       </div>
     `;
 
-    return stripHtml + cardsHtml + teamPartnersHtml;
+    const emptyShiftNotice = displayList.length === 0
+      ? `<div style="text-align:center;padding:34px 18px;color:var(--sr-text-muted);font-size:13.5px;">No shifts assigned for this period yet.</div>`
+      : '';
+
+    return stripHtml + (cardsHtml || emptyShiftNotice) + teamPartnersHtml;
   }
 
   function renderLeaveTab(requests, tz) {
@@ -8352,65 +8323,18 @@
 
   function getOrSeedFloorApprovals() {
     const key = 'sr_floor_approvals_v2';
-    const profile = getUserIndustryProfile(getUser());
     let data = null;
     try {
       const raw = localStorage.getItem(key);
       if (raw) data = JSON.parse(raw);
     } catch (_) {}
-    if (data && Array.isArray(data.swaps) && profile.key !== 'manufacturing') {
-      data.swaps = data.swaps.map(s => String(s.station || '').includes('Main Production Floor')
-        ? { ...s, station: profile.zones?.[0]?.name || 'Core Operations Zone' }
-        : s);
-    }
-    if (!data || !Array.isArray(data.swaps)) {
-      data = {
-        swaps: [
-          {
-            id: 'swap-201',
-            requester: 'Babatunde Adeleke',
-            reliever: 'Chidinma Okonjo',
-            department: 'Operations Squad',
-            shiftDate: 'Tomorrow · 06:00 – 14:00 WAT',
-            station: profile.zones?.[0]?.name || 'Core Operations Zone',
-            reason: 'Scheduled dental checkup — Chidinma confirmed relief coverage.',
-            status: 'pending'
-          },
-          {
-            id: 'swap-202',
-            requester: 'Tariq Al-Hassan',
-            reliever: 'Kelechi Nnamdi',
-            department: 'Infrastructure Ops',
-            shiftDate: 'Friday, 13 Nov · 14:00 – 22:00 WAT',
-            station: profile.zones?.[1]?.name || 'Operations Command Deck',
-            reason: 'Scheduled rotation adjustment.',
-            status: 'pending'
-          }
-        ],
-        timecards: [
-          {
-            id: 'tc-301',
-            worker: 'Chidinma Okonjo',
-            department: 'Operations',
-            date: 'Today · 06:08 WAT (+8 mins)',
-            verification: 'Verified via Gate QR Poster #A1',
-            reason: 'Third Mainland Bridge traffic diversion — reported prior to muster.',
-            status: 'pending'
-          },
-          {
-            id: 'tc-302',
-            worker: 'Simi Balogun',
-            department: 'Product & Design',
-            date: 'Yesterday · 14:00 – 23:30 WAT (+1.5 hrs OT)',
-            verification: 'GPS Perimeter Verified',
-            reason: 'Extended shift for release launch quality verification.',
-            status: 'pending'
-          }
-        ]
-      };
-      try { localStorage.setItem(key, JSON.stringify(data)); } catch (_) {}
-    }
-    return data;
+    const swaps = Array.isArray(data?.swaps)
+      ? data.swaps.filter(s => s && !['swap-201', 'swap-202'].includes(s.id))
+      : [];
+    const timecards = Array.isArray(data?.timecards)
+      ? data.timecards.filter(t => t && !['tc-301', 'tc-302'].includes(t.id))
+      : [];
+    return { swaps, timecards };
   }
 
   async function renderApprovalsScreen() {
@@ -8521,6 +8445,10 @@
               History (${totalHistoryCount})
             </button>
           </div>
+          <button type="button" class="sr-btn sr-btn-secondary" id="sr-approvals-attendance-sheet-btn" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;" title="Generate Official Attendance Sheet">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>Attendance Sheet</span>
+          </button>
           ${(approvalsViewMode === 'pending' && approvalsTab === 'swaps' && pendingSwaps.length > 0) ? `
             <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-bulk-approve-swaps" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;" title="Approve all pending swaps for upcoming shift">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -8613,6 +8541,10 @@
       SRAudio.playClockIn();
       if (typeof showToast === 'function') showToast(`Approved all ${count} shift swaps — moved to History.`, 'success');
       await renderApprovalsScreen();
+    });
+
+    document.getElementById('sr-approvals-attendance-sheet-btn')?.addEventListener('click', () => {
+      window.ShiftRelayOpenAttendanceSheetModal?.({ user, defaultDepartment: 'all' });
     });
 
     const panel = document.getElementById('sr-approvals-panel');
@@ -14982,6 +14914,10 @@
             <div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--sr-text-muted);white-space:nowrap;">
               <input type="month" id="sr-payroll-month-picker" aria-label="Payroll period month" class="sr-input" value="${escapeHtml(currentMonth)}" style="width:auto;min-height:34px;padding:4px 10px;font-size:12.5px;" />
             </div>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-payroll-attendance-sheet" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>Attendance Sheet</span>
+            </button>
             <button class="sr-btn sr-btn-secondary" id="sr-btn-print-audit" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
               <span>Print Ledger</span>
@@ -15299,6 +15235,10 @@
       bankFmtSel.addEventListener('change', refreshBankExportReadiness);
     }
     refreshBankExportReadiness();
+
+    document.getElementById('sr-btn-payroll-attendance-sheet')?.addEventListener('click', () => {
+      window.ShiftRelayOpenAttendanceSheetModal?.({ user: getUser(), defaultMonth: currentMonth, defaultDepartment: 'all' });
+    });
 
     if (printAuditBtn) {
       printAuditBtn.addEventListener('click', () => {
@@ -16656,6 +16596,151 @@
     });
   };
 
+  // ── Supervisor & Executive Official Attendance Sheet Modal Generator ──────────
+  window.ShiftRelayOpenAttendanceSheetModal = async function openAttendanceSheetModal(options = {}) {
+    document.getElementById('sr-attendance-sheet-backdrop')?.remove();
+    const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    let selectedMonth = /^\d{4}-\d{2}$/.test(String(options.defaultMonth || ''))
+      ? String(options.defaultMonth)
+      : new Date().toISOString().slice(0, 7);
+    let selectedDept = String(options.defaultDepartment || 'all');
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'sr-attendance-sheet-backdrop';
+    backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.72);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:12px;';
+    backdrop.innerHTML = `
+      <div role="dialog" aria-modal="true" aria-labelledby="sr-att-sheet-title" style="background:var(--sr-bg-card,#ffffff);border:1px solid var(--sr-border-medium,#cbd5e1);border-radius:16px;max-width:720px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.35);">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--sr-border-subtle,#e2e8f0);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="min-width:0;">
+            <h3 id="sr-att-sheet-title" style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main,#0f172a);">Attendance Sheet Generator</h3>
+            <div style="font-size:11.5px;color:var(--sr-text-muted,#64748b);margin-top:2px;">Supervisor &amp; Executive verified register (Live GPS + Card Scans)</div>
+          </div>
+          <button type="button" id="sr-att-sheet-close" aria-label="Close" style="background:transparent;border:none;font-size:24px;line-height:1;color:var(--sr-text-muted,#64748b);cursor:pointer;padding:2px 6px;">&times;</button>
+        </div>
+
+        <div style="padding:12px 16px;border-bottom:1px solid var(--sr-border-subtle,#e2e8f0);background:var(--sr-bg-card-subtle,#f8fafc);display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;flex:1;min-width:210px;">
+            <input type="month" id="sr-att-sheet-month" aria-label="Reporting Month" class="sr-input" value="${esc(selectedMonth)}" style="min-height:34px;padding:4px 10px;font-size:12.5px;width:auto;flex:1;min-width:130px;" />
+            <select id="sr-att-sheet-dept" aria-label="Filter Department" class="sr-input" style="min-height:34px;padding:4px 10px;font-size:12.5px;width:auto;flex:1;min-width:140px;">
+              <option value="all">All Departments</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <a id="sr-att-sheet-csv-btn" href="#" download class="sr-btn sr-btn-secondary" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>CSV</span>
+            </a>
+            <a id="sr-att-sheet-pdf-btn" href="#" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-primary" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+              <span>Official PDF</span>
+            </a>
+          </div>
+        </div>
+
+        <div id="sr-att-sheet-body" style="padding:14px 16px;overflow-y:auto;flex:1;">
+          <div class="sr-skeleton" style="height:220px;border-radius:10px;"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(backdrop);
+
+    const close = () => backdrop.remove();
+    backdrop.querySelector('#sr-att-sheet-close')?.addEventListener('click', close);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+
+    const monthInput = backdrop.querySelector('#sr-att-sheet-month');
+    const deptSelect = backdrop.querySelector('#sr-att-sheet-dept');
+    const csvLink = backdrop.querySelector('#sr-att-sheet-csv-btn');
+    const pdfLink = backdrop.querySelector('#sr-att-sheet-pdf-btn');
+    const bodyEl = backdrop.querySelector('#sr-att-sheet-body');
+
+    const syncExportLinks = () => {
+      const q = `month=${encodeURIComponent(selectedMonth)}&department=${encodeURIComponent(selectedDept)}`;
+      if (csvLink) csvLink.href = `/api/reports/attendance-sheet?${q}&format=csv`;
+      if (pdfLink) pdfLink.href = `/api/reports/attendance-sheet?${q}&format=html`;
+    };
+
+    async function loadSheet() {
+      syncExportLinks();
+      if (bodyEl) bodyEl.innerHTML = '<div class="sr-skeleton" style="height:220px;border-radius:10px;"></div>';
+      try {
+        const res = await fetch(`/api/reports/attendance-sheet?month=${encodeURIComponent(selectedMonth)}&department=${encodeURIComponent(selectedDept)}&format=json`);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.sheet) throw new Error(json.error || 'Could not load attendance sheet.');
+        const sheet = json.sheet;
+        const sum = sheet.summary || {};
+
+        if (deptSelect && deptSelect.options.length <= 1 && Array.isArray(sheet.departmentSummary)) {
+          const prev = selectedDept;
+          deptSelect.innerHTML = ['<option value="all">All Departments</option>', ...sheet.departmentSummary.map(d =>
+            `<option value="${esc(d.department)}">${esc(d.department)} (${d.staffCount})</option>`
+          )].join('');
+          deptSelect.value = Array.from(deptSelect.options).some(o => o.value === prev) ? prev : 'all';
+        }
+
+        const rows = Array.isArray(sheet.rows) ? sheet.rows : [];
+        bodyEl.innerHTML = `
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px;">
+            <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card-subtle,#f8fafc);border:1px solid var(--sr-border-subtle,#e2e8f0);">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--sr-text-muted,#64748b);">Roster Staff</div>
+              <div class="sr-v2-num" style="font-size:1.15rem;font-weight:800;color:var(--sr-text-main,#0f172a);">${Number(sum.totalStaff || 0)}</div>
+            </div>
+            <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card-subtle,#f8fafc);border:1px solid var(--sr-border-subtle,#e2e8f0);">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--sr-text-muted,#64748b);">Verified Punches</div>
+              <div class="sr-v2-num" style="font-size:1.15rem;font-weight:800;color:#059669;">${Number(sum.totalPunches || 0)}</div>
+            </div>
+            <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card-subtle,#f8fafc);border:1px solid var(--sr-border-subtle,#e2e8f0);">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--sr-text-muted,#64748b);">Logged Hours</div>
+              <div class="sr-v2-num" style="font-size:1.15rem;font-weight:800;color:#0284c7;">${Number(sum.totalHours || 0).toFixed(1)}h</div>
+            </div>
+            <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card-subtle,#f8fafc);border:1px solid var(--sr-border-subtle,#e2e8f0);">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--sr-text-muted,#64748b);">Exceptions</div>
+              <div class="sr-v2-num" style="font-size:1.15rem;font-weight:800;color:${Number(sum.exceptionsCount || 0) > 0 ? '#d97706' : '#059669'};">${Number(sum.exceptionsCount || 0)}</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${rows.map(r => `
+              <div style="padding:10px 12px;border-radius:10px;border:1px solid var(--sr-border-subtle,#e2e8f0);background:var(--sr-bg-card,#ffffff);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                <div style="min-width:160px;flex:1;">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <span class="sr-team-id-code" style="font-size:10.5px;">${esc(r.staffId)}</span>
+                    <strong style="font-size:13px;color:var(--sr-text-main,#0f172a);">${esc(r.name)}</strong>
+                  </div>
+                  <div style="font-size:11px;color:var(--sr-text-muted,#64748b);margin-top:2px;">
+                    ${esc(r.department)} &middot; <span class="sr-v2-num">${esc(r.shiftWindow)}</span>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;flex-wrap:wrap;">
+                  <span class="sr-v2-num" title="Days Present"><strong>${Number(r.daysPresent || 0)}d</strong></span>
+                  <span class="sr-v2-num" title="Logged Hours">${Number(r.totalHours || 0).toFixed(1)}h</span>
+                  <span style="color:var(--sr-text-muted,#64748b);">${esc(r.verificationMix)}</span>
+                  <span class="sr-status-pill ${r.currentStatus === 'On Shift' ? 'active' : r.currentStatus === 'Flagged' ? 'pending' : 'inactive'}" style="font-size:10.5px;">
+                    ${esc(r.currentStatus)}
+                  </span>
+                </div>
+              </div>
+            `).join('') || '<div style="text-align:center;padding:24px;color:var(--sr-text-muted);">No staff match this filter.</div>'}
+          </div>
+        `;
+      } catch (err) {
+        if (bodyEl) {
+          bodyEl.innerHTML = `<div style="padding:20px;text-align:center;color:#dc2626;font-size:13px;">${esc(err.message)}</div>`;
+        }
+      }
+    }
+
+    monthInput?.addEventListener('change', () => {
+      selectedMonth = monthInput.value || selectedMonth;
+      loadSheet();
+    });
+    deptSelect?.addEventListener('change', () => {
+      selectedDept = deptSelect.value || 'all';
+      loadSheet();
+    });
+    loadSheet();
+  };
+
   // ── Priority 5: Enterprise Executive Analytics Dashboard ──────────────────────
   const escapeHtml = (str) => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   async function renderExecutiveAnalytics() {
@@ -16698,6 +16783,7 @@
       hoursAndOvertime = {},
       payrollBurn = {},
       unitBreakdown = [],
+      dailyAttendanceSeries = [],
       statutory = {},
       industryProfile = null,
       safetyRegulations = [],
@@ -16761,6 +16847,10 @@
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-switch-to-shiftops" style="min-height:34px;font-size:12px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Frontline Shift Operations Layer">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
               <span>Shift Floor</span>
+            </button>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-analytics-att-sheet-btn" style="min-height:34px;font-size:12px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;" title="Generate Official Workforce Attendance Sheet (PDF / CSV)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>Attendance Sheet</span>
             </button>
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-analytics-export-btn" style="min-height:34px;font-size:12px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -16927,45 +17017,85 @@
           </div>
         </div>
 
-        <!-- ── Row 3: Operating Unit Performance Roster ── -->
-        <div class="sr-card" style="padding:22px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);margin-bottom:24px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-            <h3 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">Operating Unit Performance</h3>
-            <span style="font-size:12px;color:var(--sr-text-muted);">${escapeHtml(tenant.hubName || '')}</span>
+        <!-- ── Row 3: 7-Day Verification Graphic + Operating Unit Metrics Table ── -->
+        <div class="sr-card" style="padding:18px 18px 14px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);margin-bottom:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+            <div>
+              <h3 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">7-Day Attendance &amp; Verification Telemetry</h3>
+              <p style="margin:2px 0 0;font-size:11.5px;color:var(--sr-text-muted);">Live daily clock-ins vs ${fmt(headcount.totalRoster)} rostered staff</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;font-size:11px;font-weight:600;color:var(--sr-text-muted);">
+              <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:#10b981;"></span>GPS</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:#3b82f6;"></span>ID Card</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;padding-top:6px;">
+            ${(Array.isArray(dailyAttendanceSeries) && dailyAttendanceSeries.length === 7 ? dailyAttendanceSeries : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(label => ({ label, totalPunches: 0, gpsCount: 0, cardCount: 0, target: headcount.totalRoster || 24 }))).map(day => {
+              const denom = Math.max(1, Number(day.target || headcount.totalRoster || 1));
+              const gpsH = Math.min(100, Math.round((Number(day.gpsCount || 0) / denom) * 100));
+              const cardH = Math.min(100 - gpsH, Math.round((Number(day.cardCount || 0) / denom) * 100));
+              return `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+                  <span class="sr-v2-num" style="font-size:10.5px;font-weight:700;color:${day.totalPunches > 0 ? 'var(--p-text)' : 'var(--p-text-3)'};">${Number(day.totalPunches || 0)}</span>
+                  <div style="width:100%;max-width:34px;height:74px;border-radius:8px;background:var(--sr-bg-card-subtle,#f1f5f9);border:1px solid var(--sr-border-subtle);display:flex;flex-direction:column-reverse;overflow:hidden;padding:2px;">
+                    ${gpsH > 0 ? `<div style="width:100%;height:${gpsH}%;background:#10b981;border-radius:4px;"></div>` : ''}
+                    ${cardH > 0 ? `<div style="width:100%;height:${cardH}%;background:#3b82f6;border-radius:4px;margin-bottom:${gpsH > 0 ? '2px' : '0'};"></div>` : ''}
+                  </div>
+                  <span style="font-size:10.5px;font-weight:700;color:var(--sr-text-muted);">${escapeHtml(day.label)}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="sr-card" style="padding:18px;border-radius:14px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);margin-bottom:24px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+            <div>
+              <h3 style="margin:0;font-size:14px;font-weight:700;color:var(--sr-text-main);">Operating Unit Performance Matrix</h3>
+              <span style="font-size:11.5px;color:var(--sr-text-muted);">${escapeHtml(tenant.hubName || '')} &middot; Live clock-ins &amp; department sheets</span>
+            </div>
+            <button type="button" class="sr-btn sr-btn-secondary" data-sr-unit-sheet="all" style="min-height:30px;padding:0 10px;font-size:11.5px;">Full Register</button>
           </div>
 
           <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <table class="sr-v2-unit-table" style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:480px;">
               <thead>
                 <tr style="border-bottom:2px solid var(--sr-border-subtle);">
-                  <th style="text-align:left;padding:8px 12px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Unit</th>
-                  <th style="text-align:center;padding:8px 12px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Headcount</th>
-                  <th style="text-align:left;padding:8px 12px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Attendance</th>
-                  <th style="text-align:center;padding:8px 12px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.5px;">OT Hrs</th>
-                  <th style="text-align:center;padding:8px 12px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Status</th>
+                  <th style="text-align:left;padding:8px 10px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.4px;">Unit</th>
+                  <th style="text-align:center;padding:8px 10px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.4px;">Active / Staff</th>
+                  <th style="text-align:left;padding:8px 10px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.4px;">Attendance</th>
+                  <th style="text-align:center;padding:8px 10px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.4px;">Hrs (OT)</th>
+                  <th style="text-align:center;padding:8px 10px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.4px;">Status</th>
+                  <th style="text-align:right;padding:8px 10px 10px;font-size:11px;font-weight:700;color:var(--sr-text-muted);text-transform:uppercase;letter-spacing:0.4px;">Sheet</th>
                 </tr>
               </thead>
               <tbody>
                 ${unitBreakdown.map((u, i) => {
-                  const attColor = u.attendancePercent >= 97 ? '#10b981' : u.attendancePercent >= 95 ? '#f59e0b' : '#ef4444';
-                  const statusBg = u.status === 'On Track' ? '#ecfdf5' : '#fffbeb';
-                  const statusColor = u.status === 'On Track' ? '#059669' : '#b45309';
-                  const attW = Math.min(100, u.attendancePercent);
+                  const attColor = u.attendancePercent === 0 && u.status === 'Ready'
+                    ? '#64748b'
+                    : (u.attendancePercent >= 95 ? '#10b981' : u.attendancePercent >= 75 ? '#0284c7' : '#f59e0b');
+                  const statusBg = u.status === 'On Track' ? '#ecfdf5' : u.status === 'Ready' ? 'rgba(13,148,136,0.1)' : '#fffbeb';
+                  const statusColor = u.status === 'On Track' ? '#059669' : u.status === 'Ready' ? '#0f766e' : '#b45309';
+                  const attW = Math.min(100, Number(u.attendancePercent || 0));
+                  const regH = Number(u.regularHours || 0).toFixed(1);
                   return `
                     <tr style="border-bottom:1px solid var(--sr-border-subtle);${i % 2 === 1 ? 'background:var(--sr-bg-card-subtle);' : ''}">
-                      <td style="padding:12px 12px;font-weight:600;color:var(--sr-text-main);">${escapeHtml(u.unit)}</td>
-                      <td style="padding:12px 12px;text-align:center;font-weight:700;color:var(--sr-text-main);">${u.headcount}</td>
-                      <td style="padding:12px 12px;">
+                      <td style="padding:11px 10px;font-weight:700;color:var(--sr-text-main);">${escapeHtml(u.unit)}</td>
+                      <td class="sr-v2-num" style="padding:11px 10px;text-align:center;font-weight:700;color:var(--sr-text-main);">${Number(u.onShift || 0)} / ${u.headcount}</td>
+                      <td style="padding:11px 10px;">
                         <div style="display:flex;align-items:center;gap:8px;">
-                          <div style="flex:1;background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:6px;overflow:hidden;min-width:60px;">
+                          <div style="flex:1;background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:6px;overflow:hidden;min-width:56px;">
                             <div style="width:${attW}%;height:100%;background:${attColor};border-radius:999px;"></div>
                           </div>
-                          <span style="font-size:12px;font-weight:700;color:${attColor};min-width:38px;">${pct(u.attendancePercent)}</span>
+                          <span class="sr-v2-num" style="font-size:11.5px;font-weight:700;color:${attColor};min-width:38px;">${pct(u.attendancePercent)}</span>
                         </div>
                       </td>
-                      <td style="padding:12px 12px;text-align:center;font-weight:600;color:var(--sr-text-main);">${u.overtimeHours}h</td>
-                      <td style="padding:12px 12px;text-align:center;">
-                        <span style="font-size:11px;padding:3px 8px;background:${statusBg};color:${statusColor};border-radius:4px;font-weight:700;">${escapeHtml(u.status)}</span>
+                      <td class="sr-v2-num" style="padding:11px 10px;text-align:center;font-weight:600;color:var(--sr-text-main);">${regH}h${Number(u.overtimeHours || 0) > 0 ? ` <span style="color:#d97706;">(+${u.overtimeHours}h)</span>` : ''}</td>
+                      <td style="padding:11px 10px;text-align:center;">
+                        <span style="font-size:10.5px;padding:3px 8px;background:${statusBg};color:${statusColor};border-radius:999px;font-weight:700;white-space:nowrap;">${escapeHtml(u.status)}</span>
+                      </td>
+                      <td style="padding:11px 10px;text-align:right;">
+                        <button type="button" class="sr-btn sr-btn-secondary" data-sr-unit-sheet="${escapeHtml(u.unit)}" style="min-height:26px;padding:0 9px;font-size:11px;">Sheet</button>
                       </td>
                     </tr>
                   `;
@@ -17054,6 +17184,17 @@
         user: window.__shiftRelayCurrentUser || tenant,
         knownDepartments: units,
         onSuccess: () => renderExecutiveAnalytics()
+      });
+    });
+
+    document.getElementById('sr-analytics-att-sheet-btn')?.addEventListener('click', () => {
+      window.ShiftRelayOpenAttendanceSheetModal?.({ user: window.__shiftRelayCurrentUser || tenant, defaultDepartment: 'all' });
+    });
+
+    main.querySelectorAll('[data-sr-unit-sheet]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const unit = btn.getAttribute('data-sr-unit-sheet') || 'all';
+        window.ShiftRelayOpenAttendanceSheetModal?.({ user: window.__shiftRelayCurrentUser || tenant, defaultDepartment: unit });
       });
     });
 

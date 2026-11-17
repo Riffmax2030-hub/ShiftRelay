@@ -384,6 +384,184 @@ export function generatePayrollReportHtml(payrollData, org = {}) {
 }
 
 /**
+ * 1b. Supervisor & Executive Official Workforce Attendance Register Sheet
+ */
+export function generateAttendanceSheetHtml(sheetData = {}, org = {}) {
+  const orgName = org.legal_name || org.trading_name || 'Riffmax Technology Limited';
+  const orgCode = org.organisation_code || 'RIF-2026';
+  const month = sheetData.month || new Date().toISOString().slice(0, 7);
+  const periodLabel = sheetData.periodLabel || month;
+  const deptLabel = sheetData.departmentLabel || 'All Departments';
+  const generatedBy = sheetData.generatedBy || 'Operations Management';
+  const summary = sheetData.summary || {};
+  const rows = Array.isArray(sheetData.rows) ? sheetData.rows : [];
+  const deptBars = Array.isArray(sheetData.departmentSummary) ? sheetData.departmentSummary : [];
+  const qrSvg = generateQrSvg(`https://shiftrelayos.com/verify/attendance/${orgCode}/${month}`, 76);
+
+  const rowsHtml = rows.map(r => {
+    const statusTone = r.currentStatus === 'On Shift'
+      ? 'color:#059669;background:#ecfdf5;border:1px solid #a7f3d0;'
+      : r.currentStatus === 'Flagged'
+        ? 'color:#dc2626;background:#fef2f2;border:1px solid #fecaca;'
+        : 'color:#475569;background:#f8fafc;border:1px solid #cbd5e1;';
+    return `
+      <tr>
+        <td style="font-family:monospace;font-weight:700;">${escapeHtml(r.staffId || 'SR-0000')}</td>
+        <td>
+          <strong style="color:var(--brand-navy);">${escapeHtml(r.name)}</strong><br>
+          <small style="color:var(--ink-muted);">${escapeHtml(r.department || 'Operations')}</small>
+        </td>
+        <td style="font-family:monospace;font-size:11px;">${escapeHtml(r.shiftWindow || '06:00–14:00')}</td>
+        <td style="text-align:center;font-weight:700;">${Number(r.daysPresent || 0)}</td>
+        <td style="text-align:right;font-family:monospace;">${Number(r.regularHours || 0).toFixed(1)}h${Number(r.overtimeHours || 0) > 0 ? ` <span style="color:#0284c7;">(+${Number(r.overtimeHours).toFixed(1)}h)</span>` : ''}</td>
+        <td style="text-align:center;${Number(r.exceptionsCount || 0) > 0 ? 'color:#d97706;font-weight:700;' : 'color:#64748b;'}">${Number(r.exceptionsCount || 0)}</td>
+        <td style="text-align:center;font-weight:700;">${r.shiftGrade ? `${r.shiftGrade} (${r.shiftScore}%)` : '—'}</td>
+        <td style="font-size:11px;color:var(--ink-secondary);">${escapeHtml(r.verificationMix || 'No punches')}</td>
+        <td style="text-align:center;">
+          <span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;${statusTone}">${escapeHtml(r.currentStatus || 'Ready')}</span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const deptGraphicHtml = deptBars.length > 0 ? `
+    <div style="margin-bottom:22px;padding:16px;border-radius:8px;border:1px solid var(--ink-border);background:#f8fafc;">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--brand-navy);margin-bottom:10px;">
+        Operating Unit Attendance &amp; Verified Hours Graphic
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 18px;">
+        ${deptBars.map(d => {
+          const w = Math.min(100, Math.max(0, Number(d.attendanceRatePct || 0)));
+          return `
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px;">
+                <strong style="color:var(--ink-primary);">${escapeHtml(d.department)}</strong>
+                <span style="font-family:monospace;color:var(--ink-secondary);">${d.punchesCount} punches · ${Number(d.totalHours || 0).toFixed(1)}h (${w}%)</span>
+              </div>
+              <div style="height:7px;border-radius:999px;background:#e2e8f0;overflow:hidden;">
+                <div style="width:${w}%;height:100%;background:linear-gradient(90deg,#059669,#0284c7);border-radius:999px;"></div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Workforce Attendance Register — ${escapeHtml(orgName)}</title>
+  <style>${getDocumentStyles()}</style>
+</head>
+<body>
+  <div class="sr-no-print" style="max-width:900px;margin:0 auto 16px;display:flex;justify-content:space-between;align-items:center;">
+    <a href="javascript:window.history.back()" style="color:#0284c7;text-decoration:none;font-size:13px;font-weight:600;">← Back to ShiftRelay</a>
+    <button onclick="window.print()" style="padding:9px 20px;background:#059669;color:#ffffff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(5,150,105,0.3);">
+      Print / Save Official PDF
+    </button>
+  </div>
+
+  <div class="sr-doc-page">
+    <div class="sr-watermark">${Number(summary.exceptionsCount || 0) > 0 ? 'AUDIT REVIEW' : 'VERIFIED REGISTER'}</div>
+
+    <div class="sr-doc-header">
+      <div class="sr-doc-brand">
+        <div class="sr-doc-brand-icon">SR</div>
+        <div class="sr-doc-brand-text">
+          <h1>${escapeHtml(orgName)}</h1>
+          <p>${escapeHtml(COMPANY_LEGAL)} · ${escapeHtml(COMPANY_RC)} · Verified Geolocation &amp; Badge Attendance Ledger</p>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <span class="sr-doc-badge">Official Attendance Sheet</span>
+        <div style="font-size:11.5px;color:var(--ink-muted);margin-top:6px;font-family:monospace;">
+          REF: SR-ATT-${escapeHtml(orgCode)}-${escapeHtml(month.replace('-', ''))}
+        </div>
+      </div>
+    </div>
+
+    <div class="sr-meta-grid">
+      <div class="sr-meta-item"><small>Reporting Period</small><strong>${escapeHtml(periodLabel)}</strong></div>
+      <div class="sr-meta-item"><small>Department Scope</small><strong>${escapeHtml(deptLabel)}</strong></div>
+      <div class="sr-meta-item"><small>Roster Headcount</small><strong>${Number(summary.totalStaff || rows.length)} Active Staff</strong></div>
+      <div class="sr-meta-item"><small>Prepared By</small><strong>${escapeHtml(generatedBy)}</strong></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;margin-bottom:20px;">
+      <div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid #cbd5e1;">
+        <span style="font-size:10.5px;color:var(--ink-muted);text-transform:uppercase;font-weight:700;">Verified Punches</span>
+        <div style="font-size:16px;font-weight:800;color:var(--ink-primary);margin-top:2px;">${Number(summary.totalPunches || 0)}</div>
+      </div>
+      <div style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid #cbd5e1;">
+        <span style="font-size:10.5px;color:var(--ink-muted);text-transform:uppercase;font-weight:700;">Logged Hours</span>
+        <div style="font-size:16px;font-weight:800;color:#0284c7;margin-top:2px;">${Number(summary.totalHours || 0).toFixed(1)}h <small style="font-size:11px;font-weight:600;">(${Number(summary.overtimeHours || 0).toFixed(1)}h OT)</small></div>
+      </div>
+      <div style="background:#f0fdf4;padding:12px;border-radius:6px;border:1px solid #86efac;">
+        <span style="font-size:10.5px;color:#166534;text-transform:uppercase;font-weight:700;">Punctuality</span>
+        <div style="font-size:16px;font-weight:800;color:var(--brand-emerald);margin-top:2px;">${Number(summary.punctualityRatePct ?? 100).toFixed(1)}%</div>
+      </div>
+      <div style="background:#fffbeb;padding:12px;border-radius:6px;border:1px solid #fde68a;">
+        <span style="font-size:10.5px;color:#92400e;text-transform:uppercase;font-weight:700;">Exceptions / Flags</span>
+        <div style="font-size:16px;font-weight:800;color:#d97706;margin-top:2px;">${Number(summary.exceptionsCount || 0)}</div>
+      </div>
+    </div>
+
+    ${deptGraphicHtml}
+
+    <table class="sr-table">
+      <thead>
+        <tr>
+          <th>Staff ID</th>
+          <th>Personnel &amp; Unit</th>
+          <th>Window</th>
+          <th style="text-align:center;">Days</th>
+          <th style="text-align:right;">Hours (OT)</th>
+          <th style="text-align:center;">Exc.</th>
+          <th style="text-align:center;">Score</th>
+          <th>Verification Mode</th>
+          <th style="text-align:center;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml || '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--ink-muted);">No matching staff attendance records for this period.</td></tr>'}
+      </tbody>
+    </table>
+
+    <div style="margin-top:26px;padding:15px;background:var(--ink-bg-subtle);border-radius:8px;border:1px solid var(--ink-border);display:flex;align-items:center;justify-content:space-between;gap:20px;">
+      <div>
+        <strong style="font-size:12px;color:var(--brand-navy);text-transform:uppercase;letter-spacing:0.04em;">Attendance Integrity Attestation</strong>
+        <p style="font-size:11.5px;color:var(--ink-secondary);margin-top:4px;line-height:1.5;">
+          Generated from real-time geofenced mobile clock-ins and peer ID verification scans for ${escapeHtml(orgName)}. Covers ${escapeHtml(periodLabel)} (${escapeHtml(deptLabel)}).
+        </p>
+      </div>
+      <div style="flex-shrink:0;">${qrSvg}</div>
+    </div>
+
+    <div class="sr-sign-grid">
+      <div class="sr-sign-box">
+        <strong>Shift Supervisor Verification</strong>
+        <span>Sign-Off · Operational Floor Lead</span>
+        <span style="font-size:10px;color:var(--brand-emerald);font-weight:700;margin-top:4px;">Generated: ${escapeHtml(new Date().toISOString().slice(0, 16).replace('T', ' '))} UTC</span>
+      </div>
+      <div class="sr-sign-box">
+        <strong>Executive / HR Directorate</strong>
+        <span>${escapeHtml(orgName)} (${escapeHtml(orgCode)})</span>
+        <span style="font-size:10px;color:var(--brand-emerald);font-weight:700;margin-top:4px;">Audit-Verified Register</span>
+      </div>
+    </div>
+
+    <div class="sr-doc-footer">
+      <span>Generated by ShiftRelay Enterprise OS · Register ID: <code>SR-ATT-${escapeHtml(orgCode)}-${escapeHtml(month.replace('-', ''))}</code></span>
+      <span>Confidential — Internal Workforce Audit Record</span>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/**
  * 2. Verified Worker Professional CV & Operational Dossier
  */
 export function generateCvReportHtml(user = {}, profile = {}) {
