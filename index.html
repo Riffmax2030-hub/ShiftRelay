@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="icon" href="icon.svg?v=165" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icon.svg?v=165" />
+    <link rel="icon" href="icon.svg?v=166" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg?v=166" />
     <meta name="theme-color" content="#102033" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -30,19 +30,19 @@
     <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="bento-ui.css" />
     <link rel="stylesheet" href="dark-mode.css" />
-    <link rel="stylesheet" href="splash.css?v=165" />
+    <link rel="stylesheet" href="splash.css?v=166" />
     <link rel="stylesheet" href="offline-queue.css" />
     <link rel="stylesheet" href="me-profile.css" />
-    <link rel="stylesheet" href="phase1-shell.css?v=165" />
+    <link rel="stylesheet" href="phase1-shell.css?v=166" />
     <link rel="stylesheet" href="sr-premium.css" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v165' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v166' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v165');
+              localStorage.setItem('sr_restored_build', 'v166');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { r.update(); });
@@ -53,10 +53,10 @@
         } catch (e) {}
       })();
     </script>
-    <script src="mobile-bridge.js?v=165"></script>
-    <script src="gps-guard.js?v=165"></script>
+    <script src="mobile-bridge.js?v=166"></script>
+    <script src="gps-guard.js?v=166"></script>
     <script src="theme.js"></script>
-    <script src="alarm-engine.js?v=165"></script>
+    <script src="alarm-engine.js?v=166"></script>
   </head>
   <body>
     <!-- ======================================================
@@ -124,18 +124,9 @@
               <span>Continue</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
-            <div id="sr-employer-provision-notice" style="margin-top:16px;padding:12px 14px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;font-size:12.5px;line-height:1.5;color:#475569;">
-              <strong style="display:block;color:#0f172a;margin-bottom:3px;">Employer-Provisioned Access</strong>
-              Ask your HR or Operations Manager for your <strong>Company ID</strong> and work email credentials. Self-signup is disabled for workplace security.
-              <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-                <a href="/website.html#demo-request-section" target="_blank" rel="noopener noreferrer" style="color:#0d9488;font-weight:700;text-decoration:none;">Request Company Pilot →</a>
-                <span style="color:#cbd5e1;">•</span>
-                <a href="/calculator.html" target="_blank" rel="noopener noreferrer" style="color:#0f172a;font-weight:600;text-decoration:none;">PAYE &amp; PenCom Calculator</a>
-                <span style="color:#cbd5e1;">•</span>
-                <a href="/trust.html" target="_blank" rel="noopener noreferrer" style="color:#475569;font-weight:600;text-decoration:none;">Trust &amp; NDPA</a>
-                <span style="color:#cbd5e1;">•</span>
-                <a href="/status.html" target="_blank" rel="noopener noreferrer" style="color:#059669;font-weight:600;text-decoration:none;">System Status</a>
-              </div>
+            <div id="sr-employer-provision-notice" style="margin-top:16px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <span>Use your company ID &amp; work email.</span>
+              <a href="/website.html#demo-request-section" target="_blank" rel="noopener noreferrer" style="color:#0d9488;font-weight:700;text-decoration:none;">Book a Demo &rarr;</a>
             </div>
           </div>
 
@@ -435,12 +426,12 @@
     <script src="icons.js"></script>
     <script src="language.js"></script>
     <script src="language-pack.js"></script>
-    <script src="app.js?v=165"></script>
+    <script src="app.js?v=166"></script>
     <script src="biometrics.js"></script>
-    <script type="module" src="qr-svg-generator.js?v=165"></script>
-    <script src="attendance-exceptions-ui.js?v=165"></script>
-    <script src="phase1-shell.js?v=165"></script>
-    <script src="splash.js?v=165"></script>
+    <script type="module" src="qr-svg-generator.js?v=166"></script>
+    <script src="attendance-exceptions-ui.js?v=166"></script>
+    <script src="phase1-shell.js?v=166"></script>
+    <script src="splash.js?v=166"></script>
     <script src="notifications.js"></script>
    <script src="profile.js"></script>
    <script src="checklists.js"></script>
@@ -451,12 +442,12 @@
     <script src="community-experience.js"></script>
     <script src="schedule-import.js"></script>
     <script src="direct-messages.js"></script>
-    <script src="team-realtime.js?v=165"></script>
+    <script src="team-realtime.js?v=166"></script>
     <script src="onboarding-experience.js"></script>
-    <script src="frontline-social.js?v=165"></script>
-    <script src="me-profile.js?v=165"></script>
-    <script src="navigation-fix.js?v=165"></script>
-    <script src="offline-queue.js?v=165"></script>
+    <script src="frontline-social.js?v=166"></script>
+    <script src="me-profile.js?v=166"></script>
+    <script src="navigation-fix.js?v=166"></script>
+    <script src="offline-queue.js?v=166"></script>
     <script src="signature-pad.js"></script>
     <script src="chat-engine.js"></script>
     <script src="gesture-hints.js"></script>
@@ -468,12 +459,12 @@
     <script src="swap-review.js"></script>
     <script src="facility-zones.js"></script>
     <script src="analytics-dashboard.js"></script>
-    <script src="first-shift-onboarding.js?v=165"></script>
-    <script src="push-notifications.js?v=165"></script>
+    <script src="first-shift-onboarding.js?v=166"></script>
+    <script src="push-notifications.js?v=166"></script>
     <script src="facility-switcher.js"></script>
     <script src="emergency-broadcast.js"></script>
     <script src="live-translation.js"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=165',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=166',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 

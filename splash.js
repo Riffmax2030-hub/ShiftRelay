@@ -253,7 +253,7 @@
       window._srState.users = usersData.users || [];
       window._srState.config = config;
 
-      // Inject 1-Click Quick Role Switcher into #sr-employer-provision-notice when demo users are available
+      // Subtle quick-role links for demo workspaces (no debug box)
       const noticeEl = document.getElementById('sr-employer-provision-notice');
       if (noticeEl && Array.isArray(window._srState.users) && window._srState.users.length > 0 && !document.getElementById('sr-quick-role-bar')) {
         const execU = window._srState.users.find(u => u.role === 'owner');
@@ -261,13 +261,13 @@
         const wrkU = window._srState.users.find(u => u.role === 'outgoing' || u.role === 'worker' || u.role === 'incoming');
         const quickBar = document.createElement('div');
         quickBar.id = 'sr-quick-role-bar';
-        quickBar.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px dashed #cbd5e1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;';
+        quickBar.style.cssText = 'width:100%;margin-top:6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:11.5px;color:#94a3b8;';
         quickBar.innerHTML = `
-          <span style="font-size:11px;font-weight:700;color:#0f172a;">Instant Workspace Preview (RIF-2026):</span>
-          <div style="display:inline-flex;gap:6px;flex-wrap:wrap;">
-            ${execU ? `<button type="button" data-quick-role="owner" style="padding:4px 9px;border-radius:6px;border:1px solid #0d9488;background:#f0fdfa;color:#0f766e;font-size:11px;font-weight:700;cursor:pointer;">Executive</button>` : ''}
-            ${supU ? `<button type="button" data-quick-role="supervisor" style="padding:4px 9px;border-radius:6px;border:1px solid #0284c7;background:#f0f9ff;color:#0369a1;font-size:11px;font-weight:700;cursor:pointer;">Supervisor</button>` : ''}
-            ${wrkU ? `<button type="button" data-quick-role="worker" style="padding:4px 9px;border-radius:6px;border:1px solid #475569;background:#f8fafc;color:#334155;font-size:11px;font-weight:700;cursor:pointer;">Worker</button>` : ''}
+          <span>Demo:</span>
+          <div style="display:inline-flex;gap:8px;flex-wrap:wrap;">
+            ${execU ? `<button type="button" data-quick-role="owner" style="padding:2px 6px;border:none;background:transparent;color:#0d9488;font-size:11.5px;font-weight:600;cursor:pointer;">Executive</button>` : ''}
+            ${supU ? `<button type="button" data-quick-role="supervisor" style="padding:2px 6px;border:none;background:transparent;color:#0284c7;font-size:11.5px;font-weight:600;cursor:pointer;">Supervisor</button>` : ''}
+            ${wrkU ? `<button type="button" data-quick-role="worker" style="padding:2px 6px;border:none;background:transparent;color:#475569;font-size:11.5px;font-weight:600;cursor:pointer;">Worker</button>` : ''}
           </div>
         `;
         noticeEl.appendChild(quickBar);

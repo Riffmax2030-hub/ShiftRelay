@@ -69,25 +69,17 @@
     if (!user || !user.policyRequiresAck) return '';
     const info = policySummaryLabels(user.attendancePolicy);
     return `
-      <section class="sr-card" id="sr-policy-ack-banner" aria-label="Time and Attendance Policy Acknowledgement" style="margin-bottom:14px;padding:16px;border-radius:14px;border:1.5px solid rgba(13,148,136,0.45);background:linear-gradient(135deg, rgba(13,148,136,0.10), rgba(14,165,233,0.06));">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:220px;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-              <span style="font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#0f766e;">Employer Time &amp; Pay Fairness Policy (${esc(info.version)})</span>
+      <section class="sr-card" id="sr-policy-ack-banner" aria-label="Attendance Policy" style="margin-bottom:14px;padding:12px 16px;border-radius:12px;border:1px solid rgba(13,148,136,0.35);background:rgba(13,148,136,0.06);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:200px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.3" style="flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            <div style="font-size:12.5px;color:var(--sr-text-main);">
+              <strong>Attendance Policy (${info.grace}m Grace)</strong> &middot; <span style="color:var(--sr-text-secondary);">Arrivals within ${info.grace} minutes are excused automatically.</span>
             </div>
-            <h4 style="margin:0 0 6px;font-size:14.5px;font-weight:800;color:var(--sr-text-main);">Review Your Workplace Attendance Rules</h4>
-            <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--sr-text-secondary);line-height:1.55;">
-              <li><strong>${info.grace}-Minute Grace Window:</strong> Clock-ins within ${info.grace} minutes are pardoned with zero pay deduction.</li>
-              <li><strong>Late / Missed Clock-In:</strong> ${esc(info.missedInText)} &middot; ${esc(info.lateText)}.</li>
-              <li><strong>Missed Clock-Out:</strong> ${esc(info.missedOutText)}. Single-source calculation guarantees no double deductions.</li>
-            </ul>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-ack-attendance-policy" data-policy-version="${esc(info.version)}" style="min-height:40px;padding:0 16px;font-size:12.5px;font-weight:800;">
-              Acknowledge Policy
-            </button>
-          </div>
+          <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-ack-attendance-policy" data-policy-version="${esc(info.version)}" style="min-height:34px;padding:0 14px;font-size:12px;font-weight:700;">
+            Acknowledge
+          </button>
         </div>
       </section>
     `;
@@ -212,7 +204,7 @@
         <div class="sr-cv-section-header">
           <h3 class="sr-cv-section-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            Attendance Exceptions &amp; Pay Protection
+            Attendance Exceptions
           </h3>
           <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;${unresolved > 0 ? 'background:rgba(245,158,11,0.14);color:#b45309;' : 'background:rgba(16,185,129,0.12);color:#059669;'}">
             ${unresolved > 0 ? `${unresolved} Open` : 'All Clear'}
@@ -308,14 +300,14 @@
       <section class="sr-card" id="sr-sup-missing-muster-card" aria-label="Missing at Shift Start and Attendance Exceptions" style="border-top: 3px solid ${missing.length > 0 || openExceptions.length > 0 ? '#f59e0b' : '#10b981'};margin-bottom:14px;">
         <div class="sr-card-title-row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div>
-            <h3 style="margin:0;font-size:15.5px;">Automated Clock-In Watchdog &amp; Exceptions</h3>
-            <p style="margin:2px 0 0;font-size:12px;color:var(--sr-text-muted);">Live gate-muster replacement &bull; ${graceMin}m grace rule &bull; ${Number(summary.pardonedHours || 0)}h pardoned</p>
+            <h3 style="margin:0;font-size:15.5px;">Attendance Watch</h3>
+            <p style="margin:2px 0 0;font-size:12px;color:var(--sr-text-muted);">${graceMin}m grace window</p>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span class="sr-badge-certified" style="${openExceptions.length > 0 ? 'background:rgba(245,158,11,0.14);color:#b45309;border-color:rgba(245,158,11,0.35);' : ''}">
-              ${openExceptions.length} Open Exception(s)
+              ${openExceptions.length} Open
             </span>
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-run-reminder-watchdog" style="padding:4px 10px;min-height:28px;font-size:11.5px;">Run Muster Reminders</button>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-run-reminder-watchdog" style="padding:4px 10px;min-height:28px;font-size:11.5px;">Send Reminders</button>
           </div>
         </div>
         ${missing.length > 0 ? `
@@ -420,8 +412,8 @@
             </div>
           ` : ''}
           <div class="sr-form-group">
-            <label class="sr-form-label" for="sr-exc-res-reason">Mandatory Audit Reason</label>
-            <textarea id="sr-exc-res-reason" class="sr-form-input" rows="3" required placeholder="Required for Dayforce payroll audit trail (e.g. Approved gate relief delay / Confirmed unexcused no-show)"></textarea>
+            <label class="sr-form-label" for="sr-exc-res-reason">Reason</label>
+            <textarea id="sr-exc-res-reason" class="sr-form-input" rows="3" required placeholder="Brief note (e.g. Approved gate delay)"></textarea>
           </div>
           <div id="sr-exc-res-err" style="display:none;color:#ef4444;font-size:12.5px;"></div>
           <div style="display:flex;justify-content:flex-end;gap:8px;">

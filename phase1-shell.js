@@ -1425,11 +1425,6 @@
               <svg class="sr-context-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
             </button>
 
-            <!-- Refresh Page Button -->
-            <button class="sr-icon-btn" id="sr-shell-refresh" aria-label="Refresh view" title="Refresh active view & sync latest state">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            </button>
-
             <!-- Notifications Bell -->
             <button class="sr-icon-btn" id="sr-shell-bell" aria-label="Notifications" title="Notifications" aria-haspopup="dialog" aria-expanded="false" aria-controls="sr-notif-panel">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -1599,22 +1594,13 @@
               </button>
             </div>
           </nav>
-          <!-- Main Scrollable Area -->
-          <div class="sr-main-scroll-wrap" style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto;">
-            <div id="sr-broadcast-banner-slot"></div>
-            <div id="sr-page-refresh-bar" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 18px;border-bottom:1px solid var(--sr-border-subtle);background:var(--sr-bg-card-subtle);flex-wrap:wrap;">
-              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--sr-text-muted);">
-                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:rgba(13,148,136,0.1);color:var(--sr-primary);font-weight:700;">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  ${escapeHtml(activeProfile.label)}
-                </span>
-                <span>Synced ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-              <button type="button" id="sr-page-refresh-btn" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:4px 12px;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;" title="Refresh this page to update completed actions and live records">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                <span>Refresh</span>
-              </button>
+          <!-- Main Scrollable Area (Drag-to-Refresh Enabled) -->
+          <div class="sr-main-scroll-wrap" id="sr-main-scroll-wrap" style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; position: relative; overscroll-behavior-y: contain;">
+            <div id="sr-ptr-indicator" aria-hidden="true" style="height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;font-weight:700;color:var(--sr-primary);transition:height 0.18s ease,opacity 0.18s ease;opacity:0;background:var(--sr-bg-card-subtle);">
+              <svg id="sr-ptr-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="transition:transform 0.2s ease;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              <span id="sr-ptr-label">Pull down to refresh</span>
             </div>
+            <div id="sr-broadcast-banner-slot"></div>
 
             <main class="sr-main-content" id="sr-content-area" role="main" style="flex: 1; overflow-y: visible;">
               <!-- Screen content injected here -->
@@ -1882,15 +1868,75 @@
       });
     });
 
-    document.getElementById('sr-shell-refresh')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      refreshActiveScreen(true);
-    });
+    // Native Drag-to-Refresh (Touch + Mouse pull-down from top of scroll container)
+    (function bindPullToRefresh() {
+      const scrollWrap = document.getElementById('sr-main-scroll-wrap');
+      const ptrEl = document.getElementById('sr-ptr-indicator');
+      const ptrIcon = document.getElementById('sr-ptr-icon');
+      const ptrLabel = document.getElementById('sr-ptr-label');
+      if (!scrollWrap || !ptrEl) return;
+      let startY = 0;
+      let pulling = false;
+      let pullDist = 0;
+      const THRESHOLD = 62;
 
-    document.getElementById('sr-page-refresh-btn')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      refreshActiveScreen(true);
-    });
+      const onStart = (y, target) => {
+        if (scrollWrap.scrollTop > 2) return;
+        if (target && target.closest && target.closest('input, textarea, select, button, a')) return;
+        startY = y;
+        pulling = true;
+        pullDist = 0;
+      };
+      const onMove = (y) => {
+        if (!pulling) return;
+        const dy = y - startY;
+        if (dy <= 0 || scrollWrap.scrollTop > 2) {
+          pullDist = 0;
+          ptrEl.style.height = '0px';
+          ptrEl.style.opacity = '0';
+          return;
+        }
+        pullDist = Math.min(96, dy * 0.55);
+        ptrEl.style.transition = 'none';
+        ptrEl.style.height = `${pullDist}px`;
+        ptrEl.style.opacity = String(Math.min(1, pullDist / THRESHOLD));
+        if (ptrIcon) ptrIcon.style.transform = `rotate(${Math.round(pullDist * 3)}deg)`;
+        if (ptrLabel) ptrLabel.textContent = pullDist >= THRESHOLD ? 'Release to refresh' : 'Pull down to refresh';
+      };
+      const onEnd = async () => {
+        if (!pulling) return;
+        pulling = false;
+        ptrEl.style.transition = 'height 0.2s ease, opacity 0.2s ease';
+        if (pullDist >= THRESHOLD) {
+          ptrEl.style.height = '42px';
+          ptrEl.style.opacity = '1';
+          if (ptrLabel) ptrLabel.textContent = 'Syncing...';
+          await refreshActiveScreen(false);
+        }
+        ptrEl.style.height = '0px';
+        ptrEl.style.opacity = '0';
+        pullDist = 0;
+      };
+
+      scrollWrap.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches.length === 1) onStart(e.touches[0].clientY, e.target);
+      }, { passive: true });
+      scrollWrap.addEventListener('touchmove', (e) => {
+        if (pulling && e.touches && e.touches.length === 1) onMove(e.touches[0].clientY);
+      }, { passive: true });
+      scrollWrap.addEventListener('touchend', onEnd);
+      scrollWrap.addEventListener('touchcancel', onEnd);
+
+      scrollWrap.addEventListener('mousedown', (e) => {
+        if (e.button === 0) onStart(e.clientY, e.target);
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (pulling) onMove(e.clientY);
+      });
+      window.addEventListener('mouseup', () => {
+        if (pulling) onEnd();
+      });
+    })();
 
     document.getElementById('sr-shell-settings')?.addEventListener('click', (e) => {
       e.preventDefault();
@@ -2001,10 +2047,10 @@
           <div>
             <h3 style="margin:0;font-size:15.5px;display:flex;align-items:center;gap:8px;color:var(--sr-text-main);font-weight:800;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/><path d="M20 14v3h-3"/><path d="M14 20h6"/></svg>
-              Worker ID Card &amp; Live Face Scanner
+              Peer Clock-In
             </h3>
-            <p style="margin:3px 0 0;font-size:11.5px;color:var(--sr-text-muted);line-height:1.35;">
-              For workers without a smartphone or with a dead battery: Scan physical Staff ID Card &rarr; Capture live face photo &rarr; Accept handover &amp; check shift tasks.
+            <p style="margin:2px 0 0;font-size:11.5px;color:var(--sr-text-muted);">
+              Scan a colleague's Staff ID card and verify their face.
             </p>
           </div>
           <button type="button" class="sr-icon-btn" id="sr-btn-close-scanner" aria-label="Close" style="background:transparent;border:none;cursor:pointer;color:var(--sr-text-muted);padding:4px;">
@@ -2015,9 +2061,9 @@
         <div class="sr-modal-body" style="padding:14px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
           <!-- 3-Step Assisted Progress Indicator -->
           <div id="sr-scan-stepper" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:11px;font-weight:700;text-align:center;">
-            <div id="sr-step-pill-1" style="padding:6px 6px;border-radius:8px;background:rgba(13,148,136,0.14);color:#0f766e;border:1px solid rgba(13,148,136,0.35);">1. Scan ID Card</div>
-            <div id="sr-step-pill-2" style="padding:6px 6px;border-radius:8px;background:var(--sr-bg-card-subtle);color:var(--sr-text-muted);border:1px solid var(--sr-border-subtle);">2. Live Face Photo</div>
-            <div id="sr-step-pill-3" style="padding:6px 6px;border-radius:8px;background:var(--sr-bg-card-subtle);color:var(--sr-text-muted);border:1px solid var(--sr-border-subtle);">3. Handover &amp; Check</div>
+            <div id="sr-step-pill-1" style="padding:6px 6px;border-radius:8px;background:rgba(13,148,136,0.14);color:#0f766e;border:1px solid rgba(13,148,136,0.35);">1. Scan ID</div>
+            <div id="sr-step-pill-2" style="padding:6px 6px;border-radius:8px;background:var(--sr-bg-card-subtle);color:var(--sr-text-muted);border:1px solid var(--sr-border-subtle);">2. Verify Face</div>
+            <div id="sr-step-pill-3" style="padding:6px 6px;border-radius:8px;background:var(--sr-bg-card-subtle);color:var(--sr-text-muted);border:1px solid var(--sr-border-subtle);">3. Handover</div>
           </div>
 
           <!-- Strict Live GPS Gate Pill -->
@@ -3146,9 +3192,9 @@
               ${isClockedIn && clockedInTime ? `In · ${new Date(clockedInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : (hasCompletedShiftToday ? 'Today Logged: 8h 00m Verified' : '8h Shift Target')}
             </small>
           </div>
-          <div id="sr-gps-status-pill" style="margin:8px 0 4px;padding:7px 11px;border-radius:9px;font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:7px;background:rgba(13,148,136,0.1);color:#0f766e;border:1px solid rgba(13,148,136,0.25);">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2.5"/></svg>
-            <span id="sr-gps-status-text">Strict Live GPS Enforcement Active &bull; Location Access Required</span>
+          <div id="sr-gps-status-pill" style="margin:6px 0 2px;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:rgba(13,148,136,0.1);color:#0f766e;border:1px solid rgba(13,148,136,0.22);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2.5"/></svg>
+            <span id="sr-gps-status-text">On-Site GPS Active</span>
           </div>
 
           <!-- Advanced Orbital Dial + Rising Water Sphere Timer -->
@@ -3218,20 +3264,14 @@
               </button>
             </div>
           ` : ''}
-          <div style="margin-top:14px;padding:14px;border-radius:14px;background:linear-gradient(135deg, rgba(13,148,136,0.08), rgba(15,23,42,0.04));border:1px solid rgba(13,148,136,0.28);display:flex;flex-direction:column;gap:10px;text-align:left;">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
-              <div>
-                <div style="font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#0f766e;">Assisted Gate Scanner &bull; On-Site</div>
-                <div style="font-size:14px;font-weight:800;color:var(--sr-text);margin-top:2px;">No Phone or Dead Battery? Scan Worker ID</div>
-                <div style="font-size:12px;color:var(--sr-text-sec);line-height:1.45;margin-top:3px;">Scan a colleague's physical Staff ID card, capture live facial verification, accept their handover &amp; checklists, then close back to your session.</div>
-              </div>
-              <div style="width:36px;height:36px;border-radius:10px;background:rgba(13,148,136,0.14);color:#0f766e;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="10" r="3"/><path d="M7 18a5 5 0 0 1 10 0"/></svg>
-              </div>
+          <div style="margin-top:14px;padding:10px 14px;border-radius:12px;background:rgba(13,148,136,0.06);border:1px solid rgba(13,148,136,0.22);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;text-align:left;">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--sr-text);">Assist a Teammate</div>
+              <div style="font-size:11.5px;color:var(--sr-text-sec);">Colleague Staff ID &amp; face check-in</div>
             </div>
-            <button type="button" id="sr-btn-scan-peer-id" style="width:100%;height:42px;border-radius:10px;border:none;background:#0d9488;color:#ffffff;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 4px 12px rgba(13,148,136,0.22);" title="Scan a colleague's physical Staff ID card, verify face, and complete handover">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-              <span>Scan Worker ID &amp; Face</span>
+            <button type="button" id="sr-btn-scan-peer-id" style="min-height:36px;padding:0 14px;border-radius:9px;border:none;background:#0d9488;color:#ffffff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
+              <span>Peer Check-In</span>
             </button>
           </div>
         </section>
@@ -3834,13 +3874,9 @@
             <span class="sr-context-banner-site">${escapeHtml(siteName)} &bull; <strong style="color:#0d9488;">${escapeHtml(roleTitle)}</strong></span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap:wrap;">
-            <button class="sr-btn sr-btn-secondary" id="sr-btn-refresh-overview" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;" title="Refresh live shift operations">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-              <span>Refresh</span>
-            </button>
-            <button class="sr-btn sr-btn-secondary" id="sr-sup-scan-peer-btn" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;border-color:rgba(13,148,136,0.35);color:var(--sr-primary);" title="Scan a non-smartphone worker's ID card">
+            <button class="sr-btn sr-btn-secondary" id="sr-sup-scan-peer-btn" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;border-color:rgba(13,148,136,0.35);color:var(--sr-primary);" title="Scan a colleague's Staff ID card">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-              <span>Scan Staff ID</span>
+              <span>Scan ID</span>
             </button>
             ${['owner', 'workforce_admin', 'manager'].includes(user.role) ? `
             <button class="sr-btn sr-btn-primary" id="sr-exec-overview-add-staff-btn" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;" title="Add new staff member directly into a company department">
@@ -7825,31 +7861,27 @@
               <div style="font-size:12px;color:var(--sr-text-muted);">${onShiftMembers.length} on shift now &bull; Listed directory with Staff IDs</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-refresh-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                <span>Refresh</span>
-              </button>
               <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-scan-id-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;border-color:rgba(13,148,136,0.35);color:var(--sr-primary);">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-                <span>Scan ID Card</span>
+                <span>Scan ID</span>
               </button>
               <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-print-ids-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-                <span>Staff ID Cards</span>
+                <span>ID Cards</span>
               </button>
               ${['owner', 'workforce_admin', 'manager', 'supervisor'].includes(user.role) ? `
               <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-gate-poster-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7z"/><path d="M13 7h4v4h-4z"/><path d="M7 13h4v4H7z"/><path d="M13 13h4v4h-4z"/></svg>
-                <span>A4 Gate Poster</span>
+                <span>Gate Poster</span>
               </button>` : ''}
               ${['owner', 'workforce_admin', 'manager'].includes(user.role) ? `
               <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-csv-import-btn" style="min-height:32px;padding:0 11px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>Bulk CSV Import</span>
+                <span>Import CSV</span>
               </button>
               <button type="button" class="sr-btn sr-btn-primary" id="sr-team-add-staff-btn" style="min-height:32px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-                <span>+ Add New Staff</span>
+                <span>+ Add Staff</span>
               </button>` : ''}
             </div>
           </div>
@@ -7902,8 +7934,8 @@
           <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;max-width:760px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.45);">
             <div style="padding:14px 20px;border-bottom:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
               <div>
-                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Multilingual A4 Gate Rollout Poster (${escapeHtml(tenantId)})</h3>
-                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">Printable workplace gate instructions with live QR code, Company ID &amp; 5 Nigerian language options</div>
+                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Gate QR Poster</h3>
+                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">Printable entrance QR code for ${escapeHtml(tenantId)}</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <select id="sr-gate-poster-lang" aria-label="Gate Poster Language" style="width:auto;min-height:34px;padding:4px 10px;border-radius:8px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-elevated);color:var(--sr-text-main);font-size:12px;font-weight:700;">
@@ -7972,10 +8004,10 @@
           <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;max-width:680px;width:100%;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,0.45);">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;">
               <div>
-                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">14-Column Bulk Staff &amp; Statutory CSV Onboarding</h3>
-                <p style="margin:4px 0 0;font-size:12px;color:var(--sr-text-muted);">Pre-validates 10-digit NUBAN, 3-digit CBN Bank Code, PenCom RSA PIN (PEN + 12 digits), and TIN before onboarding.</p>
+                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Import Staff CSV</h3>
+                <p style="margin:4px 0 0;font-size:12px;color:var(--sr-text-muted);">Upload staff details and bank accounts.</p>
               </div>
-              <a href="${csvDownloadHref}" download="shiftrelay-nigeria-roster-template.csv" class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 12px;font-size:11.5px;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;">Download CSV Template</a>
+              <a href="${csvDownloadHref}" download="shiftrelay-roster-template.csv" class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 12px;font-size:11.5px;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;">Download Template</a>
             </div>
             <textarea id="sr-exec-csv-input" class="sr-input" rows="6" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:11.5px;margin-bottom:12px;box-sizing:border-box;">${sampleCsv}</textarea>
             <div id="sr-exec-csv-status" style="display:none;padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;"></div>
@@ -11881,8 +11913,8 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                   </div>
                   <div>
-                    <div style="font-size:13.5px;font-weight:700;color:var(--sr-text-main);">SMS &amp; WhatsApp Clock-In Reminders (NDPA 2023)</div>
-                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Receive T-15m pre-shift &amp; grace-window alerts on your mobile number</div>
+                    <div style="font-size:13.5px;font-weight:600;color:var(--sr-text-main);">SMS &amp; WhatsApp Reminders</div>
+                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Shift start &amp; attendance alerts</div>
                   </div>
                 </div>
                 <button id="sr-ndpa-sms-whatsapp-toggle" role="switch" aria-checked="${notifPrefs.smsWhatsapp !== false}"
@@ -14891,20 +14923,16 @@
         </div>
 
         ${prePayrollBlocked ? `
-        <div id="sr-pre-payroll-gate-card" style="margin-bottom:16px;padding:14px 18px;background:rgba(245,158,11,0.09);border:1.5px solid rgba(245,158,11,0.4);border-radius:10px;">
+        <div id="sr-pre-payroll-gate-card" style="margin-bottom:16px;padding:12px 16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.35);border-radius:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:260px;">
-              <strong style="display:block;font-size:13.5px;color:#b45309;margin-bottom:4px;">Pre-Payroll Exception Gate Active</strong>
-              <div style="font-size:12.5px;color:var(--sr-text-secondary);line-height:1.45;">
-                ${unresolvedCount} pending attendance exception(s) and ${presenceHoldCount} auto clock-out hold(s) await Supervisor review.
-                Pardoned hours (${summary.pardonedHours}h) are protected at full pay; unexcused hours (${summary.unexcusedDeductedHours}h) deduct once only.
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-                <input type="checkbox" id="sr-payroll-ack-exceptions-cb" style="width:16px !important;height:16px !important;min-height:16px !important;margin:0;flex-shrink:0;accent-color:var(--sr-primary);cursor:pointer;" />
-                <label for="sr-payroll-ack-exceptions-cb" style="margin:0 !important;display:inline !important;font-size:12px;font-weight:700;color:var(--sr-text-main);cursor:pointer;">Executive Override: Acknowledge unresolved exceptions and release batch anyway</label>
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex:1;">
+              <strong style="font-size:13px;color:#b45309;">${unresolvedCount} attendance exception(s) pending review</strong>
+              <div style="display:inline-flex;align-items:center;gap:6px;">
+                <input type="checkbox" id="sr-payroll-ack-exceptions-cb" style="width:15px !important;height:15px !important;min-height:15px !important;margin:0;flex-shrink:0;accent-color:var(--sr-primary);cursor:pointer;" />
+                <label for="sr-payroll-ack-exceptions-cb" style="margin:0 !important;display:inline !important;font-size:12px;font-weight:600;color:var(--sr-text-secondary);cursor:pointer;">Override and release batch</label>
               </div>
             </div>
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-gate-review-exceptions" style="font-size:12px;padding:6px 12px;white-space:nowrap;">Review Exceptions Queue</button>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-gate-review-exceptions" style="font-size:12px;padding:5px 12px;min-height:30px;white-space:nowrap;">Review</button>
           </div>
         </div>` : ''}
 
@@ -16047,25 +16075,21 @@
             <p class="sr-page-subtitle" style="margin:0;">${escapeHtml(hubLabel)} &bull; Tailored safety regulations, payroll taxes, and workflow controls</p>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-gov-refresh-btn" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-              <span>Refresh</span>
-            </button>
             <a href="/api/reports/dpa" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span>Signed NDPA DPA</span>
+              <span>Download DPA</span>
             </a>
             <a href="/trust.html" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <span>Trust &amp; SLA Center</span>
+              <span>Trust Center</span>
             </a>
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-gov-open-settings" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              <span>Organisation Settings</span>
+              <span>Settings</span>
             </button>
             <button type="button" class="sr-btn sr-btn-primary" id="sr-gov-open-kiosk" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
-              <span>Colleague ID Scanner</span>
+              <span>Peer Scanner</span>
             </button>
           </div>
         </div>
@@ -16088,29 +16112,11 @@
           </div>
         </div>
 
-        <div class="sr-card" style="margin-bottom:16px;padding:16px 18px;border-left:4px solid #0d9488;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
-          <div>
-            <div style="font-size:13.5px;font-weight:800;color:var(--sr-text-main);">NDPA 2023 Compliance &amp; Multi-Channel Attendance Reminder Routing</div>
-            <div style="font-size:12px;color:var(--sr-text-muted);margin-top:3px;">
-              Pre-shift T-15m &amp; Grace-Expiry T+15m alerts route via <strong>Email + Termii SMS + WhatsApp Cloud API</strong> (with deep-link fallback &amp; per-worker NDPA opt-out).
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <a href="/dpa.html" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="font-size:12px;min-height:32px;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center;">View DPA Policy</a>
-            <a href="/sla.html" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="font-size:12px;min-height:32px;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center;">99.9% SLA</a>
-            <a href="/status.html" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="font-size:12px;min-height:32px;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center;">Live Status</a>
-          </div>
-        </div>
-
         ${sections}
         ${taxMarkup}
         ${ideasMarkup}
       </div>`;
 
-    document.getElementById('sr-gov-refresh-btn')?.addEventListener('click', () => {
-      renderComplianceGoals();
-      showToast('Governance records refreshed.', 'success');
-    });
     document.getElementById('sr-gov-open-settings')?.addEventListener('click', () => {
       navigate('settings');
     });
@@ -16667,13 +16673,9 @@
             <span style="font-size:11px;padding:4px 10px;background:var(--sr-bg-card-subtle,#f1f5f9);color:var(--sr-text-muted);border-radius:20px;border:1px solid var(--sr-border-subtle);">
               ${escapeHtml(tenant.reportPeriod || '')}
             </span>
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-analytics-refresh-btn" style="font-size:12px;padding:7px 12px;display:flex;align-items:center;gap:6px;" title="Refresh Executive Pulse">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-              <span>Refresh</span>
-            </button>
             <button type="button" class="sr-btn sr-btn-primary" id="sr-analytics-add-staff-btn" style="font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:6px;" title="Add a new staff member and assign department">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-              <span>+ Add New Staff</span>
+              <span>+ Add Staff</span>
             </button>
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-switch-to-shiftops" style="font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Frontline Shift Operations Layer">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
