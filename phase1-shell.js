@@ -3212,6 +3212,35 @@
       const doneTaskCount = tasks.filter(t => t.done).length;
       const doneTaskPct = Math.round((doneTaskCount / Math.max(1, tasks.length)) * 100);
 
+      const shiftStartMs = clockedInTime ? new Date(clockedInTime).getTime() : Date.now();
+      const totalShiftDurationMs = Math.max(60000, (shiftEndMs || (shiftStartMs + 8 * 3600000)) - shiftStartMs);
+      const rawElapsedPct = isClockedIn
+        ? Math.min(1, Math.max(0, (Date.now() - shiftStartMs) / totalShiftDurationMs))
+        : 0;
+      const initialFillPct = isClockedIn
+        ? (isShiftLockedUntilEnd ? Math.min(99, Math.max(1, Math.round(rawElapsedPct * 100))) : 100)
+        : 0;
+      const initialLiquidHeight = isClockedIn
+        ? (isShiftLockedUntilEnd ? Math.round(12 + rawElapsedPct * 86) : 105)
+        : 16;
+      const ringCircumference = 552.92;
+      const initialRingOffset = isClockedIn
+        ? Math.round(ringCircumference * (1 - (isShiftLockedUntilEnd ? Math.max(0.04, rawElapsedPct) : 1)))
+        : ringCircumference;
+      const initialElapsedSec = isClockedIn ? Math.max(0, Math.floor((Date.now() - shiftStartMs) / 1000)) : 0;
+      const initialElapsedStr = isClockedIn
+        ? `${String(Math.floor(initialElapsedSec / 3600)).padStart(2, '0')}:${String(Math.floor((initialElapsedSec % 3600) / 60)).padStart(2, '0')}:${String(initialElapsedSec % 60).padStart(2, '0')}`
+        : (hasCompletedShiftToday ? 'COMPLETED' : '00:00:00');
+      const clockCardExtraClass = isClockedIn
+        ? (isShiftLockedUntilEnd ? 'clocked-in' : 'clocked-in clock-full')
+        : '';
+      const clockBtnStateClass = isClockedIn
+        ? (isShiftLockedUntilEnd ? 'sr-water-btn-locked' : 'sr-water-btn-out')
+        : 'sr-water-btn-in';
+      const clockBtnAria = isClockedIn
+        ? (isShiftLockedUntilEnd ? 'Shift filling — Clock Out unlocks when full' : 'Shift full — Tap to Clock Out')
+        : 'Tap to Clock In';
+
       const html = `
         <!-- Slim Single-Row Shift & Grace Policy Context Bar -->
         <div class="sr-v2-shift-bar" aria-label="Today's Assigned Shift">
@@ -3240,8 +3269,8 @@
           </div>
         </div>
 
-        <!-- Center Hero: Orbital Time Clock & Primary Action Above the Fold -->
-        <section class="sr-clock-card sr-cosmic-clock-card ${isClockedIn ? 'clocked-in' : ''}" id="sr-clock-card" aria-label="Shift Time Tracking">
+        <!-- Center Hero: Unified Liquid-Fill Orbital Clock Button -->
+        <section class="sr-clock-card sr-cosmic-clock-card ${clockCardExtraClass}" id="sr-clock-card" aria-label="Shift Time Tracking">
           <div class="sr-cosmic-clock-header">
             <span class="sr-status-pill ${isClockedIn ? 'active' : (hasCompletedShiftToday ? 'completed' : 'inactive')}" id="sr-today-shift-status">
               ${isClockedIn ? '<span class="sr-pulse-dot"></span> Active on Shift' : (hasCompletedShiftToday ? 'Shift Completed · Off Duty' : 'Off Duty · Ready')}
@@ -3250,12 +3279,12 @@
               ${isClockedIn && clockedInTime ? `In · ${new Date(clockedInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : (hasCompletedShiftToday ? 'Today Logged: 8h 00m Verified' : '8h Shift Target')}
             </small>
           </div>
-          <div id="sr-gps-status-pill" style="margin:4px 0 2px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:rgba(13,148,136,0.1);color:#0f766e;border:1px solid rgba(13,148,136,0.22);">
+          <div id="sr-gps-status-pill" style="margin:2px 0 6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:rgba(13,148,136,0.1);color:#0f766e;border:1px solid rgba(13,148,136,0.22);">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2.5"/></svg>
             <span id="sr-gps-status-text">On-Site GPS Active</span>
           </div>
 
-          <div class="sr-orbital-timer-wrap" id="sr-orbital-timer-wrap">
+          <div class="sr-orbital-timer-wrap sr-unified-clock-stage" id="sr-orbital-timer-wrap">
             <svg class="sr-orbital-ring-svg" viewBox="0 0 200 200" aria-hidden="true">
               <defs>
                 <linearGradient id="sr-timer-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -3263,49 +3292,68 @@
                   <stop offset="50%" stop-color="#06b6d4"/>
                   <stop offset="100%" stop-color="#3b82f6"/>
                 </linearGradient>
+                <linearGradient id="sr-timer-grad-full" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#fb7185"/>
+                  <stop offset="50%" stop-color="#ef4444"/>
+                  <stop offset="100%" stop-color="#f97316"/>
+                </linearGradient>
               </defs>
-              <circle class="sr-orbital-ticks" cx="100" cy="100" r="94" fill="none" stroke-width="1.5" stroke-dasharray="2 8"/>
-              <circle class="sr-orbital-track" cx="100" cy="100" r="84" fill="none" stroke-width="6"/>
-              <circle class="sr-orbital-progress" id="sr-orbital-progress-circle" cx="100" cy="100" r="84" fill="none" stroke-width="6"
-                stroke-dasharray="527.78" stroke-dashoffset="${isClockedIn ? '210' : '527.78'}"/>
+              <circle class="sr-orbital-ticks" cx="100" cy="100" r="95" fill="none" stroke-width="1.5" stroke-dasharray="2 8"/>
+              <circle class="sr-orbital-track" cx="100" cy="100" r="88" fill="none" stroke-width="5.5"/>
+              <circle class="sr-orbital-progress" id="sr-orbital-progress-circle" cx="100" cy="100" r="88" fill="none" stroke-width="5.5"
+                stroke="${isClockedIn && !isShiftLockedUntilEnd ? 'url(#sr-timer-grad-full)' : 'url(#sr-timer-grad)'}"
+                stroke-dasharray="552.92" stroke-dashoffset="${initialRingOffset}"/>
             </svg>
-            <div class="sr-orbital-inner-sphere">
-              <div class="sr-timer-water-tank">
-                <div class="sr-timer-water-fill" id="sr-timer-liquid-level" style="${hasCompletedShiftToday && !isClockedIn ? 'height:100%;background:linear-gradient(180deg, rgba(16,185,129,0.7) 0%, rgba(13,148,136,0.9) 100%);' : ''}"></div>
-              </div>
-              <div class="sr-orbital-time-readout sr-v2-num" id="sr-elapsed-timer" style="${hasCompletedShiftToday && !isClockedIn ? 'font-size:19px;color:#10b981;font-weight:800;' : ''}">
-                ${isClockedIn ? '00:00:00' : (hasCompletedShiftToday ? 'COMPLETED' : '00:00:00')}
-              </div>
-              <span class="sr-orbital-time-sub">${isClockedIn ? 'LIVE SHIFT FLOW' : (hasCompletedShiftToday ? 'OFF DUTY · VERIFIED' : 'READY TO CLOCK IN')}</span>
-            </div>
-          </div>
 
-          <div class="sr-water-conduit" aria-hidden="true">
-            <div class="sr-water-conduit-stream"></div>
-          </div>
-
-          <div class="sr-water-btn-stage">
             <button type="button"
-              class="sr-water-push-btn ${isClockedIn ? (isShiftLockedUntilEnd ? 'sr-water-btn-locked' : 'sr-water-btn-out') : 'sr-water-btn-in'}"
+              class="sr-water-push-btn sr-unified-clock-btn ${clockBtnStateClass}"
               id="sr-btn-water-clock"
-              ${isShiftLockedUntilEnd ? 'disabled aria-disabled="true"' : ''}
-              aria-label="${isClockedIn ? (isShiftLockedUntilEnd ? 'Clock Out Locked Until Shift End' : 'Clock Out') : 'Clock In'}">
-              <div class="sr-btn-water-wave"></div>
-              <svg class="sr-water-btn-icon" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                ${isShiftLockedUntilEnd
-                  ? '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
-                  : '<circle cx="12" cy="12" r="10" stroke-opacity="0.35"/><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12" stroke-width="2.8"/>'}
-              </svg>
-              <span class="sr-water-btn-label" id="sr-water-btn-label">${isClockedIn ? (isShiftLockedUntilEnd ? 'SHIFT LOCKED' : 'CLOCK OUT') : 'CLOCK IN'}</span>
-            </button>
-            ${isClockedIn ? `
-              <div id="sr-shift-lock-note" style="margin-top:6px;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);text-align:center;">
-                ${isShiftLockedUntilEnd
-                  ? `Clock-out unlocks at ${escapeHtml(shiftUnlockClock)} &bull; Auto clock-out active`
-                  : 'Shift ended &bull; Processing automatic clock-out'}
+              ${isShiftLockedUntilEnd ? 'aria-disabled="true"' : ''}
+              aria-label="${escapeHtml(clockBtnAria)}">
+              <div class="sr-timer-water-tank" aria-hidden="true">
+                <div class="sr-timer-water-fill" id="sr-timer-liquid-level" style="height:${initialLiquidHeight}%;">
+                  <svg class="sr-liquid-wave sr-liquid-wave-back" viewBox="0 0 1200 40" preserveAspectRatio="none">
+                    <path d="M0,20 Q150,38 300,20 T600,20 Q750,38 900,20 T1200,20 L1200,40 L0,40 Z"/>
+                  </svg>
+                  <svg class="sr-liquid-wave sr-liquid-wave-front" viewBox="0 0 1200 40" preserveAspectRatio="none">
+                    <path d="M0,20 Q150,2 300,20 T600,20 Q750,2 900,20 T1200,20 L1200,40 L0,40 Z"/>
+                  </svg>
+                </div>
               </div>
-            ` : ''}
+
+              <div class="sr-unified-clock-core">
+                ${isClockedIn ? `
+                  <span class="sr-unified-pct-pill sr-v2-num" id="sr-shift-fill-pct">${isShiftLockedUntilEnd ? `${initialFillPct}% · FILLING` : '100% · FULL'}</span>
+                  <div class="sr-orbital-time-readout sr-v2-num" id="sr-elapsed-timer">${initialElapsedStr}</div>
+                  <div class="sr-unified-action-row">
+                    <span class="sr-water-btn-icon" id="sr-water-btn-icon" aria-hidden="true">
+                      ${isShiftLockedUntilEnd
+                        ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+                        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>'}
+                    </span>
+                    <span class="sr-water-btn-label" id="sr-water-btn-label">${isShiftLockedUntilEnd ? 'SHIFT LOCKED' : 'CLOCK OUT'}</span>
+                  </div>
+                  <span class="sr-orbital-time-sub" id="sr-clock-sub-hint">${isShiftLockedUntilEnd ? `UNLOCKS ${escapeHtml(shiftUnlockClock)}` : 'TAP TO CLOCK OUT'}</span>
+                ` : `
+                  <svg class="sr-water-btn-icon" id="sr-water-btn-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke-opacity="0.32"/>
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                    <line x1="12" y1="2" x2="12" y2="12" stroke-width="2.8"/>
+                  </svg>
+                  <span class="sr-water-btn-label" id="sr-water-btn-label">CLOCK IN</span>
+                  <div class="sr-orbital-time-readout sr-orbital-time-idle sr-v2-num" id="sr-elapsed-timer">${initialElapsedStr}</div>
+                  <span class="sr-orbital-time-sub" id="sr-clock-sub-hint">${hasCompletedShiftToday ? 'OFF DUTY · TAP TO RESTART' : 'TAP TO START SHIFT'}</span>
+                `}
+              </div>
+            </button>
           </div>
+          ${isClockedIn ? `
+            <div id="sr-shift-lock-note" style="margin-top:6px;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);text-align:center;">
+              ${isShiftLockedUntilEnd
+                ? `Filling to 100% &bull; Clock-out unlocks at ${escapeHtml(shiftUnlockClock)}`
+                : 'Tank 100% Full &bull; Tap circle above to Clock Out with GPS'}
+            </div>
+          ` : ''}
 
           ${isClockedIn ? `
             <div class="sr-clock-mode-chips">
@@ -3481,7 +3529,13 @@
       const performWaterClockOut = async (isAuto = false) => {
         if (autoClockOutInFlight) return;
         if (!isAuto && shiftEndMs && Date.now() < shiftEndMs) {
-          showToast(`Clock-out is locked until your shift ends at ${shiftUnlockClock}.`, 'info');
+          const pctNow = Math.min(99, Math.max(1, Math.round(((Date.now() - shiftStartMs) / totalShiftDurationMs) * 100)));
+          const btnEl = document.getElementById('sr-btn-water-clock');
+          if (btnEl) {
+            btnEl.classList.add('sr-lock-bump');
+            setTimeout(() => btnEl.classList.remove('sr-lock-bump'), 360);
+          }
+          showToast(`Shift tank at ${pctNow}% — clock-out unlocks when full at ${shiftUnlockClock}.`, 'info');
           return;
         }
         autoClockOutInFlight = true;
@@ -3552,13 +3606,13 @@
         }
       };
 
-      // Start elapsed timer, orbital progress & automatic end-of-shift clock-out
+      // Start elapsed timer, unified liquid tank fill & automatic shift-end unlock
       if (isClockedIn && clockedInTime) {
         const startTime = new Date(clockedInTime).getTime();
         const totalDuration = Math.max(60000, (shiftEndMs || (startTime + 8 * 3600000)) - startTime);
         const updateTimer = () => {
           const nowMs = Date.now();
-          if (shiftEndMs && nowMs >= shiftEndMs) {
+          if (shiftEndMs && nowMs >= shiftEndMs + 300000) {
             performWaterClockOut(true);
             return;
           }
@@ -3569,22 +3623,57 @@
           const el = document.getElementById('sr-elapsed-timer');
           if (el) el.textContent = `${h}:${m}:${s}`;
 
-          const pct = Math.min(1, Math.max(0.18, (nowMs - startTime) / totalDuration));
+          const isFull = Boolean(!shiftEndMs || nowMs >= shiftEndMs);
+          const rawPct = Math.min(1, Math.max(0, (nowMs - startTime) / totalDuration));
+          const displayPct = isFull ? 100 : Math.min(99, Math.max(1, Math.round(rawPct * 100)));
+
           const ring = document.getElementById('sr-orbital-progress-circle');
           if (ring) {
-            const circumference = 527.78;
-            ring.setAttribute('stroke-dashoffset', String(Math.round(circumference * (1 - pct))));
+            const circumference = 552.92;
+            const ringPct = isFull ? 1 : Math.max(0.04, rawPct);
+            ring.setAttribute('stroke-dashoffset', String(Math.round(circumference * (1 - ringPct))));
+            ring.setAttribute('stroke', isFull ? 'url(#sr-timer-grad-full)' : 'url(#sr-timer-grad)');
           }
+
           const waterEl = document.getElementById('sr-timer-liquid-level');
           if (waterEl) {
-            waterEl.style.height = `${Math.round(32 + pct * 56)}%`;
+            waterEl.style.height = isFull ? '105%' : `${Math.round(12 + rawPct * 86)}%`;
           }
+
+          const pctBadge = document.getElementById('sr-shift-fill-pct');
+          if (pctBadge) {
+            pctBadge.textContent = isFull ? '100% · FULL' : `${displayPct}% · FILLING`;
+          }
+
+          const btnEl = document.getElementById('sr-btn-water-clock');
+          const cardEl = document.getElementById('sr-clock-card');
+          const labelEl = document.getElementById('sr-water-btn-label');
+          const hintEl = document.getElementById('sr-clock-sub-hint');
+          const iconEl = document.getElementById('sr-water-btn-icon');
+
+          if (isFull && btnEl && !btnEl.classList.contains('sr-water-btn-out')) {
+            btnEl.classList.remove('sr-water-btn-locked');
+            btnEl.classList.add('sr-water-btn-out');
+            btnEl.removeAttribute('aria-disabled');
+            btnEl.setAttribute('aria-label', 'Shift full — Tap to Clock Out');
+            cardEl?.classList.add('clock-full');
+            if (labelEl) labelEl.textContent = 'CLOCK OUT';
+            if (hintEl) hintEl.textContent = 'TAP TO CLOCK OUT';
+            if (iconEl) {
+              iconEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>';
+            }
+          }
+
           const lockNote = document.getElementById('sr-shift-lock-note');
           if (lockNote && shiftEndMs) {
-            const remMs = Math.max(0, shiftEndMs - nowMs);
-            const remH = Math.floor(remMs / 3600000);
-            const remM = Math.ceil((remMs % 3600000) / 60000);
-            lockNote.textContent = `Clock-out unlocks at ${shiftUnlockClock} (${remH}h ${remM}m left) · Auto clock-out active`;
+            if (isFull) {
+              lockNote.textContent = 'Tank 100% Full · Tap circle above to Clock Out with GPS';
+            } else {
+              const remMs = Math.max(0, shiftEndMs - nowMs);
+              const remH = Math.floor(remMs / 3600000);
+              const remM = Math.ceil((remMs % 3600000) / 60000);
+              lockNote.textContent = `Filling (${displayPct}%) · Clock-out unlocks at ${shiftUnlockClock} (${remH}h ${remM}m left)`;
+            }
           }
         };
         updateTimer();

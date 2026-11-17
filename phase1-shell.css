@@ -9037,10 +9037,17 @@ textarea:focus-visible {
 }
 
 /* Advanced Orbital Dial & Liquid Sphere Timer */
-.sr-orbital-timer-wrap {
+.sr-cosmic-clock-card.clock-full {
+  border-color: rgba(239, 68, 68, 0.42) !important;
+  box-shadow: 0 16px 42px rgba(239, 68, 68, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Unified Liquid-Fill Orbital Dial & Hero Circular Action Button */
+.sr-orbital-timer-wrap,
+.sr-unified-clock-stage {
   position: relative;
-  width: 196px;
-  height: 196px;
+  width: 226px;
+  height: 226px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9059,7 +9066,7 @@ textarea:focus-visible {
 
 .sr-orbital-ticks {
   stroke: var(--sr-border-medium);
-  opacity: 0.45;
+  opacity: 0.42;
   animation: srSlowDialRotate 60s linear infinite;
   transform-origin: 50% 50%;
 }
@@ -9070,281 +9077,276 @@ textarea:focus-visible {
 }
 
 .sr-orbital-track {
-  stroke: rgba(148, 163, 184, 0.16);
+  stroke: rgba(148, 163, 184, 0.18);
 }
 
 .sr-orbital-progress {
-  stroke: url(#sr-timer-grad);
   stroke-linecap: round;
-  transition: stroke-dashoffset 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.45));
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.22, 1, 0.36, 1), stroke 0.4s ease;
+  filter: drop-shadow(0 0 7px rgba(16, 185, 129, 0.42));
 }
 
-.sr-orbital-inner-sphere {
+.sr-cosmic-clock-card.clock-full .sr-orbital-progress {
+  filter: drop-shadow(0 0 9px rgba(239, 68, 68, 0.55));
+}
+
+/* Single Unified Circular Button + Rising Liquid Tank */
+.sr-water-push-btn,
+.sr-unified-clock-btn {
   position: relative;
-  width: 148px;
-  height: 148px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 30%, rgba(15, 23, 42, 0.92), rgba(9, 14, 26, 0.98));
-  border: 1px solid rgba(56, 189, 248, 0.22);
-  box-shadow: inset 0 6px 20px rgba(0, 0, 0, 0.55), 0 0 24px rgba(16, 185, 129, 0.12);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-
-[data-theme="light"] .sr-orbital-inner-sphere {
-  background: radial-gradient(circle at 50% 30%, #0f172a, #090f1d);
-}
-
-/* Rising Water inside the Timer Sphere */
-.sr-timer-water-tank {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  border-radius: 50%;
-}
-
-.sr-timer-water-fill {
-  position: absolute;
-  left: -20%;
-  right: -20%;
-  bottom: 0;
-  height: 18%;
-  background: linear-gradient(180deg, rgba(6, 182, 212, 0.35) 0%, rgba(16, 185, 129, 0.52) 100%);
-  transition: height 1.1s cubic-bezier(0.22, 1, 0.36, 1);
-  border-radius: 38% 42% 0 0;
-  animation: srWaterSlosh 5s ease-in-out infinite alternate;
-}
-
-.sr-cosmic-clock-card.clocked-in .sr-timer-water-fill {
-  height: 58%;
-  background: linear-gradient(180deg, rgba(0, 245, 160, 0.38) 0%, rgba(6, 182, 212, 0.55) 100%);
-}
-
-.sr-cosmic-clock-card.water-surging .sr-timer-water-fill {
-  height: 88% !important;
-}
-
-@keyframes srWaterSlosh {
-  0% { transform: translateX(-6%) rotate(-2deg); border-radius: 42% 38% 0 0; }
-  50% { transform: translateX(4%) rotate(1.5deg); border-radius: 36% 44% 0 0; }
-  100% { transform: translateX(-3%) rotate(-1deg); border-radius: 40% 40% 0 0; }
-}
-
-.sr-orbital-time-readout {
-  position: relative;
-  z-index: 3;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 25px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: #ffffff;
-  text-shadow: 0 2px 12px rgba(0, 245, 160, 0.35);
-  line-height: 1.1;
-}
-
-.sr-orbital-time-sub {
-  position: relative;
-  z-index: 3;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: #6ee7b7;
-  margin-top: 4px;
-}
-
-/* Liquid Stream Conduit Connecting Thumbprint Button -> Timer Sphere */
-.sr-water-conduit {
-  position: relative;
-  width: 4px;
-  height: 22px;
-  background: rgba(148, 163, 184, 0.18);
-  border-radius: 99px;
-  overflow: hidden;
-  margin: -2px auto;
-  z-index: 2;
-}
-
-.sr-water-conduit-stream {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -100%;
-  height: 100%;
-  background: linear-gradient(0deg, #10b981, #00f5a0, #38bdf8);
-  animation: srConduitFlowUp 1.6s linear infinite;
-  opacity: 0.45;
-}
-
-.sr-cosmic-clock-card.clocked-in .sr-water-conduit-stream,
-.sr-cosmic-clock-card.water-surging .sr-water-conduit-stream {
-  opacity: 1;
-  box-shadow: 0 0 10px #00f5a0;
-}
-
-@keyframes srConduitFlowUp {
-  0% { transform: translateY(100%); }
-  100% { transform: translateY(-100%); }
-}
-
-/* 2. Circular Biometric Thumbprint Reactive Water Push Button */
-.sr-water-btn-stage {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 4px auto 6px;
-  z-index: 3;
-}
-
-.sr-water-push-btn {
-  position: relative;
-  width: 118px;
-  height: 118px;
-  border-radius: 50%;
-  border: none;
+  border: 1.5px solid rgba(56, 189, 248, 0.24);
+  padding: 14px;
   cursor: pointer;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
   color: #ffffff;
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+  background: radial-gradient(circle at 50% 25%, #0f1f2e 0%, #09131f 70%, #050b14 100%);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, border-color 0.35s ease;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  z-index: 2;
 }
 
-/* GREEN state when Off Shift (Clock In) */
 .sr-water-push-btn.sr-water-btn-in {
-  background: radial-gradient(circle at 50% 25%, #065f46 0%, #052e22 62%, #021811 100%);
+  background: radial-gradient(circle at 50% 24%, #072920 0%, #041d17 65%, #02110d 100%);
+  border-color: rgba(16, 185, 129, 0.45);
   box-shadow:
-    0 0 0 5px rgba(16, 185, 129, 0.18),
-    0 0 0 11px rgba(16, 185, 129, 0.07),
-    0 12px 30px rgba(16, 185, 129, 0.42),
-    inset 0 2px 6px rgba(255, 255, 255, 0.35);
-  animation: srGreenPulseRing 2.6s ease-in-out infinite;
+    0 0 0 4px rgba(16, 185, 129, 0.16),
+    0 12px 28px rgba(16, 185, 129, 0.34),
+    inset 0 4px 18px rgba(0, 0, 0, 0.55);
+  animation: srGreenPulseRing 2.8s ease-in-out infinite;
 }
 
-/* RED state when Active on Shift (Clock Out) */
-.sr-water-push-btn.sr-water-btn-out {
-  background: radial-gradient(circle at 50% 25%, #ef4444 0%, #dc2626 60%, #991b1b 100%);
-  box-shadow:
-    0 0 0 5px rgba(239, 68, 68, 0.20),
-    0 0 0 11px rgba(239, 68, 68, 0.08),
-    0 12px 30px rgba(239, 68, 68, 0.42),
-    inset 0 2px 6px rgba(255, 255, 255, 0.35);
-  animation: srRedPulseRing 2.6s ease-in-out infinite;
-}
-
-/* LOCKED state during active shift until shift end */
 .sr-water-push-btn.sr-water-btn-locked {
-  background: radial-gradient(circle at 50% 25%, #334155 0%, #1e293b 65%, #0f172a 100%);
+  background: radial-gradient(circle at 50% 24%, #0d1d2f 0%, #07121f 68%, #040912 100%);
+  border-color: rgba(6, 182, 212, 0.42);
   box-shadow:
-    0 0 0 5px rgba(100, 116, 139, 0.20),
-    0 8px 22px rgba(15, 23, 42, 0.35),
-    inset 0 2px 6px rgba(255, 255, 255, 0.16);
-  opacity: 0.88;
-  cursor: not-allowed;
+    0 0 0 4px rgba(6, 182, 212, 0.14),
+    0 10px 26px rgba(15, 23, 42, 0.34),
+    inset 0 6px 20px rgba(0, 0, 0, 0.58);
+}
+
+.sr-water-push-btn.sr-water-btn-out {
+  background: radial-gradient(circle at 50% 24%, #450a0a 0%, #2d0707 65%, #180303 100%);
+  border-color: rgba(251, 113, 133, 0.6);
+  box-shadow:
+    0 0 0 5px rgba(239, 68, 68, 0.22),
+    0 12px 32px rgba(239, 68, 68, 0.44),
+    inset 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: srRedPulseRing 2.5s ease-in-out infinite;
 }
 
 @keyframes srGreenPulseRing {
   0%, 100% {
     box-shadow:
-      0 0 0 5px rgba(16, 185, 129, 0.20),
-      0 0 0 10px rgba(16, 185, 129, 0.07),
-      0 12px 28px rgba(16, 185, 129, 0.40),
-      inset 0 2px 6px rgba(255, 255, 255, 0.35);
+      0 0 0 4px rgba(16, 185, 129, 0.18),
+      0 12px 28px rgba(16, 185, 129, 0.34),
+      inset 0 4px 18px rgba(0, 0, 0, 0.55);
   }
   50% {
     box-shadow:
-      0 0 0 8px rgba(0, 245, 160, 0.28),
-      0 0 0 16px rgba(0, 245, 160, 0.09),
-      0 14px 36px rgba(0, 245, 160, 0.55),
-      inset 0 2px 8px rgba(255, 255, 255, 0.45);
+      0 0 0 7px rgba(0, 245, 160, 0.24),
+      0 14px 34px rgba(0, 245, 160, 0.48),
+      inset 0 4px 18px rgba(0, 0, 0, 0.48);
   }
 }
 
 @keyframes srRedPulseRing {
   0%, 100% {
     box-shadow:
-      0 0 0 5px rgba(239, 68, 68, 0.22),
-      0 0 0 10px rgba(239, 68, 68, 0.08),
-      0 12px 28px rgba(239, 68, 68, 0.42),
-      inset 0 2px 6px rgba(255, 255, 255, 0.35);
+      0 0 0 4px rgba(239, 68, 68, 0.22),
+      0 12px 28px rgba(239, 68, 68, 0.40),
+      inset 0 4px 16px rgba(0, 0, 0, 0.4);
   }
   50% {
     box-shadow:
-      0 0 0 8px rgba(248, 113, 113, 0.30),
-      0 0 0 16px rgba(239, 68, 68, 0.10),
-      0 14px 36px rgba(239, 68, 68, 0.58),
-      inset 0 2px 8px rgba(255, 255, 255, 0.45);
+      0 0 0 8px rgba(251, 113, 133, 0.32),
+      0 14px 36px rgba(239, 68, 68, 0.56),
+      inset 0 4px 16px rgba(0, 0, 0, 0.35);
   }
 }
 
 .sr-water-push-btn:hover {
-  transform: scale(1.04);
+  transform: scale(1.025);
 }
 
 .sr-water-push-btn:active,
 .sr-water-push-btn.surging {
-  transform: scale(0.93);
+  transform: scale(0.95);
 }
 
-/* Rising Water Liquid Layer inside the Circular Thumbprint Button */
-.sr-btn-water-wave {
+.sr-water-push-btn.sr-lock-bump {
+  animation: srLockBump 0.34s ease;
+}
+
+@keyframes srLockBump {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Rising Dual-Wave Liquid Tank Inside the Button Sphere */
+.sr-timer-water-tank {
   position: absolute;
-  left: -30%;
-  right: -30%;
-  bottom: -10%;
-  height: 48%;
-  border-radius: 40% 45% 0 0;
+  inset: 0;
   pointer-events: none;
-  transition: height 0.75s cubic-bezier(0.22, 1, 0.36, 1);
-  animation: srBtnWaveSpin 4s ease-in-out infinite alternate;
+  overflow: hidden;
+  border-radius: 50%;
   z-index: 1;
 }
 
-.sr-water-btn-in .sr-btn-water-wave {
-  background: linear-gradient(180deg, rgba(0, 245, 160, 0.55) 0%, rgba(16, 185, 129, 0.85) 100%);
+.sr-timer-water-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 16%;
+  transition: height 1.1s cubic-bezier(0.22, 1, 0.36, 1), background 0.45s ease;
+  will-change: height;
 }
 
-.sr-water-btn-out .sr-btn-water-wave {
-  background: linear-gradient(180deg, rgba(251, 113, 133, 0.55) 0%, rgba(220, 38, 38, 0.85) 100%);
+.sr-water-btn-in .sr-timer-water-fill {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.52) 0%, rgba(5, 150, 105, 0.88) 100%);
 }
 
-.sr-water-push-btn:hover .sr-btn-water-wave,
-.sr-water-push-btn.surging .sr-btn-water-wave {
-  height: 110%;
+.sr-water-btn-locked .sr-timer-water-fill {
+  background: linear-gradient(180deg, rgba(6, 182, 212, 0.72) 0%, rgba(16, 185, 129, 0.90) 100%);
 }
 
-@keyframes srBtnWaveSpin {
-  0% { transform: translateX(-8%) rotate(-4deg); border-radius: 42% 38% 0 0; }
-  100% { transform: translateX(8%) rotate(4deg); border-radius: 36% 44% 0 0; }
+.sr-water-btn-out .sr-timer-water-fill {
+  background: linear-gradient(180deg, rgba(251, 113, 133, 0.85) 0%, rgba(220, 38, 38, 0.96) 100%);
+}
+
+.sr-water-push-btn.surging .sr-timer-water-fill,
+.sr-cosmic-clock-card.water-surging .sr-timer-water-fill {
+  height: 108% !important;
+  transition: height 0.65s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.sr-liquid-wave {
+  position: absolute;
+  top: -15px;
+  left: 0;
+  width: 200%;
+  height: 18px;
+  display: block;
+  pointer-events: none;
+}
+
+.sr-liquid-wave-back {
+  opacity: 0.55;
+  animation: srWaveScroll 6.5s linear infinite reverse;
+}
+
+.sr-liquid-wave-front {
+  opacity: 0.92;
+  animation: srWaveScroll 4.2s linear infinite;
+}
+
+.sr-water-btn-in .sr-liquid-wave-back path { fill: rgba(6, 182, 212, 0.45); }
+.sr-water-btn-in .sr-liquid-wave-front path { fill: rgba(16, 185, 129, 0.52); }
+
+.sr-water-btn-locked .sr-liquid-wave-back path { fill: rgba(56, 189, 248, 0.55); }
+.sr-water-btn-locked .sr-liquid-wave-front path { fill: rgba(6, 182, 212, 0.72); }
+
+.sr-water-btn-out .sr-liquid-wave-back path { fill: rgba(251, 146, 60, 0.55); }
+.sr-water-btn-out .sr-liquid-wave-front path { fill: rgba(251, 113, 133, 0.85); }
+
+@keyframes srWaveScroll {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Unified Button Interior Typography & Micro HUD */
+.sr-unified-clock-core {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  text-align: center;
+}
+
+.sr-unified-pct-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  background: rgba(15, 23, 42, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  backdrop-filter: blur(4px);
+}
+
+.sr-orbital-time-readout {
+  position: relative;
+  z-index: 3;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.65);
+  line-height: 1.08;
+}
+
+.sr-orbital-time-readout.sr-orbital-time-idle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #a7f3d0;
+  margin-top: 1px;
+}
+
+.sr-unified-action-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.sr-orbital-time-sub {
+  position: relative;
+  z-index: 3;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  margin-top: 1px;
 }
 
 .sr-water-btn-icon {
   position: relative;
   z-index: 2;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
 }
 
 .sr-water-btn-label {
   position: relative;
   z-index: 2;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 900;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
 }
 
 /* Compact Secondary Clock-In Mode Chips (Gate QR / GPS Verify) */

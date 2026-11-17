@@ -2381,33 +2381,36 @@ body:has(#sr-app-shell) .app-header,
     margin-bottom: 12px !important;
   }
 
-  #sr-app-shell .sr-orbital-timer-wrap {
-    width: 152px !important;
-    height: 152px !important;
-    margin: 2px auto 4px !important;
+  #sr-app-shell .sr-orbital-timer-wrap,
+  #sr-app-shell .sr-unified-clock-stage {
+    width: 196px !important;
+    height: 196px !important;
+    margin: 2px auto 6px !important;
   }
 
-  #sr-app-shell .sr-orbital-inner-sphere {
-    width: 114px !important;
-    height: 114px !important;
+  #sr-app-shell .sr-water-push-btn,
+  #sr-app-shell .sr-unified-clock-btn {
+    width: 156px !important;
+    height: 156px !important;
+    padding: 12px !important;
   }
 
   #sr-app-shell .sr-orbital-time-readout {
-    font-size: 1.25rem !important;
+    font-size: 1.32rem !important;
   }
 
-  #sr-app-shell .sr-water-conduit {
-    height: 14px !important;
+  #sr-app-shell .sr-orbital-time-readout.sr-orbital-time-idle {
+    font-size: 0.78rem !important;
   }
 
-  #sr-app-shell .sr-water-push-btn {
-    width: 100px !important;
-    height: 100px !important;
+  #sr-app-shell .sr-water-btn-icon svg {
+    width: 28px;
+    height: 28px;
   }
 
-  #sr-app-shell .sr-water-btn-icon {
-    width: 34px !important;
-    height: 34px !important;
+  #sr-app-shell .sr-unified-action-row .sr-water-btn-icon svg {
+    width: 13px !important;
+    height: 13px !important;
   }
 
   #sr-app-shell .sr-floating-ai-beacon,
