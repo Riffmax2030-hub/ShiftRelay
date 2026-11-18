@@ -1135,7 +1135,11 @@
           <span class="badge-count" id="nav-badge-leads">0</span>
         </button>
 
-        <div class="nav-sec-label">System</div>
+        <div class="nav-sec-label">System &amp; Bridges</div>
+        <button type="button" class="adm-nav-btn" data-view="integrations" onclick="window.switchAdminView('integrations')">
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/><circle cx="12" cy="12" r="4"/></svg> Plugins &amp; Bridges</span>
+          <span class="badge-count" id="nav-badge-bridges">6</span>
+        </button>
         <button type="button" class="adm-nav-btn" data-view="email-station" onclick="window.switchAdminView('email-station')">
           <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Email Station</span>
           <span class="badge-count" id="nav-badge-emails">5</span>
@@ -1244,58 +1248,33 @@
           </div>
 
           <div class="panel-card">
-            <div class="panel-head">
+            <div class="panel-head" style="margin-bottom:12px; padding-bottom:10px;">
               <div>
-                <h2>Role Modules</h2>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--emerald); text-transform:uppercase; letter-spacing:0.06em;">Connected Ecosystem</span>
+                <h2>Active Plugins, API Keys &amp; Enterprise Bridges</h2>
               </div>
-              <div style="display:flex; gap:8px;">
-                <button type="button" class="btn-ghost" onclick="window.switchAdminView('hosting')">Backend Files</button>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn-emerald" onclick="window.switchAdminView('integrations')">Manage Plugins &amp; Bridges &rarr;</button>
                 <button type="button" class="btn-amber" onclick="window.switchAdminView('owner-vault')">Owner Vault</button>
               </div>
             </div>
-
-            <div class="table-scroll">
-              <table class="adm-table">
-                <thead>
-                  <tr>
-                    <th>Role</th>
-                    <th>Scope</th>
-                    <th>Default Login</th>
-                    <th>Routing</th>
-                    <th>Open</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><strong>Owner Root</strong></td>
-                    <td>Vault, Approvals, Staff, Backend</td>
-                    <td><code>owner@shiftrelayos.com</code></td>
-                    <td>Root</td>
-                    <td><button type="button" class="btn-amber" onclick="window.switchAdminView('owner-vault')">Vault</button></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Setup Engine</strong></td>
-                    <td>Onboarding, CSV Roster, Gate QR</td>
-                    <td><code>adaeze@shiftrelayos.com</code></td>
-                    <td>Owner Vault</td>
-                    <td><button type="button" class="btn-ghost" onclick="window.switchAdminView('onboarding')">Setup</button></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Customer Care</strong></td>
-                    <td>Rectifications, NDPA, Email, Leads</td>
-                    <td><code>tunde@shiftrelayos.com</code></td>
-                    <td>Owner Vault</td>
-                    <td><button type="button" class="btn-ghost" onclick="window.switchAdminView('rectifications')">Care</button></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Finance Audit</strong></td>
-                    <td>Payroll Audit, PenCom / PAYE</td>
-                    <td><code>chukwudi@shiftrelayos.com</code></td>
-                    <td>Owner Vault</td>
-                    <td><button type="button" class="btn-ghost" onclick="window.switchAdminView('finance')">Audit</button></td>
-                  </tr>
-                </tbody>
-              </table>
+            <div id="overview-bridges-strip" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
+              <div style="padding:12px 14px; border-radius:12px; background:var(--bg-input); border:1px solid var(--border-hairline);">
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-slate);">GEMINI AI VISION</div>
+                <div style="font-weight:700; font-size:13.5px; margin-top:4px; color:var(--emerald);" id="ov-bridge-gemini">Gemini 3.8 Flash</div>
+              </div>
+              <div style="padding:12px 14px; border-radius:12px; background:var(--bg-input); border:1px solid var(--border-hairline);">
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-slate);">CBN NIP &amp; PAYSTACK</div>
+                <div style="font-weight:700; font-size:13.5px; margin-top:4px; color:var(--sky);" id="ov-bridge-paystack">22-Bank NUBAN Active</div>
+              </div>
+              <div style="padding:12px 14px; border-radius:12px; background:var(--bg-input); border:1px solid var(--border-hairline);">
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-slate);">WATCHDOG SMS &amp; WHATSAPP</div>
+                <div style="font-weight:700; font-size:13.5px; margin-top:4px; color:var(--text-white);" id="ov-bridge-messaging">Termii / Meta Cloud</div>
+              </div>
+              <div style="padding:12px 14px; border-radius:12px; background:var(--bg-input); border:1px solid var(--border-hairline);">
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-slate);">ERP / HRIS REST BRIDGE</div>
+                <div style="font-weight:700; font-size:13.5px; margin-top:4px; color:var(--amber);" id="ov-bridge-erp">/api/v1/bridge/summary</div>
+              </div>
             </div>
           </div>
 
@@ -1469,7 +1448,7 @@
                 </div>
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
-                <span class="chip cyan" id="ob-ai-engine-badge">SheetJS + Local Engine</span>
+                <span class="chip cyan" id="ob-ai-engine-badge">Gemini 3.8 Flash + Excel Engine</span>
                 <div class="theme-pill">
                   <button type="button" id="ob-mode-agent-btn" class="active" onclick="window.toggleOnboardingMode('agent')">Agent</button>
                   <button type="button" id="ob-mode-form-btn" onclick="window.toggleOnboardingMode('form')">Form</button>
@@ -1585,91 +1564,23 @@
                 </div>
               </div>
 
-              <!-- Employer Time & Attendance Policy (Dayforce-Grade Grace & Exceptions) -->
-              <div id="ob-attendance-policy-panel" style="margin:14px 0 16px; padding:14px 16px; border-radius:12px; background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.28);">
-                <div style="margin-bottom:10px;">
-                  <div style="font-size:13px; font-weight:800; color:var(--text-white);">Time, Attendance &amp; Exception Policy (Single-Source Payroll)</div>
-                  <div style="font-size:11.5px; color:var(--text-slate);">Workers review and accept these exact grace periods and exception rules on first shift sign-in.</div>
+              <div id="ob-attendance-policy-panel" style="margin:12px 0 16px; padding:12px 14px; border-radius:12px; background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.24); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                <div>
+                  <div style="font-size:12.5px; font-weight:700; color:var(--text-white);">Auto-Applied Defaults: 10-Min Grace &bull; Sector Safety Checklists &bull; Watchdog Reminders</div>
+                  <div style="font-size:11.5px; color:var(--text-slate);">Customize grace rules, SMS/WhatsApp reminders, and shift checklists anytime in <strong>Tenants &amp; Roster &rarr; Edit</strong>.</div>
                 </div>
-                <div class="grid-2">
-                  <div>
-                    <label class="lbl-sm">Grace Period (Minutes &mdash; Pardoned for Pay)</label>
-                    <select id="ob-grace-minutes" class="adm-select">
-                      <option value="5">5 Minutes Grace</option>
-                      <option value="10" selected>10 Minutes Grace (Standard)</option>
-                      <option value="15">15 Minutes Grace</option>
-                      <option value="20">20 Minutes Grace</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="lbl-sm">Late Arrival Deduction Rule</label>
-                    <select id="ob-late-mode" class="adm-select">
-                      <option value="none_within_grace" selected>Pardon Within Grace &bull; Review Beyond Grace</option>
-                      <option value="pro_rata_minutes">Pro-Rata Hourly Deduction Beyond Grace</option>
-                      <option value="shift_score_only">Shift Score Impact Only (Zero NGN Deduction)</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="grid-2">
-                  <div>
-                    <label class="lbl-sm">Missed Clock-In Action</label>
-                    <select id="ob-missed-in-action" class="adm-select">
-                      <option value="exception_review" selected>Route to Supervisor Exception Queue</option>
-                      <option value="pro_rata_deduct">Pro-Rata Deduction Unless Pardoned</option>
-                      <option value="pardon_with_flag">Auto-Pardon With Audit Flag</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="lbl-sm">Missed Clock-Out Action</label>
-                    <select id="ob-missed-out-action" class="adm-select">
-                      <option value="exception_review" selected>Hold for Supervisor Exception Review</option>
-                      <option value="auto_cap_shift_end">Auto-Cap at Scheduled Shift End</option>
-                      <option value="pro_rata_deduct">Pro-Rata Deduction Until Corrected</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="grid-2">
-                  <div>
-                    <label class="lbl-sm">Early Departure Action</label>
-                    <select id="ob-early-dep-action" class="adm-select">
-                      <option value="exception_review" selected>Route to Supervisor Exception Queue</option>
-                      <option value="pro_rata_deduct">Pro-Rata Minutes Deduction</option>
-                      <option value="pardon_with_flag">Auto-Pardon With Audit Flag</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="lbl-sm">Automated Pre-Shift Reminders (Min Before Shift)</label>
-                    <input type="text" id="ob-reminders" class="adm-input" value="30, 15, 0" placeholder="e.g., 30, 15, 0" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Workplace Safety & Mandatory Daily App Checklists -->
-              <div id="ob-checklists-panel" style="margin:14px 0 18px; padding:14px 16px; border-radius:12px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.28);">
-                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-                  <div>
-                    <div style="font-size:13px; font-weight:800; color:var(--text-white);">Workplace Safety &amp; Mandatory Daily App Checklists</div>
-                    <div style="font-size:11.5px; color:var(--text-slate);">These rules sync directly to workers&rsquo; mobile app checklists &amp; assisted ID scanner Step 3 every shift.</div>
-                  </div>
-                  <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:11.5px;" onclick="window.loadSectorSafetyDefaults('ob')">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-                    Load Sector Safety Defaults
-                  </button>
-                </div>
-                <div id="ob-checklist-items" style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
-                <div class="chk-builder-row">
-                  <input type="text" id="ob-chk-text" class="adm-input" style="margin-bottom:0;" placeholder="e.g., Inspect hard hat, steel-toe boots &amp; fire extinguisher seal" />
-                  <select id="ob-chk-category" class="adm-select" style="margin-bottom:0;">
-                    <option value="Workplace Safety">Workplace Safety</option>
-                    <option value="PPE &amp; Gear">PPE &amp; Gear</option>
-                    <option value="Hygiene &amp; Compliance">Hygiene &amp; Compliance</option>
-                    <option value="Shift Readiness">Shift Readiness</option>
-                  </select>
-                  <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-slate); white-space:nowrap; cursor:pointer;">
-                    <input type="checkbox" id="ob-chk-urgent" checked /> Urgent
-                  </label>
-                  <button type="button" class="btn-ghost" style="padding:8px 12px; font-size:12px; white-space:nowrap;" onclick="window.addOnboardingChecklistRule('ob')">+ Add Rule</button>
-                </div>
+                <select id="ob-grace-minutes" class="adm-select" style="width:auto; min-width:170px; margin:0;">
+                  <option value="5">5 Min Grace</option>
+                  <option value="10" selected>10 Min Grace (Default)</option>
+                  <option value="15">15 Min Grace</option>
+                  <option value="20">20 Min Grace</option>
+                </select>
+                <input type="hidden" id="ob-late-mode" value="none_within_grace" />
+                <input type="hidden" id="ob-missed-in-action" value="exception_review" />
+                <input type="hidden" id="ob-missed-out-action" value="exception_review" />
+                <input type="hidden" id="ob-early-dep-action" value="exception_review" />
+                <input type="hidden" id="ob-reminders" value="30, 15, 0" />
+                <div id="ob-checklist-items" style="display:none;"></div>
               </div>
 
               <button type="submit" class="btn-emerald">Provision Tenant, Issue Company Code &amp; Route to Owner →</button>
@@ -1932,29 +1843,129 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         </section>
 
         <!-- ═════════════════════════════════════════════════════════════════
-             VIEW 8: EMAIL AUTO-STATION ENGINE (#view-email-station)
+             VIEW 8: PLUGINS, API KEYS & ENTERPRISE BRIDGES (#view-integrations)
              ═════════════════════════════════════════════════════════════════ -->
-        <section class="adm-view" id="view-email-station">
+        <section class="adm-view" id="view-integrations">
           <div class="kpi-row">
             <div class="kpi-tile">
-              <div class="lbl">SUPPORT &amp; RECEIPTS STATION</div>
-              <div class="val" style="color:var(--emerald);">support@shiftrelayos.com</div>
-              <div class="sub">Auto-Routes Worker RECT-* Receipts</div>
+              <div class="lbl">CONNECTED PLUGINS</div>
+              <div class="val" id="int-kpi-connected" style="color:var(--emerald);">6 / 6</div>
+              <div class="sub">AI, Banking, Comms &amp; SSO</div>
             </div>
             <div class="kpi-tile">
-              <div class="lbl">SECURITY &amp; TENANT OTP</div>
-              <div class="val" style="color:var(--sky);">security@shiftrelayos.com</div>
-              <div class="sub">6-Digit Tenant Verification Codes</div>
+              <div class="lbl">LIVE CLOUD KEYS</div>
+              <div class="val" id="int-kpi-keys" style="color:var(--sky);">1</div>
+              <div class="sub">Encrypted Runtime Secrets</div>
             </div>
             <div class="kpi-tile">
-              <div class="lbl">ONBOARDING &amp; CONSULTATION DESK</div>
-              <div class="val" style="color:var(--amber);">onboarding@shiftrelayos.com</div>
-              <div class="sub">Executive Auto-Reply &amp; Welcome Kits</div>
+              <div class="lbl">ERP / BI REST KEYS</div>
+              <div class="val" id="int-kpi-rest" style="color:var(--amber);">1</div>
+              <div class="sub">/api/v1/bridge/summary</div>
             </div>
             <div class="kpi-tile">
-              <div class="lbl">FINANCE &amp; STATUTORY</div>
-              <div class="val" style="color:#c4b5fd;">finance@shiftrelayos.com</div>
-              <div class="sub">Monthly Payment &amp; PenCom Schedules</div>
+              <div class="lbl">WEBHOOK BRIDGES</div>
+              <div class="val" id="int-kpi-webhooks">1</div>
+              <div class="sub">HMAC-SHA256 Signed Events</div>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--emerald); text-transform:uppercase; letter-spacing:0.06em;">Plugin &amp; Bridge Registry</span>
+                <h2>Core Enterprise Plugins, API Keys &amp; Native Bridges</h2>
+                <p style="font-size:12.5px; color:var(--text-slate);">
+                  Configure API credentials, verify live latency across Gemini AI, CBN/Paystack NUBAN, Termii SMS, WhatsApp Cloud, Transactional Mail, and Corporate OIDC SSO.
+                </p>
+              </div>
+              <button type="button" class="btn-ghost" onclick="window.loadAdminIntegrations(true)">Refresh Bridges</button>
+            </div>
+            <div id="adm-plugins-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:14px;">
+              <div style="padding:20px; color:var(--text-slate);">Loading plugins &amp; bridges...</div>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--amber); text-transform:uppercase; letter-spacing:0.06em;">Inbound ERP / HRIS / BI Data Bridge</span>
+                <h2>ShiftRelay Public Bridge API Keys (<code>/api/v1/bridge/summary</code>)</h2>
+                <p style="font-size:12.5px; color:var(--text-slate);">
+                  Issue scoped <code>sr_live_...</code> bearer tokens so SAP, Workday, Dayforce, PowerBI, or custom finance pipelines can pull live compiled payroll &amp; attendance summaries.
+                </p>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn-ghost" onclick="window.testErpBridgeSummary()">Test Bridge JSON</button>
+                <button type="button" class="btn-emerald" onclick="window.openCreateBridgeKeyModal()">+ Generate API Key</button>
+              </div>
+            </div>
+            <div id="adm-bridge-new-key-banner" style="display:none; margin-bottom:14px; padding:12px 14px; border-radius:12px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.35);"></div>
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Key Name</th>
+                    <th>Token Prefix</th>
+                    <th>Permitted Scopes</th>
+                    <th>Created</th>
+                    <th>Last Used</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-bridge-keys-tbody">
+                  <tr><td colspan="7" style="text-align:center; color:var(--text-slate); padding:18px;">Loading API keys...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--sky); text-transform:uppercase; letter-spacing:0.06em;">Outbound Event Streams</span>
+                <h2>Outbound ERP &amp; Webhook Event Bridges</h2>
+                <p style="font-size:12.5px; color:var(--text-slate);">
+                  Push real-time signed JSON webhooks on <code>payroll.approved</code>, <code>attendance.exception_flagged</code>, and <code>support.ticket_created</code>.
+                </p>
+              </div>
+              <button type="button" class="btn-emerald" onclick="window.openCreateWebhookModal()">+ Add Webhook Bridge</button>
+            </div>
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Bridge Name</th>
+                    <th>Target HTTPS Endpoint</th>
+                    <th>Subscribed Events</th>
+                    <th>Signing Secret</th>
+                    <th>Delivery Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-webhooks-tbody">
+                  <tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:18px;">Loading webhook bridges...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═════════════════════════════════════════════════════════════════
+             VIEW 9: EMAIL AUTO-STATION ENGINE (#view-email-station)
+             ═════════════════════════════════════════════════════════════════ -->
+        <section class="adm-view" id="view-email-station">
+          <div class="panel-card" style="padding:14px 18px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                <span class="chip emerald">support@shiftrelayos.com</span>
+                <span class="chip cyan">security@shiftrelayos.com</span>
+                <span class="chip amber">onboarding@shiftrelayos.com</span>
+                <span class="chip">finance@shiftrelayos.com</span>
+              </div>
+              <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:11.5px;" onclick="window.switchAdminView('integrations'); setTimeout(()=>window.openConfigurePluginModal('email_relay'), 150);">
+                Configure Resend / SMTP Relay Key &rarr;
+              </button>
             </div>
           </div>
 
@@ -1963,9 +1974,6 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               <div>
                 <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">AUTOMATED TRANSACTIONAL DISPATCHER</span>
                 <h2>Email Auto-Station Outbox &amp; Live Dispatch Log</h2>
-                <p style="font-size:13px; color:var(--text-slate);">
-                  Every worker Rectification Receipt, Security Verification OTP, and Enterprise Facility Consultation automatically generates and queues a branded transactional email here.
-                </p>
               </div>
               <button type="button" class="btn-emerald" onclick="window.triggerTestAutoStationEmail()">
                 + Send Test Auto-Station Email
@@ -1995,9 +2003,6 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               <div>
                 <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">NDPA CONSENT &bull; RFC 8058 ONE-CLICK UNSUBSCRIBE</span>
                 <h2>Automated Newsletter &amp; Statutory Brief Control Center</h2>
-                <p style="font-size:13px; color:var(--text-slate);">
-                  Manage <code>shiftrelayos.com</code> workforce subscribers, preview live transactional/digest templates, toggle weekly/monthly crons, and audit legal acceptances.
-                </p>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <a href="/api/admin/newsletter/subscribers.csv" download="shiftrelay_newsletter_subscribers.csv" class="btn-ghost" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
@@ -2015,7 +2020,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
             </div>
 
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-bottom:18px;">
-              <div style="padding:14px; border-radius:12px; background:rgba(15,23,42,0.55); border:1px solid rgba(51,65,85,0.75);">
+              <div style="padding:14px; border-radius:12px; background:var(--bg-input); border:1px solid var(--border-hairline);">
                 <div style="font-size:11px; font-weight:700; color:var(--emerald); text-transform:uppercase; margin-bottom:8px;">Automated Cron Schedules</div>
                 <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-white); margin-bottom:8px; cursor:pointer;">
                   <input id="adm-nws-weekly-toggle" type="checkbox" checked />
@@ -2028,8 +2033,8 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                 <button type="button" class="btn-emerald" style="padding:7px 12px; font-size:12px;" onclick="window.saveNewsletterSchedule()">Save Schedule Settings</button>
               </div>
 
-              <div style="padding:14px; border-radius:12px; background:rgba(15,23,42,0.55); border:1px solid rgba(51,65,85,0.75);">
-                <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; margin-bottom:8px;">Campaign Dispatch &amp; Test Preview</div>
+              <div style="padding:14px; border-radius:12px; background:var(--bg-input); border:1px solid var(--border-hairline);">
+                <div style="font-size:11px; font-weight:700; color:var(--sky); text-transform:uppercase; margin-bottom:8px;">Campaign Dispatch &amp; Test Preview</div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
                   <select id="adm-nws-dispatch-type" class="adm-select" style="padding:7px 9px; font-size:12px;">
                     <option value="monthly_statutory">Monthly Statutory Brief</option>
@@ -2052,9 +2057,9 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               </div>
             </div>
 
-            <div id="adm-nws-preview-wrap" style="display:none; margin-bottom:18px; border:1px solid rgba(56,189,248,0.35); border-radius:12px; overflow:hidden; background:#020617;">
-              <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(15,23,42,0.9); border-bottom:1px solid rgba(51,65,85,0.75);">
-                <span style="font-size:11.5px; font-weight:700; color:#38bdf8;">Live Newsletter Email Template Preview</span>
+            <div id="adm-nws-preview-wrap" style="display:none; margin-bottom:18px; border:1px solid rgba(56,189,248,0.35); border-radius:12px; overflow:hidden; background:var(--bg-panel);">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-input); border-bottom:1px solid var(--border-hairline);">
+                <span style="font-size:11.5px; font-weight:700; color:var(--sky);">Live Newsletter Email Template Preview</span>
                 <button type="button" class="btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="document.getElementById('adm-nws-preview-wrap').style.display='none'">Close Preview</button>
               </div>
               <iframe id="adm-nws-preview-frame" title="Newsletter Template Preview" style="width:100%; height:360px; border:0; background:#ffffff;"></iframe>
@@ -2081,54 +2086,10 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               </div>
             </div>
           </div>
-
-          <!-- SMTP / API Provider Configuration Card -->
-          <div class="panel-card">
-            <div class="panel-head">
-              <div>
-                <h2>SMTP / Custom Domain Email Provider Configuration</h2>
-                <p style="font-size:13px; color:var(--text-slate);">
-                  Ready for when you activate your custom domain email hosting (Zoho Mail, Google Workspace, Resend, or AWS SES).
-                </p>
-              </div>
-              <span class="chip emerald" id="smtp-status-chip">LOCAL AUTO-STATION ACTIVE • READY FOR LIVE SMTP</span>
-            </div>
-
-            <div class="grid-2">
-              <div>
-                <label class="lbl-sm">Email Provider / Relay Engine</label>
-                <select id="smtp-provider" class="adm-select">
-                  <option value="zoho">Zoho Mail Workplace (smtp.zoho.com:465)</option>
-                  <option value="resend">Resend Transactional API (smtp.resend.com:465)</option>
-                  <option value="workspace">Google Workspace (smtp.gmail.com:465)</option>
-                  <option value="ses">Amazon SES (email-smtp.eu-west-1.amazonaws.com)</option>
-                </select>
-              </div>
-              <div>
-                <label class="lbl-sm">Primary Sending Domain</label>
-                <input type="text" id="smtp-domain" class="adm-input" value="shiftrelayos.com" />
-              </div>
-            </div>
-
-            <div class="grid-2">
-              <div>
-                <label class="lbl-sm">Default Support / Reply-To Mailbox</label>
-                <input type="email" id="smtp-reply" class="adm-input" value="support@shiftrelayos.com" />
-              </div>
-              <div>
-                <label class="lbl-sm">SMTP / API Key Secret (Stored Encrypted)</label>
-                <input type="password" id="smtp-key" class="adm-input" placeholder="re_•••••••••••• or SMTP App Password" />
-              </div>
-            </div>
-
-            <button type="button" class="btn-emerald" onclick="window.saveSmtpStationConfig()">
-              Save Email Auto-Station Configuration →
-            </button>
-          </div>
         </section>
 
         <!-- ═════════════════════════════════════════════════════════════════
-             VIEW 9: BACKEND FILES & HOSTING (#view-hosting)
+             VIEW 10: BACKEND FILES & ENGINES (#view-hosting)
              ═════════════════════════════════════════════════════════════════ -->
         <section class="adm-view" id="view-hosting">
           <div class="panel-card">
@@ -2161,59 +2122,6 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                 </thead>
                 <tbody id="backend-files-tbody">
                   <tr><td colspan="7" style="text-align:center; color:var(--text-slate); padding:20px;">Loading backend files...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="panel-card">
-            <div class="panel-head">
-              <div>
-                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--sky); text-transform:uppercase; letter-spacing:0.06em;">Routing</span>
-                <h2>Domain Partitioning</h2>
-              </div>
-            </div>
-
-            <div class="table-scroll">
-              <table class="adm-table">
-                <thead>
-                  <tr>
-                    <th>Host</th>
-                    <th>Target</th>
-                    <th>Scope</th>
-                    <th>DNS</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><code style="font-weight:700;">shiftrelayos.com</code></td>
-                    <td><code>website.html</code></td>
-                    <td>Public Site</td>
-                    <td><code>A @ / CNAME www</code></td>
-                    <td><span class="chip emerald">READY</span></td>
-                  </tr>
-                  <tr>
-                    <td><code style="font-weight:700;">app.shiftrelayos.com</code></td>
-                    <td><code>index.html</code></td>
-                    <td>Worker / Supervisor App</td>
-                    <td><code>CNAME app</code></td>
-                    <td><span class="chip emerald">READY</span></td>
-                  </tr>
-                  <tr>
-                    <td><code style="font-weight:700;">admin.shiftrelayos.com</code></td>
-                    <td><code>admin.html</code></td>
-                    <td>Desktop Control Console</td>
-                    <td><code>CNAME admin</code></td>
-                    <td><span class="chip emerald">READY</span></td>
-                  </tr>
-                  <tr>
-                    <td><code style="font-weight:700;">mail.shiftrelayos.com</code></td>
-                    <td><code>email-engine.mjs</code></td>
-                    <td>Email Station</td>
-                    <td><code>MX + SPF + DKIM + DMARC</code></td>
-                    <td><span class="chip cyan">ACTIVE</span></td>
-                  </tr>
                 </tbody>
               </table>
             </div>
@@ -2940,11 +2848,498 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       };
     };
 
+    let cachedIntegrationsCatalog = null;
+
+    window.loadAdminIntegrations = async function (notify) {
+      if (!currentAdminUser) return;
+      try {
+        const res = await admFetch('/api/admin/integrations');
+        if (!res.ok) return;
+        const data = await res.json();
+        cachedIntegrationsCatalog = data;
+        renderAdminIntegrations(data);
+        if (notify) showToast('Plugins, API keys, and bridges refreshed.');
+      } catch (_) {}
+    };
+
+    function renderAdminIntegrations(data) {
+      const plugins = data?.plugins || [];
+      const apiKeys = data?.apiKeys || [];
+      const webhooks = data?.webhooks || [];
+      const sum = data?.summary || {};
+
+      const navBadge = document.getElementById('nav-badge-bridges');
+      if (navBadge) navBadge.textContent = sum.connectedCount ?? plugins.length;
+      const kpiConn = document.getElementById('int-kpi-connected');
+      if (kpiConn) kpiConn.textContent = `${sum.connectedCount ?? plugins.length} / ${sum.totalPlugins ?? plugins.length}`;
+      const kpiKeys = document.getElementById('int-kpi-keys');
+      if (kpiKeys) kpiKeys.textContent = sum.liveKeysCount ?? 0;
+      const kpiRest = document.getElementById('int-kpi-rest');
+      if (kpiRest) kpiRest.textContent = sum.activeApiKeys ?? apiKeys.length;
+      const kpiWh = document.getElementById('int-kpi-webhooks');
+      if (kpiWh) kpiWh.textContent = sum.activeWebhooks ?? webhooks.length;
+
+      // Update Control overview bridge strip
+      const gemP = plugins.find(p => p.id === 'gemini_ai');
+      const ovGem = document.getElementById('ov-bridge-gemini');
+      if (ovGem && gemP) {
+        ovGem.textContent = `${gemP.endpointOrModel} (${gemP.status === 'CONNECTED' ? 'LIVE KEY' : 'FALLBACK'})`;
+      }
+      const payP = plugins.find(p => p.id === 'paystack_nip');
+      const ovPay = document.getElementById('ov-bridge-paystack');
+      if (ovPay && payP) {
+        ovPay.textContent = payP.status === 'CONNECTED' ? 'Paystack + CBN NIP Live' : 'CBN 22-Bank Engine Ready';
+      }
+      const smsP = plugins.find(p => p.id === 'termii_sms');
+      const waP = plugins.find(p => p.id === 'whatsapp_cloud');
+      const ovMsg = document.getElementById('ov-bridge-messaging');
+      if (ovMsg) {
+        const liveSms = smsP?.status === 'CONNECTED' || waP?.status === 'CONNECTED';
+        ovMsg.textContent = liveSms ? 'Termii / WhatsApp Connected' : 'Watchdog Queue Active';
+      }
+      const ovErp = document.getElementById('ov-bridge-erp');
+      if (ovErp) {
+        ovErp.textContent = `${apiKeys.length} API Key(s) • ${webhooks.length} Webhook(s)`;
+      }
+
+      const grid = document.getElementById('adm-plugins-grid');
+      const isRoot = currentAdminRole === 'owner_root';
+      if (grid) {
+        grid.innerHTML = plugins.map(p => {
+          const isLive = p.status === 'CONNECTED';
+          const chipTone = isLive ? 'emerald' : (p.healthy ? 'cyan' : 'amber');
+          return `
+            <div style="padding:16px; border-radius:14px; background:var(--bg-input); border:1px solid ${isLive ? 'rgba(16,185,129,0.32)' : 'var(--border-hairline)'}; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+              <div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
+                  <div>
+                    <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--sky); text-transform:uppercase;">${escapeHtml(p.category)}</div>
+                    <h3 style="margin:2px 0 0; font-size:14.5px; font-weight:700; color:var(--text-white);">${escapeHtml(p.name)}</h3>
+                  </div>
+                  <span class="chip ${chipTone}" id="plugin-status-chip-${escapeHtml(p.id)}">${escapeHtml(p.status)}</span>
+                </div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-slate); margin-bottom:8px;">
+                  Endpoint/Model: <strong style="color:var(--text-white);">${escapeHtml(p.endpointOrModel)}</strong> &bull; Key: <code>${escapeHtml(p.keyHint)}</code>
+                </div>
+                <div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:6px;">
+                  ${(p.capabilities || []).map(c => `<span style="font-size:11px; padding:3px 8px; border-radius:6px; background:var(--bg-hover); color:var(--text-slate); border:1px solid var(--border-hairline);">${escapeHtml(c)}</span>`).join('')}
+                </div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding-top:10px; border-top:1px solid var(--border-hairline);">
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim);">${(p.envVars || []).map(escapeHtml).join(', ')}</span>
+                <div style="display:flex; gap:6px;">
+                  <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.testAdminPluginBridge('${escapeHtml(p.id)}')">Test Bridge</button>
+                  ${isRoot ? `<button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.openConfigurePluginModal('${escapeHtml(p.id)}')">Configure</button>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const keysTbody = document.getElementById('adm-bridge-keys-tbody');
+      if (keysTbody) {
+        if (!apiKeys.length) {
+          keysTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-slate); padding:16px;">No API keys issued yet.</td></tr>';
+        } else {
+          keysTbody.innerHTML = apiKeys.map(k => `
+            <tr>
+              <td><strong>${escapeHtml(k.name)}</strong></td>
+              <td><code>${escapeHtml(k.prefix)}</code></td>
+              <td><span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">${escapeHtml(k.scope)}</span></td>
+              <td style="font-size:11.5px; color:var(--text-slate);">${escapeHtml((k.createdAt || '').slice(0, 10))}</td>
+              <td style="font-size:11.5px; color:var(--text-slate);">${k.lastUsedAt ? escapeHtml(k.lastUsedAt.replace('T', ' ').slice(0, 16)) : 'Never'}</td>
+              <td><span class="chip emerald">${escapeHtml(k.status)}</span></td>
+              <td>
+                ${isRoot ? `<button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px; color:var(--rose);" onclick="window.revokeAdminBridgeKey('${escapeHtml(k.id)}')">Revoke</button>` : '<span class="chip">LOCKED</span>'}
+              </td>
+            </tr>
+          `).join('');
+        }
+      }
+
+      const whTbody = document.getElementById('adm-webhooks-tbody');
+      if (whTbody) {
+        if (!webhooks.length) {
+          whTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:16px;">No outbound webhook bridges configured.</td></tr>';
+        } else {
+          whTbody.innerHTML = webhooks.map(w => `
+            <tr>
+              <td><strong>${escapeHtml(w.name)}</strong></td>
+              <td><code style="font-size:11px;">${escapeHtml(w.targetUrl)}</code></td>
+              <td><span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-slate);">${escapeHtml((w.events || []).join(', '))}</span></td>
+              <td><code>${escapeHtml(w.secretHint || 'whsec_••••')}</code></td>
+              <td><span class="chip cyan">${escapeHtml(w.lastStatus || w.status)}</span></td>
+              <td>
+                <div style="display:flex; gap:6px;">
+                  <button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="window.pingAdminWebhook('${escapeHtml(w.id)}')">Ping</button>
+                  ${isRoot ? `<button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px; color:var(--rose);" onclick="window.deleteAdminWebhook('${escapeHtml(w.id)}')">Remove</button>` : ''}
+                </div>
+              </td>
+            </tr>
+          `).join('');
+        }
+      }
+    }
+
+    window.testAdminPluginBridge = async function (pluginId) {
+      try {
+        showToast(`Testing ${pluginId} bridge...`);
+        const res = await admFetch('/api/admin/integrations/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pluginId })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Diagnostic failed');
+        const chip = document.getElementById('plugin-status-chip-' + pluginId);
+        if (chip && data.status) chip.textContent = `${data.status} (${data.latencyMs}ms)`;
+        showToast(data.message || `${pluginId} verified in ${data.latencyMs}ms`);
+      } catch (err) {
+        showToast('Bridge test error: ' + err.message);
+      }
+    };
+
+    window.openConfigurePluginModal = function (pluginId) {
+      if (currentAdminRole !== 'owner_root') {
+        return showToast('Owner Root clearance required to modify API keys & bridges.');
+      }
+      const p = (cachedIntegrationsCatalog?.plugins || []).find(x => x.id === pluginId);
+      if (!p) return;
+      document.getElementById('adm-plugin-cfg-modal')?.remove();
+      const modal = document.createElement('div');
+      modal.id = 'adm-plugin-cfg-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+
+      let extraFields = '';
+      if (pluginId === 'gemini_ai') {
+        extraFields = `
+          <div>
+            <label class="lbl-sm">Gemini Model ID</label>
+            <input id="pcfg-model" type="text" class="adm-input" value="${escapeHtml(p.config?.model || 'gemini-3.8-flash')}" />
+          </div>
+          <div>
+            <label class="lbl-sm">GEMINI_API_KEY (Leave blank to keep existing ${escapeHtml(p.keyHint)})</label>
+            <input id="pcfg-key" type="password" class="adm-input" placeholder="AIzaSy••••••••••••••••••••" />
+          </div>
+        `;
+      } else if (pluginId === 'paystack_nip') {
+        extraFields = `
+          <div>
+            <label class="lbl-sm">Disbursal &amp; NUBAN Provider</label>
+            <input id="pcfg-provider" type="text" class="adm-input" value="${escapeHtml(p.config?.provider || 'Paystack + CBN NIP')}" />
+          </div>
+          <div>
+            <label class="lbl-sm">PAYSTACK_SECRET_KEY (Leave blank to keep existing)</label>
+            <input id="pcfg-key" type="password" class="adm-input" placeholder="sk_live_••••••••••••••••••••" />
+          </div>
+        `;
+      } else if (pluginId === 'termii_sms') {
+        extraFields = `
+          <div>
+            <label class="lbl-sm">DND Corporate Sender ID (Max 11 chars)</label>
+            <input id="pcfg-sender" type="text" class="adm-input" maxlength="11" value="${escapeHtml(p.config?.senderId || 'ShiftRelay')}" />
+          </div>
+          <div>
+            <label class="lbl-sm">TERMII_API_KEY</label>
+            <input id="pcfg-key" type="password" class="adm-input" placeholder="TL••••••••••••••••••••••••" />
+          </div>
+        `;
+      } else if (pluginId === 'whatsapp_cloud') {
+        extraFields = `
+          <div>
+            <label class="lbl-sm">Meta WhatsApp Phone Number ID</label>
+            <input id="pcfg-phone-id" type="text" class="adm-input" value="${escapeHtml(p.config?.phoneNumberId || '')}" placeholder="e.g. 10492837465" />
+          </div>
+          <div>
+            <label class="lbl-sm">WHATSAPP_CLOUD_TOKEN</label>
+            <input id="pcfg-key" type="password" class="adm-input" placeholder="EAAG••••••••••••••••••••" />
+          </div>
+        `;
+      } else if (pluginId === 'email_relay') {
+        extraFields = `
+          <div>
+            <label class="lbl-sm">Relay Provider</label>
+            <select id="pcfg-provider" class="adm-select">
+              <option value="resend" ${p.config?.provider === 'resend' ? 'selected' : ''}>Resend Transactional API</option>
+              <option value="zoho" ${p.config?.provider === 'zoho' ? 'selected' : ''}>Zoho Mail Workplace SMTP</option>
+              <option value="ses" ${p.config?.provider === 'ses' ? 'selected' : ''}>Amazon SES</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl-sm">Verified Sending Address (FROM_EMAIL)</label>
+            <input id="pcfg-from" type="email" class="adm-input" value="${escapeHtml(p.config?.fromEmail || 'support@shiftrelayos.com')}" />
+          </div>
+          <div>
+            <label class="lbl-sm">SMTP Host (Optional if using Resend API)</label>
+            <input id="pcfg-smtp-host" type="text" class="adm-input" value="${escapeHtml(p.config?.smtpHost || '')}" placeholder="smtp.zoho.com" />
+          </div>
+          <div>
+            <label class="lbl-sm">RESEND_API_KEY or SMTP App Secret</label>
+            <input id="pcfg-key" type="password" class="adm-input" placeholder="re_••••••••••••••••••••" />
+          </div>
+        `;
+      } else if (pluginId === 'enterprise_sso') {
+        extraFields = `
+          <div>
+            <label class="lbl-sm">Identity Provider Name</label>
+            <input id="pcfg-provider" type="text" class="adm-input" value="${escapeHtml(p.config?.provider || 'Okta / Microsoft Entra ID')}" />
+          </div>
+          <div>
+            <label class="lbl-sm">OIDC Issuer URL (ADMIN_OIDC_ISSUER)</label>
+            <input id="pcfg-issuer" type="text" class="adm-input" value="${escapeHtml(p.config?.issuer || '')}" placeholder="https://login.microsoftonline.com/.../v2.0" />
+          </div>
+          <div>
+            <label class="lbl-sm">OIDC Client ID (ADMIN_OIDC_CLIENT_ID)</label>
+            <input id="pcfg-client-id" type="text" class="adm-input" value="${escapeHtml(p.config?.clientId || '')}" placeholder="00000000-0000-0000-0000-000000000000" />
+          </div>
+        `;
+      }
+
+      modal.innerHTML = `
+        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:480px;width:100%;padding:22px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border-hairline);">
+            <div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--emerald);">CONFIGURE PLUGIN / BRIDGE</span>
+              <h3 style="margin:2px 0 0;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;">${escapeHtml(p.name)}</h3>
+            </div>
+            <button type="button" id="pcfg-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
+          </div>
+          <form id="pcfg-form" style="display:flex;flex-direction:column;gap:10px;">
+            ${extraFields}
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
+              <button type="button" class="btn-ghost" id="pcfg-cancel">Cancel</button>
+              <button type="submit" class="btn-emerald">Save &amp; Activate Bridge</button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('pcfg-close').onclick = () => modal.remove();
+      document.getElementById('pcfg-cancel').onclick = () => modal.remove();
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      document.getElementById('pcfg-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
+          pluginId,
+          apiKey: document.getElementById('pcfg-key')?.value || '',
+          model: document.getElementById('pcfg-model')?.value,
+          provider: document.getElementById('pcfg-provider')?.value,
+          senderId: document.getElementById('pcfg-sender')?.value,
+          phoneNumberId: document.getElementById('pcfg-phone-id')?.value,
+          fromEmail: document.getElementById('pcfg-from')?.value,
+          smtpHost: document.getElementById('pcfg-smtp-host')?.value,
+          issuer: document.getElementById('pcfg-issuer')?.value,
+          clientId: document.getElementById('pcfg-client-id')?.value
+        };
+        try {
+          const res = await admFetch('/api/admin/integrations/configure', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Could not save bridge configuration');
+          cachedIntegrationsCatalog = data;
+          renderAdminIntegrations(data);
+          modal.remove();
+          showToast(`${p.name} updated and active.`);
+        } catch (err) {
+          showToast('Configuration error: ' + err.message);
+        }
+      };
+    };
+
+    window.openCreateBridgeKeyModal = function () {
+      if (currentAdminRole !== 'owner_root') {
+        return showToast('Owner Root clearance required to issue Bridge API keys.');
+      }
+      document.getElementById('adm-key-create-modal')?.remove();
+      const modal = document.createElement('div');
+      modal.id = 'adm-key-create-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+      modal.innerHTML = `
+        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:440px;width:100%;padding:22px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border-hairline);">
+            <h3 style="margin:0;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;">Generate ERP / BI Bridge API Key</h3>
+            <button type="button" id="bkc-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
+          </div>
+          <form id="bkc-form" style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <label class="lbl-sm">Consumer System / Key Label</label>
+              <input id="bkc-name" type="text" class="adm-input" required placeholder="e.g., SAP S/4HANA Payroll Connector" />
+            </div>
+            <div>
+              <label class="lbl-sm">Permitted Scopes</label>
+              <select id="bkc-scope" class="adm-select">
+                <option value="read:payroll,read:attendance,read:tenants">Full Read Bridge (Payroll + Attendance + Tenants)</option>
+                <option value="read:payroll">Payroll &amp; Statutory Remittance Only</option>
+                <option value="read:attendance">Attendance &amp; Shift Exceptions Only</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-emerald" style="justify-content:center;">Issue Bearer API Key</button>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('bkc-close').onclick = () => modal.remove();
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      document.getElementById('bkc-form').onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+          const res = await admFetch('/api/admin/integrations/api-keys', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: document.getElementById('bkc-name').value,
+              scope: document.getElementById('bkc-scope').value
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Could not generate API key');
+          modal.remove();
+          const banner = document.getElementById('adm-bridge-new-key-banner');
+          if (banner && data.rawKey) {
+            banner.style.display = 'block';
+            banner.innerHTML = `
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--emerald);">NEW BRIDGE API KEY GENERATED (COPY NOW — SHOWN ONCE)</div>
+                  <code style="font-size:13px;font-weight:700;color:var(--text-white);">${escapeHtml(data.rawKey)}</code>
+                </div>
+                <button type="button" class="btn-ghost" style="padding:5px 10px;font-size:11.5px;" onclick="navigator.clipboard?.writeText('${escapeHtml(data.rawKey)}'); showToast('Copied API key to clipboard');">Copy Key</button>
+              </div>
+            `;
+          }
+          await window.loadAdminIntegrations();
+          showToast('New ERP/BI Bridge API key generated.');
+        } catch (err) {
+          showToast('Key error: ' + err.message);
+        }
+      };
+    };
+
+    window.revokeAdminBridgeKey = async function (keyId) {
+      try {
+        const res = await admFetch(`/api/admin/integrations/api-keys/${encodeURIComponent(keyId)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to revoke key');
+        await window.loadAdminIntegrations();
+        showToast('Bridge API key revoked.');
+      } catch (err) {
+        showToast(err.message);
+      }
+    };
+
+    window.testErpBridgeSummary = async function () {
+      try {
+        const res = await admFetch('/api/v1/bridge/summary');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Bridge call failed');
+        document.getElementById('adm-file-inspect-modal')?.remove();
+        const modal = document.createElement('div');
+        modal.id = 'adm-file-inspect-modal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;';
+        modal.innerHTML = `
+          <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:760px;width:100%;padding:22px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-hairline);">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--emerald);">LIVE ERP / BI BRIDGE RESPONSE</span>
+                <h3 style="margin:2px 0 0;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;">GET /api/v1/bridge/summary</h3>
+              </div>
+              <button type="button" id="fi-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
+            </div>
+            <pre style="margin:0;padding:14px;border-radius:12px;background:var(--bg-input);border:1px solid var(--border-hairline);font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.5;max-height:58vh;overflow:auto;color:var(--text-white);">${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('fi-close').onclick = () => modal.remove();
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      } catch (err) {
+        showToast('Bridge test error: ' + err.message);
+      }
+    };
+
+    window.openCreateWebhookModal = function () {
+      if (currentAdminRole !== 'owner_root') {
+        return showToast('Owner Root clearance required to add outbound webhook bridges.');
+      }
+      document.getElementById('adm-wh-create-modal')?.remove();
+      const modal = document.createElement('div');
+      modal.id = 'adm-wh-create-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+      modal.innerHTML = `
+        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:460px;width:100%;padding:22px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border-hairline);">
+            <h3 style="margin:0;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;">Add Outbound ERP / Webhook Bridge</h3>
+            <button type="button" id="whc-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
+          </div>
+          <form id="whc-form" style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <label class="lbl-sm">Bridge Name</label>
+              <input id="whc-name" type="text" class="adm-input" required placeholder="e.g., Workday / Slack Ops Alert Webhook" />
+            </div>
+            <div>
+              <label class="lbl-sm">Target HTTPS URL</label>
+              <input id="whc-url" type="url" class="adm-input" required placeholder="https://erp.company.com/webhooks/shiftrelay" />
+            </div>
+            <button type="submit" class="btn-emerald" style="justify-content:center;">Create Signed Webhook Bridge</button>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('whc-close').onclick = () => modal.remove();
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      document.getElementById('whc-form').onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+          const res = await admFetch('/api/admin/integrations/webhooks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: document.getElementById('whc-name').value,
+              targetUrl: document.getElementById('whc-url').value
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Could not create webhook');
+          modal.remove();
+          await window.loadAdminIntegrations();
+          showToast('Outbound webhook bridge registered.');
+        } catch (err) {
+          showToast('Webhook error: ' + err.message);
+        }
+      };
+    };
+
+    window.pingAdminWebhook = async function (hookId) {
+      try {
+        const res = await admFetch(`/api/admin/integrations/webhooks/${encodeURIComponent(hookId)}/ping`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Ping failed');
+        await window.loadAdminIntegrations();
+        showToast(data.message || 'Webhook ping delivered.');
+      } catch (err) {
+        showToast(err.message);
+      }
+    };
+
+    window.deleteAdminWebhook = async function (hookId) {
+      try {
+        const res = await admFetch(`/api/admin/integrations/webhooks/${encodeURIComponent(hookId)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Could not delete webhook');
+        await window.loadAdminIntegrations();
+        showToast('Webhook bridge removed.');
+      } catch (err) {
+        showToast(err.message);
+      }
+    };
+
     async function refreshAdminData() {
       if (!currentAdminUser) return;
       const myEpoch = adminSessionEpoch;
       renderEmailStationTable();
       window.loadAdminSystemFiles();
+      window.loadAdminIntegrations();
 
       const monthInput = document.getElementById('adm-finance-month');
       if (monthInput && !monthInput.value) {
@@ -4243,14 +4638,6 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       } catch (err) {
         showToast('Email test error: ' + err.message);
       }
-    };
-
-    window.saveSmtpStationConfig = function () {
-      const provider = document.getElementById('smtp-provider').value;
-      const domain = document.getElementById('smtp-domain').value;
-      const chip = document.getElementById('smtp-status-chip');
-      if (chip) chip.textContent = `CONFIGURED: ${provider.toUpperCase()} (${domain})`;
-      showToast(`Saved Email Auto-Station configuration for ${domain}!`);
     };
 
     function renderFinanceRestricted() {
