@@ -4,10 +4,10 @@
    ========================================================================== */
 
 :root {
-  /* Brand Tokens */
-  --sr-primary: #0d524d;
-  --sr-primary-hover: #083c38;
-  --sr-primary-active: #062e2b;
+  /* Brand Tokens (Aligned with ShiftRelay Green & White Light Brand) */
+  --sr-primary: #059669;
+  --sr-primary-hover: #047857;
+  --sr-primary-active: #065f46;
   --sr-accent: #10b981;
   --sr-accent-light: #ecfdf5;
 

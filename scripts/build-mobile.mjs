@@ -13,7 +13,7 @@ if (existsSync(WWW)) {
 mkdirSync(WWW, { recursive: true });
 
 // 2. Define frontend file patterns to copy
-const allowedExtensions = ['.html', '.css', '.js', '.svg', '.webmanifest', '.json', '.jpg', '.png', '.ico'];
+const allowedExtensions = ['.html', '.css', '.js', '.svg', '.webmanifest', '.json', '.jpg', '.png', '.gif', '.ico'];
 const excludedFiles = new Set([
   'server.mjs',
   'database.mjs',

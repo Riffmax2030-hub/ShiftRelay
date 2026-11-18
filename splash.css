@@ -1684,10 +1684,10 @@
 }
 
 .sr-splash-brand-icon {
-  width: 96px;
-  height: 96px;
-  border-radius: 22px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  width: 176px;
+  height: 176px;
+  border-radius: 36px;
+  box-shadow: 0 18px 46px rgba(4, 27, 20, 0.55), 0 0 0 1px rgba(26, 208, 121, 0.28);
 }
 
 .sr-splash-brand-text {
@@ -1979,4 +1979,119 @@
 [data-theme="dark"] .sr-auth-back-btn:hover {
   background: #1e293b;
   color: #f8fafc;
+}
+
+/* ==========================================================================
+   APP LAUNCH WELCOME GATE — Animated Brand GIF + Tap to Login
+   ========================================================================== */
+.sr-welcome-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 99990;
+  background: radial-gradient(circle at 50% 20%, #0b2920 0%, #05120e 65%, #020806 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.sr-welcome-gate.open {
+  opacity: 1;
+}
+
+.sr-welcome-card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(26, 208, 121, 0.24);
+  border-radius: 28px;
+  padding: 26px 24px 22px;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 18px;
+}
+
+.sr-welcome-brand-stage {
+  width: 100%;
+  padding: 26px 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(26, 208, 121, 0.24);
+  background: radial-gradient(circle at 50% 42%, rgba(26, 208, 121, 0.16) 0%, #051510 68%, #030e0b 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+}
+
+.sr-welcome-hero-logo {
+  width: 184px;
+  height: 184px;
+  border-radius: 38px;
+  display: block;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(26, 208, 121, 0.3);
+}
+
+.sr-welcome-copy h1 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.02em;
+}
+
+.sr-welcome-copy p {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #94a3b8;
+}
+
+.sr-tap-login-btn {
+  width: 100%;
+  padding: 15px 22px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1ad079 0%, #059669 100%);
+  color: #041b14;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(26, 208, 121, 0.35);
+  transition: transform 0.14s ease, box-shadow 0.14s ease, filter 0.14s ease;
+  animation: srTapPulse 2.4s infinite ease-in-out;
+}
+
+.sr-tap-login-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 14px 34px rgba(26, 208, 121, 0.45);
+}
+
+.sr-tap-login-btn:active {
+  transform: scale(0.98);
+}
+
+@keyframes srTapPulse {
+  0%, 100% { box-shadow: 0 10px 28px rgba(26, 208, 121, 0.32); }
+  50% { box-shadow: 0 12px 36px rgba(26, 208, 121, 0.55); }
+}
+
+.sr-welcome-domain {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
 }

@@ -20,7 +20,7 @@
         renderPushBanner(); // Updates or removes banner
 
         // Show welcome push
-        showSystemNotification('ShiftRelay OS Alerts Active', {
+        showSystemNotification('ShiftRelay Alerts Active', {
           body: 'You will receive immediate alerts for clock-in reminders, attendance exceptions, handovers, and shift swaps.',
           icon: '/icon.svg'
         });

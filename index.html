@@ -3,26 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="icon" href="icon.svg?v=166" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icon.svg?v=166" />
-    <meta name="theme-color" content="#102033" />
+    <link rel="icon" href="icon.svg?v=177" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg?v=177" />
+    <meta name="theme-color" content="#041B14" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="ShiftRelay OS" />
+    <meta name="apple-mobile-web-app-title" content="ShiftRelay" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="canonical" href="https://app.shiftrelayos.com/" />
-    <meta name="description" content="ShiftRelay OS gives Nigerian &amp; global frontline teams verified attendance, AI shift handovers, and transparent statutory payroll." />
+    <meta name="description" content="ShiftRelay gives Nigerian &amp; global frontline teams verified attendance, AI shift handovers, and transparent statutory payroll." />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="ShiftRelay OS" />
-    <meta property="og:title" content="ShiftRelay OS — Verified Frontline Attendance, Shift Handovers &amp; Payroll" />
+    <meta property="og:site_name" content="ShiftRelay" />
+    <meta property="og:title" content="ShiftRelay — Verified Frontline Attendance, Shift Handovers &amp; Payroll" />
     <meta property="og:description" content="Audit-grade NFC &amp; Colleague Card attendance, automated clock-in reminders, AI shift handovers, and Finance Act statutory payroll built for Africa's frontline workforce." />
     <meta property="og:url" content="https://app.shiftrelayos.com/" />
     <meta property="og:image" content="https://shiftrelayos.com/icon-512.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ShiftRelay OS — Verified Frontline Attendance &amp; Payroll" />
+    <meta name="twitter:title" content="ShiftRelay — Verified Frontline Attendance &amp; Payroll" />
     <meta name="twitter:description" content="Audit-grade workforce operations by Riffmax Technology Limited." />
     <meta name="twitter:image" content="https://shiftrelayos.com/icon-512.png" />
-    <title>ShiftRelay OS — Verified Frontline Attendance, Shift Handovers &amp; Payroll</title>
+    <title>ShiftRelay — Verified Frontline Attendance, Shift Handovers &amp; Payroll</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
@@ -30,19 +30,19 @@
     <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="bento-ui.css" />
     <link rel="stylesheet" href="dark-mode.css" />
-    <link rel="stylesheet" href="splash.css?v=175" />
+    <link rel="stylesheet" href="splash.css?v=177" />
     <link rel="stylesheet" href="offline-queue.css" />
     <link rel="stylesheet" href="me-profile.css" />
-    <link rel="stylesheet" href="phase1-shell.css?v=175" />
-    <link rel="stylesheet" href="sr-premium.css?v=175" />
+    <link rel="stylesheet" href="phase1-shell.css?v=177" />
+    <link rel="stylesheet" href="sr-premium.css?v=177" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v175' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v177' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v175');
+              localStorage.setItem('sr_restored_build', 'v177');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { r.update(); });
@@ -53,24 +53,21 @@
         } catch (e) {}
       })();
     </script>
-    <script src="mobile-bridge.js?v=175"></script>
-    <script src="gps-guard.js?v=175"></script>
+    <script src="mobile-bridge.js?v=177"></script>
+    <script src="gps-guard.js?v=177"></script>
     <script src="theme.js"></script>
-    <script src="alarm-engine.js?v=175"></script>
+    <script src="alarm-engine.js?v=177"></script>
   </head>
   <body>
     <!-- ======================================================
          SPLASH SCREEN — auto-removed after session check
          ====================================================== -->
     <!-- Clean Professional Logo Loading (Zero Delays, No Sound, No Rotation) -->
-    <div id="sr-splash" role="status" aria-live="polite" aria-label="ShiftRelay OS loading">
+    <div id="sr-splash" role="status" aria-live="polite" aria-label="ShiftRelay loading">
       <div class="sr-splash-clean-stage" id="sr-splash-stage">
         <div class="sr-splash-brand-lockup">
-          <img src="icon.svg?v=162" class="sr-splash-brand-icon" alt="ShiftRelay OS" width="96" height="96" />
-          <div class="sr-splash-brand-text">
-            <span class="sr-splash-brand-shift">SHIFT</span><span class="sr-splash-brand-relay">RELAY OS</span>
-          </div>
-          <span class="sr-splash-tagline">ENTERPRISE WORKFORCE OS</span>
+          <img src="assets/logos/logo-brand-motion.svg?v=177" class="sr-splash-brand-icon" alt="ShiftRelay" />
+          <span class="sr-splash-tagline">ENTERPRISE WORKFORCE PLATFORM</span>
         </div>
         <div class="sr-splash-progress-track">
           <div class="sr-splash-progress-fill"></div>
@@ -79,25 +76,32 @@
     </div>
 
     <!-- ======================================================
-         ENTERPRISE 3-STEP LOGIN FLOW
-         Step 1: Company Unique ID -> Continue
-         Step 2: Work Email -> Continue
-         Step 3: Password -> Login
+         APP LAUNCH WELCOME GATE — Clean Enlarged Brand Launch + Tap to Login
          ====================================================== -->
-    <div id="sr-login-modal" class="sr-auth-screen" role="dialog" aria-modal="true" aria-label="Sign in to ShiftRelay OS">
-      <div class="sr-login-sheet sr-auth-card">
-        <div class="sr-auth-brand-bar">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <img src="icon.svg?v=162" width="28" height="28" style="border-radius:7px;" alt="ShiftRelay OS" />
-            <span style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;"><span style="color:#10b981;font-weight:900;">SHIFT</span>RELAY OS</span>
-          </div>
-          <span class="sr-auth-step-pill" id="sr-auth-step-label">Step 1 of 3</span>
+    <div id="sr-welcome-gate" class="sr-welcome-gate" aria-label="Welcome to ShiftRelay" style="display:none;">
+      <div class="sr-welcome-card">
+        <div class="sr-welcome-brand-stage">
+          <img src="assets/logos/logo-brand-motion.svg?v=177" alt="ShiftRelay" class="sr-welcome-hero-logo" />
         </div>
+        <div class="sr-welcome-copy">
+          <h1>Accountable Shift Handovers</h1>
+          <p>Verified frontline attendance, instant shift handovers, and workforce continuity.</p>
+        </div>
+        <button type="button" id="sr-tap-to-login-btn" class="sr-tap-login-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>
+          <span>Tap to Login</span>
+        </button>
+        <div class="sr-welcome-domain">shiftrelayos.com</div>
+      </div>
+    </div>
 
-        <div class="sr-auth-progress" aria-hidden="true">
-          <span class="sr-auth-progress-seg active" data-prog="1"></span>
-          <span class="sr-auth-progress-seg" data-prog="2"></span>
-          <span class="sr-auth-progress-seg" data-prog="3"></span>
+    <!-- ======================================================
+         SHIFTRELAY WORKSPACE SIGN-IN FLOW
+         ====================================================== -->
+    <div id="sr-login-modal" class="sr-auth-screen" role="dialog" aria-modal="true" aria-label="Sign in to ShiftRelay">
+      <div class="sr-login-sheet sr-auth-card">
+        <div class="sr-auth-brand-bar" style="margin-bottom:20px;">
+          <img src="assets/logos/logo-brand-motion.svg?v=177" alt="ShiftRelay" style="width:92px;height:92px;border-radius:20px;display:block;box-shadow:0 12px 28px rgba(4,27,20,0.28);" />
         </div>
 
         <form class="sr-sheet-form" id="sr-sheet-signin-form" autocomplete="on" novalidate>
@@ -206,7 +210,7 @@
       <nav class="landing-navbar" aria-label="Main Navigation">
         <div class="landing-nav-inner">
           <a class="landing-brand" href="#" aria-label="ShiftRelay Home">
-            <img src="icon.svg?v=145" alt="" width="32" height="32" />
+            <img src="icon.svg?v=177" alt="" width="38" height="38" style="border-radius:10px;display:block;" />
             <span>ShiftRelay</span>
           </a>
           <div class="landing-nav-actions">
@@ -342,7 +346,7 @@
             </div>
           </div>
           <div class="footer-bottom-row">
-            <span class="footer-copy">&copy; 2026 ShiftRelay OS by Riffmax Technology Limited. All rights reserved.</span>
+            <span class="footer-copy">&copy; 2026 ShiftRelay by Riffmax Technology Limited. All rights reserved.</span>
             <span class="footer-confidentiality-note">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
               Workplace confidentiality protected
@@ -426,13 +430,13 @@
     <script src="icons.js"></script>
     <script src="language.js"></script>
     <script src="language-pack.js"></script>
-    <script src="app.js?v=175"></script>
+    <script src="app.js?v=177"></script>
     <script src="biometrics.js"></script>
-    <script type="module" src="qr-svg-generator.js?v=175"></script>
-    <script src="attendance-exceptions-ui.js?v=175"></script>
+    <script type="module" src="qr-svg-generator.js?v=177"></script>
+    <script src="attendance-exceptions-ui.js?v=177"></script>
     <script src="/vendor/read-excel-file.min.js" defer></script>
-    <script src="phase1-shell.js?v=175"></script>
-    <script src="splash.js?v=175"></script>
+    <script src="phase1-shell.js?v=177"></script>
+    <script src="splash.js?v=177"></script>
     <script src="notifications.js"></script>
    <script src="profile.js"></script>
    <script src="checklists.js"></script>
@@ -443,12 +447,12 @@
     <script src="community-experience.js"></script>
     <script src="schedule-import.js"></script>
     <script src="direct-messages.js"></script>
-    <script src="team-realtime.js?v=175"></script>
+    <script src="team-realtime.js?v=177"></script>
     <script src="onboarding-experience.js"></script>
-    <script src="frontline-social.js?v=175"></script>
-    <script src="me-profile.js?v=175"></script>
-    <script src="navigation-fix.js?v=175"></script>
-    <script src="offline-queue.js?v=175"></script>
+    <script src="frontline-social.js?v=177"></script>
+    <script src="me-profile.js?v=177"></script>
+    <script src="navigation-fix.js?v=177"></script>
+    <script src="offline-queue.js?v=177"></script>
     <script src="signature-pad.js"></script>
     <script src="chat-engine.js"></script>
     <script src="gesture-hints.js"></script>
@@ -460,12 +464,12 @@
     <script src="swap-review.js"></script>
     <script src="facility-zones.js"></script>
     <script src="analytics-dashboard.js"></script>
-    <script src="first-shift-onboarding.js?v=175"></script>
-    <script src="push-notifications.js?v=175"></script>
+    <script src="first-shift-onboarding.js?v=177"></script>
+    <script src="push-notifications.js?v=177"></script>
     <script src="facility-switcher.js"></script>
     <script src="emergency-broadcast.js"></script>
     <script src="live-translation.js"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=175',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=177',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 

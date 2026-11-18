@@ -30,7 +30,7 @@ function connectTeamRealtime() {
   stream.addEventListener('shift-reminder', (e) => {
     try {
       const payload = JSON.parse(e.data || '{}');
-      const title = payload.title || payload.label || 'ShiftRelay OS Reminder';
+      const title = payload.title || payload.label || 'ShiftRelay Reminder';
       const body = payload.body || payload.message || 'Check your upcoming shift clock-in status.';
       const tag = 'sr-shift-reminder-' + (payload.scheduledShiftId || payload.stage || 'live');
       window.ShiftRelayPush?.showSystemNotification?.(title, { body, tag });

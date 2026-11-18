@@ -1,12 +1,12 @@
-# ShiftRelay OS Official App Store & Google Play Launch Kit (2026 Edition)
+# ShiftRelay Official App Store & Google Play Launch Kit (2026 Edition)
 
 ---
 
 ## 1. App Identifiers & Metadata
 
 - **App ID (Bundle ID / Package Name):** `com.shiftrelayos.app`
-- **App Name (Google Play):** `ShiftRelay OS — Attendance & WFM`
-- **App Name (App Store):** `ShiftRelay OS: Work & Payroll` (30 char limit)
+- **App Name (Google Play):** `ShiftRelay — Attendance & WFM`
+- **App Name (App Store):** `ShiftRelay: Work & Payroll` (30 char limit)
 - **Subtitle (iOS):** `Attendance, Handovers & Payroll` (30 char limit)
 - **Primary Category:** Business
 - **Secondary Category:** Productivity
@@ -20,10 +20,10 @@ Verified clock-in, AI shift handovers & statutory payroll for frontline teams.
 
 ### Full Description (Both Stores — formatted for enterprise buyers)
 ```text
-ShiftRelay OS by Riffmax Technology Limited is an accountable workforce management, verified attendance, shift handover, and statutory payroll platform built for frontline teams across hospitals, factories, logistics, hospitality, security, and offices.
+ShiftRelay by Riffmax Technology Limited is an accountable workforce management, verified attendance, shift handover, and statutory payroll platform built for frontline teams across hospitals, factories, logistics, hospitality, security, and offices.
 
 EVERY SHIFT. ACCOUNTED FOR.
-Eliminate lost context, verbal miscommunications, and payroll errors. ShiftRelay OS gives frontline workers and operations supervisors end-to-end transparency across every turnaround.
+Eliminate lost context, verbal miscommunications, and payroll errors. ShiftRelay gives frontline workers and operations supervisors end-to-end transparency across every turnaround.
 
 KEY FEATURES:
 • Verified Clock-In, Peer ID Scan & Reminders: Digital Staff ID cards, colleague peer scanning (eliminating hardware kiosks), automated pre-shift reminders, and burst GPS geofence validation.
@@ -42,7 +42,7 @@ Built by Riffmax Technology Limited (https://shiftrelayos.com) for frontline tea
 ## 2. Reviewer Test Credentials (CRITICAL for App Store & Google Play Review)
 
 > [!IMPORTANT]
-> Because ShiftRelay OS requires a corporate Company ID to sign in (self-registration is disabled for tenant security), you **MUST** provide these demo credentials in the **"App Review Information"** section of App Store Connect and Google Play Console so reviewers can test the app immediately without being blocked.
+> Because ShiftRelay requires a corporate Company ID to sign in (self-registration is disabled for tenant security), you **MUST** provide these demo credentials in the **"App Review Information"** section of App Store Connect and Google Play Console so reviewers can test the app immediately without being blocked.
 
 | Role | Company ID | Email / Username | Password / Action |
 |---|---|---|---|
@@ -55,7 +55,7 @@ Built by Riffmax Technology Limited (https://shiftrelayos.com) for frontline tea
 
 **Reviewer Notes to paste into Store submission:**
 ```text
-ShiftRelay OS is an enterprise B2B workforce operating system provisioned by employers. To test the full workflow:
+ShiftRelay is an enterprise B2B workforce operating system provisioned by employers. To test the full workflow:
 1. Launch the app and enter Company ID: 246701
 2. Enter Email: babatunde@riffmax.tech (and password supplied separately in reviewer credentials).
 3. Accept the active Employer Attendance & Grace Period policy banner, test Clock-In, Digital Staff ID / Peer Scan, Handover relay, and view Attendance Exceptions & Pay Breakdown.

@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { generateTotpCode } from '../admin-auth.mjs';
 
-const BASE = 'http://localhost:4000';
+const BASE = process.env.BASE_URL || 'http://localhost:4000';
 const ART = 'C:/Users/DATA ENG. OLA/.gemini/antigravity/brain/af65195c-f6f5-4f1b-843a-e3eb86a344fb';
 const DEV_PASS = 'ShiftRelay!DevOps2026';
 
@@ -54,6 +54,7 @@ async function run() {
 
     // 3. Sign in as partitioned onboarding_admin (Adaeze) & verify RBAC 403 + HttpOnly cookie
     await page.fill('#adm-email-input', 'adaeze@shiftrelayos.com');
+    await page.click('#adm-step1-continue');
     await page.fill('#adm-password-input', DEV_PASS);
     await page.click('#adm-login-submit');
     await page.waitForSelector('#console-root.active', { timeout: 8000 });
@@ -93,6 +94,7 @@ async function run() {
 
     // 4. Sign in as owner_root & inspect Owner Vault, Staff, Audit Trail
     await page.fill('#adm-email-input', 'owner@shiftrelayos.com');
+    await page.click('#adm-step1-continue');
     await page.fill('#adm-password-input', DEV_PASS);
     await page.click('#adm-login-submit');
     await page.waitForSelector('#console-root.active', { timeout: 8000 });
@@ -136,6 +138,7 @@ async function run() {
 
     // 5. Sign in as QA user, enroll RFC-6238 TOTP MFA, test Step-2 MFA Challenge
     await page.fill('#adm-email-input', uniqueEmail);
+    await page.click('#adm-step1-continue');
     await page.fill('#adm-password-input', qaTempPass);
     await page.click('#adm-login-submit');
     await page.waitForSelector('#console-root.active', { timeout: 8000 });
@@ -156,6 +159,7 @@ async function run() {
 
     // Sign back in -> must trigger Step-2 MFA challenge
     await page.fill('#adm-email-input', uniqueEmail);
+    await page.click('#adm-step1-continue');
     await page.fill('#adm-password-input', qaTempPass);
     await page.click('#adm-login-submit');
     await page.waitForSelector('#adm-mfa-form', { state: 'visible', timeout: 5000 });

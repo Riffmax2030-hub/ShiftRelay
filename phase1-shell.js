@@ -1365,7 +1365,7 @@
           <div class="sr-header-left">
             <a href="#" class="sr-brand-link" id="sr-brand-home" aria-label="ShiftRelay Home">
               <span class="sr-brand-badge" aria-hidden="true">
-                <svg width="28" height="28" viewBox="0 0 320 320" fill="none">
+                <svg width="34" height="34" viewBox="0 0 320 320" fill="none">
                   <defs>
                     <linearGradient id="srHdrDarkBg" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stop-color="#07291E"/>
@@ -1396,7 +1396,22 @@
                   </g>
                 </svg>
               </span>
-              <span class="sr-brand-text"><span class="sr-brand-shift">SHIFT</span><span class="sr-brand-relay">RELAY OS</span></span>
+              <span class="sr-brand-text" aria-label="ShiftRelay" style="display:inline-flex;align-items:center;">
+                <svg viewBox="0 0 330 46" height="20" style="width:auto;display:block;" aria-hidden="true">
+                  <path d="M 27 8 C 24 3, 18 1, 11 1 C 3 1, -2 5, -2 12 C -2 19, 4 21, 13 23 C 19 24.5, 21 26, 21 29.5 C 21 33, 17 35, 11 35 C 5 35, 1 32, -2 28 L -8 34 C -4 40, 3 43, 11 43 C 22 43, 30 38, 30 29 C 30 21, 24 18, 14 16 C 8 14.5, 6 13, 6 10.5 C 6 8, 9 6.5, 13 6.5 C 17 6.5, 20 8, 22 11 Z" transform="translate(8,1)" fill="#059669"/>
+                  <path d="M 38 2 H 47 V 18 H 64 V 2 H 73 V 42 H 64 V 26 H 47 V 42 H 38 Z" transform="translate(8,1)" fill="#059669"/>
+                  <rect x="90" y="3" width="9" height="40" fill="#059669"/>
+                  <path d="M 100 2 H 126 V 10 H 109 V 19 H 123 V 27 H 109 V 42 H 100 Z" transform="translate(8,1)" fill="#059669"/>
+                  <path d="M 130 2 H 160 V 10 H 149.5 V 42 H 140.5 V 10 H 130 Z" transform="translate(8,1)" fill="#059669"/>
+                  <path d="M 165 2 H 183 C 192 2, 198 7, 198 15 C 198 21, 194 25.5, 188 27 L 199 42 H 188.5 L 179 28 H 174 V 42 H 165 Z M 174 10 V 20.5 H 182 C 186.5 20.5, 189 18.5, 189 15 C 189 11.8, 186.5 10, 182 10 Z" transform="translate(8,1)" fill="currentColor"/>
+                  <rect x="212" y="3" width="24" height="8.5" fill="currentColor"/>
+                  <rect x="212" y="18.8" width="24" height="8.5" fill="#059669"/>
+                  <rect x="212" y="34.5" width="24" height="8.5" fill="currentColor"/>
+                  <path d="M 235 2 H 244 V 33.5 H 261 V 42 H 235 Z" transform="translate(8,1)" fill="currentColor"/>
+                  <path d="M 278 2 L 263 42 H 272.5 L 275.5 33.5 H 291 V 25.5 H 278.5 L 283 12.5 L 294 42 H 303 L 287 2 Z" transform="translate(8,1)" fill="currentColor"/>
+                  <path d="M 289 2 L 301 23 V 42 H 310 V 23 L 322 2 H 312.5 L 305.5 15 L 298.5 2 Z" transform="translate(8,1)" fill="currentColor"/>
+                </svg>
+              </span>
             </a>
           </div>
 
@@ -8021,7 +8036,7 @@
             ];
             bodyEl.innerHTML = `
               <div style="background:#ffffff;border:2px solid #0f172a;border-radius:16px;padding:28px 24px;max-width:540px;margin:0 auto;box-shadow:0 10px 25px rgba(15,23,42,0.08);">
-                <div style="font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#2563eb;margin-bottom:6px;">SHIFTRELAY OS • WORKPLACE GATE STATION</div>
+                <div style="font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#2563eb;margin-bottom:6px;">SHIFTRELAY • WORKPLACE GATE STATION</div>
                 <h2 style="margin:0 0 6px;font-size:22px;font-weight:900;color:#0f172a;">${escapeHtml(data.companyName || 'Riffmax Operations Group')}</h2>
                 <div style="display:inline-block;padding:4px 12px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800;margin-bottom:16px;">COMPANY ID: ${escapeHtml(data.tenantId || tenantId)}</div>
                 <div style="margin:0 auto 16px;width:210px;height:210px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;border-radius:12px;padding:10px;background:#fff;">
@@ -12147,7 +12162,7 @@
               </div>
               <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--sr-text-muted);cursor:pointer;line-height:1.4;">
                 <input type="checkbox" id="sr-account-delete-confirm" required style="margin-top:2px;" />
-                <span>I confirm I want ShiftRelay OS to process account deletion for ${escapeHtml(user?.email || 'this account')}.</span>
+                <span>I confirm I want ShiftRelay to process account deletion for ${escapeHtml(user?.email || 'this account')}.</span>
               </label>
               <button type="submit" id="sr-btn-submit-delete-account" class="sr-btn sr-btn-primary" style="background:#dc2626;border-color:#dc2626;color:#fff;">
                 Submit Deletion Request
@@ -14514,7 +14529,7 @@
             <div class="sr-payslip-sheet" id="sr-payslip-content-print" style="padding:28px;">
               <div class="sr-payslip-header-box">
                 <div style="display:flex;align-items:center;gap:12px;">
-                  <img src="icon.svg?v=145" width="48" height="48" style="border-radius:12px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="ShiftRelay OS" />
+                  <img src="assets/logos/logo-brand-motion.svg?v=177" width="72" height="72" style="border-radius:16px;flex-shrink:0;box-shadow:0 4px 12px rgba(4,27,20,0.22);" alt="ShiftRelay" />
                   <div>
                     <h2 style="font-size:19px;font-weight:900;color:var(--sr-text-main);margin:0 0 4px;">${escapeHtml(payslipData?.companyName || statementData.companyName || activeUser?.organisation_name || 'Workplace')}</h2>
                     <p style="font-size:12px;color:var(--sr-text-muted);margin:0;">Tenant ID: <strong style="color:var(--sr-text-main);">${escapeHtml(payslipData?.companyId || statementData.companyId || activeUser?.company_id || '—')}</strong></p>
@@ -14603,7 +14618,7 @@
               <!-- Employer Statutory Contributions Info -->
               <div style="margin-top:14px;padding:10px 14px;background:var(--sr-bg-elevated);border-radius:6px;border:1px solid var(--sr-border-subtle);font-size:11px;color:var(--sr-text-muted);display:flex;justify-content:space-between;">
                 <span><strong>Employer Direct Contributions:</strong> Pension (10%): ${payslipData?.formatted?.pensionEmployer || '₦0.00'} | NSITF (1%): ${payslipData?.formatted?.nsitf || '₦0.00'}</span>
-                <span>Audit Verified: ShiftRelay OS HCM</span>
+                <span>Audit Verified: ShiftRelay HCM</span>
               </div>
             </div>
           </div>

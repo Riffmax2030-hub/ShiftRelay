@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Live System Status | ShiftRelay OS</title>
+  <title>Live System Status | ShiftRelay</title>
   <link rel="canonical" href="https://shiftrelayos.com/status.html" />
   <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
@@ -23,10 +23,11 @@
     .badge { padding:5px 12px; border-radius:999px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; background:rgba(0,245,160,0.14); color:var(--em); border:1px solid rgba(0,245,160,0.35); }
     .btn-refresh { background:transparent; border:1px solid rgba(56,189,248,0.4); color:var(--sky); padding:8px 14px; border-radius:8px; font-weight:700; cursor:pointer; }
   </style>
+  <meta property="og:image" content="https://shiftrelayos.com/assets/site/shiftrelay-og-social-card.jpg" />
 </head>
 <body>
   <header class="legal-nav">
-    <a href="/website.html" class="brand"><img src="/assets/logos/logo-brand-motion.svg?v=130" width="34" height="34" alt="" />ShiftRelay <span style="color:var(--em);">OS</span></a>
+    <a href="/website.html" class="brand"><img src="/icon.svg?v=177" width="40" height="40" alt="" style="border-radius:10px;" />ShiftRelay <span style="color:var(--em);">OS</span></a>
     <nav class="nav-actions">
       <a href="/website.html" class="pill">Home</a>
       <a href="/trust.html" class="pill">Trust Center</a>
@@ -38,7 +39,7 @@
     <div class="banner">
       <div>
         <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--em); font-weight:700;">LIVE READINESS PROBE (/api/health/readiness)</div>
-        <h1 style="font-family:'Outfit',sans-serif; font-size:28px; font-weight:900; margin-top:4px;" id="overall-status-title">Checking ShiftRelay OS Systems...</h1>
+        <h1 style="font-family:'Outfit',sans-serif; font-size:28px; font-weight:900; margin-top:4px;" id="overall-status-title">Checking ShiftRelay Systems...</h1>
         <div style="font-size:13px; color:var(--muted);" id="overall-status-meta">Contacting Lagos / Edge telemetry...</div>
       </div>
       <button type="button" class="btn-refresh" onclick="loadLiveStatus()">Refresh Probe</button>

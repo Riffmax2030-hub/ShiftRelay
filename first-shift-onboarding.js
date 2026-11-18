@@ -35,7 +35,7 @@
         title: 'Employer Attendance & Pay Rules',
         isPolicySlide: true,
         policyVersion: policy.policyVersion || 'v1',
-        desc: 'Zero hidden deductions. Every late arrival or missed punch follows your employer\'s written ShiftRelay OS policy:',
+        desc: 'Zero hidden deductions. Every late arrival or missed punch follows your employer\'s written ShiftRelay policy:',
         bullets: [
           `Grace Period: ${grace} minutes at shift start (within grace = zero pay deduction).`,
           `Missed Clock-In: ${missInLabel}.`,

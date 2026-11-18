@@ -16,7 +16,7 @@
   <meta name="twitter:title" content="ShiftRelay — Frontline Workforce &amp; Payroll OS" />
   <meta name="twitter:description" content="Zero hardware clock-in, live shift handovers, and 1-click Nigerian bank &amp; statutory payroll." />
   <meta name="twitter:image" content="https://shiftrelayos.com/assets/site/hero-frontline.jpg" />
-  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=165" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg?v=177" />
   <style>
     /* ── Self-Hosted Fonts (Zero External Latency, CSP 'self' Compliant) ── */
     @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('/assets/fonts/plus-jakarta-sans-latin-400-normal.woff2') format('woff2'); }
@@ -124,11 +124,12 @@
       color: var(--text-primary);
     }
     .brand-mark-static {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
       display: block;
       flex-shrink: 0;
+      box-shadow: 0 6px 16px rgba(4, 27, 20, 0.2);
     }
     .brand-wordmark {
       font-family: 'Outfit', sans-serif;
@@ -1042,11 +1043,8 @@
     .marquee-track {
       display: flex;
       width: max-content;
-      gap: 18px;
-      animation: marquee-rtl 36s linear infinite;
-    }
-    .marquee-viewport:hover .marquee-track {
-      animation-play-state: paused;
+      gap: 20px;
+      animation: marquee-rtl 52s linear infinite;
     }
     @keyframes marquee-rtl {
       0% { transform: translateX(0); }
@@ -1055,12 +1053,12 @@
     .eco-badge {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      padding: 11px 20px;
-      border-radius: 12px;
+      gap: 12px;
+      padding: 14px 24px;
+      border-radius: 14px;
       background: #ffffff;
       border: 1px solid var(--border-hairline);
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
       white-space: nowrap;
       color: var(--text-primary);
       font-size: 13.5px;
@@ -1068,6 +1066,13 @@
       transition: border-color 0.2s ease;
     }
     .eco-badge:hover { border-color: var(--emerald); }
+    .eco-logo-img {
+      height: 38px;
+      width: auto;
+      max-width: 155px;
+      object-fit: contain;
+      display: block;
+    }
     .eco-badge small {
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
@@ -1275,9 +1280,22 @@
        ═══════════════════════════════════════════════════════════════════════ -->
   <header class="site-navbar" id="sr-navbar">
     <div class="navbar-inner">
-      <a href="/website.html" class="brand-lockup">
-        <img src="/assets/logos/logo-brand-motion.svg?v=165" alt="ShiftRelay" class="brand-mark-static" />
-        <div class="brand-wordmark">Shift<span>Relay</span></div>
+      <a href="/website.html" class="brand-lockup" aria-label="ShiftRelay Home">
+        <img src="/icon.svg?v=177" alt="" class="brand-mark-static" />
+        <svg viewBox="0 0 330 46" height="20" style="width:auto;display:block;color:#0f172a;" aria-hidden="true">
+          <path d="M 27 8 C 24 3, 18 1, 11 1 C 3 1, -2 5, -2 12 C -2 19, 4 21, 13 23 C 19 24.5, 21 26, 21 29.5 C 21 33, 17 35, 11 35 C 5 35, 1 32, -2 28 L -8 34 C -4 40, 3 43, 11 43 C 22 43, 30 38, 30 29 C 30 21, 24 18, 14 16 C 8 14.5, 6 13, 6 10.5 C 6 8, 9 6.5, 13 6.5 C 17 6.5, 20 8, 22 11 Z" transform="translate(8,1)" fill="#059669"/>
+          <path d="M 38 2 H 47 V 18 H 64 V 2 H 73 V 42 H 64 V 26 H 47 V 42 H 38 Z" transform="translate(8,1)" fill="#059669"/>
+          <rect x="90" y="3" width="9" height="40" fill="#059669"/>
+          <path d="M 100 2 H 126 V 10 H 109 V 19 H 123 V 27 H 109 V 42 H 100 Z" transform="translate(8,1)" fill="#059669"/>
+          <path d="M 130 2 H 160 V 10 H 149.5 V 42 H 140.5 V 10 H 130 Z" transform="translate(8,1)" fill="#059669"/>
+          <path d="M 165 2 H 183 C 192 2, 198 7, 198 15 C 198 21, 194 25.5, 188 27 L 199 42 H 188.5 L 179 28 H 174 V 42 H 165 Z M 174 10 V 20.5 H 182 C 186.5 20.5, 189 18.5, 189 15 C 189 11.8, 186.5 10, 182 10 Z" transform="translate(8,1)" fill="currentColor"/>
+          <rect x="212" y="3" width="24" height="8.5" fill="currentColor"/>
+          <rect x="212" y="18.8" width="24" height="8.5" fill="#059669"/>
+          <rect x="212" y="34.5" width="24" height="8.5" fill="currentColor"/>
+          <path d="M 235 2 H 244 V 33.5 H 261 V 42 H 235 Z" transform="translate(8,1)" fill="currentColor"/>
+          <path d="M 278 2 L 263 42 H 272.5 L 275.5 33.5 H 291 V 25.5 H 278.5 L 283 12.5 L 294 42 H 303 L 287 2 Z" transform="translate(8,1)" fill="currentColor"/>
+          <path d="M 289 2 L 301 23 V 42 H 310 V 23 L 322 2 H 312.5 L 305.5 15 L 298.5 2 Z" transform="translate(8,1)" fill="currentColor"/>
+        </svg>
       </a>
 
       <nav class="nav-center-links" aria-label="Primary Navigation">
@@ -2077,25 +2095,41 @@
     <div class="marquee-viewport">
       <div class="marquee-track">
         <!-- Set 1 -->
-        <div class="eco-badge"><span class="brand-mark-chip" style="background:#dd4f05;">GT</span> GTBank GAPS <small>Bank CSV</small></div>
-        <div class="eco-badge"><span class="brand-mark-chip" style="background:#008751;">ND</span> NDPA 2023 <small>Privacy Act</small></div>
-        <div class="eco-badge"><span class="brand-mark-chip" style="background:linear-gradient(135deg,#003883,#f58220);">AX</span> Access Switch <small>Disbursement</small></div>
-        <div class="eco-badge"><span class="brand-mark-chip" style="background:#047857;">PC</span> PenCom PRA 2014 <small>8% / 10%</small></div>
-        <div class="eco-badge"><span class="brand-mark-chip" style="background:#ed1c24;">ZB</span> Zenith Bank <small>Payroll CSV</small></div>
-        <div class="eco-badge"><span class="brand-mark-chip" style="background:#065f46;">NB</span> NIBSS Instant <small>Settlement</small></div>
-        <div class="eco-badge"><span class="brand-mark-chip" style="background:#15803d;">FR</span> FIRS / LIRS PAYE <small>Schedule</small></div>
-        <div class="eco-badge"><span class="brand-mark-chip" style="background:#f38020;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M16.5 14.5h-9a3.5 3.5 0 0 1-.4-6.98 5 5 0 0 1 9.6-1.17A4 4 0 0 1 16.5 14.5z"/></svg></span> Cloudflare Edge <small>TLS 1.3 WAF</small></div>
-        <div class="eco-badge"><span class="brand-mark-chip" style="background:#0d9488;">NH</span> NHF &amp; NSITF <small>Statutory</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/gtbank.png" alt="GTBank" class="eco-logo-img" /><small>GAPS CSV</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/access.png" alt="Access Bank" class="eco-logo-img" /><small>Switch</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/zenith.png" alt="Zenith Bank" class="eco-logo-img" /><small>Payroll</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/nibss.png" alt="NIBSS" class="eco-logo-img" /><small>Instant</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/paystack.png" alt="Paystack" class="eco-logo-img" /><small>Billing</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/flutterwave.png" alt="Flutterwave" class="eco-logo-img" /><small>Payouts</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/moniepoint.png" alt="Moniepoint" class="eco-logo-img" /><small>Settlement</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/opay.png" alt="OPay" class="eco-logo-img" /><small>Wallet</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/mtn.png" alt="MTN Nigeria" class="eco-logo-img" /><small>Telecom</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/airtel.png" alt="Airtel Nigeria" class="eco-logo-img" /><small>4G/USSD</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/shoprite.png" alt="Shoprite" class="eco-logo-img" /><small>Retail</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/spar.png" alt="SPAR" class="eco-logo-img" /><small>Supermart</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/pencom.png" alt="PenCom" class="eco-logo-img" /><small>PRA 2014</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/ndpc.png" alt="NDPC" class="eco-logo-img" /><small>NDPA 2023</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/firs.png" alt="FIRS" class="eco-logo-img" /><small>PAYE</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/nsitf.png" alt="NSITF" class="eco-logo-img" /><small>ECA 1%</small></div>
+        <div class="eco-badge"><img src="/assets/site/logos/cloudflare.png" alt="Cloudflare" class="eco-logo-img" /><small>TLS 1.3</small></div>
         <!-- Set 2 (duplicate for seamless infinite loop) -->
-        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#dd4f05;">GT</span> GTBank GAPS <small>Bank CSV</small></div>
-        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#008751;">ND</span> NDPA 2023 <small>Privacy Act</small></div>
-        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:linear-gradient(135deg,#003883,#f58220);">AX</span> Access Switch <small>Disbursement</small></div>
-        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#047857;">PC</span> PenCom PRA 2014 <small>8% / 10%</small></div>
-        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#ed1c24;">ZB</span> Zenith Bank <small>Payroll CSV</small></div>
-        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#065f46;">NB</span> NIBSS Instant <small>Settlement</small></div>
-        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#15803d;">FR</span> FIRS / LIRS PAYE <small>Schedule</small></div>
-        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#f38020;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M16.5 14.5h-9a3.5 3.5 0 0 1-.4-6.98 5 5 0 0 1 9.6-1.17A4 4 0 0 1 16.5 14.5z"/></svg></span> Cloudflare Edge <small>TLS 1.3 WAF</small></div>
-        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#0d9488;">NH</span> NHF &amp; NSITF <small>Statutory</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/gtbank.png" alt="" class="eco-logo-img" /><small>GAPS CSV</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/access.png" alt="" class="eco-logo-img" /><small>Switch</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/zenith.png" alt="" class="eco-logo-img" /><small>Payroll</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/nibss.png" alt="" class="eco-logo-img" /><small>Instant</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/paystack.png" alt="" class="eco-logo-img" /><small>Billing</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/flutterwave.png" alt="" class="eco-logo-img" /><small>Payouts</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/moniepoint.png" alt="" class="eco-logo-img" /><small>Settlement</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/opay.png" alt="" class="eco-logo-img" /><small>Wallet</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/mtn.png" alt="" class="eco-logo-img" /><small>Telecom</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/airtel.png" alt="" class="eco-logo-img" /><small>4G/USSD</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/shoprite.png" alt="" class="eco-logo-img" /><small>Retail</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/spar.png" alt="" class="eco-logo-img" /><small>Supermart</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/pencom.png" alt="" class="eco-logo-img" /><small>PRA 2014</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/ndpc.png" alt="" class="eco-logo-img" /><small>NDPA 2023</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/firs.png" alt="" class="eco-logo-img" /><small>PAYE</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/nsitf.png" alt="" class="eco-logo-img" /><small>ECA 1%</small></div>
+        <div class="eco-badge" aria-hidden="true"><img src="/assets/site/logos/cloudflare.png" alt="" class="eco-logo-img" /><small>TLS 1.3</small></div>
       </div>
     </div>
   </section>
@@ -2106,9 +2140,22 @@
   <footer class="corp-footer">
     <div class="footer-grid">
       <div>
-        <a href="/website.html" class="brand-lockup" style="margin-bottom:12px;">
-          <img src="/assets/logos/logo-brand-motion.svg?v=165" alt="ShiftRelay" class="brand-mark-static" />
-          <div class="brand-wordmark">Shift<span>Relay</span></div>
+        <a href="/website.html" class="brand-lockup" style="margin-bottom:12px;" aria-label="ShiftRelay Home">
+          <img src="/icon.svg?v=177" alt="" class="brand-mark-static" />
+          <svg viewBox="0 0 330 46" height="20" style="width:auto;display:block;color:#ECFDF5;" aria-hidden="true">
+            <path d="M 27 8 C 24 3, 18 1, 11 1 C 3 1, -2 5, -2 12 C -2 19, 4 21, 13 23 C 19 24.5, 21 26, 21 29.5 C 21 33, 17 35, 11 35 C 5 35, 1 32, -2 28 L -8 34 C -4 40, 3 43, 11 43 C 22 43, 30 38, 30 29 C 30 21, 24 18, 14 16 C 8 14.5, 6 13, 6 10.5 C 6 8, 9 6.5, 13 6.5 C 17 6.5, 20 8, 22 11 Z" transform="translate(8,1)" fill="#1AD079"/>
+            <path d="M 38 2 H 47 V 18 H 64 V 2 H 73 V 42 H 64 V 26 H 47 V 42 H 38 Z" transform="translate(8,1)" fill="#1AD079"/>
+            <rect x="90" y="3" width="9" height="40" fill="#1AD079"/>
+            <path d="M 100 2 H 126 V 10 H 109 V 19 H 123 V 27 H 109 V 42 H 100 Z" transform="translate(8,1)" fill="#1AD079"/>
+            <path d="M 130 2 H 160 V 10 H 149.5 V 42 H 140.5 V 10 H 130 Z" transform="translate(8,1)" fill="#1AD079"/>
+            <path d="M 165 2 H 183 C 192 2, 198 7, 198 15 C 198 21, 194 25.5, 188 27 L 199 42 H 188.5 L 179 28 H 174 V 42 H 165 Z M 174 10 V 20.5 H 182 C 186.5 20.5, 189 18.5, 189 15 C 189 11.8, 186.5 10, 182 10 Z" transform="translate(8,1)" fill="currentColor"/>
+            <rect x="212" y="3" width="24" height="8.5" fill="currentColor"/>
+            <rect x="212" y="18.8" width="24" height="8.5" fill="#1AD079"/>
+            <rect x="212" y="34.5" width="24" height="8.5" fill="currentColor"/>
+            <path d="M 235 2 H 244 V 33.5 H 261 V 42 H 235 Z" transform="translate(8,1)" fill="currentColor"/>
+            <path d="M 278 2 L 263 42 H 272.5 L 275.5 33.5 H 291 V 25.5 H 278.5 L 283 12.5 L 294 42 H 303 L 287 2 Z" transform="translate(8,1)" fill="currentColor"/>
+            <path d="M 289 2 L 301 23 V 42 H 310 V 23 L 322 2 H 312.5 L 305.5 15 L 298.5 2 Z" transform="translate(8,1)" fill="currentColor"/>
+          </svg>
         </a>
         <p style="font-size:13px; color:var(--text-secondary); max-width:300px;">
           Riffmax Technology Limited. Verified shift attendance, accountable handovers, and automated Nigerian statutory payroll.

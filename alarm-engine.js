@@ -177,10 +177,10 @@
                   ? 'Shift Starting Now: Tap GPS Clock-In or scan Staff ID badge.'
                   : `Missed Clock-In Escalation: Past ${graceMinutes}m grace window. Clock in or explain immediately.`);
             if (typeof window.toast === 'function') window.toast(msg);
-            window.ShiftRelayPush?.showSystemNotification?.('ShiftRelay OS Shift Reminder', { body: msg });
+            window.ShiftRelayPush?.showSystemNotification?.('ShiftRelay Shift Reminder', { body: msg });
             window.ShiftRelayMobile?.scheduleLocalReminder?.({
               id: Math.abs(diffStartMin) + 100,
-              title: 'ShiftRelay OS Shift Reminder',
+              title: 'ShiftRelay Shift Reminder',
               body: msg
             });
           }
@@ -203,7 +203,7 @@
                   ? `Shift ends in ${diffEndMin} minutes — prepare handover & clock-out punch.`
                   : 'Overdue Clock-Out: Shift ended 15+ minutes ago. Submit clock-out punch or handover now.';
                 if (typeof window.toast === 'function') window.toast(outMsg);
-                window.ShiftRelayPush?.showSystemNotification?.('ShiftRelay OS Clock-Out Alert', { body: outMsg });
+                window.ShiftRelayPush?.showSystemNotification?.('ShiftRelay Clock-Out Alert', { body: outMsg });
               }
             }
           }

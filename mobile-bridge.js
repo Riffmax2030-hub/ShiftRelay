@@ -86,7 +86,7 @@
         await plugin.schedule({
           notifications: [{
             id: toNotificationId(id),
-            title: String(title || 'ShiftRelay OS Shift Reminder'),
+            title: String(title || 'ShiftRelay Shift Reminder'),
             body: String(body || 'Check in via GPS or Staff ID badge.'),
             schedule: { at: when > new Date() ? when : new Date(Date.now() + 1000) }
           }]

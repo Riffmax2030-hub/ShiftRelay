@@ -13,6 +13,8 @@
 
 (function () {
   const splashEl = document.getElementById('sr-splash');
+  const welcomeGateEl = document.getElementById('sr-welcome-gate');
+  const tapToLoginBtn = document.getElementById('sr-tap-to-login-btn');
   const modalEl = document.getElementById('sr-login-modal');
   const signinForm = document.getElementById('sr-sheet-signin-form');
 
@@ -26,8 +28,6 @@
   const emailInput = document.getElementById('sr-step-email');
   const passwordInput = document.getElementById('sr-step-password');
   const msgEl = document.getElementById('sr-sheet-msg');
-  const stepLabelEl = document.getElementById('sr-auth-step-label');
-  const progSegments = document.querySelectorAll('.sr-auth-progress-seg');
 
   const step1Btn = document.getElementById('sr-step1-continue');
   const step2Btn = document.getElementById('sr-step2-continue');
@@ -64,15 +64,6 @@
       }
     });
 
-    if (stepLabelEl) {
-      stepLabelEl.textContent = `Step ${step} of 3`;
-    }
-
-    progSegments.forEach((seg) => {
-      const n = Number(seg.dataset.prog || 0);
-      seg.classList.toggle('active', n <= step);
-    });
-
     setTimeout(() => {
       if (step === 1) companyInput?.focus();
       else if (step === 2) emailInput?.focus();
@@ -80,7 +71,35 @@
     }, 60);
   }
 
+  function showWelcomeGate() {
+    if (!welcomeGateEl) {
+      openLoginScreen(true);
+      return;
+    }
+    welcomeGateEl.style.display = 'flex';
+    requestAnimationFrame(() => welcomeGateEl.classList.add('open'));
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideWelcomeGate() {
+    if (!welcomeGateEl) return;
+    welcomeGateEl.classList.remove('open');
+    setTimeout(() => {
+      if (!welcomeGateEl.classList.contains('open')) {
+        welcomeGateEl.style.display = 'none';
+      }
+    }, 260);
+  }
+
+  if (tapToLoginBtn) {
+    tapToLoginBtn.addEventListener('click', () => {
+      hideWelcomeGate();
+      openLoginScreen(true);
+    });
+  }
+
   function openLoginScreen(resetStep = true) {
+    hideWelcomeGate();
     if (!modalEl) return;
     if (resetStep) setStep(1);
     modalEl.classList.add('open');
@@ -318,11 +337,11 @@
         }
       } else {
         hideSplash();
-        openLoginScreen(true);
+        showWelcomeGate();
       }
     } catch (_) {
       hideSplash();
-      openLoginScreen(true);
+      showWelcomeGate();
     } finally {
       window._srReady = true;
       window.dispatchEvent(new CustomEvent('sr:ready'));
