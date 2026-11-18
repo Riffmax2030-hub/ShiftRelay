@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <script src="/vendor/xlsx.full.min.js"></script>
+  <script src="/vendor/mammoth.browser.min.js"></script>
   <style>
     :root,
     html[data-theme="dark"] {
@@ -1337,7 +1338,7 @@
                 </div>
                 <div class="ob-bubble">
                   <div style="font-weight:600; margin-bottom:4px;">Ready to onboard.</div>
-                  <div style="color:var(--text-slate); font-size:12.5px;">Paste company info, staff roster, and bank/PenCom details — or attach a <code>.csv</code> / <code>.txt</code> / picture. I will extract, error-check, auto-correct, and provision the company.</div>
+                  <div style="color:var(--text-slate); font-size:12.5px;">Paste company info, staff roster, and bank/PenCom details — or attach <code>.xlsx</code> / <code>.pdf</code> / <code>.docx</code> / <code>.csv</code> / picture. I will extract, preview, error-check, and provision the company.</div>
                   <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
                     <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.loadOnboardingSamplePrompt()">Load Sample Prompt</button>
                     <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.switchAdminView('tenants')">Onboarded Companies</button>
@@ -1354,8 +1355,8 @@
                   <div style="display:flex; align-items:center; gap:6px;">
                     <label class="btn-ghost" style="padding:6px 10px; font-size:11.5px; cursor:pointer;">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                      <span>Attach Excel / CSV / Image</span>
-                      <input type="file" id="ob-agent-file-input" accept=".xlsx,.xls,.csv,.tsv,.txt,.json,image/*" multiple style="display:none;" onchange="window.handleOnboardingAgentFiles(this.files)" />
+                      <span>Attach Excel / PDF / Word / Image</span>
+                      <input type="file" id="ob-agent-file-input" accept=".xlsx,.xls,.csv,.tsv,.txt,.json,.pdf,.docx,image/*" multiple style="display:none;" onchange="window.handleOnboardingAgentFiles(this.files)" />
                     </label>
                   </div>
                   <button type="button" id="ob-agent-send-btn" class="btn-emerald" style="padding:7px 14px;" onclick="window.submitOnboardingAgent()">
@@ -4340,7 +4341,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
             <div class="ob-avatar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"/><path d="M3 12h18"/></svg></div>
             <div class="ob-bubble">
               <div style="font-weight:600; margin-bottom:4px;">Ready to onboard.</div>
-              <div style="color:var(--text-slate); font-size:12.5px;">Paste company info, staff roster, and bank/PenCom details — or attach a <code>.csv</code> / <code>.txt</code> / picture.</div>
+              <div style="color:var(--text-slate); font-size:12.5px;">Paste company info, staff roster, and bank/PenCom details — or attach <code>.xlsx</code> / <code>.pdf</code> / <code>.docx</code> / <code>.csv</code> / picture.</div>
               <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
                 <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.loadOnboardingSamplePrompt()">Load Sample Prompt</button>
                 <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.switchAdminView('tenants')">Onboarded Companies</button>
@@ -4378,18 +4379,167 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         return;
       }
       strip.style.display = 'flex';
-      strip.innerHTML = obAgentAttachments.map((att, idx) => `
-        <div class="ob-attach-chip" style="cursor:${att.isImage ? 'default' : 'pointer'};" onclick="${att.isImage ? '' : `window.previewObAttachment(${idx})`}" title="${att.isImage ? '' : 'Click to preview spreadsheet'}">
+      strip.innerHTML = obAgentAttachments.map((att, idx) => {
+        const badgeLabel = att.isExcel ? 'XLS' : att.isPdf ? 'PDF' : att.isWord ? 'DOCX' : '';
+        return `
+        <div class="ob-attach-chip" style="cursor:${att.isImage ? 'default' : 'pointer'};" onclick="${att.isImage ? '' : `window.previewObAttachment(${idx})`}" title="${att.isImage ? '' : 'Click to preview document'}">
           ${att.isImage && att.previewUrl ? `<img src="${att.previewUrl}" alt="" />` : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>'}
+          ${badgeLabel ? `<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;background:rgba(14,165,233,0.12);color:#0369a1;">${badgeLabel}</span>` : ''}
           <span>${escapeHtml(att.name)}</span>
           <button type="button" style="border:none;background:none;color:var(--text-slate);cursor:pointer;font-weight:700;" onclick="event.stopPropagation(); window.removeObAttachment(${idx})">&times;</button>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
+
+    function sanitizeDocumentPreviewHtml(rawHtml) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(String(rawHtml || ''), 'text/html');
+      doc.querySelectorAll('script, style, iframe, object, embed, link, meta, svg, math, form').forEach((el) => el.remove());
+      doc.querySelectorAll('*').forEach((el) => {
+        for (const attr of [...el.attributes]) {
+          const name = attr.name.toLowerCase();
+          const val = String(attr.value || '').trim();
+          if (name.startsWith('on')) el.removeAttribute(attr.name);
+          if ((name === 'href' || name === 'src') && /^\s*(?:javascript|vbscript|data\s*:\s*text\/html)/i.test(val)) {
+            el.setAttribute(attr.name, '#');
+          }
+        }
+      });
+      return doc.body ? doc.body.innerHTML : '';
+    }
+
+    window.openDocumentPreviewModal = function (opts) {
+      const { title = 'Document Preview', kind = 'word', html = '', text = '', pages = null, pageCount = 0, arrayBuffer = null } = opts || {};
+      const existing = document.getElementById('ob-doc-preview-modal');
+      if (existing) existing.remove();
+
+      const backdrop = document.createElement('div');
+      backdrop.id = 'ob-doc-preview-modal';
+      backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.56);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px;';
+
+      const subtitle = kind === 'pdf'
+        ? `PDF Document${pageCount ? ` · ${pageCount} page${pageCount === 1 ? '' : 's'}` : ''}`
+        : kind === 'word'
+          ? 'Word Document (.docx)'
+          : 'Document Extract';
+
+      const card = document.createElement('div');
+      card.style.cssText = 'background:#ffffff;border:1px solid #cbd5e1;border-radius:16px;width:min(920px,96vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(15,23,42,0.28);';
+      card.innerHTML = `
+        <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f8fafc;">
+          <div style="min-width:0;">
+            <div style="font-size:15px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(title)}</div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:2px;">${escapeHtml(subtitle)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <button type="button" id="ob-doc-mode-formatted" style="background:#e0f2fe;color:#0369a1;border:1px solid #0284c7;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;">Rendered</button>
+            <button type="button" id="ob-doc-mode-text" style="background:#ffffff;color:#0f172a;border:1px solid #cbd5e1;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;">Extracted Text</button>
+            <button type="button" id="ob-doc-copy-btn" style="background:#ffffff;color:#0f172a;border:1px solid #cbd5e1;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;">Copy Text</button>
+            <button type="button" id="ob-doc-close-btn" style="border:1px solid #cbd5e1;background:#ffffff;border-radius:8px;font-size:18px;line-height:1;color:#334155;cursor:pointer;width:30px;height:30px;font-weight:700;">&times;</button>
+          </div>
+        </div>
+        <div id="ob-doc-preview-body" style="padding:18px;overflow:auto;flex:1;background:#f1f5f9;"></div>
+      `;
+      backdrop.appendChild(card);
+      document.body.appendChild(backdrop);
+
+      const closeModal = () => backdrop.remove();
+      backdrop.querySelector('#ob-doc-close-btn').onclick = closeModal;
+      backdrop.onclick = (e) => { if (e.target === backdrop) closeModal(); };
+      backdrop.querySelector('#ob-doc-copy-btn').onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(String(text || ''));
+          showToast('Extracted document text copied.');
+        } catch (_) {
+          showToast('Clipboard copy unavailable.');
+        }
+      };
+
+      const bodyEl = backdrop.querySelector('#ob-doc-preview-body');
+      const btnFormatted = backdrop.querySelector('#ob-doc-mode-formatted');
+      const btnText = backdrop.querySelector('#ob-doc-mode-text');
+
+      function setActiveDocTab(mode) {
+        const isText = mode === 'text';
+        btnFormatted.style.background = isText ? '#ffffff' : '#e0f2fe';
+        btnFormatted.style.color = isText ? '#0f172a' : '#0369a1';
+        btnFormatted.style.borderColor = isText ? '#cbd5e1' : '#0284c7';
+        btnText.style.background = isText ? '#e0f2fe' : '#ffffff';
+        btnText.style.color = isText ? '#0369a1' : '#0f172a';
+        btnText.style.borderColor = isText ? '#0284c7' : '#cbd5e1';
+      }
+
+      function renderTextMode() {
+        setActiveDocTab('text');
+        const pageBlocks = Array.isArray(pages) && pages.length
+          ? pages.map((p) => `<div style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:800;color:#0369a1;margin-bottom:6px;text-transform:uppercase;">Page ${p.num}</div><pre style="margin:0;white-space:pre-wrap;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;color:#1e293b;">${escapeHtml(p.text || '(No text extracted on this page)')}</pre></div>`).join('')
+          : `<pre style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:16px;margin:0;white-space:pre-wrap;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.55;color:#1e293b;">${escapeHtml(text || 'No extractable text found in document.')}</pre>`;
+        bodyEl.innerHTML = pageBlocks;
+      }
+
+      async function renderFormattedMode() {
+        setActiveDocTab('formatted');
+        if (kind === 'word') {
+          const safeHtml = sanitizeDocumentPreviewHtml(html);
+          bodyEl.innerHTML = safeHtml
+            ? `<div style="background:#ffffff;border:1px solid #cbd5e1;border-radius:10px;padding:24px 28px;max-width:780px;margin:0 auto;color:#0f172a;font-size:13.5px;line-height:1.65;box-shadow:0 4px 18px rgba(15,23,42,0.06);">${safeHtml}</div>`
+            : `<div style="padding:20px;color:#475569;">No formatted preview available. Switch to Extracted Text.</div>`;
+          return;
+        }
+        if (kind === 'pdf' && arrayBuffer) {
+          bodyEl.innerHTML = '<div style="text-align:center;padding:28px;color:#475569;font-size:13px;">Rendering PDF pages...</div>';
+          try {
+            if (!window.__shiftRelayPdfJs) {
+              const pdfjs = await import('/vendor/pdf.min.mjs');
+              pdfjs.GlobalWorkerOptions.workerSrc = '/vendor/pdf.worker.min.mjs';
+              window.__shiftRelayPdfJs = pdfjs;
+            }
+            const pdfDoc = await window.__shiftRelayPdfJs.getDocument({ data: new Uint8Array(arrayBuffer.slice(0)) }).promise;
+            const totalToRender = Math.min(pdfDoc.numPages || 0, 12);
+            bodyEl.innerHTML = `<div style="font-size:11.5px;color:#64748b;margin-bottom:10px;text-align:center;">Showing ${totalToRender} of ${pdfDoc.numPages} page(s)</div>`;
+            for (let pageNo = 1; pageNo <= totalToRender; pageNo++) {
+              const page = await pdfDoc.getPage(pageNo);
+              const viewport = page.getViewport({ scale: 1.35 });
+              const wrap = document.createElement('div');
+              wrap.style.cssText = 'background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:8px;margin:0 auto 12px;width:fit-content;max-width:100%;overflow:auto;box-shadow:0 3px 12px rgba(15,23,42,0.06);';
+              const canvas = document.createElement('canvas');
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              canvas.style.cssText = 'display:block;max-width:100%;height:auto;';
+              wrap.appendChild(canvas);
+              bodyEl.appendChild(wrap);
+              await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+            }
+            return;
+          } catch (_) {
+            renderTextMode();
+            return;
+          }
+        }
+        renderTextMode();
+      }
+
+      btnFormatted.onclick = renderFormattedMode;
+      btnText.onclick = renderTextMode;
+      renderFormattedMode();
+    };
 
     window.previewObAttachment = function (idx) {
       const att = obAgentAttachments[idx];
       if (!att) return;
+      if (att.isPdf || att.isWord) {
+        window.openDocumentPreviewModal({
+          title: att.name,
+          kind: att.isPdf ? 'pdf' : 'word',
+          html: att.html || '',
+          text: att.text || '',
+          pages: att.pages || null,
+          pageCount: att.pageCount || 0,
+          arrayBuffer: att.arrayBuffer || null
+        });
+        return;
+      }
       window.openSpreadsheetPreviewModal({
         title: att.name,
         sheets: att.sheets || null,
@@ -4513,9 +4663,21 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       const files = Array.from(fileList || []);
       files.forEach(file => {
         const isImage = file.type.startsWith('image/');
-        const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+        const isExcel = /\.(xlsx|xls|xlsm|xlsb|ods)$/i.test(file.name);
+        const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+        const isWord = /\.docx$/i.test(file.name) || /wordprocessingml/i.test(file.type);
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = async () => {
+          const toB64 = (buf) => {
+            const bytes = new Uint8Array(buf);
+            let bin = '';
+            const chunk = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunk) {
+              bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+            }
+            return btoa(bin);
+          };
+
           if (isExcel && typeof XLSX !== 'undefined') {
             try {
               const wb = XLSX.read(new Uint8Array(reader.result), { type: 'array' });
@@ -4537,6 +4699,79 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               return;
             } catch (_) {}
           }
+
+          if (isWord) {
+            let html = '';
+            let text = '';
+            if (typeof mammoth !== 'undefined') {
+              try {
+                const [htmlRes, rawRes] = await Promise.all([
+                  mammoth.convertToHtml({ arrayBuffer: reader.result.slice(0) }),
+                  mammoth.extractRawText({ arrayBuffer: reader.result.slice(0) })
+                ]);
+                html = String(htmlRes?.value || '');
+                text = String(rawRes?.value || '');
+              } catch (_) {}
+            }
+            if (!text && !html && reader.result && reader.result.byteLength <= 10 * 1024 * 1024) {
+              try {
+                const res = await admFetch('/api/documents/parse', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ filename: file.name, mimeType: file.type, contentBase64: toB64(reader.result) })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.ok) {
+                  html = data.html || '';
+                  text = data.text || '';
+                }
+              } catch (_) {}
+            }
+            obAgentAttachments.push({
+              name: file.name,
+              type: file.type,
+              isImage: false,
+              isWord: true,
+              html,
+              text: text || `[Word Document: ${file.name}]`
+            });
+            renderObAttachStrip();
+            return;
+          }
+
+          if (isPdf) {
+            let text = '';
+            let pages = [];
+            let pageCount = 0;
+            if (reader.result && reader.result.byteLength <= 10 * 1024 * 1024) {
+              try {
+                const res = await admFetch('/api/documents/parse', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ filename: file.name, mimeType: file.type, contentBase64: toB64(reader.result) })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.ok) {
+                  text = data.text || '';
+                  pages = Array.isArray(data.pages) ? data.pages : [];
+                  pageCount = Number(data.pageCount || pages.length || 0);
+                }
+              } catch (_) {}
+            }
+            obAgentAttachments.push({
+              name: file.name,
+              type: file.type,
+              isImage: false,
+              isPdf: true,
+              arrayBuffer: reader.result,
+              pages,
+              pageCount,
+              text: text || `[PDF Document: ${file.name}]`
+            });
+            renderObAttachStrip();
+            return;
+          }
+
           obAgentAttachments.push({
             name: file.name,
             type: file.type,
@@ -4547,7 +4782,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
           renderObAttachStrip();
         };
         if (isImage) reader.readAsDataURL(file);
-        else if (isExcel) reader.readAsArrayBuffer(file);
+        else if (isExcel || isPdf || isWord) reader.readAsArrayBuffer(file);
         else reader.readAsText(file);
       });
       const inputEl = document.getElementById('ob-agent-file-input');

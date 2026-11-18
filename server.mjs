@@ -182,9 +182,15 @@ import {
   computeAttendanceExceptionsForOrg,
   evaluateReminderStagesForOrg
 } from './attendance-policy-engine.mjs';
+import * as XLSXNamespace from 'xlsx';
+import mammoth from 'mammoth';
+import { PDFParse } from 'pdf-parse';
 import {
   generatePayrollReportHtml,
   generateAttendanceSheetHtml,
+  generateAttendanceSheetXlsxBuffer,
+  generateAttendanceSheetPdfBytes,
+  generateAttendanceSheetDocxBuffer,
   generateCvReportHtml,
   generateTermsOfServiceHtml,
   generateDpaReportHtml
@@ -3659,12 +3665,52 @@ async function handleApi(request, response, url) {
       generatedBy: `${activeUserCtx.name || 'Management'} (${String(activeUserCtx.role || 'supervisor').toUpperCase()})`
     });
 
+    const safeDept = String(department || 'all').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+    const orgCode = String(org.organisation_code || 'ORG').replace(/[^a-z0-9_-]+/gi, '-');
+    const baseFilename = `ShiftRelay-Attendance-${orgCode}-${sheetData.month}-${safeDept}`;
+
+    if (format === 'xlsx') {
+      const xlsxBuf = generateAttendanceSheetXlsxBuffer(sheetData, org);
+      response.writeHead(200, {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${baseFilename}.xlsx"`,
+        'Content-Length': xlsxBuf.length,
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        ...SECURITY_HEADERS
+      });
+      return response.end(xlsxBuf);
+    }
+
+    if (format === 'pdf') {
+      const pdfBytes = await generateAttendanceSheetPdfBytes(sheetData, org);
+      const pdfBuf = Buffer.from(pdfBytes);
+      response.writeHead(200, {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${baseFilename}.pdf"`,
+        'Content-Length': pdfBuf.length,
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        ...SECURITY_HEADERS
+      });
+      return response.end(pdfBuf);
+    }
+
+    if (format === 'docx') {
+      const docxBuf = await generateAttendanceSheetDocxBuffer(sheetData, org);
+      response.writeHead(200, {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'Content-Disposition': `attachment; filename="${baseFilename}.docx"`,
+        'Content-Length': docxBuf.length,
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        ...SECURITY_HEADERS
+      });
+      return response.end(docxBuf);
+    }
+
     if (format === 'csv') {
       const csv = generateAttendanceSheetCsv(sheetData);
-      const safeDept = String(department || 'all').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
       response.writeHead(200, {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="ShiftRelay-Attendance-${org.organisation_code || 'ORG'}-${sheetData.month}-${safeDept}.csv"`,
+        'Content-Disposition': `attachment; filename="${baseFilename}.csv"`,
         'Content-Length': Buffer.byteLength(csv),
         'Cache-Control': 'no-store, no-cache, must-revalidate, private',
         ...SECURITY_HEADERS
@@ -3672,7 +3718,7 @@ async function handleApi(request, response, url) {
       return response.end(csv);
     }
 
-    if (format === 'html' || format === 'print' || format === 'pdf') {
+    if (format === 'html' || format === 'print') {
       const html = generateAttendanceSheetHtml(sheetData, org);
       response.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
@@ -3684,6 +3730,109 @@ async function handleApi(request, response, url) {
     }
 
     return sendJson(response, 200, { ok: true, org: { id: org.id, code: org.organisation_code, name: org.legal_name || org.trading_name }, sheet: sheetData });
+  }
+
+  // ── Document & Spreadsheet Parser (Excel / PDF / Word) ────────────────────
+  if (url.pathname === '/api/documents/parse' && request.method === 'POST') {
+    const authCtx = await getOpsOrAdminAuth(request);
+    if (!authCtx) {
+      return sendJson(response, 401, { error: 'Authentication required to parse documents.' });
+    }
+    if (authCtx.kind === 'user' && !['owner', 'manager', 'supervisor', 'workforce_admin', 'finance_admin'].includes(authCtx.user.role)) {
+      return sendJson(response, 403, { error: 'Forbidden: supervisor, manager, or executive clearance required.' });
+    }
+    const declaredBytes = Number(request.headers['content-length'] || 0);
+    if (declaredBytes > 15 * 1024 * 1024) {
+      return sendJson(response, 413, { error: 'Document payload exceeds 10 MB limit.' });
+    }
+    let body;
+    try {
+      body = await readJson(request);
+    } catch (_) {
+      return sendJson(response, 400, { error: 'Invalid JSON document upload payload.' });
+    }
+    const filename = String(body?.filename || 'document').slice(0, 200);
+    const mimeType = String(body?.mimeType || '').toLowerCase();
+    const rawContent = String(body?.contentBase64 || '');
+    const strippedB64 = rawContent.includes(',') ? rawContent.slice(rawContent.indexOf(',') + 1) : rawContent;
+    if (!strippedB64) {
+      return sendJson(response, 400, { error: 'Missing contentBase64 file data.' });
+    }
+    const buffer = Buffer.from(strippedB64, 'base64');
+    if (!buffer.length || buffer.length > 10 * 1024 * 1024) {
+      return sendJson(response, 413, { error: 'Decoded file is empty or exceeds 10 MB limit.' });
+    }
+    const ext = extname(filename).toLowerCase();
+    try {
+      if (['.xlsx', '.xls', '.xlsm', '.xlsb', '.ods', '.csv', '.tsv'].includes(ext) || mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType === 'text/csv') {
+        const XLSX = XLSXNamespace?.default || XLSXNamespace;
+        const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+        const sheets = (workbook.SheetNames || []).map((sheetName) => {
+          const ws = workbook.Sheets[sheetName];
+          const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false });
+          const cleanRows = aoa
+            .slice(0, 500)
+            .map((r) => (Array.isArray(r) ? r.map((c) => (c instanceof Date ? c.toISOString().slice(0, 10) : String(c ?? ''))) : []));
+          const csv = XLSX.utils.sheet_to_csv(ws);
+          const colCount = cleanRows.reduce((mx, r) => Math.max(mx, r.length), 0);
+          return { name: sheetName, rows: cleanRows, rowCount: aoa.length, colCount, csv };
+        });
+        const text = sheets.map((s) => `--- Sheet: ${s.name} ---\n${s.csv}`).join('\n\n');
+        return sendJson(response, 200, { ok: true, kind: 'spreadsheet', filename, sheetCount: sheets.length, sheets, text });
+      }
+
+      if (ext === '.pdf' || mimeType === 'application/pdf') {
+        const parser = new PDFParse({ data: buffer });
+        try {
+          const parsed = await parser.getText();
+          const pages = (parsed?.pages || []).map((p) => ({ num: p.num, text: String(p.text || '').trim() }));
+          const text = String(parsed?.text || pages.map((p) => p.text).join('\n\n')).trim();
+          return sendJson(response, 200, {
+            ok: true,
+            kind: 'pdf',
+            filename,
+            pageCount: parsed?.total || pages.length || 1,
+            pages,
+            text
+          });
+        } finally {
+          await parser.destroy().catch(() => {});
+        }
+      }
+
+      if (ext === '.docx' || mimeType.includes('wordprocessingml')) {
+        const [htmlRes, rawRes] = await Promise.all([
+          mammoth.convertToHtml({ buffer }),
+          mammoth.extractRawText({ buffer })
+        ]);
+        const safeHtml = String(htmlRes?.value || '')
+          .replace(/<\s*(script|style|iframe|object|embed|svg)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+          .replace(/<\s*(script|style|iframe|object|embed)[^>]*\/?\s*>/gi, '')
+          .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+          .replace(/(href|src)\s*=\s*(["'])\s*(?:javascript|vbscript):[^"']*\2/gi, '$1="#"');
+        return sendJson(response, 200, {
+          ok: true,
+          kind: 'word',
+          filename,
+          html: safeHtml,
+          text: String(rawRes?.value || '').trim(),
+          warnings: (htmlRes?.messages || []).map((m) => m.message)
+        });
+      }
+
+      if (['.txt', '.md', '.json', '.log'].includes(ext) || mimeType.startsWith('text/')) {
+        return sendJson(response, 200, {
+          ok: true,
+          kind: 'text',
+          filename,
+          text: buffer.toString('utf8').slice(0, 200000)
+        });
+      }
+
+      return sendJson(response, 415, { error: `Unsupported document format "${ext || mimeType || 'unknown'}". Supported: .xlsx, .xls, .csv, .pdf, .docx.` });
+    } catch (parseErr) {
+      return sendJson(response, 400, { error: `Could not parse "${filename}": ${parseErr?.message || 'corrupt or encrypted file'}` });
+    }
   }
 
   // ── Executive Clean-Slate Operational Data Reset (Preserves Workers & Contracts) ──
@@ -12761,16 +12910,25 @@ const CLEAN_HTML_ROUTES = {
   office: 'office.html'
 };
 
+const VENDOR_BUNDLES = {
+  '/vendor/xlsx.full.min.js': ['node_modules', 'xlsx', 'dist', 'xlsx.full.min.js'],
+  '/vendor/mammoth.browser.min.js': ['node_modules', 'mammoth', 'mammoth.browser.min.js'],
+  '/vendor/pdf-lib.min.js': ['node_modules', 'pdf-lib', 'dist', 'pdf-lib.min.js'],
+  '/vendor/pdf.min.mjs': ['node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.min.mjs'],
+  '/vendor/pdf.worker.min.mjs': ['node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.min.mjs']
+};
+
 async function serveStatic(request, response, url) {
-  if (url.pathname === '/vendor/xlsx.full.min.js') {
+  const vendorParts = VENDOR_BUNDLES[url.pathname];
+  if (vendorParts) {
     try {
-      const xlsxBuf = await readFile(resolve(publicDirectory, 'node_modules', 'xlsx', 'dist', 'xlsx.full.min.js'));
+      const vendorBuf = await readFile(resolve(publicDirectory, ...vendorParts));
       response.writeHead(200, {
         'Content-Type': 'application/javascript; charset=utf-8',
         'Cache-Control': 'public, max-age=86400',
         ...SECURITY_HEADERS
       });
-      response.end(xlsxBuf);
+      response.end(vendorBuf);
       return;
     } catch (_) {}
   }

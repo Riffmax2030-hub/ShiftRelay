@@ -7893,7 +7893,7 @@
             ${['owner', 'workforce_admin', 'manager'].includes(user.role) ? `
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-csv-import-btn" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <span>Import CSV</span>
+              <span>Import Excel / CSV</span>
             </button>
             <button type="button" class="sr-btn sr-btn-primary" id="sr-team-add-staff-btn" style="min-height:34px;padding:0 14px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
@@ -8054,11 +8054,16 @@
           <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;max-width:680px;width:100%;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,0.45);">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;">
               <div>
-                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Import Staff CSV</h3>
-                <p style="margin:4px 0 0;font-size:12px;color:var(--sr-text-muted);">Upload staff details and bank accounts.</p>
+                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Import Staff Spreadsheet / CSV</h3>
+                <p style="margin:4px 0 0;font-size:12px;color:var(--sr-text-muted);">Upload Excel (.xlsx / .xls) or CSV roster files, or paste rows below.</p>
               </div>
               <a href="${csvDownloadHref}" download="shiftrelay-roster-template.csv" class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 12px;font-size:11.5px;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;">Download Template</a>
             </div>
+            <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border:1.5px dashed var(--sr-border-medium,#cbd5e1);border-radius:10px;background:var(--sr-bg-card-subtle,#f8fafc);cursor:pointer;font-size:12.5px;font-weight:700;color:var(--sr-text-main);margin-bottom:10px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+              <span>Choose Excel (.xlsx / .xls) or CSV File</span>
+              <input type="file" id="sr-exec-roster-file" accept=".xlsx,.xls,.csv,.tsv" style="display:none;" />
+            </label>
             <textarea id="sr-exec-csv-input" class="sr-input" rows="6" style="width:100%;font-family:'JetBrains Mono',monospace;font-size:11.5px;margin-bottom:12px;box-sizing:border-box;">${sampleCsv}</textarea>
             <div id="sr-exec-csv-status" style="display:none;padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;"></div>
             <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;">
@@ -8073,8 +8078,73 @@
         csvModal.querySelector('#sr-exec-csv-close')?.addEventListener('click', closeCsv);
         csvModal.addEventListener('click', (e) => { if (e.target === csvModal) closeCsv(); });
         const statusBox = csvModal.querySelector('#sr-exec-csv-status');
+        const csvTextArea = csvModal.querySelector('#sr-exec-csv-input');
+        const rosterFileInput = csvModal.querySelector('#sr-exec-roster-file');
+        rosterFileInput?.addEventListener('change', async (evt) => {
+          const file = evt.target?.files?.[0];
+          if (!file) return;
+          const isExcel = /\.(xlsx|xls|xlsm|xlsb|ods)$/i.test(file.name);
+          try {
+            if (isExcel && typeof window.XLSX !== 'undefined') {
+              const ab = await file.arrayBuffer();
+              const wb = window.XLSX.read(new Uint8Array(ab), { type: 'array' });
+              const firstSheet = wb.SheetNames[0];
+              if (firstSheet && csvTextArea) {
+                csvTextArea.value = window.XLSX.utils.sheet_to_csv(wb.Sheets[firstSheet]);
+                csvModal.querySelector('#sr-exec-csv-precheck')?.click();
+              }
+            } else if (isExcel) {
+              const ab = await file.arrayBuffer();
+              const bytes = new Uint8Array(ab);
+              let bin = '';
+              for (let i = 0; i < bytes.length; i += 0x8000) {
+                bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+              }
+              const res = await fetch('/api/documents/parse', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ filename: file.name, mimeType: file.type, contentBase64: btoa(bin) })
+              });
+              const parsed = await res.json().catch(() => ({}));
+              if (res.ok && parsed.ok && parsed.sheets?.[0]?.csv && csvTextArea) {
+                csvTextArea.value = parsed.sheets[0].csv;
+                csvModal.querySelector('#sr-exec-csv-precheck')?.click();
+              } else {
+                throw new Error(parsed.error || 'Could not parse spreadsheet');
+              }
+            } else if (csvTextArea) {
+              csvTextArea.value = await file.text();
+              csvModal.querySelector('#sr-exec-csv-precheck')?.click();
+            }
+          } catch (err) {
+            if (statusBox) {
+              statusBox.style.display = 'block';
+              statusBox.style.background = 'rgba(239,68,68,0.1)';
+              statusBox.style.color = '#dc2626';
+              statusBox.textContent = err?.message || 'Unable to read selected file.';
+            }
+          }
+          evt.target.value = '';
+        });
         const parseRows = () => {
-          const raw = (csvModal.querySelector('#sr-exec-csv-input')?.value || '').trim();
+          const raw = (csvTextArea?.value || '').trim();
+          if (!raw) return [];
+          if (typeof window.XLSX !== 'undefined') {
+            try {
+              const wb = window.XLSX.read(raw, { type: 'string' });
+              const sheet = wb.Sheets[wb.SheetNames[0]];
+              const aoa = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
+              if (aoa.length >= 2) {
+                const headers = aoa[0].map((h) => String(h || '').trim().toLowerCase());
+                return aoa.slice(1).map((cols, i) => {
+                  const obj = { _row: i + 2 };
+                  headers.forEach((h, idx) => { if (h) obj[h] = String(cols[idx] ?? '').trim(); });
+                  return obj;
+                });
+              }
+            } catch (_) {}
+          }
           const lines = raw.split(/\r?\n/).filter(Boolean);
           if (lines.length < 2) return [];
           const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
@@ -16625,14 +16695,21 @@
               <option value="all">All Departments</option>
             </select>
           </div>
-          <div style="display:flex;gap:8px;flex-shrink:0;">
-            <a id="sr-att-sheet-csv-btn" href="#" download class="sr-btn sr-btn-secondary" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <a id="sr-att-sheet-xlsx-btn" href="#" download class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
+              <span>Excel (.xlsx)</span>
+            </a>
+            <a id="sr-att-sheet-pdf-btn" href="#" download class="sr-btn sr-btn-primary" style="min-height:32px;padding:0 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
+              <span>PDF (.pdf)</span>
+            </a>
+            <a id="sr-att-sheet-docx-btn" href="#" download class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
+              <span>Word (.docx)</span>
+            </a>
+            <a id="sr-att-sheet-csv-btn" href="#" download class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
               <span>CSV</span>
             </a>
-            <a id="sr-att-sheet-pdf-btn" href="#" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-primary" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-              <span>Official PDF</span>
+            <a id="sr-att-sheet-print-btn" href="#" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
+              <span>Print</span>
             </a>
           </div>
         </div>
@@ -16650,14 +16727,20 @@
 
     const monthInput = backdrop.querySelector('#sr-att-sheet-month');
     const deptSelect = backdrop.querySelector('#sr-att-sheet-dept');
-    const csvLink = backdrop.querySelector('#sr-att-sheet-csv-btn');
+    const xlsxLink = backdrop.querySelector('#sr-att-sheet-xlsx-btn');
     const pdfLink = backdrop.querySelector('#sr-att-sheet-pdf-btn');
+    const docxLink = backdrop.querySelector('#sr-att-sheet-docx-btn');
+    const csvLink = backdrop.querySelector('#sr-att-sheet-csv-btn');
+    const printLink = backdrop.querySelector('#sr-att-sheet-print-btn');
     const bodyEl = backdrop.querySelector('#sr-att-sheet-body');
 
     const syncExportLinks = () => {
       const q = `month=${encodeURIComponent(selectedMonth)}&department=${encodeURIComponent(selectedDept)}`;
+      if (xlsxLink) xlsxLink.href = `/api/reports/attendance-sheet?${q}&format=xlsx`;
+      if (pdfLink) pdfLink.href = `/api/reports/attendance-sheet?${q}&format=pdf`;
+      if (docxLink) docxLink.href = `/api/reports/attendance-sheet?${q}&format=docx`;
       if (csvLink) csvLink.href = `/api/reports/attendance-sheet?${q}&format=csv`;
-      if (pdfLink) pdfLink.href = `/api/reports/attendance-sheet?${q}&format=html`;
+      if (printLink) printLink.href = `/api/reports/attendance-sheet?${q}&format=html`;
     };
 
     async function loadSheet() {

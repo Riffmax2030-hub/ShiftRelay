@@ -4,8 +4,13 @@
  * and Terms of Service documents in pristine, print-ready, high-tech HTML/CSS format.
  */
 
+import * as XLSXNamespace from 'xlsx';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, ShadingType, HeadingLevel } from 'docx';
 import { generateQrSvg } from './qr-svg-generator.js';
 import { LEGAL_ENTITY, POLICY_VERSIONS } from './legal-config.mjs';
+
+const XLSX = XLSXNamespace.default || XLSXNamespace;
 
 const BRAND_NAME = 'ShiftRelay';
 const COMPANY_LEGAL = LEGAL_ENTITY.companyLegalName;
@@ -1070,6 +1075,232 @@ export function generateDpaReportHtml({
   </div>
 </body>
 </html>`;
+}
+
+/**
+ * Generate Real Excel (.xlsx) Attendance Sheet Workbook using SheetJS (xlsx)
+ */
+export function generateAttendanceSheetXlsxBuffer(sheetData = {}, org = {}) {
+  const orgName = org.legal_name || org.trading_name || 'Riffmax Technology Limited';
+  const orgCode = org.organisation_code || 'RIF-2026';
+  const periodLabel = sheetData.periodLabel || sheetData.month || '';
+  const summary = sheetData.summary || {};
+  const rows = Array.isArray(sheetData.rows) ? sheetData.rows : [];
+  const deptBars = Array.isArray(sheetData.departmentSummary) ? sheetData.departmentSummary : [];
+
+  const registerAoa = [
+    ['SHIFTRELAY OFFICIAL WORKFORCE ATTENDANCE SHEET'],
+    [`Organisation: ${orgName} (${orgCode})`, `Period: ${periodLabel}`, `Department: ${sheetData.departmentLabel || 'All Departments'}`, `Prepared By: ${sheetData.generatedBy || 'Management'}`],
+    [`Staff: ${summary.totalStaff || rows.length}`, `Punches: ${summary.totalPunches || 0}`, `Hours: ${Number(summary.totalHours || 0).toFixed(1)}h (OT ${Number(summary.overtimeHours || 0).toFixed(1)}h)`, `Exceptions: ${summary.exceptionsCount || 0}`],
+    [],
+    ['Staff ID', 'Name', 'Department', 'Title', 'Shift Window', 'Days Present', 'Punches', 'Regular Hours', 'Overtime Hours', 'Total Hours', 'Exceptions', 'Score', 'Verification Mode', 'Status'],
+    ...rows.map(r => [
+      String(r.staffId || ''),
+      String(r.name || ''),
+      String(r.department || ''),
+      String(r.title || ''),
+      String(r.shiftWindow || ''),
+      Number(r.daysPresent || 0),
+      Number(r.punchesCount || 0),
+      Number(r.regularHours || 0),
+      Number(r.overtimeHours || 0),
+      Number(r.totalHours || 0),
+      Number(r.exceptionsCount || 0),
+      r.shiftGrade ? `${r.shiftGrade} (${r.shiftScore}%)` : 'Ready',
+      String(r.verificationMix || ''),
+      String(r.currentStatus || 'Ready')
+    ])
+  ];
+
+  const unitAoa = [
+    ['Department / Operating Unit', 'Staff Count', 'On Shift Now', 'Verified Punches', 'Logged Hours', 'Attendance Rate (%)', 'Exceptions'],
+    ...deptBars.map(d => [
+      String(d.department || ''),
+      Number(d.staffCount || 0),
+      Number(d.activeCount || 0),
+      Number(d.punchesCount || 0),
+      Number(d.totalHours || 0),
+      Number(d.attendanceRatePct || 0),
+      Number(d.exceptionsCount || 0)
+    ])
+  ];
+
+  const wb = XLSX.utils.book_new();
+  const wsMain = XLSX.utils.aoa_to_sheet(registerAoa);
+  wsMain['!cols'] = [
+    { wch: 11 }, { wch: 24 }, { wch: 26 }, { wch: 26 }, { wch: 13 },
+    { wch: 12 }, { wch: 9 }, { wch: 13 }, { wch: 14 }, { wch: 12 },
+    { wch: 11 }, { wch: 11 }, { wch: 18 }, { wch: 12 }
+  ];
+  XLSX.utils.book_append_sheet(wb, wsMain, 'Attendance Register');
+  const wsUnits = XLSX.utils.aoa_to_sheet(unitAoa);
+  wsUnits['!cols'] = [{ wch: 28 }, { wch: 12 }, { wch: 13 }, { wch: 16 }, { wch: 13 }, { wch: 18 }, { wch: 11 }];
+  XLSX.utils.book_append_sheet(wb, wsUnits, 'Unit Summary');
+  return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+}
+
+function pdfSafeText(str) {
+  return String(str ?? '')
+    .replace(/₦/g, 'NGN ')
+    .replace(/[•·]/g, '|')
+    .replace(/[–—]/g, '-')
+    .replace(/[✓✔]/g, 'OK')
+    .replace(/[^\x20-\x7E\xA0-\xFF]/g, ' ')
+    .trim();
+}
+
+/**
+ * Generate Downloadable Binary PDF (.pdf) Attendance Sheet using pdf-lib
+ */
+export async function generateAttendanceSheetPdfBytes(sheetData = {}, org = {}) {
+  const orgName = org.legal_name || org.trading_name || 'Riffmax Technology Limited';
+  const orgCode = org.organisation_code || 'RIF-2026';
+  const periodLabel = sheetData.periodLabel || sheetData.month || '';
+  const summary = sheetData.summary || {};
+  const rows = Array.isArray(sheetData.rows) ? sheetData.rows : [];
+
+  const pdfDoc = await PDFDocument.create();
+  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const pageWidth = 842; // A4 Landscape
+  const pageHeight = 595;
+  const margin = 36;
+  const lineH = 18;
+
+  const drawHeader = (page, pageNum) => {
+    page.drawRectangle({ x: 0, y: pageHeight - 66, width: pageWidth, height: 66, color: rgb(0.03, 0.35, 0.31) });
+    page.drawText(pdfSafeText(`${orgName} (${orgCode}) — Official Workforce Attendance Register`), {
+      x: margin, y: pageHeight - 30, size: 15, font: fontBold, color: rgb(1, 1, 1)
+    });
+    page.drawText(pdfSafeText(`Period: ${periodLabel}  |  Unit: ${sheetData.departmentLabel || 'All Departments'}  |  Prepared By: ${sheetData.generatedBy || 'Management'}  |  Page ${pageNum}`), {
+      x: margin, y: pageHeight - 49, size: 9.5, font: fontRegular, color: rgb(0.84, 0.96, 0.92)
+    });
+
+    page.drawRectangle({ x: margin, y: pageHeight - 104, width: pageWidth - margin * 2, height: 26, color: rgb(0.95, 0.98, 0.97), borderColor: rgb(0.8, 0.88, 0.85), borderWidth: 0.75 });
+    page.drawText(pdfSafeText(`Roster: ${summary.totalStaff || rows.length} Staff    |    Punches: ${summary.totalPunches || 0}    |    Logged Hours: ${Number(summary.totalHours || 0).toFixed(1)}h (OT ${Number(summary.overtimeHours || 0).toFixed(1)}h)    |    Punctuality: ${Number(summary.punctualityRatePct ?? 100).toFixed(1)}%    |    Exceptions: ${summary.exceptionsCount || 0}`), {
+      x: margin + 10, y: pageHeight - 95, size: 9.5, font: fontBold, color: rgb(0.06, 0.11, 0.16)
+    });
+
+    const cols = [
+      { label: 'Staff ID', x: margin + 4 },
+      { label: 'Name', x: margin + 68 },
+      { label: 'Department', x: margin + 225 },
+      { label: 'Window', x: margin + 390 },
+      { label: 'Days', x: margin + 470 },
+      { label: 'Hours (OT)', x: margin + 515 },
+      { label: 'Exc.', x: margin + 595 },
+      { label: 'Verification', x: margin + 635 },
+      { label: 'Status', x: margin + 740 }
+    ];
+    const headerY = pageHeight - 128;
+    page.drawRectangle({ x: margin, y: headerY - 5, width: pageWidth - margin * 2, height: 19, color: rgb(0.93, 0.95, 0.97) });
+    cols.forEach(c => page.drawText(c.label, { x: c.x, y: headerY, size: 8.5, font: fontBold, color: rgb(0.22, 0.28, 0.36) }));
+    return headerY - 22;
+  };
+
+  let pageNum = 1;
+  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  let y = drawHeader(page, pageNum);
+
+  for (let i = 0; i < rows.length; i++) {
+    if (y < margin + 36) {
+      pageNum += 1;
+      page = pdfDoc.addPage([pageWidth, pageHeight]);
+      y = drawHeader(page, pageNum);
+    }
+    const r = rows[i];
+    if (i % 2 === 1) {
+      page.drawRectangle({ x: margin, y: y - 4, width: pageWidth - margin * 2, height: lineH, color: rgb(0.98, 0.99, 1) });
+    }
+    const hrsText = `${Number(r.regularHours || 0).toFixed(1)}h${Number(r.overtimeHours || 0) > 0 ? ` (+${Number(r.overtimeHours).toFixed(1)}h)` : ''}`;
+    page.drawText(pdfSafeText(r.staffId).slice(0, 10), { x: margin + 4, y, size: 8.5, font: fontBold, color: rgb(0.06, 0.45, 0.39) });
+    page.drawText(pdfSafeText(r.name).slice(0, 26), { x: margin + 68, y, size: 8.5, font: fontBold, color: rgb(0.06, 0.1, 0.16) });
+    page.drawText(pdfSafeText(r.department).slice(0, 26), { x: margin + 225, y, size: 8.5, font: fontRegular, color: rgb(0.28, 0.35, 0.44) });
+    page.drawText(pdfSafeText(r.shiftWindow).slice(0, 14), { x: margin + 390, y, size: 8.5, font: fontRegular, color: rgb(0.2, 0.25, 0.33) });
+    page.drawText(String(Number(r.daysPresent || 0)), { x: margin + 474, y, size: 8.5, font: fontBold, color: rgb(0.06, 0.1, 0.16) });
+    page.drawText(pdfSafeText(hrsText), { x: margin + 515, y, size: 8.5, font: fontRegular, color: rgb(0.06, 0.1, 0.16) });
+    page.drawText(String(Number(r.exceptionsCount || 0)), { x: margin + 599, y, size: 8.5, font: fontRegular, color: Number(r.exceptionsCount || 0) > 0 ? rgb(0.8, 0.38, 0.05) : rgb(0.35, 0.42, 0.5) });
+    page.drawText(pdfSafeText(r.verificationMix).slice(0, 18), { x: margin + 635, y, size: 8.2, font: fontRegular, color: rgb(0.28, 0.35, 0.44) });
+    page.drawText(pdfSafeText(r.currentStatus).slice(0, 12), { x: margin + 740, y, size: 8.5, font: fontBold, color: r.currentStatus === 'On Shift' ? rgb(0.02, 0.55, 0.38) : rgb(0.28, 0.35, 0.44) });
+    y -= lineH;
+  }
+
+  page.drawText(pdfSafeText(`Generated by ShiftRelay Enterprise OS  |  ${COMPANY_LEGAL} (${COMPANY_RC})  |  Audit Verified Register`), {
+    x: margin, y: margin - 14, size: 8, font: fontRegular, color: rgb(0.45, 0.5, 0.58)
+  });
+
+  return pdfDoc.save();
+}
+
+/**
+ * Generate Editable Word (.docx) Attendance Register Document using docx
+ */
+export async function generateAttendanceSheetDocxBuffer(sheetData = {}, org = {}) {
+  const orgName = org.legal_name || org.trading_name || 'Riffmax Technology Limited';
+  const orgCode = org.organisation_code || 'RIF-2026';
+  const periodLabel = sheetData.periodLabel || sheetData.month || '';
+  const summary = sheetData.summary || {};
+  const rows = Array.isArray(sheetData.rows) ? sheetData.rows : [];
+
+  const cell = (text, { bold = false, shaded = false } = {}) => new TableCell({
+    shading: shaded ? { type: ShadingType.CLEAR, fill: 'ECFDF5' } : undefined,
+    children: [
+      new Paragraph({
+        spacing: { before: 40, after: 40 },
+        children: [new TextRun({ text: String(text ?? ''), bold, size: 18, font: 'Segoe UI' })]
+      })
+    ]
+  });
+
+  const headers = ['Staff ID', 'Name', 'Department', 'Window', 'Days', 'Hours (OT)', 'Exc.', 'Verification', 'Status'];
+  const tableRows = [
+    new TableRow({ tableHeader: true, children: headers.map(h => cell(h, { bold: true, shaded: true })) }),
+    ...rows.map(r => new TableRow({
+      children: [
+        cell(r.staffId, { bold: true }),
+        cell(r.name, { bold: true }),
+        cell(r.department),
+        cell(r.shiftWindow),
+        cell(Number(r.daysPresent || 0)),
+        cell(`${Number(r.regularHours || 0).toFixed(1)}h${Number(r.overtimeHours || 0) > 0 ? ` (+${Number(r.overtimeHours).toFixed(1)}h)` : ''}`),
+        cell(Number(r.exceptionsCount || 0)),
+        cell(r.verificationMix || 'No punches'),
+        cell(r.currentStatus || 'Ready', { bold: true })
+      ]
+    }))
+  ];
+
+  const doc = new Document({
+    sections: [{
+      properties: {},
+      children: [
+        new Paragraph({
+          heading: HeadingLevel.HEADING_1,
+          children: [new TextRun({ text: `${orgName} (${orgCode}) — Workforce Attendance Sheet`, bold: true, size: 32, color: '0D9488' })]
+        }),
+        new Paragraph({
+          spacing: { after: 120 },
+          children: [new TextRun({ text: `Period: ${periodLabel}  |  Department: ${sheetData.departmentLabel || 'All Departments'}  |  Prepared By: ${sheetData.generatedBy || 'Management'}`, size: 20, color: '475569' })]
+        }),
+        new Paragraph({
+          spacing: { after: 200 },
+          children: [new TextRun({ text: `Summary: ${summary.totalStaff || rows.length} Active Staff  •  ${summary.totalPunches || 0} Punches  •  ${Number(summary.totalHours || 0).toFixed(1)}h Total Hours  •  ${Number(summary.punctualityRatePct ?? 100).toFixed(1)}% Punctuality  •  ${summary.exceptionsCount || 0} Exceptions`, bold: true, size: 20 })]
+        }),
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: tableRows
+        }),
+        new Paragraph({
+          spacing: { before: 240 },
+          alignment: AlignmentType.LEFT,
+          children: [new TextRun({ text: `Signed & Verified under ShiftRelay Enterprise OS  |  ${COMPANY_LEGAL} (${COMPANY_RC})`, size: 18, italics: true, color: '64748B' })]
+        })
+      ]
+    }]
+  });
+
+  return Packer.toBuffer(doc);
 }
 
 function escapeHtml(str) {
