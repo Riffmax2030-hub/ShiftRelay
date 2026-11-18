@@ -34,7 +34,7 @@
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.4",
     "docx": "^9.15.4",
-    "dotenv": "^18.0.8",
+    "dotenv": "^18.0.10",
     "mammoth": "^1.13.0",
     "nodemailer": "^10.3.1",
     "pdf-lib": "^1.17.1",
