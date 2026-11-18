@@ -411,6 +411,8 @@ async function main() {
     assert.equal(ibrahimLiveScanIn.status, 200);
     assert.equal(ibrahimLiveScanIn.data.cardProofMode, 'physical_badge_facial_verify');
     assert.equal(ibrahimLiveScanIn.data.hasPhotoProof, true);
+    assert.equal(ibrahimLiveScanIn.data.identityVerified, true, 'Peer check-in response must include identityVerified: true');
+    assert.equal(ibrahimLiveScanIn.data.identityLabel, 'Identity Verified', 'Peer check-in response must include Identity Verified label');
     assert.ok(ibrahimLiveScanIn.data.assistedBrief?.handover);
 
     // Helper completes handover acceptance & checklists on behalf of Ibrahim
@@ -573,13 +575,16 @@ async function main() {
     );
     await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-gps-onsite-clockin.png') });
 
-    // Open Clock-In Page Assisted Worker ID Scanner -> Step 1: Verify Physical ID Card
+    // Open Clock-In Page Peer Check-In Scanner -> Step 1: Verify Physical ID Card
     await onsitePage.click('#sr-btn-scan-peer-id');
     await onsitePage.waitForFunction(
       () => (document.getElementById('sr-scanner-gps-text')?.textContent || '').includes('On-Site GPS Lock Ready'),
       null,
       { timeout: 6000 }
     );
+    assert.equal(await onsitePage.locator('#sr-scan-stepper').count(), 0, 'Cluttered stepper must be removed from Peer Check-In modal');
+    assert.equal(await onsitePage.locator('#sr-peer-directory-list').count(), 0, 'Cluttered directory list must be removed from Peer Check-In modal');
+    await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-peer-step1.png') });
     await onsitePage.fill('#sr-peer-staff-id-input', 'RIF-0023');
     await onsitePage.fill('#sr-peer-card-code-input', suleimanCard.cardVerifyCode);
     await onsitePage.click('#sr-peer-submit-id-btn');
@@ -600,7 +605,9 @@ async function main() {
       () => {
         const btn = document.getElementById('sr-btn-submit-face-checkin');
         const img = document.getElementById('sr-facial-preview-img');
-        return btn && !btn.disabled && img && img.style.display === 'block' && img.src.startsWith('data:image/jpeg;base64,');
+        const banner = document.getElementById('sr-face-verified-banner');
+        return btn && !btn.disabled && img && img.style.display === 'block' && img.src.startsWith('data:image/jpeg;base64,')
+          && banner && banner.style.display !== 'none' && (banner.textContent || '').includes('Identity Verified');
       },
       null,
       { timeout: 6000 }
@@ -710,8 +717,8 @@ async function main() {
     await onsitePage.waitForSelector('#sr-profile-qr-svg', { timeout: 6000 });
     const meCardText = await onsitePage.textContent('#sr-content-area');
     assert.ok(
-      meCardText.includes('Official Staff ID Card') && !meCardText.includes('LIVE 45s TOTP') && !meCardText.includes('Card Sec:'),
-      'Worker ID card must display Official Staff ID Card without 45s TOTP rotation or printed Card Sec'
+      (meCardText.includes('Official Staff ID Card') || meCardText.includes('Digital Staff Pass')) && !meCardText.includes('LIVE 45s TOTP') && !meCardText.includes('Card Sec:'),
+      'Worker ID card must display Digital Staff Pass / Official Staff ID Card without 45s TOTP rotation or printed Card Sec'
     );
     await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-worker-physical-id.png') });
     await onsiteContext.close();
@@ -731,13 +738,14 @@ async function main() {
     assert.equal(ngoziCheckIn.data.cardProofMode, 'physical_badge_facial_verify');
     assert.equal(ngoziCheckIn.data.hasPhotoProof, true);
 
-    // Stop server so edits/backdating load cleanly on restart, backdate Ngozi's card entry 12h so shift_end (14:00 WAT) is expired
+    // Stop server so edits/backdating load cleanly on restart, backdate Ngozi's card entry >=25h (so yesterday's 14:00 shift_end is always expired at any hour)
     await stopServer(child);
     child = null;
     await new Promise(r => setTimeout(r, 250));
+    const backdateHours = new Date().getDate() > 1 ? 25 : 15;
     if (USE_PG) {
       const upd = await pgPool.query(
-        "UPDATE time_entries SET clocked_in_at = now() - interval '12 hours' WHERE membership_id = $1 AND clocked_out_at IS NULL RETURNING id",
+        `UPDATE time_entries SET clocked_in_at = now() - interval '${backdateHours} hours' WHERE membership_id = $1 AND clocked_out_at IS NULL RETURNING id`,
         [ngoziCard.id]
       );
       assert.ok(upd.rows.length === 1, 'Expected Ngozi open entry in PostgreSQL time_entries');
@@ -745,7 +753,7 @@ async function main() {
       const midStore = JSON.parse(await readFile(STORE_PATH, 'utf8'));
       const ngoziEntry = midStore.timeEntries.find(e => e.membershipId === ngoziCard.id && !e.clockedOutAt);
       assert.ok(ngoziEntry, 'Expected Ngozi open entry in store');
-      ngoziEntry.clockedInAt = new Date(Date.now() - 12 * 3600000).toISOString();
+      ngoziEntry.clockedInAt = new Date(Date.now() - backdateHours * 3600000).toISOString();
       await writeFile(STORE_PATH, JSON.stringify(midStore, null, 2), 'utf8');
     }
 
@@ -893,13 +901,13 @@ async function main() {
     assert.ok(sitemapXml.includes('<urlset') && sitemapXml.includes('/website.html'));
 
     const marketingHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'shiftrelayos.com' } })).text();
-    assert.ok(marketingHostHome.includes('ShiftRelay OS'), 'Apex domain should serve website.html on /');
+    assert.ok(marketingHostHome.includes('ShiftRelay — Verified Shift Operations'), 'Apex domain should serve website.html on /');
     const wwwHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'www.shiftrelayos.com' } })).text();
-    assert.ok(wwwHostHome.includes('ShiftRelay OS'), 'www subdomain should serve website.html on /');
+    assert.ok(wwwHostHome.includes('ShiftRelay — Verified Shift Operations'), 'www subdomain should serve website.html on /');
     const appHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'app.shiftrelayos.com' } })).text();
-    assert.ok(appHostHome.includes('ShiftRelay OS') && appHostHome.includes('sr-login-modal'), 'app subdomain should serve index.html on /');
+    assert.ok(appHostHome.includes('ShiftRelay — Verified Frontline') && appHostHome.includes('sr-login-modal'), 'app subdomain should serve index.html on /');
     const adminHostHome = await (await fetch(`${BASE_URL}/`, { headers: { 'X-Forwarded-Host': 'admin.shiftrelayos.com' } })).text();
-    assert.ok(adminHostHome.includes('ShiftRelay OS Web Admin'), 'admin subdomain should serve admin.html on /');
+    assert.ok(adminHostHome.includes('ShiftRelay OS | Admin Console'), 'admin subdomain should serve admin.html on /');
 
     for (const verifyPath of ['/verify/ledger/RIF-2026/2026-11', '/verify/worker/RIF-0001', '/verify/SR-CERT-2026']) {
       const verifyRes = await fetch(`${BASE_URL}${verifyPath}`);
@@ -1232,7 +1240,7 @@ async function main() {
     await guestMobilePage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
     await guestMobilePage.waitForSelector('#sr-employer-provision-notice', { state: 'visible', timeout: 15000 });
     const noticeText = await guestMobilePage.textContent('#sr-employer-provision-notice');
-    assert.ok(noticeText.includes('Company ID') && noticeText.includes('Request Company Pilot'), 'Sign-In screen must clearly guide workers to HR Company ID & pilot link');
+    assert.ok(noticeText.toLowerCase().includes('company id') && (noticeText.includes('Request Company Pilot') || noticeText.includes('Book a Demo')), 'Sign-In screen must clearly guide workers to Company ID & demo/pilot link');
     assert.equal(guestPageErrors.length, 0, `Mobile Sign-In pageErrors: ${JSON.stringify(guestPageErrors)}`);
     await guestMobileCtx.close();
 

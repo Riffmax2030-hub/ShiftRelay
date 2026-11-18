@@ -6049,7 +6049,8 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       referenceImageUrl: targetMember.avatarUrl || null,
       livePhotoDataUrl: scanPhotoDataUrl,
       workerName: targetMember.name,
-      staffId: targetMember.staffId
+      staffId: targetMember.staffId,
+      captureMeta: body.captureMeta || null
     });
     if (faceVerification.blocked) {
       await audit(orgId, user.id, 'biometric_face_blocked', 'membership', targetMember.id, `Blocked facial mismatch/spoof for ${targetMember.name} (${targetMember.staffId}): ${faceVerification.reason}`);
@@ -7539,6 +7540,9 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
           clockOutVerificationMode: 'colleague_card_exit_scan',
           cardProofMode,
           hasPhotoProof: true,
+          identityVerified: Boolean(v.faceVerification && !v.faceVerification.blocked),
+          identityLabel: v.faceVerification?.identityLabel || 'Identity Verified',
+          faceVerification: v.faceVerification || null,
           presenceVerificationStatus: 'verified_entry_and_exit',
           geofenceStatus: 'within_geofence',
           distanceMeters: gpsProof.distanceMeters,
@@ -7615,6 +7619,9 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         verificationMode: 'colleague_card_scan',
         cardProofMode,
         hasPhotoProof: true,
+        identityVerified: Boolean(v.faceVerification && !v.faceVerification.blocked),
+        identityLabel: v.faceVerification?.identityLabel || 'Identity Verified',
+        faceVerification: v.faceVerification || null,
         presenceVerificationStatus: 'awaiting_exit_scan',
         worker: {
           userId: targetMember.user_id,
@@ -7623,7 +7630,9 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
           staffId: targetMember.staffId,
           role: targetMember.title,
           department: targetMember.department,
-          avatarUrl: targetMember.avatarUrl || null
+          avatarUrl: targetMember.avatarUrl || null,
+          referencePhotoUrl: targetMember.avatarUrl || null,
+          hasReferencePhoto: Boolean(targetMember.avatarUrl)
         },
         clockedInAt: nowIso,
         scheduledClockOutAt,
@@ -7674,6 +7683,9 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         clockOutVerificationMode: 'colleague_card_exit_scan',
         cardProofMode,
         hasPhotoProof: true,
+        identityVerified: Boolean(v.faceVerification && !v.faceVerification.blocked),
+        identityLabel: v.faceVerification?.identityLabel || 'Identity Verified',
+        faceVerification: v.faceVerification || null,
         presenceVerificationStatus: 'verified_entry_and_exit',
         geofenceStatus: 'within_geofence',
         distanceMeters: gpsProof.distanceMeters,
@@ -7740,6 +7752,8 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       verificationMode: 'colleague_card_scan',
       cardProofMode,
       hasPhotoProof: true,
+      identityVerified: Boolean(v.faceVerification && !v.faceVerification.blocked),
+      identityLabel: v.faceVerification?.identityLabel || 'Identity Verified',
       referencePhotoUrl: targetMember.avatarUrl || null,
       faceVerification: v.faceVerification || null,
       presenceVerificationStatus: 'awaiting_exit_scan',
