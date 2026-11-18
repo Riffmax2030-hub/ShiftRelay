@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1311,6 +1311,7 @@
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <span id="sec-mfa-badge" class="chip amber">2FA NOT ENROLLED</span>
                 <button type="button" id="sec-btn-mfa-setup" class="btn-emerald" onclick="window.beginMfaEnrollment()">Enable 2FA Authenticator</button>
+                <button type="button" class="btn-ghost" onclick="window.openAdminPasswordModal()">Change Password</button>
                 <button type="button" class="btn-ghost" style="color:var(--rose);" onclick="window.revokeMyAdminSessions()">Revoke Sessions</button>
               </div>
             </div>
@@ -1354,7 +1355,7 @@
             <div class="kpi-row">
               <div class="kpi-tile" style="border-color:var(--border-amber);">
                 <div class="lbl" style="color:#fbbf24;">ESTIMATED SAAS MRR (LIVE PEPM)</div>
-                <div class="val" id="owner-vault-mrr" style="color:#fde68a;">₦0</div>
+                <div class="val" id="owner-vault-mrr" style="color:var(--amber);">₦0</div>
                 <div class="sub" id="owner-vault-arr-sub">ARR Run-Rate: ₦0 / yr</div>
               </div>
               <div class="kpi-tile">
@@ -1587,7 +1588,7 @@
               <!-- Employer Time & Attendance Policy (Dayforce-Grade Grace & Exceptions) -->
               <div id="ob-attendance-policy-panel" style="margin:14px 0 16px; padding:14px 16px; border-radius:12px; background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.28);">
                 <div style="margin-bottom:10px;">
-                  <div style="font-size:13px; font-weight:800; color:#f8fafc;">Time, Attendance &amp; Exception Policy (Single-Source Payroll)</div>
+                  <div style="font-size:13px; font-weight:800; color:var(--text-white);">Time, Attendance &amp; Exception Policy (Single-Source Payroll)</div>
                   <div style="font-size:11.5px; color:var(--text-slate);">Workers review and accept these exact grace periods and exception rules on first shift sign-in.</div>
                 </div>
                 <div class="grid-2">
@@ -1647,7 +1648,7 @@
               <div id="ob-checklists-panel" style="margin:14px 0 18px; padding:14px 16px; border-radius:12px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.28);">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
                   <div>
-                    <div style="font-size:13px; font-weight:800; color:#f8fafc;">Workplace Safety &amp; Mandatory Daily App Checklists</div>
+                    <div style="font-size:13px; font-weight:800; color:var(--text-white);">Workplace Safety &amp; Mandatory Daily App Checklists</div>
                     <div style="font-size:11.5px; color:var(--text-slate);">These rules sync directly to workers&rsquo; mobile app checklists &amp; assisted ID scanner Step 3 every shift.</div>
                   </div>
                   <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:11.5px;" onclick="window.loadSectorSafetyDefaults('ob')">
@@ -1664,7 +1665,7 @@
                     <option value="Hygiene &amp; Compliance">Hygiene &amp; Compliance</option>
                     <option value="Shift Readiness">Shift Readiness</option>
                   </select>
-                  <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:#cbd5e1; white-space:nowrap; cursor:pointer;">
+                  <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-slate); white-space:nowrap; cursor:pointer;">
                     <input type="checkbox" id="ob-chk-urgent" checked /> Urgent
                   </label>
                   <button type="button" class="btn-ghost" style="padding:8px 12px; font-size:12px; white-space:nowrap;" onclick="window.addOnboardingChecklistRule('ob')">+ Add Rule</button>
@@ -1739,7 +1740,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
             <div style="margin:12px 0 16px; padding:14px 16px; border-radius:12px; background:rgba(14,165,233,0.06); border:1px solid rgba(14,165,233,0.28);">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
                 <div>
-                  <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:#f8fafc; cursor:pointer;">
+                  <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:var(--text-white); cursor:pointer;">
                     <input type="checkbox" id="csv-sync-checklists" checked />
                     <span>Workplace Safety &amp; Daily Mandatory Checklists (Saved &amp; Pushed to App During Staff Import)</span>
                   </label>
@@ -1755,7 +1756,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                   <option value="Hygiene &amp; Compliance">Hygiene &amp; Compliance</option>
                   <option value="Shift Readiness">Shift Readiness</option>
                 </select>
-                <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:#cbd5e1; white-space:nowrap; cursor:pointer;">
+                <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-slate); white-space:nowrap; cursor:pointer;">
                   <input type="checkbox" id="csv-chk-urgent" checked /> Urgent
                 </label>
                 <button type="button" class="btn-ghost" style="padding:8px 12px; font-size:12px; white-space:nowrap;" onclick="window.addOnboardingChecklistRule('csv')">+ Add Rule</button>
@@ -1774,16 +1775,19 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
           <div class="panel-card">
             <div class="panel-head">
               <div>
-                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">DEPT 02 // OPERATIONS &amp; SUPPORT DESK (SYNCED WITH MOBILE APP)</span>
-                <h2>Worker Rectification Receipts (<code>SR-REC-*</code> / <code>RECT-*</code>)</h2>
-                <p style="font-size:13px; color:var(--text-slate);">
-                  Receipts generated by workers inside the Mobile App Support Desk automatically sync here and trigger an automated confirmation via the <strong>Email Auto-Station Engine</strong>.
-                </p>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--sky); text-transform:uppercase; letter-spacing:0.06em;">Customer Care</span>
+                <h2>Support Tickets &amp; Rectifications</h2>
               </div>
-              <button type="button" class="btn-ghost" onclick="window.syncAppRectificationReceipts(true)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-                Sync Receipts from App
-              </button>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <div class="theme-pill" id="rect-filter-pills">
+                  <button type="button" class="active" data-rect-filter="all" onclick="window.setRectFilter('all')">All</button>
+                  <button type="button" data-rect-filter="open" onclick="window.setRectFilter('open')">Open</button>
+                  <button type="button" data-rect-filter="escalated" onclick="window.setRectFilter('escalated')">Escalated</button>
+                  <button type="button" data-rect-filter="resolved" onclick="window.setRectFilter('resolved')">Resolved</button>
+                </div>
+                <input type="text" id="rect-search-input" class="adm-input" placeholder="Search ticket, user..." style="width:190px; padding:6px 10px; font-size:12px;" oninput="window.renderRectificationTable()" />
+                <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:12px;" onclick="window.syncAppRectificationReceipts(true)">Sync</button>
+              </div>
             </div>
 
             <div class="table-scroll">
@@ -1944,7 +1948,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
             </div>
             <div class="kpi-tile">
               <div class="lbl">ONBOARDING &amp; CONSULTATION DESK</div>
-              <div class="val" style="color:#fde68a;">onboarding@shiftrelayos.com</div>
+              <div class="val" style="color:var(--amber);">onboarding@shiftrelayos.com</div>
               <div class="sub">Executive Auto-Reply &amp; Welcome Kits</div>
             </div>
             <div class="kpi-tile">
@@ -2013,11 +2017,11 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-bottom:18px;">
               <div style="padding:14px; border-radius:12px; background:rgba(15,23,42,0.55); border:1px solid rgba(51,65,85,0.75);">
                 <div style="font-size:11px; font-weight:700; color:var(--emerald); text-transform:uppercase; margin-bottom:8px;">Automated Cron Schedules</div>
-                <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0; margin-bottom:8px; cursor:pointer;">
+                <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-white); margin-bottom:8px; cursor:pointer;">
                   <input id="adm-nws-weekly-toggle" type="checkbox" checked />
                   Weekly Operational Progress Digest (Owners &amp; HR)
                 </label>
-                <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#e2e8f0; margin-bottom:10px; cursor:pointer;">
+                <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-white); margin-bottom:10px; cursor:pointer;">
                   <input id="adm-nws-monthly-toggle" type="checkbox" checked />
                   Monthly Nigeria PAYE &amp; PenCom Compliance Brief
                 </label>
@@ -2058,7 +2062,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
 
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
               <div>
-                <h3 style="font-size:13px; color:#f8fafc; margin:0 0 8px;">Subscribers Directory (<span id="adm-nws-dir-count">0</span>)</h3>
+                <h3 style="font-size:13px; color:var(--text-white); margin:0 0 8px;">Subscribers Directory (<span id="adm-nws-dir-count">0</span>)</h3>
                 <div class="table-scroll" style="max-height:240px;">
                   <table class="adm-table">
                     <thead><tr><th>Email &amp; Name</th><th>Segment</th><th>Source</th><th>Status</th></tr></thead>
@@ -2067,7 +2071,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                 </div>
               </div>
               <div>
-                <h3 style="font-size:13px; color:#f8fafc; margin:0 0 8px;">Recent Dispatches &amp; Legal Acceptances</h3>
+                <h3 style="font-size:13px; color:var(--text-white); margin:0 0 8px;">Recent Dispatches &amp; Legal Acceptances</h3>
                 <div class="table-scroll" style="max-height:240px;">
                   <table class="adm-table">
                     <thead><tr><th>Record Type / Period</th><th>Scope / Document</th><th>Target / Version</th><th>Timestamp</th></tr></thead>
@@ -2135,6 +2139,9 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               </div>
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <span class="chip cyan" id="backend-runtime-chip">Node Runtime</span>
+                <span class="chip emerald" id="backend-db-chip">DB: Checking</span>
+                <span class="chip cyan" id="backend-ai-chip">Gemini: Checking</span>
+                <span class="chip cyan" id="backend-mem-chip">RAM</span>
                 <button type="button" class="btn-ghost" onclick="window.loadAdminSystemFiles()">Refresh</button>
               </div>
             </div>
@@ -2149,10 +2156,11 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                     <th>Lines</th>
                     <th>Size</th>
                     <th>Status</th>
+                    <th>Inspect</th>
                   </tr>
                 </thead>
                 <tbody id="backend-files-tbody">
-                  <tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:20px;">Loading backend files...</td></tr>
+                  <tr><td colspan="7" style="text-align:center; color:var(--text-slate); padding:20px;">Loading backend files...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -2603,6 +2611,30 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       }
     }
 
+    let adminSseSource = null;
+    function startAdminSse() {
+      if (adminSseSource) {
+        try { adminSseSource.close(); } catch (_) {}
+        adminSseSource = null;
+      }
+      if (typeof EventSource === 'undefined') return;
+      try {
+        const es = new EventSource('/api/events');
+        adminSseSource = es;
+        es.addEventListener('support-ticket', (evt) => {
+          let payload = null;
+          try { payload = JSON.parse(evt.data || '{}'); } catch (_) {}
+          const tk = payload && payload.ticket ? payload.ticket : null;
+          const refCode = tk && tk.referenceCode ? ` (${tk.referenceCode})` : '';
+          showToast(`New Customer Support ticket${refCode} received — refreshing queue`);
+          refreshAdminData();
+        });
+        es.onerror = () => {
+          // EventSource auto-reconnects; keep silent unless closed
+        };
+      } catch (_) {}
+    }
+
     function enterAdminConsole() {
       adminSessionEpoch++;
       document.getElementById('auth-barrier').style.display = 'none';
@@ -2619,10 +2651,15 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       window.setAdminActiveRole(currentAdminRole, true);
       window.switchAdminView('overview');
       refreshAdminData();
+      startAdminSse();
     }
 
     window.logoutAdminConsole = async function () {
       adminSessionEpoch++;
+      if (adminSseSource) {
+        try { adminSseSource.close(); } catch (_) {}
+        adminSseSource = null;
+      }
       currentAdminUser = null;
       currentAdminRole = '';
       previewAdminRole = '';
@@ -2777,9 +2814,27 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
     window.loadAdminSystemFiles = async function () {
       const tbody = document.getElementById('backend-files-tbody');
       const chip = document.getElementById('backend-runtime-chip');
+      const dbChip = document.getElementById('backend-db-chip');
+      const aiChip = document.getElementById('backend-ai-chip');
+      const memChip = document.getElementById('backend-mem-chip');
       if (!tbody) return;
       try {
-        const res = await admFetch('/api/admin/system-files');
+        const [res, hRes] = await Promise.all([
+          admFetch('/api/admin/system-files'),
+          admFetch('/api/admin/system-health').catch(() => null)
+        ]);
+        if (hRes && hRes.ok) {
+          const h = await hRes.json();
+          if (dbChip) {
+            dbChip.textContent = h.dbStatus === 'connected' ? `DB: PG (${h.dbLatencyMs ?? 0}ms)` : `DB: ${h.dbStatus}`;
+            dbChip.className = `chip ${h.dbStatus === 'connected' ? 'emerald' : 'amber'}`;
+          }
+          if (aiChip) {
+            aiChip.textContent = h.geminiConfigured ? `Gemini: ${h.geminiModel}` : 'Gemini: Local Fallback';
+            aiChip.className = `chip ${h.geminiConfigured ? 'emerald' : 'cyan'}`;
+          }
+          if (memChip) memChip.textContent = `RAM: ${h.memoryMb || 0} MB`;
+        }
         if (!res.ok) return;
         const data = await res.json();
         if (chip && data.nodeVersion) {
@@ -2787,9 +2842,10 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         }
         const files = Array.isArray(data.files) ? data.files : [];
         if (!files.length) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:20px;">No backend files indexed.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-slate); padding:20px;">No backend files indexed.</td></tr>';
           return;
         }
+        const isRoot = currentAdminRole === 'owner_root';
         tbody.innerHTML = files.map(f => {
           const kb = f.sizeBytes ? `${(f.sizeBytes / 1024).toFixed(1)} KB` : '—';
           return `
@@ -2800,10 +2856,88 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               <td style="font-family:'JetBrains Mono',monospace;">${f.lines || 0}</td>
               <td style="font-family:'JetBrains Mono',monospace;">${kb}</td>
               <td><span class="chip ${f.exists ? 'emerald' : 'rose'}">${f.exists ? 'ONLINE' : 'MISSING'}</span></td>
+              <td>${isRoot && f.exists ? `<button type="button" class="btn-ghost" style="padding:4px 9px;font-size:11px;" onclick="window.inspectBackendFile('${escapeHtml(f.file)}')">Inspect</button>` : '<span style="color:var(--text-dim);font-size:11px;">Root</span>'}</td>
             </tr>
           `;
         }).join('');
       } catch (_) {}
+    };
+
+    window.inspectBackendFile = async function (file) {
+      try {
+        const res = await admFetch(`/api/admin/system-files/inspect?file=${encodeURIComponent(file)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Access denied');
+        document.getElementById('adm-file-inspect-modal')?.remove();
+        const modal = document.createElement('div');
+        modal.id = 'adm-file-inspect-modal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;';
+        modal.innerHTML = `
+          <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:960px;width:100%;padding:22px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-hairline);">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--sky);">READ-ONLY INSPECTOR</span>
+                <h3 style="margin:2px 0 0;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;">${escapeHtml(data.file)} (${data.totalLines} lines)</h3>
+              </div>
+              <button type="button" id="fi-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
+            </div>
+            <pre style="margin:0;padding:14px;border-radius:12px;background:var(--bg-input);border:1px solid var(--border-hairline);font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.5;max-height:62vh;overflow:auto;color:var(--text-white);">${escapeHtml(data.preview)}</pre>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('fi-close').onclick = () => modal.remove();
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      } catch (err) {
+        showToast('Inspect error: ' + err.message);
+      }
+    };
+
+    window.openAdminPasswordModal = function () {
+      document.getElementById('adm-pw-modal')?.remove();
+      const modal = document.createElement('div');
+      modal.id = 'adm-pw-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+      modal.innerHTML = `
+        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:420px;width:100%;padding:24px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border-hairline);">
+            <h3 style="font-size:17px;font-weight:700;font-family:'Outfit',sans-serif;">Change Admin Password</h3>
+            <button type="button" id="apw-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
+          </div>
+          <form id="apw-form" style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <label class="lbl-sm">Current Password</label>
+              <input id="apw-cur" type="password" class="adm-input" required />
+            </div>
+            <div>
+              <label class="lbl-sm">New Password (10+ chars)</label>
+              <input id="apw-new" type="password" class="adm-input" minlength="10" required />
+            </div>
+            <button type="submit" class="btn-emerald" style="justify-content:center;">Update Password</button>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('apw-close').onclick = () => modal.remove();
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      document.getElementById('apw-form').onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+          const res = await admFetch('/api/admin/password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              currentPassword: document.getElementById('apw-cur').value,
+              newPassword: document.getElementById('apw-new').value
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Could not update password');
+          modal.remove();
+          showToast('Admin password updated.');
+        } catch (err) {
+          showToast('Password error: ' + err.message);
+        }
+      };
     };
 
     async function refreshAdminData() {
@@ -3071,6 +3205,9 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                 <button type="button" class="btn-emerald" style="padding:4px 9px; font-size:11px;" onclick="window.openEditTenantModal('${escapeHtml(t.id)}')">
                   Edit
                 </button>
+                <button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="window.openTenantRosterModal('${escapeHtml(t.id)}')">
+                  Staffs
+                </button>
                 <button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="window.openAddStaffsModal('${escapeHtml(t.id)}')">
                   + Add Staffs
                 </button>
@@ -3130,39 +3267,39 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
             <button type="button" id="adm-edit-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:32px;height:32px;cursor:pointer;font-weight:700;">&times;</button>
           </div>
           <form id="adm-tenant-edit-form" style="display:flex;flex-direction:column;gap:12px;">
-            <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Trading / Company Name
+            <label style="font-size:12px;font-weight:700;color:var(--text-slate);">Trading / Company Name
               <input id="adm-edit-name" type="text" required value="${String(tenant.tradingName || tenant.legalName || '').replace(/"/g, '&quot;')}" class="adm-input" style="margin-top:4px;" />
             </label>
-            <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Industry Sector
+            <label style="font-size:12px;font-weight:700;color:var(--text-slate);">Industry Sector
               <select id="adm-edit-industry" class="adm-select" style="margin-top:4px;">
                 ${sectors.map(s => `<option value="${s.key}" ${s.key === currentKey ? 'selected' : ''}>${s.label}</option>`).join('')}
               </select>
             </label>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Primary Hub / Site Name
+              <label style="font-size:12px;font-weight:700;color:var(--text-slate);">Primary Hub / Site Name
                 <input id="adm-edit-hub" type="text" required value="${String(tenant.hubName || tenant.siteName || '').replace(/"/g, '&quot;')}" class="adm-input" style="margin-top:4px;" />
               </label>
-              <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Geofence Radius (m)
+              <label style="font-size:12px;font-weight:700;color:var(--text-slate);">Geofence Radius (m)
                 <input id="adm-edit-radius" type="number" min="25" max="5000" required value="${Number(tenant.hubRadius || tenant.radiusMeters || 120)}" class="adm-input" style="margin-top:4px;" />
               </label>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Hub GPS Latitude
+              <label style="font-size:12px;font-weight:700;color:var(--text-slate);">Hub GPS Latitude
                 <input id="adm-edit-lat" type="number" step="0.000001" required value="${curLat}" class="adm-input" style="margin-top:4px;font-family:'JetBrains Mono',monospace;" />
               </label>
-              <label style="font-size:12px;font-weight:700;color:#cbd5e1;">Hub GPS Longitude
+              <label style="font-size:12px;font-weight:700;color:var(--text-slate);">Hub GPS Longitude
                 <input id="adm-edit-lng" type="number" step="0.000001" required value="${curLng}" class="adm-input" style="margin-top:4px;font-family:'JetBrains Mono',monospace;" />
               </label>
             </div>
             <div style="padding:14px;border-radius:12px;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.24);display:flex;flex-direction:column;gap:10px;">
-              <div style="font-size:12.5px;font-weight:800;color:#f8fafc;">Dayforce-Grade Time &amp; Attendance Exception Policy</div>
+              <div style="font-size:12.5px;font-weight:800;color:var(--text-white);">Dayforce-Grade Time &amp; Attendance Exception Policy</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <label style="font-size:11.5px;font-weight:700;color:#cbd5e1;">Grace Minutes
+                <label style="font-size:11.5px;font-weight:700;color:var(--text-slate);">Grace Minutes
                   <select id="adm-edit-grace" class="adm-select" style="margin-top:4px;padding:8px 10px;font-size:12.5px;">
                     ${[5, 10, 15, 20].map(m => `<option value="${m}" ${curGrace === m ? 'selected' : ''}>${m} minutes</option>`).join('')}
                   </select>
                 </label>
-                <label style="font-size:11.5px;font-weight:700;color:#cbd5e1;">Late Arrival Rule
+                <label style="font-size:11.5px;font-weight:700;color:var(--text-slate);">Late Arrival Rule
                   <select id="adm-edit-late-mode" class="adm-select" style="margin-top:4px;padding:8px 10px;font-size:12.5px;">
                     <option value="none_within_grace" ${curLateMode === 'none_within_grace' ? 'selected' : ''}>Pardon in Grace / Review</option>
                     <option value="pro_rata_minutes" ${curLateMode === 'pro_rata_minutes' ? 'selected' : ''}>Pro-Rata Deduction</option>
@@ -3171,21 +3308,21 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                 </label>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                <label style="font-size:11px;font-weight:700;color:#cbd5e1;">Missed Clock-In
+                <label style="font-size:11px;font-weight:700;color:var(--text-slate);">Missed Clock-In
                   <select id="adm-edit-missed-in" class="adm-select" style="margin-top:4px;padding:7px 8px;font-size:12px;">
                     <option value="exception_review" ${curMissedIn === 'exception_review' ? 'selected' : ''}>Exception Queue</option>
                     <option value="pro_rata_deduct" ${curMissedIn === 'pro_rata_deduct' ? 'selected' : ''}>Pro-Rata Deduct</option>
                     <option value="pardon_with_flag" ${curMissedIn === 'pardon_with_flag' ? 'selected' : ''}>Pardon w/ Flag</option>
                   </select>
                 </label>
-                <label style="font-size:11px;font-weight:700;color:#cbd5e1;">Missed Clock-Out
+                <label style="font-size:11px;font-weight:700;color:var(--text-slate);">Missed Clock-Out
                   <select id="adm-edit-missed-out" class="adm-select" style="margin-top:4px;padding:7px 8px;font-size:12px;">
                     <option value="exception_review" ${curMissedOut === 'exception_review' ? 'selected' : ''}>Exception Queue</option>
                     <option value="auto_cap_shift_end" ${curMissedOut === 'auto_cap_shift_end' ? 'selected' : ''}>Cap Shift End</option>
                     <option value="pro_rata_deduct" ${curMissedOut === 'pro_rata_deduct' ? 'selected' : ''}>Pro-Rata Deduct</option>
                   </select>
                 </label>
-                <label style="font-size:11px;font-weight:700;color:#cbd5e1;">Early Departure
+                <label style="font-size:11px;font-weight:700;color:var(--text-slate);">Early Departure
                   <select id="adm-edit-early-dep" class="adm-select" style="margin-top:4px;padding:7px 8px;font-size:12px;">
                     <option value="exception_review" ${curEarlyDep === 'exception_review' ? 'selected' : ''}>Exception Queue</option>
                     <option value="pro_rata_deduct" ${curEarlyDep === 'pro_rata_deduct' ? 'selected' : ''}>Pro-Rata Deduct</option>
@@ -3193,7 +3330,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                   </select>
                 </label>
               </div>
-              <label style="font-size:11.5px;font-weight:700;color:#cbd5e1;">Automated Watchdog Pre-Shift Reminders (Minutes Before Shift)
+              <label style="font-size:11.5px;font-weight:700;color:var(--text-slate);">Automated Watchdog Pre-Shift Reminders (Minutes Before Shift)
                 <input id="adm-edit-reminders" type="text" value="${escapeHtml(curReminders)}" class="adm-input" style="margin-top:4px;padding:8px 10px;font-size:12.5px;font-family:'JetBrains Mono',monospace;" placeholder="30, 15, 0" />
               </label>
             </div>
@@ -3203,21 +3340,21 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                 <span id="adm-edit-ch-status" style="font-size:10.5px;color:#94a3b8;font-family:'JetBrains Mono',monospace;">Loading channel gateway...</span>
               </div>
               <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
-                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#e2e8f0;cursor:pointer;">
+                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-white);cursor:pointer;">
                   <input id="adm-edit-ch-email" type="checkbox" checked /> Email Dispatch
                 </label>
-                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#e2e8f0;cursor:pointer;">
+                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-white);cursor:pointer;">
                   <input id="adm-edit-ch-inapp" type="checkbox" checked /> In-App Push Alert
                 </label>
-                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#e2e8f0;cursor:pointer;">
+                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-white);cursor:pointer;">
                   <input id="adm-edit-ch-termii" type="checkbox" /> Termii SMS (Nigeria)
                 </label>
-                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#e2e8f0;cursor:pointer;">
+                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-white);cursor:pointer;">
                   <input id="adm-edit-ch-whatsapp" type="checkbox" /> WhatsApp Cloud API
                 </label>
               </div>
               <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
-                <label style="flex:1;min-width:140px;font-size:11px;font-weight:700;color:#cbd5e1;">Termii / SMS Sender ID
+                <label style="flex:1;min-width:140px;font-size:11px;font-weight:700;color:var(--text-slate);">Termii / SMS Sender ID
                   <input id="adm-edit-ch-sender" type="text" value="ShiftRelay" maxlength="11" class="adm-input" style="margin-top:3px;padding:6px 9px;font-size:12px;font-family:'JetBrains Mono',monospace;" />
                 </label>
                 <button type="button" id="adm-edit-ch-probe" class="btn-ghost" style="padding:7px 11px;font-size:11.5px;">Send Channel Probe (Dry-Run/Live)</button>
@@ -3396,7 +3533,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       }
       box.innerHTML = items.map((r, idx) => `
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 10px; border-radius:8px; background:rgba(15,23,42,0.55); border:1px solid rgba(148,163,184,0.2);">
-          <div style="min-width:0; flex:1; font-size:12.5px; color:#f8fafc;">
+          <div style="min-width:0; flex:1; font-size:12.5px; color:var(--text-white);">
             <strong>${escapeHtml(r.text)}</strong>
             <span style="margin-left:8px; font-size:10.5px; padding:2px 7px; border-radius:99px; background:rgba(16,185,129,0.14); color:#34d399;">${escapeHtml(r.category || 'Workplace Safety')}</span>
             ${r.priority === 'urgent' ? '<span style="margin-left:4px; font-size:10px; padding:2px 6px; border-radius:99px; background:rgba(239,68,68,0.16); color:#fca5a5;">URGENT</span>' : ''}
@@ -3551,7 +3688,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       box.style.display = 'block';
       const summaryHtml = `
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;background:rgba(15,23,42,0.88);border-bottom:1px solid rgba(51,65,85,0.75);">
-          <div style="font-size:12.5px;color:#e2e8f0;font-weight:600;">
+          <div style="font-size:12.5px;color:var(--text-white);font-weight:600;">
             Pre-Check Summary: <span style="color:#34d399;">${Number(data.validCount || 0)} Valid</span> &middot;
             <span style="color:${Number(data.errorCount || 0) > 0 ? '#f87171' : '#94a3b8'};">${Number(data.errorCount || 0)} Blocking Errors</span>
             (${Number(data.totalRows || rows.length)} rows scanned)
@@ -3698,17 +3835,49 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       }
     };
 
+    let activeRectFilter = 'all';
+    window.setRectFilter = function (f) {
+      activeRectFilter = f || 'all';
+      document.querySelectorAll('[data-rect-filter]').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-rect-filter') === activeRectFilter);
+      });
+      renderRectificationTable();
+    };
+
     function renderRectificationTable() {
-      const list = cachedRectifications || [];
-      document.getElementById('nav-badge-rects').textContent = list.length;
+      const all = cachedRectifications || [];
+      document.getElementById('nav-badge-rects').textContent = all.length;
       const tbody = document.getElementById('adm-rectifications-tbody');
       if (!tbody) return;
-      tbody.innerHTML = list.map((r) => `
+      const q = String(document.getElementById('rect-search-input')?.value || '').trim().toLowerCase();
+      const list = all.filter(r => {
+        const st = String(r.status || '').toUpperCase();
+        if (activeRectFilter === 'open' && (st.includes('RESOLVED') || st.includes('ESCALATED'))) return false;
+        if (activeRectFilter === 'escalated' && !st.includes('ESCALATED')) return false;
+        if (activeRectFilter === 'resolved' && !st.includes('RESOLVED')) return false;
+        if (q) {
+          const hay = `${r.id} ${r.name || ''} ${r.email || ''} ${r.category || ''} ${r.details || ''}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-slate);padding:20px;">No matching tickets.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map((r) => {
+        const det = String(r.details || '');
+        const priMatch = det.match(/^\[(URGENT|HIGH|NORMAL)\]/i);
+        const pri = priMatch ? priMatch[1].toUpperCase() : '';
+        return `
         <tr>
-          <td><code style="color:var(--sky); font-weight:700;">${escapeHtml(r.id)}</code></td>
-          <td><strong>${escapeHtml(r.name || r.worker || 'Frontline Staff')}</strong><div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(r.email)}</div></td>
+          <td>
+            <code style="color:var(--sky); font-weight:700;">${escapeHtml(r.id)}</code>
+            ${pri ? `<div style="margin-top:4px;"><span class="chip ${pri === 'URGENT' ? 'rose' : (pri === 'HIGH' ? 'amber' : 'cyan')}">${pri}</span></div>` : ''}
+          </td>
+          <td><strong>${escapeHtml(r.name || r.worker || 'User')}</strong><div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(r.email)}</div></td>
           <td><strong>${escapeHtml(r.category)}</strong></td>
-          <td style="font-size:12.5px; color:var(--text-slate); max-width:340px; white-space:pre-wrap;">${escapeHtml(r.details)}</td>
+          <td style="font-size:12.5px; color:var(--text-slate); max-width:340px; white-space:pre-wrap;">${escapeHtml(det)}</td>
           <td><span class="chip ${String(r.status).includes('RESOLVED') ? 'emerald' : (String(r.status).includes('ESCALATED') ? 'amber' : 'cyan')}">${escapeHtml(r.status)}</span></td>
           <td>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -3717,9 +3886,10 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.resolveRectificationTicket('${escapeHtml(r.id)}')">Resolve</button>
             </div>
           </td>
-        </tr>
-      `).join('');
+        </tr>`;
+      }).join('');
     }
+    window.renderRectificationTable = renderRectificationTable;
 
     window.openTicketReviewModal = function (recId) {
       const r = (cachedRectifications || []).find(x => x.id === recId);
@@ -3862,7 +4032,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
             <td><code style="color:var(--rose); font-weight:700;">${escapeHtml(d.id)}</code><div style="font-size:11px; color:var(--text-slate);">${escapeHtml(dtStr)}</div></td>
             <td><strong>${escapeHtml(d.fullName || d.email || 'Worker')}</strong><div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(d.email || '')}</div></td>
             <td><code style="color:var(--emerald);">${escapeHtml(d.companyCode || 'NDPA Self-Service')}</code><div style="font-size:11px; color:var(--text-slate);">${escapeHtml(d.role || 'Account Erasure')}</div></td>
-            <td style="font-size:12px; color:#cbd5e1; max-width:300px;"><strong>${escapeHtml(d.scope || 'Full Account & Biometric Deletion')}</strong><div style="color:var(--text-slate);">${escapeHtml(d.reason || 'Self-service request')}</div></td>
+            <td style="font-size:12px; color:var(--text-slate); max-width:300px;"><strong>${escapeHtml(d.scope || 'Full Account & Biometric Deletion')}</strong><div style="color:var(--text-slate);">${escapeHtml(d.reason || 'Self-service request')}</div></td>
             <td><span class="chip ${rawSt === 'completed' ? 'emerald' : rawSt === 'rejected' ? 'rose' : 'amber'}">${escapeHtml(stLabel)}</span></td>
             <td>
               ${isPending ? `
@@ -3945,7 +4115,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               <tr>
                 <td style="font-family:'JetBrains Mono',monospace;font-size:11px;">${escapeHtml(r.kind)}</td>
                 <td style="font-size:11.5px;">${escapeHtml(r.scope)}</td>
-                <td style="font-size:11.5px;color:#cbd5e1;">${escapeHtml(r.target)}</td>
+                <td style="font-size:11.5px;color:var(--text-slate);">${escapeHtml(r.target)}</td>
                 <td style="font-size:11px;color:#94a3b8;">${escapeHtml(String(r.ts).slice(0, 16).replace('T', ' '))}</td>
               </tr>`).join('')
               : '<tr><td colspan="4" style="color:#94a3b8;">No dispatches or legal acceptance events recorded yet.</td></tr>';
@@ -4355,7 +4525,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       overlay.id = 'sr-gate-poster-modal';
       overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.84);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px;';
       overlay.innerHTML = `
-        <div style="width:100%;max-width:740px;max-height:92vh;overflow:auto;background:#0a1224;border:1px solid rgba(56,189,248,0.35);border-radius:18px;padding:22px;color:#f8fafc;box-shadow:0 24px 60px rgba(0,0,0,0.6);">
+        <div style="width:100%;max-width:740px;max-height:92vh;overflow:auto;background:var(--bg-panel);border:1px solid rgba(56,189,248,0.35);border-radius:18px;padding:22px;color:var(--text-white);box-shadow:0 24px 60px rgba(0,0,0,0.6);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;">
             <div>
               <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#34d399;text-transform:uppercase;">Multilingual A4 Gate Rollout Kit</span>
@@ -4456,6 +4626,93 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       };
 
       await loadLang('en');
+    };
+
+    window.openTenantRosterModal = async function (tenantId) {
+      const tenant = cachedTenants.find(t => String(t.id) === String(tenantId));
+      if (!tenant) return showToast('Company not found.');
+      const companyName = tenant.tradingName || tenant.legalName || tenant.name || 'Company';
+      document.getElementById('adm-roster-drawer-modal')?.remove();
+
+      const modal = document.createElement('div');
+      modal.id = 'adm-roster-drawer-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+      modal.innerHTML = `
+        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:920px;width:100%;padding:24px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-hairline);">
+            <div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--sky);">COMPANY ROSTER</span>
+              <h3 style="margin:2px 0 0;font-size:17px;font-weight:700;font-family:'Outfit',sans-serif;">${escapeHtml(companyName)} (${escapeHtml(tenant.companyId || '')})</h3>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button type="button" class="btn-emerald" style="padding:6px 12px;font-size:12px;" onclick="document.getElementById('adm-roster-drawer-modal').remove(); window.openAddStaffsModal('${escapeHtml(tenant.id)}');">+ Add Staffs</button>
+              <button type="button" id="rd-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
+            </div>
+          </div>
+          <div class="table-scroll" style="max-height:58vh;overflow:auto;">
+            <table class="adm-table">
+              <thead><tr><th>Name</th><th>Dept / Role</th><th>Rate (NGN)</th><th>Bank / NUBAN</th><th>Status</th><th>Save</th></tr></thead>
+              <tbody id="rd-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text-slate);padding:20px;">Loading staffs...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('rd-close').onclick = () => modal.remove();
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+      try {
+        const res = await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/employees`);
+        const data = await res.json();
+        const list = data.employees || [];
+        const tbody = document.getElementById('rd-tbody');
+        if (!list.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-slate);padding:20px;">No staffs yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = list.map((emp, idx) => `
+          <tr>
+            <td><strong>${escapeHtml(emp.fullName)}</strong><div style="font-size:11px;color:var(--text-slate);">${escapeHtml(emp.email)}</div></td>
+            <td>
+              <input id="rd-dept-${idx}" class="adm-input" style="padding:5px 8px;font-size:12px;margin-bottom:4px;" value="${escapeHtml(emp.department)}" />
+              <select id="rd-role-${idx}" class="adm-select" style="padding:5px 8px;font-size:12px;">
+                ${['worker', 'supervisor', 'owner'].map(r => `<option value="${r}" ${emp.role === r ? 'selected' : ''}>${r}</option>`).join('')}
+              </select>
+            </td>
+            <td><input id="rd-rate-${idx}" type="number" class="adm-input" style="padding:5px 8px;font-size:12px;width:110px;" value="${emp.monthlyRate}" /></td>
+            <td><div style="font-size:12px;">${escapeHtml(emp.bankName || '—')}</div><code style="font-size:11px;color:var(--text-slate);">${escapeHtml(emp.nuban || '—')}</code></td>
+            <td>
+              <select id="rd-st-${idx}" class="adm-select" style="padding:5px 8px;font-size:12px;">
+                <option value="active" ${emp.status === 'active' ? 'selected' : ''}>active</option>
+                <option value="revoked" ${emp.status === 'revoked' ? 'selected' : ''}>revoked</option>
+              </select>
+            </td>
+            <td><button type="button" class="btn-ghost" style="padding:5px 10px;font-size:11.5px;" onclick="window.saveTenantEmployeeRow('${escapeHtml(emp.userId)}', ${idx})">Save</button></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        document.getElementById('rd-tbody').innerHTML = `<tr><td colspan="6" style="color:var(--rose);padding:16px;">${escapeHtml(err.message)}</td></tr>`;
+      }
+    };
+
+    window.saveTenantEmployeeRow = async function (userId, idx) {
+      try {
+        const res = await admFetch(`/api/admin/employees/${encodeURIComponent(userId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            department: document.getElementById(`rd-dept-${idx}`)?.value.trim(),
+            role: document.getElementById(`rd-role-${idx}`)?.value,
+            monthlyRate: Number(document.getElementById(`rd-rate-${idx}`)?.value || 0),
+            status: document.getElementById(`rd-st-${idx}`)?.value
+          })
+        });
+        if (!res.ok) throw new Error('Update failed');
+        await refreshAdminData();
+        showToast('Staff updated.');
+      } catch (err) {
+        showToast('Staff update error: ' + err.message);
+      }
     };
 
     // ── Quick Add Staffs Modal for Onboarded Companies ────────────────────

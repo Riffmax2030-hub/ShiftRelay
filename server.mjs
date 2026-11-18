@@ -6562,6 +6562,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       details: fullDetails
     }, store, databaseReady);
     if (!databaseReady) await saveStore(store);
+    broadcastEvent('support-ticket', { ticket });
 
     if (user.email) {
       sendShiftRelayEmail({
@@ -10100,6 +10101,44 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, mfaEnabled: true });
   }
 
+  // 1f-b. Admin Password Rotation
+  if (url.pathname === '/api/admin/password' && request.method === 'POST') {
+    const body = await readJson(request);
+    const currentPassword = String(body.currentPassword || '');
+    const newPassword = String(body.newPassword || '');
+    if (newPassword.length < 10) {
+      return sendJson(response, 400, { error: 'New password must be at least 10 characters.' });
+    }
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    const userRec = await findAdminUserById(adminCtx.adminUser.id, store, databaseReady);
+    const storedHash = userRec?.password_hash || userRec?.passwordHash;
+    const valid = await verifyAdminPassword(currentPassword, storedHash);
+    if (!valid) {
+      return sendJson(response, 403, { error: 'Current password is incorrect.' });
+    }
+    const nextHash = await hashAdminPassword(newPassword);
+    if (databaseReady) {
+      await query('UPDATE admin_users SET password_hash = $1 WHERE id = $2', [nextHash, adminCtx.adminUser.id]);
+    } else {
+      userRec.passwordHash = nextHash;
+      await saveStore(store);
+    }
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'ADMIN_PASSWORD_CHANGED',
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS'
+    });
+    return sendJson(response, 200, { ok: true });
+  }
+
   // 1g. Revoke Active Admin Sessions (Owner Root revokes all, or user revokes own)
   if (url.pathname === '/api/admin/sessions/revoke-all' && request.method === 'POST') {
     const store = await getStore();
@@ -10481,6 +10520,83 @@ async function getUserRewards(user, store) {
       }
     }));
     return sendJson(response, 200, { ok: true, files, nodeVersion: process.version, uptimeSeconds: Math.floor(process.uptime()) });
+  }
+
+  // 1l-b. Read-Only Backend File Inspector (Owner Root Only, Whitelisted)
+  if (url.pathname === '/api/admin/system-files/inspect' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root']);
+    if (!adminCtx) return;
+    const allowed = new Set([
+      'server.mjs', 'admin-auth.mjs', 'database.mjs', 'schema.sql',
+      'attendance-policy-engine.mjs', 'attendance-security.mjs', 'compliance-engine.mjs',
+      'email-engine.mjs', 'nigerian-banking.mjs', 'shift-score-engine.mjs',
+      'report-engine.mjs', 'industry-profiles.mjs', 'legal-config.mjs', 'admin.html', 'package.json'
+    ]);
+    const file = String(url.searchParams.get('file') || '').trim();
+    if (!allowed.has(file)) return sendJson(response, 403, { error: 'File not in inspectable registry.' });
+    const raw = await readFile(resolve(process.cwd(), file), 'utf8');
+    const allLines = raw.split('\n');
+    return sendJson(response, 200, { ok: true, file, totalLines: allLines.length, preview: allLines.slice(0, 220).join('\n') });
+  }
+
+  // 1l-c. Live System Health & Diagnostics
+  if (url.pathname === '/api/admin/system-health' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store);
+    if (!adminCtx) return;
+    let dbLatencyMs = null;
+    let dbStatus = databaseReady ? 'connected' : 'local-fallback';
+    if (databaseReady && getPool()) {
+      const t0 = Date.now();
+      try {
+        await query('SELECT 1');
+        dbLatencyMs = Date.now() - t0;
+      } catch (_) {
+        dbStatus = 'degraded';
+      }
+    }
+    return sendJson(response, 200, {
+      ok: true,
+      dbStatus,
+      dbLatencyMs,
+      geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+      geminiModel: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+      emailRelay: process.env.RESEND_API_KEY ? 'resend' : (process.env.SMTP_HOST ? 'smtp' : 'local-outbox'),
+      memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+      uptimeSeconds: Math.floor(process.uptime())
+    });
+  }
+
+  // 1l-d. Tenant Employee Roster Lookup (For Company Staffs Drawer)
+  if (url.pathname.startsWith('/api/admin/tenants/') && url.pathname.endsWith('/employees') && request.method === 'GET') {
+    const tenantId = url.pathname.split('/')[4];
+    const store = await loadPayrollStoreForTenant(tenantId);
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin', 'ops_support_admin', 'finance_admin']);
+    if (!adminCtx) return;
+    const usersById = new Map((store.portalUsers || []).map(u => [u.id, u]));
+    const contractsByUser = new Map((store.contracts || []).filter(c => (c.tenant_id || c.organisation_id) === tenantId).map(c => [c.userId, c]));
+    const employees = (store.memberships || [])
+      .filter(m => m.organisation_id === tenantId)
+      .map(m => {
+        const pu = usersById.get(m.user_id) || {};
+        const ct = contractsByUser.get(m.user_id) || {};
+        return {
+          userId: m.user_id,
+          membershipId: m.id,
+          staffCode: m.staff_code || '',
+          fullName: pu.full_name || m.name || 'Staff',
+          email: pu.email || m.email || '',
+          phone: pu.phone || '',
+          department: m.department || ct.department || 'Operations',
+          role: m.role || 'worker',
+          status: m.status || 'active',
+          monthlyRate: Number(ct.monthly_rate ?? ct.monthlyRate ?? 0),
+          bankName: ct.bank_name || ct.bankName || '',
+          nuban: ct.account_number || ct.nuban || ''
+        };
+      });
+    return sendJson(response, 200, { ok: true, employees });
   }
 
   // 1m. Onboarding Agent AI Extraction (Gemini Vision + Local Fallback)
