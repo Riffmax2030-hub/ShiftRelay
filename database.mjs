@@ -526,7 +526,7 @@ const schema = `
   create table if not exists legal_acceptances (
     id uuid primary key default gen_random_uuid(),
     organisation_id uuid references organisations(id) on delete set null,
-    user_id uuid references users(id) on delete set null,
+    user_id uuid references portal_users(id) on delete set null,
     email varchar(255),
     actor_type varchar(48) not null default 'organisation',
     accepted_terms_version varchar(48) not null,
