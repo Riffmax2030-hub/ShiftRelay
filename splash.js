@@ -257,22 +257,16 @@
       openLoginScreen(true);
     });
 
-    try {
-      const [sessionRes, usersRes, configRes] = await Promise.all([
-        fetch('/api/auth/session'),
-        fetch('/api/users'),
-        fetch('/api/config')
-      ]);
+    window._srState = window._srState || {};
 
-      const session = sessionRes.ok ? await sessionRes.json() : null;
-      const usersData = usersRes.ok ? await usersRes.json() : { users: [] };
-      const config = configRes.ok ? await configRes.json() : {};
+    // Start background metadata fetches in parallel without blocking splash dismissal
+    const usersPromise = fetch('/api/users').then(r => r.ok ? r.json() : { users: [] }).catch(() => ({ users: [] }));
+    const configPromise = fetch('/api/config').then(r => r.ok ? r.json() : {}).catch(() => ({}));
 
-      window._srState = window._srState || {};
+    Promise.all([usersPromise, configPromise]).then(([usersData, config]) => {
       window._srState.users = usersData.users || [];
       window._srState.config = config;
 
-      // Subtle quick-role links for demo workspaces (no debug box)
       const noticeEl = document.getElementById('sr-employer-provision-notice');
       if (noticeEl && Array.isArray(window._srState.users) && window._srState.users.length > 0 && !document.getElementById('sr-quick-role-bar')) {
         const execU = window._srState.users.find(u => u.role === 'owner');
@@ -321,7 +315,11 @@
           });
         });
       }
+    });
 
+    try {
+      const sessionRes = await fetch('/api/auth/session');
+      const session = sessionRes.ok ? await sessionRes.json() : null;
       const storedUser = (() => {
         try {
           const raw = localStorage.getItem('shiftrelay-user-data');

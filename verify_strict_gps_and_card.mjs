@@ -250,7 +250,7 @@ async function main() {
   };
 
   const stopServer = (proc) => new Promise((resolve) => {
-    if (!proc || proc.killed) return resolve();
+    if (!proc || proc.exitCode !== null) return resolve();
     let done = false;
     const finish = () => {
       if (done) return;
@@ -259,7 +259,12 @@ async function main() {
     };
     proc.once('exit', finish);
     try { proc.kill('SIGTERM'); } catch (_) { finish(); }
-    setTimeout(finish, 2500);
+    setTimeout(() => {
+      if (!done && proc.pid && process.platform === 'win32') {
+        try { execFileSync('taskkill', ['/PID', String(proc.pid), '/T', '/F'], { stdio: 'ignore' }); } catch (_) {}
+      }
+      setTimeout(finish, 400);
+    }, 600);
   });
 
   try {
@@ -767,7 +772,7 @@ async function main() {
     const reviewsBefore = await apiJson('/api/time-entries/presence-reviews', supervisor2.cookie);
     assert.equal(reviewsBefore.status, 200);
     const ngoziReview = reviewsBefore.data.reviews.find(r => r.membershipId === ngoziCard.id);
-    assert.ok(ngoziReview, 'Auto-out card shift without exit scan must enter pending_supervisor_confirm queue');
+    assert.ok(ngoziReview, `Auto-out card shift without exit scan must enter pending_supervisor_confirm queue (reviews=${JSON.stringify(reviewsBefore.data.reviews?.map(r => r.membershipId))})`);
     assert.equal(ngoziReview.cardProofMode, 'physical_badge_facial_verify');
     assert.equal(ngoziReview.hasPhotoProof, true);
 
@@ -1024,7 +1029,7 @@ async function main() {
 
     const adminUiPage = await execUiContext.newPage();
     await adminUiPage.goto(`${BASE_URL}/admin`, { waitUntil: 'domcontentloaded' });
-    await adminUiPage.waitForSelector('#ob-checklists-panel', { state: 'attached', timeout: 8000 });
+    await adminUiPage.waitForSelector('#ob-checklists-panel, #csv-sync-checklists', { state: 'attached', timeout: 8000 });
     await adminUiPage.waitForSelector('#csv-checklist-items', { state: 'attached', timeout: 8000 });
     await execUiContext.close();
 

@@ -30,19 +30,19 @@
     <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="bento-ui.css" />
     <link rel="stylesheet" href="dark-mode.css" />
-    <link rel="stylesheet" href="splash.css?v=178" />
+    <link rel="stylesheet" href="splash.css?v=179" />
     <link rel="stylesheet" href="offline-queue.css" />
     <link rel="stylesheet" href="me-profile.css" />
-    <link rel="stylesheet" href="phase1-shell.css?v=178" />
-    <link rel="stylesheet" href="sr-premium.css?v=178" />
+    <link rel="stylesheet" href="phase1-shell.css?v=179" />
+    <link rel="stylesheet" href="sr-premium.css?v=179" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v178' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v179' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v178');
+              localStorage.setItem('sr_restored_build', 'v179');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { r.update(); });
@@ -435,8 +435,8 @@
     <script type="module" src="qr-svg-generator.js?v=177"></script>
     <script src="attendance-exceptions-ui.js?v=177"></script>
     <script src="/vendor/read-excel-file.min.js" defer></script>
-    <script src="phase1-shell.js?v=178"></script>
-    <script src="splash.js?v=178"></script>
+    <script src="phase1-shell.js?v=179"></script>
+    <script src="splash.js?v=179"></script>
     <script src="notifications.js"></script>
    <script src="profile.js"></script>
    <script src="checklists.js"></script>
@@ -469,7 +469,7 @@
     <script src="facility-switcher.js"></script>
     <script src="emergency-broadcast.js"></script>
     <script src="live-translation.js"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=178',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=179',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 
