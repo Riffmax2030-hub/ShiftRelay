@@ -114,6 +114,7 @@ import {
   createAdminApproval,
   createAdminSessionRecord,
   createMfaChallenge,
+  createRectificationTicket,
   decideAdminApproval,
   ensureAdminSeeded,
   extractAdminToken,
@@ -6533,6 +6534,45 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     const recipient = (await query('select id from memberships where id = $1 and organisation_id = $2 and status = $3', [body.recipientMembershipId, user.organisation_id, 'active'])).rows[0]; if (!recipient) return sendJson(response, 404, { error: 'Staff member not found.' });
     const id = crypto.randomUUID(); await query('insert into direct_messages (id, organisation_id, sender_membership_id, recipient_membership_id, body) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, user.id, recipient.id, body.body.trim()]); await notifyMembership(user.organisation_id, recipient.id, `${user.name} sent you a private message.`); broadcastEvent('private-message', { organisationId: user.organisation_id, recipientMembershipId: recipient.id, senderMembershipId: user.id, body: body.body.trim(), id }); return sendJson(response, 201, { id });
   }
+
+  // ── User App Support & Rectification Tickets (Wired to Admin Customer Care) ─
+  if (url.pathname === '/api/support/tickets' && request.method === 'GET') {
+    const store = await getStore();
+    const allTickets = await listRectifications(store, databaseReady);
+    const userEmail = String(user.email || '').trim().toLowerCase();
+    const mine = allTickets.filter(t => String(t.email || '').trim().toLowerCase() === userEmail);
+    return sendJson(response, 200, { ok: true, tickets: mine });
+  }
+
+  if (url.pathname === '/api/support/tickets' && request.method === 'POST') {
+    const body = await readJson(request);
+    const category = String(body.category || 'General Support').trim();
+    const priority = String(body.priority || 'NORMAL').toUpperCase();
+    const subject = String(body.subject || '').trim();
+    const detailsText = String(body.details || '').trim();
+    if (!detailsText) {
+      return sendJson(response, 400, { error: 'Please describe your issue or request.' });
+    }
+    const store = await getStore();
+    const fullDetails = `[${priority}]${subject ? ' ' + subject + ' —' : ''} ${detailsText}${user.organisation_name ? ' (Org: ' + user.organisation_name + ')' : ''}`;
+    const ticket = await createRectificationTicket({
+      workerName: user.name || 'ShiftRelay User',
+      workerEmail: user.email || '',
+      category,
+      details: fullDetails
+    }, store, databaseReady);
+    if (!databaseReady) await saveStore(store);
+
+    if (user.email) {
+      sendShiftRelayEmail({
+        to: user.email,
+        subject: `[${ticket.id}] Support Ticket Received — ShiftRelay Customer Care`,
+        html: `<p>Hello ${user.name || 'there'},</p><p>Your support ticket <strong>${ticket.id}</strong> (${category}) has been routed to ShiftRelay Customer Care for review.</p><p><strong>Details:</strong> ${detailsText}</p><p>We will update you here and via email once resolved.</p>`,
+        source: 'User App Support Desk'
+      }).catch(() => {});
+    }
+    return sendJson(response, 201, { ok: true, ticket });
+  }
   if (url.pathname === '/api/open-shifts' && request.method === 'POST') {
     if (!['owner', 'workforce_admin'].includes(user.role) || !user.organisation_id) return sendJson(response, 403, { error: 'Only workforce managers can post open shifts.' });
     const body = await readJson(request); if (!body.title || !body.startsAt || !body.endsAt) return sendJson(response, 400, { error: 'Title, start time, and end time are required.' });
@@ -10285,7 +10325,8 @@ async function getUserRewards(user, store) {
     const recId = url.pathname.split('/')[4];
     const body = await readJson(request);
     const nextStatus = String(body.status || 'OPEN FOR SUPPORT AUDIT').trim();
-    const updated = await updateRectificationStatus(recId, nextStatus, adminCtx.adminUser.id, store, databaseReady);
+    const resolutionNote = String(body.resolutionNote || '').trim();
+    const updated = await updateRectificationStatus(recId, nextStatus, adminCtx.adminUser.id, store, databaseReady, resolutionNote);
     if (!updated) return sendJson(response, 404, { error: 'Rectification receipt not found.' });
     await appendAdminAuditLog({
       store,
@@ -10299,9 +10340,17 @@ async function getUserRewards(user, store) {
       ipAddress: getRequestIp(request),
       userAgent: getUserAgent(request),
       outcome: 'SUCCESS',
-      details: { status: nextStatus }
+      details: { status: nextStatus, hasResolutionNote: Boolean(resolutionNote) }
     });
     if (!databaseReady) await saveStore(store);
+    if (updated.email && (resolutionNote || nextStatus === 'RESOLVED')) {
+      sendShiftRelayEmail({
+        to: updated.email,
+        subject: `[${updated.id}] Customer Care Update: ${nextStatus}`,
+        html: `<p>Hello ${updated.name || 'there'},</p><p>Your ShiftRelay support ticket <strong>${updated.id}</strong> (${updated.category}) has been updated to <strong>${nextStatus}</strong>.</p>${resolutionNote ? `<p><strong>Solution / Response:</strong> ${resolutionNote}</p>` : ''}<p>— ShiftRelay Customer Care</p>`,
+        source: 'Customer Care Resolution'
+      }).catch(() => {});
+    }
     return sendJson(response, 200, { ok: true, rectification: updated });
   }
 

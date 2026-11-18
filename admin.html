@@ -3708,17 +3708,79 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
           <td><code style="color:var(--sky); font-weight:700;">${escapeHtml(r.id)}</code></td>
           <td><strong>${escapeHtml(r.name || r.worker || 'Frontline Staff')}</strong><div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(r.email)}</div></td>
           <td><strong>${escapeHtml(r.category)}</strong></td>
-          <td style="font-size:12.5px; color:#cbd5e1; max-width:340px;">${escapeHtml(r.details)}</td>
-          <td><span class="chip ${String(r.status).includes('RESOLVED') ? 'emerald' : 'cyan'}">${escapeHtml(r.status)}</span></td>
+          <td style="font-size:12.5px; color:var(--text-slate); max-width:340px; white-space:pre-wrap;">${escapeHtml(r.details)}</td>
+          <td><span class="chip ${String(r.status).includes('RESOLVED') ? 'emerald' : (String(r.status).includes('ESCALATED') ? 'amber' : 'cyan')}">${escapeHtml(r.status)}</span></td>
           <td>
-            <div style="display:flex; gap:6px;">
-              <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.escalateRectificationToOwner('${escapeHtml(r.id)}')">Escalate to Owner</button>
-              <button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.resolveRectificationTicket('${escapeHtml(r.id)}')">Resolve &amp; Email</button>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.openTicketReviewModal('${escapeHtml(r.id)}')">Review &amp; Reply</button>
+              <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.escalateRectificationToOwner('${escapeHtml(r.id)}')">Escalate</button>
+              <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.resolveRectificationTicket('${escapeHtml(r.id)}')">Resolve</button>
             </div>
           </td>
         </tr>
       `).join('');
     }
+
+    window.openTicketReviewModal = function (recId) {
+      const r = (cachedRectifications || []).find(x => x.id === recId);
+      if (!r) return;
+      document.getElementById('adm-ticket-review-modal')?.remove();
+      const modal = document.createElement('div');
+      modal.id = 'adm-ticket-review-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+      modal.innerHTML = `
+        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:560px;width:100%;padding:24px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-hairline);">
+            <div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--sky);">${escapeHtml(r.id)}</span>
+              <h3 style="margin:2px 0 0;font-size:17px;font-weight:700;font-family:'Outfit',sans-serif;">Review &amp; Solution</h3>
+            </div>
+            <button type="button" id="tr-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
+          </div>
+          <div style="font-size:12.5px;color:var(--text-slate);margin-bottom:10px;">
+            <strong>${escapeHtml(r.name || 'User')}</strong> (${escapeHtml(r.email || '')}) &bull; ${escapeHtml(r.category)}
+          </div>
+          <div style="padding:10px 12px;border-radius:10px;background:var(--bg-hover);border:1px solid var(--border-hairline);font-size:12.5px;white-space:pre-wrap;margin-bottom:14px;max-height:150px;overflow:auto;">${escapeHtml(r.details)}</div>
+          <form id="tr-form" style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <label class="lbl-sm">Status</label>
+              <select id="tr-status" class="adm-select">
+                <option value="IN REVIEW BY SUPPORT">IN REVIEW BY SUPPORT</option>
+                <option value="RESOLVED" selected>RESOLVED</option>
+                <option value="ESCALATED TO OWNER VAULT">ESCALATED TO OWNER VAULT</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl-sm">Solution / Reply (Emailed to User)</label>
+              <textarea id="tr-note" class="adm-textarea" rows="3" required placeholder="Write the solution or update for the user..."></textarea>
+            </div>
+            <button type="submit" class="btn-emerald" style="justify-content:center;">Send Solution &amp; Update Ticket</button>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('tr-close').onclick = () => modal.remove();
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      document.getElementById('tr-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const status = document.getElementById('tr-status').value;
+        const resolutionNote = document.getElementById('tr-note').value.trim();
+        try {
+          const res = await admFetch(`/api/admin/rectifications/${encodeURIComponent(recId)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status, resolutionNote })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Could not update ticket');
+          modal.remove();
+          await refreshAdminData();
+          showToast(`Updated ${recId} (${status}) and emailed solution.`);
+        } catch (err) {
+          showToast('Support update error: ' + err.message);
+        }
+      };
+    };
 
     window.syncAppRectificationReceipts = async function (notify) {
       await refreshAdminData();

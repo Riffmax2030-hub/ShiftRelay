@@ -783,20 +783,78 @@ export async function listRectifications(store, databaseReady) {
   }));
 }
 
-export async function updateRectificationStatus(recId, status, adminId, store, databaseReady) {
+export async function createRectificationTicket({ workerName, workerEmail, category, details }, store, databaseReady) {
+  const id = `SR-REC-${Date.now().toString().slice(-6)}`;
   const nowIso = new Date().toISOString();
+  const status = 'OPEN FOR SUPPORT AUDIT';
+  const cleanName = String(workerName || 'ShiftRelay User').trim();
+  const cleanEmail = String(workerEmail || '').trim().toLowerCase();
+  const cleanCategory = String(category || 'General Support').trim();
+  const cleanDetails = String(details || '').trim();
+
   if (databaseReady) {
     const res = await query(
-      `UPDATE rectification_receipts SET status = $1, updated_by_admin_id = $2, updated_at = $3
-       WHERE id = $4 RETURNING *`,
-      [status, adminId, nowIso, recId]
+      `INSERT INTO rectification_receipts (id, worker_name, worker_email, category, details, status, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [id, cleanName, cleanEmail, cleanCategory, cleanDetails, status, nowIso, nowIso]
     );
     const r = res.rows[0];
-    return r ? { id: r.id, name: r.worker_name, email: r.worker_email, category: r.category, details: r.details, status: r.status } : null;
+    return {
+      id: r.id,
+      name: r.worker_name,
+      email: r.worker_email,
+      category: r.category,
+      details: r.details,
+      status: r.status,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at
+    };
+  }
+
+  if (!Array.isArray(store.rectificationReceipts)) store.rectificationReceipts = [];
+  const item = {
+    id,
+    workerName: cleanName,
+    workerEmail: cleanEmail,
+    category: cleanCategory,
+    details: cleanDetails,
+    status,
+    createdAt: nowIso,
+    updatedAt: nowIso
+  };
+  store.rectificationReceipts.unshift(item);
+  return {
+    id: item.id,
+    name: item.workerName,
+    email: item.workerEmail,
+    category: item.category,
+    details: item.details,
+    status: item.status,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt
+  };
+}
+
+export async function updateRectificationStatus(recId, status, adminId, store, databaseReady, resolutionNote = '') {
+  const nowIso = new Date().toISOString();
+  const note = String(resolutionNote || '').trim();
+  if (databaseReady) {
+    const res = await query(
+      `UPDATE rectification_receipts
+       SET status = $1,
+           details = CASE WHEN $2 <> '' THEN details || E'\n\n[Support Solution]: ' || $2 ELSE details END,
+           updated_by_admin_id = $3,
+           updated_at = $4
+       WHERE id = $5 RETURNING *`,
+      [status, note, adminId, nowIso, recId]
+    );
+    const r = res.rows[0];
+    return r ? { id: r.id, name: r.worker_name, email: r.worker_email, category: r.category, details: r.details, status: r.status, updatedAt: r.updated_at } : null;
   }
   const item = (store.rectificationReceipts || []).find((r) => r.id === recId);
   if (!item) return null;
   item.status = status;
+  if (note) item.details = `${item.details || ''}\n\n[Support Solution]: ${note}`.trim();
   item.updatedAt = nowIso;
-  return { id: item.id, name: item.workerName || item.name, email: item.workerEmail || item.email, category: item.category, details: item.details, status: item.status };
+  return { id: item.id, name: item.workerName || item.name, email: item.workerEmail || item.email, category: item.category, details: item.details, status: item.status, updatedAt: item.updatedAt };
 }
