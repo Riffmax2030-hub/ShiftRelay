@@ -3,71 +3,113 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ShiftRelay OS — Biometric Shift Operations &amp; Automated Payroll</title>
+  <title>ShiftRelay — Verified Shift Operations &amp; Automated Nigerian Payroll</title>
   <link rel="canonical" href="https://shiftrelayos.com/" />
-  <meta name="description" content="ShiftRelay OS by Riffmax Technology Limited unites biometric and peer shift attendance, smart handovers, and automated Nigerian statutory payroll in one platform." />
+  <meta name="description" content="ShiftRelay by Riffmax Technology Limited unites GPS &amp; peer-verified shift attendance, accountable handovers, and automated Nigerian statutory payroll (PAYE, PenCom, NHF, NSITF) in one isolated platform." />
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="ShiftRelay OS" />
-  <meta property="og:title" content="ShiftRelay OS — Biometric Shift Operations &amp; Automated Payroll" />
-  <meta property="og:description" content="Modern workforce attendance, shift handovers, and 1-click PenCom &amp; PAYE payroll for multi-site operations." />
+  <meta property="og:site_name" content="ShiftRelay" />
+  <meta property="og:title" content="ShiftRelay — Verified Shift Operations &amp; Automated Payroll" />
+  <meta property="og:description" content="Know who's on shift. Pay them right. Every time. Built for healthcare, manufacturing, logistics, and hospitality teams." />
   <meta property="og:url" content="https://shiftrelayos.com/" />
-  <meta property="og:image" content="https://shiftrelayos.com/icon-512.png" />
+  <meta property="og:image" content="https://shiftrelayos.com/assets/site/hero-frontline.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="ShiftRelay OS — Workforce &amp; Payroll Platform" />
-  <meta name="twitter:description" content="Built for hospitals, factories, logistics, hospitality, and enterprise teams." />
-  <meta name="twitter:image" content="https://shiftrelayos.com/icon-512.png" />
-  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=130" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta name="twitter:title" content="ShiftRelay — Frontline Workforce &amp; Payroll OS" />
+  <meta name="twitter:description" content="Zero hardware clock-in, live shift handovers, and 1-click Nigerian bank &amp; statutory payroll." />
+  <meta name="twitter:image" content="https://shiftrelayos.com/assets/site/hero-frontline.jpg" />
+  <link rel="icon" type="image/svg+xml" href="/assets/logos/logo-brand-motion.svg?v=165" />
   <style>
+    /* ── Self-Hosted Fonts (Zero External Latency, CSP 'self' Compliant) ── */
+    @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('/assets/fonts/plus-jakarta-sans-latin-400-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url('/assets/fonts/plus-jakarta-sans-latin-500-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('/assets/fonts/plus-jakarta-sans-latin-600-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-weight: 700; font-display: swap; src: url('/assets/fonts/plus-jakarta-sans-latin-700-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-weight: 800; font-display: swap; src: url('/assets/fonts/plus-jakarta-sans-latin-800-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 600; font-display: swap; src: url('/assets/fonts/space-grotesk-latin-600-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 700; font-display: swap; src: url('/assets/fonts/space-grotesk-latin-700-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/assets/fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 600; font-display: swap; src: url('/assets/fonts/jetbrains-mono-latin-600-normal.woff2') format('woff2'); }
+
     :root {
-      --bg-canvas: #040812;
-      --bg-elevated: #091020;
-      --bg-card: rgba(13, 21, 38, 0.72);
-      --bg-card-hover: rgba(18, 29, 52, 0.9);
-      --border-hairline: rgba(255, 255, 255, 0.08);
-      --border-emerald: rgba(0, 245, 160, 0.32);
-      --border-cyan: rgba(56, 189, 248, 0.28);
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
+      --bg-canvas: #fafbfc;
+      --bg-surface: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-card-solid: #ffffff;
+      --bg-card-hover: #ffffff;
+      --border-hairline: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --border-emerald: rgba(5, 150, 105, 0.30);
+      --border-cyan: rgba(13, 148, 136, 0.28);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
       --text-muted: #64748b;
-      --emerald: #00f5a0;
-      --emerald-solid: #10b981;
-      --cyan: #06b6d4;
-      --sky: #38bdf8;
-      --amber: #f59e0b;
+      --emerald: #059669;
+      --emerald-mid: #047857;
+      --cyan: #0d9488;
+      --sky: #0d9488;
+      --amber: #d97706;
+      --rose: #e11d48;
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --shadow-card: 0 4px 20px rgba(15, 23, 42, 0.04);
+      --shadow-hover: 0 16px 40px rgba(15, 23, 42, 0.08);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; overflow-x: hidden; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { overflow-x: hidden; background: var(--bg-canvas); }
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: var(--bg-canvas);
-      background-image:
-        radial-gradient(circle at 18% 0%, rgba(0, 245, 160, 0.09) 0%, transparent 38%),
-        radial-gradient(circle at 82% 8%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
-        linear-gradient(to right, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
-      background-size: 100% 100%, 100% 100%, 72px 72px, 72px 72px;
       color: var(--text-primary);
       line-height: 1.6;
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4, .brand-wordmark, .metric-val {
+      font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Ambient Mesh + Subtle Architectural Grid */
+    .ambient-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 75% 45% at 15% -5%, rgba(5, 150, 105, 0.08), transparent 60%),
+        radial-gradient(ellipse 60% 40% at 88% 8%, rgba(13, 148, 136, 0.06), transparent 55%),
+        radial-gradient(ellipse 50% 40% at 50% 95%, rgba(16, 185, 129, 0.05), transparent 60%);
+    }
+    .ambient-grid {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-image:
+        linear-gradient(to right, rgba(15, 23, 42, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(ellipse 85% 75% at 50% 25%, #000 35%, transparent 100%);
     }
 
     /* ── Navbar ── */
     .site-navbar {
       position: sticky;
       top: 0;
-      z-index: 300;
-      background: rgba(4, 8, 18, 0.82);
+      z-index: 400;
+      background: rgba(250, 251, 252, 0.85);
       backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border-hairline);
-      padding: 14px 36px;
+      padding: 13px 32px;
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .site-navbar.scrolled {
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom-color: var(--border-strong);
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
     }
     .navbar-inner {
-      max-width: 1240px;
+      max-width: 1260px;
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -93,14 +135,15 @@
       font-size: 20px;
       font-weight: 800;
       letter-spacing: -0.025em;
-      color: #ffffff;
+      color: #0f172a;
+      white-space: nowrap;
     }
     .brand-wordmark span { color: var(--emerald); }
 
     .nav-center-links {
       display: flex;
       align-items: center;
-      gap: 28px;
+      gap: 26px;
     }
     .nav-center-links a {
       color: var(--text-secondary);
@@ -117,43 +160,46 @@
       gap: 10px;
     }
     .btn-outline {
-      padding: 9px 18px;
+      padding: 9px 17px;
       border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-strong);
+      background: #ffffff;
       color: var(--text-primary);
       font-size: 13px;
       font-weight: 600;
       text-decoration: none;
       cursor: pointer;
-      transition: all 0.18s ease;
+      transition: all 0.2s ease;
       display: inline-flex;
       align-items: center;
       gap: 7px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
     .btn-outline:hover {
-      border-color: var(--border-emerald);
-      background: rgba(0, 245, 160, 0.06);
+      border-color: var(--emerald);
+      color: var(--emerald);
+      background: rgba(5, 150, 105, 0.05);
+      transform: translateY(-1px);
     }
     .btn-primary-emerald {
       padding: 9px 20px;
       border-radius: 10px;
-      border: 1px solid rgba(0, 245, 160, 0.45);
-      background: linear-gradient(135deg, #00f5a0 0%, #10b981 65%, #06b6d4 100%);
-      color: #02120b;
+      border: 1px solid #047857;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 700;
       text-decoration: none;
       cursor: pointer;
-      transition: all 0.18s ease;
+      transition: all 0.2s ease;
       display: inline-flex;
       align-items: center;
       gap: 7px;
-      box-shadow: 0 8px 24px rgba(0, 245, 160, 0.18);
+      box-shadow: 0 6px 18px rgba(5, 150, 105, 0.24);
     }
     .btn-primary-emerald:hover {
       transform: translateY(-1px);
-      box-shadow: 0 12px 28px rgba(0, 245, 160, 0.28);
+      box-shadow: 0 10px 26px rgba(5, 150, 105, 0.34);
     }
 
     .sr-web-menu-btn {
@@ -162,19 +208,20 @@
       justify-content: center;
       padding: 8px 10px;
       border-radius: 9px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-strong);
+      background: #ffffff;
       color: var(--text-primary);
       cursor: pointer;
     }
     .sr-mobile-nav-drawer {
       display: none;
-      max-width: 1240px;
+      max-width: 1260px;
       margin: 12px auto 0;
       padding: 16px;
       border-radius: 14px;
-      background: rgba(9, 16, 32, 0.98);
+      background: #ffffff;
       border: 1px solid var(--border-hairline);
+      box-shadow: var(--shadow-hover);
       flex-direction: column;
       gap: 10px;
     }
@@ -182,194 +229,436 @@
     .sr-mobile-nav-drawer a {
       color: var(--text-secondary);
       text-decoration: none;
-      font-size: 13.5px;
+      font-size: 14px;
       font-weight: 600;
       padding: 6px 4px;
     }
-    @media (max-width: 920px) {
-      .site-navbar { padding: 14px 20px; }
+    @media (max-width: 960px) {
+      .site-navbar { padding: 12px 18px; }
       .nav-center-links { display: none !important; }
       .sr-web-menu-btn { display: inline-flex; }
     }
 
-    /* ── Containers & Sections ── */
+    /* ── Layout Helpers (Fluid Auto-Shrinking Across All Devices) ── */
     .container {
-      max-width: 1240px;
+      max-width: 1260px;
       margin: 0 auto;
-      padding: 76px 28px;
+      padding: clamp(44px, 6vw, 84px) clamp(14px, 3vw, 28px);
+    }
+    .container-tight {
+      max-width: 1260px;
+      margin: 0 auto;
+      padding: clamp(32px, 4.5vw, 52px) clamp(14px, 3vw, 28px);
     }
     .section-header {
-      max-width: 640px;
+      max-width: 680px;
       margin-bottom: 44px;
+    }
+    .section-header.centered {
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
     }
     .section-eyebrow {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.14em;
       color: var(--emerald);
       margin-bottom: 10px;
-      display: block;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
     .section-header h2 {
       font-family: 'Outfit', sans-serif;
-      font-size: clamp(28px, 3.4vw, 40px);
+      font-size: clamp(28px, 3.6vw, 44px);
       font-weight: 800;
       letter-spacing: -0.025em;
-      line-height: 1.12;
-      margin-bottom: 10px;
+      line-height: 1.1;
+      margin-bottom: 12px;
+      color: var(--text-primary);
     }
     .section-header p {
       color: var(--text-secondary);
-      font-size: 15.5px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .mono-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 6px;
+      background: rgba(5, 150, 105, 0.09);
+      color: var(--emerald);
+      border: 1px solid rgba(5, 150, 105, 0.24);
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mono-tag.sky {
+      background: rgba(13, 148, 136, 0.09);
+      color: var(--sky);
+      border-color: rgba(13, 148, 136, 0.24);
+    }
+    .mono-tag.amber {
+      background: rgba(217, 119, 6, 0.09);
+      color: #b45309;
+      border-color: rgba(217, 119, 6, 0.24);
     }
 
-    /* ── 1. Hero Section ── */
-    .hero-section {
-      padding-top: 64px;
-      padding-bottom: 56px;
-    }
-    .hero-split {
-      display: grid;
-      grid-template-columns: 1.05fr 0.95fr;
-      gap: 48px;
+    /* ── 1. FULL-BLEED GRAPHIC BILLBOARD HERO ── */
+    .hero-billboard {
+      position: relative;
+      width: 100%;
+      min-height: clamp(560px, 84vh, 840px);
+      display: flex;
       align-items: center;
+      overflow: hidden;
+      background: #0f172a;
+      border-bottom: 1px solid var(--border-hairline);
     }
-    @media (max-width: 1040px) {
-      .hero-split { grid-template-columns: 1fr; }
+    .billboard-bg-stage {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
     }
-    .changelog-pill {
+    .billboard-slide {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 22%;
+      opacity: 0;
+      transform: scale(1.02);
+      transition: opacity 1.8s ease-in-out, transform 7s ease-out;
+      will-change: opacity, transform;
+    }
+    .billboard-slide.is-active {
+      opacity: 1;
+      transform: scale(1.07);
+    }
+    .billboard-scrim {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background:
+        linear-gradient(102deg, rgba(250, 251, 252, 0.97) 0%, rgba(250, 251, 252, 0.92) 38%, rgba(250, 251, 252, 0.56) 62%, rgba(15, 23, 42, 0.14) 100%),
+        linear-gradient(180deg, rgba(250, 251, 252, 0.35) 0%, transparent 18%, transparent 80%, rgba(250, 251, 252, 0.5) 100%);
+      pointer-events: none;
+    }
+    @media (max-width: 900px) {
+      .billboard-scrim {
+        background: linear-gradient(180deg, rgba(250, 251, 252, 0.94) 0%, rgba(250, 251, 252, 0.88) 58%, rgba(250, 251, 252, 0.72) 100%);
+      }
+    }
+    .billboard-content-wrap {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 1260px;
+      margin: 0 auto;
+      padding: clamp(44px, 6vw, 84px) clamp(14px, 3vw, 28px);
+      display: grid;
+      grid-template-columns: minmax(0, 600px) 1fr;
+      align-items: end;
+      gap: 24px;
+    }
+    @media (max-width: 900px) {
+      .billboard-content-wrap { grid-template-columns: 1fr; }
+    }
+    .hero-pill {
       display: inline-flex;
       align-items: center;
       gap: 9px;
-      padding: 5px 13px;
+      padding: 6px 14px;
       border-radius: 999px;
-      background: rgba(0, 245, 160, 0.07);
-      border: 1px solid var(--border-emerald);
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(5, 150, 105, 0.28);
       font-size: 12px;
       font-weight: 600;
       color: var(--emerald);
-      margin-bottom: 22px;
-    }
-    .changelog-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--emerald);
-      box-shadow: 0 0 8px var(--emerald);
-    }
-    .hero-h1 {
-      font-family: 'Outfit', sans-serif;
-      font-size: clamp(38px, 4.6vw, 58px);
-      font-weight: 900;
-      line-height: 1.05;
-      letter-spacing: -0.03em;
       margin-bottom: 18px;
     }
+    .hero-pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px rgba(5, 150, 105, 0.5);
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.25); }
+    }
+    .hero-h1 {
+      font-size: clamp(32px, 4.6vw, 58px);
+      font-weight: 700;
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+      color: #0f172a;
+    }
     .hero-h1 .accent {
-      background: linear-gradient(135deg, #00f5a0 0%, #38bdf8 70%, #818cf8 100%);
+      background: linear-gradient(135deg, #059669 0%, #0d9488 60%, #047857 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
     .hero-lead {
-      font-size: 17px;
-      color: var(--text-secondary);
-      max-width: 520px;
-      margin-bottom: 28px;
-      line-height: 1.55;
+      font-size: clamp(14.5px, 1.35vw, 17px);
+      color: #1e293b;
+      max-width: 530px;
+      margin-bottom: 24px;
+      line-height: 1.6;
+      font-weight: 500;
     }
     .hero-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      margin-bottom: 36px;
+      margin-bottom: 26px;
     }
-    .hero-proof-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
-      padding-top: 24px;
-      border-top: 1px solid var(--border-hairline);
-    }
-    .proof-item strong {
-      display: block;
-      font-family: 'Outfit', sans-serif;
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--text-primary);
-    }
-    .proof-item span {
+    .hero-trust-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(15, 23, 42, 0.12);
       font-size: 12.5px;
-      color: var(--text-secondary);
+      font-weight: 600;
+      color: #334155;
+    }
+    .hero-trust-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .trust-emblem {
+      width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      border: 1px solid;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .store-badge-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .store-badge-btn:hover { transform: translateY(-2px); }
+    .store-apple {
+      background: #0f172a;
+      color: #ffffff;
+      border: 1px solid #0f172a;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.22);
+    }
+    .store-apple:hover { background: #1e293b; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.30); }
+    .store-play {
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    }
+    .store-play:hover { border-color: var(--emerald); box-shadow: 0 10px 24px rgba(5, 150, 105, 0.16); }
+    .store-badge-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+      text-align: left;
+    }
+    .store-badge-text small { font-size: 9.5px; font-weight: 600; letter-spacing: 0.04em; opacity: 0.82; }
+    .store-badge-text strong { font-size: 15px; font-weight: 800; font-family: 'Space Grotesk', sans-serif; }
+    .brand-mark-chip {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 10px;
+      font-weight: 800;
+      color: #ffffff;
+      flex-shrink: 0;
     }
 
-    /* Interactive Hero Product Window */
-    .arch-window {
-      background: rgba(9, 16, 32, 0.94);
-      border: 1px solid rgba(255, 255, 255, 0.11);
-      border-radius: 20px;
-      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 245, 160, 0.1);
-      overflow: hidden;
+    /* Billboard Right-Bottom Telemetry & Scene Label */
+    .billboard-hud-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: flex-end;
+      gap: 12px;
     }
-    .arch-window-bar {
-      background: rgba(4, 8, 18, 0.95);
+    @media (max-width: 900px) {
+      .billboard-hud-col { align-items: flex-start; }
+    }
+    .hud-glass-card {
+      background: rgba(15, 23, 42, 0.84);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 14px;
+      padding: 11px 15px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.24);
+    }
+    .hud-icon-box {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: rgba(16, 185, 129, 0.22);
+      color: #34d399;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .hud-glass-card strong {
+      display: block;
+      font-size: 12.5px;
+      color: #ffffff;
+      line-height: 1.25;
+    }
+    .hud-glass-card small {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      color: #6ee7b7;
+    }
+
+    .hero-play-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      color: #0f172a;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+    }
+    .hero-play-trigger:hover {
+      background: #059669;
+      border-color: #059669;
+      color: #ffffff;
+    }
+
+    /* ── 2. ANONYMIZED PILOT METRICS BAND ── */
+    .metrics-band {
+      border-top: 1px solid var(--border-hairline);
       border-bottom: 1px solid var(--border-hairline);
-      padding: 11px 16px;
+      background: var(--bg-surface);
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 900px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .metrics-grid { grid-template-columns: 1fr; } }
+    .metric-card {
+      padding: 22px;
+      border-radius: 16px;
+      background: #ffffff;
+      border: 1px solid var(--border-hairline);
+      box-shadow: var(--shadow-card);
+    }
+    .metric-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(28px, 3vw, 36px);
+      font-weight: 900;
+      color: var(--emerald);
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+    .metric-label {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+    .metric-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ── 3. INTERACTIVE PRODUCT CONSOLE ── */
+    .console-shell {
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: var(--shadow-hover);
+    }
+    .console-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 14px;
+      padding: 13px 18px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-hairline);
+      flex-wrap: wrap;
     }
-    .window-dots {
-      display: flex;
-      gap: 6px;
-      flex-shrink: 0;
-    }
-    .window-dots i {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      display: inline-block;
-    }
+    .window-dots { display: flex; gap: 6px; }
+    .window-dots i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
     .window-dots i:nth-child(1) { background: #f43f5e; }
     .window-dots i:nth-child(2) { background: #f59e0b; }
     .window-dots i:nth-child(3) { background: #10b981; }
-    .window-tabs {
+    .console-tabs {
       display: flex;
-      gap: 4px;
-      overflow-x: auto;
-      scrollbar-width: none;
+      gap: 6px;
+      flex-wrap: wrap;
     }
-    .window-tabs::-webkit-scrollbar { display: none; }
     .win-tab {
-      padding: 5px 11px;
-      border-radius: 7px;
+      padding: 6px 13px;
+      border-radius: 8px;
       border: 1px solid transparent;
       background: transparent;
       color: var(--text-secondary);
-      font-size: 11.5px;
+      font-size: 12px;
       font-weight: 600;
-      white-space: nowrap;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.16s ease;
     }
+    .win-tab:hover { color: var(--text-primary); background: rgba(15, 23, 42, 0.04); }
     .win-tab.active {
-      background: rgba(0, 245, 160, 0.12);
+      background: rgba(5, 150, 105, 0.10);
       border-color: var(--border-emerald);
       color: var(--emerald);
     }
-    .arch-window-body {
-      padding: 24px;
-      min-height: 310px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+    .console-body {
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 28px;
+      align-items: center;
     }
+    @media (max-width: 920px) { .console-body { grid-template-columns: 1fr; } }
     .arch-pane { display: none; }
     .arch-pane.active { display: block; }
-
     .mock-card {
-      background: rgba(255, 255, 255, 0.03);
+      background: #f8fafc;
       border: 1px solid var(--border-hairline);
       border-radius: 14px;
       padding: 16px;
@@ -381,76 +670,73 @@
       justify-content: space-between;
       gap: 12px;
     }
-    .mono-tag {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10.5px;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: rgba(0, 245, 160, 0.12);
-      color: var(--emerald);
-      border: 1px solid rgba(0, 245, 160, 0.25);
-      white-space: nowrap;
+    .console-screenshot-stage {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-strong);
+      background: #f8fafc;
+      aspect-ratio: 16 / 10;
+      box-shadow: var(--shadow-card);
+    }
+    .console-screenshot-stage img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top left;
+      display: block;
     }
 
-    .sector-strip {
-      max-width: 1240px;
-      margin: 28px auto 0;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-    }
-    .sector-pill {
-      padding: 7px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border-hairline);
-      background: rgba(255, 255, 255, 0.025);
-      color: var(--text-secondary);
-      font-size: 12.5px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.16s ease;
-    }
-    .sector-pill:hover {
-      border-color: var(--emerald);
-      color: var(--emerald);
-      background: rgba(0, 245, 160, 0.06);
-    }
-
-    /* ── 2. Clean 4-Card Bento Grid ── */
+    /* ── 4. BENTO FEATURE GRID + EDITORIAL PHOTOS ── */
     .bento-grid {
       display: grid;
       grid-template-columns: repeat(12, 1fr);
       gap: 20px;
     }
     .bento-cell {
+      position: relative;
       background: var(--bg-card);
       border: 1px solid var(--border-hairline);
-      border-radius: 20px;
+      border-radius: var(--radius-lg);
       padding: 28px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: border-color 0.2s ease, background 0.2s ease;
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
     }
     .bento-cell:hover {
-      border-color: rgba(0, 245, 160, 0.32);
-      background: var(--bg-card-hover);
+      transform: translateY(-3px);
+      border-color: var(--border-emerald);
+      box-shadow: var(--shadow-hover);
     }
+    .span-7 { grid-column: span 7; }
+    .span-5 { grid-column: span 5; }
     .span-6 { grid-column: span 6; }
-    @media (max-width: 900px) {
-      .span-6 { grid-column: span 12; }
+    .span-4 { grid-column: span 4; }
+    @media (max-width: 960px) {
+      .span-7, .span-5, .span-6, .span-4 { grid-column: span 12; }
     }
     .bento-cell h3 {
       font-family: 'Outfit', sans-serif;
-      font-size: 21px;
+      font-size: 22px;
       font-weight: 800;
-      margin: 10px 0 8px;
+      margin: 12px 0 8px;
+      color: var(--text-primary);
     }
     .bento-cell p {
       font-size: 14.5px;
       color: var(--text-secondary);
       margin-bottom: 18px;
+    }
+    .bento-photo {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      border-radius: 14px;
+      border: 1px solid var(--border-hairline);
+      margin-top: 8px;
     }
     .bento-spec-list {
       display: flex;
@@ -463,18 +749,45 @@
       font-size: 11px;
       padding: 4px 10px;
       border-radius: 7px;
-      background: rgba(255, 255, 255, 0.04);
+      background: #f1f5f9;
       border: 1px solid var(--border-hairline);
-      color: #cbd5e1;
+      color: #334155;
     }
 
-    /* ── 3. Role Switcher ── */
+    /* ── 5. PRODUCT FILM / WALKTHROUGH ── */
+    .film-card {
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      border-radius: 24px;
+      padding: 32px;
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 32px;
+      align-items: center;
+      box-shadow: var(--shadow-card);
+    }
+    @media (max-width: 940px) { .film-card { grid-template-columns: 1fr; } }
+    .film-player-wrap {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-strong);
+      background: #0f172a;
+      box-shadow: 0 20px 44px rgba(15, 23, 42, 0.14);
+    }
+    .film-player-wrap video {
+      width: 100%;
+      display: block;
+      aspect-ratio: 16 / 9;
+      background: #000;
+    }
+
+    /* ── 6. ROLE WORKFLOW SWITCHER ── */
     .stakeholder-tabs {
       display: inline-flex;
       gap: 6px;
       padding: 5px;
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.03);
+      background: #f1f5f9;
       border: 1px solid var(--border-hairline);
       margin-bottom: 24px;
       flex-wrap: wrap;
@@ -490,62 +803,206 @@
       cursor: pointer;
     }
     .stk-btn.active {
-      background: rgba(0, 245, 160, 0.14);
+      background: #ffffff;
       color: var(--emerald);
       border-color: var(--border-emerald);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
     }
     .stk-panel {
       display: none;
-      background: var(--bg-card);
+      background: #ffffff;
       border: 1px solid var(--border-hairline);
-      border-radius: 20px;
+      border-radius: 22px;
       padding: 32px;
-      grid-template-columns: 1.05fr 0.95fr;
+      grid-template-columns: 1fr 1fr;
       gap: 32px;
       align-items: center;
+      box-shadow: var(--shadow-card);
     }
     .stk-panel.active { display: grid; }
-    @media (max-width: 880px) {
-      .stk-panel.active { grid-template-columns: 1fr; }
+    @media (max-width: 880px) { .stk-panel.active { grid-template-columns: 1fr; } }
+
+    /* ── 7. COMPLIANCE & COMPARISON TABLE ── */
+    .compliance-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-bottom: 42px;
+    }
+    @media (max-width: 900px) { .compliance-grid { grid-template-columns: 1fr; } }
+    .compliance-card {
+      background: #ffffff;
+      border: 1px solid var(--border-hairline);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+    }
+    .compliance-card h4 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      margin: 10px 0 6px;
+      color: var(--text-primary);
+    }
+    .compliance-card p { font-size: 13.5px; color: var(--text-secondary); }
+
+    .compare-table-wrap {
+      overflow-x: auto;
+      border-radius: 20px;
+      border: 1px solid var(--border-hairline);
+      background: #ffffff;
+      box-shadow: var(--shadow-card);
+    }
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 680px;
+      font-size: 14px;
+    }
+    .compare-table th, .compare-table td {
+      padding: 16px 20px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-hairline);
+    }
+    .compare-table th {
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-primary);
+      background: #f8fafc;
+    }
+    .compare-table th.sr-col, .compare-table td.sr-col {
+      background: rgba(5, 150, 105, 0.05);
+      color: #0f172a;
+      font-weight: 600;
+    }
+    .compare-table td { color: var(--text-secondary); }
+    .chk-yes { color: var(--emerald); font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+    .chk-no { color: var(--text-muted); }
+
+    /* ── 8. INDUSTRIES GRID ── */
+    .industry-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+    @media (max-width: 1020px) { .industry-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .industry-grid { grid-template-columns: 1fr; } }
+    .industry-card {
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid var(--border-hairline);
+      background: #ffffff;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+    }
+    .industry-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-emerald);
+      box-shadow: var(--shadow-hover);
+    }
+    .industry-card img {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      display: block;
+    }
+    .industry-card-body { padding: 18px; }
+    .industry-card-body h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+    .industry-card-body p { font-size: 13px; color: var(--text-secondary); }
+
+    /* ── 9. PRICING TEASER + FAQ ── */
+    .pricing-strip {
+      background: linear-gradient(135deg, rgba(5, 150, 105, 0.06), rgba(2, 132, 199, 0.05));
+      border: 1px solid var(--border-emerald);
+      border-radius: 24px;
+      padding: 36px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 820px) { .faq-grid { grid-template-columns: 1fr; } }
+    .faq-item {
+      background: #ffffff;
+      border: 1px solid var(--border-hairline);
+      border-radius: 16px;
+      padding: 20px 22px;
+      box-shadow: var(--shadow-card);
+    }
+    .faq-item summary {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-primary);
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-chevron {
+      color: var(--emerald);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .faq-item[open] .faq-chevron { transform: rotate(180deg); }
+    .faq-item p {
+      margin-top: 10px;
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.6;
     }
 
-    /* ── 4. Conversion Split (Demo + ROI) ── */
+    /* ── 10. CONVERSION SPLIT (PILOT FORM + ROI ESTIMATOR) ── */
     .conversion-split {
       display: grid;
       grid-template-columns: 1.1fr 0.9fr;
       gap: 24px;
     }
-    @media (max-width: 960px) {
-      .conversion-split { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 960px) { .conversion-split { grid-template-columns: 1fr; } }
     .conversion-box {
-      background: var(--bg-card);
+      background: #ffffff;
       border: 1px solid var(--border-hairline);
       border-radius: 22px;
       padding: 32px;
+      box-shadow: var(--shadow-card);
     }
-    .form-2col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-    @media (max-width: 600px) {
-      .form-2col { grid-template-columns: 1fr; }
-    }
+    .form-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 600px) { .form-2col { grid-template-columns: 1fr; } }
     .inp-group { margin-bottom: 14px; }
     .inp-group label {
       display: block;
       font-size: 12px;
       font-weight: 600;
-      color: #cbd5e1;
+      color: #334155;
       margin-bottom: 5px;
     }
     .inp-group input, .inp-group select, .inp-group textarea {
       width: 100%;
       padding: 11px 13px;
       border-radius: 10px;
-      background: rgba(4, 8, 18, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #f8fafc;
+      border: 1px solid var(--border-strong);
       color: var(--text-primary);
       font-size: 13.5px;
       font-family: inherit;
@@ -553,340 +1010,627 @@
     }
     .inp-group input:focus, .inp-group select:focus, .inp-group textarea:focus {
       border-color: var(--emerald);
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
     }
 
-    /* ── Footer ── */
-    .corp-footer {
+    /* ── 11. FLOATING RIGHT-TO-LEFT ECOSYSTEM MARQUEE ── */
+    .marquee-section {
       border-top: 1px solid var(--border-hairline);
-      background: #02050b;
+      border-bottom: 1px solid var(--border-hairline);
+      background: var(--bg-surface);
+      padding: 36px 0;
+      overflow: hidden;
+    }
+    .marquee-caption {
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      padding: 0 20px;
+    }
+    .marquee-viewport {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      mask-image: linear-gradient(90deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+    }
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      gap: 18px;
+      animation: marquee-rtl 36s linear infinite;
+    }
+    .marquee-viewport:hover .marquee-track {
+      animation-play-state: paused;
+    }
+    @keyframes marquee-rtl {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .eco-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 20px;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 1px solid var(--border-hairline);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      white-space: nowrap;
+      color: var(--text-primary);
+      font-size: 13.5px;
+      font-weight: 700;
+      transition: border-color 0.2s ease;
+    }
+    .eco-badge:hover { border-color: var(--emerald); }
+    .eco-badge small {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--emerald);
+      text-transform: uppercase;
+    }
+
+    /* ── Footer (Deep Slate Anchor) ── */
+    .corp-footer {
+      background: #0f172a;
+      color: #f8fafc;
       padding: 56px 28px 36px;
     }
+    .corp-footer .brand-wordmark { color: #ffffff; }
+    .corp-footer .brand-wordmark span { color: #34d399; }
     .footer-grid {
-      max-width: 1240px;
+      max-width: 1260px;
       margin: 0 auto;
       display: grid;
       grid-template-columns: 1.4fr 1fr 1fr 1fr;
       gap: 32px;
     }
-    @media (max-width: 860px) {
-      .footer-grid { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 540px) {
-      .footer-grid { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 860px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 540px) { .footer-grid { grid-template-columns: 1fr; } }
     .footer-col h4 {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: var(--text-primary);
+      color: #ffffff;
       margin-bottom: 12px;
     }
     .footer-col a {
       display: block;
-      color: var(--text-secondary);
+      color: #94a3b8;
       text-decoration: none;
       font-size: 13.5px;
       margin-bottom: 8px;
     }
-    .footer-col a:hover { color: var(--emerald); }
+    .footer-col a:hover { color: #34d399; }
 
+    @media (max-width: 768px) {
+      .hero-h1 { font-size: clamp(28px, 7.5vw, 40px); }
+      .hero-lead { font-size: 15px; }
+      .console-body { padding: 18px; gap: 18px; }
+      .bento-cell, .stk-panel, .conversion-box, .pricing-strip { padding: 20px; }
+      .hero-float-badge { top: 10px; left: 10px; padding: 7px 10px; }
+      .hero-floating-hud { left: 10px; right: 10px; bottom: 10px; }
+      .hud-glass-card { padding: 8px 10px; }
+    }
     @media (max-width: 640px) {
-      .site-navbar { padding: 12px 16px; }
       .nav-cta-cluster .btn-outline { display: none; }
-      .container { padding: 48px 16px; }
-      .hero-proof-grid { grid-template-columns: 1fr; gap: 12px; }
-      .conversion-box, .bento-cell, .stk-panel { padding: 20px; }
+      .nav-cta-cluster .btn-primary-emerald { white-space: nowrap; padding: 8px 13px; font-size: 12.5px; }
+      .brand-wordmark { font-size: 17.5px; }
       .roi-metrics-grid, .sr-nws-grid { grid-template-columns: 1fr !important; }
+    }
+    @media (max-width: 390px) {
+      .site-navbar { padding: 10px 12px; }
+      .brand-wordmark { font-size: 16px; }
+      .nav-cta-cluster .btn-primary-emerald { padding: 7px 11px; font-size: 11.5px; }
+      .hero-actions a { width: 100%; justify-content: center; }
+      .hero-float-badge { display: none; }
+    }
+
+    /* ── Scroll Progress Bar & Interactive Enhancements ── */
+    .sr-scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 2.5px;
+      width: 0%;
+      z-index: 999;
+      background: linear-gradient(90deg, #10b981, #059669, #0d9488);
+      pointer-events: none;
+    }
+    .hero-float-badge {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(5, 150, 105, 0.18);
+      border-radius: 12px;
+      padding: 9px 13px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .hero-float-badge strong { font-size: 12px; color: #0f172a; display: block; line-height: 1.2; }
+    .hero-float-badge small { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #059669; font-weight: 600; }
+
+    /* Before / After Operational Switcher */
+    .ba-toggle-wrap {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 12px;
+      background: #e2e8f0;
+      margin-bottom: 24px;
+    }
+    .ba-btn {
+      padding: 8px 16px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .ba-btn.active {
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+    .ba-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-bottom: 40px;
+    }
+    @media (max-width: 860px) { .ba-grid { grid-template-columns: 1fr; } }
+    .ba-card {
+      background: #ffffff;
+      border: 1px solid var(--border-hairline);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: var(--shadow-card);
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+    .ba-card.is-after { border-color: rgba(5, 150, 105, 0.28); }
+    .ba-card.is-before { border-color: rgba(225, 29, 72, 0.22); background: #fffafb; }
+    .ba-card h4 { font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 800; margin: 10px 0 6px; color: var(--text-primary); }
+    .ba-card p { font-size: 13.5px; color: var(--text-secondary); }
+
+    /* Spotlight hover on Bento & Compliance cards */
+    .bento-cell::before, .compliance-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(360px circle at var(--mx, -200px) var(--my, -200px), rgba(5, 150, 105, 0.06), transparent 60%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .bento-cell:hover::before, .compliance-card:hover::before { opacity: 1; }
+    .compliance-card { position: relative; overflow: hidden; }
+
+    /* Video Lightbox Modal */
+    .sr-video-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .sr-video-modal.open { display: flex; }
+    .sr-video-dialog {
+      width: 100%;
+      max-width: 920px;
+      background: #0f172a;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5);
+    }
+    .sr-video-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      color: #f8fafc;
+      font-size: 13.5px;
+      font-weight: 700;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .sr-video-close {
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
   </style>
 </head>
 <body>
+  <div class="sr-scroll-progress" id="sr-scroll-progress" aria-hidden="true"></div>
+  <div class="ambient-canvas" aria-hidden="true"></div>
+  <div class="ambient-grid" aria-hidden="true"></div>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
        NAVBAR
        ═══════════════════════════════════════════════════════════════════════ -->
-  <header class="site-navbar">
+  <header class="site-navbar" id="sr-navbar">
     <div class="navbar-inner">
       <a href="/website.html" class="brand-lockup">
-        <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay OS" class="brand-mark-static" />
+        <img src="/assets/logos/logo-brand-motion.svg?v=165" alt="ShiftRelay" class="brand-mark-static" />
         <div class="brand-wordmark">Shift<span>Relay</span></div>
       </a>
 
-      <nav class="nav-center-links">
-        <a href="#platform-bento">Product</a>
-        <a href="#how-it-works">Workflow</a>
-        <a href="/calculator.html">Calculator</a>
+      <nav class="nav-center-links" aria-label="Primary Navigation">
+        <a href="#platform-bento">Platform</a>
+        <a href="#how-it-works">Workflows</a>
+        <a href="#compliance-section">Compliance</a>
+        <a href="/calculator.html">PAYE Calculator</a>
         <a href="/pricing.html">Pricing</a>
-        <a href="/trust.html">Trust</a>
       </nav>
 
       <div class="nav-cta-cluster">
-        <a href="/index.html" class="btn-outline">Sign In</a>
-        <a href="#demo-request-section" class="btn-primary-emerald">Book a Demo</a>
+        <a href="#hero-download" class="btn-outline">Get the App</a>
+        <a href="#demo-request-section" class="btn-primary-emerald">Start Free Pilot</a>
         <button type="button" id="sr-web-menu-btn" class="sr-web-menu-btn" aria-label="Toggle Menu" aria-expanded="false" onclick="window.toggleWebMobileNav()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
         </button>
       </div>
     </div>
 
     <nav id="sr-web-mobile-nav" class="sr-mobile-nav-drawer" aria-label="Mobile Navigation">
-      <a href="#platform-bento" onclick="window.toggleWebMobileNav(false)">Product</a>
-      <a href="#how-it-works" onclick="window.toggleWebMobileNav(false)">Workflow</a>
+      <a href="#platform-bento" onclick="window.toggleWebMobileNav(false)">Platform</a>
+      <a href="#how-it-works" onclick="window.toggleWebMobileNav(false)">Workflows</a>
+      <a href="#compliance-section" onclick="window.toggleWebMobileNav(false)">Compliance &amp; Security</a>
       <a href="/calculator.html">PAYE &amp; PenCom Calculator</a>
       <a href="/pricing.html">Pricing</a>
       <a href="/trust.html">Trust &amp; Legal Center</a>
-      <a href="/status.html">System Status</a>
       <div style="display:flex; gap:8px; padding-top:8px; border-top:1px solid var(--border-hairline);">
-        <a href="/index.html" class="btn-outline" style="flex:1; justify-content:center;">Sign In</a>
-        <a href="#demo-request-section" class="btn-primary-emerald" style="flex:1; justify-content:center;" onclick="window.toggleWebMobileNav(false)">Book a Demo</a>
+        <a href="#hero-download" class="btn-outline" style="flex:1; justify-content:center;" onclick="window.toggleWebMobileNav(false)">Get the App</a>
+        <a href="#demo-request-section" class="btn-primary-emerald" style="flex:1; justify-content:center;" onclick="window.toggleWebMobileNav(false)">Start Free Pilot</a>
       </div>
     </nav>
   </header>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       1. HERO SECTION
+       1. FULL-BLEED GRAPHIC BILLBOARD HERO (33-SCENE AUTO-ROTATING POOL)
        ═══════════════════════════════════════════════════════════════════════ -->
-  <section class="container hero-section">
-    <div class="hero-split">
-      <div>
-        <div class="changelog-pill">
-          <span class="changelog-dot"></span>
-          <span>ShiftRelay OS &middot; Workforce Attendance, Handovers &amp; Payroll</span>
+  <section class="hero-billboard">
+    <div class="billboard-bg-stage" aria-hidden="true">
+      <img id="hero-slide-a" class="billboard-slide is-active" src="/assets/site/hero-pool/8069554.jpg" alt="" loading="eager" />
+      <img id="hero-slide-b" class="billboard-slide" src="/assets/site/hero-pool/8487393.jpg" alt="" loading="eager" />
+    </div>
+    <div class="billboard-scrim" aria-hidden="true"></div>
+
+    <div class="billboard-content-wrap">
+      <div class="hero-copy">
+        <div class="hero-pill gsap-hero">
+          <span class="hero-pill-dot"></span>
+          <span>ShiftRelay &middot; Frontline Operations &amp; Statutory Payroll</span>
         </div>
 
-        <h1 class="hero-h1">
-          Biometric Shift Operations &amp; <span class="accent">Automated Payroll.</span>
+        <h1 class="hero-h1 gsap-hero">
+          Know who's on shift. <span class="accent">Pay them right. Every time.</span>
         </h1>
 
-        <p class="hero-lead">
-          Clock in with GPS or colleague peer scan, automate shift handovers, and run compliant Nigerian payroll in one click.
+        <p class="hero-lead gsap-hero">
+          The only workforce operating system that runs the shift floor and Nigerian statutory payroll from one source of verified hours—GPS &amp; peer clock-ins, signed handovers, and 1-click PenCom, PAYE, and bank CSV dispatch.
         </p>
 
-        <div class="hero-actions">
-          <a href="#demo-request-section" class="btn-primary-emerald" style="padding:12px 24px; font-size:14px;">
-            Book a Demo &rarr;
+        <div class="hero-actions gsap-hero" id="hero-download">
+          <a href="https://apps.apple.com/search?term=ShiftRelay" target="_blank" rel="noopener noreferrer" class="store-badge-btn store-apple" aria-label="Download on the App Store">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.33c.67-.81 1.12-1.94 1-3.08-.96.04-2.13.64-2.82 1.45-.61.71-1.15 1.86-1.01 2.96 1.08.08 2.16-.52 2.83-1.33"/></svg>
+            <span class="store-badge-text">
+              <small>Download on the</small>
+              <strong>App Store</strong>
+            </span>
           </a>
-          <a href="/index.html" class="btn-outline" style="padding:12px 22px; font-size:14px;">
-            Sign In to Workspace
-          </a>
-          <a href="/calculator.html" class="btn-outline" style="padding:12px 18px; font-size:13.5px; color:var(--text-secondary);">
-            PAYE Calculator
+          <a href="https://play.google.com/store/apps/details?id=com.shiftrelayos.app" target="_blank" rel="noopener noreferrer" class="store-badge-btn store-play" aria-label="Get it on Google Play">
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M3.61 1.814A1.75 1.75 0 0 0 3 3.144v17.712c0 .51.22.99.61 1.33l.08.07L13.79 12.16v-.32L3.69 1.74l-.08.074z"/>
+              <path fill="#34A853" d="M17.16 15.53L13.79 12.16v-.32l3.37-3.37.08.045 3.99 2.266c1.14.648 1.14 1.708 0 2.356l-3.99 2.266-.08.027z"/>
+              <path fill="#FBBC05" d="M17.24 15.503L13.79 12 3.61 22.186c.38.34.97.38 1.66-.01l11.97-6.673z"/>
+              <path fill="#EA4335" d="M17.24 8.497L5.27 1.824C4.58 1.434 3.99 1.474 3.61 1.814L13.79 12l3.45-3.503z"/>
+            </svg>
+            <span class="store-badge-text">
+              <small>GET IT ON</small>
+              <strong>Google Play</strong>
+            </span>
           </a>
         </div>
 
-        <div class="hero-proof-grid">
-          <div class="proof-item">
-            <strong>Zero Hardware</strong>
-            <span>Mobile &amp; Peer ID Scan</span>
-          </div>
-          <div class="proof-item">
-            <strong>Live Handovers</strong>
-            <span>Checklists &amp; Shift Alerts</span>
-          </div>
-          <div class="proof-item">
-            <strong>1-Click Payroll</strong>
-            <span>PenCom, PAYE &amp; Bank CSV</span>
-          </div>
+        <div class="hero-trust-row gsap-hero">
+          <span class="hero-trust-item">
+            <span class="trust-emblem" style="background:#ecfdf5; color:#008751; border-color:rgba(0,135,81,0.28);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            NDPA 2023 Data Isolation
+          </span>
+          <span class="hero-trust-item">
+            <span class="trust-emblem" style="background:#f0fdf4; color:#059669; border-color:rgba(5,150,105,0.28);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg>
+            </span>
+            PenCom PRA 2014 &amp; PAYE
+          </span>
+          <span class="hero-trust-item">
+            <span class="trust-emblem" style="background:#f8fafc; color:#0f172a; border-color:rgba(15,23,42,0.2);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect width="12" height="20" x="6" y="2" rx="2"/><path d="M12 18h.01"/><path d="m9.5 10.5 1.8 1.8 3.2-3.3"/></svg>
+            </span>
+            Zero Kiosk Hardware Needed
+          </span>
         </div>
       </div>
 
-      <!-- Interactive Product Preview Window -->
-      <div class="arch-window">
-        <div class="arch-window-bar">
-          <div class="window-dots"><i></i><i></i><i></i></div>
-          <div class="window-tabs">
-            <button type="button" class="win-tab active" data-pane="pane-mobile" onclick="window.switchHeroPane('pane-mobile')">Clock-In</button>
-            <button type="button" class="win-tab" data-pane="pane-peer" onclick="window.switchHeroPane('pane-peer')">Peer Scan</button>
-            <button type="button" class="win-tab" data-pane="pane-exceptions" onclick="window.switchHeroPane('pane-exceptions')">Exceptions</button>
-            <button type="button" class="win-tab" data-pane="pane-payroll" onclick="window.switchHeroPane('pane-payroll')">Payroll</button>
+      <div class="billboard-hud-col gsap-hero">
+        <div class="hud-glass-card">
+          <div class="hud-icon-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div>
+            <strong id="billboard-scene-title">Logistics &amp; Warehouse &bull; Live Mobile Clock-In</strong>
+            <small id="billboard-scene-meta">GPS + PEER CARD &bull; ₦10.72M PAYROLL READY</small>
           </div>
         </div>
+        <button type="button" class="hero-play-trigger" onclick="window.openVideoLightbox()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+          Watch 3-Min Walkthrough
+        </button>
+      </div>
+    </div>
+  </section>
 
-        <div class="arch-window-body">
-          <!-- Pane 1: Clock-In -->
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       2. ANONYMIZED PILOT & PRODUCTION METRICS (NO CUSTOMER NAMES)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="metrics-band">
+    <div class="container-tight">
+      <div class="metrics-grid">
+        <div class="metric-card gsap-reveal">
+          <div class="metric-val" data-count="99.8" data-suffix="%" data-decimals="1">99.8%</div>
+          <div class="metric-label">Punch Verification Rate</div>
+          <div class="metric-sub">Across 14,320+ tracked frontline shift punches</div>
+        </div>
+        <div class="metric-card gsap-reveal">
+          <div class="metric-val" data-count="100" data-suffix="%" data-decimals="0">100%</div>
+          <div class="metric-label">Payroll Reconciliation Match</div>
+          <div class="metric-sub">Zero calculation errors across PenCom &amp; PAYE CSVs</div>
+        </div>
+        <div class="metric-card gsap-reveal">
+          <div class="metric-val">30–45m</div>
+          <div class="metric-label">Saved Per Shift Handover</div>
+          <div class="metric-sub">Eliminates manual paper roll calls &amp; WhatsApp chaos</div>
+        </div>
+        <div class="metric-card gsap-reveal">
+          <div class="metric-val" data-count="99.92" data-suffix="%" data-decimals="2">99.92%</div>
+          <div class="metric-label">Platform Availability</div>
+          <div class="metric-sub">Offline-resilient punch queue for low-signal sites</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       3. INTERACTIVE LIVE PRODUCT CONSOLE
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="container">
+    <div class="section-header centered">
+      <span class="section-eyebrow">LIVE PRODUCT CONSOLE</span>
+      <h2>See how ShiftRelay connects the gate to payroll.</h2>
+      <p>Click through the four core workflows—no static slide decks, preview the real exception &amp; payout math.</p>
+    </div>
+
+    <div class="console-shell gsap-reveal">
+      <div class="console-bar">
+        <div class="window-dots"><i></i><i></i><i></i></div>
+        <div class="console-tabs" role="tablist">
+          <button type="button" class="win-tab active" data-pane="pane-mobile" data-img="/assets/site/app-supervisor.png" onclick="window.switchHeroPane('pane-mobile', this)">1. Live Floor &amp; Clock-In</button>
+          <button type="button" class="win-tab" data-pane="pane-peer" data-img="/assets/site/app-workpass.png" onclick="window.switchHeroPane('pane-peer', this)">2. Peer ID Scan</button>
+          <button type="button" class="win-tab" data-pane="pane-exceptions" data-img="/assets/site/app-roster.png" onclick="window.switchHeroPane('pane-exceptions', this)">3. Exception Resolution</button>
+          <button type="button" class="win-tab" data-pane="pane-payroll" data-img="/assets/site/app-payroll.png" onclick="window.switchHeroPane('pane-payroll', this)">4. Statutory Payroll</button>
+        </div>
+        <span class="mono-tag">MULTI-TENANT ISOLATED</span>
+      </div>
+
+      <div class="console-body">
+        <div>
+          <!-- Pane 1 -->
           <div class="arch-pane active" id="pane-mobile">
-            <div class="mock-row" style="margin-bottom:14px;">
-              <div>
-                <div style="font-size:11.5px; color:var(--text-secondary);">ACTIVE SHIFT</div>
-                <strong style="font-size:16px;">Ikeja Operations Hub &middot; Bay 4</strong>
-              </div>
-              <span class="mono-tag">ON SITE</span>
-            </div>
-
-            <div class="mock-card" style="display:flex; align-items:center; justify-content:space-between; gap:16px; background:rgba(0,245,160,0.05); border-color:var(--border-emerald);">
-              <div>
-                <div style="font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:800; color:var(--emerald);">06 : 42 : 19</div>
-                <div style="font-size:12.5px; color:var(--text-secondary); margin-top:2px;">08:00 &ndash; 17:00 Shift &bull; 4/4 Safety Checks Done</div>
-              </div>
-              <div style="width:68px; height:68px; flex-shrink:0; border-radius:50%; background:radial-gradient(circle, rgba(244,63,94,0.32), rgba(15,23,42,0.95)); border:2px solid #f43f5e; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
-                <span style="font-size:10.5px; font-weight:800; color:#fff;">CLOCK OUT</span>
-              </div>
-            </div>
-
-            <div class="mock-card" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:12.5px; color:var(--text-secondary);">Incoming Handover Signed</span>
-              <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--emerald);">+15 PTS</span>
-            </div>
-          </div>
-
-          <!-- Pane 2: Peer Scan -->
-          <div class="arch-pane" id="pane-peer">
-            <div class="mock-row" style="margin-bottom:14px;">
-              <div>
-                <div style="font-size:11.5px; color:var(--text-secondary);">COLLEAGUE ASSISTED CLOCK-IN</div>
-                <strong style="font-size:16px;">Staff ID + Live Face Verification</strong>
-              </div>
-              <span class="mono-tag">VERIFIED</span>
-            </div>
-
-            <div class="mock-card" style="display:grid; grid-template-columns:84px 1fr; gap:14px; align-items:center;">
-              <div style="width:80px; height:80px; border-radius:12px; background:#fff; color:#050912; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:800; font-size:10.5px; border:3px solid var(--emerald);">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><rect width="18" height="14" x="3" y="5" rx="2"/><circle cx="9" cy="12" r="2"/><path d="M14 10h4"/><path d="M14 14h4"/></svg>
-                <div style="color:#059669; margin-top:4px;">RIF-0008</div>
-              </div>
-              <div>
-                <strong style="font-size:14px; display:block; margin-bottom:4px;">No Phone or Dead Battery</strong>
-                <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:6px;">
-                  Scan a teammate's Staff ID card, verify their face against their HR profile photo, and accept shift handover in seconds.
-                </p>
-                <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--emerald);">
-                  Face Match 94.6% &bull; Handover Accepted
+            <span class="mono-tag" style="margin-bottom:12px;">ACTIVE SHIFT TELEMETRY</span>
+            <h3 style="font-family:'Outfit',sans-serif; font-size:24px; margin-bottom:10px;">Point-of-Punch GPS &amp; Offline Sync</h3>
+            <p style="font-size:14px; color:var(--text-secondary); margin-bottom:16px;">
+              Staff clock in inside approved site geofences. In basements or port dead-zones, punches queue encrypted locally and sync automatically.
+            </p>
+            <div class="mock-card" style="background:rgba(5, 150, 105,0.05); border-color:var(--border-emerald);">
+              <div class="mock-row">
+                <div>
+                  <div style="font-size:11px; color:var(--text-secondary);">ACTIVE SHIFT &bull; BAY 4</div>
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:800; color:var(--emerald);">06 : 42 : 19</div>
                 </div>
+                <span class="mono-tag">ON SITE (0m DRIFT)</span>
+              </div>
+            </div>
+            <div class="mock-card" style="margin-bottom:0;">
+              <div class="mock-row" style="font-size:13px;">
+                <span style="color:var(--text-secondary);">Incoming Safety Handover</span>
+                <span style="color:var(--emerald); font-family:'JetBrains Mono',monospace;">4/4 CHECKS SIGNED</span>
               </div>
             </div>
           </div>
 
-          <!-- Pane 3: Exceptions -->
-          <div class="arch-pane" id="pane-exceptions">
-            <div class="mock-row" style="margin-bottom:12px;">
-              <div>
-                <div style="font-size:11.5px; color:var(--text-secondary);">SUPERVISOR QUEUE</div>
-                <strong style="font-size:16px;">Attendance Exception Review</strong>
+          <!-- Pane 2 -->
+          <div class="arch-pane" id="pane-peer">
+            <span class="mono-tag sky" style="margin-bottom:12px;">ZERO-SMARTPHONE MODE</span>
+            <h3 style="font-family:'Outfit',sans-serif; font-size:24px; margin-bottom:10px;">Colleague Peer Scan + Live Face Match</h3>
+            <p style="font-size:14px; color:var(--text-secondary); margin-bottom:16px;">
+              Staff without smartphones or with dead batteries scan their Digital Work Pass QR on a teammate's or supervisor's phone, matched live against their HR profile photo.
+            </p>
+            <div class="mock-card" style="margin-bottom:0;">
+              <div class="mock-row" style="margin-bottom:8px;">
+                <strong style="font-size:14px;">Digital Work Pass &bull; QR Verified</strong>
+                <span class="mono-tag">FACE MATCH 94.6%</span>
               </div>
-              <span class="mono-tag" id="sr-demo-exc-badge">PENDING</span>
+              <div style="font-size:12.5px; color:var(--text-secondary);">Eliminates buddy punching and expensive biometric wall hardware.</div>
             </div>
+          </div>
 
-            <div class="mock-card" style="padding:12px;">
-              <div style="font-size:12.5px; color:#f8fafc; font-weight:700; margin-bottom:6px;">
-                Tunde Adeyemi &middot; 08:00 Shift
-              </div>
-              <div style="font-size:11.5px; color:var(--text-secondary); margin-bottom:10px;" id="sr-demo-exc-status">
-                Select supervisor resolution to preview live net pay impact:
-              </div>
+          <!-- Pane 3 -->
+          <div class="arch-pane" id="pane-exceptions">
+            <span class="mono-tag amber" style="margin-bottom:12px;">SUPERVISOR EXCEPTION QUEUE</span>
+            <h3 style="font-family:'Outfit',sans-serif; font-size:24px; margin-bottom:10px;">Live Exception &rarr; Net Pay Preview</h3>
+            <p style="font-size:13.5px; color:var(--text-secondary); margin-bottom:12px;">
+              Test how a supervisor's 1-tap resolution updates statutory PAYE, PenCom, and net take-home pay with zero double-deductions:
+            </p>
+            <div class="mock-card" style="padding:14px;">
+              <div style="font-size:12.5px; font-weight:700; margin-bottom:8px;" id="sr-demo-exc-status">Select resolution to preview live pay impact:</div>
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 <button type="button" class="win-tab active" id="sr-mini-btn-pending" onclick="window.setMiniExceptionDemo('pending')">Pending</button>
                 <button type="button" class="win-tab" id="sr-mini-btn-pardon" onclick="window.setMiniExceptionDemo('pardoned')">Pardon (100% Pay)</button>
                 <button type="button" class="win-tab" id="sr-mini-btn-unexcused" onclick="window.setMiniExceptionDemo('unexcused')">Deduct (-1 Shift)</button>
               </div>
             </div>
-
             <div class="mock-card" style="margin-bottom:0;">
-              <div class="mock-row" style="margin-bottom:6px; font-size:12.5px;">
-                <span style="color:var(--text-secondary);">Adjustment</span>
-                <span style="font-family:'JetBrains Mono',monospace; color:#fbbf24;" id="sr-mini-deduction">-₦11,363.64 (Held)</span>
+              <div class="mock-row" style="font-size:12.5px; margin-bottom:6px;">
+                <span style="color:var(--text-secondary);">Status: <strong id="sr-demo-exc-badge" style="color:var(--text-primary);">PENDING</strong></span>
+                <span style="font-family:'JetBrains Mono',monospace; color:var(--amber);" id="sr-mini-deduction">-₦11,363.64 (Held)</span>
               </div>
-              <div class="mock-row" style="margin-bottom:6px; font-size:12.5px;">
-                <span style="color:var(--text-secondary);">PenCom &amp; PAYE</span>
+              <div class="mock-row" style="font-size:12px; margin-bottom:8px;">
+                <span style="color:var(--text-secondary);">Statutory</span>
                 <span style="font-family:'JetBrains Mono',monospace; color:var(--sky);" id="sr-mini-statutory">PenCom ₦28,636.36 &middot; PAYE ₦17,910.22</span>
               </div>
               <div class="mock-row" style="padding-top:8px; border-top:1px solid var(--border-hairline);">
-                <strong style="font-size:13px;">Net Payout</strong>
-                <strong style="font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--emerald);" id="sr-mini-net">₦197,385.11</strong>
+                <strong>Net Payout</strong>
+                <strong style="font-family:'JetBrains Mono',monospace; font-size:16px; color:var(--emerald);" id="sr-mini-net">₦197,385.11</strong>
               </div>
             </div>
           </div>
 
-          <!-- Pane 4: Payroll -->
+          <!-- Pane 4 -->
           <div class="arch-pane" id="pane-payroll">
-            <div class="mock-row" style="margin-bottom:14px;">
-              <div>
-                <div style="font-size:11.5px; color:var(--text-secondary);">MONTHLY DISBURSEMENT</div>
-                <strong style="font-size:16px;">Statutory Payroll &amp; Bank CSV</strong>
-              </div>
-              <span class="mono-tag">BANK READY</span>
-            </div>
-
+            <span class="mono-tag" style="margin-bottom:12px;">1-CLICK DISBURSEMENT</span>
+            <h3 style="font-family:'Outfit',sans-serif; font-size:24px; margin-bottom:10px;">Nigerian Statutory &amp; Bank CSVs</h3>
+            <p style="font-size:14px; color:var(--text-secondary); margin-bottom:16px;">
+              Approved hours flow straight into Gross-to-Net calculation with PenCom (8%/10%), PAYE, NHF (2.5%), NSITF (1%), and bank-ready upload files.
+            </p>
             <div class="mock-card" style="margin-bottom:0;">
-              <div class="mock-row" style="padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid var(--border-hairline);">
-                <span style="font-size:12.5px; color:var(--text-secondary);">Gross Verified Payroll</span>
-                <strong style="font-family:'JetBrains Mono',monospace; font-size:14px;">₦13,550,000.00</strong>
+              <div class="mock-row" style="margin-bottom:8px; font-size:13px;">
+                <span style="color:var(--text-secondary);">Gross Verified Payroll</span>
+                <strong style="font-family:'JetBrains Mono',monospace;">₦13,920,000.00</strong>
               </div>
-              <div class="mock-row" style="margin-bottom:6px; font-size:12.5px;">
-                <span style="color:var(--text-secondary);">PenCom (8% / 10%) &amp; PAYE</span>
-                <span style="font-family:'JetBrains Mono',monospace; color:#fcd34d;">₦3,043,670.83</span>
+              <div class="mock-row" style="margin-bottom:8px; font-size:13px;">
+                <span style="color:var(--text-secondary);">PenCom + PAYE Deductions</span>
+                <span style="font-family:'JetBrains Mono',monospace; color:#fbbf24;">₦3,201,600.00</span>
               </div>
-              <div class="mock-row" style="padding-top:8px; margin-top:8px; border-top:1px solid var(--border-hairline);">
-                <strong style="font-size:13px;">Net Bank Disbursement</strong>
-                <strong style="font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--emerald);">₦10,506,329.17</strong>
+              <div class="mock-row" style="padding-top:8px; border-top:1px solid var(--border-hairline);">
+                <strong>Net Bank-Ready Dispatch</strong>
+                <strong style="font-family:'JetBrains Mono',monospace; color:var(--emerald);">₦10,718,400.00</strong>
               </div>
             </div>
-          </div>
-
-          <div class="mock-row" style="padding-top:14px; border-top:1px solid var(--border-hairline); font-size:12px; color:var(--text-muted);">
-            <span>Interactive Product Preview</span>
-            <a href="/index.html" style="color:var(--emerald); text-decoration:none; font-weight:700;">Open Live App &rarr;</a>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="sector-strip" aria-label="Industry Solutions">
-      <a href="/healthcare.html" class="sector-pill">Healthcare &amp; Hospitals</a>
-      <a href="/manufacturing.html" class="sector-pill">Factories &amp; Manufacturing</a>
-      <a href="/logistics.html" class="sector-pill">Logistics &amp; Fleets</a>
-      <a href="/hospitality.html" class="sector-pill">Hospitality &amp; Security</a>
-      <a href="/office.html" class="sector-pill">Corporate Offices</a>
+        <div class="console-screenshot-stage">
+          <img id="console-preview-img" src="/assets/site/app-supervisor.png" alt="ShiftRelay Live Floor Dashboard" loading="lazy" />
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       2. PRODUCT BENTO GRID (4 CLEAN CARDS)
+       4. PLATFORM BENTO GRID (WITH EDITORIAL PHOTOGRAPHY)
        ═══════════════════════════════════════════════════════════════════════ -->
-  <section class="container" id="platform-bento">
-    <div class="section-header">
-      <span class="section-eyebrow">PLATFORM</span>
-      <h2>Everything you need to run shift operations.</h2>
-      <p>From the facility gate to month-end bank disbursement—unified in one workspace.</p>
+  <section class="container" id="platform-bento" style="padding-top:16px;">
+    <div class="section-header" style="margin-bottom:24px;">
+      <span class="section-eyebrow">UNIFIED PLATFORM</span>
+      <h2>From the factory gate to month-end bank dispatch.</h2>
+      <p>Replace attendance spreadsheets, WhatsApp handover groups, and manual payroll reconciliations with one auditable system.</p>
+    </div>
+
+    <div class="ba-toggle-wrap" role="group" aria-label="Compare before and after ShiftRelay">
+      <button type="button" class="ba-btn active" id="ba-btn-after" onclick="window.toggleBeforeAfter('after')">With ShiftRelay</button>
+      <button type="button" class="ba-btn" id="ba-btn-before" onclick="window.toggleBeforeAfter('before')">Before (Paper &amp; WhatsApp)</button>
+    </div>
+
+    <div class="ba-grid" id="ba-grid-cards">
+      <div class="ba-card is-after" id="ba-c1">
+        <span class="mono-tag" id="ba-t1">VERIFIED ATTENDANCE</span>
+        <h4 id="ba-h1">Zero Ghost Shifts or Buddy Punching</h4>
+        <p id="ba-p1">GPS geofences + live Peer Card face verification ensure every logged hour belongs to a worker physically on site.</p>
+      </div>
+      <div class="ba-card is-after" id="ba-c2">
+        <span class="mono-tag sky" id="ba-t2">SIGNED HANDOVERS</span>
+        <h4 id="ba-h2">30–45 Minutes Saved Per Rotation</h4>
+        <p id="ba-p2">Incoming and outgoing leads sign structured safety checklists in-app—zero lost context between day and night shifts.</p>
+      </div>
+      <div class="ba-card is-after" id="ba-c3">
+        <span class="mono-tag" id="ba-t3">1-CLICK PAYROLL</span>
+        <h4 id="ba-h3">100% Statutory Reconciliation Match</h4>
+        <p id="ba-p3">Approved shifts flow straight into PAYE, PenCom (8%/10%), NHF, NSITF, and bank-ready disbursement CSVs.</p>
+      </div>
     </div>
 
     <div class="bento-grid">
-      <article class="bento-cell span-6">
+      <article class="bento-cell span-7 gsap-reveal">
+        <div>
+          <span class="mono-tag">OPERATIONS &amp; HANDOVERS</span>
+          <h3>Accountable Shift Handovers</h3>
+          <p>
+            Outgoing and incoming leads sign off on equipment status, safety checklists, and pending incidents before a shift closes—so nothing gets lost between rotations.
+          </p>
+        </div>
+        <img src="/assets/site/handover-team.jpg" alt="Factory shift supervisors completing a digital tablet handover" class="bento-photo" loading="lazy" />
+      </article>
+
+      <article class="bento-cell span-5 gsap-reveal">
+        <div>
+          <span class="mono-tag sky">FINANCE &amp; PAYROLL</span>
+          <h3>1-Click Nigerian Statutory Payroll</h3>
+          <p>
+            Verified hours compute Gross-to-Net automatically—handling PenCom, PAYE, NHF, NSITF, and bank disbursement CSVs in minutes instead of days.
+          </p>
+        </div>
+        <img src="/assets/site/payroll-manager.jpg" alt="Nigerian finance manager reviewing automated payroll in Lagos" class="bento-photo" loading="lazy" />
+      </article>
+
+      <article class="bento-cell span-4 gsap-reveal">
         <div>
           <span class="mono-tag">ATTENDANCE</span>
-          <h3>Biometric &amp; Peer Clock-In</h3>
+          <h3>GPS &amp; Peer Verification</h3>
           <p>
-            Staff clock in within site GPS bounds or via a colleague's phone using their Staff ID card and live face verification.
+            Stop ghost workers and buddy punching with site geofencing, Staff ID QR cards, and live colleague-assisted face verification.
           </p>
         </div>
         <div class="bento-spec-list">
           <span class="spec-chip">Point-of-Punch GPS</span>
-          <span class="spec-chip">Peer ID Scanner</span>
-          <span class="spec-chip">Offline Sync</span>
+          <span class="spec-chip">Offline Queue</span>
+          <span class="spec-chip">Peer Card Scan</span>
         </div>
       </article>
 
-      <article class="bento-cell span-6">
+      <article class="bento-cell span-4 gsap-reveal">
         <div>
-          <span class="mono-tag" style="color:var(--sky); border-color:var(--border-cyan); background:rgba(56,189,248,0.1);">OPERATIONS</span>
-          <h3>Smart Shift Handovers</h3>
+          <span class="mono-tag amber">SUPERVISION</span>
+          <h3>Exception &amp; Grace Engine</h3>
           <p>
-            Incoming and outgoing teams sign off on structured safety checklists and operational notes before closing a shift.
-          </p>
-        </div>
-        <div class="bento-spec-list">
-          <span class="spec-chip">Safety Checklists</span>
-          <span class="spec-chip">Shift Swaps</span>
-          <span class="spec-chip">Audit Trail</span>
-        </div>
-      </article>
-
-      <article class="bento-cell span-6">
-        <div>
-          <span class="mono-tag">SUPERVISION</span>
-          <h3>Attendance Exceptions</h3>
-          <p>
-            Automated shift reminders notify staff on time while supervisors pardon or adjust late arrivals and missed punches in one tap.
+            Automated shift reminders notify staff before cut-off, while supervisors pardon or adjust late arrivals and missed punches in one tap.
           </p>
         </div>
         <div class="bento-spec-list">
@@ -896,131 +1640,313 @@
         </div>
       </article>
 
-      <article class="bento-cell span-6">
+      <article class="bento-cell span-4 gsap-reveal">
         <div>
-          <span class="mono-tag">FINANCE</span>
-          <h3>Automated Statutory Payroll</h3>
+          <span class="mono-tag sky">GOVERNANCE</span>
+          <h3>Employer-Provisioned Security</h3>
           <p>
-            Verified hours sync straight into Nigerian Gross-to-Net payroll with PenCom, Finance Act PAYE, NHF, NSITF, and bank CSV exports.
+            No open consumer signups. Every organisation runs in an isolated PostgreSQL tenant with unique Company IDs and TOTP 2FA for admins.
           </p>
         </div>
         <div class="bento-spec-list">
-          <span class="spec-chip">GTBank / Access / Zenith / NIBSS CSV</span>
-          <span class="spec-chip">PenCom &amp; PAYE</span>
+          <span class="spec-chip">Row-Scoped Tenant</span>
+          <span class="spec-chip">TOTP 2FA</span>
+          <span class="spec-chip">Audit Trail</span>
         </div>
       </article>
     </div>
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       3. ROLE WORKFLOW SWITCHER
+       5. ROLE WORKFLOW SWITCHER
        ═══════════════════════════════════════════════════════════════════════ -->
   <section class="container" id="how-it-works" style="padding-top:16px;">
     <div class="section-header">
-      <span class="section-eyebrow">WORKFLOW</span>
-      <h2>Designed for every role on your team.</h2>
-      <p>One application adapts automatically to Executives, Supervisors, and Frontline Staff.</p>
+      <span class="section-eyebrow">ROLE-BASED DESIGN</span>
+      <h2>One workspace that adapts to every layer.</h2>
+      <p>Executives get payroll certainty, supervisors run the floor, and frontline workers see every hour and naira clearly.</p>
     </div>
 
     <div class="stakeholder-tabs">
       <button type="button" class="stk-btn active" data-stk="stk-owner" onclick="window.switchStakeholder('stk-owner')">Executives &amp; HR</button>
-      <button type="button" class="stk-btn" data-stk="stk-supervisor" onclick="window.switchStakeholder('stk-supervisor')">Supervisors</button>
+      <button type="button" class="stk-btn" data-stk="stk-supervisor" onclick="window.switchStakeholder('stk-supervisor')">Floor Supervisors</button>
       <button type="button" class="stk-btn" data-stk="stk-worker" onclick="window.switchStakeholder('stk-worker')">Frontline Staff</button>
     </div>
 
     <div class="stk-panel active" id="stk-owner">
       <div>
-        <span class="mono-tag">EXECUTIVE &amp; HR</span>
-        <h3 style="font-family:'Outfit',sans-serif; font-size:24px; margin:10px 0;">Real-time visibility and 1-click payroll.</h3>
-        <p style="color:var(--text-secondary); font-size:14.5px;">
-          Onboard staff by department or bulk CSV, monitor live attendance across sites, and export bank-ready salary and statutory schedules at month-end.
+        <span class="mono-tag">EXECUTIVE &amp; HR COMMAND</span>
+        <h3 style="font-family:'Outfit',sans-serif; font-size:24px; margin:10px 0;">Real-time site visibility and 1-click payroll.</h3>
+        <p style="color:var(--text-secondary); font-size:14.5px; margin-bottom:16px;">
+          Onboard staff by department or bulk CSV, monitor live attendance across multiple facilities, and export bank-ready salary and statutory schedules.
         </p>
-      </div>
-      <div class="mock-card" style="margin:0;">
-        <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:10px;">
-          <li>Add staff individually or import via CSV with automatic Staff ID cards.</li>
-          <li>Track live attendance, overtime, and department safety compliance.</li>
-          <li>Approve monthly payroll and download Bank &amp; PenCom/PAYE CSVs.</li>
+        <ol style="padding-left:18px; color:var(--text-secondary); font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
+          <li>Import staff via CSV with automatic Digital Work Pass QR IDs.</li>
+          <li>Track live attendance, overtime hours, and handover compliance.</li>
+          <li>Approve monthly payroll and export Bank, PenCom, and PAYE CSVs.</li>
         </ol>
+      </div>
+      <div class="console-screenshot-stage">
+        <img src="/assets/site/app-payroll.png" alt="Executive Payroll and Statutory Dispatch Dashboard" loading="lazy" />
       </div>
     </div>
 
     <div class="stk-panel" id="stk-supervisor">
       <div>
-        <span class="mono-tag">SUPERVISOR</span>
+        <span class="mono-tag sky">DUAL-MODE SUPERVISOR</span>
         <h3 style="font-family:'Outfit',sans-serif; font-size:24px; margin:10px 0;">Run the floor and clock your own shift.</h3>
-        <p style="color:var(--text-secondary); font-size:14.5px;">
-          Switch seamlessly between personal shift clock-in and live floor supervision—resolving exceptions, approving shift swaps, and verifying handovers.
+        <p style="color:var(--text-secondary); font-size:14.5px; margin-bottom:16px;">
+          Toggle seamlessly between personal shift clock-in and live floor supervision—resolving exceptions, dragging rosters, and verifying handovers.
         </p>
-      </div>
-      <div class="mock-card" style="margin:0;">
-        <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:10px;">
-          <li>Clock in for your own shift with the dual-mode header switcher.</li>
+        <ol style="padding-left:18px; color:var(--text-secondary); font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
+          <li>Drag-and-drop shift roster scheduling across teams and sites.</li>
           <li>Review late or missed clock-in flags and pardon or adjust in one tap.</li>
           <li>Verify incoming shift handovers and unit safety checklists.</li>
         </ol>
+      </div>
+      <div class="console-screenshot-stage">
+        <img src="/assets/site/app-roster.png" alt="Supervisor Drag-and-Drop Shift Roster Calendar" loading="lazy" />
       </div>
     </div>
 
     <div class="stk-panel" id="stk-worker">
       <div>
-        <span class="mono-tag">FRONTLINE STAFF</span>
-        <h3 style="font-family:'Outfit',sans-serif; font-size:24px; margin:10px 0;">Fast clock-in and transparent earnings.</h3>
-        <p style="color:var(--text-secondary); font-size:14.5px;">
-          Clock in from your phone or a teammate's device, complete daily checklists, view live net earnings, and download verified payslips.
+        <span class="mono-tag">FRONTLINE SPECIALIST</span>
+        <h3 style="font-family:'Outfit',sans-serif; font-size:24px; margin:10px 0;">Fast clock-in and transparent payslips.</h3>
+        <p style="color:var(--text-secondary); font-size:14.5px; margin-bottom:16px;">
+          Clock in from your phone or a colleague's device, complete daily checklists, view live net earnings, and carry a verified Digital Work Pass.
         </p>
-      </div>
-      <div class="mock-card" style="margin:0;">
-        <ol style="padding-left:18px; color:#cbd5e1; font-size:13.5px; display:flex; flex-direction:column; gap:10px;">
-          <li>Tap the water-pulse clock on site or use Peer Scan when offline.</li>
-          <li>Complete shift handover notes and safety checklists.</li>
-          <li>Track verified hours, payslips, and on-time ShiftCoin rewards.</li>
+        <ol style="padding-left:18px; color:var(--text-secondary); font-size:13.5px; display:flex; flex-direction:column; gap:8px;">
+          <li>Clock in within site bounds or via Peer Scan when offline or phone-free.</li>
+          <li>Sign shift handover checklists and log safety incidents immediately.</li>
+          <li>View verified hours, payslip breakdowns, and on-time ShiftCoin merit.</li>
         </ol>
+      </div>
+      <div class="console-screenshot-stage">
+        <img src="/assets/site/app-workpass.png" alt="Worker Digital Work Pass and Statutory Wallet" loading="lazy" />
       </div>
     </div>
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       4. BOOK A DEMO + ROI ESTIMATOR
+       7. COMPLIANCE BACKING & CATEGORY COMPARISON
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="container" id="compliance-section" style="padding-top:16px;">
+    <div class="section-header">
+      <span class="section-eyebrow">STATUTORY &amp; SECURITY POSTURE</span>
+      <h2>Backed by Nigerian labour, tax, and data-protection law.</h2>
+      <p>Every calculation, consent flow, and database record is engineered around the statutes Nigerian enterprises are audited against.</p>
+    </div>
+
+    <div class="compliance-grid">
+      <div class="compliance-card gsap-reveal">
+        <span class="mono-tag">NDPA 2023 &amp; SECURITY</span>
+        <h4>Row-Scoped Tenant Isolation</h4>
+        <p>
+          Aligned with ISO/IEC 27001 security controls and the Nigeria Data Protection Act (NDPA 2023). AES-256 encryption at rest, TLS 1.3 in transit, explicit worker opt-in for notifications, and strict <code>organisation_id</code> isolation.
+        </p>
+      </div>
+      <div class="compliance-card gsap-reveal">
+        <span class="mono-tag sky">PENCOM PRA 2014 &amp; PAYE</span>
+        <h4>Automated Statutory Engine</h4>
+        <p>
+          Computes PenCom (8% Employee / 10% Employer), PITA &amp; Finance Act progressive PAYE tax, NHF (2.5% of Basic), NSITF (1%), and ITF (1%) schedules—with downloadable audit-ready remittance CSVs.
+        </p>
+      </div>
+      <div class="compliance-card gsap-reveal">
+        <span class="mono-tag amber">LABOUR ACT &amp; AUDIT TRAIL</span>
+        <h4>Tamper-Evident Attendance</h4>
+        <p>
+          Point-of-punch GPS coordinates, grace windows, exception resolution logs, and signed shift handovers create a defensible record aligned with Nigerian Labour Act (Cap L1 LFN 2004) payroll rules.
+        </p>
+      </div>
+    </div>
+
+    <div class="compare-table-wrap gsap-reveal">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Operational Capability</th>
+            <th class="sr-col">ShiftRelay</th>
+            <th>Global Shift Apps</th>
+            <th>Local HR &amp; Payroll Suites</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>GPS Geofence + Offline Punch Queue</td>
+            <td class="sr-col"><span class="chk-yes">Included</span></td>
+            <td>Usually paid add-on</td>
+            <td><span class="chk-no">Basic or absent</span></td>
+          </tr>
+          <tr>
+            <td>Colleague Peer ID Scan (No Smartphone Needed)</td>
+            <td class="sr-col"><span class="chk-yes">Built-in + Face Match</span></td>
+            <td><span class="chk-no">Requires kiosk tablet</span></td>
+            <td><span class="chk-no">Not supported</span></td>
+          </tr>
+          <tr>
+            <td>Structured Shift Handover &amp; Safety Sign-Off</td>
+            <td class="sr-col"><span class="chk-yes">Mandatory &amp; Logged</span></td>
+            <td>Basic shift notes</td>
+            <td><span class="chk-no">Not supported</span></td>
+          </tr>
+          <tr>
+            <td>Nigerian PAYE, PenCom (8%/10%), NHF &amp; NSITF</td>
+            <td class="sr-col"><span class="chk-yes">Native Engine + CSV</span></td>
+            <td><span class="chk-no">US/UK/AU only</span></td>
+            <td>Included</td>
+          </tr>
+          <tr>
+            <td>1-Tap Exception Pardon Synced to Net Pay</td>
+            <td class="sr-col"><span class="chk-yes">Real-Time Sync</span></td>
+            <td><span class="chk-no">Manual export</span></td>
+            <td><span class="chk-no">Manual spreadsheet</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       8. INDUSTRIES WE SERVE
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="container" id="industries-section" style="padding-top:16px;">
+    <div class="section-header">
+      <span class="section-eyebrow">BUILT FOR FRONTLINE SECTORS</span>
+      <h2>Tailored workflows for 24/7 operations.</h2>
+      <p>Pre-configured shift templates, safety checklists, and pay rules for Nigeria's core shift industries.</p>
+    </div>
+
+    <div class="industry-grid">
+      <a href="/healthcare.html" class="industry-card gsap-reveal">
+        <img src="/assets/site/ind-healthcare.jpg" alt="Healthcare and hospital triage teams" loading="lazy" />
+        <div class="industry-card-body">
+          <h3>Healthcare &amp; Clinics</h3>
+          <p>Ward handovers, locum shift tracking, and clinical compliance logs.</p>
+        </div>
+      </a>
+      <a href="/manufacturing.html" class="industry-card gsap-reveal">
+        <img src="/assets/site/ind-manufacturing.jpg" alt="Manufacturing plants and industrial operations" loading="lazy" />
+        <div class="industry-card-body">
+          <h3>Manufacturing &amp; Plants</h3>
+          <p>Gate geofencing, overtime control, and machine safety sign-offs.</p>
+        </div>
+      </a>
+      <a href="/logistics.html" class="industry-card gsap-reveal">
+        <img src="/assets/site/ind-logistics.jpg" alt="Logistics hubs and warehousing" loading="lazy" />
+        <div class="industry-card-body">
+          <h3>Logistics &amp; Warehousing</h3>
+          <p>Multi-hub dispatch rosters, offline punches, and fleet verification.</p>
+        </div>
+      </a>
+      <a href="/hospitality.html" class="industry-card gsap-reveal">
+        <img src="/assets/site/ind-hospitality.jpg" alt="Hospitality, culinary, and security teams" loading="lazy" />
+        <div class="industry-card-body">
+          <h3>Hospitality &amp; Security</h3>
+          <p>24-hour guard &amp; kitchen rotations with peer-assisted clock-in.</p>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       8. ENTERPRISE LICENSING & FAQ
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="container" id="licensing-section" style="padding-top:16px;">
+    <div class="pricing-strip gsap-reveal" style="margin-bottom:48px;">
+      <div style="max-width:580px;">
+        <span class="section-eyebrow">ENTERPRISE LICENSING</span>
+        <h2 style="font-size:clamp(22px,3vw,34px); font-weight:700; margin-bottom:8px;">
+          Starting from ₦2,500 per active staff / month.
+        </h2>
+        <p style="color:var(--text-secondary); font-size:14.5px;">
+          Includes isolated multi-tenant workspace, native iOS &amp; Android app (<code>com.shiftrelayos.app</code>), GPS &amp; Peer Scan attendance, handovers, and Nigerian statutory payroll.
+        </p>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="/pricing.html" class="btn-outline" style="padding:12px 20px;">View Full Licensing</a>
+        <a href="#demo-request-section" class="btn-primary-emerald" style="padding:12px 22px;">Request 30-Day Pilot &rarr;</a>
+      </div>
+    </div>
+
+    <div class="section-header" style="margin-bottom:26px;">
+      <span class="section-eyebrow">FAQ</span>
+      <h2>Common deployment questions.</h2>
+    </div>
+    <div class="faq-grid">
+      <details class="faq-item" open>
+        <summary>
+          <span>What if frontline staff don't have smartphones or data?</span>
+          <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <p>They can clock in using their printed or digital Staff ID QR card on a supervisor's or teammate's phone via Peer Scan, which verifies their face live against their HR profile.</p>
+      </details>
+      <details class="faq-item" open>
+        <summary>
+          <span>Does clock-in work in low-signal basements or ports?</span>
+          <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <p>Yes. Punches are cryptographically queued offline on the device and automatically sync to the server as soon as connectivity returns—preserving the exact punch timestamp.</p>
+      </details>
+      <details class="faq-item">
+        <summary>
+          <span>Which Nigerian banks and pension portals are supported?</span>
+          <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <p>ShiftRelay exports formatted disbursement CSVs compatible with GTBank GAPS, Access Online, Zenith Bank, and NIBSS, alongside PenCom PRA 2014 and PAYE remittance schedules.</p>
+      </details>
+      <details class="faq-item">
+        <summary>
+          <span>How is company and worker data protected?</span>
+          <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <p>Every employer runs in a strictly isolated tenant with row-scoped PostgreSQL queries, AES-256 encryption at rest, TLS 1.3 in transit, and NDPA 2023 consent controls.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       10. BOOK A 30-DAY PILOT + ROI ESTIMATOR + NEWSLETTER
        ═══════════════════════════════════════════════════════════════════════ -->
   <section class="container" id="demo-request-section" style="padding-top:16px;">
     <div class="conversion-split">
-      <!-- Book a Demo Form -->
+      <!-- Pilot Request Form -->
       <div class="conversion-box" style="border-color:var(--border-emerald);">
         <span class="section-eyebrow">GET STARTED</span>
         <h2 style="font-family:'Outfit',sans-serif; font-size:26px; font-weight:800; margin-bottom:6px;">
-          Book a 30-Day Pilot
+          Request a 30-Day Pilot Workspace
         </h2>
         <p style="color:var(--text-secondary); font-size:13.5px; margin-bottom:20px;">
-          Tell us about your team and we'll provision your company workspace.
+          Tell us about your sites and we'll provision your isolated Company ID and onboarding desk.
         </p>
 
         <form id="sr-public-demo-form" onsubmit="window.submitPublicDemoRequest(event)">
           <div class="form-2col">
             <div class="inp-group">
-              <label>Company Name *</label>
-              <input type="text" id="demo-company" required placeholder="e.g., Riffmax Technology Limited" />
+              <label for="demo-company">Company Name *</label>
+              <input type="text" id="demo-company" required placeholder="e.g., Atlantic Logistics Ltd" />
             </div>
             <div class="inp-group">
-              <label>Full Name &amp; Title *</label>
+              <label for="demo-name">Full Name &amp; Title *</label>
               <input type="text" id="demo-name" required placeholder="e.g., Engr. Kunle Adeyemi" />
             </div>
           </div>
 
           <div class="form-2col">
             <div class="inp-group">
-              <label>Work Email *</label>
+              <label for="demo-email">Work Email *</label>
               <input type="email" id="demo-email" required placeholder="k.adeyemi@company.com" />
             </div>
             <div class="inp-group">
-              <label>Phone / WhatsApp *</label>
+              <label for="demo-phone">Phone / WhatsApp *</label>
               <input type="tel" id="demo-phone" required placeholder="+234 803 000 0000" />
             </div>
           </div>
 
           <div class="form-2col">
             <div class="inp-group">
-              <label>Workforce Size</label>
+              <label for="demo-headcount">Workforce Size</label>
               <select id="demo-headcount">
                 <option value="50-200">50 – 200 Staff</option>
                 <option value="200-500">200 – 500 Staff</option>
@@ -1029,21 +1955,21 @@
               </select>
             </div>
             <div class="inp-group">
-              <label>Industry</label>
+              <label for="demo-industry">Industry</label>
               <select id="demo-industry">
-                <option value="Technology & Software">Technology &amp; Software</option>
                 <option value="Manufacturing & Industrial">Manufacturing &amp; Industrial</option>
                 <option value="Logistics & Transportation">Logistics &amp; Transportation</option>
                 <option value="Healthcare & Clinical">Healthcare &amp; Clinical</option>
                 <option value="Hospitality & Facility Management">Hospitality &amp; Facility Management</option>
                 <option value="Restaurants & Quick-Service Food">Restaurants &amp; Quick-Service Food</option>
                 <option value="Fuel Stations & Energy Retail">Fuel Stations &amp; Energy Retail</option>
+                <option value="Technology & Software">Corporate &amp; Multi-Site Teams</option>
               </select>
             </div>
           </div>
 
           <div class="inp-group">
-            <label>Notes (Optional)</label>
+            <label for="demo-notes">Notes (Optional)</label>
             <textarea id="demo-notes" rows="2" placeholder="Number of sites, shift structure, or payroll needs..."></textarea>
           </div>
 
@@ -1051,11 +1977,11 @@
             Request Pilot Workspace &rarr;
           </button>
 
-          <div id="demo-feedback-banner" style="display:none; margin-top:12px; padding:12px 14px; border-radius:10px; background:rgba(0,245,160,0.12); border:1px solid var(--border-emerald); color:var(--emerald); font-size:13px; font-weight:600;"></div>
+          <div id="demo-feedback-banner" style="display:none; margin-top:12px; padding:12px 14px; border-radius:10px; background:rgba(5, 150, 105,0.08); border:1px solid var(--border-emerald); color:var(--emerald); font-size:13px; font-weight:600;"></div>
         </form>
       </div>
 
-      <!-- ROI Estimator + Direct Contact -->
+      <!-- ROI Estimator + Direct Desk -->
       <div class="conversion-box" id="contact-desk" style="display:flex; flex-direction:column; justify-content:space-between; gap:20px;">
         <div>
           <span class="section-eyebrow" style="color:var(--sky);">SAVINGS ESTIMATOR</span>
@@ -1063,7 +1989,7 @@
             Estimate Your Annual Facility Savings
           </h3>
           <p style="font-size:13px; color:var(--text-secondary); margin-bottom:18px;">
-            See how much time and payroll leakage automated attendance and handovers save your team.
+            Based on eliminating manual roll calls, buddy-punching leakage, and spreadsheet payroll reconciliation.
           </p>
 
           <div style="margin-bottom:14px;">
@@ -1085,7 +2011,7 @@
           <div class="roi-metrics-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
             <div class="mock-card" style="margin:0; text-align:center; padding:12px 8px;">
               <div style="font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">HOURS SAVED</div>
-              <div id="sr-roi-hours" style="font-size:18px; font-weight:800; color:#fff; margin-top:4px;">540 hrs/mo</div>
+              <div id="sr-roi-hours" style="font-size:18px; font-weight:800; color:var(--text-primary); margin-top:4px;">540 hrs/mo</div>
             </div>
             <div class="mock-card" style="margin:0; text-align:center; padding:12px 8px;">
               <div style="font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">GAPS PREVENTED</div>
@@ -1096,9 +2022,12 @@
               <div id="sr-roi-naira" style="font-size:18px; font-weight:800; color:var(--emerald); margin-top:4px;">₦24.3M / yr</div>
             </div>
           </div>
+          <p style="font-size:11px; color:var(--text-muted); margin-top:10px;">
+            *Illustrative estimate modeled on 30–45 min saved per handover and ~₦54k/worker-shift annual leakage reduction observed in pilot cohorts.
+          </p>
         </div>
 
-        <div style="padding:16px; border-radius:14px; background:rgba(255,255,255,0.025); border:1px solid var(--border-hairline);">
+        <div style="padding:16px; border-radius:14px; background:var(--bg-surface); border:1px solid var(--border-hairline);">
           <div style="font-size:12.5px; font-weight:700; margin-bottom:6px;">Direct Enterprise Desk</div>
           <div style="font-size:12.5px; color:var(--text-secondary); margin-bottom:10px;">
             <strong>onboarding@shiftrelayos.com</strong> &middot; <strong>support@shiftrelayos.com</strong>
@@ -1113,16 +2042,16 @@
     </div>
 
     <!-- Compact Newsletter Bar -->
-    <div id="newsletter-brief-section" style="margin-top:24px; padding:22px 26px; border-radius:18px; background:rgba(13, 21, 38, 0.75); border:1px solid var(--border-hairline);">
+    <div id="newsletter-brief-section" style="margin-top:24px; padding:24px 28px; border-radius:18px; background:#ffffff; border:1px solid var(--border-hairline); box-shadow:var(--shadow-card);">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
         <div style="max-width:420px;">
-          <h3 style="font-family:'Outfit',sans-serif; font-size:18px; font-weight:800; margin-bottom:2px;">Monthly Workforce &amp; Payroll Brief</h3>
-          <p style="font-size:13px; color:var(--text-secondary);">PenCom &amp; Finance Act PAYE updates and product releases. Unsubscribe anytime.</p>
+          <h3 style="font-family:'Outfit',sans-serif; font-size:18px; font-weight:800; margin-bottom:2px; color:var(--text-primary);">Monthly Workforce &amp; Payroll Brief</h3>
+          <p style="font-size:13px; color:var(--text-secondary);">PenCom &amp; PAYE updates and ShiftRelay releases. Unsubscribe anytime.</p>
         </div>
         <form id="sr-newsletter-signup-form" onsubmit="window.submitPublicNewsletter(event)" style="flex:1; min-width:280px; max-width:620px; display:flex; flex-direction:column; gap:8px;">
           <div style="display:grid; grid-template-columns:1.3fr 1fr auto; gap:8px;" class="sr-nws-grid">
-            <input type="email" id="nws-email" required placeholder="Work email (hr@company.ng)" style="background:#040812; border:1px solid rgba(255,255,255,0.12); border-radius:9px; padding:10px 12px; color:#fff; font-size:13px;" />
-            <select id="nws-segment" style="background:#040812; border:1px solid rgba(255,255,255,0.12); border-radius:9px; padding:10px 11px; color:#fff; font-size:12.5px;">
+            <input type="email" id="nws-email" required placeholder="Work email (hr@company.ng)" style="background:#f8fafc; border:1px solid var(--border-strong); border-radius:9px; padding:10px 12px; color:var(--text-primary); font-size:13px;" />
+            <select id="nws-segment" style="background:#f8fafc; border:1px solid var(--border-strong); border-radius:9px; padding:10px 11px; color:var(--text-primary); font-size:12.5px;">
               <option value="hr_payroll">HR &amp; Payroll</option>
               <option value="operations">Operations</option>
               <option value="executive">Executive</option>
@@ -1141,56 +2070,305 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
+       11. FLOATING RIGHT-TO-LEFT SUPPORTING ECOSYSTEM MARQUEE
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="marquee-section" aria-label="Supported Banking, Statutory and Infrastructure Ecosystem">
+    <div class="marquee-caption">Supported Banking, Statutory &amp; Infrastructure Ecosystem</div>
+    <div class="marquee-viewport">
+      <div class="marquee-track">
+        <!-- Set 1 -->
+        <div class="eco-badge"><span class="brand-mark-chip" style="background:#dd4f05;">GT</span> GTBank GAPS <small>Bank CSV</small></div>
+        <div class="eco-badge"><span class="brand-mark-chip" style="background:#008751;">ND</span> NDPA 2023 <small>Privacy Act</small></div>
+        <div class="eco-badge"><span class="brand-mark-chip" style="background:linear-gradient(135deg,#003883,#f58220);">AX</span> Access Switch <small>Disbursement</small></div>
+        <div class="eco-badge"><span class="brand-mark-chip" style="background:#047857;">PC</span> PenCom PRA 2014 <small>8% / 10%</small></div>
+        <div class="eco-badge"><span class="brand-mark-chip" style="background:#ed1c24;">ZB</span> Zenith Bank <small>Payroll CSV</small></div>
+        <div class="eco-badge"><span class="brand-mark-chip" style="background:#065f46;">NB</span> NIBSS Instant <small>Settlement</small></div>
+        <div class="eco-badge"><span class="brand-mark-chip" style="background:#15803d;">FR</span> FIRS / LIRS PAYE <small>Schedule</small></div>
+        <div class="eco-badge"><span class="brand-mark-chip" style="background:#f38020;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M16.5 14.5h-9a3.5 3.5 0 0 1-.4-6.98 5 5 0 0 1 9.6-1.17A4 4 0 0 1 16.5 14.5z"/></svg></span> Cloudflare Edge <small>TLS 1.3 WAF</small></div>
+        <div class="eco-badge"><span class="brand-mark-chip" style="background:#0d9488;">NH</span> NHF &amp; NSITF <small>Statutory</small></div>
+        <!-- Set 2 (duplicate for seamless infinite loop) -->
+        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#dd4f05;">GT</span> GTBank GAPS <small>Bank CSV</small></div>
+        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#008751;">ND</span> NDPA 2023 <small>Privacy Act</small></div>
+        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:linear-gradient(135deg,#003883,#f58220);">AX</span> Access Switch <small>Disbursement</small></div>
+        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#047857;">PC</span> PenCom PRA 2014 <small>8% / 10%</small></div>
+        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#ed1c24;">ZB</span> Zenith Bank <small>Payroll CSV</small></div>
+        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#065f46;">NB</span> NIBSS Instant <small>Settlement</small></div>
+        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#15803d;">FR</span> FIRS / LIRS PAYE <small>Schedule</small></div>
+        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#f38020;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M16.5 14.5h-9a3.5 3.5 0 0 1-.4-6.98 5 5 0 0 1 9.6-1.17A4 4 0 0 1 16.5 14.5z"/></svg></span> Cloudflare Edge <small>TLS 1.3 WAF</small></div>
+        <div class="eco-badge" aria-hidden="true"><span class="brand-mark-chip" style="background:#0d9488;">NH</span> NHF &amp; NSITF <small>Statutory</small></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
        FOOTER
        ═══════════════════════════════════════════════════════════════════════ -->
   <footer class="corp-footer">
     <div class="footer-grid">
       <div>
         <a href="/website.html" class="brand-lockup" style="margin-bottom:12px;">
-          <img src="/assets/logos/logo-brand-motion.svg?v=130" alt="ShiftRelay OS" class="brand-mark-static" />
+          <img src="/assets/logos/logo-brand-motion.svg?v=165" alt="ShiftRelay" class="brand-mark-static" />
           <div class="brand-wordmark">Shift<span>Relay</span></div>
         </a>
-        <p style="font-size:13px; color:var(--text-secondary); max-width:290px;">
-          Riffmax Technology Limited. Biometric shift attendance, handovers, and automated statutory payroll.
+        <p style="font-size:13px; color:var(--text-secondary); max-width:300px;">
+          Riffmax Technology Limited. Verified shift attendance, accountable handovers, and automated Nigerian statutory payroll.
         </p>
       </div>
 
       <div class="footer-col">
         <h4>Product</h4>
-        <a href="#platform-bento">Features</a>
+        <a href="#platform-bento">Platform</a>
         <a href="/calculator.html">PAYE &amp; PenCom Calculator</a>
-        <a href="/pricing.html">Pricing</a>
+        <a href="/pricing.html">Enterprise Licensing</a>
         <a href="/healthcare.html">Healthcare</a>
         <a href="/manufacturing.html">Manufacturing</a>
         <a href="/logistics.html">Logistics</a>
+        <a href="/hospitality.html">Hospitality</a>
       </div>
 
       <div class="footer-col">
         <h4>Trust &amp; Legal</h4>
         <a href="/trust.html">Trust Center</a>
         <a href="/terms.html">Terms of Service</a>
-        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/privacy.html">Privacy Policy (NDPA)</a>
         <a href="/dpa.html">Data Processing Addendum</a>
         <a href="/sla.html">Service Level Agreement</a>
         <a href="/delete-account.html">Delete Account</a>
       </div>
 
       <div class="footer-col">
-        <h4>Portals</h4>
-        <a href="/index.html">Sign In to Workspace</a>
+        <h4>Mobile App &amp; Support</h4>
+        <a href="https://apps.apple.com/search?term=ShiftRelay%20OS" target="_blank" rel="noopener noreferrer">Download on App Store</a>
+        <a href="https://play.google.com/store/apps/details?id=com.shiftrelayos.app" target="_blank" rel="noopener noreferrer">Get it on Google Play</a>
         <a href="/status.html">System Status</a>
         <a href="/support-security.html">Support &amp; Security</a>
-        <a href="#demo-request-section">Book a Demo</a>
+        <a href="#demo-request-section">Start 30-Day Pilot</a>
       </div>
     </div>
 
-    <div style="max-width:1240px; margin:36px auto 0; padding-top:22px; border-top:1px solid var(--border-hairline); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--text-muted);">
+    <div style="max-width:1260px; margin:36px auto 0; padding-top:22px; border-top:1px solid var(--border-hairline); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--text-muted);">
       <span>&copy; 2026 Riffmax Technology Limited (shiftrelayos.com). All rights reserved.</span>
-      <span>ISO/IEC 27001 Security Controls Aligned &bull; NDPA 2023 &bull; PenCom PRA 2014 Compliant</span>
+      <span>ISO/IEC 27001 Security Controls Aligned &bull; NDPA 2023 &bull; Built for PenCom PRA 2014 &amp; PITA/Finance Act Remittance</span>
     </div>
   </footer>
 
+  <!-- Video Lightbox Modal -->
+  <div class="sr-video-modal" id="sr-video-modal" role="dialog" aria-modal="true" aria-label="ShiftRelay Product Walkthrough" onclick="if(event.target===this)window.closeVideoLightbox()">
+    <div class="sr-video-dialog">
+      <div class="sr-video-head">
+        <span>ShiftRelay &middot; 3-Minute Product Walkthrough</span>
+        <button type="button" class="sr-video-close" aria-label="Close video" onclick="window.closeVideoLightbox()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <video id="sr-lightbox-video" controls preload="none" poster="/assets/site/app-supervisor.png" style="width:100%;display:block;aspect-ratio:16/9;background:#000;">
+        <source src="/assets/site/shiftrelay-walkthrough-3m.mp4" type="video/mp4" />
+      </video>
+    </div>
+  </div>
+
+  <!-- Local Vendor Animation Plugins (CSP 'self' safe) -->
+  <script src="/assets/vendor/lenis.min.js"></script>
+  <script src="/assets/vendor/gsap.min.js"></script>
+  <script src="/assets/vendor/ScrollTrigger.min.js"></script>
+
   <script>
+    // Smooth inertial scrolling via Lenis + GSAP ScrollTrigger sync
+    (function initPlugins() {
+      if (window.Lenis && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const lenis = new Lenis({ duration: 1.05, smoothWheel: true });
+        function raf(time) {
+          lenis.raf(time);
+          requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+        if (window.ScrollTrigger) {
+          lenis.on('scroll', window.ScrollTrigger.update);
+        }
+      }
+
+      if (window.gsap) {
+        if (window.ScrollTrigger) window.gsap.registerPlugin(window.ScrollTrigger);
+        window.gsap.from('.gsap-hero', {
+          y: 24,
+          opacity: 0,
+          duration: 0.75,
+          stagger: 0.08,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity'
+        });
+
+        if (window.ScrollTrigger) {
+          window.gsap.utils.toArray('.gsap-reveal').forEach((el) => {
+            window.gsap.from(el, {
+              y: 26,
+              opacity: 0,
+              duration: 0.65,
+              ease: 'power2.out',
+              clearProps: 'transform,opacity',
+              scrollTrigger: {
+                trigger: el,
+                start: 'top 88%',
+                once: true
+              }
+            });
+          });
+        }
+      }
+
+      const nav = document.getElementById('sr-navbar');
+      const prog = document.getElementById('sr-scroll-progress');
+      window.addEventListener('scroll', () => {
+        if (nav) nav.classList.toggle('scrolled', window.scrollY > 24);
+        if (prog) {
+          const max = document.documentElement.scrollHeight - window.innerHeight;
+          prog.style.width = max > 0 ? Math.min(100, (window.scrollY / max) * 100) + '%' : '0%';
+        }
+      }, { passive: true });
+
+      // Floating hero badge subtle motion
+      if (window.gsap && document.getElementById('hero-float-badge')) {
+        window.gsap.to('#hero-float-badge', {
+          y: -6,
+          duration: 2.6,
+          repeat: -1,
+          yoyo: true,
+          ease: 'sine.inOut'
+        });
+      }
+
+      // Animated Metric Counters on scroll
+      if (window.gsap && window.ScrollTrigger) {
+        document.querySelectorAll('.metric-val[data-count]').forEach((el) => {
+          const target = parseFloat(el.getAttribute('data-count'));
+          const suffix = el.getAttribute('data-suffix') || '';
+          const decimals = parseInt(el.getAttribute('data-decimals') || '0', 10);
+          const obj = { val: 0 };
+          window.gsap.to(obj, {
+            val: target,
+            duration: 1.3,
+            ease: 'power2.out',
+            scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+            onUpdate: () => { el.textContent = obj.val.toFixed(decimals) + suffix; }
+          });
+        });
+      }
+
+      // Full-bleed Hero Billboard 33-Photo Cross-Fade Rotator
+      const HERO_POOL = [
+        { src: '/assets/site/hero-pool/8069554.jpg', title: 'Logistics & Warehouse • Live Mobile Clock-In', meta: 'GPS GEOFENCE • OFFLINE SYNC READY' },
+        { src: '/assets/site/hero-pool/8487393.jpg', title: 'Engineering & Electrical • Happy Shift Teams', meta: 'SAFETY SIGN-OFF • ZERO GHOST SHIFTS' },
+        { src: '/assets/site/hero-pool/8550500.jpg', title: 'Banking & Corporate • Multi-Site Operations', meta: 'PENCOM & PAYE • 1-CLICK BANK CSV' },
+        { src: '/assets/site/hero-pool/8201191.jpg', title: 'Retail & Supermarkets • Tablet Floor Roster', meta: 'PEER CARD SCAN • LIVE ATTENDANCE' },
+        { src: '/assets/site/hero-pool/7447281.jpg', title: 'Restaurant & Hospitality • Shift Handovers', meta: '30-45 MIN SAVED • CLEAN ROTATIONS' },
+        { src: '/assets/site/hero-frontline.jpg', title: 'Healthcare & Clinics • Ward Shift Verification', meta: 'NDPA 2023 • AUDIT-READY LOGS' },
+        { src: '/assets/site/hero-pool/8486966.jpg', title: 'Field Engineering • Site Perimeter Check-In', meta: 'POINT-OF-PUNCH GPS • 0M DRIFT' },
+        { src: '/assets/site/hero-pool/8629129.jpg', title: 'Culinary & QSR Kitchens • Daily Prep Checklists', meta: 'SAFETY COMPLIANCE • SHIFT SCORE' },
+        { src: '/assets/site/hero-pool/3801439.jpg', title: 'Supermarkets & POS • Cashier Shift Sync', meta: 'ZERO DOUBLE DEDUCTIONS • FAIR PAY' },
+        { src: '/assets/site/hero-pool/7994325.jpg', title: 'Finance & Banking • Automated Statutory Run', meta: 'GTBANK GAPS • ACCESS • ZENITH CSV' },
+        { src: '/assets/site/hero-pool/8069556.jpg', title: 'Supply Chain & Ports • Mobile Timecard', meta: 'WORKS OFFLINE • LOW-SIGNAL QUEUE' },
+        { src: '/assets/site/hero-pool/8487361.jpg', title: 'Electrical & Plant • Team Handover Sign-Off', meta: 'SUPERVISOR DUAL-MODE • LIVE FLOOR' },
+        { src: '/assets/site/hero-pool/8936939.jpg', title: 'Hospitality & Cafes • Verified Roster', meta: 'SWAP APPROVALS • PUSH REMINDERS' },
+        { src: '/assets/site/hero-pool/8476596.jpg', title: 'Supermarkets & Produce • Morning Shift', meta: 'GRACE WINDOWS • 1-TAP PARDON' },
+        { src: '/assets/site/hero-pool/8550657.jpg', title: 'Enterprise HR • Real-Time Workforce Pulse', meta: 'MULTI-TENANT • ROW-SCOPED POSTGRES' },
+        { src: '/assets/site/hero-pool/4989172.jpg', title: 'Clinical Teams • Mobile Shift & Payslip Access', meta: 'TRANSPARENT EARNINGS • DIGITAL ID' },
+        { src: '/assets/site/hero-pool/8487400.jpg', title: 'Technical & Maintenance • Active Duty Mode', meta: 'EQUIPMENT CHECKS • INCIDENT LOGS' },
+        { src: '/assets/site/hero-pool/8629128.jpg', title: 'Food Service • Fast Shift Rotation', meta: 'PEER ID SCAN • NO KIOSK HARDWARE' },
+        { src: '/assets/site/hero-pool/8475169.jpg', title: 'Retail Stores • Opening Shift Verification', meta: 'ON-TIME REWARDS • SHIFTCOIN MERIT' },
+        { src: '/assets/site/hero-pool/7993898.jpg', title: 'Corporate & Banking • Payroll Reconciliation', meta: '100% MATCH • 0 CALCULATION ERRORS' },
+        { src: '/assets/site/hero-pool/6169652.jpg', title: 'Distribution Hubs • Shift Dispatch', meta: '99.8% PUNCH VERIFICATION RATE' },
+        { src: '/assets/site/hero-pool/5452300.jpg', title: 'Hospitals & Triage • Digital Handover', meta: 'ENCRYPTED RELAYS • HIPAA/NDPA READY' },
+        { src: '/assets/site/hero-pool/8488034.jpg', title: 'Industrial Sites • Safety Audit Trail', meta: 'LABOUR ACT COMPLIANT • AUDIT LOGS' },
+        { src: '/assets/site/hero-pool/4349741.jpg', title: 'Hospitality • Morning & Evening Shifts', meta: 'AUTO REMINDERS • ZERO MISSED PUNCH' },
+        { src: '/assets/site/hero-pool/8475178.jpg', title: 'Grocery & Markets • Frontline Attendance', meta: 'COLLEAGUE FACE MATCH • INSTANT' },
+        { src: '/assets/site/hero-pool/8549944.jpg', title: 'Modern Offices • Executive Oversight', meta: 'MULTI-BRANCH • UNIFIED DASHBOARD' },
+        { src: '/assets/site/hero-pool/6169163.jpg', title: 'Warehousing • Night-to-Day Handover', meta: 'SIGNED CHECKLISTS • ACCOUNTABILITY' },
+        { src: '/assets/site/hero-pool/7446987.jpg', title: 'Medical Clinics • Verified Locum Hours', meta: 'OVERTIME SHIELD • ACCURATE PAY' },
+        { src: '/assets/site/hero-pool/8936819.jpg', title: 'Food & Beverage • Counter Operations', meta: 'LIVE STAFFING • ZERO SPREADSHEETS' },
+        { src: '/assets/site/hero-pool/7446582.jpg', title: 'Finance Teams • Statutory Remittance', meta: 'PENCOM 8%/10% • NHF • NSITF' },
+        { src: '/assets/site/hero-pool/4989135.jpg', title: 'Healthcare • Dedicated Shift Support', meta: '99.92% UPTIME • 24/7 RELIABILITY' },
+        { src: '/assets/site/handover-team.jpg', title: 'Industrial Plants • Cross-Shift Sign-Off', meta: 'SAFE TRANSITIONS • ZERO CONTEXT LOSS' },
+        { src: '/assets/site/payroll-manager.jpg', title: 'Lagos HQ • 1-Click Payroll Dispatch', meta: 'NIBSS & BANK CSV READY' }
+      ];
+      let poolIdx = 0;
+      let showingA = true;
+      const slideA = document.getElementById('hero-slide-a');
+      const slideB = document.getElementById('hero-slide-b');
+      const sceneTitle = document.getElementById('billboard-scene-title');
+      const sceneMeta = document.getElementById('billboard-scene-meta');
+      if (slideA && slideB && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        setInterval(() => {
+          poolIdx = (poolIdx + 1) % HERO_POOL.length;
+          const next = HERO_POOL[poolIdx];
+          const incoming = showingA ? slideB : slideA;
+          const outgoing = showingA ? slideA : slideB;
+          const pre = new Image();
+          pre.onload = () => {
+            incoming.src = next.src;
+            incoming.classList.add('is-active');
+            outgoing.classList.remove('is-active');
+            if (sceneTitle) sceneTitle.textContent = next.title;
+            if (sceneMeta) sceneMeta.textContent = next.meta;
+            showingA = !showingA;
+          };
+          pre.src = next.src;
+        }, 4500);
+      }
+
+      // Cursor-tracking spotlight on Bento & Compliance cards
+      document.querySelectorAll('.bento-cell, .compliance-card').forEach((card) => {
+        card.addEventListener('mousemove', (e) => {
+          const r = card.getBoundingClientRect();
+          card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+          card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+        });
+      });
+    })();
+
+    window.openVideoLightbox = function () {
+      const m = document.getElementById('sr-video-modal');
+      const v = document.getElementById('sr-lightbox-video');
+      if (m) m.classList.add('open');
+      if (v) v.play().catch(() => {});
+    };
+    window.closeVideoLightbox = function () {
+      const m = document.getElementById('sr-video-modal');
+      const v = document.getElementById('sr-lightbox-video');
+      if (v) { v.pause(); v.currentTime = 0; }
+      if (m) m.classList.remove('open');
+    };
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') window.closeVideoLightbox();
+    });
+
+    window.toggleBeforeAfter = function (mode) {
+      const isBefore = mode === 'before';
+      document.getElementById('ba-btn-after')?.classList.toggle('active', !isBefore);
+      document.getElementById('ba-btn-before')?.classList.toggle('active', isBefore);
+      const data = isBefore ? [
+        { t: 'MANUAL ROLL CALLS', h: 'Ghost Shifts & Buddy Punching', p: 'Paper sign-in sheets and shared PINs let absent staff get clocked in by friends, inflating monthly payroll.' },
+        { t: 'WHATSAPP CHAOS', h: 'Lost Context Between Shifts', p: 'Equipment faults and safety notes buried in group chats lead to 30–45 minute handover delays every rotation.' },
+        { t: 'EXCEL RECONCILIATION', h: 'Days Spent Fixing PAYE & PenCom', p: 'HR manually merges timesheets, overtime, and statutory deductions—risking double cuts and audit penalties.' }
+      ] : [
+        { t: 'VERIFIED ATTENDANCE', h: 'Zero Ghost Shifts or Buddy Punching', p: 'GPS geofences + live Peer Card face verification ensure every logged hour belongs to a worker physically on site.' },
+        { t: 'SIGNED HANDOVERS', h: '30–45 Minutes Saved Per Rotation', p: 'Incoming and outgoing leads sign structured safety checklists in-app—zero lost context between day and night shifts.' },
+        { t: '1-CLICK PAYROLL', h: '100% Statutory Reconciliation Match', p: 'Approved shifts flow straight into PAYE, PenCom (8%/10%), NHF, NSITF, and bank-ready disbursement CSVs.' }
+      ];
+      [1, 2, 3].forEach((n, idx) => {
+        const card = document.getElementById('ba-c' + n);
+        if (card) {
+          card.classList.toggle('is-before', isBefore);
+          card.classList.toggle('is-after', !isBefore);
+        }
+        const t = document.getElementById('ba-t' + n);
+        const h = document.getElementById('ba-h' + n);
+        const p = document.getElementById('ba-p' + n);
+        if (t) t.textContent = data[idx].t;
+        if (h) h.textContent = data[idx].h;
+        if (p) p.textContent = data[idx].p;
+      });
+    };
+
     window.toggleWebMobileNav = function (forceState) {
       const drawer = document.getElementById('sr-web-mobile-nav');
       const btn = document.getElementById('sr-web-menu-btn');
@@ -1200,13 +2378,16 @@
       if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     };
 
-    window.switchHeroPane = function (paneId) {
+    window.switchHeroPane = function (paneId, btnEl) {
       document.querySelectorAll('.arch-pane').forEach(p => p.classList.remove('active'));
       const target = document.getElementById(paneId);
       if (target) target.classList.add('active');
       document.querySelectorAll('.win-tab[data-pane]').forEach(t => {
         t.classList.toggle('active', t.getAttribute('data-pane') === paneId);
       });
+      const imgSrc = btnEl && btnEl.getAttribute('data-img');
+      const previewImg = document.getElementById('console-preview-img');
+      if (imgSrc && previewImg) previewImg.src = imgSrc;
     };
 
     window.switchStakeholder = function (stkId) {
@@ -1247,7 +2428,7 @@
       const states = {
         pending: {
           badge: 'PENDING',
-          status: 'Select supervisor resolution to preview live net pay impact:',
+          status: 'Select resolution to preview live pay impact:',
           deduction: '-₦11,363.64 (Held)',
           statutory: 'PenCom ₦28,636.36 · PAYE ₦17,910.22',
           net: '₦197,385.11'
@@ -1339,7 +2520,7 @@
           msgDiv.textContent = data.message || 'Demo request received. Our team will reach out shortly.';
           banner.appendChild(msgDiv);
           if (srPublicWhatsAppDesk && srPublicWhatsAppDesk.waBaseUrl) {
-            const waText = `Hello ShiftRelay OS, we submitted a pilot request for ${payload.companyName} (${payload.headcount} staff, ${payload.industry}). Email: ${payload.workEmail}.`;
+            const waText = `Hello ShiftRelay, we submitted a pilot request for ${payload.companyName} (${payload.headcount} staff, ${payload.industry}). Email: ${payload.workEmail}.`;
             const waLink = document.createElement('a');
             waLink.href = `${srPublicWhatsAppDesk.waBaseUrl}?text=${encodeURIComponent(waText)}`;
             waLink.target = '_blank';
