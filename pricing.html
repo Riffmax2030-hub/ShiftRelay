@@ -29,12 +29,132 @@
     .btn-cta:hover { background: #0f766e; }
   </style>
   <meta property="og:image" content="https://shiftrelayos.com/assets/site/shiftrelay-og-social-card.jpg" />
+
+  
+  <style id="sr-light-brand-override">
+    @font-face {
+      font-family: 'Space Grotesk';
+      src: url('/assets/fonts/SpaceGrotesk-Latin.woff2') format('woff2');
+      font-weight: 500 700;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Plus Jakarta Sans';
+      src: url('/assets/fonts/PlusJakartaSans-Latin.woff2') format('woff2');
+      font-weight: 400 800;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'JetBrains Mono';
+      src: url('/assets/fonts/JetBrainsMono-Latin.woff2') format('woff2');
+      font-weight: 400 700;
+      font-display: swap;
+    }
+    :root {
+      --bg: #fafbfc !important;
+      --bg-deep: #fafbfc !important;
+      --bg-panel: #ffffff !important;
+      --bg-card: #ffffff !important;
+      --bg-surface: #ffffff !important;
+      --panel: #ffffff !important;
+      --card: #ffffff !important;
+      --border: #e2e8f0 !important;
+      --border-subtle: #e2e8f0 !important;
+      --border-emerald: rgba(5, 150, 105, 0.32) !important;
+      --em: #059669 !important;
+      --emerald: #059669 !important;
+      --emerald-deep: #047857 !important;
+      --brand-primary: #059669 !important;
+      --sky: #0284c7 !important;
+      --cyan: #0284c7 !important;
+      --text: #0f172a !important;
+      --text-main: #0f172a !important;
+      --text-secondary: #475569 !important;
+      --muted: #475569 !important;
+      --text-muted: #475569 !important;
+    }
+    html, body {
+      font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      background-color: #fafbfc !important;
+      background-image:
+        radial-gradient(circle at 12% 8%, rgba(5, 150, 105, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 88% 16%, rgba(2, 132, 199, 0.05) 0%, transparent 40%) !important;
+      color: #0f172a !important;
+    }
+    h1, h2, h3, h4, .brand {
+      font-family: 'Space Grotesk', 'Outfit', sans-serif !important;
+      color: #0f172a !important;
+    }
+    .legal-nav, .app-header {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      flex-wrap: wrap !important;
+      gap: 12px !important;
+      background: rgba(255, 255, 255, 0.92) !important;
+      backdrop-filter: blur(16px) !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    .card, .doc-card, .subproc-panel, .svc-card, .benefit-card, .enterprise-card, .legal, .hero, .trust-hero, .section-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04) !important;
+      color: #0f172a !important;
+    }
+    p, li, td, .intro, .features-list {
+      color: #475569 !important;
+    }
+    strong, th, .doc-card h2, .enterprise-card h2, .cta-box h3 {
+      color: #0f172a !important;
+    }
+    input, select, textarea, .kpi-box, .posture-pill {
+      background: #f8fafc !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    .kpi-box strong, .posture-pill strong {
+      color: #059669 !important;
+    }
+    .pill, .nav-pill, .preset-btn, .btn-ghost {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    .pill.active, .nav-pill.active, .preset-btn.active, .pill:hover, .nav-pill:hover {
+      border-color: #059669 !important;
+      color: #059669 !important;
+      background: rgba(5, 150, 105, 0.08) !important;
+    }
+    .pill.primary, .nav-pill.primary, .btn-main, .btn-cta, a.primary {
+      background: #059669 !important;
+      color: #ffffff !important;
+      border: 1px solid #059669 !important;
+    }
+    .pill.primary:hover, .nav-pill.primary:hover, .btn-main:hover, .btn-cta:hover, a.primary:hover {
+      background: #047857 !important;
+      color: #ffffff !important;
+    }
+    .cta-box, .banner, .legal-footer {
+      background: rgba(5, 150, 105, 0.06) !important;
+      border: 1px solid rgba(5, 150, 105, 0.28) !important;
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid #059669 !important;
+      outline-offset: 2px !important;
+    }
+  </style>
+
 </head>
 <body>
   <main class="legal">
-    <a class="brand" href="/website.html" style="display:inline-flex;align-items:center;gap:10px;">
-      <img src="icon.svg?v=150" width="24" height="24" style="border-radius:6px;" alt="ShiftRelay" />
-      <span style="font-weight:800;letter-spacing:-0.02em;"><span style="color:#10b981;font-weight:900;">SHIFT</span>RELAY OS ENTERPRISE</span>
+    <a href="/website.html" class="brand brand-link" style="display:inline-flex;align-items:center;gap:11px;text-decoration:none;">
+      <img src="/icon.svg?v=177" width="38" height="38" alt="ShiftRelay" style="width:38px;height:38px;border-radius:10px;box-shadow:0 4px 12px rgba(5,150,105,0.18);" />
+      <svg class="brand-wordmark-svg" width="142" height="24" viewBox="0 0 142 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ShiftRelay" style="height:22px;width:auto;display:block;">
+        <text x="0" y="18" font-family="'Space Grotesk', 'Outfit', sans-serif" font-size="18.5" font-weight="800" letter-spacing="0.06em">
+          <tspan fill="#059669">SHIFT</tspan><tspan fill="#0f172a">RELAY</tspan>
+        </text>
+        <path d="M89.5 12H95.5" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
     </a>
     <span class="badge">Employer-Provisioned Multi-Tenant OS</span>
     <h1>Enterprise Workforce &amp; Payroll Licensing Model</h1>

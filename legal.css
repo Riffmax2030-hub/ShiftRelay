@@ -1,1 +1,84 @@
-:root{--ink:#19242b;--muted:#5f6d76;--line:#dbe4e4;--paper:#fff;--canvas:#f4f7f5;--teal:#126e68}*{box-sizing:border-box}body{margin:0;background:var(--canvas);color:var(--ink);font-family:Arial,sans-serif}.legal{width:min(760px,calc(100% - 36px));margin:48px auto;padding:36px;border:1px solid var(--line);border-radius:20px;background:var(--paper)}h1{font-size:36px}h2{margin-top:32px}p,li{color:var(--muted);line-height:1.65}a{color:var(--teal);font-weight:700}.brand{color:var(--ink);font-size:22px;font-weight:800;text-decoration:none}.brand span{display:inline-grid;place-items:center;width:29px;height:29px;margin-right:8px;border-radius:9px;background:#dff26e}.form{display:grid;gap:14px;margin-top:25px}label{display:grid;gap:6px;font-weight:700}input,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:9px;font:inherit}textarea{min-height:110px}button{padding:12px 15px;border:0;border-radius:9px;background:var(--ink);color:#fff;font-weight:800;cursor:pointer}.message{min-height:24px;color:var(--teal);font-weight:700}
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/assets/fonts/SpaceGrotesk-Latin.woff2') format('woff2');
+  font-weight: 500 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/assets/fonts/PlusJakartaSans-Latin.woff2') format('woff2');
+  font-weight: 400 800;
+  font-display: swap;
+}
+:root {
+  --ink: #0f172a;
+  --muted: #475569;
+  --line: #e2e8f0;
+  --paper: #ffffff;
+  --canvas: #fafbfc;
+  --teal: #059669;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.65;
+}
+.legal {
+  width: min(820px, calc(100% - 36px));
+  margin: 44px auto;
+  padding: 40px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--paper);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+}
+h1, h2, h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+h1 { font-size: clamp(26px, 3.5vw, 36px); margin: 12px 0; }
+h2 { margin-top: 28px; font-size: 20px; }
+p, li { color: var(--muted); line-height: 1.68; }
+a { color: var(--teal); font-weight: 700; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 800;
+  text-decoration: none;
+  margin-bottom: 20px;
+}
+.form { display: grid; gap: 14px; margin-top: 24px; }
+label { display: grid; gap: 6px; font-weight: 700; font-size: 13px; color: var(--ink); }
+input, textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: var(--ink);
+  font: inherit;
+}
+input:focus, textarea:focus {
+  outline: 2px solid #059669;
+  background: #ffffff;
+}
+textarea { min-height: 110px; }
+button {
+  padding: 13px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #059669;
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+button:hover { background: #047857; }
+.message { min-height: 24px; color: var(--teal); font-weight: 700; }

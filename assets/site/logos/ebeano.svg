@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48">
+  <rect x="6" y="7" width="36" height="34" rx="8" fill="#15803D"/>
+  <path d="M13 18h20l-2.5 10H16l-3-10z" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linejoin="round"/>
+  <circle cx="18" cy="33" r="2" fill="#FACC15"/>
+  <circle cx="29" cy="33" r="2" fill="#FACC15"/>
+  <text x="50" y="23" font-family="'Space Grotesk', 'Segoe UI', Arial, sans-serif" font-size="16" font-weight="800" fill="#15803D">Ebeano</text>
+  <text x="50" y="36" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="8" font-weight="700" letter-spacing="0.04em" fill="#475569">SUPERMARKET CHAIN</text>
+</svg>

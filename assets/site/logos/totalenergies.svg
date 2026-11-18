@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48">
+  <circle cx="24" cy="24" r="17" fill="none" stroke="#EF4444" stroke-width="3.5"/>
+  <path d="M15 24c0-5 4-9 9-9s9 4 9 9" fill="none" stroke="#2563EB" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M19 29c2.5 2.5 7.5 2.5 10 0" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>
+  <text x="49" y="23" font-family="'Space Grotesk', 'Segoe UI', Arial, sans-serif" font-size="15.5" font-weight="800" fill="#1E293B">TotalEnergies</text>
+  <text x="49" y="36" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="8" font-weight="700" letter-spacing="0.04em" fill="#475569">UPSTREAM &amp; RETAIL</text>
+</svg>

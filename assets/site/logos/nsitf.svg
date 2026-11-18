@@ -1,5 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 40" width="124" height="40">
-  <circle cx="19" cy="20" r="14" fill="#047857"/>
-  <path d="M19 10a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm-6 17c0-3.5 2.7-6 6-6s6 2.5 6 6" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
-  <text x="39" y="25" font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="15" fill="#0f172a">NSITF</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48">
+  <!-- Modified NSITF crest: navy protective shield with emerald trust pillars -->
+  <path d="M24 5L40 11v13c0 9.5-6.8 16.2-16 19-9.2-2.8-16-9.5-16-19V11L24 5z" fill="#0A2E5C"/>
+  <path d="M24 8.5L36.5 13.2v10.8c0 7.6-5.2 13-12.5 15.4C16.7 37 11.5 31.6 11.5 24V13.2L24 8.5z" fill="none" stroke="#38BDF8" stroke-width="1.2"/>
+  <rect x="17" y="18" width="3.5" height="12" rx="1" fill="#10B981"/>
+  <rect x="22.2" y="15" width="3.5" height="15" rx="1" fill="#FFFFFF"/>
+  <rect x="27.5" y="18" width="3.5" height="12" rx="1" fill="#10B981"/>
+  <text x="48" y="23" font-family="'Space Grotesk', 'Segoe UI', Arial, sans-serif" font-size="17" font-weight="800" letter-spacing="0.05em" fill="#0A2E5C">NSITF</text>
+  <text x="48" y="36" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="8" font-weight="700" letter-spacing="0.04em" fill="#475569">SOCIAL INSURANCE TRUST</text>
 </svg>

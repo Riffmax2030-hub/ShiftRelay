@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48">
+  <rect x="6" y="7" width="36" height="34" rx="8" fill="#14532D"/>
+  <path d="M16 33l8-19 8 19h-4.5l-3.5-8.5L20.5 33H16z" fill="#4ADE80"/>
+  <circle cx="24" cy="17" r="2.2" fill="#FACC15"/>
+  <text x="50" y="23" font-family="'Space Grotesk', 'Segoe UI', Arial, sans-serif" font-size="16.5" font-weight="800" fill="#14532D">Ardova Plc</text>
+  <text x="50" y="36" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="8" font-weight="700" letter-spacing="0.04em" fill="#475569">AP SERVICE STATIONS</text>
+</svg>

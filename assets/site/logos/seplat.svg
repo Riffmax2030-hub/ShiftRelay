@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48">
+  <rect x="6" y="7" width="36" height="34" rx="8" fill="#065F46"/>
+  <path d="M14 29c4-8 10-12 20-12-3 8-9 12-20 12z" fill="#34D399"/>
+  <path d="M16 19c4-3 10-4 16-2" stroke="#FACC15" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <text x="50" y="23" font-family="'Space Grotesk', 'Segoe UI', Arial, sans-serif" font-size="16" font-weight="800" fill="#065F46">Seplat Energy</text>
+  <text x="50" y="36" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="8" font-weight="700" letter-spacing="0.04em" fill="#475569">INDIGENOUS ENERGY</text>
+</svg>
