@@ -2869,5 +2869,48 @@ body:has(#sr-app-shell) .app-header,
   }
 }
 
+/* ==========================================================================
+   TABLET & TOUCH VIEWPORT SCROLL GUARANTEES (All Tabs, Profile & Calendar)
+   ========================================================================== */
+html,
+body {
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+}
+
+#sr-app-shell,
+#sr-app-shell .sr-body-wrap,
+#sr-app-shell .sr-main-scroll-wrap,
+#sr-app-shell .sr-main-content,
+#sr-app-shell #sr-content-area {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+#sr-app-shell .sr-main-content {
+  padding-bottom: 96px !important;
+}
+
+#sr-app-shell .sr-dnd-staff-dock,
+#sr-app-shell .sr-v2-page-actions,
+#sr-app-shell .sr-v2-week-strip,
+#sr-app-shell .week-date-carousel,
+#sr-app-shell .sr-notif-categories,
+#sr-app-shell .sr-v2-table-wrap {
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
+#sr-app-shell .sr-dnd-worker-chip {
+  touch-action: pan-x pan-y;
+}
+
 
 

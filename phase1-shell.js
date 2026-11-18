@@ -1608,8 +1608,8 @@
               </button>
             </div>
           </nav>
-          <!-- Main Scrollable Area (Drag-to-Refresh Enabled) -->
-          <div class="sr-main-scroll-wrap" id="sr-main-scroll-wrap" style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; position: relative; overscroll-behavior-y: contain;">
+          <!-- Main Scrollable Area (Document Scroll + Safe Pull-to-Refresh) -->
+          <div class="sr-main-scroll-wrap" id="sr-main-scroll-wrap" style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: visible; position: relative;">
             <div id="sr-ptr-indicator" aria-hidden="true" style="height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;font-weight:700;color:var(--sr-primary);transition:height 0.18s ease,opacity 0.18s ease;opacity:0;background:var(--sr-bg-card-subtle);">
               <svg id="sr-ptr-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="transition:transform 0.2s ease;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               <span id="sr-ptr-label">Pull down to refresh</span>
@@ -1745,6 +1745,13 @@
       </div>
     `;
 
+    // Ensure clean native document scrolling on every view mount (clears stale modal/gate overflow locks)
+    document.documentElement.style.overflow = '';
+    document.documentElement.style.touchAction = '';
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
+    document.getElementById('sr-dnd-touch-ghost')?.remove();
+
     // Hide old landing / old dock
     const oldDock = document.querySelector('.frontline-dock');
     if (oldDock) oldDock.style.display = 'none';
@@ -1752,6 +1759,9 @@
     if (oldHeader) oldHeader.style.display = 'none';
 
     appContainer.innerHTML = shellHtml;
+    if (window.scrollY > 0) {
+      try { window.scrollTo(0, 0); } catch (_) {}
+    }
 
     // Bind navigation buttons
     document.querySelectorAll('[data-sr-view]').forEach(btn => {
@@ -1882,7 +1892,7 @@
       });
     });
 
-    // Native Drag-to-Refresh (Touch + Mouse pull-down from top of scroll container)
+    // Native Drag-to-Refresh (Strictly at top of page; never blocks tablet/mobile scrolling or calendar drag)
     (function bindPullToRefresh() {
       const scrollWrap = document.getElementById('sr-main-scroll-wrap');
       const ptrEl = document.getElementById('sr-ptr-indicator');
@@ -1890,27 +1900,41 @@
       const ptrLabel = document.getElementById('sr-ptr-label');
       if (!scrollWrap || !ptrEl) return;
       let startY = 0;
+      let startX = 0;
       let pulling = false;
       let pullDist = 0;
       const THRESHOLD = 62;
 
-      const onStart = (y, target) => {
-        if (scrollWrap.scrollTop > 2) return;
-        if (target && target.closest && target.closest('input, textarea, select, button, a')) return;
+      const getPageScrollY = () => Math.max(window.scrollY || 0, document.documentElement.scrollTop || 0, scrollWrap.scrollTop || 0);
+      const resetPtr = () => {
+        pulling = false;
+        pullDist = 0;
+        ptrEl.style.transition = 'height 0.16s ease, opacity 0.16s ease';
+        ptrEl.style.height = '0px';
+        ptrEl.style.opacity = '0';
+      };
+
+      const onStart = (x, y, target) => {
+        if (getPageScrollY() > 2) return;
+        if (target && target.closest && target.closest('input, textarea, select, button, a, [draggable="true"], .sr-dnd-worker-chip, [data-drop-date], .sr-dnd-cal-day, .sr-dnd-staff-dock, .sr-v2-week-strip, .week-date-carousel')) return;
+        startX = x;
         startY = y;
         pulling = true;
         pullDist = 0;
       };
-      const onMove = (y) => {
+      const onMove = (x, y) => {
         if (!pulling) return;
         const dy = y - startY;
-        if (dy <= 0 || scrollWrap.scrollTop > 2) {
+        const dx = x - startX;
+        if (dy <= 0 || getPageScrollY() > 2 || Math.abs(dx) > Math.abs(dy) * 1.2) {
+          if (Math.abs(dx) > 10 || dy < -4) pulling = false;
           pullDist = 0;
           ptrEl.style.height = '0px';
           ptrEl.style.opacity = '0';
           return;
         }
-        pullDist = Math.min(96, dy * 0.55);
+        if (dy < 12) return;
+        pullDist = Math.min(96, (dy - 12) * 0.55);
         ptrEl.style.transition = 'none';
         ptrEl.style.height = `${pullDist}px`;
         ptrEl.style.opacity = String(Math.min(1, pullDist / THRESHOLD));
@@ -1921,35 +1945,24 @@
         if (!pulling) return;
         pulling = false;
         ptrEl.style.transition = 'height 0.2s ease, opacity 0.2s ease';
-        if (pullDist >= THRESHOLD) {
+        if (pullDist >= THRESHOLD && getPageScrollY() <= 2) {
           ptrEl.style.height = '42px';
           ptrEl.style.opacity = '1';
           if (ptrLabel) ptrLabel.textContent = 'Syncing...';
           await refreshActiveScreen(false);
         }
-        ptrEl.style.height = '0px';
-        ptrEl.style.opacity = '0';
-        pullDist = 0;
+        resetPtr();
       };
 
       scrollWrap.addEventListener('touchstart', (e) => {
-        if (e.touches && e.touches.length === 1) onStart(e.touches[0].clientY, e.target);
+        if (e.touches && e.touches.length === 1) onStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
       }, { passive: true });
       scrollWrap.addEventListener('touchmove', (e) => {
-        if (pulling && e.touches && e.touches.length === 1) onMove(e.touches[0].clientY);
+        if (pulling && e.touches && e.touches.length === 1) onMove(e.touches[0].clientX, e.touches[0].clientY);
       }, { passive: true });
-      scrollWrap.addEventListener('touchend', onEnd);
-      scrollWrap.addEventListener('touchcancel', onEnd);
-
-      scrollWrap.addEventListener('mousedown', (e) => {
-        if (e.button === 0) onStart(e.clientY, e.target);
-      });
-      window.addEventListener('mousemove', (e) => {
-        if (pulling) onMove(e.clientY);
-      });
-      window.addEventListener('mouseup', () => {
-        if (pulling) onEnd();
-      });
+      scrollWrap.addEventListener('touchend', onEnd, { passive: true });
+      scrollWrap.addEventListener('touchcancel', resetPtr, { passive: true });
+      window.addEventListener('scroll', () => { if (pulling && getPageScrollY() > 2) resetPtr(); }, { passive: true });
     })();
 
     document.getElementById('sr-shell-settings')?.addEventListener('click', (e) => {
@@ -6733,7 +6746,7 @@
         </div>
       </div>
 
-      <div class="sr-card" style="padding:0;overflow:hidden;">
+      <div class="sr-card" style="padding:0;overflow-x:clip;overflow-y:visible;">
         <div class="sr-v2-tabs" role="tablist" style="margin:0 !important;padding:0 16px !important;">
           ${['shifts', 'swaps', 'leave'].map(t => {
             const labels = { shifts: 'My Shifts', swaps: 'Open Shifts & Swaps', leave: 'Leave' };
@@ -6990,7 +7003,7 @@
         </div>
       </div>
 
-      <div class="sr-card" style="padding:0;overflow:hidden;">
+      <div class="sr-card" style="padding:0;overflow-x:clip;overflow-y:visible;">
         <div style="padding:0 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--p-border);flex-wrap:wrap;gap:8px;">
           <div class="sr-v2-tabs" role="tablist" style="margin:0 !important;border-bottom:none !important;">
             <button role="tab" aria-selected="${managerScheduleTab === 'shifts'}" id="sr-mgr-tab-shifts" data-mgr-sched-tab="shifts" class="sr-v2-tab ${managerScheduleTab === 'shifts' ? 'active' : ''}">Shift Calendar</button>
@@ -7284,8 +7297,50 @@
 
     renderMobileAgenda(selectedMobileRosterDate);
 
-    // Bind HTML5 Drag-and-Drop + Touch/Click Fallback
+    // Bind HTML5 Drag-and-Drop + Non-Blocking Tablet/Mobile Touch Drag (never hijacks scrolling)
     let draggedWorker = null;
+    let activeHoverCell = null;
+    let edgeScrollRaf = null;
+    let edgeScrollDir = 0;
+
+    const setHoverDayCell = (cell) => {
+      if (activeHoverCell === cell) return;
+      if (activeHoverCell) activeHoverCell.classList.remove('drag-over');
+      activeHoverCell = cell || null;
+      if (activeHoverCell) activeHoverCell.classList.add('drag-over');
+    };
+
+    const stopEdgeAutoScroll = () => {
+      edgeScrollDir = 0;
+      if (edgeScrollRaf) {
+        cancelAnimationFrame(edgeScrollRaf);
+        edgeScrollRaf = null;
+      }
+    };
+
+    const updateEdgeAutoScroll = (clientY) => {
+      const vh = window.innerHeight || document.documentElement.clientHeight || 800;
+      let nextDir = 0;
+      if (clientY > vh - 96) nextDir = 1;
+      else if (clientY < 108) nextDir = -1;
+      if (nextDir === edgeScrollDir) return;
+      edgeScrollDir = nextDir;
+      if (edgeScrollRaf) {
+        cancelAnimationFrame(edgeScrollRaf);
+        edgeScrollRaf = null;
+      }
+      if (edgeScrollDir !== 0) {
+        const tick = () => {
+          if (edgeScrollDir === 0) {
+            edgeScrollRaf = null;
+            return;
+          }
+          window.scrollBy(0, edgeScrollDir * 14);
+          edgeScrollRaf = requestAnimationFrame(tick);
+        };
+        edgeScrollRaf = requestAnimationFrame(tick);
+      }
+    };
 
     panel.querySelectorAll('.sr-dnd-worker-chip').forEach(chip => {
       const workerObj = {
@@ -7307,61 +7362,123 @@
 
       chip.addEventListener('dragend', () => {
         chip.style.opacity = '1';
+        setHoverDayCell(null);
+        stopEdgeAutoScroll();
       });
 
-      // Mobile Touch Drag-and-Drop Controller
+      // Tablet & Mobile Long-Press Drag Controller (lets normal swipes scroll dock & calendar freely)
       let touchGhost = null;
-      chip.addEventListener('touchstart', (e) => {
-        draggedWorker = workerObj;
-        selectedWorkerForDrop = workerObj;
-        chip.style.opacity = '0.6';
-        const touch = e.touches[0];
-        touchGhost = chip.cloneNode(true);
-        touchGhost.style.position = 'fixed';
-        touchGhost.style.zIndex = '99999';
-        touchGhost.style.pointerEvents = 'none';
-        touchGhost.style.opacity = '0.85';
-        touchGhost.style.left = `${touch.clientX - 40}px`;
-        touchGhost.style.top = `${touch.clientY - 20}px`;
-        touchGhost.style.transform = 'scale(0.95)';
-        touchGhost.style.boxShadow = '0 12px 24px rgba(0,0,0,0.3)';
-        document.body.appendChild(touchGhost);
-      }, { passive: true });
+      let holdTimer = null;
+      let touchDragActive = false;
+      let startTouchX = 0;
+      let startTouchY = 0;
+      let lastTouchX = 0;
+      let lastTouchY = 0;
+      let moveRaf = null;
 
-      chip.addEventListener('touchmove', (e) => {
-        const touch = e.touches[0];
-        if (touchGhost) {
-          touchGhost.style.left = `${touch.clientX - 40}px`;
-          touchGhost.style.top = `${touch.clientY - 20}px`;
+      const clearTouchDrag = () => {
+        if (holdTimer) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
         }
-        const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-        const cell = elem ? elem.closest('[data-drop-date]') : null;
-        panel.querySelectorAll('[data-drop-date]').forEach(c => c.classList.remove('drag-over'));
-        if (cell) cell.classList.add('drag-over');
-      }, { passive: true });
-
-      chip.addEventListener('touchend', (e) => {
+        if (moveRaf) {
+          cancelAnimationFrame(moveRaf);
+          moveRaf = null;
+        }
+        touchDragActive = false;
         chip.style.opacity = '1';
         if (touchGhost && touchGhost.parentNode) {
           touchGhost.parentNode.removeChild(touchGhost);
-          touchGhost = null;
         }
-        const touch = e.changedTouches[0];
+        touchGhost = null;
+        setHoverDayCell(null);
+        stopEdgeAutoScroll();
+      };
+
+      chip.addEventListener('touchstart', (e) => {
+        clearTouchDrag();
+        if (!e.touches || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        startTouchX = touch.clientX;
+        startTouchY = touch.clientY;
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+
+        holdTimer = setTimeout(() => {
+          holdTimer = null;
+          touchDragActive = true;
+          draggedWorker = workerObj;
+          selectedWorkerForDrop = workerObj;
+          chip.style.opacity = '0.6';
+          triggerVibration([18]);
+          touchGhost = chip.cloneNode(true);
+          touchGhost.id = 'sr-dnd-touch-ghost';
+          touchGhost.style.position = 'fixed';
+          touchGhost.style.zIndex = '99999';
+          touchGhost.style.pointerEvents = 'none';
+          touchGhost.style.opacity = '0.9';
+          touchGhost.style.left = `${lastTouchX - 48}px`;
+          touchGhost.style.top = `${lastTouchY - 22}px`;
+          touchGhost.style.transform = 'scale(0.96)';
+          touchGhost.style.boxShadow = '0 14px 28px rgba(0,0,0,0.32)';
+          document.body.appendChild(touchGhost);
+        }, 220);
+      }, { passive: true });
+
+      chip.addEventListener('touchmove', (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+
+        if (!touchDragActive) {
+          if (Math.hypot(lastTouchX - startTouchX, lastTouchY - startTouchY) > 10) {
+            // User is scrolling the dock or calendar page — cancel hold so scroll stays smooth
+            if (holdTimer) {
+              clearTimeout(holdTimer);
+              holdTimer = null;
+            }
+          }
+          return;
+        }
+
+        if (e.cancelable) e.preventDefault();
+        if (touchGhost) {
+          touchGhost.style.left = `${lastTouchX - 48}px`;
+          touchGhost.style.top = `${lastTouchY - 22}px`;
+        }
+        updateEdgeAutoScroll(lastTouchY);
+        if (!moveRaf) {
+          moveRaf = requestAnimationFrame(() => {
+            moveRaf = null;
+            if (!touchDragActive) return;
+            const elem = document.elementFromPoint(lastTouchX, lastTouchY);
+            setHoverDayCell(elem ? elem.closest('[data-drop-date]') : null);
+          });
+        }
+      }, { passive: false });
+
+      chip.addEventListener('touchend', (e) => {
+        const wasDragging = touchDragActive;
+        const touch = e.changedTouches?.[0];
+        clearTouchDrag();
+        if (!wasDragging || !touch) return;
         const elem = document.elementFromPoint(touch.clientX, touch.clientY);
         const cell = elem ? elem.closest('[data-drop-date]') : null;
-        panel.querySelectorAll('[data-drop-date]').forEach(c => c.classList.remove('drag-over'));
         if (cell) {
           const dateStr = cell.dataset.dropDate;
           openDragDropShiftModal(workerObj, dateStr, tz, directoryMembers);
         }
       });
 
+      chip.addEventListener('touchcancel', clearTouchDrag, { passive: true });
+
       chip.addEventListener('click', () => {
         selectedWorkerForDrop = workerObj;
         panel.querySelectorAll('.sr-dnd-worker-chip').forEach(c => c.classList.remove('selected-worker'));
         chip.classList.add('selected-worker');
         if (typeof window.toast === 'function') {
-          window.toast(`Selected ${workerObj.name} — now tap any calendar date to set shift time`);
+          window.toast(`Selected ${workerObj.name} — tap or hold-drag onto any date`);
         }
       });
     });
@@ -7372,21 +7489,24 @@
       dayCell.addEventListener('dragover', (e) => {
         e.preventDefault();
         try { e.dataTransfer.dropEffect = 'copy'; } catch (_) {}
-        dayCell.classList.add('drag-over');
+        setHoverDayCell(dayCell);
+        updateEdgeAutoScroll(e.clientY);
       });
 
       dayCell.addEventListener('dragenter', (e) => {
         e.preventDefault();
-        dayCell.classList.add('drag-over');
+        setHoverDayCell(dayCell);
       });
 
-      dayCell.addEventListener('dragleave', () => {
-        dayCell.classList.remove('drag-over');
+      dayCell.addEventListener('dragleave', (e) => {
+        if (e.relatedTarget && dayCell.contains(e.relatedTarget)) return;
+        if (activeHoverCell === dayCell) setHoverDayCell(null);
       });
 
       dayCell.addEventListener('drop', (e) => {
         e.preventDefault();
-        dayCell.classList.remove('drag-over');
+        setHoverDayCell(null);
+        stopEdgeAutoScroll();
         let worker = draggedWorker || selectedWorkerForDrop || directoryMembers[0];
         try {
           const raw = e.dataTransfer.getData('text/plain');
