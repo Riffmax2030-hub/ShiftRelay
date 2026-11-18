@@ -26,6 +26,7 @@
   <meta property="og:image" content="https://shiftrelayos.com/assets/site/shiftrelay-og-social-card.jpg" />
 
   
+  
   <style id="sr-light-brand-override">
     @font-face {
       font-family: 'Space Grotesk';
@@ -185,8 +186,8 @@
         list.innerHTML = comps.map(c => `
           <div class="svc-card">
             <div>
-              <strong style="font-size:15.5px; color:#fff;">${c.name}</strong>
-              <div style="font-size:12.5px; color:#94a3b8; margin-top:2px;">
+              <strong style="font-size:15.5px; color:#0f172a;">${c.name}</strong>
+              <div style="font-size:12.5px; color:#475569; margin-top:2px;">
                 ${c.tickSeconds ? 'Automated loop every ' + c.tickSeconds + 's' : c.variance ? 'Statutory reconciliation variance: ' + c.variance : c.latencyMs ? 'App & API response ready' : 'Verified relay channel'}
               </div>
             </div>

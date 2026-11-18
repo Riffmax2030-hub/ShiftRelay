@@ -46,6 +46,7 @@
   <meta property="og:image" content="https://shiftrelayos.com/assets/site/shiftrelay-og-social-card.jpg" />
 
   
+  
   <style id="sr-light-brand-override">
     @font-face {
       font-family: 'Space Grotesk';
@@ -227,7 +228,7 @@
             <input id="calc-email-name" type="text" placeholder="Full Name (optional)" />
             <input id="calc-email-company" type="text" placeholder="Company Name (optional)" />
             <input id="calc-email-addr" type="email" required placeholder="Work Email (e.g., finance@company.ng)" />
-            <label style="display:flex; align-items:flex-start; gap:8px; text-transform:none; letter-spacing:0; font-weight:500; font-size:12px; color:#cbd5e1; cursor:pointer;">
+            <label style="display:flex; align-items:flex-start; gap:8px; text-transform:none; letter-spacing:0; font-weight:500; font-size:12px; color:#475569; cursor:pointer;">
               <input id="calc-email-consent" type="checkbox" required style="width:auto; margin-top:2px;" />
               <span>Yes, email my statutory breakdown and monthly Nigeria PAYE / PenCom briefs under NDPA 2023 rules (one-click unsubscribe anytime).</span>
             </label>
@@ -303,7 +304,7 @@
         ['NHF Employee Contribution (2.5% Basic)', fmtNgn(t.totalNhf)],
         ['NSITF Employer ECA Levy (1% Gross)', fmtNgn(t.totalNsitf)],
         ['Net Salary Payable to Staff Bank CSV', fmtNgn(t.totalNetPay)]
-      ].map(([k, v]) => `<tr><td style="color:#94a3b8;">${k}</td><td>${v}</td></tr>`).join('');
+      ].map(([k, v]) => `<tr><td style="color:#475569;">${k}</td><td>${v}</td></tr>`).join('');
       return data;
     }
 
