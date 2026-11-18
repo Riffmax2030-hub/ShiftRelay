@@ -4,6 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ShiftRelay OS | Admin Console</title>
+  <script>
+    (function () {
+      try {
+        if ('caches' in window) {
+          caches.keys().then(function (names) {
+            names.forEach(function (n) {
+              caches.open(n).then(function (c) { c.delete('/admin.html'); c.delete('/admin'); });
+            });
+          });
+        }
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) { r.update(); });
+          });
+        }
+      } catch (_) {}
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="/icon.svg?v=177" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

@@ -1,4 +1,4 @@
-const CACHE = 'shiftrelay-v178-live';
+const CACHE = 'shiftrelay-v181-live';
 const CORE_SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -30,8 +30,8 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
 
-  // 1. Strictly bypass API calls and cross-origin requests from Service Worker cache
-  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  // 1. Strictly bypass API calls, Admin OS console, and cross-origin requests from Service Worker cache
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/admin')) return;
 
   // 2. Private uploads protection: NEVER cache private user uploads
   const isUpload = url.pathname.startsWith('/uploads/');

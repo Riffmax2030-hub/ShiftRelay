@@ -13758,11 +13758,12 @@ async function serveStatic(request, response, url) {
 
     const asset = await getCachedStaticAsset(filePath, ext);
     const isCode = ['.html', '.js', '.css', '.json'].includes(ext);
-    const cacheHeader = isCode
-      ? 'public, max-age=0, must-revalidate'
-      : 'public, max-age=86400';
+    const isAdminHtml = normalizedLower === 'admin.html';
+    const cacheHeader = isAdminHtml
+      ? 'no-store, no-cache, must-revalidate, private'
+      : (isCode ? 'public, max-age=0, must-revalidate' : 'public, max-age=86400');
 
-    if (request.headers['if-none-match'] === asset.etag) {
+    if (!isAdminHtml && request.headers['if-none-match'] === asset.etag) {
       response.writeHead(304, {
         'ETag': asset.etag,
         'Cache-Control': cacheHeader,
