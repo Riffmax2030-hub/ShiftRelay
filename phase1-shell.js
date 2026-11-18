@@ -14588,8 +14588,11 @@
             <div class="sr-payslip-sheet" id="sr-payslip-content-print" style="padding:28px;">
               <div class="sr-payslip-header-box">
                 <div style="display:flex;align-items:center;gap:12px;">
-                  <img src="assets/logos/logo-brand-motion.svg?v=177" width="72" height="72" style="border-radius:16px;flex-shrink:0;box-shadow:0 4px 12px rgba(4,27,20,0.22);" alt="ShiftRelay" />
+                  <img src="icon.svg?v=177" width="56" height="56" style="border-radius:14px;flex-shrink:0;box-shadow:0 4px 12px rgba(5,150,105,0.22);" alt="ShiftRelay" />
                   <div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                      <span style="font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:800;letter-spacing:0.06em;color:#059669;">SHIFT</span><span style="font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:800;letter-spacing:0.06em;color:var(--sr-text-main);margin-left:-4px;">RELAY</span>
+                    </div>
                     <h2 style="font-size:19px;font-weight:900;color:var(--sr-text-main);margin:0 0 4px;">${escapeHtml(payslipData?.companyName || statementData.companyName || activeUser?.organisation_name || 'Workplace')}</h2>
                     <p style="font-size:12px;color:var(--sr-text-muted);margin:0;">Tenant ID: <strong style="color:var(--sr-text-main);">${escapeHtml(payslipData?.companyId || statementData.companyId || activeUser?.company_id || '—')}</strong></p>
                   </div>
