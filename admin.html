@@ -1192,6 +1192,9 @@
         </div>
 
         <div class="role-switcher-bar" id="adm-clearance-bar">
+          <button type="button" class="btn-ghost" id="adm-cmd-palette-btn" style="padding:5px 10px; font-size:11.5px; font-family:'JetBrains Mono',monospace;" onclick="window.openAdminCommandPalette()">
+            <span>Search</span> <kbd style="opacity:0.75; font-size:10px; padding:1px 5px; border-radius:4px; border:1px solid var(--border-hairline);">Ctrl+K</kbd>
+          </button>
           <span class="chip cyan" id="adm-locked-role-chip" style="font-family:'JetBrains Mono',monospace;">RBAC</span>
           <div id="adm-owner-preview-bar">
             <button type="button" class="role-chip owner-chip active" data-switch-role="owner_root" onclick="window.setAdminActiveRole('owner_root')">Owner</button>
@@ -1784,6 +1787,10 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                   Statutory CSV
                 </button>
+                <button type="button" class="btn-ghost" id="adm-btn-nip-csv" onclick="window.exportAdminBankNipCsv()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                  Bank NIP Transfer CSV
+                </button>
                 <button type="button" class="btn-emerald" onclick="window.submitPayrollBatchForOwnerApproval()">Submit Batch to Owner Vault →</button>
               </div>
             </div>
@@ -1896,7 +1903,10 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                   Configure API credentials, verify live latency across Gemini AI, CBN/Paystack NUBAN, Termii SMS, WhatsApp Cloud, Transactional Mail, and Corporate OIDC SSO.
                 </p>
               </div>
-              <button type="button" class="btn-ghost" onclick="window.loadAdminIntegrations(true)">Refresh Bridges</button>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn-ghost" onclick="window.openNubanResolverModal()">NUBAN Account Resolver</button>
+                <button type="button" class="btn-ghost" onclick="window.loadAdminIntegrations(true)">Refresh Bridges</button>
+              </div>
             </div>
             <div id="adm-plugins-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:14px;">
               <div style="padding:20px; color:var(--text-slate);">Loading plugins &amp; bridges...</div>
@@ -1965,6 +1975,25 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                   <tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:18px;">Loading webhook bridges...</td></tr>
                 </tbody>
               </table>
+            </div>
+            <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border-hairline);">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--emerald); text-transform:uppercase; margin-bottom:8px;">Live Signed Webhook Delivery Log (X-ShiftRelay-Signature)</div>
+              <div class="table-scroll" style="max-height:220px;">
+                <table class="adm-table">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Bridge</th>
+                      <th>Event</th>
+                      <th>HMAC Signature</th>
+                      <th>HTTP / Latency</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adm-webhook-logs-tbody">
+                    <tr><td colspan="5" style="text-align:center; color:var(--text-slate); padding:12px;">No webhook deliveries logged yet — click Ping or trigger an event.</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -2998,7 +3027,193 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
           `).join('');
         }
       }
+
+      const whLogs = data?.webhookLogs || [];
+      const whLogsTbody = document.getElementById('adm-webhook-logs-tbody');
+      if (whLogsTbody) {
+        if (!whLogs.length) {
+          whLogsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-slate); padding:12px;">No webhook deliveries logged yet — click Ping or trigger an event.</td></tr>';
+        } else {
+          whLogsTbody.innerHTML = whLogs.slice(0, 12).map(lg => `
+            <tr>
+              <td style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-slate);">${escapeHtml((lg.timestamp || '').replace('T', ' ').slice(0, 19))}</td>
+              <td><strong>${escapeHtml(lg.webhookName || lg.webhookId)}</strong></td>
+              <td><code style="color:var(--sky);">${escapeHtml(lg.event)}</code></td>
+              <td><code>${escapeHtml(lg.signaturePrefix || 'sha256=…')}</code></td>
+              <td><span class="chip emerald">${escapeHtml(lg.status)} (${lg.latencyMs ?? 0}ms)</span></td>
+            </tr>
+          `).join('');
+        }
+      }
     }
+
+    window.openNubanResolverModal = function (prefillBank = '058', prefillNuban = '0123456789', prefillName = '') {
+      document.getElementById('adm-nuban-modal')?.remove();
+      const modal = document.createElement('div');
+      modal.id = 'adm-nuban-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+      modal.innerHTML = `
+        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:460px;width:100%;padding:22px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border-hairline);">
+            <div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--emerald);">CBN NIP + PAYSTACK RESOLVER</span>
+              <h3 style="margin:2px 0 0;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;">Verify 10-Digit NUBAN Account</h3>
+            </div>
+            <button type="button" id="nres-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
+          </div>
+          <form id="nres-form" style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <label class="lbl-sm">CBN Bank Name or 3-Digit Code</label>
+              <input id="nres-bank" type="text" class="adm-input" value="${escapeHtml(prefillBank)}" required placeholder="e.g., GTBank, 058, Zenith, Access, OPay" />
+            </div>
+            <div>
+              <label class="lbl-sm">10-Digit NUBAN Account Number</label>
+              <input id="nres-nuban" type="text" class="adm-input" maxlength="10" value="${escapeHtml(prefillNuban)}" required placeholder="0123456789" style="font-family:'JetBrains Mono',monospace;" />
+            </div>
+            <div>
+              <label class="lbl-sm">Expected Staff Name (Optional)</label>
+              <input id="nres-name" type="text" class="adm-input" value="${escapeHtml(prefillName)}" placeholder="e.g., Musa Danjuma" />
+            </div>
+            <button type="submit" class="btn-emerald" style="justify-content:center;">Resolve CBN Bank &amp; Account Name</button>
+          </form>
+          <div id="nres-result" style="display:none;margin-top:12px;padding:12px;border-radius:10px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);font-size:12.5px;"></div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('nres-close').onclick = () => modal.remove();
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      document.getElementById('nres-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const box = document.getElementById('nres-result');
+        try {
+          const res = await admFetch('/api/admin/nuban/resolve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bankCodeOrName: document.getElementById('nres-bank').value,
+              nuban: document.getElementById('nres-nuban').value,
+              staffName: document.getElementById('nres-name').value
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'NUBAN resolution failed');
+          box.style.display = 'block';
+          box.innerHTML = `
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--emerald);font-weight:700;">${escapeHtml(data.mode)}</div>
+            <div style="margin-top:4px;"><strong>Account Holder:</strong> ${escapeHtml(data.accountName)}</div>
+            <div><strong>Bank:</strong> ${escapeHtml(data.bankName)} (CBN Code: <code>${escapeHtml(data.bankCode)}</code>)</div>
+            <div><strong>NUBAN:</strong> <code>${escapeHtml(data.nuban)}</code></div>
+          `;
+        } catch (err) {
+          box.style.display = 'block';
+          box.innerHTML = `<span style="color:var(--rose);">${escapeHtml(err.message)}</span>`;
+        }
+      };
+    };
+
+    window.openAdminCommandPalette = function () {
+      if (!currentAdminUser) return;
+      document.getElementById('adm-cmd-palette-modal')?.remove();
+      const modal = document.createElement('div');
+      modal.id = 'adm-cmd-palette-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(2,6,16,0.78);backdrop-filter:blur(8px);display:flex;align-items:flex-start;justify-content:center;padding:80px 20px 20px;';
+      modal.innerHTML = `
+        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:620px;width:100%;padding:18px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+          <div style="display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--border-hairline);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="adm-cmd-input" type="text" class="adm-input" style="margin:0;border:0;background:transparent;font-size:14px;padding:4px 0;" placeholder="Jump to view, tenant, support ticket (SR-REC-*), plugin, or backend file..." />
+            <button type="button" id="adm-cmd-close" class="btn-ghost" style="padding:4px 8px;font-size:11px;">ESC</button>
+          </div>
+          <div id="adm-cmd-results" style="max-height:360px;overflow:auto;margin-top:10px;display:flex;flex-direction:column;gap:4px;"></div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('adm-cmd-close').onclick = () => modal.remove();
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+      const items = [
+        { group: 'View', label: 'Control Overview', sub: 'Telemetry, Pulse & Security', run: () => window.switchAdminView('overview') },
+        { group: 'View', label: 'Owner Sovereign Vault', sub: 'Approvals, SaaS MRR & Audit Trail', run: () => window.switchAdminView('owner-vault') },
+        { group: 'View', label: 'Setup Engine (Onboarding Agent)', sub: 'Gemini 3.8 Flash Vision + Excel Roster', run: () => window.switchAdminView('onboarding') },
+        { group: 'View', label: 'Tenants & Roster', sub: 'Onboarded Companies, Staffs & Gate QR', run: () => window.switchAdminView('tenants') },
+        { group: 'View', label: 'Customer Care & Support Tickets', sub: 'Live SSE Support Queue & NDPA Erasure', run: () => window.switchAdminView('rectifications') },
+        { group: 'View', label: 'Payroll Audit & Bank NIP Export', sub: 'PenCom, PAYE, NHF & Bank NIP CSV', run: () => window.switchAdminView('finance') },
+        { group: 'View', label: 'Plugins, API Keys & Enterprise Bridges', sub: 'Gemini, Paystack, Termii, WhatsApp, ERP REST & Webhooks', run: () => window.switchAdminView('integrations') },
+        { group: 'View', label: 'Email Auto-Station & Newsletter', sub: 'Transactional Outbox & Statutory Digests', run: () => window.switchAdminView('email-station') },
+        { group: 'View', label: 'Backend Files & Engines Inspector', sub: 'Live Server Modules & Read-Only Code Preview', run: () => window.switchAdminView('hosting') },
+        { group: 'Action', label: 'Verify 10-Digit NUBAN Account Name', sub: 'CBN Modulo-10 + Paystack Resolver', run: () => window.openNubanResolverModal() },
+        { group: 'Action', label: 'Download Bank NIP Transfer CSV', sub: 'Multi-Bank Salary Disbursal Schedule', run: () => window.exportAdminBankNipCsv() }
+      ];
+      (cachedTenants || []).forEach(t => {
+        const name = t.tradingName || t.legalName || t.name || 'Tenant';
+        items.push({
+          group: 'Tenant',
+          label: `${name} (${t.companyId || 'SR-ORG'})`,
+          sub: 'Open Company Staffs Roster Drawer',
+          run: () => { window.switchAdminView('tenants'); window.openTenantRosterModal(t.id); }
+        });
+      });
+      (cachedRectifications || []).forEach(r => {
+        items.push({
+          group: 'Ticket',
+          label: `${r.id} — ${r.name || r.email}`,
+          sub: `${r.category} (${r.status})`,
+          run: () => { window.switchAdminView('rectifications'); window.openTicketReviewModal(r.id); }
+        });
+      });
+      (cachedIntegrationsCatalog?.plugins || []).forEach(p => {
+        items.push({
+          group: 'Plugin',
+          label: p.name,
+          sub: `${p.status} • ${p.endpointOrModel}`,
+          run: () => { window.switchAdminView('integrations'); window.testAdminPluginBridge(p.id); }
+        });
+      });
+
+      const renderList = (q) => {
+        const queryStr = String(q || '').trim().toLowerCase();
+        const filtered = items.filter(it => !queryStr || `${it.group} ${it.label} ${it.sub}`.toLowerCase().includes(queryStr)).slice(0, 14);
+        const box = document.getElementById('adm-cmd-results');
+        if (!box) return;
+        box.innerHTML = filtered.map((it, idx) => `
+          <button type="button" data-cmd-idx="${idx}" style="display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:9px 12px;border-radius:10px;border:1px solid var(--border-hairline);background:var(--bg-input);color:var(--text-white);cursor:pointer;">
+            <div>
+              <span class="chip cyan" style="font-size:9.5px;padding:2px 6px;margin-right:6px;">${escapeHtml(it.group)}</span>
+              <strong style="font-size:13px;">${escapeHtml(it.label)}</strong>
+            </div>
+            <span style="font-size:11.5px;color:var(--text-slate);">${escapeHtml(it.sub)}</span>
+          </button>
+        `).join('');
+        box.querySelectorAll('button[data-cmd-idx]').forEach(btn => {
+          btn.onclick = () => {
+            const target = filtered[Number(btn.getAttribute('data-cmd-idx'))];
+            modal.remove();
+            if (target && typeof target.run === 'function') target.run();
+          };
+        });
+      };
+
+      const inp = document.getElementById('adm-cmd-input');
+      inp.oninput = () => renderList(inp.value);
+      inp.onkeydown = (e) => {
+        if (e.key === 'Escape') modal.remove();
+        if (e.key === 'Enter') {
+          const firstBtn = document.querySelector('#adm-cmd-results button[data-cmd-idx="0"]');
+          if (firstBtn) firstBtn.click();
+        }
+      };
+      renderList('');
+      setTimeout(() => inp.focus(), 30);
+    };
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        if (currentAdminUser) {
+          e.preventDefault();
+          window.openAdminCommandPalette();
+        }
+      }
+    });
 
     window.testAdminPluginBridge = async function (pluginId) {
       try {
@@ -4311,19 +4526,28 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       const modal = document.createElement('div');
       modal.id = 'adm-ticket-review-modal';
       modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+      const msgs = Array.isArray(r.messages) && r.messages.length
+        ? r.messages
+        : [{ author: r.name || 'User', role: 'user', body: r.details || '' }];
+      const threadHtml = msgs.map(m => `
+        <div style="padding:8px 11px;border-radius:10px;background:${m.role === 'support' ? 'rgba(16,185,129,0.12)' : 'var(--bg-input)'};border-left:3px solid ${m.role === 'support' ? 'var(--emerald)' : 'var(--sky)'};font-size:12.5px;">
+          <div style="font-size:10.5px;font-family:'JetBrains Mono',monospace;color:${m.role === 'support' ? 'var(--emerald)' : 'var(--sky)'};font-weight:700;margin-bottom:3px;">${escapeHtml(m.author)}</div>
+          <div style="white-space:pre-wrap;color:var(--text-white);">${escapeHtml(m.body)}</div>
+        </div>
+      `).join('');
       modal.innerHTML = `
-        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:560px;width:100%;padding:24px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:580px;width:100%;padding:24px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-hairline);">
             <div>
-              <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--sky);">${escapeHtml(r.id)}</span>
-              <h3 style="margin:2px 0 0;font-size:17px;font-weight:700;font-family:'Outfit',sans-serif;">Review &amp; Solution</h3>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--sky);">${escapeHtml(r.id)} &bull; LIVE THREAD</span>
+              <h3 style="margin:2px 0 0;font-size:17px;font-weight:700;font-family:'Outfit',sans-serif;">Review &amp; Two-Way Support Thread</h3>
             </div>
             <button type="button" id="tr-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
           </div>
           <div style="font-size:12.5px;color:var(--text-slate);margin-bottom:10px;">
             <strong>${escapeHtml(r.name || 'User')}</strong> (${escapeHtml(r.email || '')}) &bull; ${escapeHtml(r.category)}
           </div>
-          <div style="padding:10px 12px;border-radius:10px;background:var(--bg-hover);border:1px solid var(--border-hairline);font-size:12.5px;white-space:pre-wrap;margin-bottom:14px;max-height:150px;overflow:auto;">${escapeHtml(r.details)}</div>
+          <div id="tr-thread-box" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:210px;overflow:auto;padding-right:4px;">${threadHtml}</div>
           <form id="tr-form" style="display:flex;flex-direction:column;gap:10px;">
             <div>
               <label class="lbl-sm">Status</label>
@@ -4334,16 +4558,38 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               </select>
             </div>
             <div>
-              <label class="lbl-sm">Solution / Reply (Emailed to User)</label>
-              <textarea id="tr-note" class="adm-textarea" rows="3" required placeholder="Write the solution or update for the user..."></textarea>
+              <label class="lbl-sm">Solution / Reply (Synced to User App &amp; Emailed)</label>
+              <textarea id="tr-note" class="adm-textarea" rows="3" required placeholder="Write the solution or reply for the user..."></textarea>
             </div>
-            <button type="submit" class="btn-emerald" style="justify-content:center;">Send Solution &amp; Update Ticket</button>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button type="button" id="tr-btn-quick-reply" class="btn-ghost">Send Reply Only</button>
+              <button type="submit" class="btn-emerald">Send Solution &amp; Update Status</button>
+            </div>
           </form>
         </div>
       `;
       document.body.appendChild(modal);
       document.getElementById('tr-close').onclick = () => modal.remove();
       modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      document.getElementById('tr-btn-quick-reply').onclick = async () => {
+        const message = document.getElementById('tr-note').value.trim();
+        if (!message) return showToast('Write a reply message first.');
+        try {
+          const res = await admFetch(`/api/admin/rectifications/${encodeURIComponent(recId)}/reply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Could not send reply');
+          await refreshAdminData();
+          modal.remove();
+          window.openTicketReviewModal(recId);
+          showToast(`Reply sent on ${recId}.`);
+        } catch (err) {
+          showToast('Reply error: ' + err.message);
+        }
+      };
       document.getElementById('tr-form').onsubmit = async (e) => {
         e.preventDefault();
         const status = document.getElementById('tr-status').value;
@@ -4820,6 +5066,24 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       showToast(`Downloaded live Statutory PenCom & PAYE CSV (${monthLabel}).`);
     };
 
+    window.exportAdminBankNipCsv = async function () {
+      const monthInput = document.getElementById('adm-finance-month');
+      const month = monthInput?.value || new Date().toISOString().slice(0, 7);
+      try {
+        const res = await admFetch(`/api/admin/payroll-nip-export?month=${encodeURIComponent(month)}&format=paystack`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not generate Bank NIP CSV');
+        const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = data.filename || `ShiftRelay_NIP_Bank_Transfer_${month}.csv`;
+        a.click();
+        showToast(`Downloaded Bank NIP Transfer CSV (${data.rowCount} staff • ${formatNgn(data.totalNetNgn)} Net).`);
+      } catch (err) {
+        showToast('Bank NIP export error: ' + err.message);
+      }
+    };
+
     window.printAdminMonthlyPaymentVoucher = function () {
       const rows = (cachedFinanceOverview?.tenants || []).map(mapFinanceRow);
       const totals = mapFinanceTotals(cachedFinanceOverview?.totals || {}, rows);
@@ -5085,7 +5349,13 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               </select>
             </td>
             <td><input id="rd-rate-${idx}" type="number" class="adm-input" style="padding:5px 8px;font-size:12px;width:110px;" value="${emp.monthlyRate}" /></td>
-            <td><div style="font-size:12px;">${escapeHtml(emp.bankName || '—')}</div><code style="font-size:11px;color:var(--text-slate);">${escapeHtml(emp.nuban || '—')}</code></td>
+            <td>
+              <div style="font-size:12px;">${escapeHtml(emp.bankName || '—')}</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <code style="font-size:11px;color:var(--text-slate);">${escapeHtml(emp.nuban || '—')}</code>
+                <button type="button" class="btn-ghost" style="padding:2px 6px;font-size:10px;" onclick="window.openNubanResolverModal('${escapeHtml(emp.bankName || '058')}', '${escapeHtml(emp.nuban || '0123456789')}', '${escapeHtml(emp.fullName || '')}')">Verify</button>
+              </div>
+            </td>
             <td>
               <select id="rd-st-${idx}" class="adm-select" style="padding:5px 8px;font-size:12px;">
                 <option value="active" ${emp.status === 'active' ? 'selected' : ''}>active</option>

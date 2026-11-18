@@ -757,6 +757,35 @@ export async function decideAdminApproval(approvalId, decision, ownerAdminId, st
   return item;
 }
 
+export function parseRectificationThread(rawDetails, workerName = 'Worker', createdAt = '') {
+  const text = String(rawDetails || '').trim();
+  if (!text) return [];
+  const parts = text.split(/\n\n(?=\[(?:Support Solution|Support Reply|User Reply)[^\]]*\]:\s*)/);
+  const messages = [];
+  parts.forEach((chunk, idx) => {
+    const m = chunk.match(/^\[(Support Solution|Support Reply|User Reply)(?:\s*•\s*([^\]]+))?\]:\s*([\s\S]*)$/);
+    if (m) {
+      const kind = m[1];
+      const meta = (m[2] || '').trim();
+      const isSupport = kind.startsWith('Support');
+      messages.push({
+        author: meta || (isSupport ? 'ShiftRelay Customer Care' : (workerName || 'User')),
+        role: isSupport ? 'support' : 'user',
+        time: createdAt || new Date().toISOString(),
+        body: (m[3] || '').trim()
+      });
+    } else if (idx === 0) {
+      messages.push({
+        author: workerName || 'User',
+        role: 'user',
+        time: createdAt || new Date().toISOString(),
+        body: chunk.trim()
+      });
+    }
+  });
+  return messages;
+}
+
 export async function listRectifications(store, databaseReady) {
   if (databaseReady) {
     const res = await query('SELECT * FROM rectification_receipts ORDER BY created_at DESC');
@@ -766,6 +795,7 @@ export async function listRectifications(store, databaseReady) {
       email: r.worker_email,
       category: r.category,
       details: r.details,
+      messages: parseRectificationThread(r.details, r.worker_name, r.created_at),
       status: r.status,
       createdAt: r.created_at,
       updatedAt: r.updated_at
@@ -777,6 +807,7 @@ export async function listRectifications(store, databaseReady) {
     email: r.workerEmail || r.email,
     category: r.category,
     details: r.details,
+    messages: parseRectificationThread(r.details, r.workerName || r.name, r.createdAt),
     status: r.status,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt
@@ -805,6 +836,7 @@ export async function createRectificationTicket({ workerName, workerEmail, categ
       email: r.worker_email,
       category: r.category,
       details: r.details,
+      messages: parseRectificationThread(r.details, r.worker_name, r.created_at),
       status: r.status,
       createdAt: r.created_at,
       updatedAt: r.updated_at
@@ -829,6 +861,7 @@ export async function createRectificationTicket({ workerName, workerEmail, categ
     email: item.workerEmail,
     category: item.category,
     details: item.details,
+    messages: parseRectificationThread(item.details, item.workerName, item.createdAt),
     status: item.status,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt
@@ -849,12 +882,75 @@ export async function updateRectificationStatus(recId, status, adminId, store, d
       [status, note, adminId, nowIso, recId]
     );
     const r = res.rows[0];
-    return r ? { id: r.id, name: r.worker_name, email: r.worker_email, category: r.category, details: r.details, status: r.status, updatedAt: r.updated_at } : null;
+    return r ? {
+      id: r.id,
+      name: r.worker_name,
+      email: r.worker_email,
+      category: r.category,
+      details: r.details,
+      messages: parseRectificationThread(r.details, r.worker_name, r.created_at),
+      status: r.status,
+      updatedAt: r.updated_at
+    } : null;
   }
   const item = (store.rectificationReceipts || []).find((r) => r.id === recId);
   if (!item) return null;
   item.status = status;
   if (note) item.details = `${item.details || ''}\n\n[Support Solution]: ${note}`.trim();
   item.updatedAt = nowIso;
-  return { id: item.id, name: item.workerName || item.name, email: item.workerEmail || item.email, category: item.category, details: item.details, status: item.status, updatedAt: item.updatedAt };
+  return {
+    id: item.id,
+    name: item.workerName || item.name,
+    email: item.workerEmail || item.email,
+    category: item.category,
+    details: item.details,
+    messages: parseRectificationThread(item.details, item.workerName || item.name, item.createdAt),
+    status: item.status,
+    updatedAt: item.updatedAt
+  };
+}
+
+export async function appendRectificationReply(recId, { authorName, authorRole, message }, store, databaseReady) {
+  const nowIso = new Date().toISOString();
+  const cleanMsg = String(message || '').trim();
+  if (!cleanMsg) return null;
+  const tag = authorRole === 'support' ? `Support Reply • ${authorName || 'Customer Care'}` : `User Reply • ${authorName || 'User'}`;
+  const nextStatus = authorRole === 'user' ? 'OPEN FOR SUPPORT AUDIT' : undefined;
+
+  if (databaseReady) {
+    const res = await query(
+      `UPDATE rectification_receipts
+       SET details = details || E'\n\n[' || $1 || ']: ' || $2,
+           status = COALESCE($3, status),
+           updated_at = $4
+       WHERE id = $5 RETURNING *`,
+      [tag, cleanMsg, nextStatus || null, nowIso, recId]
+    );
+    const r = res.rows[0];
+    return r ? {
+      id: r.id,
+      name: r.worker_name,
+      email: r.worker_email,
+      category: r.category,
+      details: r.details,
+      messages: parseRectificationThread(r.details, r.worker_name, r.created_at),
+      status: r.status,
+      updatedAt: r.updated_at
+    } : null;
+  }
+  const item = (store.rectificationReceipts || []).find((r) => r.id === recId);
+  if (!item) return null;
+  item.details = `${item.details || ''}\n\n[${tag}]: ${cleanMsg}`.trim();
+  if (nextStatus) item.status = nextStatus;
+  item.updatedAt = nowIso;
+  return {
+    id: item.id,
+    name: item.workerName || item.name,
+    email: item.workerEmail || item.email,
+    category: item.category,
+    details: item.details,
+    messages: parseRectificationThread(item.details, item.workerName || item.name, item.createdAt),
+    status: item.status,
+    updatedAt: item.updatedAt
+  };
 }

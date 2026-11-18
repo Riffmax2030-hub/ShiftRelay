@@ -17,9 +17,35 @@ function openSupportDesk(){
       const data=await api('/api/support/tickets');
       const list=data.tickets||[];
       if(!list.length){box.textContent='No support tickets yet.';return}
-      box.innerHTML=list.slice(0,5).map(t=>`<div style="padding:8px 10px;border-radius:8px;background:rgba(148,163,184,0.08);margin-bottom:6px;"><strong>${escape(t.id)}</strong> • <span style="font-weight:600;">${escape(t.status)}</span><div style="opacity:0.85;margin-top:2px;">${escape(t.category)} — ${escape(String(t.details||'').slice(0,120))}</div></div>`).join('');
+      box.innerHTML=list.slice(0,5).map(t=>{
+        const msgs=Array.isArray(t.messages)&&t.messages.length?t.messages:[{author:t.name||'Me',role:'user',body:t.details||''}];
+        return `<div style="padding:10px 12px;border-radius:10px;background:rgba(148,163,184,0.08);margin-bottom:8px;border:1px solid rgba(148,163,184,0.18);">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+            <strong>${escape(t.id)} • ${escape(t.category)}</strong>
+            <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:rgba(16,185,129,0.14);color:#10b981;">${escape(t.status)}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px;">
+            ${msgs.map(m=>`<div style="padding:6px 9px;border-radius:7px;font-size:12px;background:${m.role==='support'?'rgba(16,185,129,0.12)':'rgba(15,23,42,0.18)'};border-left:3px solid ${m.role==='support'?'#10b981':'#38bdf8'};"><strong>${escape(m.author)}:</strong> ${escape(m.body)}</div>`).join('')}
+          </div>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="sup-reply-${escape(t.id)}" placeholder="Reply to Customer Care..." style="flex:1;padding:6px 9px;border-radius:7px;border:1px solid rgba(148,163,184,0.28);font-size:12px;background:transparent;color:inherit;" />
+            <button type="button" class="secondary" style="padding:5px 10px;font-size:11.5px;min-height:32px;" onclick="window.sendUserSupportReply('${escape(t.id)}')">Reply</button>
+          </div>
+        </div>`;
+      }).join('');
     }catch(_){box.textContent='Sign in to view ticket history.';}
   }
+  window.sendUserSupportReply=async function(recId){
+    const inp=document.getElementById('sup-reply-'+recId);
+    const message=(inp?.value||'').trim();
+    if(!message)return;
+    try{
+      await api(`/api/support/tickets/${encodeURIComponent(recId)}/reply`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})});
+      if(inp)inp.value='';
+      loadMyTickets();
+      toast('Reply sent to Customer Care.');
+    }catch(err){toast(err.message||'Could not send reply.');}
+  };
   loadMyTickets();
   $('#support-ticket-form').addEventListener('submit',async(event)=>{
     event.preventDefault();
