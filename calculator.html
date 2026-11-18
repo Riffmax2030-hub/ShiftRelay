@@ -42,9 +42,13 @@
     td:last-child { text-align:right; font-family:'JetBrains Mono',monospace; font-weight:700; color:#f8fafc; }
     .email-capture { margin-top:20px; padding-top:18px; border-top:1px solid var(--border); }
     @media (max-width:860px) { .calc-grid { grid-template-columns:1fr; } }
+    @media (max-width:560px) { .kpi-grid { grid-template-columns:1fr; } .mode-switch { grid-template-columns:1fr; } }
+    .card { min-width:0; }
+    .kpi-box strong { word-break:break-word; }
   </style>
   <meta property="og:image" content="https://shiftrelayos.com/assets/site/shiftrelay-og-social-card.jpg" />
 
+  
   
   
   <style id="sr-light-brand-override">
@@ -157,6 +161,15 @@
     a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
       outline: 2px solid #059669 !important;
       outline-offset: 2px !important;
+    }
+    @media (max-width: 720px) {
+      table {
+        display: block !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      code { overflow-wrap: anywhere; }
     }
   </style>
 
@@ -273,18 +286,73 @@
       runPayrollCalculator();
     }
 
+    function computeLocalStatutoryFallback(monthlyGross, headcount, basicRatio) {
+      const basic = monthlyGross * basicRatio;
+      const empPenCom = monthlyGross * 0.08;
+      const erPenCom = monthlyGross * 0.10;
+      const nhf = basic * 0.025;
+      const nsitf = monthlyGross * 0.01;
+      const annualGross = monthlyGross * 12;
+      const cra = Math.max(200000, annualGross * 0.01) + annualGross * 0.20;
+      const annualTaxable = Math.max(0, annualGross - cra - (empPenCom + nhf) * 12);
+      const brackets = [
+        [300000, 0.07],
+        [300000, 0.11],
+        [500000, 0.15],
+        [500000, 0.19],
+        [1600000, 0.21],
+        [Infinity, 0.24]
+      ];
+      let rem = annualTaxable;
+      let annualTax = 0;
+      for (const [cap, rate] of brackets) {
+        if (rem <= 0) break;
+        const slice = Math.min(rem, cap);
+        annualTax += slice * rate;
+        rem -= slice;
+      }
+      const monthlyPaye = annualTax / 12;
+      const net = monthlyGross - empPenCom - nhf - monthlyPaye;
+      return {
+        perStaff: {
+          monthlyCra: cra / 12,
+          annualTaxableIncome: annualTaxable,
+          effectiveTaxRate: ((monthlyPaye / monthlyGross) * 100).toFixed(2) + '%'
+        },
+        companyTotals: {
+          totalGross: monthlyGross * headcount,
+          totalNetPay: net * headcount,
+          totalPenComRemittance: (empPenCom + erPenCom) * headcount,
+          totalPaye: monthlyPaye * headcount,
+          totalEmployeePenCom: empPenCom * headcount,
+          totalEmployerPenCom: erPenCom * headcount,
+          totalNhf: nhf * headcount,
+          totalNsitf: nsitf * headcount,
+          totalCostToEmployer: (monthlyGross + erPenCom + nsitf) * headcount
+        }
+      };
+    }
+
     async function runPayrollCalculator(extraEmailPayload = null) {
       const monthlyGross = Number(document.getElementById('calc-gross').value || 250000);
       const headcount = Math.max(1, Number(document.getElementById('calc-headcount').value || 1));
       const basicRatio = Number(document.getElementById('calc-basic-ratio').value || 0.5);
       const payload = { monthlyGross, headcount, basicRatio, ...(extraEmailPayload || {}) };
-      const res = await fetch('/api/public/payroll-calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (!res.ok) return data;
+      let data = null;
+      try {
+        const res = await fetch('/api/public/payroll-calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        data = await res.json();
+        if (!res.ok) return data;
+      } catch (_err) {
+        if (extraEmailPayload) {
+          return { error: 'Email delivery requires an active server connection.' };
+        }
+        data = computeLocalStatutoryFallback(monthlyGross, headcount, basicRatio);
+      }
 
       const t = data.companyTotals;
       const s = data.perStaff;

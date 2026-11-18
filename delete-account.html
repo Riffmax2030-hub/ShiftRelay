@@ -2,6 +2,8 @@
   <meta property="og:image" content="https://shiftrelayos.com/assets/site/shiftrelay-og-social-card.jpg" />
 
   
+  
+  
   <style id="sr-light-brand-override">
     @font-face {
       font-family: 'Space Grotesk';
@@ -112,6 +114,15 @@
     a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
       outline: 2px solid #059669 !important;
       outline-offset: 2px !important;
+    }
+    @media (max-width: 720px) {
+      table {
+        display: block !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      code { overflow-wrap: anywhere; }
     }
   </style>
 
