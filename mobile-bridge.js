@@ -38,6 +38,41 @@
     isNative() {
       return Boolean(window.Capacitor?.isNativePlatform?.() || window.location.protocol === 'capacitor:' || (window.location.protocol === 'https:' && window.location.hostname === 'localhost' && !window.location.port));
     },
+    async downloadReport(url, fallbackFilename = 'ShiftRelay-Document') {
+      const targetUrl = this.isNative() && String(url || '').startsWith('/') ? getBackendBase() + url : url;
+      if (!this.isNative()) {
+        const a = document.createElement('a');
+        a.href = targetUrl;
+        a.download = fallbackFilename;
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        return true;
+      }
+      try {
+        const res = await fetch(targetUrl, { credentials: 'include' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const disp = res.headers.get('content-disposition') || '';
+        const nameMatch = disp.match(/filename="?([^"]+)"?/i);
+        const filename = nameMatch ? nameMatch[1] : fallbackFilename;
+        if (navigator.canShare && typeof File !== 'undefined') {
+          const file = new File([blob], filename, { type: blob.type || 'application/octet-stream' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: filename });
+            return true;
+          }
+        }
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank', 'noopener');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        return true;
+      } catch (_) {
+        window.open(targetUrl, '_blank', 'noopener');
+        return false;
+      }
+    },
     async scheduleLocalReminder({ id, title, body, scheduleAt }) {
       try {
         const plugin = window.Capacitor?.Plugins?.LocalNotifications;

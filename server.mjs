@@ -182,18 +182,27 @@ import {
   computeAttendanceExceptionsForOrg,
   evaluateReminderStagesForOrg
 } from './attendance-policy-engine.mjs';
-import * as XLSXNamespace from 'xlsx';
+import readXlsxFile from 'read-excel-file/node';
 import mammoth from 'mammoth';
 import { PDFParse } from 'pdf-parse';
 import {
   generatePayrollReportHtml,
+  generatePayrollLedgerXlsxBuffer,
+  generatePayrollLedgerPdfBytes,
+  generatePayrollLedgerDocxBuffer,
   generateAttendanceSheetHtml,
   generateAttendanceSheetXlsxBuffer,
   generateAttendanceSheetPdfBytes,
   generateAttendanceSheetDocxBuffer,
   generateCvReportHtml,
+  generateWorkerCvPdfBytes,
+  generateWorkerCvDocxBuffer,
   generateTermsOfServiceHtml,
-  generateDpaReportHtml
+  generateTermsOfServicePdfBytes,
+  generateTermsOfServiceDocxBuffer,
+  generateDpaReportHtml,
+  generateDpaReportPdfBytes,
+  generateDpaReportDocxBuffer
 } from './report-engine.mjs';
 import {
   INDUSTRY_PROFILES,
@@ -268,7 +277,11 @@ const mimeTypes = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
-  '.webp': 'image/webp'
+  '.webp': 'image/webp',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.mjs': 'application/javascript'
 };
 const users = demoMembers;
 let databaseReady = false;
@@ -3602,6 +3615,34 @@ async function handleApi(request, response, url) {
   }
 
   // ── High-Tech Enterprise Reports & Documents API ──────────────────────────
+  const REPORT_MIME = {
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    pdf: 'application/pdf',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    csv: 'text/csv; charset=utf-8',
+    html: 'text/html; charset=utf-8'
+  };
+  const sendFormattedReport = (fmt, payload, baseFilename) => {
+    const ext = REPORT_MIME[fmt] ? fmt : 'html';
+    const buf = Buffer.isBuffer(payload) || payload instanceof Uint8Array
+      ? Buffer.from(payload)
+      : Buffer.from(String(payload ?? ''), 'utf8');
+    const headers = {
+      'Content-Type': REPORT_MIME[ext],
+      'Content-Length': buf.length,
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      ...SECURITY_HEADERS
+    };
+    if (ext === 'html') {
+      headers['X-Frame-Options'] = 'SAMEORIGIN';
+      headers['Content-Security-Policy'] = String(SECURITY_HEADERS['Content-Security-Policy'] || '').replace("frame-ancestors 'none'", "frame-ancestors 'self'");
+    } else {
+      headers['Content-Disposition'] = `attachment; filename="${baseFilename}.${ext}"`;
+    }
+    response.writeHead(200, headers);
+    return response.end(buf);
+  };
+
   if (url.pathname === '/api/reports/payroll-ledger' && request.method === 'GET') {
     const authCtx = await getOpsOrAdminAuth(request);
     if (!authCtx) {
@@ -3618,14 +3659,15 @@ async function handleApi(request, response, url) {
     const store = await loadPayrollStoreForTenant(tenantId);
     const payrollData = compilePayrollRun(store, tenantId);
     const org = (store.organisations || []).find(o => tenantId ? (o.id === tenantId || o.organisation_code === tenantId) : true) || { legal_name: 'Riffmax Technology Limited', organisation_code: 'RIF-2026' };
-    const html = generatePayrollReportHtml(payrollData, org);
-    response.writeHead(200, {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Content-Length': Buffer.byteLength(html),
-      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-      ...SECURITY_HEADERS
-    });
-    return response.end(html);
+    const format = (url.searchParams.get('format') || 'html').toLowerCase();
+    const orgCode = String(org.organisation_code || 'ORG').replace(/[^a-z0-9_-]+/gi, '-');
+    const periodSlug = String(url.searchParams.get('month') || new Date().toISOString().slice(0, 7)).replace(/[^0-9-]+/g, '') || 'current';
+    const baseFilename = `ShiftRelay-Payroll-Ledger-${orgCode}-${periodSlug}`;
+
+    if (format === 'xlsx') return sendFormattedReport('xlsx', await generatePayrollLedgerXlsxBuffer(payrollData, org), baseFilename);
+    if (format === 'pdf') return sendFormattedReport('pdf', await generatePayrollLedgerPdfBytes(payrollData, org), baseFilename);
+    if (format === 'docx') return sendFormattedReport('docx', await generatePayrollLedgerDocxBuffer(payrollData, org), baseFilename);
+    return sendFormattedReport('html', generatePayrollReportHtml(payrollData, org), baseFilename);
   }
 
   // ── Supervisor & Executive Official Attendance Sheet Generator (JSON / CSV / Print HTML) ──
@@ -3669,65 +3711,11 @@ async function handleApi(request, response, url) {
     const orgCode = String(org.organisation_code || 'ORG').replace(/[^a-z0-9_-]+/gi, '-');
     const baseFilename = `ShiftRelay-Attendance-${orgCode}-${sheetData.month}-${safeDept}`;
 
-    if (format === 'xlsx') {
-      const xlsxBuf = generateAttendanceSheetXlsxBuffer(sheetData, org);
-      response.writeHead(200, {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="${baseFilename}.xlsx"`,
-        'Content-Length': xlsxBuf.length,
-        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-        ...SECURITY_HEADERS
-      });
-      return response.end(xlsxBuf);
-    }
-
-    if (format === 'pdf') {
-      const pdfBytes = await generateAttendanceSheetPdfBytes(sheetData, org);
-      const pdfBuf = Buffer.from(pdfBytes);
-      response.writeHead(200, {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${baseFilename}.pdf"`,
-        'Content-Length': pdfBuf.length,
-        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-        ...SECURITY_HEADERS
-      });
-      return response.end(pdfBuf);
-    }
-
-    if (format === 'docx') {
-      const docxBuf = await generateAttendanceSheetDocxBuffer(sheetData, org);
-      response.writeHead(200, {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'Content-Disposition': `attachment; filename="${baseFilename}.docx"`,
-        'Content-Length': docxBuf.length,
-        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-        ...SECURITY_HEADERS
-      });
-      return response.end(docxBuf);
-    }
-
-    if (format === 'csv') {
-      const csv = generateAttendanceSheetCsv(sheetData);
-      response.writeHead(200, {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${baseFilename}.csv"`,
-        'Content-Length': Buffer.byteLength(csv),
-        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-        ...SECURITY_HEADERS
-      });
-      return response.end(csv);
-    }
-
-    if (format === 'html' || format === 'print') {
-      const html = generateAttendanceSheetHtml(sheetData, org);
-      response.writeHead(200, {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Content-Length': Buffer.byteLength(html),
-        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-        ...SECURITY_HEADERS
-      });
-      return response.end(html);
-    }
+    if (format === 'xlsx') return sendFormattedReport('xlsx', await generateAttendanceSheetXlsxBuffer(sheetData, org), baseFilename);
+    if (format === 'pdf') return sendFormattedReport('pdf', await generateAttendanceSheetPdfBytes(sheetData, org), baseFilename);
+    if (format === 'docx') return sendFormattedReport('docx', await generateAttendanceSheetDocxBuffer(sheetData, org), baseFilename);
+    if (format === 'csv') return sendFormattedReport('csv', generateAttendanceSheetCsv(sheetData), baseFilename);
+    if (format === 'html' || format === 'print') return sendFormattedReport('html', generateAttendanceSheetHtml(sheetData, org), baseFilename);
 
     return sendJson(response, 200, { ok: true, org: { id: org.id, code: org.organisation_code, name: org.legal_name || org.trading_name }, sheet: sheetData });
   }
@@ -3764,18 +3752,51 @@ async function handleApi(request, response, url) {
     }
     const ext = extname(filename).toLowerCase();
     try {
-      if (['.xlsx', '.xls', '.xlsm', '.xlsb', '.ods', '.csv', '.tsv'].includes(ext) || mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType === 'text/csv') {
-        const XLSX = XLSXNamespace?.default || XLSXNamespace;
-        const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
-        const sheets = (workbook.SheetNames || []).map((sheetName) => {
-          const ws = workbook.Sheets[sheetName];
-          const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false });
+      const toCsvText = (rows) => rows.map((r) => (Array.isArray(r) ? r : []).map((v) => {
+        const s = v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '');
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(',')).join('\n');
+
+      if (['.csv', '.tsv'].includes(ext) || mimeType === 'text/csv' || mimeType === 'text/tab-separated-values') {
+        const delim = ext === '.tsv' ? '\t' : ',';
+        const lines = buffer.toString('utf8').split(/\r?\n/).filter(Boolean).slice(0, 500);
+        const rows = lines.map((line) => {
+          if (delim === '\t') return line.split('\t').map((c) => c.trim());
+          const out = [];
+          let cur = '', inQ = false;
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+              if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+              else inQ = !inQ;
+            } else if (ch === ',' && !inQ) { out.push(cur); cur = ''; }
+            else cur += ch;
+          }
+          out.push(cur);
+          return out;
+        });
+        const csv = toCsvText(rows);
+        const colCount = rows.reduce((mx, r) => Math.max(mx, r.length), 0);
+        const sheets = [{ name: 'Sheet1', rows, rowCount: rows.length, colCount, csv }];
+        return sendJson(response, 200, { ok: true, kind: 'spreadsheet', filename, sheetCount: 1, sheets, text: csv });
+      }
+
+      if (['.xlsx', '.xlsm'].includes(ext) || mimeType.includes('spreadsheetml') || mimeType.includes('excel')) {
+        if (ext === '.xls') {
+          return sendJson(response, 415, { error: 'Legacy binary .xls is not supported; please save as .xlsx or .csv.' });
+        }
+        const parsed = await readXlsxFile(buffer);
+        const rawSheets = Array.isArray(parsed) && parsed[0] && typeof parsed[0] === 'object' && !Array.isArray(parsed[0]) && 'data' in parsed[0]
+          ? parsed
+          : [{ sheet: 'Sheet1', data: Array.isArray(parsed) ? parsed : [] }];
+        const sheets = rawSheets.map((s, idx) => {
+          const aoa = Array.isArray(s.data) ? s.data : [];
           const cleanRows = aoa
             .slice(0, 500)
             .map((r) => (Array.isArray(r) ? r.map((c) => (c instanceof Date ? c.toISOString().slice(0, 10) : String(c ?? ''))) : []));
-          const csv = XLSX.utils.sheet_to_csv(ws);
+          const csv = toCsvText(cleanRows);
           const colCount = cleanRows.reduce((mx, r) => Math.max(mx, r.length), 0);
-          return { name: sheetName, rows: cleanRows, rowCount: aoa.length, colCount, csv };
+          return { name: s.sheet || s.name || `Sheet${idx + 1}`, rows: cleanRows, rowCount: aoa.length, colCount, csv };
         });
         const text = sheets.map((s) => `--- Sheet: ${s.name} ---\n${s.csv}`).join('\n\n');
         return sendJson(response, 200, { ok: true, kind: 'spreadsheet', filename, sheetCount: sheets.length, sheets, text });
@@ -3852,20 +3873,46 @@ async function handleApi(request, response, url) {
   if (url.pathname === '/api/reports/worker-cv' && request.method === 'GET') {
     const store = await getStore();
     const staffId = url.searchParams.get('staffId') || 'SR-0042';
+    const format = (url.searchParams.get('format') || 'html').toLowerCase();
     const authUser = await getUser(request);
-    const userObj = authUser || { name: 'Tariq Al-Hassan', role_title: 'Senior Distributed Systems Engineer', department: 'Backend Infrastructure', staff_id: staffId };
-    const profile = {
-      name: userObj.name || 'Tariq Al-Hassan',
-      title: userObj.title || userObj.role_title || 'Senior Distributed Systems Engineer',
-      department: userObj.department || 'Backend Infrastructure',
-      staffId: staffId,
-      verifiedHours: '1,420',
-      punctuality: '99.4%',
-      incidents: '0',
-      handovers: '142',
-      shiftWindow: '06:00 – 14:00 WAT (Morning Shift)'
-    };
-    const html = generateCvReportHtml(userObj, profile);
+    const orgId = authUser?.organisation_id || null;
+    const org = (store.organisations || []).find(o => (orgId ? o.id === orgId : true)) || { legal_name: 'Riffmax Technology Limited', organisation_code: 'RIF-2026' };
+    const matchedUser = authUser || (store.users || []).find(u => !orgId && (u.staff_id === staffId || u.staffId === staffId));
+    const userObj = matchedUser || { name: 'Tariq Al-Hassan', role_title: 'Senior Distributed Systems Engineer', department: 'Backend Infrastructure', staff_id: staffId };
+    let profile;
+    if (matchedUser) {
+      const userEntries = (store.entries || []).filter(e => e.user_id === matchedUser.id || e.userId === matchedUser.id);
+      const totalMins = userEntries.reduce((s, e) => s + Number(e.duration_minutes || 0), 0);
+      const handoversCount = (store.handovers || []).filter(h => h.created_by === matchedUser.id || h.author_id === matchedUser.id).length;
+      const excCount = (store.exceptions || []).filter(x => x.user_id === matchedUser.id && !x.resolved).length;
+      profile = {
+        name: matchedUser.name || 'Staff Member',
+        title: matchedUser.title || matchedUser.role_title || 'Operations Specialist',
+        department: matchedUser.department || 'Operations',
+        staffId: matchedUser.staff_id || matchedUser.staffId || staffId,
+        verifiedHours: (totalMins / 60).toFixed(1),
+        punctuality: userEntries.length ? `${Math.max(0, 100 - excCount * 2).toFixed(1)}%` : '100.0%',
+        incidents: String(excCount),
+        handovers: String(handoversCount),
+        shiftWindow: matchedUser.shift_window || '06:00 – 14:00 WAT'
+      };
+    } else {
+      profile = {
+        name: userObj.name || 'Tariq Al-Hassan',
+        title: userObj.title || userObj.role_title || 'Senior Distributed Systems Engineer',
+        department: userObj.department || 'Backend Infrastructure',
+        staffId,
+        verifiedHours: '1,420',
+        punctuality: '99.4%',
+        incidents: '0',
+        handovers: '142',
+        shiftWindow: '06:00 – 14:00 WAT (Morning Shift)'
+      };
+    }
+    const baseFilename = `ShiftRelay-Dossier-${String(profile.staffId || staffId).replace(/[^a-z0-9_-]+/gi, '-')}`;
+    if (format === 'pdf') return sendFormattedReport('pdf', await generateWorkerCvPdfBytes(userObj, profile, org), baseFilename);
+    if (format === 'docx') return sendFormattedReport('docx', await generateWorkerCvDocxBuffer(userObj, profile, org), baseFilename);
+    const html = generateCvReportHtml(userObj, profile, org);
     response.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Content-Length': Buffer.byteLength(html)
@@ -3874,32 +3921,30 @@ async function handleApi(request, response, url) {
   }
 
   if (url.pathname === '/api/reports/terms-of-service' && request.method === 'GET') {
-    const html = generateTermsOfServiceHtml();
-    response.writeHead(200, {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Content-Length': Buffer.byteLength(html),
-      ...SECURITY_HEADERS
-    });
-    return response.end(html);
+    const format = (url.searchParams.get('format') || 'html').toLowerCase();
+    const baseFilename = `ShiftRelay-Terms-of-Service-${POLICY_VERSIONS.terms}`;
+    if (format === 'pdf') return sendFormattedReport('pdf', await generateTermsOfServicePdfBytes(), baseFilename);
+    if (format === 'docx') return sendFormattedReport('docx', await generateTermsOfServiceDocxBuffer(), baseFilename);
+    return sendFormattedReport('html', generateTermsOfServiceHtml(), baseFilename);
   }
 
   if (url.pathname === '/api/reports/dpa' && request.method === 'GET') {
     const orgName = url.searchParams.get('orgName') || url.searchParams.get('company') || user?.organisation_name || 'Subscriber Enterprise Organisation';
     const orgCode = url.searchParams.get('orgCode') || 'TENANT-ACTIVE';
     const signerName = url.searchParams.get('signer') || user?.name || 'Authorized Data Controller Representative';
-    const html = generateDpaReportHtml({
+    const format = (url.searchParams.get('format') || 'html').toLowerCase();
+    const dpaOpts = {
       orgName,
       orgCode,
       signerName,
       ipAddress: getRequestIp(request),
       dpaVersion: POLICY_VERSIONS.dpa
-    });
-    response.writeHead(200, {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Content-Length': Buffer.byteLength(html),
-      ...SECURITY_HEADERS
-    });
-    return response.end(html);
+    };
+    const safeOrgCode = String(orgCode).replace(/[^a-z0-9_-]+/gi, '-');
+    const baseFilename = `ShiftRelay-NDPA-DPA-${safeOrgCode}-${POLICY_VERSIONS.dpa}`;
+    if (format === 'pdf') return sendFormattedReport('pdf', await generateDpaReportPdfBytes(dpaOpts), baseFilename);
+    if (format === 'docx') return sendFormattedReport('docx', await generateDpaReportDocxBuffer(dpaOpts), baseFilename);
+    return sendFormattedReport('html', generateDpaReportHtml(dpaOpts), baseFilename);
   }
 
   if (url.pathname === '/api/legal/config' && request.method === 'GET') {

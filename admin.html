@@ -4651,9 +4651,11 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       document.getElementById('sp-dl-xlsx-btn').onclick = async () => {
         if (typeof writeXlsxFile === 'undefined') return showToast('Excel exporter not loaded.');
         try {
-          const allData = sheetNames.map(name => (sheetMap[name] || []).map(row => row.map(cell => ({ value: cell ?? '' }))));
-          await writeXlsxFile(allData.length === 1 ? allData[0] : allData, {
-            sheets: allData.length === 1 ? undefined : sheetNames.map(s => s.slice(0, 31)),
+          const sheetObjects = sheetNames.map(name => ({
+            sheet: name.slice(0, 31) || 'Sheet1',
+            data: (sheetMap[name] || []).map(row => (Array.isArray(row) ? row : []).map(cell => ({ value: cell ?? '' })))
+          }));
+          await writeXlsxFile(sheetObjects, {
             fileName: title.replace(/\.[^.]+$/, '') + '.xlsx'
           });
         } catch (err) {
@@ -4688,13 +4690,15 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
 
           if (isExcel && typeof readXlsxFile !== 'undefined') {
             try {
-              const sheetInfos = await readXlsxFile(file, { getSheets: true });
+              const parsed = await readXlsxFile(file);
+              const normalizedSheets = Array.isArray(parsed) && parsed[0] && typeof parsed[0] === 'object' && !Array.isArray(parsed[0]) && 'data' in parsed[0]
+                ? parsed.map((s, i) => ({ name: s.sheet || s.name || `Sheet${i + 1}`, rows: Array.isArray(s.data) ? s.data : [] }))
+                : [{ name: 'Sheet1', rows: Array.isArray(parsed) ? parsed : [] }];
               const sheets = {};
               const csvChunks = [];
-              for (const info of sheetInfos) {
-                const rows = await readXlsxFile(file, { sheet: info.name });
-                sheets[info.name] = rows;
-                csvChunks.push(rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'));
+              for (const s of normalizedSheets) {
+                sheets[s.name] = s.rows.map(r => (Array.isArray(r) ? r.map(c => (c instanceof Date ? c.toISOString().slice(0, 10) : (c ?? ''))) : []));
+                csvChunks.push(sheets[s.name].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'));
               }
               obAgentAttachments.push({
                 name: file.name,

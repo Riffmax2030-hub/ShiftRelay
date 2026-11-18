@@ -8084,13 +8084,18 @@
           const file = evt.target?.files?.[0];
           if (!file) return;
           const isExcel = /\.(xlsx|xls|xlsm|xlsb|ods)$/i.test(file.name);
+          const toCsvLine = (row) => (Array.isArray(row) ? row : []).map((v) => {
+            const val = v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '');
+            return /[",\n]/.test(val) ? `"${val.replace(/"/g, '""')}"` : val;
+          }).join(',');
           try {
-            if (isExcel && typeof window.XLSX !== 'undefined') {
-              const ab = await file.arrayBuffer();
-              const wb = window.XLSX.read(new Uint8Array(ab), { type: 'array' });
-              const firstSheet = wb.SheetNames[0];
-              if (firstSheet && csvTextArea) {
-                csvTextArea.value = window.XLSX.utils.sheet_to_csv(wb.Sheets[firstSheet]);
+            if (isExcel && typeof window.readXlsxFile !== 'undefined') {
+              const parsed = await window.readXlsxFile(file);
+              const firstRows = Array.isArray(parsed) && parsed[0] && typeof parsed[0] === 'object' && !Array.isArray(parsed[0]) && 'data' in parsed[0]
+                ? (parsed[0].data || [])
+                : (Array.isArray(parsed) ? parsed : []);
+              if (firstRows.length && csvTextArea) {
+                csvTextArea.value = firstRows.map(toCsvLine).join('\n');
                 csvModal.querySelector('#sr-exec-csv-precheck')?.click();
               }
             } else if (isExcel) {
@@ -8127,31 +8132,30 @@
           }
           evt.target.value = '';
         });
+        const parseCsvLine = (line) => {
+          const out = [];
+          let cur = '', inQ = false;
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+              if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+              else inQ = !inQ;
+            } else if (ch === ',' && !inQ) { out.push(cur.trim()); cur = ''; }
+            else cur += ch;
+          }
+          out.push(cur.trim());
+          return out;
+        };
         const parseRows = () => {
           const raw = (csvTextArea?.value || '').trim();
           if (!raw) return [];
-          if (typeof window.XLSX !== 'undefined') {
-            try {
-              const wb = window.XLSX.read(raw, { type: 'string' });
-              const sheet = wb.Sheets[wb.SheetNames[0]];
-              const aoa = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
-              if (aoa.length >= 2) {
-                const headers = aoa[0].map((h) => String(h || '').trim().toLowerCase());
-                return aoa.slice(1).map((cols, i) => {
-                  const obj = { _row: i + 2 };
-                  headers.forEach((h, idx) => { if (h) obj[h] = String(cols[idx] ?? '').trim(); });
-                  return obj;
-                });
-              }
-            } catch (_) {}
-          }
           const lines = raw.split(/\r?\n/).filter(Boolean);
           if (lines.length < 2) return [];
-          const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+          const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
           return lines.slice(1).map((line, i) => {
-            const cols = line.split(',').map(c => c.trim());
+            const cols = parseCsvLine(line);
             const obj = { _row: i + 2 };
-            headers.forEach((h, idx) => { obj[h] = cols[idx] || ''; });
+            headers.forEach((h, idx) => { if (h) obj[h] = cols[idx] || ''; });
             return obj;
           });
         };
@@ -12800,24 +12804,19 @@
       <div id="sr-cv-modal" class="sr-audit-modal-backdrop" style="position:fixed;inset:0;background:rgba(2,6,23,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;justify-content:center;align-items:flex-start;padding:24px;overflow-y:auto;">
         <div class="sr-audit-sheet" style="background:#ffffff;color:#0f172a;max-width:940px;width:100%;border-radius:14px;padding:32px;box-shadow:0 25px 70px rgba(0,0,0,0.5);margin:auto;position:relative;">
           
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:2px solid #e2e8f0;margin-bottom:20px;" class="sr-no-print">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-bottom:14px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;" class="sr-no-print">
             <div style="display:flex;align-items:center;gap:10px;">
               <span style="width:34px;height:34px;border-radius:8px;background:#0f172a;color:#00f5a0;display:inline-flex;align-items:center;justify-content:center;font-weight:900;">ID</span>
               <div>
                 <strong style="font-size:15px;color:#0f172a;display:block;">Verified Professional Qualification Dossier</strong>
-                <small style="color:#64748b;font-size:11.5px;">ShiftRelay Sovereign Identity &amp; Attendance Backed</small>
+                <small style="color:#64748b;font-size:11.5px;">Official Company Letterhead &amp; Identity Record</small>
               </div>
             </div>
-            <div style="display:flex;gap:8px;">
-              <a href="/api/reports/worker-cv" target="_blank" class="sr-btn sr-btn-secondary" style="font-size:12px;padding:6px 14px;text-decoration:none;">
-                Fullscreen View
-              </a>
-              <button type="button" class="sr-btn sr-btn-primary" onclick="window.print()" style="font-size:12px;padding:6px 14px;">
-                🖨️ Print / Save PDF
-              </button>
-              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-close-cv" style="font-size:12px;padding:6px 14px;">
-                Close
-              </button>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="sr-btn sr-btn-primary" data-sr-report-dl="/api/reports/worker-cv?format=pdf" data-sr-report-name="ShiftRelay-Worker-Dossier.pdf" style="font-size:11.5px;min-height:32px;padding:0 11px;">PDF (.pdf)</button>
+              <button type="button" class="sr-btn sr-btn-secondary" data-sr-report-dl="/api/reports/worker-cv?format=docx" data-sr-report-name="ShiftRelay-Worker-Dossier.docx" style="font-size:11.5px;min-height:32px;padding:0 11px;">Word (.docx)</button>
+              <a href="/api/reports/worker-cv" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="font-size:11.5px;min-height:32px;padding:0 11px;display:inline-flex;align-items:center;text-decoration:none;">Print</a>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-close-cv" style="font-size:11.5px;min-height:32px;padding:0 11px;">Close</button>
             </div>
           </div>
 
@@ -12828,6 +12827,13 @@
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('sr-cv-modal')?.querySelectorAll('[data-sr-report-dl]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const u = btn.getAttribute('data-sr-report-dl');
+        const n = btn.getAttribute('data-sr-report-name') || 'ShiftRelay-Worker-Dossier';
+        window.ShiftRelayMobile?.downloadReport ? window.ShiftRelayMobile.downloadReport(u, n) : window.open(u, '_blank', 'noopener');
+      });
+    });
     document.getElementById('sr-btn-close-cv')?.addEventListener('click', () => {
       document.getElementById('sr-cv-modal')?.remove();
     });
@@ -12837,32 +12843,28 @@
   function openPayrollLedgerModal(monthParam) {
     const existing = document.getElementById('sr-ledger-modal');
     if (existing) existing.remove();
-    const ledgerUrl = monthParam
-      ? `/api/reports/payroll-ledger?month=${encodeURIComponent(monthParam)}`
-      : '/api/reports/payroll-ledger';
+    const baseQuery = monthParam ? `month=${encodeURIComponent(monthParam)}` : '';
+    const ledgerUrl = baseQuery ? `/api/reports/payroll-ledger?${baseQuery}` : '/api/reports/payroll-ledger';
+    const qPrefix = baseQuery ? `${ledgerUrl}&` : `${ledgerUrl}?`;
 
     const modalHtml = `
-      <div id="sr-ledger-modal" class="sr-audit-modal-backdrop" style="position:fixed;inset:0;background:rgba(2,6,23,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;justify-content:center;align-items:flex-start;padding:24px;overflow-y:auto;">
-        <div class="sr-audit-sheet" style="background:#ffffff;color:#0f172a;max-width:980px;width:100%;border-radius:14px;padding:32px;box-shadow:0 25px 70px rgba(0,0,0,0.5);margin:auto;position:relative;">
+      <div id="sr-ledger-modal" class="sr-audit-modal-backdrop" style="position:fixed;inset:0;background:rgba(2,6,23,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;justify-content:center;align-items:flex-start;padding:16px;overflow-y:auto;">
+        <div class="sr-audit-sheet" style="background:#ffffff;color:#0f172a;max-width:980px;width:100%;border-radius:14px;padding:20px;box-shadow:0 25px 70px rgba(0,0,0,0.5);margin:auto;position:relative;">
           
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:2px solid #e2e8f0;margin-bottom:20px;" class="sr-no-print">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-bottom:14px;border-bottom:2px solid #e2e8f0;margin-bottom:16px;" class="sr-no-print">
             <div style="display:flex;align-items:center;gap:10px;">
               <span style="width:34px;height:34px;border-radius:8px;background:#059669;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;font-weight:900;">₦</span>
               <div>
                 <strong style="font-size:15px;color:#0f172a;display:block;">Executive Statutory Remittance Ledger</strong>
-                <small style="color:#64748b;font-size:11.5px;">PenCom 8%+10% · PAYE Tax · NSITF 1% · ₦0.00 Variance Guaranteed</small>
+                <small style="color:#64748b;font-size:11.5px;">Official Company Letterhead · PenCom · PAYE · ₦0.00 Variance</small>
               </div>
             </div>
-            <div style="display:flex;gap:8px;">
-              <a href="${ledgerUrl}" target="_blank" class="sr-btn sr-btn-secondary" style="font-size:12px;padding:6px 14px;text-decoration:none;">
-                Fullscreen View
-              </a>
-              <button type="button" class="sr-btn sr-btn-primary" onclick="window.print()" style="font-size:12px;padding:6px 14px;">
-                🖨️ Print / Save PDF
-              </button>
-              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-close-ledger" style="font-size:12px;padding:6px 14px;">
-                Close
-              </button>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="sr-btn sr-btn-secondary" data-sr-report-dl="${qPrefix}format=xlsx" data-sr-report-name="ShiftRelay-Payroll-Ledger.xlsx" style="font-size:11.5px;min-height:32px;padding:0 11px;">Excel (.xlsx)</button>
+              <button type="button" class="sr-btn sr-btn-primary" data-sr-report-dl="${qPrefix}format=pdf" data-sr-report-name="ShiftRelay-Payroll-Ledger.pdf" style="font-size:11.5px;min-height:32px;padding:0 11px;">PDF (.pdf)</button>
+              <button type="button" class="sr-btn sr-btn-secondary" data-sr-report-dl="${qPrefix}format=docx" data-sr-report-name="ShiftRelay-Payroll-Ledger.docx" style="font-size:11.5px;min-height:32px;padding:0 11px;">Word (.docx)</button>
+              <a href="${ledgerUrl}" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="font-size:11.5px;min-height:32px;padding:0 11px;display:inline-flex;align-items:center;text-decoration:none;">Print</a>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-close-ledger" style="font-size:11.5px;min-height:32px;padding:0 11px;">Close</button>
             </div>
           </div>
 
@@ -12873,6 +12875,13 @@
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('sr-ledger-modal')?.querySelectorAll('[data-sr-report-dl]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const u = btn.getAttribute('data-sr-report-dl');
+        const n = btn.getAttribute('data-sr-report-name') || 'ShiftRelay-Payroll-Ledger';
+        window.ShiftRelayMobile?.downloadReport ? window.ShiftRelayMobile.downloadReport(u, n) : window.open(u, '_blank', 'noopener');
+      });
+    });
     document.getElementById('sr-btn-close-ledger')?.addEventListener('click', () => {
       document.getElementById('sr-ledger-modal')?.remove();
     });
@@ -15080,6 +15089,12 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               <span>Remittance Ledger (PDF)</span>
             </button>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-export-payroll-xlsx" style="font-size:12px;padding:8px 11px;display:inline-flex;align-items:center;gap:5px;">
+              <span>Ledger Excel (.xlsx)</span>
+            </button>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-export-payroll-docx" style="font-size:12px;padding:8px 11px;display:inline-flex;align-items:center;gap:5px;">
+              <span>Word (.docx)</span>
+            </button>
             <div style="display:inline-flex;align-items:center;gap:6px;background:var(--sr-bg-elevated);padding:3px 6px;border-radius:9px;border:1px solid var(--sr-border-subtle);">
               <select id="sr-bank-csv-format" aria-label="Nigerian Bank CSV Upload Profile" style="width:auto;max-width:210px;min-height:32px;padding:4px 8px;border-radius:6px;border:none;background:transparent;color:var(--sr-text-main);font-size:12px;font-weight:600;cursor:pointer;">
                 <option value="generic">Bank Profile: Generic CSV</option>
@@ -15275,6 +15290,14 @@
     const printAuditBtn = document.getElementById('sr-btn-print-audit');
     document.getElementById('sr-btn-export-payroll-ledger')?.addEventListener('click', () => {
       openPayrollLedgerModal(currentMonth);
+    });
+    document.getElementById('sr-btn-export-payroll-xlsx')?.addEventListener('click', () => {
+      const url = `/api/reports/payroll-ledger?month=${encodeURIComponent(currentMonth)}&format=xlsx`;
+      window.ShiftRelayMobile?.downloadReport ? window.ShiftRelayMobile.downloadReport(url, `ShiftRelay-Payroll-${currentMonth}.xlsx`) : window.open(url, '_blank', 'noopener');
+    });
+    document.getElementById('sr-btn-export-payroll-docx')?.addEventListener('click', () => {
+      const url = `/api/reports/payroll-ledger?month=${encodeURIComponent(currentMonth)}&format=docx`;
+      window.ShiftRelayMobile?.downloadReport ? window.ShiftRelayMobile.downloadReport(url, `ShiftRelay-Payroll-${currentMonth}.docx`) : window.open(url, '_blank', 'noopener');
     });
 
     document.getElementById('sr-btn-open-email-lab')?.addEventListener('click', () => {
@@ -16742,6 +16765,15 @@
       if (csvLink) csvLink.href = `/api/reports/attendance-sheet?${q}&format=csv`;
       if (printLink) printLink.href = `/api/reports/attendance-sheet?${q}&format=html`;
     };
+    [xlsxLink, pdfLink, docxLink, csvLink].forEach((lnk) => {
+      lnk?.addEventListener('click', (evt) => {
+        if (window.ShiftRelayMobile?.isNative?.()) {
+          evt.preventDefault();
+          const href = lnk.getAttribute('href');
+          if (href) window.ShiftRelayMobile.downloadReport(href, `ShiftRelay-Attendance-${selectedMonth}`);
+        }
+      });
+    });
 
     async function loadSheet() {
       syncExportLinks();

@@ -30,19 +30,19 @@
     <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="bento-ui.css" />
     <link rel="stylesheet" href="dark-mode.css" />
-    <link rel="stylesheet" href="splash.css?v=174" />
+    <link rel="stylesheet" href="splash.css?v=175" />
     <link rel="stylesheet" href="offline-queue.css" />
     <link rel="stylesheet" href="me-profile.css" />
-    <link rel="stylesheet" href="phase1-shell.css?v=174" />
-    <link rel="stylesheet" href="sr-premium.css?v=174" />
+    <link rel="stylesheet" href="phase1-shell.css?v=175" />
+    <link rel="stylesheet" href="sr-premium.css?v=175" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v174' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v175' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v174');
+              localStorage.setItem('sr_restored_build', 'v175');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { r.update(); });
@@ -53,10 +53,10 @@
         } catch (e) {}
       })();
     </script>
-    <script src="mobile-bridge.js?v=174"></script>
-    <script src="gps-guard.js?v=174"></script>
+    <script src="mobile-bridge.js?v=175"></script>
+    <script src="gps-guard.js?v=175"></script>
     <script src="theme.js"></script>
-    <script src="alarm-engine.js?v=174"></script>
+    <script src="alarm-engine.js?v=175"></script>
   </head>
   <body>
     <!-- ======================================================
@@ -426,13 +426,13 @@
     <script src="icons.js"></script>
     <script src="language.js"></script>
     <script src="language-pack.js"></script>
-    <script src="app.js?v=174"></script>
+    <script src="app.js?v=175"></script>
     <script src="biometrics.js"></script>
-    <script type="module" src="qr-svg-generator.js?v=174"></script>
-    <script src="attendance-exceptions-ui.js?v=174"></script>
-    <script src="/vendor/xlsx.full.min.js" defer></script>
-    <script src="phase1-shell.js?v=174"></script>
-    <script src="splash.js?v=174"></script>
+    <script type="module" src="qr-svg-generator.js?v=175"></script>
+    <script src="attendance-exceptions-ui.js?v=175"></script>
+    <script src="/vendor/read-excel-file.min.js" defer></script>
+    <script src="phase1-shell.js?v=175"></script>
+    <script src="splash.js?v=175"></script>
     <script src="notifications.js"></script>
    <script src="profile.js"></script>
    <script src="checklists.js"></script>
@@ -443,12 +443,12 @@
     <script src="community-experience.js"></script>
     <script src="schedule-import.js"></script>
     <script src="direct-messages.js"></script>
-    <script src="team-realtime.js?v=174"></script>
+    <script src="team-realtime.js?v=175"></script>
     <script src="onboarding-experience.js"></script>
-    <script src="frontline-social.js?v=174"></script>
-    <script src="me-profile.js?v=174"></script>
-    <script src="navigation-fix.js?v=174"></script>
-    <script src="offline-queue.js?v=174"></script>
+    <script src="frontline-social.js?v=175"></script>
+    <script src="me-profile.js?v=175"></script>
+    <script src="navigation-fix.js?v=175"></script>
+    <script src="offline-queue.js?v=175"></script>
     <script src="signature-pad.js"></script>
     <script src="chat-engine.js"></script>
     <script src="gesture-hints.js"></script>
@@ -460,12 +460,12 @@
     <script src="swap-review.js"></script>
     <script src="facility-zones.js"></script>
     <script src="analytics-dashboard.js"></script>
-    <script src="first-shift-onboarding.js?v=174"></script>
-    <script src="push-notifications.js?v=174"></script>
+    <script src="first-shift-onboarding.js?v=175"></script>
+    <script src="push-notifications.js?v=175"></script>
     <script src="facility-switcher.js"></script>
     <script src="emergency-broadcast.js"></script>
     <script src="live-translation.js"></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=174',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=175',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 
