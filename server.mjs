@@ -12911,7 +12911,8 @@ const CLEAN_HTML_ROUTES = {
 };
 
 const VENDOR_BUNDLES = {
-  '/vendor/xlsx.full.min.js': ['node_modules', 'xlsx', 'dist', 'xlsx.full.min.js'],
+  '/vendor/read-excel-file.min.js': ['node_modules', 'read-excel-file', 'bundle', 'read-excel-file.min.js'],
+  '/vendor/write-excel-file.min.js': ['node_modules', 'write-excel-file', 'bundle', 'write-excel-file.min.js'],
   '/vendor/mammoth.browser.min.js': ['node_modules', 'mammoth', 'mammoth.browser.min.js'],
   '/vendor/pdf-lib.min.js': ['node_modules', 'pdf-lib', 'dist', 'pdf-lib.min.js'],
   '/vendor/pdf.min.mjs': ['node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.min.mjs'],

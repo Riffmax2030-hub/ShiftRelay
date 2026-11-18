@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <script src="/vendor/xlsx.full.min.js"></script>
+  <script src="/vendor/read-excel-file.min.js"></script>
+  <script src="/vendor/write-excel-file.min.js"></script>
   <script src="/vendor/mammoth.browser.min.js"></script>
   <style>
     :root,
@@ -2260,7 +2261,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         }
         const aiBadge = document.getElementById('ob-ai-engine-badge');
         if (aiBadge) {
-          aiBadge.textContent = authStatusMeta.aiEngine === 'gemini' ? 'AI: Gemini Vision' : 'SheetJS + Local Engine';
+          aiBadge.textContent = authStatusMeta.aiEngine === 'gemini' ? 'AI: Gemini Vision' : 'Excel + Local Engine';
         }
         if (Array.isArray(authStatusMeta.devDefaultAccounts) && authStatusMeta.devDefaultAccounts.length) {
           const grid = document.getElementById('adm-default-accounts-grid');
@@ -4550,17 +4551,21 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
     window.openSpreadsheetPreviewModal = function ({ title = 'Spreadsheet Preview', sheets = null, csvText = '' }) {
       document.getElementById('adm-sheet-preview-modal')?.remove();
       let sheetMap = sheets;
-      if (!sheetMap && typeof XLSX !== 'undefined' && csvText) {
-        try {
-          const wb = XLSX.read(csvText, { type: 'string' });
-          sheetMap = {};
-          wb.SheetNames.forEach(name => {
-            sheetMap[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' });
-          });
-        } catch (_) {}
-      }
       if (!sheetMap) {
-        const rows = String(csvText || '').split(/\r?\n/).filter(Boolean).map(r => r.split(','));
+        const rows = String(csvText || '').split(/\r?\n/).filter(Boolean).map(r => {
+          const out = [];
+          let cur = '', inQ = false;
+          for (let i = 0; i < r.length; i++) {
+            const ch = r[i];
+            if (ch === '"') {
+              if (inQ && r[i + 1] === '"') { cur += '"'; i++; }
+              else inQ = !inQ;
+            } else if (ch === ',' && !inQ) { out.push(cur); cur = ''; }
+            else cur += ch;
+          }
+          out.push(cur);
+          return out;
+        });
         sheetMap = { Sheet1: rows };
       }
       const sheetNames = Object.keys(sheetMap);
@@ -4643,14 +4648,17 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         a.click();
       };
 
-      document.getElementById('sp-dl-xlsx-btn').onclick = () => {
-        if (typeof XLSX === 'undefined') return showToast('SheetJS not loaded.');
-        const wb = XLSX.utils.book_new();
-        sheetNames.forEach(name => {
-          const ws = XLSX.utils.aoa_to_sheet(sheetMap[name] || []);
-          XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
-        });
-        XLSX.writeFile(wb, title.replace(/\.[^.]+$/, '') + '.xlsx');
+      document.getElementById('sp-dl-xlsx-btn').onclick = async () => {
+        if (typeof writeXlsxFile === 'undefined') return showToast('Excel exporter not loaded.');
+        try {
+          const allData = sheetNames.map(name => (sheetMap[name] || []).map(row => row.map(cell => ({ value: cell ?? '' }))));
+          await writeXlsxFile(allData.length === 1 ? allData[0] : allData, {
+            sheets: allData.length === 1 ? undefined : sheetNames.map(s => s.slice(0, 31)),
+            fileName: title.replace(/\.[^.]+$/, '') + '.xlsx'
+          });
+        } catch (err) {
+          showToast('Export error: ' + err.message);
+        }
       };
     };
 
@@ -4678,15 +4686,16 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
             return btoa(bin);
           };
 
-          if (isExcel && typeof XLSX !== 'undefined') {
+          if (isExcel && typeof readXlsxFile !== 'undefined') {
             try {
-              const wb = XLSX.read(new Uint8Array(reader.result), { type: 'array' });
+              const sheetInfos = await readXlsxFile(file, { getSheets: true });
               const sheets = {};
               const csvChunks = [];
-              wb.SheetNames.forEach(name => {
-                sheets[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' });
-                csvChunks.push(XLSX.utils.sheet_to_csv(wb.Sheets[name]));
-              });
+              for (const info of sheetInfos) {
+                const rows = await readXlsxFile(file, { sheet: info.name });
+                sheets[info.name] = rows;
+                csvChunks.push(rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'));
+              }
               obAgentAttachments.push({
                 name: file.name,
                 type: file.type,
