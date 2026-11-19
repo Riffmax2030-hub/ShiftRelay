@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -18,11 +18,18 @@
           navigator.serviceWorker.getRegistrations().then(function (regs) {
             regs.forEach(function (r) { r.update(); });
           });
+          navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html', updateViaCache: 'none' }).catch(function () {});
         }
       } catch (_) {}
     })();
   </script>
-  <link rel="icon" type="image/svg+xml" href="/icon.svg?v=177" />
+  <link rel="manifest" href="/admin-manifest.webmanifest?v=1" />
+  <meta name="theme-color" content="#07070a" id="adm-theme-color-meta" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ShiftRelay OS" />
+  <link rel="apple-touch-icon" href="/admin-icon-192.png" />
+  <link rel="icon" type="image/svg+xml" href="/admin-icon.svg?v=1" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -204,6 +211,60 @@
     }
     .theme-pill.theme-icon-switch button.active svg {
       transform: rotate(0deg) scale(1.05);
+    }
+
+    .adm-install-btn {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(56, 189, 248, 0.42);
+      background: rgba(56, 189, 248, 0.14);
+      color: var(--sky);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .adm-install-btn:hover {
+      background: rgba(56, 189, 248, 0.24);
+      border-color: var(--sky);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(56, 189, 248, 0.22);
+    }
+    .adm-install-btn.visible {
+      display: inline-flex;
+    }
+
+    /* Desktop & Tablet Only Guard (phones < 768px) */
+    #adm-phone-guard {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: var(--bg-canvas);
+      color: var(--text-white);
+      padding: 28px 24px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    @media (max-width: 767px) {
+      #adm-phone-guard { display: flex; }
+      #auth-barrier, #console-root { display: none !important; }
+    }
+    .adm-phone-guard-card {
+      max-width: 360px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glass);
+      border-radius: 22px;
+      padding: 28px 24px;
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: blur(20px);
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
@@ -1019,29 +1080,49 @@
 </head>
 <body>
 
+  <!-- Desktop & Tablet Only Guard (Phones < 768px) -->
+  <div id="adm-phone-guard" role="dialog" aria-label="Desktop and Tablet Required">
+    <div class="adm-phone-guard-card">
+      <img src="/admin-icon.svg?v=1" alt="ShiftRelay OS" style="width:68px;height:68px;border-radius:16px;margin:0 auto 14px;display:block;box-shadow:0 12px 28px rgba(56,189,248,0.28);" />
+      <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;margin-bottom:8px;">Desktop &amp; Tablet Only</div>
+      <p style="font-size:13px;line-height:1.55;color:var(--text-slate);margin:0 0 18px;">
+        <strong>ShiftRelay OS</strong> is engineered for Desktop and Tablet command consoles. For frontline mobile shift operations, open the ShiftRelay worker app.
+      </p>
+      <a href="/" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 16px;border-radius:11px;background:var(--btn-primary-bg);color:var(--btn-primary-fg);font-weight:700;font-size:13px;text-decoration:none;">
+        Open ShiftRelay App
+      </a>
+    </div>
+  </div>
+
   <!-- ═══════════════════════════════════════════════════════════════════════
        1. ADMIN LOGIN GATE (#auth-barrier)
        ═══════════════════════════════════════════════════════════════════════ -->
   <section id="auth-barrier">
     <div class="auth-topbar-float">
       <a href="/website.html" class="brand-lockup" aria-label="ShiftRelay OS">
-        <img src="/icon.svg?v=177" alt="" />
+        <img src="/admin-icon.svg?v=1" alt="ShiftRelay OS" />
         <div class="brand-wordmark">ShiftRelay <span>OS</span></div>
       </a>
-      <div class="theme-pill theme-icon-switch" role="group" aria-label="Theme">
-        <button type="button" data-theme-btn="dark" class="active" aria-label="Dark mode" title="Dark mode" onclick="window.setAdminTheme('dark')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button type="button" class="adm-install-btn" data-pwa-install-btn onclick="window.installShiftRelayOS()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span>Install OS</span>
         </button>
-        <button type="button" data-theme-btn="light" aria-label="Light mode" title="Light mode" onclick="window.setAdminTheme('light')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-        </button>
+        <div class="theme-pill theme-icon-switch" role="group" aria-label="Theme">
+          <button type="button" data-theme-btn="dark" class="active" aria-label="Dark mode" title="Dark mode" onclick="window.setAdminTheme('dark')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          </button>
+          <button type="button" data-theme-btn="light" aria-label="Light mode" title="Light mode" onclick="window.setAdminTheme('light')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+          </button>
+        </div>
       </div>
     </div>
 
     <div class="auth-center-wrap">
       <div class="auth-card">
         <div class="adm-auth-brand-bar" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
-          <img src="/icon.svg?v=177" alt="ShiftRelay" style="width:68px;height:68px;border-radius:16px;display:block;box-shadow:0 10px 24px rgba(5,150,105,0.28);" />
+          <img src="/admin-icon.svg?v=1" alt="ShiftRelay OS" style="width:68px;height:68px;border-radius:16px;display:block;box-shadow:0 10px 26px rgba(56,189,248,0.28);" />
           <span class="adm-os-pill">SHIFTRELAY ADMIN OS</span>
         </div>
 
@@ -1170,7 +1251,7 @@
       <div>
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:4px 8px 16px; border-bottom:1px solid var(--border-hairline);">
           <div style="display:flex; align-items:center; gap:10px;">
-            <img src="/icon.svg?v=177" alt="" style="width:42px; height:42px; border-radius:10px; display:block; flex-shrink:0;" />
+            <img src="/admin-icon.svg?v=1" alt="ShiftRelay OS" style="width:42px; height:42px; border-radius:10px; display:block; flex-shrink:0;" />
             <div>
               <div class="brand-wordmark" style="font-size:16px;">ShiftRelay <span>OS</span></div>
               <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--sky);" id="sidebar-role-badge">OWNER ROOT</div>
@@ -1259,6 +1340,10 @@
             <button type="button" class="role-chip" data-switch-role="ops_support_admin" onclick="window.setAdminActiveRole('ops_support_admin')">Care</button>
             <button type="button" class="role-chip" data-switch-role="finance_admin" onclick="window.setAdminActiveRole('finance_admin')">Finance</button>
           </div>
+          <button type="button" class="adm-install-btn" data-pwa-install-btn onclick="window.installShiftRelayOS()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <span>Install OS</span>
+          </button>
           <div class="theme-pill theme-icon-switch" role="group" aria-label="Theme">
             <button type="button" data-theme-btn="dark" class="active" aria-label="Dark mode" title="Dark mode" onclick="window.setAdminTheme('dark')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
@@ -2470,6 +2555,8 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
     window.setAdminTheme = function (theme) {
       const next = theme === 'light' ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', next);
+      const themeMeta = document.getElementById('adm-theme-color-meta');
+      if (themeMeta) themeMeta.setAttribute('content', next === 'light' ? '#f3f4f6' : '#07070a');
       try { localStorage.setItem('shiftrelay-admin-theme', next); } catch (_) {}
       document.querySelectorAll('[data-theme-btn]').forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-theme-btn') === next);
@@ -2480,6 +2567,35 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       try { saved = localStorage.getItem('shiftrelay-admin-theme') || 'dark'; } catch (_) {}
       window.setAdminTheme(saved);
     })();
+
+    // Chrome Desktop & Tablet PWA Installer for ShiftRelay OS
+    let deferredAdminInstallPrompt = null;
+    function syncAdminInstallButtons(visible) {
+      document.querySelectorAll('[data-pwa-install-btn]').forEach(btn => {
+        btn.classList.toggle('visible', Boolean(visible));
+      });
+    }
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredAdminInstallPrompt = e;
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (!isStandalone) syncAdminInstallButtons(true);
+    });
+    window.addEventListener('appinstalled', () => {
+      deferredAdminInstallPrompt = null;
+      syncAdminInstallButtons(false);
+    });
+    window.installShiftRelayOS = async function () {
+      if (!deferredAdminInstallPrompt) return;
+      deferredAdminInstallPrompt.prompt();
+      try {
+        const choice = await deferredAdminInstallPrompt.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          deferredAdminInstallPrompt = null;
+          syncAdminInstallButtons(false);
+        }
+      } catch (_) {}
+    };
 
     let currentAdminLoginStep = 1;
 
