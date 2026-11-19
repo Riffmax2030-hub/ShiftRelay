@@ -3275,7 +3275,7 @@ async function handleApi(request, response, url) {
     if (!eventUser) {
       const adminStore = await getStore();
       const adminAuth = await authenticateAdminRequest(request, adminStore, databaseReady);
-      if (adminAuth?.ok && adminAuth.adminUser) {
+      if (adminAuth && adminAuth.adminUser) {
         isAdminClient = true;
         eventUser = {
           id: adminAuth.adminUser.id,
@@ -14293,7 +14293,7 @@ async function serveStatic(request, response, url) {
     const asset = await getCachedStaticAsset(filePath, ext);
     const isCode = ['.html', '.js', '.css', '.json'].includes(ext);
     const isAdminHtml = normalizedLower === 'admin.html';
-    const isServiceWorker = normalizedLower === 'service-worker.js';
+    const isServiceWorker = normalizedLower === 'service-worker.js' || normalizedLower === 'admin-sw.js';
     const isFont = ext === '.woff2' || ext === '.woff';
     const isVersionedAsset = url.searchParams.has('v') && ['.js', '.css', '.svg'].includes(ext) && !isServiceWorker;
     const cacheHeader = isAdminHtml
@@ -14306,6 +14306,7 @@ async function serveStatic(request, response, url) {
       response.writeHead(304, {
         'ETag': asset.etag,
         'Cache-Control': cacheHeader,
+      ...(isServiceWorker ? { 'Service-Worker-Allowed': '/' } : {}),
         ...SECURITY_HEADERS
       });
       response.end();

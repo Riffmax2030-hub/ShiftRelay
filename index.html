@@ -47,8 +47,8 @@
               localStorage.setItem('sr_restored_build', 'v184');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
-                  regs.forEach(function(r) { r.update(); });
-                });
+                  regs.forEach(function(r) { Promise.resolve(r.update()).catch(function() {}); });
+                }).catch(function() {});
               }
             });
           }
