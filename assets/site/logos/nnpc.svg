@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48">
-  <rect x="6" y="6" width="36" height="36" rx="9" fill="#047857"/>
-  <path d="M24 12c4 6 8 10 8 14a8 8 0 1 1-16 0c0-4 4-8 8-14z" fill="#FACC15"/>
-  <path d="M24 20c2 3 4 5 4 7a4 4 0 1 1-8 0c0-2 2-4 4-7z" fill="#064E3B"/>
-  <text x="50" y="23" font-family="'Space Grotesk', 'Segoe UI', Arial, sans-serif" font-size="16.5" font-weight="800" letter-spacing="0.03em" fill="#064E3B">NNPC Ltd</text>
-  <text x="50" y="36" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="7.8" font-weight="700" letter-spacing="0.04em" fill="#475569">NATIONAL PETROLEUM CO.</text>
-</svg>

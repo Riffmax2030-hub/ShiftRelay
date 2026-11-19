@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48">
-  <rect x="6" y="7" width="36" height="34" rx="8" fill="#991B1B"/>
-  <path d="M24 13c3.5 5 7 9 7 13a7 7 0 1 1-14 0c0-4 3.5-8 7-13z" fill="#FBBF24"/>
-  <text x="50" y="23" font-family="'Space Grotesk', 'Segoe UI', Arial, sans-serif" font-size="17" font-weight="800" fill="#991B1B">Conoil</text>
-  <text x="50" y="36" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="8" font-weight="700" letter-spacing="0.04em" fill="#475569">RETAIL FUEL NETWORK</text>
-</svg>

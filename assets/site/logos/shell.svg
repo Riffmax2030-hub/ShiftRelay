@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48">
-  <path d="M24 9c9 0 15 6 15 14 0 5-2.5 9.5-6 12l-4 3H19l-4-3c-3.5-2.5-6-7-6-12 0-8 6-14 15-14z" fill="#FFD500" stroke="#DD1D21" stroke-width="2.5"/>
-  <path d="M24 14v21M18 16l3 19M30 16l-3 19M13 21l5 13M35 21l-5 13" stroke="#DD1D21" stroke-width="1.6" stroke-linecap="round"/>
-  <text x="48" y="23" font-family="'Space Grotesk', 'Segoe UI', Arial, sans-serif" font-size="17" font-weight="800" fill="#0F172A">Shell</text>
-  <text x="48" y="36" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="8" font-weight="700" letter-spacing="0.05em" fill="#DD1D21">NIGERIA EXPLORATION</text>
-</svg>

@@ -185,28 +185,27 @@ import {
   computeAttendanceExceptionsForOrg,
   evaluateReminderStagesForOrg
 } from './attendance-policy-engine.mjs';
-import readXlsxFile from 'read-excel-file/node';
-import mammoth from 'mammoth';
-import { PDFParse } from 'pdf-parse';
-import {
-  generatePayrollReportHtml,
-  generatePayrollLedgerXlsxBuffer,
-  generatePayrollLedgerPdfBytes,
-  generatePayrollLedgerDocxBuffer,
-  generateAttendanceSheetHtml,
-  generateAttendanceSheetXlsxBuffer,
-  generateAttendanceSheetPdfBytes,
-  generateAttendanceSheetDocxBuffer,
-  generateCvReportHtml,
-  generateWorkerCvPdfBytes,
-  generateWorkerCvDocxBuffer,
-  generateTermsOfServiceHtml,
-  generateTermsOfServicePdfBytes,
-  generateTermsOfServiceDocxBuffer,
-  generateDpaReportHtml,
-  generateDpaReportPdfBytes,
-  generateDpaReportDocxBuffer
-} from './report-engine.mjs';
+// Lazy-loaded heavy document/report libraries (saves ~8.5s on server cold start)
+let _readXlsxFilePromise = null;
+async function loadReadXlsxFile() {
+  if (!_readXlsxFilePromise) _readXlsxFilePromise = import('read-excel-file/node').then((m) => m.default || m);
+  return _readXlsxFilePromise;
+}
+let _mammothPromise = null;
+async function loadMammoth() {
+  if (!_mammothPromise) _mammothPromise = import('mammoth').then((m) => m.default || m);
+  return _mammothPromise;
+}
+let _pdfParsePromise = null;
+async function loadPdfParse() {
+  if (!_pdfParsePromise) _pdfParsePromise = import('pdf-parse').then((m) => m.PDFParse);
+  return _pdfParsePromise;
+}
+let _reportEnginePromise = null;
+async function loadReportEngine() {
+  if (!_reportEnginePromise) _reportEnginePromise = import('./report-engine.mjs');
+  return _reportEnginePromise;
+}
 import {
   INDUSTRY_PROFILES,
   INDUSTRY_OPTIONS,
@@ -237,7 +236,7 @@ function loadEnvironment() {
   try {
     for (const entry of readFileSync('.env', 'utf8').split(/\r?\n/)) {
       const match = entry.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (match && !process.env[match[1]]) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
+      if (match && !(match[1] in process.env)) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
     }
   } catch {}
 }
@@ -3739,10 +3738,11 @@ async function handleApi(request, response, url) {
     const periodSlug = String(url.searchParams.get('month') || new Date().toISOString().slice(0, 7)).replace(/[^0-9-]+/g, '') || 'current';
     const baseFilename = `ShiftRelay-Payroll-Ledger-${orgCode}-${periodSlug}`;
 
-    if (format === 'xlsx') return sendFormattedReport('xlsx', await generatePayrollLedgerXlsxBuffer(payrollData, org), baseFilename);
-    if (format === 'pdf') return sendFormattedReport('pdf', await generatePayrollLedgerPdfBytes(payrollData, org), baseFilename);
-    if (format === 'docx') return sendFormattedReport('docx', await generatePayrollLedgerDocxBuffer(payrollData, org), baseFilename);
-    return sendFormattedReport('html', generatePayrollReportHtml(payrollData, org), baseFilename);
+    const reportEngine = await loadReportEngine();
+    if (format === 'xlsx') return sendFormattedReport('xlsx', await reportEngine.generatePayrollLedgerXlsxBuffer(payrollData, org), baseFilename);
+    if (format === 'pdf') return sendFormattedReport('pdf', await reportEngine.generatePayrollLedgerPdfBytes(payrollData, org), baseFilename);
+    if (format === 'docx') return sendFormattedReport('docx', await reportEngine.generatePayrollLedgerDocxBuffer(payrollData, org), baseFilename);
+    return sendFormattedReport('html', reportEngine.generatePayrollReportHtml(payrollData, org), baseFilename);
   }
 
   // ── Supervisor & Executive Official Attendance Sheet Generator (JSON / CSV / Print HTML) ──
@@ -3786,11 +3786,14 @@ async function handleApi(request, response, url) {
     const orgCode = String(org.organisation_code || 'ORG').replace(/[^a-z0-9_-]+/gi, '-');
     const baseFilename = `ShiftRelay-Attendance-${orgCode}-${sheetData.month}-${safeDept}`;
 
-    if (format === 'xlsx') return sendFormattedReport('xlsx', await generateAttendanceSheetXlsxBuffer(sheetData, org), baseFilename);
-    if (format === 'pdf') return sendFormattedReport('pdf', await generateAttendanceSheetPdfBytes(sheetData, org), baseFilename);
-    if (format === 'docx') return sendFormattedReport('docx', await generateAttendanceSheetDocxBuffer(sheetData, org), baseFilename);
     if (format === 'csv') return sendFormattedReport('csv', generateAttendanceSheetCsv(sheetData), baseFilename);
-    if (format === 'html' || format === 'print') return sendFormattedReport('html', generateAttendanceSheetHtml(sheetData, org), baseFilename);
+    if (format === 'xlsx' || format === 'pdf' || format === 'docx' || format === 'html' || format === 'print') {
+      const reportEngine = await loadReportEngine();
+      if (format === 'xlsx') return sendFormattedReport('xlsx', await reportEngine.generateAttendanceSheetXlsxBuffer(sheetData, org), baseFilename);
+      if (format === 'pdf') return sendFormattedReport('pdf', await reportEngine.generateAttendanceSheetPdfBytes(sheetData, org), baseFilename);
+      if (format === 'docx') return sendFormattedReport('docx', await reportEngine.generateAttendanceSheetDocxBuffer(sheetData, org), baseFilename);
+      return sendFormattedReport('html', reportEngine.generateAttendanceSheetHtml(sheetData, org), baseFilename);
+    }
 
     return sendJson(response, 200, { ok: true, org: { id: org.id, code: org.organisation_code, name: org.legal_name || org.trading_name }, sheet: sheetData });
   }
@@ -3860,6 +3863,7 @@ async function handleApi(request, response, url) {
         if (ext === '.xls') {
           return sendJson(response, 415, { error: 'Legacy binary .xls is not supported; please save as .xlsx or .csv.' });
         }
+        const readXlsxFile = await loadReadXlsxFile();
         const parsed = await readXlsxFile(buffer);
         const rawSheets = Array.isArray(parsed) && parsed[0] && typeof parsed[0] === 'object' && !Array.isArray(parsed[0]) && 'data' in parsed[0]
           ? parsed
@@ -3878,6 +3882,7 @@ async function handleApi(request, response, url) {
       }
 
       if (ext === '.pdf' || mimeType === 'application/pdf') {
+        const PDFParse = await loadPdfParse();
         const parser = new PDFParse({ data: buffer });
         try {
           const parsed = await parser.getText();
@@ -3897,6 +3902,7 @@ async function handleApi(request, response, url) {
       }
 
       if (ext === '.docx' || mimeType.includes('wordprocessingml')) {
+        const mammoth = await loadMammoth();
         const [htmlRes, rawRes] = await Promise.all([
           mammoth.convertToHtml({ buffer }),
           mammoth.extractRawText({ buffer })
@@ -3985,9 +3991,10 @@ async function handleApi(request, response, url) {
       };
     }
     const baseFilename = `ShiftRelay-Dossier-${String(profile.staffId || staffId).replace(/[^a-z0-9_-]+/gi, '-')}`;
-    if (format === 'pdf') return sendFormattedReport('pdf', await generateWorkerCvPdfBytes(userObj, profile, org), baseFilename);
-    if (format === 'docx') return sendFormattedReport('docx', await generateWorkerCvDocxBuffer(userObj, profile, org), baseFilename);
-    const html = generateCvReportHtml(userObj, profile, org);
+    const reportEngine = await loadReportEngine();
+    if (format === 'pdf') return sendFormattedReport('pdf', await reportEngine.generateWorkerCvPdfBytes(userObj, profile, org), baseFilename);
+    if (format === 'docx') return sendFormattedReport('docx', await reportEngine.generateWorkerCvDocxBuffer(userObj, profile, org), baseFilename);
+    const html = reportEngine.generateCvReportHtml(userObj, profile, org);
     response.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Content-Length': Buffer.byteLength(html)
@@ -3998,9 +4005,10 @@ async function handleApi(request, response, url) {
   if (url.pathname === '/api/reports/terms-of-service' && request.method === 'GET') {
     const format = (url.searchParams.get('format') || 'html').toLowerCase();
     const baseFilename = `ShiftRelay-Terms-of-Service-${POLICY_VERSIONS.terms}`;
-    if (format === 'pdf') return sendFormattedReport('pdf', await generateTermsOfServicePdfBytes(), baseFilename);
-    if (format === 'docx') return sendFormattedReport('docx', await generateTermsOfServiceDocxBuffer(), baseFilename);
-    return sendFormattedReport('html', generateTermsOfServiceHtml(), baseFilename);
+    const reportEngine = await loadReportEngine();
+    if (format === 'pdf') return sendFormattedReport('pdf', await reportEngine.generateTermsOfServicePdfBytes(), baseFilename);
+    if (format === 'docx') return sendFormattedReport('docx', await reportEngine.generateTermsOfServiceDocxBuffer(), baseFilename);
+    return sendFormattedReport('html', reportEngine.generateTermsOfServiceHtml(), baseFilename);
   }
 
   if (url.pathname === '/api/reports/dpa' && request.method === 'GET') {
@@ -4017,9 +4025,10 @@ async function handleApi(request, response, url) {
     };
     const safeOrgCode = String(orgCode).replace(/[^a-z0-9_-]+/gi, '-');
     const baseFilename = `ShiftRelay-NDPA-DPA-${safeOrgCode}-${POLICY_VERSIONS.dpa}`;
-    if (format === 'pdf') return sendFormattedReport('pdf', await generateDpaReportPdfBytes(dpaOpts), baseFilename);
-    if (format === 'docx') return sendFormattedReport('docx', await generateDpaReportDocxBuffer(dpaOpts), baseFilename);
-    return sendFormattedReport('html', generateDpaReportHtml(dpaOpts), baseFilename);
+    const reportEngine = await loadReportEngine();
+    if (format === 'pdf') return sendFormattedReport('pdf', await reportEngine.generateDpaReportPdfBytes(dpaOpts), baseFilename);
+    if (format === 'docx') return sendFormattedReport('docx', await reportEngine.generateDpaReportDocxBuffer(dpaOpts), baseFilename);
+    return sendFormattedReport('html', reportEngine.generateDpaReportHtml(dpaOpts), baseFilename);
   }
 
   if (url.pathname === '/api/legal/config' && request.method === 'GET') {

@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48">
-  <circle cx="24" cy="24" r="18" fill="#065F46"/>
-  <path d="M21 13h6v8h8v6h-8v8h-6v-8h-8v-6h8v-8z" fill="#FFFFFF"/>
-  <circle cx="24" cy="24" r="3.2" fill="#10B981"/>
-  <text x="50" y="23" font-family="'Space Grotesk', 'Segoe UI', Arial, sans-serif" font-size="16.5" font-weight="800" letter-spacing="0.04em" fill="#065F46">NAFDAC</text>
-  <text x="50" y="36" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-size="7.8" font-weight="700" letter-spacing="0.04em" fill="#475569">FOOD &amp; DRUG CONTROL</text>
-</svg>
