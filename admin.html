@@ -666,12 +666,6 @@
       min-width: 0;
       box-shadow: var(--glass-shadow);
     }
-    #view-email-station .kpi-tile .val {
-      font-size: clamp(11.5px, 0.92vw, 13.2px);
-      overflow-wrap: anywhere;
-      line-height: 1.35;
-      letter-spacing: -0.015em;
-    }
     #view-email-station .adm-table code {
       overflow-wrap: anywhere;
       word-break: break-word;
@@ -4953,16 +4947,6 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
           const data = await res.json();
           if (Array.isArray(data.emails) && data.emails.length > 0) {
             logs = [...data.emails, ...logs.filter(l => !data.emails.some(e => e.id === l.id))];
-          }
-          const chip = document.getElementById('smtp-status-chip');
-          if (chip && data.smtpConfig) {
-            if (data.smtpConfig.configured) {
-              chip.textContent = `LIVE SMTP CONNECTED: ${data.smtpConfig.host}:${data.smtpConfig.port}`;
-              chip.className = 'chip emerald';
-            } else {
-              chip.textContent = `OUTBOX QUEUE READY (${data.smtpConfig.fromEmail || 'mail.shiftrelayos.com'})`;
-              chip.className = 'chip cyan';
-            }
           }
         }
       } catch (_) {}
