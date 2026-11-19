@@ -1427,6 +1427,39 @@
               </div>
             </div>
 
+            <div class="panel-card" style="border-color:rgba(16,185,129,0.28);">
+              <div class="panel-head">
+                <div>
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">AUTOMATED PEPM SAAS REVENUE &amp; ENFORCEMENT</span>
+                  <h2>Tenant PEPM Billing, Paystack Invoices &amp; Plan Control</h2>
+                  <p style="font-size:12.5px; color:var(--text-slate);">
+                    Billed automatically per active frontline worker (<code>₦2,500 PEPM</code>). Issue Paystack Checkout invoices, mark paid, or enforce read-only lock on overdue tenants.
+                  </p>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="btn-amber" onclick="window.openPayrollDisbursalModal()">Disburse Payroll (Paystack NIP)</button>
+                  <button type="button" class="btn-ghost" onclick="window.loadAdminBillingAndDisbursals(true)">Refresh Billing</button>
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table class="adm-table">
+                  <thead>
+                    <tr>
+                      <th>Tenant &amp; Code</th>
+                      <th>Active Workers</th>
+                      <th>Monthly PEPM Fee</th>
+                      <th>Latest Invoice</th>
+                      <th>Plan Status</th>
+                      <th>Owner Enforcement</th>
+                    </tr>
+                  </thead>
+                  <tbody id="owner-billing-tbody">
+                    <tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:18px;">Loading PEPM tenant billing...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             <div class="panel-card">
               <div class="panel-head">
                 <div>
@@ -1887,6 +1920,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
                   Bank NIP Transfer CSV
                 </button>
+                <button type="button" class="btn-amber" id="adm-btn-disburse-nip" onclick="window.openPayrollDisbursalModal()">Disburse via Paystack NIP</button>
                 <button type="button" class="btn-emerald" onclick="window.submitPayrollBatchForOwnerApproval()">Submit Batch to Owner Vault →</button>
               </div>
             </div>
@@ -1929,6 +1963,34 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                 </thead>
                 <tbody id="adm-finance-tbody">
                   <tr><td colspan="7" style="text-align:center; color:var(--text-slate); padding:22px;">Loading live compiled payroll audit from backend ledger...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel-card" style="border-color:rgba(16,185,129,0.28);">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--emerald);">DIRECT PAYSTACK / CBN NIP DISBURSAL LEDGER</span>
+                <h2>Executed Payroll Disbursal Batches &amp; Worker Receipts</h2>
+              </div>
+              <button type="button" class="btn-ghost" onclick="window.loadAdminBillingAndDisbursals(true)">Refresh Receipts</button>
+            </div>
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Batch ID</th>
+                    <th>Cycle Month</th>
+                    <th>Execution Mode</th>
+                    <th>Recipients</th>
+                    <th>Total Net Disbursed</th>
+                    <th>Status</th>
+                    <th>Receipts</th>
+                  </tr>
+                </thead>
+                <tbody id="adm-disbursals-tbody">
+                  <tr><td colspan="7" style="text-align:center; color:var(--text-slate); padding:18px;">No payroll batches disbursed yet — click Disburse via Paystack NIP above.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -3669,6 +3731,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       renderEmailStationTable();
       window.loadAdminSystemFiles();
       window.loadAdminIntegrations();
+      window.loadAdminBillingAndDisbursals();
 
       const monthInput = document.getElementById('adm-finance-month');
       if (monthInput && !monthInput.value) {
@@ -5168,6 +5231,224 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         showToast(`Downloaded Bank NIP Transfer CSV (${data.rowCount} staff • ${formatNgn(data.totalNetNgn)} Net).`);
       } catch (err) {
         showToast('Bank NIP export error: ' + err.message);
+      }
+    };
+
+    let cachedDisbursals = [];
+    let cachedBillingData = null;
+
+    window.loadAdminBillingAndDisbursals = async function (notify) {
+      if (!currentAdminUser || !['owner_root', 'finance_admin'].includes(currentAdminRole)) return;
+      try {
+        const [dRes, bRes] = await Promise.all([
+          admFetch('/api/admin/payroll/disbursals'),
+          admFetch('/api/admin/billing')
+        ]);
+        if (dRes.ok) {
+          const dData = await dRes.json();
+          cachedDisbursals = dData.disbursals || [];
+          renderAdminDisbursalsTable();
+        }
+        if (bRes.ok) {
+          cachedBillingData = await bRes.json();
+          renderOwnerBillingTable();
+        }
+        if (notify) showToast('Billing & Paystack NIP disbursals refreshed.');
+      } catch (_) {}
+    };
+
+    function renderAdminDisbursalsTable() {
+      const tbody = document.getElementById('adm-disbursals-tbody');
+      if (!tbody) return;
+      if (!cachedDisbursals.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-slate); padding:18px;">No payroll batches disbursed yet — click Disburse via Paystack NIP above.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = cachedDisbursals.map(b => `
+        <tr>
+          <td><code style="color:var(--sky);font-weight:700;">${escapeHtml(b.batchId)}</code><div style="font-size:11px;color:var(--text-slate);">${escapeHtml((b.createdAt || '').replace('T', ' ').slice(0, 16))}</div></td>
+          <td><strong>${escapeHtml(b.month)}</strong></td>
+          <td><span class="chip cyan">${escapeHtml(b.mode)}</span></td>
+          <td><strong>${Number(b.recipientCount || 0)} Staffs</strong></td>
+          <td><strong style="color:var(--emerald);">${formatNgn(b.totalNetNgn || 0)}</strong></td>
+          <td><span class="chip emerald">${escapeHtml(b.status)}</span></td>
+          <td><button type="button" class="btn-ghost" style="padding:4px 9px;font-size:11px;" onclick="window.viewDisbursalReceiptsModal('${escapeHtml(b.batchId)}')">View Receipts</button></td>
+        </tr>
+      `).join('');
+    }
+
+    window.openPayrollDisbursalModal = function () {
+      if (currentAdminRole !== 'owner_root') {
+        return showToast('Owner Root Sovereign clearance is required to execute direct Paystack NIP payroll disbursals.');
+      }
+      const month = document.getElementById('adm-finance-month')?.value || new Date().toISOString().slice(0, 7);
+      const mfaRequired = Boolean(currentAdminUser?.mfaEnabled);
+      document.getElementById('adm-disburse-modal')?.remove();
+      const modal = document.createElement('div');
+      modal.id = 'adm-disburse-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+      modal.innerHTML = `
+        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:480px;width:100%;padding:22px;box-shadow:var(--glass-shadow);border:1px solid var(--border-amber);color:var(--text-white);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border-hairline);">
+            <div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--amber);">SOVEREIGN OWNER TREASURY EXECUTION</span>
+              <h3 style="margin:2px 0 0;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;">Disburse Monthly Payroll via Paystack / CBN NIP</h3>
+            </div>
+            <button type="button" id="disb-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
+          </div>
+          <form id="disb-form" style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <label class="lbl-sm">Payroll Cycle Month</label>
+              <input id="disb-month" type="month" class="adm-input" value="${escapeHtml(month)}" required />
+            </div>
+            <div style="padding:10px 12px;border-radius:10px;background:var(--bg-input);border:1px solid var(--border-hairline);font-size:12px;color:var(--text-slate);">
+              Executes bulk net salary transfers across all verified active staff NUBAN accounts, generates CBN NIP session receipts, and dispatches a signed <code>payroll.disbursed</code> webhook.
+            </div>
+            ${mfaRequired ? `
+              <div>
+                <label class="lbl-sm">6-Digit 2FA Authenticator Code (Required)</label>
+                <input id="disb-totp" type="text" class="adm-input" maxlength="6" required placeholder="000000" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.2em;" />
+              </div>
+            ` : ''}
+            <button type="submit" id="disb-submit" class="btn-amber" style="justify-content:center;padding:10px 14px;">Authorize &amp; Execute Bulk NIP Disbursal</button>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('disb-close').onclick = () => modal.remove();
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+      document.getElementById('disb-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('disb-submit');
+        if (btn) { btn.disabled = true; btn.textContent = 'Executing NIP Disbursal...'; }
+        try {
+          const res = await admFetch('/api/admin/payroll/disburse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              month: document.getElementById('disb-month').value,
+              totpCode: document.getElementById('disb-totp')?.value || ''
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Payroll disbursal failed');
+          modal.remove();
+          await window.loadAdminBillingAndDisbursals();
+          await window.loadAdminIntegrations();
+          if (currentAdminRole === 'owner_root') await window.refreshAuditLogs();
+          showToast(`Disbursed ${data.batch.batchId}: ${data.batch.recipientCount} workers (${formatNgn(data.batch.totalNetNgn)}) via ${data.batch.mode}.`);
+        } catch (err) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Authorize & Execute Bulk NIP Disbursal'; }
+          showToast('Disbursal error: ' + err.message);
+        }
+      };
+    };
+
+    window.viewDisbursalReceiptsModal = function (batchId) {
+      const b = cachedDisbursals.find(x => x.batchId === batchId);
+      if (!b) return;
+      document.getElementById('adm-receipts-modal')?.remove();
+      const modal = document.createElement('div');
+      modal.id = 'adm-receipts-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,16,0.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+      modal.innerHTML = `
+        <div style="background:var(--bg-panel);backdrop-filter:blur(28px);border-radius:18px;max-width:860px;width:100%;padding:22px;box-shadow:var(--glass-shadow);border:1px solid var(--border-glass);color:var(--text-white);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border-hairline);">
+            <div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--emerald);">${escapeHtml(b.batchId)} • ${escapeHtml(b.mode)}</span>
+              <h3 style="margin:2px 0 0;font-size:16px;font-weight:700;font-family:'Outfit',sans-serif;">Worker CBN NIP Transfer Receipts (${b.recipientCount} Staff • ${formatNgn(b.totalNetNgn)})</h3>
+            </div>
+            <button type="button" id="rcpt-close" style="border:1px solid var(--border-hairline);background:var(--bg-hover);color:var(--text-white);border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:700;">&times;</button>
+          </div>
+          <div class="table-scroll" style="max-height:58vh;overflow:auto;">
+            <table class="adm-table">
+              <thead><tr><th>Staff</th><th>Bank &amp; NUBAN</th><th>Net Transfer</th><th>NIP Session ID</th><th>Status</th></tr></thead>
+              <tbody>
+                ${(b.receipts || []).map(r => `
+                  <tr>
+                    <td><strong>${escapeHtml(r.staffName)}</strong><div style="font-size:11px;color:var(--text-slate);">${escapeHtml(r.tenantCode)}</div></td>
+                    <td>${escapeHtml(r.bankName)} (<code>${escapeHtml(r.cbnCode)}</code>)<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-slate);">${escapeHtml(r.nuban)}</div></td>
+                    <td><strong style="color:var(--emerald);">${formatNgn(r.netPayNgn)}</strong></td>
+                    <td><code style="font-size:11px;">${escapeHtml(r.nipSessionId)}</code></td>
+                    <td><span class="chip emerald">${escapeHtml(r.status)}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('rcpt-close').onclick = () => modal.remove();
+      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    };
+
+    function renderOwnerBillingTable() {
+      const tbody = document.getElementById('owner-billing-tbody');
+      if (!tbody || !cachedBillingData) return;
+      const list = cachedBillingData.tenants || [];
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:18px;">No onboarded tenants yet.</td></tr>';
+        return;
+      }
+      const isRoot = currentAdminRole === 'owner_root';
+      tbody.innerHTML = list.map(t => {
+        const st = t.billingStatus || 'ACTIVE';
+        const tone = st === 'ACTIVE' ? 'emerald' : (st === 'GRACE_PERIOD' ? 'amber' : 'rose');
+        const inv = t.latestInvoice;
+        const invHtml = inv
+          ? `<code>${escapeHtml(inv.invoiceId)}</code> <span class="chip ${inv.status === 'PAID' ? 'emerald' : 'amber'}" style="font-size:9.5px;">${escapeHtml(inv.status)}</span>`
+          : '<span style="color:var(--text-slate);font-size:12px;">No invoice issued</span>';
+        return `
+          <tr>
+            <td><strong>${escapeHtml(t.companyName)}</strong><div style="font-size:11px;color:var(--text-slate);"><code>${escapeHtml(t.companyCode)}</code></div></td>
+            <td><strong>${t.activeHeadcount}</strong> active</td>
+            <td><strong style="color:var(--amber);">${formatNgn(t.monthlyFeeNgn)}</strong><div style="font-size:10.5px;color:var(--text-slate);">₦${Number(t.pepmRateNgn || 2500).toLocaleString()} PEPM</div></td>
+            <td>${invHtml}</td>
+            <td><span class="chip ${tone}">${escapeHtml(st)}</span></td>
+            <td>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button type="button" class="btn-ghost" style="padding:4px 9px;font-size:11px;" onclick="window.generateTenantPepmInvoice('${escapeHtml(t.tenantId)}')">Issue Invoice</button>
+                ${isRoot && inv && inv.status !== 'PAID' ? `<button type="button" class="btn-emerald" style="padding:4px 9px;font-size:11px;" onclick="window.updateTenantBillingStatus('${escapeHtml(t.tenantId)}','ACTIVE','${escapeHtml(inv.invoiceId)}')">Mark Paid</button>` : ''}
+                ${isRoot ? `<button type="button" class="btn-ghost" style="padding:4px 9px;font-size:11px;color:${st === 'OVERDUE_LOCKED' ? 'var(--emerald)' : 'var(--rose)'};" onclick="window.updateTenantBillingStatus('${escapeHtml(t.tenantId)}','${st === 'OVERDUE_LOCKED' ? 'ACTIVE' : 'OVERDUE_LOCKED'}')">${st === 'OVERDUE_LOCKED' ? 'Unlock' : 'Lock Read-Only'}</button>` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    window.generateTenantPepmInvoice = async function (tenantId) {
+      const month = document.getElementById('adm-finance-month')?.value || new Date().toISOString().slice(0, 7);
+      try {
+        const res = await admFetch('/api/admin/billing/invoice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenantId, month })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not generate invoice');
+        await window.loadAdminBillingAndDisbursals();
+        showToast(`Issued ${data.invoice.invoiceId} (${formatNgn(data.invoice.amountNgn)}) & emailed Paystack checkout link.`);
+      } catch (err) {
+        showToast('Invoice error: ' + err.message);
+      }
+    };
+
+    window.updateTenantBillingStatus = async function (tenantId, billingStatus, markInvoicePaidId = '') {
+      try {
+        const res = await admFetch(`/api/admin/billing/tenants/${encodeURIComponent(tenantId)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ billingStatus, markInvoicePaidId: markInvoicePaidId || undefined })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not update billing status');
+        await window.loadAdminBillingAndDisbursals();
+        if (currentAdminRole === 'owner_root') await window.refreshAuditLogs();
+        showToast(`Tenant subscription updated to ${data.billingStatus}.`);
+      } catch (err) {
+        showToast('Billing update error: ' + err.message);
       }
     };
 

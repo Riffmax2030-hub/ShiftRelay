@@ -101,7 +101,7 @@ import { createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSa
 import { promisify } from 'node:util';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
-import { gzipSync } from 'node:zlib';
+import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib';
 import { basename, extname, join, normalize, resolve } from 'node:path';
 import { databaseConfigured, demoMembers, demoOrganisation, getPool, initializeDatabase, isDatabaseConnectionError, sanitizeDatabaseError, query, seedDemoOrganisation, DEFAULT_DEMO_MEMBER_PASSWORD_HASH } from './database.mjs';
 import {
@@ -11315,6 +11315,273 @@ async function getUserRewards(user, store) {
     });
   }
 
+  // 1l-c5. Direct Paystack / CBN NIP Bulk Payroll Disbursal Pipeline
+  if (url.pathname === '/api/admin/payroll/disbursals' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'finance_admin']);
+    if (!adminCtx) return;
+    const disbursals = Array.isArray(store.payrollDisbursals) ? store.payrollDisbursals : [];
+    return sendJson(response, 200, { ok: true, disbursals });
+  }
+
+  if (url.pathname === '/api/admin/payroll/disburse' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root']);
+    if (!adminCtx) return;
+    const body = await readJson(request);
+    const month = String(body.month || new Date().toISOString().slice(0, 7)).trim();
+    const totpCode = String(body.totpCode || '').trim();
+
+    // Enforce 2FA TOTP verification if the Owner Root has MFA enrolled
+    const userRec = await findAdminUserById(adminCtx.adminUser.id, store, databaseReady);
+    if (userRec?.mfa_enabled || userRec?.mfaEnabled) {
+      const mfaSecret = userRec.mfa_secret || userRec.mfaSecret;
+      if (!totpCode || !verifyTotpCode(mfaSecret, totpCode)) {
+        return sendJson(response, 403, { error: 'Valid 6-digit 2FA authenticator code is required to authorize payroll disbursal.' });
+      }
+    }
+
+    const orgsById = new Map((store.organisations || []).map(o => [o.id, o]));
+    const usersById = new Map((store.portalUsers || []).map(u => [u.id, u]));
+    const contractsByUser = new Map((store.contracts || []).map(c => [c.userId, c]));
+    const activeMembers = (store.memberships || []).filter(x => x.status === 'active');
+
+    const batchId = `SR-DISB-${month.replace('-', '')}-${Date.now().toString().slice(-5)}`;
+    const nowIso = new Date().toISOString();
+    const isPaystackLive = Boolean(process.env.PAYSTACK_SECRET_KEY) && body.dryRun !== true;
+    const receipts = [];
+    let totalNetNgn = 0;
+
+    for (let i = 0; i < activeMembers.length; i++) {
+      const m = activeMembers[i];
+      const pu = usersById.get(m.user_id) || {};
+      const ct = contractsByUser.get(m.user_id) || {};
+      const org = orgsById.get(m.organisation_id) || {};
+      const gross = Number(ct.monthly_rate ?? ct.monthlyRate ?? 150000);
+      const stat = calculateStatutoryDeductions(gross, gross * 0.5);
+      const paye = calculatePayeTax(gross);
+      const netPay = Math.max(0, Math.round(gross - (stat?.employee?.totalEmployeeDeductions || 0) - (paye?.monthlyTax || 0)));
+      const bName = ct.bank_name || ct.bankName || 'Guaranty Trust Bank (GTBank)';
+      const resolvedBank = resolveCbnBank(bName) || { code: '058', name: bName };
+      const nuban = String(ct.account_number || ct.nuban || '0123456789').padStart(10, '0').slice(0, 10);
+      const staffName = String(pu.full_name || m.name || 'Frontline Specialist');
+      const orgCode = org.company_code || org.code || 'SR-ORG';
+      const nipSessionId = `NIP-${month.replace('-', '')}-${resolvedBank.code}-${randomBytes(4).toString('hex').toUpperCase()}`;
+      totalNetNgn += netPay;
+      receipts.push({
+        staffName,
+        email: pu.email || '',
+        tenantCode: orgCode,
+        bankName: resolvedBank.name,
+        cbnCode: resolvedBank.code,
+        nuban,
+        netPayNgn: netPay,
+        nipSessionId,
+        status: isPaystackLive ? 'QUEUED_PAYSTACK_TRANSFER' : 'SETTLED_CBN_NIP_SANDBOX'
+      });
+    }
+
+    const batch = {
+      batchId,
+      month,
+      mode: isPaystackLive ? 'PAYSTACK_LIVE_BULK' : 'CBN_NIP_SANDBOX',
+      recipientCount: receipts.length,
+      totalNetNgn,
+      status: isPaystackLive ? 'DISPATCHED_TO_PAYSTACK' : 'SETTLED_SANDBOX',
+      executedBy: adminCtx.adminUser.email,
+      createdAt: nowIso,
+      receipts
+    };
+
+    if (!Array.isArray(store.payrollDisbursals)) store.payrollDisbursals = [];
+    store.payrollDisbursals.unshift(batch);
+    if (store.payrollDisbursals.length > 30) store.payrollDisbursals.length = 30;
+
+    await dispatchAdminWebhookEvent(store, 'payroll.disbursed', {
+      batchId,
+      month,
+      recipientCount: receipts.length,
+      totalNetNgn,
+      mode: batch.mode
+    });
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'PAYROLL_NIP_DISBURSED',
+      targetType: 'payroll_batch',
+      targetId: batchId,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { month, recipientCount: receipts.length, totalNetNgn, mode: batch.mode }
+    });
+    await saveStore(store);
+
+    return sendJson(response, 201, { ok: true, batch });
+  }
+
+  // 1l-c6. Automated PEPM Tenant Billing, Paystack Invoices & Subscription Enforcement
+  const ensureTenantBillingState = (store) => {
+    if (!store.tenantBilling || typeof store.tenantBilling !== 'object') {
+      store.tenantBilling = { pepmRateNgn: 2500, statuses: {}, invoices: [] };
+    }
+    if (!store.tenantBilling.statuses) store.tenantBilling.statuses = {};
+    if (!Array.isArray(store.tenantBilling.invoices)) store.tenantBilling.invoices = [];
+    return store.tenantBilling;
+  };
+
+  if (url.pathname === '/api/admin/billing' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'finance_admin']);
+    if (!adminCtx) return;
+    const tb = ensureTenantBillingState(store);
+    const pepmRateNgn = Number(tb.pepmRateNgn || 2500);
+    const orgs = store.organisations || [];
+    const activeMembers = (store.memberships || []).filter(m => m.status === 'active');
+
+    const tenants = orgs.map(o => {
+      const headcount = activeMembers.filter(m => m.organisation_id === o.id).length;
+      const monthlyFeeNgn = headcount * pepmRateNgn;
+      const billingStatus = tb.statuses[o.id] || 'ACTIVE';
+      const tenantInvoices = tb.invoices.filter(inv => inv.tenantId === o.id);
+      const latestInvoice = tenantInvoices[0] || null;
+      return {
+        tenantId: o.id,
+        companyName: o.legal_name || o.name || 'Enterprise Tenant',
+        companyCode: o.company_code || o.code || 'SR-ORG',
+        ownerEmail: o.owner_email || o.adminEmail || 'billing@shiftrelayos.com',
+        activeHeadcount: headcount,
+        pepmRateNgn,
+        monthlyFeeNgn,
+        billingStatus,
+        latestInvoice
+      };
+    });
+
+    const totalMrrNgn = tenants.reduce((s, t) => s + t.monthlyFeeNgn, 0);
+    const overdueCount = tenants.filter(t => t.billingStatus === 'OVERDUE_LOCKED' || t.billingStatus === 'GRACE_PERIOD').length;
+    return sendJson(response, 200, {
+      ok: true,
+      pepmRateNgn,
+      totalMrrNgn,
+      totalArrNgn: totalMrrNgn * 12,
+      overdueCount,
+      tenants,
+      invoices: tb.invoices.slice(0, 30)
+    });
+  }
+
+  if (url.pathname === '/api/admin/billing/invoice' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'finance_admin']);
+    if (!adminCtx) return;
+    const body = await readJson(request);
+    const tenantId = String(body.tenantId || '').trim();
+    const month = String(body.month || new Date().toISOString().slice(0, 7)).trim();
+    const org = (store.organisations || []).find(o => o.id === tenantId);
+    if (!org) return sendJson(response, 404, { error: 'Tenant not found.' });
+
+    const tb = ensureTenantBillingState(store);
+    const pepmRateNgn = Number(tb.pepmRateNgn || 2500);
+    const headcount = (store.memberships || []).filter(m => m.organisation_id === org.id && m.status === 'active').length;
+    const amountNgn = Math.max(pepmRateNgn, headcount * pepmRateNgn);
+    const invoiceId = `INV-SR-${month.replace('-', '')}-${Date.now().toString().slice(-4)}`;
+    const recipientEmail = org.owner_email || org.adminEmail || 'owner@shiftrelayos.com';
+    let checkoutUrl = `https://paystack.com/pay/shiftrelay-${invoiceId.toLowerCase()}`;
+
+    if (process.env.PAYSTACK_SECRET_KEY) {
+      try {
+        const initRes = await fetch('https://api.paystack.co/transaction/initialize', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: recipientEmail,
+            amount: amountNgn * 100,
+            reference: invoiceId,
+            metadata: { tenantId: org.id, month, headcount, pepmRateNgn }
+          }),
+          signal: AbortSignal.timeout(4500)
+        });
+        const initJson = await initRes.json().catch(() => ({}));
+        if (initRes.ok && initJson?.data?.authorization_url) {
+          checkoutUrl = initJson.data.authorization_url;
+        }
+      } catch (_) {}
+    }
+
+    const invoice = {
+      invoiceId,
+      tenantId: org.id,
+      companyName: org.legal_name || org.name,
+      companyCode: org.company_code || org.code || 'SR-ORG',
+      month,
+      headcount,
+      pepmRateNgn,
+      amountNgn,
+      status: 'UNPAID',
+      checkoutUrl,
+      issuedAt: new Date().toISOString(),
+      paidAt: null
+    };
+    tb.invoices.unshift(invoice);
+    await saveStore(store);
+
+    sendShiftRelayEmail({
+      to: recipientEmail,
+      subject: `[${invoiceId}] ShiftRelay OS PEPM Subscription Invoice (${month}) — ₦${amountNgn.toLocaleString()}`,
+      html: `<p>Hello ${org.legal_name || org.name} Team,</p><p>Your monthly ShiftRelay OS PEPM invoice <strong>${invoiceId}</strong> for <strong>${month}</strong> is ready.</p><p><strong>Active Headcount:</strong> ${headcount} workers &times; ₦${pepmRateNgn.toLocaleString()} PEPM = <strong>₦${amountNgn.toLocaleString()}</strong></p><p><a href="${checkoutUrl}">Pay Securely via Paystack</a></p>`,
+      source: 'PEPM Billing Engine'
+    }).catch(() => {});
+
+    return sendJson(response, 201, { ok: true, invoice });
+  }
+
+  if (url.pathname.startsWith('/api/admin/billing/tenants/') && request.method === 'PATCH') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root']);
+    if (!adminCtx) return;
+    const tenantId = decodeURIComponent(url.pathname.split('/').pop() || '');
+    const body = await readJson(request);
+    const tb = ensureTenantBillingState(store);
+
+    if (body.billingStatus) {
+      const allowed = new Set(['ACTIVE', 'GRACE_PERIOD', 'OVERDUE_LOCKED']);
+      const nextSt = String(body.billingStatus).toUpperCase();
+      if (!allowed.has(nextSt)) return sendJson(response, 400, { error: 'Invalid billingStatus.' });
+      tb.statuses[tenantId] = nextSt;
+    }
+    if (body.markInvoicePaidId) {
+      const inv = tb.invoices.find(i => i.invoiceId === body.markInvoicePaidId);
+      if (inv) {
+        inv.status = 'PAID';
+        inv.paidAt = new Date().toISOString();
+        tb.statuses[tenantId] = 'ACTIVE';
+      }
+    }
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'TENANT_BILLING_UPDATED',
+      targetType: 'tenant',
+      targetId: tenantId,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { billingStatus: tb.statuses[tenantId] || 'ACTIVE', markInvoicePaidId: body.markInvoicePaidId || null }
+    });
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, tenantId, billingStatus: tb.statuses[tenantId] || 'ACTIVE' });
+  }
+
   // 1l-d. Tenant Employee Roster Lookup (For Company Staffs Drawer)
   if (url.pathname.startsWith('/api/admin/tenants/') && url.pathname.endsWith('/employees') && request.method === 'GET') {
     const tenantId = url.pathname.split('/')[4];
@@ -13889,17 +14156,26 @@ async function getCachedStaticAsset(filePath, ext) {
   }
   const raw = await readFile(filePath);
   const etag = `W/"${size.toString(16)}-${mtimeMs.toString(16)}"`;
-  const gzipped = (COMPRESSIBLE_EXTS.has(ext) && raw.length >= 1024)
-    ? gzipSync(raw, { level: 6 })
+  const shouldCompress = COMPRESSIBLE_EXTS.has(ext) && raw.length >= 1024;
+  const gzipped = shouldCompress ? gzipSync(raw, { level: 6 }) : null;
+  const brotli = shouldCompress
+    ? brotliCompressSync(raw, {
+        params: {
+          [zlibConstants.BROTLI_PARAM_MODE]: zlibConstants.BROTLI_MODE_TEXT,
+          [zlibConstants.BROTLI_PARAM_QUALITY]: 5
+        }
+      })
     : null;
-  const entry = { mtimeMs, size, raw, gzipped, etag };
+  const entry = { mtimeMs, size, raw, gzipped, brotli, etag };
   if (STATIC_ASSET_CACHE.size > 250) STATIC_ASSET_CACHE.clear();
   STATIC_ASSET_CACHE.set(filePath, entry);
   return entry;
 }
 
 async function serveStatic(request, response, url) {
-  const acceptsGzip = /\bgzip\b/i.test(String(request.headers['accept-encoding'] || ''));
+  const acceptEnc = String(request.headers['accept-encoding'] || '');
+  const acceptsBr = /\bbr\b/i.test(acceptEnc);
+  const acceptsGzip = /\bgzip\b/i.test(acceptEnc);
   const vendorParts = VENDOR_BUNDLES[url.pathname];
   if (vendorParts) {
     try {
@@ -13911,14 +14187,15 @@ async function serveStatic(request, response, url) {
         response.end();
         return;
       }
-      const bodyBuf = (acceptsGzip && asset.gzipped) ? asset.gzipped : asset.raw;
+      const enc = (acceptsBr && asset.brotli) ? 'br' : ((acceptsGzip && asset.gzipped) ? 'gzip' : null);
+      const bodyBuf = enc === 'br' ? asset.brotli : (enc === 'gzip' ? asset.gzipped : asset.raw);
       response.writeHead(200, {
         'Content-Type': 'application/javascript; charset=utf-8',
         'Content-Length': bodyBuf.length,
         'Cache-Control': 'public, max-age=86400',
         'ETag': asset.etag,
         'Vary': 'Accept-Encoding',
-        ...(acceptsGzip && asset.gzipped ? { 'Content-Encoding': 'gzip' } : {}),
+        ...(enc ? { 'Content-Encoding': enc } : {}),
         ...SECURITY_HEADERS
       });
       response.end(bodyBuf);
@@ -13990,9 +14267,14 @@ async function serveStatic(request, response, url) {
     const asset = await getCachedStaticAsset(filePath, ext);
     const isCode = ['.html', '.js', '.css', '.json'].includes(ext);
     const isAdminHtml = normalizedLower === 'admin.html';
+    const isServiceWorker = normalizedLower === 'service-worker.js';
+    const isFont = ext === '.woff2' || ext === '.woff';
+    const isVersionedAsset = url.searchParams.has('v') && ['.js', '.css', '.svg'].includes(ext) && !isServiceWorker;
     const cacheHeader = isAdminHtml
       ? 'no-store, no-cache, must-revalidate, private'
-      : (isCode ? 'public, max-age=0, must-revalidate' : 'public, max-age=86400');
+      : (isFont || isVersionedAsset
+          ? 'public, max-age=31536000, immutable'
+          : (isCode ? 'public, max-age=0, must-revalidate' : 'public, max-age=86400'));
 
     if (!isAdminHtml && request.headers['if-none-match'] === asset.etag) {
       response.writeHead(304, {
@@ -14004,8 +14286,8 @@ async function serveStatic(request, response, url) {
       return;
     }
 
-    const useGzip = acceptsGzip && Boolean(asset.gzipped);
-    const bodyBuf = useGzip ? asset.gzipped : asset.raw;
+    const enc = (acceptsBr && asset.brotli) ? 'br' : ((acceptsGzip && asset.gzipped) ? 'gzip' : null);
+    const bodyBuf = enc === 'br' ? asset.brotli : (enc === 'gzip' ? asset.gzipped : asset.raw);
     response.writeHead(200, {
       'Content-Type': isBinary ? contentType : `${contentType}; charset=utf-8`,
       'Accept-Ranges': 'bytes',
@@ -14013,7 +14295,7 @@ async function serveStatic(request, response, url) {
       'ETag': asset.etag,
       'Cache-Control': cacheHeader,
       ...(COMPRESSIBLE_EXTS.has(ext) ? { 'Vary': 'Accept-Encoding' } : {}),
-      ...(useGzip ? { 'Content-Encoding': 'gzip' } : {}),
+      ...(enc ? { 'Content-Encoding': enc } : {}),
       ...SECURITY_HEADERS,
     });
     response.end(bodyBuf);
@@ -14152,7 +14434,7 @@ const server = createServer((request, response) => {
       return sendJson(response, 200, {
         status: 'READY',
         service: 'ShiftRelay OS Enterprise HCM Engine',
-        version: '2026.11.v155',
+        version: '2026.11.v184',
         databaseMode: databaseReady ? 'postgres-primary' : 'local-resilient-store',
         uptimeSeconds: Math.round(process.uptime()),
         compliance: ['NDPA-2023', 'NITDA-BIOMETRIC', 'PENCOM-PRA-2014', 'FINANCE-ACT-CRA', LEGAL_ENTITY.securityPostureClaim],
