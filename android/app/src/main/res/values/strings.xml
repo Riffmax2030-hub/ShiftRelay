@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">ShiftRelay OS</string>
-    <string name="title_activity_main">ShiftRelay OS</string>
+    <string name="app_name">ShiftRelay</string>
+    <string name="title_activity_main">ShiftRelay</string>
     <string name="package_name">com.shiftrelayos.app</string>
     <string name="custom_url_scheme">com.shiftrelayos.app</string>
 </resources>

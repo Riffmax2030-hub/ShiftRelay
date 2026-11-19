@@ -8,11 +8,11 @@
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 2000,
-      "backgroundColor": "#0b1220"
+      "backgroundColor": "#fafbfc"
     },
     "StatusBar": {
       "style": "DARK",
-      "backgroundColor": "#0b1220"
+      "backgroundColor": "#059669"
     }
   }
 }
