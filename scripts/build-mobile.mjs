@@ -13,20 +13,17 @@ if (existsSync(WWW)) {
 mkdirSync(WWW, { recursive: true });
 
 // 2. Define frontend file patterns to copy
-const allowedExtensions = ['.html', '.css', '.js', '.svg', '.webmanifest', '.json', '.jpg', '.png', '.gif', '.ico'];
+const allowedExtensions = ['.html', '.css', '.js', '.svg', '.webmanifest', '.json', '.jpg', '.png', '.ico', '.woff2'];
 const excludedFiles = new Set([
   'server.mjs',
   'database.mjs',
-  'seed-demo.mjs',
   'package.json',
   'package-lock.json',
   'capacitor.config.json',
   'schema.sql',
-  'mcp.json',
   'railway.json',
   'render.yaml',
-  'skills-lock.json',
-  'design-tokens-starter.json'
+  'skills-lock.json'
 ]);
 const excludedDirs = new Set([
   'node_modules',

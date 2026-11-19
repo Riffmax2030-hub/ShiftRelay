@@ -1,5 +1,0 @@
-/* Clean schedule polish - clean non-intrusive layout helpers */
-.main-content:has(.activity-page) > .app-header,
-.main-content:has(.schedule-experience) > .app-header {
-  display: none;
-}
