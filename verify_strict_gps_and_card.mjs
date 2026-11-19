@@ -201,7 +201,7 @@ async function apiJson(path, cookie, { method = 'GET', body } = {}) {
   return { status: res.status, ok: res.ok, data };
 }
 
-async function waitForPg(pool, maxRetries = 30) {
+async function waitForPg(pool, maxRetries = 100) {
   for (let i = 0; i < maxRetries; i++) {
     try {
       const res = await pool.query('SELECT 1 as alive');
@@ -1391,7 +1391,9 @@ async function main() {
     if (child) await stopServer(child);
     if (pgPool) await pgPool.end().catch(() => {});
     if (pgProc) {
-      try { execFileSync(join(PG_BIN, 'pg_ctl.exe'), ['-D', PG_DATA, 'stop', '-m', 'immediate'], { stdio: 'ignore' }); } catch (_) {}
+      try { execFileSync(join(PG_BIN, 'pg_ctl.exe'), ['-D', PG_DATA, 'stop', '-m', 'fast'], { stdio: 'ignore' }); } catch (_) {
+        try { execFileSync(join(PG_BIN, 'pg_ctl.exe'), ['-D', PG_DATA, 'stop', '-m', 'immediate'], { stdio: 'ignore' }); } catch (_) {}
+      }
       try { pgProc.kill('SIGTERM'); } catch (_) {}
     }
     if (originalStoreRaw !== null) {

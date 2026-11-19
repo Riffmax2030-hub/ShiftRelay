@@ -9,6 +9,8 @@
   let lastUnreadCount = 0;
 
   async function refreshBadges() {
+    if (document.getElementById('sr-app-shell')) return;
+    if (!window._srState || !window._srState.user) return;
     try {
       const { notifications = [] } = await api('/api/notifications').catch(() => ({ notifications: [] }));
       const unread = notifications.filter(n => !n.read).length;

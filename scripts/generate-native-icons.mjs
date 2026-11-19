@@ -82,8 +82,69 @@ async function run() {
     console.log(`Generated Android ${s.dir} icons (${s.size}x${s.size}, fg ${s.fgSize}x${s.fgSize})`);
   }
 
+  // 3. Branded Dark-Green Native Splash Screens (Android 11 densities + iOS 2732x2732)
+  async function renderSplashPng(width, height) {
+    await page.setViewportSize({ width, height });
+    const minSide = Math.min(width, height);
+    const iconPx = Math.round(Math.max(76, Math.min(minSide * 0.24, 340)));
+    const wordmarkW = Math.round(iconPx * 1.9);
+    const wordmarkH = Math.round(wordmarkW * (24 / 142));
+    const tagPx = Math.max(9, Math.round(iconPx * 0.105));
+    const gapPx = Math.max(12, Math.round(iconPx * 0.18));
+    const html = `<!DOCTYPE html><html><head><style>
+      html, body {
+        margin: 0; padding: 0; width: ${width}px; height: ${height}px; overflow: hidden;
+        background: radial-gradient(circle at 50% 42%, #0A3828 0%, #041B14 58%, #02100C 100%);
+        display: flex; align-items: center; justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      .stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: ${gapPx}px; }
+      .icon-box { width: ${iconPx}px; height: ${iconPx}px; border-radius: ${Math.round(iconPx * 0.22)}px; overflow: hidden; box-shadow: 0 ${Math.round(iconPx * 0.14)}px ${Math.round(iconPx * 0.34)}px rgba(0, 0, 0, 0.45); }
+      .tag { color: rgba(209, 250, 229, 0.72); font-size: ${tagPx}px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; }
+    </style></head><body>
+      <div class="stage">
+        <div class="icon-box">${svgContent}</div>
+        <svg width="${wordmarkW}" height="${wordmarkH}" viewBox="0 0 160 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="80" y="19" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="19" font-weight="800" letter-spacing="0.08em">
+            <tspan fill="#1AD079">SHIFT</tspan><tspan fill="#ECFDF5">RELAY</tspan>
+          </text>
+        </svg>
+        <div class="tag">ENTERPRISE WORKFORCE PLATFORM</div>
+      </div>
+    </body></html>`;
+    await page.setContent(html);
+    return await page.screenshot({ type: 'png' });
+  }
+
+  const androidSplashes = [
+    { dir: 'drawable', w: 480, h: 320 },
+    { dir: 'drawable-port-mdpi', w: 320, h: 480 },
+    { dir: 'drawable-port-hdpi', w: 480, h: 800 },
+    { dir: 'drawable-port-xhdpi', w: 720, h: 1280 },
+    { dir: 'drawable-port-xxhdpi', w: 960, h: 1600 },
+    { dir: 'drawable-port-xxxhdpi', w: 1280, h: 1920 },
+    { dir: 'drawable-land-mdpi', w: 480, h: 320 },
+    { dir: 'drawable-land-hdpi', w: 800, h: 480 },
+    { dir: 'drawable-land-xhdpi', w: 1280, h: 720 },
+    { dir: 'drawable-land-xxhdpi', w: 1600, h: 960 },
+    { dir: 'drawable-land-xxxhdpi', w: 1920, h: 1280 }
+  ];
+  for (const sp of androidSplashes) {
+    const outPath = join(ROOT, 'android/app/src/main/res', sp.dir, 'splash.png');
+    mkdirSync(join(ROOT, 'android/app/src/main/res', sp.dir), { recursive: true });
+    writeFileSync(outPath, await renderSplashPng(sp.w, sp.h));
+    console.log(`Generated Android ${sp.dir}/splash.png (${sp.w}x${sp.h})`);
+  }
+
+  const iosSplashBuf = await renderSplashPng(2732, 2732);
+  for (const fname of ['splash-2732x2732.png', 'splash-2732x2732-1.png', 'splash-2732x2732-2.png']) {
+    const outPath = join(ROOT, 'ios/App/App/Assets.xcassets/Splash.imageset', fname);
+    writeFileSync(outPath, iosSplashBuf);
+    console.log(`Generated iOS Splash.imageset/${fname} (2732x2732)`);
+  }
+
   await browser.close();
-  console.log('All native icons generated successfully!');
+  console.log('All native icons and splash screens generated successfully!');
 }
 
 run().catch(err => {

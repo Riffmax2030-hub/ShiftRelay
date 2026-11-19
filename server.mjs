@@ -824,8 +824,14 @@ function sendDatabaseError(response, error) {
   return sendJson(response, status, { error: message });
 }
 function broadcastEvent(event, payload, options = {}) {
+  const isAdminPlatformEvent = event === 'support-ticket' || event === 'support-ticket-updated';
   // Derive organisationId strictly from options or payload
-  const organisationId = options.organisationId || payload?.organisationId;
+  const organisationId =
+    options.organisationId ||
+    payload?.organisationId ||
+    payload?.ticket?.organisation_id ||
+    payload?.ticket?.organisationId ||
+    (isAdminPlatformEvent ? '__ADMIN_OS__' : null);
   if (!organisationId || typeof organisationId !== 'string') {
     console.warn(`[SECURITY WARN] Blocked unscoped SSE broadcast for event '${event}'. Every private event must have an explicit organisationId.`);
     return false;
@@ -840,20 +846,24 @@ function broadcastEvent(event, payload, options = {}) {
 
   let deliveredCount = 0;
   for (const client of eventClients) {
-    // 1. Company scope check: must strictly match client's active organisation
-    if (client.organisationId !== organisationId) continue;
+    if (client.isAdmin) {
+      if (!isAdminPlatformEvent) continue;
+    } else {
+      // 1. Company scope check: must strictly match client's active organisation
+      if (client.organisationId !== organisationId) continue;
 
-    // 2. Individual recipient check: if targeted to specific membership/user, skip others
-    if (recipientMembershipId && client.membershipId !== recipientMembershipId && client.membershipId !== options.senderMembershipId) {
-      continue;
-    }
-    if (recipientUserId && client.userId !== recipientUserId && client.userId !== options.senderUserId) {
-      continue;
-    }
+      // 2. Individual recipient check: if targeted to specific membership/user, skip others
+      if (recipientMembershipId && client.membershipId !== recipientMembershipId && client.membershipId !== options.senderMembershipId) {
+        continue;
+      }
+      if (recipientUserId && client.userId !== recipientUserId && client.userId !== options.senderUserId) {
+        continue;
+      }
 
-    // 3. Role restriction check (if any)
-    if (allowedRoles && !allowedRoles.includes(client.role)) {
-      continue;
+      // 3. Role restriction check (if any)
+      if (allowedRoles && !allowedRoles.includes(client.role)) {
+        continue;
+      }
     }
 
     try {
@@ -3254,6 +3264,7 @@ async function handleApi(request, response, url) {
   }
   if (url.pathname === '/api/events' && request.method === 'GET') {
     let eventUser = user;
+    let isAdminClient = false;
     if (!eventUser && !IS_PRODUCTION && ALLOW_DEV_DEMO_AUTH) {
       const demoParam = url.searchParams.get('user');
       if (demoParam) {
@@ -3261,10 +3272,24 @@ async function handleApi(request, response, url) {
         if (demo) eventUser = { ...demo, organisation_id: demoOrganisation.id, status: 'active' };
       }
     }
+    if (!eventUser) {
+      const adminStore = await getStore();
+      const adminAuth = await authenticateAdminRequest(request, adminStore, databaseReady);
+      if (adminAuth?.ok && adminAuth.adminUser) {
+        isAdminClient = true;
+        eventUser = {
+          id: adminAuth.adminUser.id,
+          user_id: adminAuth.adminUser.id,
+          organisation_id: '__ADMIN_OS__',
+          role: adminAuth.adminUser.role,
+          status: 'active'
+        };
+      }
+    }
     if (!eventUser || eventUser.status !== 'active') {
       return sendJson(response, 401, { error: 'Authentication required. Please sign in.' });
     }
-    const token = sessionId(request);
+    const token = isAdminClient ? null : sessionId(request);
     response.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-store, no-cache, no-transform, private',
@@ -3280,7 +3305,8 @@ async function handleApi(request, response, url) {
       userId: eventUser.user_id || eventUser.id,
       membershipId: eventUser.id,
       organisationId: eventUser.organisation_id,
-      role: eventUser.role
+      role: eventUser.role,
+      isAdmin: isAdminClient
     };
     eventClients.add(client);
 
