@@ -319,6 +319,39 @@ async function runHttpIntegrationTests() {
     assert.equal(accruedJson.ledger.ewaPolicy.interestRatePct, 0);
     assert.equal(accruedJson.ledger.ewaPolicy.workerFeeNgn, 0);
     assert.equal(accruedJson.ledger.ewaPolicy.employerSubscriptionNgn, 0);
+    assert.equal(accruedJson.ewaFundingMode, 'prefunded_custody');
+
+    // Dual Funding Mode verification:
+    // 1) In prefunded_custody with ₦0 payroll_net float, EWA disbursal must block with 409 EMPLOYER_FLOAT_UNDERFUNDED (if worker has accrued pay)
+    if (accruedJson.ledger.net_available_disbursal >= 1000) {
+      const blockedEwa = await fetch(`${baseUrl}/api/wallet/ewa-disburse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: workerCookie },
+        body: JSON.stringify({ amountNgn: 1000 })
+      });
+      assert.equal(blockedEwa.status, 409);
+      const blockedEwaJson = await blockedEwa.json();
+      assert.equal(blockedEwaJson.code, 'EMPLOYER_FLOAT_UNDERFUNDED');
+
+      // 2) Switch employer to direct_debit_mandate -> EWA disbursal succeeds at 0% fee & 0% interest!
+      const ddModeRes = await fetch(`${baseUrl}/api/admin/treasury/ewa-funding-mode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: admCookie },
+        body: JSON.stringify({ tenantId: rifTenantId, ewaFundingMode: 'direct_debit_mandate', directDebitAuthorized: true, directDebitBankName: 'GTBank Corporate Mono Mandate' })
+      });
+      assert.equal(ddModeRes.status, 200);
+
+      const okEwa = await fetch(`${baseUrl}/api/wallet/ewa-disburse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: workerCookie },
+        body: JSON.stringify({ amountNgn: 1000, rail: 'Mono' })
+      });
+      assert.equal(okEwa.status, 200);
+      const okEwaJson = await okEwa.json();
+      assert.equal(okEwaJson.disbursal.fundingMode, 'direct_debit_mandate');
+      assert.equal(okEwaJson.disbursal.feeNgn, 0);
+      assert.equal(okEwaJson.disbursal.interestRatePct, 0);
+    }
 
     console.log('  PASS: All live HTTP lifecycle, pilot credit, treasury float & zero-fee EWA checks passed!');
   } finally {

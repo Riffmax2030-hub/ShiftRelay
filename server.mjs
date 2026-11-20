@@ -8548,8 +8548,21 @@ async function getUserRewards(user, store) {
     const org = (store.organisations || []).find(o => o.id === user.organisation_id) || { id: user.organisation_id };
     const floatAcc = getOrInitTenantFloatAccount(store, org);
     const employerFloatAvailableNgn = Math.round(Number(floatAcc.balances?.payroll_net || 0));
+    const ewaFundingMode = floatAcc.ewaFundingMode || org.ewa_funding_mode || 'prefunded_custody';
+    const directDebitAuthorized = Boolean(floatAcc.directDebitAuthorized ?? org.direct_debit_authorized);
+    const directDebitBankName = floatAcc.directDebitBankName || 'Employer Corporate Bank (Mono / Paystack)';
+    const canWithdrawNow = ewaFundingMode === 'direct_debit_mandate' ? directDebitAuthorized : employerFloatAvailableNgn > 0;
     if (!databaseReady) await saveStore(store);
-    return sendJson(response, 200, { ok: true, ledger, employerFloatAvailableNgn, custodyPartner: floatAcc.custodyPartner });
+    return sendJson(response, 200, {
+      ok: true,
+      ledger,
+      employerFloatAvailableNgn,
+      custodyPartner: floatAcc.custodyPartner,
+      ewaFundingMode,
+      directDebitAuthorized,
+      directDebitBankName,
+      canWithdrawNow
+    });
   }
 
   if (url.pathname === '/api/wallet/ewa-disburse' && request.method === 'POST') {
@@ -8577,8 +8590,18 @@ async function getUserRewards(user, store) {
     const org = (store.organisations || []).find(o => o.id === user.organisation_id) || { id: user.organisation_id };
     const sf = ensureSettlementFloatState(store);
     const floatAcc = getOrInitTenantFloatAccount(store, org);
+    const ewaFundingMode = floatAcc.ewaFundingMode || org.ewa_funding_mode || 'prefunded_custody';
+    const directDebitAuthorized = Boolean(floatAcc.directDebitAuthorized ?? org.direct_debit_authorized);
     const floatBal = Number(floatAcc.balances?.payroll_net || 0);
-    if (floatBal < amountNgn) {
+
+    if (ewaFundingMode === 'direct_debit_mandate') {
+      if (!directDebitAuthorized) {
+        return sendJson(response, 409, {
+          error: 'Employer direct debit bank mandate is not yet authorized for EWA payouts.',
+          code: 'DIRECT_DEBIT_MANDATE_REQUIRED'
+        });
+      }
+    } else if (floatBal < amountNgn) {
       return sendJson(response, 409, {
         error: `Employer prefunded payroll custody float is insufficient (₦${floatBal.toLocaleString()} in custody vs ₦${amountNgn.toLocaleString()} requested).`,
         code: 'EMPLOYER_FLOAT_UNDERFUNDED',
@@ -8586,9 +8609,11 @@ async function getUserRewards(user, store) {
       });
     }
 
-    floatAcc.balances.payroll_net = Math.round(floatBal - amountNgn);
+    if (ewaFundingMode !== 'direct_debit_mandate') {
+      floatAcc.balances.payroll_net = Math.round(floatBal - amountNgn);
+    }
     floatAcc.updatedAt = new Date().toISOString();
-    const rail = String(body.rail || 'Paystack NIP').trim();
+    const rail = String(body.rail || (ewaFundingMode === 'direct_debit_mandate' ? 'Mono' : 'Paystack NIP')).trim();
     const disbursalId = 'EWA-' + Date.now().toString(36).toUpperCase();
     const disbursal = {
       id: disbursalId,
@@ -8601,7 +8626,11 @@ async function getUserRewards(user, store) {
       interestRatePct: 0,
       employerSubscriptionNgn: 0,
       cbnZeroLendingCompliant: true,
-      custodyPartner: floatAcc.custodyPartner,
+      fundingMode: ewaFundingMode,
+      mandateRef: ewaFundingMode === 'direct_debit_mandate' ? (floatAcc.directDebitMandateRef || 'MONO-DD-AUTH') : null,
+      custodyPartner: ewaFundingMode === 'direct_debit_mandate'
+        ? (floatAcc.directDebitBankName || 'Employer Direct Debit (Mono / Paystack)')
+        : floatAcc.custodyPartner,
       rail: rail === 'Mono' ? 'Mono Open Banking NIP' : 'Paystack NIP',
       status: 'DISBURSED_ZERO_FEE',
       createdAt: floatAcc.updatedAt
@@ -8612,11 +8641,11 @@ async function getUserRewards(user, store) {
       id: 'FLT-' + disbursalId,
       tenantId: org.id,
       companyCode: floatAcc.companyCode,
-      entryType: 'EWA_ZERO_FEE_DISBURSAL',
+      entryType: ewaFundingMode === 'direct_debit_mandate' ? 'EWA_DIRECT_DEBIT_MANDATE' : 'EWA_ZERO_FEE_DISBURSAL',
       bucket: 'payroll_net',
       amountNgn,
-      custodyPartner: floatAcc.custodyPartner,
-      reference: disbursalId,
+      custodyPartner: disbursal.custodyPartner,
+      reference: disbursal.mandateRef || disbursalId,
       actorEmail: user.email || 'worker@shiftrelayos.com',
       reconciliationStatus: 'CLEARED_TO_WORKER_NUBAN',
       createdAt: floatAcc.updatedAt
@@ -12129,7 +12158,14 @@ async function getUserRewards(user, store) {
         nhf: Math.round(emps.reduce((s, e) => s + Number(e.nhf || 0), 0)),
         nsitf: Math.round(emps.reduce((s, e) => s + Number(e.nsitf || 0), 0))
       };
-      return computeTenantFloatReconciliation({ floatAccount: acc, accruedObligations });
+      const rec = computeTenantFloatReconciliation({ floatAccount: acc, accruedObligations });
+      return {
+        ...rec,
+        ewaFundingMode: acc.ewaFundingMode || org.ewa_funding_mode || 'prefunded_custody',
+        directDebitAuthorized: Boolean(acc.directDebitAuthorized ?? org.direct_debit_authorized),
+        directDebitBankName: acc.directDebitBankName || null,
+        directDebitMandateRef: acc.directDebitMandateRef || null
+      };
     });
 
     const totalPrefundedNgn = accounts.reduce((s, a) => s + a.totalPrefundedNgn, 0);
@@ -12143,6 +12179,51 @@ async function getUserRewards(user, store) {
       accounts,
       ledger: sf.ledger.slice(0, 60)
     });
+  }
+
+  if (url.pathname === '/api/admin/treasury/ewa-funding-mode' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'finance_admin']);
+    if (!adminCtx) return;
+    const body = await readJson(request);
+    const tenantId = String(body.tenantId || '').trim();
+    const mode = String(body.ewaFundingMode || 'prefunded_custody').trim().toLowerCase();
+    if (!['prefunded_custody', 'direct_debit_mandate'].includes(mode)) {
+      return sendJson(response, 400, { error: 'Invalid ewaFundingMode. Use prefunded_custody or direct_debit_mandate.' });
+    }
+    const org = (store.organisations || []).find(o => o.id === tenantId);
+    if (!org) return sendJson(response, 404, { error: 'Tenant not found.' });
+
+    const acc = getOrInitTenantFloatAccount(store, org);
+    acc.ewaFundingMode = mode;
+    org.ewa_funding_mode = mode;
+    if (mode === 'direct_debit_mandate') {
+      acc.directDebitAuthorized = body.directDebitAuthorized !== false;
+      org.direct_debit_authorized = acc.directDebitAuthorized;
+      acc.directDebitBankName = String(body.directDebitBankName || acc.directDebitBankName || 'Access Bank Corporate (Mono Mandate)').trim();
+      acc.directDebitMandateRef = String(body.directDebitMandateRef || acc.directDebitMandateRef || ('DD-' + Date.now().toString(36).toUpperCase())).trim();
+    } else if (body.directDebitAuthorized !== undefined) {
+      acc.directDebitAuthorized = Boolean(body.directDebitAuthorized);
+      org.direct_debit_authorized = acc.directDebitAuthorized;
+    }
+    acc.updatedAt = new Date().toISOString();
+
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'EWA_FUNDING_MODE_UPDATED',
+      targetType: 'tenant',
+      targetId: org.id,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { ewaFundingMode: mode, directDebitAuthorized: Boolean(acc.directDebitAuthorized), mandateRef: acc.directDebitMandateRef || null }
+    });
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, account: acc });
   }
 
   if (url.pathname === '/api/admin/treasury/float/deposit' && request.method === 'POST') {

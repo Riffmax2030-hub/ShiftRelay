@@ -5693,9 +5693,15 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       if (tbody) {
         tbody.innerHTML = accounts.length ? accounts.map(a => {
           const badgeCls = a.reconciliationStatus === 'UNDERFUNDED' ? 'rose' : (a.reconciliationStatus === 'SURPLUS' ? 'cyan' : 'emerald');
+          const isDD = a.ewaFundingMode === 'direct_debit_mandate';
+          const nextMode = isDD ? 'prefunded_custody' : 'direct_debit_mandate';
           return `
             <tr>
-              <td><strong>${escapeHtml(a.companyName)}</strong><div style="font-size:10.5px;color:var(--text-slate);">${escapeHtml(a.custodyPartner)}</div></td>
+              <td>
+                <strong>${escapeHtml(a.companyName)}</strong>
+                <div style="font-size:10.5px;color:var(--text-slate);">${escapeHtml(a.custodyPartner)}</div>
+                <div style="margin-top:4px;"><span class="chip ${isDD ? 'cyan' : 'emerald'}" style="font-size:9.5px;">${isDD ? 'EWA: Direct Debit Mandate' : 'EWA: Prefunded Custody'}</span></div>
+              </td>
               <td><strong>${formatNgn(a.prefunded.payroll_net)}</strong><div style="font-size:10px;color:var(--text-slate);">Due: ${formatNgn(a.obligations.payroll_net)}</div></td>
               <td>${formatNgn(a.prefunded.paye)}<div style="font-size:10px;color:var(--text-slate);">Due: ${formatNgn(a.obligations.paye)}</div></td>
               <td>${formatNgn(a.prefunded.pencom)}<div style="font-size:10px;color:var(--text-slate);">Due: ${formatNgn(a.obligations.pencom)}</div></td>
@@ -5705,6 +5711,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                 <div style="display:flex;gap:5px;flex-wrap:wrap;">
                   <button type="button" class="btn-emerald" style="padding:4px 8px;font-size:10.5px;" onclick="window.promptTreasuryFloatAction('${escapeHtml(a.tenantId)}','deposit')">+ Prefund</button>
                   <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;" onclick="window.promptTreasuryFloatAction('${escapeHtml(a.tenantId)}','clear')">Clear</button>
+                  <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;" onclick="window.toggleTenantEwaFundingMode('${escapeHtml(a.tenantId)}','${nextMode}')">${isDD ? 'Use Prefunded' : 'Authorize Debit'}</button>
                 </div>
               </td>
             </tr>
@@ -5754,6 +5761,22 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         showToast('Onboarding marked complete — recurring Base + PEPM billing is now active.');
       } catch (err) {
         showToast('Onboarding error: ' + err.message);
+      }
+    };
+
+    window.toggleTenantEwaFundingMode = async function (tenantId, ewaFundingMode) {
+      try {
+        const res = await admFetch('/api/admin/treasury/ewa-funding-mode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenantId, ewaFundingMode, directDebitAuthorized: ewaFundingMode === 'direct_debit_mandate' })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not update EWA funding mode');
+        await window.loadAdminBillingAndDisbursals();
+        showToast(`EWA funding switched to ${ewaFundingMode === 'direct_debit_mandate' ? 'Employer-Authorized Direct Debit' : 'Prefunded Custody Float'}.`);
+      } catch (err) {
+        showToast('EWA funding update error: ' + err.message);
       }
     };
 

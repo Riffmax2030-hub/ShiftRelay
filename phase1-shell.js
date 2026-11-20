@@ -14356,6 +14356,9 @@
     let walletAccrued = null;
     let walletFloatAvail = 0;
     let walletCustodyPartner = 'Partner Bank Custody';
+    let walletFundingMode = 'prefunded_custody';
+    let walletDirectDebitAuth = false;
+    let walletCanWithdrawNow = false;
     let fetchFailed = false;
 
     try {
@@ -14380,6 +14383,9 @@
         walletAccrued = jsonW.ledger || null;
         walletFloatAvail = Number(jsonW.employerFloatAvailableNgn || 0);
         if (jsonW.custodyPartner) walletCustodyPartner = jsonW.custodyPartner;
+        walletFundingMode = jsonW.ewaFundingMode || 'prefunded_custody';
+        walletDirectDebitAuth = Boolean(jsonW.directDebitAuthorized);
+        walletCanWithdrawNow = Boolean(jsonW.canWithdrawNow ?? (walletFundingMode === 'direct_debit_mandate' ? walletDirectDebitAuth : walletFloatAvail > 0));
       }
     } catch (err) {
       fetchFailed = true;
@@ -14704,7 +14710,7 @@
               <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
                 <div>
                   <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;color:#059669;text-transform:uppercase;">Live Accrued Pay &amp; Zero-Fee EWA</div>
-                  <div style="font-size:12px;color:var(--p-text-3);">0% Interest &bull; ₦0 Worker Fee &bull; Funded from Employer Custody (${escapeHtml(walletCustodyPartner)})</div>
+                  <div style="font-size:12px;color:var(--p-text-3);">0% Interest &bull; ₦0 Worker Fee &bull; ${walletFundingMode === 'direct_debit_mandate' ? 'Employer-Authorized Direct Debit (Mono / Paystack)' : `Funded from Employer Custody (${escapeHtml(walletCustodyPartner)})`}</div>
                 </div>
                 <span class="sr-v2-num" style="font-size:17px;font-weight:800;color:#059669;">₦${Number(walletAccrued.net_available_disbursal || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
               </div>
@@ -14715,8 +14721,8 @@
               </div>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <input id="sr-ewa-amount-input" type="number" min="500" step="500" max="${Math.floor(Number(walletAccrued.net_available_disbursal || 0))}" placeholder="Amount (₦)" style="flex:1;min-width:130px;padding:8px 10px;border-radius:8px;border:1px solid var(--sr-border-medium);background:var(--sr-bg-card);color:var(--sr-text-main);font-size:13px;" />
-                <button type="button" class="sr-btn sr-btn-primary" id="sr-ewa-withdraw-btn" style="padding:8px 14px;font-size:12.5px;" ${Number(walletAccrued.net_available_disbursal || 0) <= 0 || walletFloatAvail <= 0 ? 'disabled' : ''}>
-                  ${walletFloatAvail > 0 ? 'Withdraw 0% Fee (Paystack NIP)' : 'Awaiting Employer Custody Prefund'}
+                <button type="button" class="sr-btn sr-btn-primary" id="sr-ewa-withdraw-btn" style="padding:8px 14px;font-size:12.5px;" ${Number(walletAccrued.net_available_disbursal || 0) <= 0 || !walletCanWithdrawNow ? 'disabled' : ''}>
+                  ${walletCanWithdrawNow ? (walletFundingMode === 'direct_debit_mandate' ? 'Withdraw 0% Fee (Direct Debit)' : 'Withdraw 0% Fee (Paystack NIP)') : (walletFundingMode === 'direct_debit_mandate' ? 'Awaiting Employer Bank Mandate' : 'Awaiting Employer Custody Prefund')}
                 </button>
               </div>
             </div>
