@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShiftRelay Executive Sales One-Pager &amp; Pitch Brief</title>
+  <style>
+    :root {
+      --em: #059669;
+      --em-bright: #1AD079;
+      --dark: #07291E;
+      --ink: #0f172a;
+      --muted: #475569;
+      --border: #e2e8f0;
+      --bg: #f1f5f9;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      padding: 24px 16px;
+      line-height: 1.55;
+    }
+    .toolbar {
+      max-width: 900px;
+      margin: 0 auto 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .btn-print {
+      background: var(--em);
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .deck {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    }
+    .hero {
+      background: linear-gradient(135deg, #07291E 0%, #02100C 100%);
+      color: #fff;
+      padding: 36px 40px;
+      display: grid;
+      grid-template-columns: 1.35fr 0.65fr;
+      gap: 24px;
+      align-items: center;
+    }
+    .brand-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .eyebrow {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(26, 208, 121, 0.16);
+      border: 1px solid rgba(26, 208, 121, 0.4);
+      color: #1AD079;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .hero h1 { font-size: 27px; line-height: 1.18; margin-bottom: 10px; }
+    .hero p { font-size: 13.5px; color: #cbd5e1; }
+    .hero img.photo {
+      width: 100%;
+      height: 195px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid rgba(26, 208, 121, 0.35);
+    }
+    .body { padding: 30px 40px; }
+    .pillars {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .pillar {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      background: #f8fafc;
+    }
+    .pillar h3 { font-size: 14.5px; color: var(--ink); margin-bottom: 5px; }
+    .pillar p { font-size: 12.5px; color: var(--muted); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin: 12px 0 18px;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink);
+    }
+    .cta-strip {
+      background: rgba(5, 150, 105, 0.08);
+      border: 1px solid rgba(5, 150, 105, 0.35);
+      border-radius: 12px;
+      padding: 18px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .cta-strip h3 { font-size: 15.5px; color: var(--ink); margin-bottom: 4px; }
+    .cta-strip p { font-size: 12.5px; color: var(--muted); }
+    .cta-pill {
+      background: var(--em);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .footer {
+      padding: 16px 40px;
+      background: #f8fafc;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .toolbar { display: none; }
+      .deck { box-shadow: none; border: none; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <span>Executive Sales One-Pager — Save as PDF to attach to CEO/CFO/HR outreach emails.</span>
+    <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+
+  <article class="deck">
+    <header class="hero">
+      <div>
+        <div class="brand-row">
+          <img src="icon.svg" width="38" height="38" alt="ShiftRelay" style="border-radius:9px;" />
+          <svg viewBox="0 0 330 46" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ShiftRelay" style="height:20px;width:auto;display:block;color:#ECFDF5;">
+            <path d="M 27 8 C 24 3, 18 1, 11 1 C 3 1, -2 5, -2 12 C -2 19, 4 21, 13 23 C 19 24.5, 21 26, 21 29.5 C 21 33, 17 35, 11 35 C 5 35, 1 32, -2 28 L -8 34 C -4 40, 3 43, 11 43 C 22 43, 30 38, 30 29 C 30 21, 24 18, 14 16 C 8 14.5, 6 13, 6 10.5 C 6 8, 9 6.5, 13 6.5 C 17 6.5, 20 8, 22 11 Z" transform="translate(8,1)" fill="#1AD079"/>
+            <path d="M 38 2 H 47 V 18 H 64 V 2 H 73 V 42 H 64 V 26 H 47 V 42 H 38 Z" transform="translate(8,1)" fill="#1AD079"/>
+            <rect x="90" y="3" width="9" height="40" fill="#1AD079"/>
+            <path d="M 100 2 H 126 V 10 H 109 V 19 H 123 V 27 H 109 V 42 H 100 Z" transform="translate(8,1)" fill="#1AD079"/>
+            <path d="M 130 2 H 160 V 10 H 149.5 V 42 H 140.5 V 10 H 130 Z" transform="translate(8,1)" fill="#1AD079"/>
+            <path d="M 165 2 H 183 C 192 2, 198 7, 198 15 C 198 21, 194 25.5, 188 27 L 199 42 H 188.5 L 179 28 H 174 V 42 H 165 Z M 174 10 V 20.5 H 182 C 186.5 20.5, 189 18.5, 189 15 C 189 11.8, 186.5 10, 182 10 Z" transform="translate(8,1)" fill="currentColor"/>
+            <rect x="212" y="3" width="24" height="8.5" fill="currentColor"/>
+            <rect x="212" y="18.8" width="24" height="8.5" fill="#1AD079"/>
+            <rect x="212" y="34.5" width="24" height="8.5" fill="currentColor"/>
+            <path d="M 235 2 H 244 V 33.5 H 261 V 42 H 235 Z" transform="translate(8,1)" fill="currentColor"/>
+            <path d="M 278 2 L 263 42 H 272.5 L 275.5 33.5 H 291 V 25.5 H 278.5 L 283 12.5 L 294 42 H 303 L 287 2 Z" transform="translate(8,1)" fill="currentColor"/>
+            <path d="M 289 2 L 301 23 V 42 H 310 V 23 L 322 2 H 312.5 L 305.5 15 L 298.5 2 Z" transform="translate(8,1)" fill="currentColor"/>
+          </svg>
+        </div>
+        <span class="eyebrow">100% Employer-Paid &middot; NDPA 2023 &amp; CBN Safe</span>
+        <h1>Dayforce-Grade Workforce, Attendance &amp; Nigerian Statutory Payroll OS</h1>
+        <p>Built for Healthcare, Manufacturing, Logistics, Hospitality &amp; Multi-Site Retail teams with 50–1,500+ shift workers. Zero biometric hardware. ₦0 charged to workers.</p>
+      </div>
+      <img src="../assets/site/hero-frontline.jpg" alt="Frontline shift team" class="photo" />
+    </header>
+
+    <section class="body">
+      <div class="pillars">
+        <div class="pillar">
+          <h3>1. Zero-Hardware Peer-Assisted Clock-In + Executive Staff ID Cards</h3>
+          <p>Eliminate buddy-punching and hardware clocks with <strong>Peer-Assisted Clock-In</strong> (colleague QR scan + live facial verification + 1.5s burst geofencing). Every onboarded employee — including Executives — receives a premium Corporate Staff ID Card.</p>
+        </div>
+        <div class="pillar">
+          <h3>2. 1-Click Statutory &amp; CBN NIP/NIBSS Settlement</h3>
+          <p>Continuous real-time net-pay accrual as shifts happen + automated FIRS PAYE (CRA), PenCom (18%), NHF (2.5%), NSITF (1%), and bulk bank files (Paystack, GTBank, Zenith, Access) backed by partner custody float reconciliation.</p>
+        </div>
+        <div class="pillar">
+          <h3>3. Zero-Fee Earned Wage Access (0% Interest)</h3>
+          <p>Boost retention at $0 extra employer cost and ₦0 worker fee (CBN zero-lending compliant). Funded via <strong>Prefunded Partner Custody</strong> or <strong>Corporate Bank Direct Debit (Mono / Paystack)</strong>.</p>
+        </div>
+        <div class="pillar">
+          <h3>4. Headcount Elasticity Without Tier Penalties</h3>
+          <p>Seasonal/casual surge staff (&lt;90 days) billed at just <strong>₦2,500/worker/mo</strong> with zero forced tier upgrades. All statutory updates deploy automatically at zero charge.</p>
+        </div>
+      </div>
+
+      <h2 style="font-size:15.5px; margin-bottom:6px;">Transparent Tiered Enterprise Pricing (Employer-Paid Only)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Plan Tier</th>
+            <th>Staff Limit</th>
+            <th>Monthly Base</th>
+            <th>Volume PEPM</th>
+            <th>One-Time Setup</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Professional</strong></td>
+            <td>Up to 150</td>
+            <td>₦150,000 / mo</td>
+            <td><strong>₦4,500 / worker</strong></td>
+            <td>₦750,000</td>
+          </tr>
+          <tr>
+            <td><strong>Enterprise (Core)</strong></td>
+            <td>Up to 500</td>
+            <td>₦400,000 / mo</td>
+            <td><strong>₦3,500 / worker</strong></td>
+            <td>₦1,500,000</td>
+          </tr>
+          <tr>
+            <td><strong>Enterprise Plus</strong></td>
+            <td>Up to 1,500</td>
+            <td>₦750,000 / mo</td>
+            <td><strong>₦2,500 / worker</strong></td>
+            <td>₦3,000,000</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="cta-strip">
+        <div>
+          <h3>Eliminate payroll leakage &amp; boost shift retention — start your ₦250k 30-Day Pilot</h3>
+          <p>Test live with up to 50 workers for 30 days. <strong>100% (₦250,000) credited toward onboarding on conversion</strong> — monthly billing never starts until Go-Live sign-off.</p>
+        </div>
+        <a href="https://shiftrelayos.com/calculator.html" class="cta-pill">Book Demo / ROI Calculator &rarr;</a>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span><strong>ShiftRelay</strong>, powered by Riffmax Technology &middot; shiftrelayos.com</span>
+      <span>Contact: Sherif Akanmu, Head of Growth &amp; Enterprise Partnerships &middot; onboarding@shiftrelayos.com</span>
+    </footer>
+  </article>
+</body>
+</html>

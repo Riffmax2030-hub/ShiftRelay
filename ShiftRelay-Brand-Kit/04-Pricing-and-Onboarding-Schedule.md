@@ -11,4 +11,4 @@
 - **30-Day Paid Sandbox Pilot:** **₦250,000** flat (up to 50 workers), **100% credited toward the one-time onboarding fee** upon contract signing.
 - **Seasonal / Casual Surge (<90 days):** **₦2,500 / worker / mo** with zero base tier increase.
 - **Enterprise Overage:** **₦3,000 / worker / mo** above tier headcount cap.
-- **What Onboarding Covers (48-Hour Go-Live):** Gate geofence calibration, laminated Level-H Gate QR muster posters, CSV roster & PenCom RSA PIN migration, statutory payroll calibration (PAYE, PenCom, NHF, NSITF), and 2-day on-site supervisor training.
+- **What Onboarding Covers (48-Hour Go-Live):** 1.5s burst geofence calibration, **premium Corporate Staff & Executive ID Card generation** (for every onboarded employee, including executives, with Peer-Assisted Clock-In QR + live facial verification), CSV roster & PenCom RSA PIN migration, statutory payroll calibration (PAYE, PenCom 18%, NHF 2.5%, NSITF 1%), and 2-day on-site supervisor training.

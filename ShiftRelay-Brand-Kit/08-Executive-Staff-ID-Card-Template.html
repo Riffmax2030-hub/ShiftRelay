@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShiftRelay Executive &amp; Staff ID Card Studio (CR80 Print-Ready)</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --ink: #0f172a;
+      --muted: #475569;
+      --em: #059669;
+      --em-bright: #1AD079;
+      --dark-1: #07291E;
+      --dark-2: #02100C;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      padding: 28px 16px 64px;
+    }
+    .wrap { max-width: 1020px; margin: 0 auto; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .topbar h1 { font-size: 21px; }
+    .topbar p { font-size: 13px; color: var(--muted); }
+    .btn {
+      background: var(--em);
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 9px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .controls {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .controls h2 { font-size: 15px; margin-bottom: 14px; }
+    .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 11px; }
+    .field label { font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .field input, .field select {
+      padding: 9px 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 13px;
+      background: #f8fafc;
+    }
+    .stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+    .cards-pair {
+      display: flex;
+      gap: 26px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .card-label {
+      text-align: center;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    /* Standard CR80 Vertical Executive ID Card (54mm x 85.6mm scaled cleanly for print/screen) */
+    .id-card {
+      width: 324px;
+      height: 514px;
+      border-radius: 18px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 22px 48px rgba(2, 16, 12, 0.28);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .id-card.dark-exec {
+      background: linear-gradient(155deg, #07291E 0%, #031711 58%, #02100C 100%);
+      color: #ECFDF5;
+      border: 1.5px solid rgba(26, 208, 121, 0.45);
+    }
+    .id-card.platinum {
+      background: linear-gradient(155deg, #ffffff 0%, #f8fafc 65%, #ecfdf5 100%);
+      color: #0f172a;
+      border: 1.5px solid rgba(5, 150, 105, 0.35);
+    }
+    .security-mesh {
+      position: absolute;
+      inset: 0;
+      opacity: 0.08;
+      background-image:
+        radial-gradient(circle at 20% 20%, #1AD079 1px, transparent 1px),
+        radial-gradient(circle at 80% 80%, #1AD079 1px, transparent 1px);
+      background-size: 18px 18px;
+      pointer-events: none;
+    }
+    .top-accent {
+      height: 7px;
+      background: linear-gradient(90deg, #059669, #1AD079, #34d399);
+      width: 100%;
+    }
+    .card-head {
+      padding: 18px 20px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+    .org-name {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      max-width: 190px;
+      line-height: 1.25;
+    }
+    .tier-chip {
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(26, 208, 121, 0.18);
+      border: 1px solid rgba(26, 208, 121, 0.5);
+      color: #1AD079;
+    }
+    .id-card.platinum .tier-chip {
+      background: rgba(5, 150, 105, 0.12);
+      border-color: rgba(5, 150, 105, 0.4);
+      color: #047857;
+    }
+    .photo-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px 20px 10px;
+      position: relative;
+      z-index: 2;
+    }
+    .photo-ring {
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      padding: 4px;
+      background: linear-gradient(135deg, #1AD079, #059669, #34d399);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+      margin-bottom: 14px;
+    }
+    .photo-ring img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      display: block;
+      background: #0f172a;
+    }
+    .staff-name {
+      font-size: 20px;
+      font-weight: 800;
+      text-align: center;
+      letter-spacing: -0.02em;
+      margin-bottom: 3px;
+    }
+    .staff-role {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #1AD079;
+      text-align: center;
+      margin-bottom: 2px;
+    }
+    .id-card.platinum .staff-role { color: #059669; }
+    .staff-dept {
+      font-size: 11.5px;
+      opacity: 0.78;
+      text-align: center;
+    }
+    .meta-grid {
+      margin: 12px 20px 0;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      position: relative;
+      z-index: 2;
+    }
+    .id-card.platinum .meta-grid {
+      background: #ffffff;
+      border-color: #e2e8f0;
+    }
+    .meta-cell small {
+      display: block;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      opacity: 0.7;
+      font-weight: 700;
+    }
+    .meta-cell strong {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .card-foot {
+      padding: 14px 20px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      z-index: 2;
+    }
+    .id-card.platinum .card-foot { border-top-color: #e2e8f0; }
+    .verified-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+
+    /* Back Card */
+    .back-body {
+      padding: 22px 22px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      justify-content: space-between;
+    }
+    .qr-frame {
+      background: #ffffff;
+      padding: 14px;
+      border-radius: 16px;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22);
+      border: 2px solid #1AD079;
+    }
+    .qr-caption {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1AD079;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 10px;
+    }
+    .id-card.platinum .qr-caption { color: #059669; }
+    .back-rules {
+      font-size: 10.5px;
+      line-height: 1.5;
+      opacity: 0.82;
+      margin-top: 10px;
+    }
+    .sig-box {
+      width: 100%;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.22);
+      font-size: 10px;
+      opacity: 0.78;
+    }
+    .id-card.platinum .sig-box { border-top-color: #cbd5e1; }
+
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .topbar, .controls, .card-label { display: none !important; }
+      .layout { display: block; }
+      .id-card { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>ShiftRelay Executive &amp; Staff ID Card Studio</h1>
+        <p>CR80 PVC &amp; Digital Identity Card issued to every onboarded employee (Frontline, Supervisor &amp; Executive) for Peer-Assisted Clock-In + Live Face Verification.</p>
+      </div>
+      <button class="btn" onclick="window.print()">Print / Export CR80 PDF</button>
+    </div>
+
+    <div class="layout">
+      <aside class="controls">
+        <h2>Customize Staff Card</h2>
+        <div class="field">
+          <label>Card Finish</label>
+          <select id="in-theme" onchange="syncCard()">
+            <option value="dark-exec">Executive Obsidian Emerald</option>
+            <option value="platinum">Platinum Corporate White</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Employer Name</label>
+          <input id="in-org" value="IKEJA FOODS MANUFACTURING LTD" oninput="syncCard()" />
+        </div>
+        <div class="field">
+          <label>Access Tier</label>
+          <select id="in-tier" onchange="syncCard()">
+            <option value="EXECUTIVE">EXECUTIVE</option>
+            <option value="SUPERVISOR">SUPERVISOR</option>
+            <option value="FRONTLINE">FRONTLINE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Full Name</label>
+          <input id="in-name" value="Adebayo Ogunleye" oninput="syncCard()" />
+        </div>
+        <div class="field">
+          <label>Role / Title</label>
+          <input id="in-role" value="Director of Plant Operations" oninput="syncCard()" />
+        </div>
+        <div class="field">
+          <label>Department &amp; Site</label>
+          <input id="in-dept" value="Executive Leadership · Ikeja Plant" oninput="syncCard()" />
+        </div>
+        <div class="field">
+          <label>Staff ID Code</label>
+          <input id="in-id" value="SR-IFM-0001" oninput="syncCard()" />
+        </div>
+        <div class="field">
+          <label>Blood Group / Emergency</label>
+          <input id="in-blood" value="O+ · +234 800 000 0000" oninput="syncCard()" />
+        </div>
+        <div class="field">
+          <label>Upload Passport Photo</label>
+          <input type="file" accept="image/*" onchange="loadPhoto(event)" />
+        </div>
+      </aside>
+
+      <main class="stage">
+        <div class="cards-pair">
+          <!-- FRONT -->
+          <div>
+            <div class="card-label">Front — Executive Corporate Identity</div>
+            <article class="id-card dark-exec" id="card-front">
+              <div class="security-mesh"></div>
+              <div>
+                <div class="top-accent"></div>
+                <div class="card-head">
+                  <div class="org-name" id="out-org">IKEJA FOODS MANUFACTURING LTD</div>
+                  <span class="tier-chip" id="out-tier">EXECUTIVE</span>
+                </div>
+                <div class="photo-stage">
+                  <div class="photo-ring">
+                    <img id="out-photo" src="../assets/site/payroll-manager.jpg" alt="Staff Passport" />
+                  </div>
+                  <div class="staff-name" id="out-name">Adebayo Ogunleye</div>
+                  <div class="staff-role" id="out-role">Director of Plant Operations</div>
+                  <div class="staff-dept" id="out-dept">Executive Leadership &middot; Ikeja Plant</div>
+                </div>
+                <div class="meta-grid">
+                  <div class="meta-cell">
+                    <small>Staff ID</small>
+                    <strong id="out-id">SR-IFM-0001</strong>
+                  </div>
+                  <div class="meta-cell">
+                    <small>Blood / ICE</small>
+                    <strong id="out-blood">O+ &middot; +234 800</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="card-foot">
+                <div class="verified-pill">
+                  <img src="icon.svg" width="22" height="22" alt="ShiftRelay" style="border-radius:6px;" />
+                  <span>ShiftRelay Verified</span>
+                </div>
+                <span style="font-size:10px; opacity:0.75; font-weight:700;">shiftrelayos.com</span>
+              </div>
+            </article>
+          </div>
+
+          <!-- BACK -->
+          <div>
+            <div class="card-label">Back — Peer-Assisted Clock-In QR &amp; Security</div>
+            <article class="id-card dark-exec" id="card-back">
+              <div class="security-mesh"></div>
+              <div class="top-accent"></div>
+              <div class="back-body">
+                <div>
+                  <div style="font-size:11px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; opacity:0.85; margin-bottom:14px;">
+                    Peer-Assisted Attendance Pass
+                  </div>
+                  <div class="qr-frame">
+                    <!-- High-contrast cryptographic QR visual -->
+                    <svg width="164" height="164" viewBox="0 0 29 29" fill="#0f172a" xmlns="http://www.w3.org/2000/svg" aria-label="Peer-Assisted Clock-In QR">
+                      <rect width="29" height="29" fill="#ffffff"/>
+                      <path d="M1 1h7v7H1zM2 2v5h5V2zM3 3h3v3H3zM21 1h7v7h-7zM22 2v5h5V2zM23 3h3v3h-3zM1 21h7v7H1zM2 22v5h5v-5zM3 23h3v3H3z"/>
+                      <path d="M10 2h2v2h-2zM14 2h3v2h-3zM18 3h1v3h-1zM10 6h4v2h-4zM16 6h2v2h-2zM2 10h2v2H2zM6 10h3v2H6zM11 10h2v3h-2zM15 10h4v2h-4zM21 10h2v2h-2zM25 10h3v2h-3zM2 14h4v2H2zM8 14h2v2H8zM12 14h5v5h-5zM19 14h3v2h-3zM24 14h4v2h-4zM2 18h2v2H2zM6 18h4v2H6zM19 18h2v3h-2zM23 18h5v2h-5zM10 21h2v2h-2zM14 21h3v2h-3zM21 21h3v3h-3zM26 22h2v5h-2zM10 25h4v2h-4zM16 25h3v3h-3zM21 26h3v2h-3z"/>
+                    </svg>
+                  </div>
+                  <div class="qr-caption">Scan via Colleague App + Live Face Match</div>
+                </div>
+
+                <p class="back-rules">
+                  Scan this cryptographic Staff ID QR on any authorized colleague or supervisor device to complete <strong>Peer-Assisted Clock-In</strong> with live facial verification and 1.5s burst geofencing.
+                  <br /><br />
+                  Protected under <strong>NDPA 2023</strong>. If found, please return to the employer HR office or notify <strong>onboarding@shiftrelayos.com</strong>.
+                </p>
+
+                <div class="sig-box">
+                  Issued by <strong>ShiftRelay, powered by Riffmax Technology</strong><br />
+                  Cryptographic Tenant Pass &middot; Non-Transferable
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    function syncCard() {
+      const theme = document.getElementById("in-theme").value;
+      document.getElementById("card-front").className = "id-card " + theme;
+      document.getElementById("card-back").className = "id-card " + theme;
+      document.getElementById("out-org").textContent = document.getElementById("in-org").value;
+      document.getElementById("out-tier").textContent = document.getElementById("in-tier").value;
+      document.getElementById("out-name").textContent = document.getElementById("in-name").value;
+      document.getElementById("out-role").textContent = document.getElementById("in-role").value;
+      document.getElementById("out-dept").textContent = document.getElementById("in-dept").value;
+      document.getElementById("out-id").textContent = document.getElementById("in-id").value;
+      document.getElementById("out-blood").textContent = document.getElementById("in-blood").value;
+    }
+    function loadPhoto(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => { document.getElementById("out-photo").src = reader.result; };
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>
