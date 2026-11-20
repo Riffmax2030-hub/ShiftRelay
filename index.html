@@ -26,25 +26,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-    <link rel="preload" href="sr-premium.css?v=184" as="style" />
-    <link rel="preload" href="phase1-shell.js?v=184" as="script" />
-    <link rel="stylesheet" href="styles.css?v=184" />
-    <link rel="stylesheet" href="theme.css?v=184" />
-    <link rel="stylesheet" href="bento-ui.css?v=184" />
-    <link rel="stylesheet" href="dark-mode.css?v=184" />
-    <link rel="stylesheet" href="splash.css?v=184" />
-    <link rel="stylesheet" href="offline-queue.css?v=184" />
-    <link rel="stylesheet" href="me-profile.css?v=184" />
-    <link rel="stylesheet" href="phase1-shell.css?v=184" />
-    <link rel="stylesheet" href="sr-premium.css?v=184" />
+    <link rel="preload" href="sr-premium.css?v=187" as="style" />
+    <link rel="preload" href="phase1-shell.js?v=187" as="script" />
+    <link rel="stylesheet" href="styles.css?v=187" />
+    <link rel="stylesheet" href="theme.css?v=187" />
+    <link rel="stylesheet" href="bento-ui.css?v=187" />
+    <link rel="stylesheet" href="dark-mode.css?v=187" />
+    <link rel="stylesheet" href="splash.css?v=187" />
+    <link rel="stylesheet" href="offline-queue.css?v=187" />
+    <link rel="stylesheet" href="me-profile.css?v=187" />
+    <link rel="stylesheet" href="phase1-shell.css?v=187" />
+    <link rel="stylesheet" href="sr-premium.css?v=187" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v184' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v187' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v184');
+              localStorage.setItem('sr_restored_build', 'v187');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { Promise.resolve(r.update()).catch(function() {}); });
@@ -69,15 +69,15 @@
       <div class="sr-splash-clean-stage" id="sr-splash-stage">
         <div class="sr-splash-brand-lockup">
           <img src="icon.svg?v=177" class="sr-splash-brand-icon" alt="ShiftRelay" style="border-radius:18px;" />
-          <svg fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ShiftRelay" style="height:24px;width:auto;display:block;color:#0f172a;" viewBox="0 0 330 46">
-        <path d="M 27 8 C 24 3, 18 1, 11 1 C 3 1, -2 5, -2 12 C -2 19, 4 21, 13 23 C 19 24.5, 21 26, 21 29.5 C 21 33, 17 35, 11 35 C 5 35, 1 32, -2 28 L -8 34 C -4 40, 3 43, 11 43 C 22 43, 30 38, 30 29 C 30 21, 24 18, 14 16 C 8 14.5, 6 13, 6 10.5 C 6 8, 9 6.5, 13 6.5 C 17 6.5, 20 8, 22 11 Z" transform="translate(8,1)" fill="#059669"/>
-        <path d="M 38 2 H 47 V 18 H 64 V 2 H 73 V 42 H 64 V 26 H 47 V 42 H 38 Z" transform="translate(8,1)" fill="#059669"/>
-        <rect x="90" y="3" width="9" height="40" fill="#059669"/>
-        <path d="M 100 2 H 126 V 10 H 109 V 19 H 123 V 27 H 109 V 42 H 100 Z" transform="translate(8,1)" fill="#059669"/>
-        <path d="M 130 2 H 160 V 10 H 149.5 V 42 H 140.5 V 10 H 130 Z" transform="translate(8,1)" fill="#059669"/>
+          <svg fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ShiftRelay" class="sr-brand-wordmark-svg sr-brand-wordmark-dark" style="height:26px;width:auto;display:block;color:#ECFDF5;" viewBox="0 0 330 46">
+        <path d="M 27 8 C 24 3, 18 1, 11 1 C 3 1, -2 5, -2 12 C -2 19, 4 21, 13 23 C 19 24.5, 21 26, 21 29.5 C 21 33, 17 35, 11 35 C 5 35, 1 32, -2 28 L -8 34 C -4 40, 3 43, 11 43 C 22 43, 30 38, 30 29 C 30 21, 24 18, 14 16 C 8 14.5, 6 13, 6 10.5 C 6 8, 9 6.5, 13 6.5 C 17 6.5, 20 8, 22 11 Z" transform="translate(8,1)" fill="#1AD079"/>
+        <path d="M 38 2 H 47 V 18 H 64 V 2 H 73 V 42 H 64 V 26 H 47 V 42 H 38 Z" transform="translate(8,1)" fill="#1AD079"/>
+        <rect x="90" y="3" width="9" height="40" fill="#1AD079"/>
+        <path d="M 100 2 H 126 V 10 H 109 V 19 H 123 V 27 H 109 V 42 H 100 Z" transform="translate(8,1)" fill="#1AD079"/>
+        <path d="M 130 2 H 160 V 10 H 149.5 V 42 H 140.5 V 10 H 130 Z" transform="translate(8,1)" fill="#1AD079"/>
         <path d="M 165 2 H 183 C 192 2, 198 7, 198 15 C 198 21, 194 25.5, 188 27 L 199 42 H 188.5 L 179 28 H 174 V 42 H 165 Z M 174 10 V 20.5 H 182 C 186.5 20.5, 189 18.5, 189 15 C 189 11.8, 186.5 10, 182 10 Z" transform="translate(8,1)" fill="currentColor"/>
         <rect x="212" y="3" width="24" height="8.5" fill="currentColor"/>
-        <rect x="212" y="18.8" width="24" height="8.5" fill="#059669"/>
+        <rect x="212" y="18.8" width="24" height="8.5" fill="#1AD079"/>
         <rect x="212" y="34.5" width="24" height="8.5" fill="currentColor"/>
         <path d="M 235 2 H 244 V 33.5 H 261 V 42 H 235 Z" transform="translate(8,1)" fill="currentColor"/>
         <path d="M 278 2 L 263 42 H 272.5 L 275.5 33.5 H 291 V 25.5 H 278.5 L 283 12.5 L 294 42 H 303 L 287 2 Z" transform="translate(8,1)" fill="currentColor"/>
@@ -98,15 +98,15 @@
       <div class="sr-welcome-card">
         <div class="sr-welcome-brand-stage" style="display:flex;flex-direction:column;align-items:center;gap:14px;">
           <img src="icon.svg?v=177" alt="ShiftRelay" class="sr-welcome-hero-logo" style="border-radius:20px;" />
-          <svg fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ShiftRelay" style="height:26px;width:auto;display:block;color:#0f172a;" viewBox="0 0 330 46">
-        <path d="M 27 8 C 24 3, 18 1, 11 1 C 3 1, -2 5, -2 12 C -2 19, 4 21, 13 23 C 19 24.5, 21 26, 21 29.5 C 21 33, 17 35, 11 35 C 5 35, 1 32, -2 28 L -8 34 C -4 40, 3 43, 11 43 C 22 43, 30 38, 30 29 C 30 21, 24 18, 14 16 C 8 14.5, 6 13, 6 10.5 C 6 8, 9 6.5, 13 6.5 C 17 6.5, 20 8, 22 11 Z" transform="translate(8,1)" fill="#059669"/>
-        <path d="M 38 2 H 47 V 18 H 64 V 2 H 73 V 42 H 64 V 26 H 47 V 42 H 38 Z" transform="translate(8,1)" fill="#059669"/>
-        <rect x="90" y="3" width="9" height="40" fill="#059669"/>
-        <path d="M 100 2 H 126 V 10 H 109 V 19 H 123 V 27 H 109 V 42 H 100 Z" transform="translate(8,1)" fill="#059669"/>
-        <path d="M 130 2 H 160 V 10 H 149.5 V 42 H 140.5 V 10 H 130 Z" transform="translate(8,1)" fill="#059669"/>
+          <svg fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ShiftRelay" class="sr-brand-wordmark-svg sr-brand-wordmark-dark" style="height:26px;width:auto;display:block;color:#ECFDF5;" viewBox="0 0 330 46">
+        <path d="M 27 8 C 24 3, 18 1, 11 1 C 3 1, -2 5, -2 12 C -2 19, 4 21, 13 23 C 19 24.5, 21 26, 21 29.5 C 21 33, 17 35, 11 35 C 5 35, 1 32, -2 28 L -8 34 C -4 40, 3 43, 11 43 C 22 43, 30 38, 30 29 C 30 21, 24 18, 14 16 C 8 14.5, 6 13, 6 10.5 C 6 8, 9 6.5, 13 6.5 C 17 6.5, 20 8, 22 11 Z" transform="translate(8,1)" fill="#1AD079"/>
+        <path d="M 38 2 H 47 V 18 H 64 V 2 H 73 V 42 H 64 V 26 H 47 V 42 H 38 Z" transform="translate(8,1)" fill="#1AD079"/>
+        <rect x="90" y="3" width="9" height="40" fill="#1AD079"/>
+        <path d="M 100 2 H 126 V 10 H 109 V 19 H 123 V 27 H 109 V 42 H 100 Z" transform="translate(8,1)" fill="#1AD079"/>
+        <path d="M 130 2 H 160 V 10 H 149.5 V 42 H 140.5 V 10 H 130 Z" transform="translate(8,1)" fill="#1AD079"/>
         <path d="M 165 2 H 183 C 192 2, 198 7, 198 15 C 198 21, 194 25.5, 188 27 L 199 42 H 188.5 L 179 28 H 174 V 42 H 165 Z M 174 10 V 20.5 H 182 C 186.5 20.5, 189 18.5, 189 15 C 189 11.8, 186.5 10, 182 10 Z" transform="translate(8,1)" fill="currentColor"/>
         <rect x="212" y="3" width="24" height="8.5" fill="currentColor"/>
-        <rect x="212" y="18.8" width="24" height="8.5" fill="#059669"/>
+        <rect x="212" y="18.8" width="24" height="8.5" fill="#1AD079"/>
         <rect x="212" y="34.5" width="24" height="8.5" fill="currentColor"/>
         <path d="M 235 2 H 244 V 33.5 H 261 V 42 H 235 Z" transform="translate(8,1)" fill="currentColor"/>
         <path d="M 278 2 L 263 42 H 272.5 L 275.5 33.5 H 291 V 25.5 H 278.5 L 283 12.5 L 294 42 H 303 L 287 2 Z" transform="translate(8,1)" fill="currentColor"/>
@@ -132,7 +132,7 @@
       <div class="sr-login-sheet sr-auth-card">
         <div class="sr-auth-brand-bar" style="margin-bottom:20px;display:flex;flex-direction:column;align-items:center;gap:12px;">
           <img src="icon.svg?v=177" alt="ShiftRelay" style="width:68px;height:68px;border-radius:16px;display:block;box-shadow:0 10px 24px rgba(5,150,105,0.22);" />
-          <svg fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ShiftRelay" style="height:24px;width:auto;display:block;color:#0f172a;" viewBox="0 0 330 46">
+          <svg fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ShiftRelay" class="sr-brand-wordmark-svg" style="height:26px;width:auto;display:block;" viewBox="0 0 330 46">
         <path d="M 27 8 C 24 3, 18 1, 11 1 C 3 1, -2 5, -2 12 C -2 19, 4 21, 13 23 C 19 24.5, 21 26, 21 29.5 C 21 33, 17 35, 11 35 C 5 35, 1 32, -2 28 L -8 34 C -4 40, 3 43, 11 43 C 22 43, 30 38, 30 29 C 30 21, 24 18, 14 16 C 8 14.5, 6 13, 6 10.5 C 6 8, 9 6.5, 13 6.5 C 17 6.5, 20 8, 22 11 Z" transform="translate(8,1)" fill="#059669"/>
         <path d="M 38 2 H 47 V 18 H 64 V 2 H 73 V 42 H 64 V 26 H 47 V 42 H 38 Z" transform="translate(8,1)" fill="#059669"/>
         <rect x="90" y="3" width="9" height="40" fill="#059669"/>
@@ -469,41 +469,41 @@
     </div>
 
     <div class="toast hidden" id="toast"></div>
-    <script src="icons.js?v=184" defer></script>
-    <script src="language.js?v=184" defer></script>
-    <script src="app.js?v=184" defer></script>
-    <script src="biometrics.js?v=184" defer></script>
-    <script type="module" src="qr-svg-generator.js?v=184"></script>
-    <script src="attendance-exceptions-ui.js?v=184" defer></script>
+    <script src="icons.js?v=187" defer></script>
+    <script src="language.js?v=187" defer></script>
+    <script src="app.js?v=187" defer></script>
+    <script src="biometrics.js?v=187" defer></script>
+    <script type="module" src="qr-svg-generator.js?v=187"></script>
+    <script src="attendance-exceptions-ui.js?v=187" defer></script>
     <script src="/vendor/read-excel-file.min.js" defer></script>
-    <script src="phase1-shell.js?v=184" defer></script>
-    <script src="splash.js?v=184" defer></script>
-    <script src="notifications.js?v=184" defer></script>
-    <script src="profile.js?v=184" defer></script>
-    <script src="checklists.js?v=184" defer></script>
-    <script src="account-menu.js?v=184" defer></script>
-    <script src="calendar-experience.js?v=184" defer></script>
-    <script src="notification-experience.js?v=184" defer></script>
-    <script src="community-experience.js?v=184" defer></script>
-    <script src="team-realtime.js?v=184" defer></script>
-    <script src="frontline-social.js?v=184" defer></script>
-    <script src="me-profile.js?v=184" defer></script>
-    <script src="navigation-fix.js?v=184" defer></script>
-    <script src="offline-queue.js?v=184" defer></script>
-    <script src="signature-pad.js?v=184" defer></script>
-    <script src="shift-calendar.js?v=184" defer></script>
-    <script src="safety-incident.js?v=184" defer></script>
-    <script src="worker-passport.js?v=184" defer></script>
-    <script src="notification-centre.js?v=184" defer></script>
-    <script src="dock-badges.js?v=184" defer></script>
-    <script src="swap-review.js?v=184" defer></script>
-    <script src="facility-zones.js?v=184" defer></script>
-    <script src="analytics-dashboard.js?v=184" defer></script>
-    <script src="first-shift-onboarding.js?v=184" defer></script>
-    <script src="push-notifications.js?v=184" defer></script>
-    <script src="facility-switcher.js?v=184" defer></script>
-    <script src="emergency-broadcast.js?v=184" defer></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=184',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script src="phase1-shell.js?v=187" defer></script>
+    <script src="splash.js?v=187" defer></script>
+    <script src="notifications.js?v=187" defer></script>
+    <script src="profile.js?v=187" defer></script>
+    <script src="checklists.js?v=187" defer></script>
+    <script src="account-menu.js?v=187" defer></script>
+    <script src="calendar-experience.js?v=187" defer></script>
+    <script src="notification-experience.js?v=187" defer></script>
+    <script src="community-experience.js?v=187" defer></script>
+    <script src="team-realtime.js?v=187" defer></script>
+    <script src="frontline-social.js?v=187" defer></script>
+    <script src="me-profile.js?v=187" defer></script>
+    <script src="navigation-fix.js?v=187" defer></script>
+    <script src="offline-queue.js?v=187" defer></script>
+    <script src="signature-pad.js?v=187" defer></script>
+    <script src="shift-calendar.js?v=187" defer></script>
+    <script src="safety-incident.js?v=187" defer></script>
+    <script src="worker-passport.js?v=187" defer></script>
+    <script src="notification-centre.js?v=187" defer></script>
+    <script src="dock-badges.js?v=187" defer></script>
+    <script src="swap-review.js?v=187" defer></script>
+    <script src="facility-zones.js?v=187" defer></script>
+    <script src="analytics-dashboard.js?v=187" defer></script>
+    <script src="first-shift-onboarding.js?v=187" defer></script>
+    <script src="push-notifications.js?v=187" defer></script>
+    <script src="facility-switcher.js?v=187" defer></script>
+    <script src="emergency-broadcast.js?v=187" defer></script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=187',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 

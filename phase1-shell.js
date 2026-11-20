@@ -1397,7 +1397,7 @@
                 </svg>
               </span>
               <span class="sr-brand-text" aria-label="ShiftRelay" style="display:inline-flex;align-items:center;">
-                <svg viewBox="0 0 330 46" height="20" style="width:auto;display:block;" aria-hidden="true">
+                <svg class="sr-brand-wordmark-svg" viewBox="0 0 330 46" height="20" style="width:auto;display:block;" aria-hidden="true">
                   <path d="M 27 8 C 24 3, 18 1, 11 1 C 3 1, -2 5, -2 12 C -2 19, 4 21, 13 23 C 19 24.5, 21 26, 21 29.5 C 21 33, 17 35, 11 35 C 5 35, 1 32, -2 28 L -8 34 C -4 40, 3 43, 11 43 C 22 43, 30 38, 30 29 C 30 21, 24 18, 14 16 C 8 14.5, 6 13, 6 10.5 C 6 8, 9 6.5, 13 6.5 C 17 6.5, 20 8, 22 11 Z" transform="translate(8,1)" fill="#059669"/>
                   <path d="M 38 2 H 47 V 18 H 64 V 2 H 73 V 42 H 64 V 26 H 47 V 42 H 38 Z" transform="translate(8,1)" fill="#059669"/>
                   <rect x="90" y="3" width="9" height="40" fill="#059669"/>

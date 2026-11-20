@@ -159,9 +159,18 @@
   }
 
   function handleStep2Continue() {
-    const email = String(emailInput?.value || '').trim();
+    let email = String(emailInput?.value || '').trim();
+    if (email && !email.includes('@') && Array.isArray(window._srState?.users)) {
+      const handleMatch = window._srState.users.find(u =>
+        String(u.email || '').toLowerCase().split('@')[0] === email.toLowerCase()
+      );
+      if (handleMatch?.email) {
+        email = handleMatch.email;
+        if (emailInput) emailInput.value = email;
+      }
+    }
     if (!email || !email.includes('@')) {
-      setMsg('Please enter a valid work email address.', true);
+      setMsg('Please enter your full work email (e.g. olaide@riffmax.tech).', true);
       emailInput?.focus();
       return;
     }
