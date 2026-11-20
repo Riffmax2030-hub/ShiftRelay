@@ -1,8 +1,8 @@
-const ADMIN_OS_CACHE = 'shiftrelay-os-v1';
+const ADMIN_OS_CACHE = 'shiftrelay-os-v2';
 const ADMIN_ICON_ASSETS = [
-  '/admin-icon.svg',
-  '/admin-icon-192.png',
-  '/admin-icon-512.png',
+  '/icon.svg?v=177',
+  '/icon-192.png',
+  '/icon-512.png',
   '/admin-manifest.webmanifest'
 ];
 
@@ -48,7 +48,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Network-first for ShiftRelay OS icons & manifest
-  if (ADMIN_ICON_ASSETS.includes(url.pathname)) {
+  if (ADMIN_ICON_ASSETS.includes(url.pathname) || ADMIN_ICON_ASSETS.includes(url.pathname + url.search)) {
     event.respondWith(
       fetch(event.request)
         .then((res) => {
