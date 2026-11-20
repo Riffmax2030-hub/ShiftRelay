@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enterprise Client Onboarding &amp; Compliance Intake Form | ShiftRelay</title>
+  <style>
+    :root {
+      --bg: #fafbfc;
+      --surface: #ffffff;
+      --subtle: #f8fafc;
+      --border: #e2e8f0;
+      --em: #059669;
+      --em-deep: #047857;
+      --ink: #0f172a;
+      --muted: #475569;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      padding: 28px 16px 64px;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; }
+    .header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .brand-lockup { display: inline-flex; align-items: center; gap: 11px; margin-bottom: 8px; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(5, 150, 105, 0.1);
+      border: 1px solid rgba(5, 150, 105, 0.3);
+      color: var(--em);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 26px 30px;
+      margin-bottom: 18px;
+    }
+    .card h2 {
+      font-size: 17px;
+      margin-bottom: 4px;
+      color: var(--ink);
+    }
+    .card p.sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+    label { font-size: 12.5px; font-weight: 700; color: var(--ink); }
+    label .req { color: #dc2626; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      background: var(--subtle);
+      color: var(--ink);
+      font: inherit;
+      font-size: 13.5px;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid var(--em);
+      background: #fff;
+    }
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--subtle);
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    .check-row input[type="checkbox"] { width: 17px; height: 17px; margin-top: 2px; accent-color: var(--em); }
+    .quote-box {
+      background: rgba(5, 150, 105, 0.06);
+      border: 1px solid rgba(5, 150, 105, 0.3);
+      border-radius: 14px;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .quote-box div small { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+    .quote-box div strong { font-size: 17px; color: var(--em); }
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .btn {
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13.5px;
+      cursor: pointer;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: var(--ink);
+    }
+    .btn.primary { background: var(--em); border-color: var(--em); color: #fff; }
+    .btn.primary:hover { background: var(--em-deep); }
+    #output {
+      display: none;
+      margin-top: 16px;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 12px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+    @media (max-width: 720px) {
+      .grid-2, .grid-3, .quote-box { grid-template-columns: 1fr; }
+    }
+    @media print {
+      .actions, #output { display: none !important; }
+      body { background: #fff; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="header">
+      <div>
+        <div class="brand-lockup">
+          <img src="icon.svg" width="38" height="38" alt="ShiftRelay" style="width:38px;height:38px;border-radius:9px;" />
+          <svg viewBox="0 0 330 46" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ShiftRelay" style="height:20px;width:auto;display:block;color:#0f172a;">
+            <path d="M 27 8 C 24 3, 18 1, 11 1 C 3 1, -2 5, -2 12 C -2 19, 4 21, 13 23 C 19 24.5, 21 26, 21 29.5 C 21 33, 17 35, 11 35 C 5 35, 1 32, -2 28 L -8 34 C -4 40, 3 43, 11 43 C 22 43, 30 38, 30 29 C 30 21, 24 18, 14 16 C 8 14.5, 6 13, 6 10.5 C 6 8, 9 6.5, 13 6.5 C 17 6.5, 20 8, 22 11 Z" transform="translate(8,1)" fill="#059669"/>
+            <path d="M 38 2 H 47 V 18 H 64 V 2 H 73 V 42 H 64 V 26 H 47 V 42 H 38 Z" transform="translate(8,1)" fill="#059669"/>
+            <rect x="90" y="3" width="9" height="40" fill="#059669"/>
+            <path d="M 100 2 H 126 V 10 H 109 V 19 H 123 V 27 H 109 V 42 H 100 Z" transform="translate(8,1)" fill="#059669"/>
+            <path d="M 130 2 H 160 V 10 H 149.5 V 42 H 140.5 V 10 H 130 Z" transform="translate(8,1)" fill="#059669"/>
+            <path d="M 165 2 H 183 C 192 2, 198 7, 198 15 C 198 21, 194 25.5, 188 27 L 199 42 H 188.5 L 179 28 H 174 V 42 H 165 Z M 174 10 V 20.5 H 182 C 186.5 20.5, 189 18.5, 189 15 C 189 11.8, 186.5 10, 182 10 Z" transform="translate(8,1)" fill="currentColor"/>
+            <rect x="212" y="3" width="24" height="8.5" fill="currentColor"/>
+            <rect x="212" y="18.8" width="24" height="8.5" fill="#059669"/>
+            <rect x="212" y="34.5" width="24" height="8.5" fill="currentColor"/>
+            <path d="M 235 2 H 244 V 33.5 H 261 V 42 H 235 Z" transform="translate(8,1)" fill="currentColor"/>
+            <path d="M 278 2 L 263 42 H 272.5 L 275.5 33.5 H 291 V 25.5 H 278.5 L 283 12.5 L 294 42 H 303 L 287 2 Z" transform="translate(8,1)" fill="currentColor"/>
+            <path d="M 289 2 L 301 23 V 42 H 310 V 23 L 322 2 H 312.5 L 305.5 15 L 298.5 2 Z" transform="translate(8,1)" fill="currentColor"/>
+          </svg>
+        </div>
+        <h1 style="font-size:22px;">Enterprise Client Onboarding &amp; Compliance Intake</h1>
+      </div>
+      <span class="badge">NDPA 2023 Compliant Data Intake</span>
+    </header>
+
+    <form id="onboarding-form">
+      <!-- 1. Company & Legal Details -->
+      <section class="card">
+        <h2>1. Organization &amp; Regulatory Identity</h2>
+        <p class="sub">Required for isolated tenant provisioning, statutory payroll calibration, and NDPA 2023 DPA execution.</p>
+        <div class="grid-2">
+          <div class="field">
+            <label>Legal Company Name <span class="req">*</span></label>
+            <input name="companyName" required placeholder="e.g., Ikeja Foods Manufacturing Ltd" />
+          </div>
+          <div class="field">
+            <label>CAC / RC Registration Number <span class="req">*</span></label>
+            <input name="rcNumber" required placeholder="e.g., RC 1482910" />
+          </div>
+          <div class="field">
+            <label>FIRS Tax Identification Number (TIN) <span class="req">*</span></label>
+            <input name="tin" required placeholder="e.g., 21048912-0001" />
+          </div>
+          <div class="field">
+            <label>Industry Vertical <span class="req">*</span></label>
+            <select name="industry" required>
+              <option value="">Select industry...</option>
+              <option>Manufacturing &amp; Industrial</option>
+              <option>Logistics &amp; Fleet</option>
+              <option>Healthcare &amp; Clinical</option>
+              <option>Hospitality &amp; Retail</option>
+              <option>Security &amp; Facilities</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Authorized Executive / HR Contact <span class="req">*</span></label>
+            <input name="contactName" required placeholder="Full Name &amp; Title" />
+          </div>
+          <div class="field">
+            <label>Official Work Email <span class="req">*</span></label>
+            <input type="email" name="workEmail" required placeholder="hr@company.com" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Structured Address (Country -> State -> City/LGA -> Street -> Zip) -->
+      <section class="card">
+        <h2>2. Registered HQ &amp; Primary Site Address (Country to Zip Code)</h2>
+        <p class="sub">Complete geographic address and site gate geofence coordinates for Gate QR muster calibration.</p>
+        <div class="grid-3">
+          <div class="field">
+            <label>Country <span class="req">*</span></label>
+            <select id="country" name="country" required onchange="updateStates()">
+              <option value="Nigeria" selected>Nigeria</option>
+              <option value="Ghana">Ghana</option>
+              <option value="Kenya">Kenya</option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="United States">United States</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>State / Province <span class="req">*</span></label>
+            <select id="stateSelect" name="state" required onchange="updateCities()"></select>
+          </div>
+          <div class="field">
+            <label>City / LGA <span class="req">*</span></label>
+            <select id="citySelect" name="city" required></select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Street Address &amp; Plot / Gate Number <span class="req">*</span></label>
+            <input name="street" required placeholder="e.g., Plot 14, Oba Akran Avenue, Gate 1" />
+          </div>
+          <div class="field">
+            <label>Postal / Zip Code <span class="req">*</span></label>
+            <input name="zipCode" required placeholder="e.g., 100282" />
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="field">
+            <label>Gate Latitude (Optional)</label>
+            <input name="lat" placeholder="e.g., 6.6018" />
+          </div>
+          <div class="field">
+            <label>Gate Longitude (Optional)</label>
+            <input name="lng" placeholder="e.g., 3.3515" />
+          </div>
+          <div class="field">
+            <label>Geofence Radius (Meters)</label>
+            <input type="number" name="radius" value="120" min="30" max="1000" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Plan, Headcount & Pricing Calculator -->
+      <section class="card">
+        <h2>3. Licensing Tier &amp; Onboarding Selection</h2>
+        <p class="sub">Employer-paid only (workers are never charged). Monthly billing starts after 48-hour onboarding go-live.</p>
+        <div class="grid-3">
+          <div class="field">
+            <label>Subscription Tier <span class="req">*</span></label>
+            <select id="tier" name="tier" onchange="recalcQuote()">
+              <option value="professional">Professional (Up to 150) — ₦150k + ₦4,500 PEPM</option>
+              <option value="enterprise" selected>Enterprise (Up to 500) — ₦400k + ₦3,500 PEPM</option>
+              <option value="enterprise_plus">Enterprise Plus (Up to 1,500) — ₦750k + ₦2,500 PEPM</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Active Worker Headcount <span class="req">*</span></label>
+            <input type="number" id="headcount" name="headcount" value="200" min="10" max="5000" oninput="recalcQuote()" />
+          </div>
+          <div class="field">
+            <label>Start with 30-Day Paid Pilot?</label>
+            <select id="pilot" name="pilot" onchange="recalcQuote()">
+              <option value="no">Direct Full Onboarding</option>
+              <option value="yes">Yes — ₦250,000 Pilot (100% credited to onboarding)</option>
+            </select>
+          </div>
+        </div>
+        <div class="quote-box">
+          <div><small>One-Time Onboarding Fee</small><strong id="q-onboard">₦1,500,000</strong></div>
+          <div><small>Monthly Recurring (Post-Go-Live)</small><strong id="q-monthly">₦1,100,000 / mo</strong></div>
+          <div><small>Effective PEPM</small><strong id="q-pepm">₦3,500 / worker</strong></div>
+        </div>
+      </section>
+
+      <!-- 4. Mandatory Onboarding Requirements Checklist -->
+      <section class="card">
+        <h2>4. Mandatory Onboarding &amp; Compliance Requirements</h2>
+        <p class="sub">Confirm readiness for 48-hour deployment.</p>
+        <label class="check-row"><input type="checkbox" required /> <span><strong>CAC Certificate &amp; TIN Verification:</strong> Ready to upload corporate registration documents.</span></label>
+        <label class="check-row"><input type="checkbox" required /> <span><strong>Employee CSV Roster:</strong> Staff names, work emails/phones, department, shift band, PenCom RSA PINs, and state PAYE authority (e.g., LIRS/OGIRS).</span></label>
+        <label class="check-row"><input type="checkbox" required /> <span><strong>Overtime &amp; Shift Rules:</strong> Confirmed normal/rest-day/holiday overtime multipliers (1.25x–2.0x) and late grace minutes.</span></label>
+        <label class="check-row"><input type="checkbox" required /> <span><strong>NDPA 2023 Data Processing Addendum (DPA):</strong> Employer (Data Controller) authorizes Riffmax Technology Limited (Data Processor) for point-of-punch attendance &amp; payroll processing.</span></label>
+      </section>
+
+      <div class="actions">
+        <button type="submit" class="btn primary">Generate Verified Onboarding JSON</button>
+        <button type="button" class="btn" onclick="window.print()">Print / Save Form as PDF</button>
+      </div>
+      <pre id="output"></pre>
+    </form>
+  </div>
+
+  <script>
+    const geoData = {
+      "Nigeria": {
+        "Lagos": ["Ikeja", "Apapa", "Lekki / Eti-Osa", "Victoria Island", "Ikorodu", "Surulere", "Oshodi-Isolo"],
+        "Ogun": ["Sagamu", "Abeokuta", "Ota / Ado-Odo", "Agbara"],
+        "Abuja (FCT)": ["Central Business District", "Wuse", "Garki", "Maitama", "Gwagwalada"],
+        "Rivers": ["Port Harcourt", "Obio-Akpor", "Eleme", "Bonny"],
+        "Kano": ["Kano Municipal", "Nassarawa", "Fagge", "Bompai Industrial"]
+      },
+      "Ghana": { "Greater Accra": ["Accra", "Tema"], "Ashanti": ["Kumasi"] },
+      "Kenya": { "Nairobi": ["Nairobi CBD", "Industrial Area", "Westlands"], "Mombasa": ["Mombasa"] },
+      "United Kingdom": { "Greater London": ["London"], "Greater Manchester": ["Manchester"] },
+      "United States": { "New York": ["New York City"], "Texas": ["Houston", "Austin"], "California": ["San Francisco"] },
+      "Other": { "Specify State / Province": ["Specify City"] }
+    };
+
+    function updateStates() {
+      const country = document.getElementById("country").value;
+      const stateSel = document.getElementById("stateSelect");
+      const states = Object.keys(geoData[country] || geoData["Other"]);
+      stateSel.innerHTML = states.map(s => `<option value="${s}">${s}</option>`).join("");
+      updateCities();
+    }
+
+    function updateCities() {
+      const country = document.getElementById("country").value;
+      const state = document.getElementById("stateSelect").value;
+      const citySel = document.getElementById("citySelect");
+      const cities = (geoData[country] && geoData[country][state]) || ["Specify City"];
+      citySel.innerHTML = cities.map(c => `<option value="${c}">${c}</option>`).join("");
+    }
+
+    const tiers = {
+      professional: { base: 150000, pepm: 4500, onboard: 750000 },
+      enterprise: { base: 400000, pepm: 3500, onboard: 1500000 },
+      enterprise_plus: { base: 750000, pepm: 2500, onboard: 3000000 }
+    };
+
+    function recalcQuote() {
+      const t = tiers[document.getElementById("tier").value];
+      const hc = Math.max(1, parseInt(document.getElementById("headcount").value || "0", 10));
+      const pilot = document.getElementById("pilot").value === "yes";
+      const onboardNet = pilot ? Math.max(0, t.onboard - 250000) : t.onboard;
+      const monthly = t.base + (hc * t.pepm);
+      document.getElementById("q-onboard").textContent = pilot
+        ? `₦250,000 Pilot + ₦${onboardNet.toLocaleString()} Balance`
+        : `₦${t.onboard.toLocaleString()}`;
+      document.getElementById("q-monthly").textContent = `₦${monthly.toLocaleString()} / mo`;
+      document.getElementById("q-pepm").textContent = `₦${t.pepm.toLocaleString()} / worker`;
+    }
+
+    document.getElementById("onboarding-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      data.submittedAt = new Date().toISOString();
+      const out = document.getElementById("output");
+      out.style.display = "block";
+      out.textContent = JSON.stringify(data, null, 2);
+    });
+
+    updateStates();
+    recalcQuote();
+  </script>
+</body>
+</html>

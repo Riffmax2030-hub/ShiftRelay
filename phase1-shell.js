@@ -14353,12 +14353,16 @@
     let statementData = null;
     let payslipData = null;
     let earningsMeta = null;
+    let walletAccrued = null;
+    let walletFloatAvail = 0;
+    let walletCustodyPartner = 'Partner Bank Custody';
     let fetchFailed = false;
 
     try {
-      const [resEarnings, resPayslip] = await Promise.all([
+      const [resEarnings, resPayslip, resWallet] = await Promise.all([
         fetch('/api/earnings'),
-        fetch('/api/worker-payslip')
+        fetch('/api/worker-payslip'),
+        fetch('/api/wallet/accrued').catch(() => null)
       ]);
       if (resEarnings.ok) {
         const jsonE = await resEarnings.json();
@@ -14370,6 +14374,12 @@
       if (resPayslip.ok) {
         const jsonP = await resPayslip.json();
         payslipData = jsonP.payslip || null;
+      }
+      if (resWallet && resWallet.ok) {
+        const jsonW = await resWallet.json();
+        walletAccrued = jsonW.ledger || null;
+        walletFloatAvail = Number(jsonW.employerFloatAvailableNgn || 0);
+        if (jsonW.custodyPartner) walletCustodyPartner = jsonW.custodyPartner;
       }
     } catch (err) {
       fetchFailed = true;
@@ -14688,6 +14698,29 @@
                 <span class="sr-earnings-breakdown-val sr-v2-num" style="font-size:18px;color:#10b981;font-weight:800;">${statementData.netPayFormatted || '₦' + net.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
+
+            ${walletAccrued ? `
+            <div id="sr-ewa-wallet-card" style="margin-top:16px;padding:14px 16px;border-radius:12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.28);">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <div>
+                  <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;color:#059669;text-transform:uppercase;">Live Accrued Pay &amp; Zero-Fee EWA</div>
+                  <div style="font-size:12px;color:var(--p-text-3);">0% Interest &bull; ₦0 Worker Fee &bull; Funded from Employer Custody (${escapeHtml(walletCustodyPartner)})</div>
+                </div>
+                <span class="sr-v2-num" style="font-size:17px;font-weight:800;color:#059669;">₦${Number(walletAccrued.net_available_disbursal || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--p-text-2);margin-bottom:10px;">
+                <span>Earned To-Date: <strong>₦${Number(walletAccrued.gross_earned_todate || 0).toLocaleString('en-NG')}</strong></span>
+                <span>Withheld (PAYE/PenCom/NHF): <strong>₦${Number(walletAccrued.statutory_withheld_todate?.total_employee_withheld || 0).toLocaleString('en-NG')}</strong></span>
+                <span>Early Cashout Taken: <strong>₦${Number(walletAccrued.ewa_disbursed_todate || 0).toLocaleString('en-NG')}</strong></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <input id="sr-ewa-amount-input" type="number" min="500" step="500" max="${Math.floor(Number(walletAccrued.net_available_disbursal || 0))}" placeholder="Amount (₦)" style="flex:1;min-width:130px;padding:8px 10px;border-radius:8px;border:1px solid var(--sr-border-medium);background:var(--sr-bg-card);color:var(--sr-text-main);font-size:13px;" />
+                <button type="button" class="sr-btn sr-btn-primary" id="sr-ewa-withdraw-btn" style="padding:8px 14px;font-size:12.5px;" ${Number(walletAccrued.net_available_disbursal || 0) <= 0 || walletFloatAvail <= 0 ? 'disabled' : ''}>
+                  ${walletFloatAvail > 0 ? 'Withdraw 0% Fee (Paystack NIP)' : 'Awaiting Employer Custody Prefund'}
+                </button>
+              </div>
+            </div>
+            ` : ''}
           </div>
         </div>
 
@@ -14837,6 +14870,33 @@
 
     // Ensure Monthly Salary is active by default and Rewards panel starts hidden
     activateSalariedTab();
+
+    const ewaBtn = document.getElementById('sr-ewa-withdraw-btn');
+    const ewaInput = document.getElementById('sr-ewa-amount-input');
+    if (ewaBtn && ewaInput) {
+      ewaBtn.addEventListener('click', async () => {
+        const amt = Number(ewaInput.value || 0);
+        if (!Number.isFinite(amt) || amt <= 0) {
+          if (typeof window.showToast === 'function') window.showToast('Enter an amount to withdraw.', 'error');
+          return;
+        }
+        ewaBtn.disabled = true;
+        try {
+          const r = await fetch('/api/wallet/ewa-disburse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amountNgn: amt, rail: 'Paystack NIP' })
+          });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.error || 'Withdrawal failed');
+          if (typeof window.showToast === 'function') window.showToast(`₦${amt.toLocaleString()} sent at 0% fee via ${d.disbursal?.rail || 'Paystack NIP'}!`);
+          await renderEarnings();
+        } catch (err) {
+          if (typeof window.showToast === 'function') window.showToast(err.message, 'error');
+          ewaBtn.disabled = false;
+        }
+      });
+    }
 
     // ── Inline Rewards Loader ──────────────────────────────────────────────────
     async function _loadEarningsRewards() {

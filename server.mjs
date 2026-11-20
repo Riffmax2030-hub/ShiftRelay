@@ -238,6 +238,22 @@ import {
   verifyStrictLiveGps,
   applyAutoShiftEndClosure
 } from './attendance-security.mjs';
+import {
+  SAAS_PLAN_TIERS,
+  SANDBOX_PILOT_CONFIG,
+  BILLING_LIFECYCLE_STATES,
+  FLOAT_BUCKETS,
+  resolvePlanTier,
+  normalizeBillingLifecycleStatus,
+  countTenantBillableHeadcount,
+  calculateTenantMonthlyInvoice,
+  calculateOnboardingInvoice,
+  calculateSandboxPilotInvoice,
+  computeWorkerAccruedLedger,
+  ensureSettlementFloatState,
+  getOrInitTenantFloatAccount,
+  computeTenantFloatReconciliation
+} from './billing-treasury-engine.mjs';
 
 export { calculateHaversineDistanceMeters };
 
@@ -331,11 +347,18 @@ function applyStoreDefaults(store) {
         hub_lat: 6.4312,
         hub_lng: 3.4244,
         hub_perimeter: 120,
-        subscription_tier: 'enterprise_founding_partner',
+        subscription_tier: 'enterprise',
+        plan_tier: 'enterprise',
+        billing_status: 'active_subscription',
+        onboarding_completed: true,
+        onboarding_completed_at: new Date().toISOString(),
+        pilot_paid: false,
+        pilot_credit_ngn: 0,
         verification_status: 'verified',
         onboarding_fee_paid: true,
-        monthly_fee_ngn: 500000,
-        pepm_ngn: 5000,
+        base_fee_ngn: 400000,
+        monthly_fee_ngn: 400000,
+        pepm_ngn: 3500,
         created_at: new Date().toISOString()
       }
     ];
@@ -2613,6 +2636,158 @@ export async function unsubscribeNewsletterMember({ token = '', email = '' } = {
     status: updatedRecord ? 'unsubscribed' : 'not_found',
     subscriber: updatedRecord ? { email: updatedRecord.email, status: updatedRecord.status, updatedAt: updatedRecord.updated_at } : null
   };
+}
+
+export function ensureTenantBillingState(store) {
+  if (!store.tenantBilling || typeof store.tenantBilling !== 'object') {
+    store.tenantBilling = { planTiers: SAAS_PLAN_TIERS, tenantPlans: {}, statuses: {}, invoices: [] };
+  }
+  if (!store.tenantBilling.tenantPlans || typeof store.tenantBilling.tenantPlans !== 'object') {
+    store.tenantBilling.tenantPlans = {};
+  }
+  if (!store.tenantBilling.statuses || typeof store.tenantBilling.statuses !== 'object') {
+    store.tenantBilling.statuses = {};
+  }
+  if (!Array.isArray(store.tenantBilling.invoices)) store.tenantBilling.invoices = [];
+  return store.tenantBilling;
+}
+
+export function getTenantBillingProfile(store, org) {
+  const tb = ensureTenantBillingState(store);
+  const saved = tb.tenantPlans[org.id] || {};
+  const planKey = saved.planKey || resolvePlanTier(org).key;
+  const tier = resolvePlanTier(planKey);
+  const rawStatus = saved.billingStatus || tb.statuses[org.id] || org.billing_status || (org.onboarding_fee_paid ? 'active_subscription' : 'onboarding_pending');
+  const billingStatus = normalizeBillingLifecycleStatus(rawStatus);
+  const onboardingCompleted = saved.onboardingCompleted !== undefined
+    ? Boolean(saved.onboardingCompleted)
+    : Boolean(org.onboarding_completed || billingStatus === 'active_subscription' || billingStatus === 'overdue_readonly');
+  const pilotPaid = Boolean(saved.pilotPaid ?? org.pilot_paid);
+  const pilotCreditNgn = pilotPaid ? Number(saved.pilotCreditNgn ?? org.pilot_credit_ngn ?? SANDBOX_PILOT_CONFIG.feeNgn) : 0;
+  const seasonalSurgeOverride = saved.seasonalSurgeHeadcount !== undefined ? Number(saved.seasonalSurgeHeadcount) : null;
+  const counts = countTenantBillableHeadcount(store.memberships, store.contracts, org.id);
+  const coreHeadcount = counts.coreHeadcount;
+  const seasonalSurgeHeadcount = seasonalSurgeOverride !== null && Number.isFinite(seasonalSurgeOverride)
+    ? Math.max(0, Math.round(seasonalSurgeOverride))
+    : counts.seasonalSurgeHeadcount;
+
+  const monthlyCalc = calculateTenantMonthlyInvoice({
+    planKey: tier.key,
+    coreHeadcount,
+    seasonalSurgeHeadcount,
+    billingStatus,
+    onboardingCompleted
+  });
+  const onboardingCalc = calculateOnboardingInvoice({
+    planKey: tier.key,
+    pilotPaid,
+    pilotCreditAmountNgn: pilotCreditNgn
+  });
+  const tenantInvoices = tb.invoices.filter(inv => inv.tenantId === org.id);
+  return {
+    tenantId: org.id,
+    companyName: org.legal_name || org.trading_name || org.name || 'Enterprise Tenant',
+    companyCode: org.organisation_code || org.company_code || org.code || 'SR-ORG',
+    ownerEmail: org.work_email || org.owner_email || org.adminEmail || 'billing@shiftrelayos.com',
+    ...monthlyCalc,
+    monthlyFeeNgn: monthlyCalc.recurringMonthlyTotalNgn,
+    grossOnboardingFeeNgn: onboardingCalc.grossOnboardingFeeNgn,
+    pilotPaid,
+    pilotCreditAppliedNgn: onboardingCalc.pilotCreditAppliedNgn,
+    netOnboardingFeeNgn: onboardingCalc.netOnboardingFeeNgn,
+    onboardingFeePaid: Boolean(saved.onboardingFeePaid ?? org.onboarding_fee_paid),
+    latestInvoice: tenantInvoices[0] || null
+  };
+}
+
+export function isTenantOverdueReadonly(store, orgId) {
+  if (!store || !orgId) return false;
+  const org = (store.organisations || []).find(o => o.id === orgId);
+  if (!org) return false;
+  return getTenantBillingProfile(store, org).billingStatus === 'overdue_readonly';
+}
+
+export async function syncWorkerPayLedger(store, orgId, memberOrUserId, monthParam = null) {
+  if (!store || !orgId || !memberOrUserId) return null;
+  const org = (store.organisations || []).find(o => o.id === orgId) || { id: orgId, time_zone: 'Africa/Lagos' };
+  const monthMeta = formatMonthMeta(monthParam, org.time_zone || 'Africa/Lagos');
+  const month = monthMeta.month;
+
+  const member = (store.memberships || []).find(m =>
+    m.organisation_id === orgId && (m.id === memberOrUserId || m.user_id === memberOrUserId)
+  );
+  const membershipId = member?.id || memberOrUserId;
+  const userId = member?.user_id || memberOrUserId;
+  const contract = (store.contracts || []).find(c =>
+    (c.tenant_id || c.organisation_id) === orgId &&
+    (c.userId === userId || c.user_id === userId || c.membershipId === membershipId)
+  ) || { compensation_type: 'fixed_monthly', monthly_rate: 150000 };
+
+  const entries = (store.timeEntries || []).filter(e =>
+    (e.membershipId === membershipId || e.membershipId === userId || e.userId === userId) &&
+    typeof e.clockedInAt === 'string' &&
+    e.clockedInAt.startsWith(month)
+  );
+  let completedHours = 0;
+  let activeShiftHours = 0;
+  const nowMs = Date.now();
+  for (const e of entries) {
+    const inMs = new Date(e.clockedInAt).getTime();
+    if (!Number.isFinite(inMs)) continue;
+    if (e.clockedOutAt) {
+      const outMs = new Date(e.clockedOutAt).getTime();
+      if (Number.isFinite(outMs) && outMs > inMs) completedHours += (outMs - inMs) / 3600000;
+    } else if (nowMs > inMs) {
+      activeShiftHours += Math.min(12, (nowMs - inMs) / 3600000);
+    }
+  }
+
+  if (!Array.isArray(store.ewaDisbursements)) store.ewaDisbursements = [];
+  const ewaDisbursedNgn = store.ewaDisbursements
+    .filter(d => d.organisationId === orgId && (d.membershipId === membershipId || d.userId === userId) && d.cycleMonth === month)
+    .reduce((s, d) => s + Number(d.amountNgn || 0), 0);
+
+  const ledger = computeWorkerAccruedLedger({
+    contract,
+    completedHours,
+    activeShiftHours,
+    ewaDisbursedNgn
+  });
+  const record = {
+    organisationId: orgId,
+    membershipId,
+    userId,
+    cycleMonth: month,
+    ...ledger,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!store.workerPayLedgers || typeof store.workerPayLedgers !== 'object') store.workerPayLedgers = {};
+  store.workerPayLedgers[orgId + ':' + membershipId + ':' + month] = record;
+
+  if (databaseReady && getPool()) {
+    await query(
+      `INSERT INTO worker_pay_ledgers (
+        organisation_id, membership_id, cycle_month, gross_earned_todate,
+        statutory_withheld_todate, ewa_disbursed_todate, net_available_disbursal, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      ON CONFLICT (organisation_id, membership_id, cycle_month) DO UPDATE SET
+        gross_earned_todate = EXCLUDED.gross_earned_todate,
+        statutory_withheld_todate = EXCLUDED.statutory_withheld_todate,
+        ewa_disbursed_todate = EXCLUDED.ewa_disbursed_todate,
+        net_available_disbursal = EXCLUDED.net_available_disbursal,
+        updated_at = EXCLUDED.updated_at`,
+      [
+        orgId, membershipId, month,
+        record.gross_earned_todate,
+        JSON.stringify(record.statutory_withheld_todate),
+        record.ewa_disbursed_todate,
+        record.net_available_disbursal,
+        record.updatedAt
+      ]
+    ).catch(() => {});
+  }
+  return record;
 }
 
 export function compilePayrollRun(store, tenantId = null, monthParam = null) {
@@ -8154,6 +8329,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
             siteName: gpsProof.hubName,
             coords: { latitude: gpsProof.effectiveLat, longitude: gpsProof.effectiveLng, accuracy: gpsProof.accuracy, capturedAt: gpsProof.capturedAt }
           });
+          await syncWorkerPayLedger(store, user.organisation_id, user.id);
           await saveStore(store);
           return { statusCode: 201, result: demoTimeSummary(user, store) };
         }
@@ -8247,6 +8423,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
               : 'verified_gps_exit';
             active.clockOutDetails = `GPS Exit Verified (${gpsProof.distanceMeters}m from ${gpsProof.hubName})`;
           }
+          await syncWorkerPayLedger(store, user.organisation_id, user.id);
           await saveStore(store);
           return { statusCode: 200, result: demoTimeSummary(user, store) };
         }
@@ -8364,6 +8541,104 @@ async function getUserRewards(user, store) {
 
 
   // ── Activity Reward Center & 10-Year Career Roadmap Endpoints ───────────────
+  // ── Continuous Real-Time Payroll & Zero-Fee EWA (Dayforce Wallet Model, CBN Compliant) ──
+  if (url.pathname === '/api/wallet/accrued' && request.method === 'GET') {
+    const store = await loadPayrollStoreForTenant(user.organisation_id);
+    const ledger = await syncWorkerPayLedger(store, user.organisation_id, user.id);
+    const org = (store.organisations || []).find(o => o.id === user.organisation_id) || { id: user.organisation_id };
+    const floatAcc = getOrInitTenantFloatAccount(store, org);
+    const employerFloatAvailableNgn = Math.round(Number(floatAcc.balances?.payroll_net || 0));
+    if (!databaseReady) await saveStore(store);
+    return sendJson(response, 200, { ok: true, ledger, employerFloatAvailableNgn, custodyPartner: floatAcc.custodyPartner });
+  }
+
+  if (url.pathname === '/api/wallet/ewa-disburse' && request.method === 'POST') {
+    const store = await loadPayrollStoreForTenant(user.organisation_id);
+    if (isTenantOverdueReadonly(store, user.organisation_id)) {
+      return sendJson(response, 402, {
+        error: 'Tenant subscription is in overdue read-only mode. Please settle your employer invoice to resume disbursals.',
+        code: 'TENANT_OVERDUE_READONLY'
+      });
+    }
+    const body = await readJson(request);
+    const amountNgn = Math.round(Number(body.amountNgn || body.amount || 0));
+    if (!Number.isFinite(amountNgn) || amountNgn <= 0) {
+      return sendJson(response, 400, { error: 'Requested disbursal amountNgn must be greater than 0.' });
+    }
+    const beforeLedger = await syncWorkerPayLedger(store, user.organisation_id, user.id);
+    const available = Number(beforeLedger?.net_available_disbursal || 0);
+    if (amountNgn > available) {
+      return sendJson(response, 409, {
+        error: `Requested ₦${amountNgn.toLocaleString()} exceeds accrued net available balance (₦${available.toLocaleString()}).`,
+        code: 'EXCEEDS_ACCRUED_NET_PAY',
+        net_available_disbursal: available
+      });
+    }
+    const org = (store.organisations || []).find(o => o.id === user.organisation_id) || { id: user.organisation_id };
+    const sf = ensureSettlementFloatState(store);
+    const floatAcc = getOrInitTenantFloatAccount(store, org);
+    const floatBal = Number(floatAcc.balances?.payroll_net || 0);
+    if (floatBal < amountNgn) {
+      return sendJson(response, 409, {
+        error: `Employer prefunded payroll custody float is insufficient (₦${floatBal.toLocaleString()} in custody vs ₦${amountNgn.toLocaleString()} requested).`,
+        code: 'EMPLOYER_FLOAT_UNDERFUNDED',
+        employerFloatAvailableNgn: floatBal
+      });
+    }
+
+    floatAcc.balances.payroll_net = Math.round(floatBal - amountNgn);
+    floatAcc.updatedAt = new Date().toISOString();
+    const rail = String(body.rail || 'Paystack NIP').trim();
+    const disbursalId = 'EWA-' + Date.now().toString(36).toUpperCase();
+    const disbursal = {
+      id: disbursalId,
+      organisationId: user.organisation_id,
+      membershipId: user.id,
+      userId: user.user_id || user.id,
+      cycleMonth: beforeLedger.cycleMonth,
+      amountNgn,
+      feeNgn: 0,
+      interestRatePct: 0,
+      employerSubscriptionNgn: 0,
+      cbnZeroLendingCompliant: true,
+      custodyPartner: floatAcc.custodyPartner,
+      rail: rail === 'Mono' ? 'Mono Open Banking NIP' : 'Paystack NIP',
+      status: 'DISBURSED_ZERO_FEE',
+      createdAt: floatAcc.updatedAt
+    };
+    if (!Array.isArray(store.ewaDisbursements)) store.ewaDisbursements = [];
+    store.ewaDisbursements.unshift(disbursal);
+    sf.ledger.unshift({
+      id: 'FLT-' + disbursalId,
+      tenantId: org.id,
+      companyCode: floatAcc.companyCode,
+      entryType: 'EWA_ZERO_FEE_DISBURSAL',
+      bucket: 'payroll_net',
+      amountNgn,
+      custodyPartner: floatAcc.custodyPartner,
+      reference: disbursalId,
+      actorEmail: user.email || 'worker@shiftrelayos.com',
+      reconciliationStatus: 'CLEARED_TO_WORKER_NUBAN',
+      createdAt: floatAcc.updatedAt
+    });
+
+    if (databaseReady && getPool()) {
+      await query(
+        `UPDATE settlement_float_accounts SET payroll_net_ngn = $2, updated_at = $3 WHERE organisation_id = $1`,
+        [org.id, floatAcc.balances.payroll_net, floatAcc.updatedAt]
+      ).catch(() => {});
+      await query(
+        `INSERT INTO settlement_float_ledger (id, organisation_id, entry_type, bucket, amount_ngn, custody_partner, reference, actor_email, reconciliation_status, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        ['FLT-' + disbursalId, org.id, 'EWA_ZERO_FEE_DISBURSAL', 'payroll_net', amountNgn, floatAcc.custodyPartner, disbursalId, user.email || 'worker', 'CLEARED_TO_WORKER_NUBAN', floatAcc.updatedAt]
+      ).catch(() => {});
+    }
+
+    const afterLedger = await syncWorkerPayLedger(store, user.organisation_id, user.id);
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, disbursal, ledger: afterLedger, employerFloatAvailableNgn: floatAcc.balances.payroll_net });
+  }
+
   if (url.pathname === '/api/rewards/overview' && request.method === 'GET') {
     const store = await getStore();
     const rw = await getUserRewards(user, store);
@@ -11467,54 +11742,33 @@ async function getUserRewards(user, store) {
     return sendJson(response, 201, { ok: true, batch });
   }
 
-  // 1l-c6. Automated PEPM Tenant Billing, Paystack Invoices & Subscription Enforcement
-  const ensureTenantBillingState = (store) => {
-    if (!store.tenantBilling || typeof store.tenantBilling !== 'object') {
-      store.tenantBilling = { pepmRateNgn: 2500, statuses: {}, invoices: [] };
-    }
-    if (!store.tenantBilling.statuses) store.tenantBilling.statuses = {};
-    if (!Array.isArray(store.tenantBilling.invoices)) store.tenantBilling.invoices = [];
-    return store.tenantBilling;
-  };
-
+  // 1l-c6. Dayforce-Style Tiered SaaS Billing, Post-Onboarding Lifecycle & Paystack Invoices
   if (url.pathname === '/api/admin/billing' && request.method === 'GET') {
     const store = await getStore();
     const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'finance_admin']);
     if (!adminCtx) return;
     const tb = ensureTenantBillingState(store);
-    const pepmRateNgn = Number(tb.pepmRateNgn || 2500);
     const orgs = store.organisations || [];
-    const activeMembers = (store.memberships || []).filter(m => m.status === 'active');
+    const tenants = orgs.map(o => getTenantBillingProfile(store, o));
+    const totalMrrNgn = tenants.reduce((s, t) => s + Number(t.billableThisCycleNgn || 0), 0);
+    const projectedFullMrrNgn = tenants.reduce((s, t) => s + Number(t.recurringMonthlyTotalNgn || 0), 0);
+    const overdueCount = tenants.filter(t => t.billingStatus === 'overdue_readonly').length;
+    const pilotCount = tenants.filter(t => t.billingStatus === 'pilot_active').length;
+    const onboardingPendingCount = tenants.filter(t => t.billingStatus === 'onboarding_pending').length;
 
-    const tenants = orgs.map(o => {
-      const headcount = activeMembers.filter(m => m.organisation_id === o.id).length;
-      const monthlyFeeNgn = headcount * pepmRateNgn;
-      const billingStatus = tb.statuses[o.id] || 'ACTIVE';
-      const tenantInvoices = tb.invoices.filter(inv => inv.tenantId === o.id);
-      const latestInvoice = tenantInvoices[0] || null;
-      return {
-        tenantId: o.id,
-        companyName: o.legal_name || o.name || 'Enterprise Tenant',
-        companyCode: o.company_code || o.code || 'SR-ORG',
-        ownerEmail: o.owner_email || o.adminEmail || 'billing@shiftrelayos.com',
-        activeHeadcount: headcount,
-        pepmRateNgn,
-        monthlyFeeNgn,
-        billingStatus,
-        latestInvoice
-      };
-    });
-
-    const totalMrrNgn = tenants.reduce((s, t) => s + t.monthlyFeeNgn, 0);
-    const overdueCount = tenants.filter(t => t.billingStatus === 'OVERDUE_LOCKED' || t.billingStatus === 'GRACE_PERIOD').length;
     return sendJson(response, 200, {
       ok: true,
-      pepmRateNgn,
+      planTiers: SAAS_PLAN_TIERS,
+      sandboxPilot: SANDBOX_PILOT_CONFIG,
+      lifecycleStates: BILLING_LIFECYCLE_STATES,
       totalMrrNgn,
+      projectedFullMrrNgn,
       totalArrNgn: totalMrrNgn * 12,
       overdueCount,
+      pilotCount,
+      onboardingPendingCount,
       tenants,
-      invoices: tb.invoices.slice(0, 30)
+      invoices: tb.invoices.slice(0, 50)
     });
   }
 
@@ -11524,19 +11778,94 @@ async function getUserRewards(user, store) {
     if (!adminCtx) return;
     const body = await readJson(request);
     const tenantId = String(body.tenantId || '').trim();
+    const invoiceType = String(body.invoiceType || 'monthly_recurring').trim().toLowerCase();
     const month = String(body.month || new Date().toISOString().slice(0, 7)).trim();
     const org = (store.organisations || []).find(o => o.id === tenantId);
     if (!org) return sendJson(response, 404, { error: 'Tenant not found.' });
 
     const tb = ensureTenantBillingState(store);
-    const pepmRateNgn = Number(tb.pepmRateNgn || 2500);
-    const headcount = (store.memberships || []).filter(m => m.organisation_id === org.id && m.status === 'active').length;
-    const amountNgn = Math.max(pepmRateNgn, headcount * pepmRateNgn);
+    const profile = getTenantBillingProfile(store, org);
+    const recipientEmail = profile.ownerEmail;
     const invoiceId = `INV-SR-${month.replace('-', '')}-${Date.now().toString().slice(-4)}`;
-    const recipientEmail = org.owner_email || org.adminEmail || 'owner@shiftrelayos.com';
-    let checkoutUrl = `https://paystack.com/pay/shiftrelay-${invoiceId.toLowerCase()}`;
 
-    if (process.env.PAYSTACK_SECRET_KEY) {
+    let amountNgn = 0;
+    let breakdown = {};
+    let subject = '';
+    let emailBody = '';
+
+    if (invoiceType === 'pilot' || invoiceType === 'sandbox_pilot') {
+      const pilot = calculateSandboxPilotInvoice();
+      amountNgn = pilot.amountNgn;
+      breakdown = {
+        invoiceType: 'SANDBOX_PILOT_30D',
+        planKey: profile.planKey,
+        durationDays: pilot.durationDays,
+        maxWorkers: pilot.maxWorkers,
+        baseFeeNgn: pilot.amountNgn,
+        pepmFeeNgn: 0,
+        overageFeeNgn: 0,
+        surgeFeeNgn: 0,
+        pilotCreditAppliedNgn: 0
+      };
+      subject = `[${invoiceId}] ShiftRelay 30-Day Paid Sandbox Pilot Invoice — ₦${amountNgn.toLocaleString()}`;
+      emailBody = `<p>Hello ${profile.companyName} Team,</p><p>Your 30-Day Paid Sandbox Pilot invoice <strong>${invoiceId}</strong> (up to 50 workers) is ready: <strong>₦${amountNgn.toLocaleString()}</strong> (100% creditable toward your one-time onboarding fee upon conversion).</p>`;
+    } else if (invoiceType === 'onboarding' || invoiceType === 'one_time_onboarding') {
+      const ob = calculateOnboardingInvoice({
+        planKey: profile.planKey,
+        pilotPaid: profile.pilotPaid,
+        pilotCreditAmountNgn: SANDBOX_PILOT_CONFIG.feeNgn
+      });
+      amountNgn = ob.netOnboardingFeeNgn;
+      breakdown = {
+        invoiceType: 'ONBOARDING_ONE_TIME',
+        planKey: ob.planKey,
+        grossOnboardingFeeNgn: ob.grossOnboardingFeeNgn,
+        pilotCreditAppliedNgn: ob.pilotCreditAppliedNgn,
+        baseFeeNgn: ob.netOnboardingFeeNgn,
+        pepmFeeNgn: 0,
+        overageFeeNgn: 0,
+        surgeFeeNgn: 0
+      };
+      subject = `[${invoiceId}] ShiftRelay ${ob.planLabel} Onboarding Invoice — ₦${amountNgn.toLocaleString()}`;
+      emailBody = `<p>Hello ${profile.companyName} Team,</p><p>Your one-time <strong>${ob.planLabel}</strong> onboarding invoice <strong>${invoiceId}</strong> is ready.</p><p>Gross Onboarding Fee: ₦${ob.grossOnboardingFeeNgn.toLocaleString()}${ob.pilotCreditAppliedNgn > 0 ? ` &minus; 100% Sandbox Pilot Credit: ₦${ob.pilotCreditAppliedNgn.toLocaleString()}` : ''} = <strong>₦${amountNgn.toLocaleString()}</strong></p>`;
+    } else {
+      if (!profile.recurringBillingEnabled) {
+        return sendJson(response, 409, {
+          error: `Recurring Base + PEPM billing cannot start while tenant is in '${profile.billingStatus}' (onboarding not yet marked complete).`,
+          code: 'ONBOARDING_NOT_COMPLETED',
+          billingStatus: profile.billingStatus,
+          onboardingCompleted: profile.onboardingCompleted
+        });
+      }
+      const monthly = calculateTenantMonthlyInvoice({
+        planKey: profile.planKey,
+        coreHeadcount: body.coreHeadcount ?? profile.coreHeadcount,
+        seasonalSurgeHeadcount: body.seasonalSurgeHeadcount ?? profile.seasonalSurgeHeadcount,
+        billingStatus: profile.billingStatus,
+        onboardingCompleted: true
+      });
+      amountNgn = monthly.recurringMonthlyTotalNgn;
+      breakdown = {
+        invoiceType: 'MONTHLY_RECURRING',
+        planKey: monthly.planKey,
+        planLabel: monthly.planLabel,
+        coreHeadcount: monthly.coreHeadcount,
+        cappedCoreHeadcount: monthly.cappedCoreHeadcount,
+        overageHeadcount: monthly.overageHeadcount,
+        seasonalHeadcount: monthly.seasonalSurgeHeadcount,
+        baseFeeNgn: monthly.baseFeeNgn,
+        pepmRateNgn: monthly.pepmRateNgn,
+        pepmFeeNgn: monthly.corePepmFeeNgn,
+        overageFeeNgn: monthly.overageFeeNgn,
+        surgeFeeNgn: monthly.surgeFeeNgn,
+        pilotCreditAppliedNgn: 0
+      };
+      subject = `[${invoiceId}] ShiftRelay ${monthly.planLabel} Monthly Invoice (${month}) — ₦${amountNgn.toLocaleString()}`;
+      emailBody = `<p>Hello ${profile.companyName} Team,</p><p>Your monthly ShiftRelay <strong>${monthly.planLabel}</strong> invoice <strong>${invoiceId}</strong> for <strong>${month}</strong> is ready (Employer-Paid Only — ₦0 charged to workers).</p><p>Base: ₦${monthly.baseFeeNgn.toLocaleString()} + Core PEPM (${monthly.cappedCoreHeadcount} &times; ₦${monthly.pepmRateNgn.toLocaleString()}): ₦${monthly.corePepmFeeNgn.toLocaleString()}${monthly.overageFeeNgn > 0 ? ` + Overage (${monthly.overageHeadcount} &times; ₦3,000): ₦${monthly.overageFeeNgn.toLocaleString()}` : ''}${monthly.surgeFeeNgn > 0 ? ` + Seasonal Surge (${monthly.seasonalSurgeHeadcount} &times; ₦2,500): ₦${monthly.surgeFeeNgn.toLocaleString()}` : ''} = <strong>₦${amountNgn.toLocaleString()}</strong></p>`;
+    }
+
+    let checkoutUrl = `https://paystack.com/pay/shiftrelay-${invoiceId.toLowerCase()}`;
+    if (process.env.PAYSTACK_SECRET_KEY && amountNgn > 0) {
       try {
         const initRes = await fetch('https://api.paystack.co/transaction/initialize', {
           method: 'POST',
@@ -11548,7 +11877,7 @@ async function getUserRewards(user, store) {
             email: recipientEmail,
             amount: amountNgn * 100,
             reference: invoiceId,
-            metadata: { tenantId: org.id, month, headcount, pepmRateNgn }
+            metadata: { tenantId: org.id, month, billedTo: 'EMPLOYER_ONLY', ...breakdown }
           }),
           signal: AbortSignal.timeout(4500)
         });
@@ -11562,11 +11891,12 @@ async function getUserRewards(user, store) {
     const invoice = {
       invoiceId,
       tenantId: org.id,
-      companyName: org.legal_name || org.name,
-      companyCode: org.company_code || org.code || 'SR-ORG',
+      companyName: profile.companyName,
+      companyCode: profile.companyCode,
       month,
-      headcount,
-      pepmRateNgn,
+      billedTo: 'EMPLOYER_ONLY',
+      workerChargeNgn: 0,
+      ...breakdown,
       amountNgn,
       status: 'UNPAID',
       checkoutUrl,
@@ -11574,40 +11904,189 @@ async function getUserRewards(user, store) {
       paidAt: null
     };
     tb.invoices.unshift(invoice);
+
+    if (databaseReady && getPool()) {
+      await query(
+        `INSERT INTO tenant_billing_invoices (
+          id, organisation_id, invoice_type, plan_tier, cycle_month,
+          core_headcount, overage_headcount, seasonal_headcount,
+          base_fee_ngn, pepm_fee_ngn, overage_fee_ngn, surge_fee_ngn,
+          pilot_credit_applied_ngn, amount_ngn, status, checkout_url, issued_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        ON CONFLICT (id) DO NOTHING`,
+        [
+          invoice.invoiceId, org.id, invoice.invoiceType, invoice.planKey || profile.planKey, month,
+          Number(invoice.coreHeadcount || 0), Number(invoice.overageHeadcount || 0), Number(invoice.seasonalHeadcount || 0),
+          Number(invoice.baseFeeNgn || 0), Number(invoice.pepmFeeNgn || 0), Number(invoice.overageFeeNgn || 0), Number(invoice.surgeFeeNgn || 0),
+          Number(invoice.pilotCreditAppliedNgn || 0), amountNgn, 'UNPAID', checkoutUrl, invoice.issuedAt
+        ]
+      ).catch(() => {});
+    }
+
     await saveStore(store);
 
     sendShiftRelayEmail({
       to: recipientEmail,
-      subject: `[${invoiceId}] ShiftRelay OS PEPM Subscription Invoice (${month}) — ₦${amountNgn.toLocaleString()}`,
-      html: `<p>Hello ${org.legal_name || org.name} Team,</p><p>Your monthly ShiftRelay OS PEPM invoice <strong>${invoiceId}</strong> for <strong>${month}</strong> is ready.</p><p><strong>Active Headcount:</strong> ${headcount} workers &times; ₦${pepmRateNgn.toLocaleString()} PEPM = <strong>₦${amountNgn.toLocaleString()}</strong></p><p><a href="${checkoutUrl}">Pay Securely via Paystack</a></p>`,
-      source: 'PEPM Billing Engine'
+      subject,
+      html: `${emailBody}<p><a href="${checkoutUrl}">Pay Securely via Paystack Checkout</a></p>`,
+      source: 'Tiered SaaS Billing Engine'
     }).catch(() => {});
 
     return sendJson(response, 201, { ok: true, invoice });
   }
 
+  if (url.pathname.endsWith('/complete-onboarding') && url.pathname.startsWith('/api/admin/billing/tenants/') && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin']);
+    if (!adminCtx) return;
+    const parts = url.pathname.split('/');
+    const tenantId = decodeURIComponent(parts[parts.length - 2] || '');
+    const org = (store.organisations || []).find(o => o.id === tenantId);
+    if (!org) return sendJson(response, 404, { error: 'Tenant not found.' });
+
+    const tb = ensureTenantBillingState(store);
+    const prev = tb.tenantPlans[tenantId] || {};
+    const nowIso = new Date().toISOString();
+    tb.tenantPlans[tenantId] = {
+      ...prev,
+      planKey: resolvePlanTier(prev.planKey || org).key,
+      billingStatus: 'active_subscription',
+      onboardingCompleted: true,
+      onboardingCompletedAt: nowIso
+    };
+    tb.statuses[tenantId] = 'active_subscription';
+    org.billing_status = 'active_subscription';
+    org.onboarding_completed = true;
+    org.onboarding_completed_at = nowIso;
+
+    if (databaseReady && getPool()) {
+      await query(
+        `UPDATE organisations SET billing_status = 'active_subscription', onboarding_completed = TRUE, onboarding_completed_at = $2 WHERE id = $1`,
+        [tenantId, nowIso]
+      ).catch(() => {});
+    }
+
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'TENANT_ONBOARDING_COMPLETED_BILLING_ACTIVATED',
+      targetType: 'tenant',
+      targetId: tenantId,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { billingStatus: 'active_subscription', onboardingCompletedAt: nowIso }
+    });
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, tenant: getTenantBillingProfile(store, org) });
+  }
+
   if (url.pathname.startsWith('/api/admin/billing/tenants/') && request.method === 'PATCH') {
     const store = await getStore();
-    const adminCtx = await requireAdminGate(request, response, store, ['owner_root']);
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'finance_admin']);
     if (!adminCtx) return;
     const tenantId = decodeURIComponent(url.pathname.split('/').pop() || '');
+    const org = (store.organisations || []).find(o => o.id === tenantId);
+    if (!org) return sendJson(response, 404, { error: 'Tenant not found.' });
     const body = await readJson(request);
     const tb = ensureTenantBillingState(store);
+    const planState = tb.tenantPlans[tenantId] || {};
 
+    if (body.planKey) {
+      const nextTier = resolvePlanTier(body.planKey);
+      planState.planKey = nextTier.key;
+      org.plan_tier = nextTier.key;
+      org.subscription_tier = nextTier.key;
+      org.base_fee_ngn = nextTier.baseFeeNgn;
+      org.pepm_ngn = nextTier.pepmRateNgn;
+    }
+    if (body.seasonalSurgeHeadcount !== undefined) {
+      planState.seasonalSurgeHeadcount = Math.max(0, Math.round(Number(body.seasonalSurgeHeadcount || 0)));
+    }
+    if (body.pilotPaid !== undefined) {
+      planState.pilotPaid = Boolean(body.pilotPaid);
+      planState.pilotCreditNgn = planState.pilotPaid ? SANDBOX_PILOT_CONFIG.feeNgn : 0;
+      org.pilot_paid = planState.pilotPaid;
+      org.pilot_credit_ngn = planState.pilotCreditNgn;
+    }
+    if (body.onboardingCompleted !== undefined) {
+      planState.onboardingCompleted = Boolean(body.onboardingCompleted);
+      org.onboarding_completed = planState.onboardingCompleted;
+      if (planState.onboardingCompleted) {
+        const nowIso = new Date().toISOString();
+        planState.onboardingCompletedAt = nowIso;
+        org.onboarding_completed_at = nowIso;
+      }
+    }
     if (body.billingStatus) {
-      const allowed = new Set(['ACTIVE', 'GRACE_PERIOD', 'OVERDUE_LOCKED']);
-      const nextSt = String(body.billingStatus).toUpperCase();
-      if (!allowed.has(nextSt)) return sendJson(response, 400, { error: 'Invalid billingStatus.' });
+      const nextSt = normalizeBillingLifecycleStatus(body.billingStatus);
+      if (!BILLING_LIFECYCLE_STATES.includes(nextSt)) {
+        return sendJson(response, 400, { error: 'Invalid billingStatus.' });
+      }
+      planState.billingStatus = nextSt;
       tb.statuses[tenantId] = nextSt;
+      org.billing_status = nextSt;
+      if (nextSt === 'active_subscription') {
+        planState.onboardingCompleted = true;
+        org.onboarding_completed = true;
+      }
+      if ((nextSt === 'pilot_active' || nextSt === 'onboarding_pending') && body.onboardingCompleted === undefined) {
+        planState.onboardingCompleted = false;
+        org.onboarding_completed = false;
+      }
     }
     if (body.markInvoicePaidId) {
       const inv = tb.invoices.find(i => i.invoiceId === body.markInvoicePaidId);
       if (inv) {
         inv.status = 'PAID';
         inv.paidAt = new Date().toISOString();
-        tb.statuses[tenantId] = 'ACTIVE';
+        if (inv.invoiceType === 'SANDBOX_PILOT_30D') {
+          planState.pilotPaid = true;
+          planState.pilotCreditNgn = SANDBOX_PILOT_CONFIG.feeNgn;
+          planState.billingStatus = 'pilot_active';
+          tb.statuses[tenantId] = 'pilot_active';
+          org.pilot_paid = true;
+          org.pilot_credit_ngn = SANDBOX_PILOT_CONFIG.feeNgn;
+          org.billing_status = 'pilot_active';
+        } else if (inv.invoiceType === 'ONBOARDING_ONE_TIME') {
+          planState.onboardingFeePaid = true;
+          org.onboarding_fee_paid = true;
+          planState.billingStatus = 'active_subscription';
+          planState.onboardingCompleted = true;
+          tb.statuses[tenantId] = 'active_subscription';
+          org.billing_status = 'active_subscription';
+          org.onboarding_completed = true;
+        } else {
+          planState.billingStatus = 'active_subscription';
+          tb.statuses[tenantId] = 'active_subscription';
+          org.billing_status = 'active_subscription';
+        }
+        if (databaseReady && getPool()) {
+          await query(`UPDATE tenant_billing_invoices SET status = 'PAID', paid_at = $2 WHERE id = $1`, [inv.invoiceId, inv.paidAt]).catch(() => {});
+        }
       }
     }
+    tb.tenantPlans[tenantId] = planState;
+
+    if (databaseReady && getPool()) {
+      await query(
+        `UPDATE organisations
+         SET plan_tier = $2, billing_status = $3, onboarding_completed = $4, pilot_paid = $5, pilot_credit_ngn = $6
+         WHERE id = $1`,
+        [
+          tenantId,
+          resolvePlanTier(planState.planKey || org).key,
+          tb.statuses[tenantId] || org.billing_status || 'active_subscription',
+          Boolean(org.onboarding_completed),
+          Boolean(org.pilot_paid),
+          Number(org.pilot_credit_ngn || 0)
+        ]
+      ).catch(() => {});
+    }
+
     await appendAdminAuditLog({
       store,
       databaseReady,
@@ -11620,10 +12099,195 @@ async function getUserRewards(user, store) {
       ipAddress: getRequestIp(request),
       userAgent: getUserAgent(request),
       outcome: 'SUCCESS',
-      details: { billingStatus: tb.statuses[tenantId] || 'ACTIVE', markInvoicePaidId: body.markInvoicePaidId || null }
+      details: {
+        planKey: planState.planKey || org.plan_tier,
+        billingStatus: tb.statuses[tenantId] || 'active_subscription',
+        markInvoicePaidId: body.markInvoicePaidId || null
+      }
     });
     await saveStore(store);
-    return sendJson(response, 200, { ok: true, tenantId, billingStatus: tb.statuses[tenantId] || 'ACTIVE' });
+    const updatedProfile = getTenantBillingProfile(store, org);
+    return sendJson(response, 200, { ok: true, tenantId, billingStatus: updatedProfile.billingStatus, tenant: updatedProfile });
+  }
+
+  // 1l-c7. Prefunded Payroll & Statutory Settlement Float Ledger (Partner Custody)
+  if (url.pathname === '/api/admin/treasury/float' && request.method === 'GET') {
+    const store = await loadPayrollStoreForTenant(null);
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'finance_admin']);
+    if (!adminCtx) return;
+    const sf = ensureSettlementFloatState(store);
+    const orgs = store.organisations || [];
+
+    const accounts = orgs.map(org => {
+      const acc = getOrInitTenantFloatAccount(store, org);
+      const run = compilePayrollRun(store, org.id);
+      const emps = run.employees || [];
+      const accruedObligations = {
+        payroll_net: Math.round(Number(run.summary?.totalNet || 0)),
+        paye: Math.round(Number(run.summary?.totalPAYE || 0)),
+        pencom: Math.round(emps.reduce((s, e) => s + Number(e.pensionEmployee || 0) + Number(e.pensionEmployer || 0), 0)),
+        nhf: Math.round(emps.reduce((s, e) => s + Number(e.nhf || 0), 0)),
+        nsitf: Math.round(emps.reduce((s, e) => s + Number(e.nsitf || 0), 0))
+      };
+      return computeTenantFloatReconciliation({ floatAccount: acc, accruedObligations });
+    });
+
+    const totalPrefundedNgn = accounts.reduce((s, a) => s + a.totalPrefundedNgn, 0);
+    const totalObligationNgn = accounts.reduce((s, a) => s + a.totalObligationNgn, 0);
+    return sendJson(response, 200, {
+      ok: true,
+      buckets: FLOAT_BUCKETS,
+      totalPrefundedNgn,
+      totalObligationNgn,
+      totalVarianceNgn: totalPrefundedNgn - totalObligationNgn,
+      accounts,
+      ledger: sf.ledger.slice(0, 60)
+    });
+  }
+
+  if (url.pathname === '/api/admin/treasury/float/deposit' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'finance_admin']);
+    if (!adminCtx) return;
+    const body = await readJson(request);
+    const tenantId = String(body.tenantId || '').trim();
+    const bucket = String(body.bucket || 'payroll_net').trim().toLowerCase();
+    const amountNgn = Math.round(Number(body.amountNgn || 0));
+    if (!FLOAT_BUCKETS.includes(bucket)) return sendJson(response, 400, { error: 'Invalid float bucket.' });
+    if (!Number.isFinite(amountNgn) || amountNgn <= 0) return sendJson(response, 400, { error: 'amountNgn must be greater than 0.' });
+    const org = (store.organisations || []).find(o => o.id === tenantId);
+    if (!org) return sendJson(response, 404, { error: 'Tenant not found.' });
+
+    const sf = ensureSettlementFloatState(store);
+    const acc = getOrInitTenantFloatAccount(store, org);
+    if (body.custodyPartner) acc.custodyPartner = String(body.custodyPartner).trim();
+    acc.balances[bucket] = Math.round(Number(acc.balances[bucket] || 0) + amountNgn);
+    acc.updatedAt = new Date().toISOString();
+
+    const entryId = 'FLT-DEP-' + Date.now().toString(36).toUpperCase();
+    const ledgerEntry = {
+      id: entryId,
+      tenantId: org.id,
+      companyCode: acc.companyCode,
+      entryType: 'PREFUND_DEPOSIT',
+      bucket,
+      amountNgn,
+      custodyPartner: acc.custodyPartner,
+      reference: String(body.reference || entryId),
+      actorEmail: adminCtx.adminUser.email,
+      reconciliationStatus: 'CREDITED_PARTNER_CUSTODY',
+      createdAt: acc.updatedAt
+    };
+    sf.ledger.unshift(ledgerEntry);
+
+    if (databaseReady && getPool()) {
+      await query(
+        `INSERT INTO settlement_float_accounts (organisation_id, custody_partner, payroll_net_ngn, paye_ngn, pencom_ngn, nhf_ngn, nsitf_ngn, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         ON CONFLICT (organisation_id) DO UPDATE SET
+           custody_partner = EXCLUDED.custody_partner,
+           payroll_net_ngn = EXCLUDED.payroll_net_ngn,
+           paye_ngn = EXCLUDED.paye_ngn,
+           pencom_ngn = EXCLUDED.pencom_ngn,
+           nhf_ngn = EXCLUDED.nhf_ngn,
+           nsitf_ngn = EXCLUDED.nsitf_ngn,
+           updated_at = EXCLUDED.updated_at`,
+        [org.id, acc.custodyPartner, acc.balances.payroll_net, acc.balances.paye, acc.balances.pencom, acc.balances.nhf, acc.balances.nsitf, acc.updatedAt]
+      ).catch(() => {});
+      await query(
+        `INSERT INTO settlement_float_ledger (id, organisation_id, entry_type, bucket, amount_ngn, custody_partner, reference, actor_email, reconciliation_status, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [ledgerEntry.id, org.id, ledgerEntry.entryType, bucket, amountNgn, acc.custodyPartner, ledgerEntry.reference, ledgerEntry.actorEmail, ledgerEntry.reconciliationStatus, acc.updatedAt]
+      ).catch(() => {});
+    }
+
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'TREASURY_FLOAT_PREFUNDED',
+      targetType: 'tenant',
+      targetId: org.id,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { entryId, bucket, amountNgn, custodyPartner: acc.custodyPartner }
+    });
+    await saveStore(store);
+    return sendJson(response, 201, { ok: true, account: acc, entry: ledgerEntry });
+  }
+
+  if (url.pathname === '/api/admin/treasury/float/clear' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'finance_admin']);
+    if (!adminCtx) return;
+    const body = await readJson(request);
+    const tenantId = String(body.tenantId || '').trim();
+    const bucket = String(body.bucket || 'payroll_net').trim().toLowerCase();
+    const amountNgn = Math.round(Number(body.amountNgn || 0));
+    if (!FLOAT_BUCKETS.includes(bucket)) return sendJson(response, 400, { error: 'Invalid float bucket.' });
+    if (!Number.isFinite(amountNgn) || amountNgn <= 0) return sendJson(response, 400, { error: 'amountNgn must be greater than 0.' });
+    const org = (store.organisations || []).find(o => o.id === tenantId);
+    if (!org) return sendJson(response, 404, { error: 'Tenant not found.' });
+
+    const sf = ensureSettlementFloatState(store);
+    const acc = getOrInitTenantFloatAccount(store, org);
+    const currentBal = Number(acc.balances[bucket] || 0);
+    if (currentBal < amountNgn) {
+      return sendJson(response, 409, {
+        error: `Insufficient prefunded ${bucket} float balance (₦${currentBal.toLocaleString()} available vs ₦${amountNgn.toLocaleString()} requested).`,
+        code: 'INSUFFICIENT_PREFUNDED_FLOAT'
+      });
+    }
+    acc.balances[bucket] = Math.round(currentBal - amountNgn);
+    acc.updatedAt = new Date().toISOString();
+
+    const entryId = 'FLT-CLR-' + Date.now().toString(36).toUpperCase();
+    const ledgerEntry = {
+      id: entryId,
+      tenantId: org.id,
+      companyCode: acc.companyCode,
+      entryType: 'SETTLEMENT_CLEARED',
+      bucket,
+      amountNgn,
+      custodyPartner: acc.custodyPartner,
+      reference: String(body.reference || entryId),
+      actorEmail: adminCtx.adminUser.email,
+      reconciliationStatus: 'CLEARED_TO_BENEFICIARY',
+      createdAt: acc.updatedAt
+    };
+    sf.ledger.unshift(ledgerEntry);
+
+    if (databaseReady && getPool()) {
+      await query(
+        `UPDATE settlement_float_accounts SET ${bucket}_ngn = $2, updated_at = $3 WHERE organisation_id = $1`,
+        [org.id, acc.balances[bucket], acc.updatedAt]
+      ).catch(() => {});
+      await query(
+        `INSERT INTO settlement_float_ledger (id, organisation_id, entry_type, bucket, amount_ngn, custody_partner, reference, actor_email, reconciliation_status, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [ledgerEntry.id, org.id, ledgerEntry.entryType, bucket, amountNgn, acc.custodyPartner, ledgerEntry.reference, ledgerEntry.actorEmail, ledgerEntry.reconciliationStatus, acc.updatedAt]
+      ).catch(() => {});
+    }
+
+    await appendAdminAuditLog({
+      store,
+      databaseReady,
+      actorId: adminCtx.adminUser.id,
+      actorEmail: adminCtx.adminUser.email,
+      actorRole: adminCtx.role,
+      eventType: 'TREASURY_FLOAT_CLEARED',
+      targetType: 'tenant',
+      targetId: org.id,
+      ipAddress: getRequestIp(request),
+      userAgent: getUserAgent(request),
+      outcome: 'SUCCESS',
+      details: { entryId, bucket, amountNgn, custodyPartner: acc.custodyPartner }
+    });
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, account: acc, entry: ledgerEntry });
   }
 
   // 1l-d. Tenant Employee Roster Lookup (For Company Staffs Drawer)
@@ -11712,8 +12376,9 @@ async function getUserRewards(user, store) {
     const formattedVolume = '₦' + totalGross.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const totalWorkers = payroll.summary?.employeeCount ?? contracts.length;
-    const pepmRateNgn = 2500;
-    const estimatedSaaSMrrNgn = totalWorkers * pepmRateNgn;
+    const tenantBillingSummaries = tenants.map(o => getTenantBillingProfile(store, o));
+    const estimatedSaaSMrrNgn = tenantBillingSummaries.reduce((s, t) => s + Number(t.billableThisCycleNgn || 0), 0);
+    const pepmRateNgn = totalWorkers > 0 ? Math.round(estimatedSaaSMrrNgn / totalWorkers) : 3500;
     const estimatedSaaSArrNgn = estimatedSaaSMrrNgn * 12;
 
     const usersById = new Map((store.portalUsers || []).map(u => [u.id, u]));

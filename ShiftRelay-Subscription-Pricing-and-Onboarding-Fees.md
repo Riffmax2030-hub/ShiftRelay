@@ -10,16 +10,16 @@ This document establishes the official commercial pricing schedule for **ShiftRe
 
 ## 1. Commercial Subscription & Onboarding Fee Schedule (Naira)
 
-ShiftRelay employs a transparent **Base Fee + Per Employee Per Month (PEPM)** SaaS structure, paired with a mandatory one-time **Onboarding & Site Blueprinting Fee**:
+ShiftRelay employs a transparent, employer-paid **Base Fee + Volume-Discounted Per Employee Per Month (PEPM)** SaaS structure, paired with a mandatory one-time **Onboarding & Site Blueprinting Fee** (monthly subscription billing begins after go-live; workers are never charged):
 
 | Pricing Plan | Monthly Base Platform Fee | Monthly Rate per Worker (PEPM) | Maximum Staff Headcount Limit | One-Time Onboarding & Setup Fee | Support SLA Included | Target Employer Category |
 |---|---|---|---|---|---|---|
-| **Professional** | ₦150,000 / month | ₦3,500 / worker | Up to 150 Workers | ₦750,000 | Business Hours (Email / WhatsApp Support) | Single-site light manufacturing, commercial bakeries, packaging lines |
-| **Enterprise (Core Beachhead)** | ₦400,000 / month | ₦4,500 / worker | Up to 500 Workers | ₦1,500,000 | 24/7 Priority Hotline + Dedicated Account Manager | 24/7 industrial plants, grain milling, FMCG bottling, plastic factories |
-| **Enterprise Plus** | ₦750,000 / month | ₦5,500 / worker | Up to 1,500 Workers | ₦3,000,000 | 1-Hour Dedicated SLA + On-Site Emergency Dispatch | Multi-plant conglomerates, cement plants, port terminal hubs |
+| **Professional** | ₦150,000 / month | ₦4,500 / worker | Up to 150 Workers | ₦750,000 | Business Hours (Email / WhatsApp Support) | Single-site light manufacturing, commercial bakeries, packaging lines |
+| **Enterprise (Core Beachhead)** | ₦400,000 / month | ₦3,500 / worker | Up to 500 Workers | ₦1,500,000 | 24/7 Priority Hotline + Dedicated Account Manager | 24/7 industrial plants, grain milling, FMCG bottling, plastic factories |
+| **Enterprise Plus** | ₦750,000 / month | ₦2,500 / worker | Up to 1,500 Workers | ₦3,000,000 | 1-Hour Dedicated SLA + On-Site Emergency Dispatch | Multi-plant conglomerates, cement plants, port terminal hubs |
 
 *Notes on Headcount Elasticity:*  
-* Additional workers exceeding tier limits are billed at ₦4,000/worker/month on Enterprise tiers.  
+* Additional workers exceeding tier limits are billed at ₦3,000/worker/month on Enterprise tiers.  
 * Seasonal/casual workers during peak packaging quarters are billed at a flexible surge rate of ₦2,500/worker/month with no base fee increase.
 
 ---
@@ -57,14 +57,14 @@ We analyzed standard operational operating expenditure (OpEx) budgets for typica
 * **Factory Payroll Size (150 Workers @ ₦120,000 average wage):** ~₦18,000,000 / month.
 * **Monthly Overtime Discrepancy & Time-Leakage Budget:** ₦900,000 – ₦1,500,000 / month (historically lost to buddy card-swiping, manual paper transcription errors, and unverified extra hours).
 * **HR Payroll Processing Time:** 3 to 5 full working days per month (incurring overtime costs for finance/accounting teams).
-* **ShiftRelay Enterprise Cost (150 Workers @ ₦4,500 + ₦400k Base):** ₦1,075,000 / month.
+* **ShiftRelay Enterprise Cost (150 Workers @ ₦3,500 + ₦400k Base):** ₦925,000 / month.
 
 ### 3.2 The Quantified ROI Case for the Factory Owner
 * **Net Monthly Savings Delivered:** 
   - Eradication of ghost hours and proxy punches (saving ~₦800,000/mo).
   - Elimination of manual timesheet data entry (saving 32 HR labor hours = ~₦250,000/mo).
   - Guaranteeing zero PenCom late remittance fines (2% monthly compounding penalty avoided = ~₦360,000/mo).
-* **Total Value Delivered:** **₦1,410,000 monthly value vs. ₦1,075,000 cost.**
+* **Total Value Delivered:** **₦1,410,000 monthly value vs. ₦925,000 cost.**
 * **Payback Period on Onboarding Fee (₦1.5M):** Under **6 weeks** from go-live.
 
 ---
@@ -90,7 +90,7 @@ During customer discovery with Nigerian manufacturing and operational personnel:
 
 ## 5. Summary Conclusion
 
-The proposed commercial model (**₦400,000 Base + ₦4,500 PEPM with ₦1,500,000 Setup**) strikes the optimal balance between high SaaS margins (76.5% monthly gross margin) and rapid enterprise adoption by industrial plant owners looking to eliminate ghost worker losses and regulatory penalties.
+The proposed commercial model (**₦400,000 Base + ₦3,500 PEPM with ₦1,500,000 Setup**, volume-discounted from ₦4,500 PEPM on Professional down to ₦2,500 PEPM on Enterprise Plus) strikes the optimal balance between high SaaS margins (72%+ monthly gross margin) and rapid enterprise adoption by industrial plant owners looking to eliminate ghost worker losses and regulatory penalties.
 
 ---
 *ShiftRelay Technologies Limited — Enterprise Pricing & Setup Specification.*

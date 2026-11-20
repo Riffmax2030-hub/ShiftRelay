@@ -16,9 +16,9 @@ Our subscription pricing is structured into three clear, transparent tiers with 
 
 | Tier | Headcount Range | Monthly Base Fee | Per-Worker / Month (PEPM) | One-Time Setup & Onboarding Fee | Key Inclusions |
 |---|---|---|---|---|---|
-| **Professional** | 50 – 199 Workers | ₦150,000 | ₦3,500 | ₦750,000 | Core PWA, GPS Snapshot, Statutory Payroll, Digital Payslips |
-| **Enterprise (Core Pilot)** | 200 – 999 Workers | ₦400,000 | ₦4,500 | ₦1,500,000 | Dual-Mode Gate QR, WebAuthn Biometrics, Offline Queue, Push to Finance, Executive Dashboard |
-| **Enterprise Plus** | 1,000+ Workers | ₦750,000 | ₦5,500 | ₦3,000,000 | Multi-Site Management, Custom Union CBA Rules, Dedicated Account Lead, Forensic Audit Reports |
+| **Professional** | 50 – 199 Workers | ₦150,000 | ₦4,500 | ₦750,000 | Core PWA, GPS Snapshot, Statutory Payroll, Digital Payslips |
+| **Enterprise (Core Pilot)** | 200 – 999 Workers | ₦400,000 | ₦3,500 | ₦1,500,000 | Dual-Mode Gate QR, WebAuthn Biometrics, Offline Queue, Push to Finance, Executive Dashboard |
+| **Enterprise Plus** | 1,000+ Workers | ₦750,000 | ₦2,500 | ₦3,000,000 | Multi-Site Management, Custom Union CBA Rules, Dedicated Account Lead, Forensic Audit Reports |
 
 ---
 
@@ -39,8 +39,8 @@ To ensure high gross margins and prevent underpricing, pricing was calibrated ag
 * **SMS Gateway Activation & Sync Tokens:** ₦35,000 / month
 * **Dedicated Customer Success & Payroll Advisory:** ₦150,000 / month
 * **Total Monthly Servicing Cost:** ₦305,000 / month  
-* **Monthly Subscription Revenue (200 Workers × ₦4,500 + ₦400k Base):** ₦1,300,000 / month  
-* **Monthly Operating Profit Margin:** **₦995,000 / month (76.5% Gross Margin)**
+* **Monthly Subscription Revenue (200 Workers × ₦3,500 + ₦400k Base):** ₦1,100,000 / month  
+* **Monthly Operating Profit Margin:** **₦795,000 / month (72.3% Gross Margin)**
 
 ---
 
@@ -89,7 +89,7 @@ Enterprise Frontline Platform across a designated facility or production unit
 
 3. COMMERCIAL TERMS
 - Flat 30-Day Pilot Fee: ₦250,000 (Credited in full against setup fee upon contract).
-- Post-Pilot Subscription Rate: ₦4,500 per employee per month + ₦400,000 monthly base.
+- Post-Pilot Subscription Rate: ₦3,500 per employee per month + ₦400,000 monthly base (billed to Client monthly after onboarding).
 - Initial Onboarding & Site Blueprinting Fee: ₦1,500,000 (One-time).
 
 4. DATA PROTECTION & SOVEREIGNTY

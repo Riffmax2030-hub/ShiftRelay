@@ -67,6 +67,66 @@ const schema = `
   alter table organisations add column if not exists hub_lat double precision;
   alter table organisations add column if not exists hub_lng double precision;
   alter table organisations add column if not exists hub_perimeter integer;
+  alter table organisations add column if not exists plan_tier varchar(32) not null default 'professional';
+  alter table organisations add column if not exists billing_status varchar(32) not null default 'active_subscription';
+  alter table organisations add column if not exists onboarding_completed boolean not null default false;
+  alter table organisations add column if not exists onboarding_completed_at timestamptz;
+  alter table organisations add column if not exists pilot_paid boolean not null default false;
+  alter table organisations add column if not exists pilot_credit_ngn integer not null default 0;
+  create table if not exists tenant_billing_invoices (
+    id text primary key,
+    organisation_id uuid not null references organisations(id) on delete cascade,
+    invoice_type varchar(32) not null,
+    plan_tier varchar(32) not null,
+    cycle_month varchar(16),
+    core_headcount integer not null default 0,
+    overage_headcount integer not null default 0,
+    seasonal_headcount integer not null default 0,
+    base_fee_ngn integer not null default 0,
+    pepm_fee_ngn integer not null default 0,
+    overage_fee_ngn integer not null default 0,
+    surge_fee_ngn integer not null default 0,
+    pilot_credit_applied_ngn integer not null default 0,
+    amount_ngn integer not null,
+    status varchar(24) not null default 'UNPAID',
+    checkout_url text,
+    issued_at timestamptz not null default now(),
+    paid_at timestamptz
+  );
+  create table if not exists worker_pay_ledgers (
+    id uuid primary key default gen_random_uuid(),
+    organisation_id uuid not null references organisations(id) on delete cascade,
+    membership_id uuid not null references memberships(id) on delete cascade,
+    cycle_month varchar(16) not null,
+    gross_earned_todate numeric(14,2) not null default 0,
+    statutory_withheld_todate jsonb not null default '{}'::jsonb,
+    ewa_disbursed_todate numeric(14,2) not null default 0,
+    net_available_disbursal numeric(14,2) not null default 0,
+    updated_at timestamptz not null default now(),
+    unique(organisation_id, membership_id, cycle_month)
+  );
+  create table if not exists settlement_float_accounts (
+    organisation_id uuid primary key references organisations(id) on delete cascade,
+    custody_partner text not null default 'Paystack Titan / Access Bank Custody',
+    payroll_net_ngn numeric(14,2) not null default 0,
+    paye_ngn numeric(14,2) not null default 0,
+    pencom_ngn numeric(14,2) not null default 0,
+    nhf_ngn numeric(14,2) not null default 0,
+    nsitf_ngn numeric(14,2) not null default 0,
+    updated_at timestamptz not null default now()
+  );
+  create table if not exists settlement_float_ledger (
+    id text primary key,
+    organisation_id uuid not null references organisations(id) on delete cascade,
+    entry_type varchar(24) not null,
+    bucket varchar(24) not null,
+    amount_ngn numeric(14,2) not null,
+    custody_partner text,
+    reference text,
+    actor_email text,
+    reconciliation_status varchar(24) not null default 'RECORDED',
+    created_at timestamptz not null default now()
+  );
   create table if not exists organisation_sites (
     id uuid primary key,
     organisation_id uuid not null references organisations(id) on delete cascade,

@@ -16,6 +16,12 @@ CREATE TABLE IF NOT EXISTS organisations (
   time_zone TEXT NOT NULL DEFAULT 'UTC',
   preferred_language VARCHAR(16) NOT NULL DEFAULT 'en',
   verification_status VARCHAR(32) NOT NULL DEFAULT 'pending',
+  plan_tier VARCHAR(32) NOT NULL DEFAULT 'professional',
+  billing_status VARCHAR(32) NOT NULL DEFAULT 'active_subscription',
+  onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE,
+  onboarding_completed_at TIMESTAMPTZ,
+  pilot_paid BOOLEAN NOT NULL DEFAULT FALSE,
+  pilot_credit_ngn INTEGER NOT NULL DEFAULT 0,
   settings JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -177,6 +183,65 @@ CREATE TABLE IF NOT EXISTS file_attachments ( id UUID PRIMARY KEY DEFAULT gen_ra
   filename TEXT NOT NULL UNIQUE,
   mime_type TEXT,
   file_size INTEGER,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 10. Dayforce-Style SaaS Billing, Continuous Pay Ledgers & Settlement Float
+CREATE TABLE IF NOT EXISTS tenant_billing_invoices (
+  id TEXT PRIMARY KEY,
+  organisation_id UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  invoice_type VARCHAR(32) NOT NULL,
+  plan_tier VARCHAR(32) NOT NULL,
+  cycle_month VARCHAR(16),
+  core_headcount INTEGER NOT NULL DEFAULT 0,
+  overage_headcount INTEGER NOT NULL DEFAULT 0,
+  seasonal_headcount INTEGER NOT NULL DEFAULT 0,
+  base_fee_ngn INTEGER NOT NULL DEFAULT 0,
+  pepm_fee_ngn INTEGER NOT NULL DEFAULT 0,
+  overage_fee_ngn INTEGER NOT NULL DEFAULT 0,
+  surge_fee_ngn INTEGER NOT NULL DEFAULT 0,
+  pilot_credit_applied_ngn INTEGER NOT NULL DEFAULT 0,
+  amount_ngn INTEGER NOT NULL,
+  status VARCHAR(24) NOT NULL DEFAULT 'UNPAID',
+  checkout_url TEXT,
+  issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  paid_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS worker_pay_ledgers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organisation_id UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  membership_id UUID NOT NULL REFERENCES memberships(id) ON DELETE CASCADE,
+  cycle_month VARCHAR(16) NOT NULL,
+  gross_earned_todate NUMERIC(14,2) NOT NULL DEFAULT 0,
+  statutory_withheld_todate JSONB NOT NULL DEFAULT '{}'::jsonb,
+  ewa_disbursed_todate NUMERIC(14,2) NOT NULL DEFAULT 0,
+  net_available_disbursal NUMERIC(14,2) NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(organisation_id, membership_id, cycle_month)
+);
+
+CREATE TABLE IF NOT EXISTS settlement_float_accounts (
+  organisation_id UUID PRIMARY KEY REFERENCES organisations(id) ON DELETE CASCADE,
+  custody_partner TEXT NOT NULL DEFAULT 'Paystack Titan / Access Bank Custody',
+  payroll_net_ngn NUMERIC(14,2) NOT NULL DEFAULT 0,
+  paye_ngn NUMERIC(14,2) NOT NULL DEFAULT 0,
+  pencom_ngn NUMERIC(14,2) NOT NULL DEFAULT 0,
+  nhf_ngn NUMERIC(14,2) NOT NULL DEFAULT 0,
+  nsitf_ngn NUMERIC(14,2) NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS settlement_float_ledger (
+  id TEXT PRIMARY KEY,
+  organisation_id UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  entry_type VARCHAR(24) NOT NULL,
+  bucket VARCHAR(24) NOT NULL,
+  amount_ngn NUMERIC(14,2) NOT NULL,
+  custody_partner TEXT,
+  reference TEXT,
+  actor_email TEXT,
+  reconciliation_status VARCHAR(24) NOT NULL DEFAULT 'RECORDED',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
