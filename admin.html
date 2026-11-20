@@ -638,6 +638,23 @@
     .adm-nav-btn.owner-btn.active {
       border-color: var(--border-amber);
     }
+    .adm-nav-btn.is-locked,
+    .adm-nav-btn:disabled {
+      opacity: 0.34;
+      cursor: not-allowed;
+      pointer-events: none;
+      filter: grayscale(0.7);
+    }
+    .adm-nav-btn.is-locked .badge-count {
+      display: none !important;
+    }
+    .adm-btn-locked,
+    button.adm-btn-locked {
+      opacity: 0.35 !important;
+      cursor: not-allowed !important;
+      pointer-events: none !important;
+      filter: grayscale(0.8);
+    }
     .badge-count {
       font-family: 'JetBrains Mono', monospace;
       font-size: 10.5px;
@@ -1447,8 +1464,7 @@
                 <h2>Active Plugins, API Keys &amp; Enterprise Bridges</h2>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="btn-emerald" onclick="window.switchAdminView('integrations')">Manage Plugins &amp; Bridges &rarr;</button>
-                <button type="button" class="btn-amber" onclick="window.switchAdminView('owner-vault')">Owner Vault</button>
+                <button type="button" class="btn-emerald" id="ov-manage-bridges-btn" onclick="window.switchAdminView('integrations')">Manage Plugins &amp; Bridges &rarr;</button>
               </div>
             </div>
             <div id="overview-bridges-strip" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
@@ -1584,7 +1600,6 @@
                   </p>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <button type="button" class="btn-amber" onclick="window.openPayrollDisbursalModal()">Disburse Payroll (Paystack NIP)</button>
                   <button type="button" class="btn-ghost" onclick="window.loadAdminBillingAndDisbursals(true)">Refresh Billing &amp; Float</button>
                 </div>
               </div>
@@ -1708,48 +1723,8 @@
           </div>
         </section>
 
-        <!-- VIEW 3: SETUP ENGINE (DAYFORCE IMPLEMENTATION HUB + AI ONBOARDING AGENT) -->
+        <!-- VIEW 3: SETUP ENGINE (AI ONBOARDING AGENT) -->
         <section class="adm-view" id="view-onboarding">
-          <!-- Dayforce-Style 4-Stage Implementation Hub Progress Bar -->
-          <div class="panel-card" style="padding:14px 18px; margin-bottom:14px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
-              <div>
-                <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--emerald); text-transform:uppercase; letter-spacing:0.06em;">IMPLEMENTATION &amp; DATA HUB</span>
-                <h2 style="margin:2px 0 0; font-size:16px; font-weight:700; font-family:'Outfit',sans-serif;">Enterprise Onboarding &amp; Bulk HR Data Pipeline</h2>
-              </div>
-              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.downloadDayforceXlsxTemplate()">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                  Download .XLSX Package
-                </button>
-                <a href="/api/admin/roster-template.csv" download="shiftrelay_roster_template_14col.csv" class="btn-ghost" style="padding:5px 10px; font-size:11.5px; text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
-                  14-Col .CSV Template
-                </a>
-                <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.openSchemaMapperModal()">
-                  Schema &amp; Column Mapper
-                </button>
-              </div>
-            </div>
-            <div id="ob-dayforce-stepper" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:8px;">
-              <div id="ob-step-1" style="padding:9px 12px; border-radius:10px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.35);">
-                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--emerald); font-weight:700;">STAGE 01 • ORG &amp; HUB</div>
-                <div style="font-size:12px; font-weight:600; color:var(--text-white); margin-top:2px;">Entity, Sector &amp; Geofence</div>
-              </div>
-              <div id="ob-step-2" style="padding:9px 12px; border-radius:10px; background:var(--bg-input); border:1px solid var(--border-hairline);">
-                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--sky); font-weight:700;">STAGE 02 • SCHEMA MAP</div>
-                <div style="font-size:12px; font-weight:600; color:var(--text-white); margin-top:2px;">14-Col Excel / PDF / AI Parse</div>
-              </div>
-              <div id="ob-step-3" style="padding:9px 12px; border-radius:10px; background:var(--bg-input); border:1px solid var(--border-hairline);">
-                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--amber); font-weight:700;">STAGE 03 • VALIDATION GATE</div>
-                <div style="font-size:12px; font-weight:600; color:var(--text-white); margin-top:2px;">Inline Cell Edit &amp; NUBAN Repair</div>
-              </div>
-              <div id="ob-step-4" style="padding:9px 12px; border-radius:10px; background:var(--bg-input); border:1px solid var(--border-hairline);">
-                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-slate); font-weight:700;">STAGE 04 • ACTIVATE</div>
-                <div style="font-size:12px; font-weight:600; color:var(--text-white); margin-top:2px;">Provision Staff IDs &amp; Gate QR</div>
-              </div>
-            </div>
-          </div>
-
           <div id="ob-agent-panel" class="ob-agent-shell">
             <div class="ob-agent-head">
               <div style="display:flex; align-items:center; gap:10px;">
@@ -1758,11 +1733,12 @@
                 </div>
                 <div>
                   <div style="font-family:'Outfit',sans-serif; font-size:15px; font-weight:700;">Onboarding Agent</div>
-                  <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--text-slate);">Attach .XLSX / .CSV / .PDF / .DOCX / Image or type Company, Staff &amp; Payment Info</div>
+                  <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--text-slate);">Attach Excel, CSV, PDF, Word, or Image — or paste company &amp; staff details</div>
                 </div>
               </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span class="chip cyan" id="ob-ai-engine-badge">Gemini 3.8 Flash + Excel Engine</span>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.downloadDayforceXlsxTemplate()">Download .XLSX</button>
+                <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.openSchemaMapperModal()">Schema Map</button>
                 <div class="theme-pill">
                   <button type="button" id="ob-mode-agent-btn" class="active" onclick="window.toggleOnboardingMode('agent')">Agent</button>
                   <button type="button" id="ob-mode-form-btn" onclick="window.toggleOnboardingMode('form')">Form</button>
@@ -1777,14 +1753,8 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"/><path d="M3 12h18"/></svg>
                 </div>
                 <div class="ob-bubble">
-                  <div style="font-weight:600; margin-bottom:4px;">Ready to onboard (Dayforce 4-Stage Pipeline Active).</div>
-                  <div style="color:var(--text-slate); font-size:12.5px;">Drop an <code>.xlsx</code> workbook, <code>.csv</code>, <code>.pdf</code>, <code>.docx</code>, or photo — or paste company &amp; staff details below. I auto-reconcile Workday/SAP/custom headers to ShiftRelay's 14-column schema, auto-repair Nigerian phones, CBN bank codes, 10-digit NUBANs &amp; PenCom PINs, and let you edit cells inline before committing.</div>
-                  <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
-                    <button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.loadOnboardingSamplePrompt()">Load Sample Prompt</button>
-                    <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.downloadDayforceXlsxTemplate()">Download .XLSX Template</button>
-                    <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.openSchemaMapperModal()">View 14-Col Schema Map</button>
-                    <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.switchAdminView('tenants')">Onboarded Companies</button>
-                  </div>
+                  <div style="font-weight:600; margin-bottom:4px;">Ready to onboard a company &amp; staff roster.</div>
+                  <div style="color:var(--text-slate); font-size:12.5px;">Click <strong>+ Attach File</strong> below to upload an <code>.xlsx</code>, <code>.csv</code>, <code>.pdf</code>, <code>.docx</code>, or image, or type/paste company, site, and bank details directly.</div>
                 </div>
               </div>
             </div>
@@ -1792,18 +1762,18 @@
             <div class="ob-composer">
               <div class="ob-composer-box" id="ob-drop-zone">
                 <div class="ob-attach-strip" id="ob-attach-strip" style="display:none;"></div>
-                <textarea id="ob-agent-input" placeholder="Type or paste company, staff, and payment info — or drag & drop .xlsx / .csv / .pdf / .docx / image here... (Enter to process, Shift+Enter for new line)" onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); window.submitOnboardingAgent(); }"></textarea>
+                <textarea id="ob-agent-input" placeholder="Paste company, branch, staff &amp; bank details — or attach files using + Attach File below... (Enter to process)" onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); window.submitOnboardingAgent(); }"></textarea>
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                  <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                    <label class="btn-ghost" style="padding:6px 10px; font-size:11.5px; cursor:pointer;">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                      <span>Attach Excel / PDF / Word / Image</span>
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <label class="btn-ghost" style="padding:6px 11px; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; border-color:var(--border-emerald); color:var(--emerald);" title="Attach Excel, CSV, PDF, Word, or Image">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                      <span>Attach File</span>
                       <input type="file" id="ob-agent-file-input" accept=".xlsx,.xls,.csv,.tsv,.txt,.json,.pdf,.docx,image/*" multiple style="display:none;" onchange="window.handleOnboardingAgentFiles(this.files)" />
                     </label>
-                    <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim);">Supports .xlsx, .csv, .pdf, .docx, PNG/JPG</span>
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim);">.xlsx, .csv, .pdf, .docx, image</span>
                   </div>
                   <button type="button" id="ob-agent-send-btn" class="btn-emerald" style="padding:7px 14px;" onclick="window.submitOnboardingAgent()">
-                    Process &amp; Validate Batch
+                    Process &amp; Validate
                   </button>
                 </div>
               </div>
@@ -1940,7 +1910,7 @@
               <div>
                 <h2>Onboarded Enterprise Tenants &amp; Company Codes</h2>
               </div>
-              <button type="button" class="btn-emerald" onclick="window.switchAdminView('onboarding')">+ Onboard New Enterprise</button>
+              <button type="button" class="btn-emerald" id="ten-new-ent-btn" onclick="window.switchAdminView('onboarding')">+ Onboard New Enterprise</button>
             </div>
             <div class="table-scroll">
               <table class="adm-table">
@@ -2036,10 +2006,10 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
               </div>
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <div class="theme-pill" id="rect-filter-pills">
-                  <button type="button" class="active" data-rect-filter="all" onclick="window.setRectFilter('all')">All</button>
-                  <button type="button" data-rect-filter="open" onclick="window.setRectFilter('open')">Open</button>
+                  <button type="button" class="active" data-rect-filter="open" onclick="window.setRectFilter('open')">Open</button>
                   <button type="button" data-rect-filter="escalated" onclick="window.setRectFilter('escalated')">Escalated</button>
                   <button type="button" data-rect-filter="resolved" onclick="window.setRectFilter('resolved')">Resolved</button>
+                  <button type="button" data-rect-filter="all" onclick="window.setRectFilter('all')">All</button>
                 </div>
                 <input type="text" id="rect-search-input" class="adm-input" placeholder="Search ticket, user..." style="width:190px; padding:6px 10px; font-size:12px;" oninput="window.renderRectificationTable()" />
                 <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:12px;" onclick="window.syncAppRectificationReceipts(true)">Sync</button>
@@ -2363,7 +2333,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
                 <span class="chip amber">onboarding@shiftrelayos.com</span>
                 <span class="chip">finance@shiftrelayos.com</span>
               </div>
-              <button type="button" class="btn-ghost" style="padding:6px 11px; font-size:11.5px;" onclick="window.switchAdminView('integrations'); setTimeout(()=>window.openConfigurePluginModal('email_relay'), 150);">
+              <button type="button" class="btn-ghost" id="email-cfg-relay-btn" style="padding:6px 11px; font-size:11.5px;" onclick="window.switchAdminView('integrations'); setTimeout(()=>window.openConfigurePluginModal('email_relay'), 150);">
                 Configure Resend / SMTP Relay Key &rarr;
               </button>
             </div>
@@ -2592,26 +2562,30 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       owner_root: {
         badge: 'OWNER ROOT',
         title: 'ACTIVE SESSION: FOUNDER / SOVEREIGN OWNER (ROOT CLEARANCE)',
-        desc: 'Exclusive access to Owner Sovereign Vault, Master Approvals, Staff Governance, and Security Audit Logs.',
-        workerName: 'Founder & Sovereign Owner'
+        desc: 'Full Sovereign access to Owner Vault, Master Approvals, Payroll Disbursal, Staff Governance, and Bridges.',
+        workerName: 'Founder & Sovereign Owner',
+        allowedViews: ['overview', 'owner-vault', 'onboarding', 'tenants', 'rectifications', 'finance', 'leads', 'integrations', 'email-station', 'hosting']
       },
       onboarding_admin: {
         badge: 'DEPT 01 // ONBOARDING',
         title: 'ACTIVE SESSION: ONBOARDING & IMPLEMENTATION SPECIALIST',
-        desc: 'Scoped to Tenant Onboarding Wizard, CSV Roster Imports & Gate NFC Posters. Owner Vault is server-locked.',
-        workerName: 'Onboarding Specialist'
+        desc: 'Scoped to Setup Engine & Tenants/Roster. Owner Vault, Finance, Bridges & System Files are locked.',
+        workerName: 'Onboarding Specialist',
+        allowedViews: ['overview', 'onboarding', 'tenants']
       },
       ops_support_admin: {
         badge: 'DEPT 02 // OPS SUPPORT',
         title: 'ACTIVE SESSION: OPERATIONS & RECTIFICATION SUPPORT',
-        desc: 'Scoped to Worker Rectification Receipts (SR-REC-*), Email Auto-Station & Inbound Demo Leads. Owner Vault is server-locked.',
-        workerName: 'Support Specialist'
+        desc: 'Scoped to Customer Care, Inbound Leads & Email Station. Owner Vault, Payroll, Setup & System Files are locked.',
+        workerName: 'Support Specialist',
+        allowedViews: ['overview', 'rectifications', 'leads', 'email-station']
       },
       finance_admin: {
         badge: 'DEPT 03 // FINANCE AUDIT',
         title: 'ACTIVE SESSION: FINANCE & STATUTORY COMPLIANCE AUDITOR',
-        desc: 'Scoped to Payroll Runs & PenCom/PAYE Statutory Schedules. Final Treasury Release requires Owner Root approval.',
-        workerName: 'Finance Auditor'
+        desc: 'Scoped to Payroll Audit & Tenants. Final Treasury Release & Owner Vault require Owner Root clearance.',
+        workerName: 'Finance Auditor',
+        allowedViews: ['overview', 'finance', 'tenants']
       }
     };
 
@@ -3029,9 +3003,39 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         c.classList.toggle('active', c.getAttribute('data-switch-role') === effectiveViewRole);
       });
 
-      const showOwnerVault = currentAdminRole === 'owner_root' && effectiveViewRole === 'owner_root';
-      document.getElementById('owner-restricted-banner').style.display = showOwnerVault ? 'none' : 'block';
-      document.getElementById('owner-vault-unlocked').style.display = showOwnerVault ? 'block' : 'none';
+      const allowed = Array.isArray(prof.allowedViews) ? prof.allowedViews : ['overview'];
+      const isOwnerActive = currentAdminRole === 'owner_root' && effectiveViewRole === 'owner_root';
+
+      // Lock down & make numb any sidebar nav button outside active role clearance
+      document.querySelectorAll('.adm-nav-btn[data-view]').forEach(btn => {
+        const v = btn.getAttribute('data-view');
+        const permitted = allowed.includes(v);
+        btn.disabled = !permitted;
+        btn.classList.toggle('is-locked', !permitted);
+        if (!permitted) {
+          btn.setAttribute('aria-disabled', 'true');
+          btn.title = 'Locked — Owner / authorized department clearance required';
+        } else {
+          btn.removeAttribute('aria-disabled');
+          btn.removeAttribute('title');
+        }
+      });
+
+      // Lock down cross-view / Owner-only action buttons when outside clearance
+      const lockBtn = (id, locked, reason) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = Boolean(locked);
+        el.classList.toggle('adm-btn-locked', Boolean(locked));
+        if (locked) { el.title = reason || 'Locked for your clearance level'; } else { el.removeAttribute('title'); }
+      };
+      lockBtn('ov-manage-bridges-btn', !allowed.includes('integrations'), 'Locked — Owner Root required');
+      lockBtn('adm-btn-disburse-nip', !isOwnerActive, 'Locked — Final NIP disbursal requires Owner Root');
+      lockBtn('ten-new-ent-btn', !allowed.includes('onboarding'), 'Locked — Onboarding clearance required');
+      lockBtn('email-cfg-relay-btn', !allowed.includes('integrations'), 'Locked — Owner Root required');
+
+      document.getElementById('owner-restricted-banner').style.display = isOwnerActive ? 'none' : 'block';
+      document.getElementById('owner-vault-unlocked').style.display = isOwnerActive ? 'block' : 'none';
 
       if (!isInitial) {
         if (effectiveViewRole === 'onboarding_admin') window.switchAdminView('onboarding');
@@ -3041,10 +3045,21 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         if (currentAdminRole === 'owner_root') {
           showToast('UI preview switched to: ' + prof.badge + ' (server session remains owner_root)');
         }
+      } else {
+        const activeViewEl = document.querySelector('.adm-view.active');
+        const activeViewName = activeViewEl ? activeViewEl.id.replace(/^view-/, '') : 'overview';
+        if (!allowed.includes(activeViewName)) window.switchAdminView('overview');
       }
     };
 
     window.switchAdminView = function (viewId) {
+      const effectiveRole = currentAdminRole === 'owner_root' ? (previewAdminRole || 'owner_root') : currentAdminRole;
+      const prof = ADMIN_ROLE_PROFILES[effectiveRole] || ADMIN_ROLE_PROFILES.ops_support_admin;
+      const allowed = Array.isArray(prof.allowedViews) ? prof.allowedViews : ['overview'];
+      if (!allowed.includes(viewId)) {
+        showToast('Locked: ' + viewId + ' requires higher clearance.');
+        return;
+      }
       document.querySelectorAll('.adm-view').forEach(v => v.classList.remove('active'));
       const target = document.getElementById('view-' + viewId);
       if (target) target.classList.add('active');
@@ -4185,7 +4200,12 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       if (typeof renderObBatchHistory === 'function') renderObBatchHistory();
       const tbody = document.getElementById('adm-tenants-tbody');
       const sel = document.getElementById('csv-tenant-select');
-      document.getElementById('nav-badge-tenants').textContent = cachedTenants.length;
+      const lockedTenantsCount = (cachedTenants || []).filter(t => String(t.subscriptionStatus || '').toUpperCase() === 'LOCKED_READONLY').length;
+      const tenantsBadge = document.getElementById('nav-badge-tenants');
+      if (tenantsBadge) {
+        tenantsBadge.textContent = lockedTenantsCount;
+        tenantsBadge.style.display = lockedTenantsCount > 0 ? 'inline-flex' : 'none';
+      }
       if (sel) sel.innerHTML = cachedTenants.map(t => `<option value="${t.id}">${t.tradingName || t.legalName || t.name} (${t.companyId || t.id})</option>`).join('');
       if (!tbody) return;
       tbody.innerHTML = cachedTenants.map((t, i) => {
@@ -4849,7 +4869,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       }
     };
 
-    let activeRectFilter = 'all';
+    let activeRectFilter = 'open';
     window.setRectFilter = function (f) {
       activeRectFilter = f || 'all';
       document.querySelectorAll('[data-rect-filter]').forEach(b => {
@@ -4860,7 +4880,12 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
 
     function renderRectificationTable() {
       const all = cachedRectifications || [];
-      document.getElementById('nav-badge-rects').textContent = all.length;
+      const openCount = all.filter(r => !String(r.status || '').toUpperCase().includes('RESOLVED')).length;
+      const rectBadge = document.getElementById('nav-badge-rects');
+      if (rectBadge) {
+        rectBadge.textContent = openCount;
+        rectBadge.style.display = openCount > 0 ? 'inline-flex' : 'none';
+      }
       const tbody = document.getElementById('adm-rectifications-tbody');
       if (!tbody) return;
       const q = String(document.getElementById('rect-search-input')?.value || '').trim().toLowerCase();
@@ -4894,10 +4919,12 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
           <td style="font-size:12.5px; color:var(--text-slate); max-width:340px; white-space:pre-wrap;">${escapeHtml(det)}</td>
           <td><span class="chip ${String(r.status).includes('RESOLVED') ? 'emerald' : (String(r.status).includes('ESCALATED') ? 'amber' : 'cyan')}">${escapeHtml(r.status)}</span></td>
           <td>
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
               <button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.openTicketReviewModal('${escapeHtml(r.id)}')">Review &amp; Reply</button>
-              <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.escalateRectificationToOwner('${escapeHtml(r.id)}')">Escalate</button>
-              <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.resolveRectificationTicket('${escapeHtml(r.id)}')">Resolve</button>
+              ${String(r.status || '').toUpperCase().includes('RESOLVED') ? '' : `
+                <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.escalateRectificationToOwner('${escapeHtml(r.id)}')">Escalate</button>
+                <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.resolveRectificationTicket('${escapeHtml(r.id)}')">Resolve</button>
+              `}
             </div>
           </td>
         </tr>`;
@@ -5240,7 +5267,12 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         }
       } catch (_) {}
 
-      document.getElementById('nav-badge-emails').textContent = logs.length;
+      const pendingEmails = logs.filter(l => !['SENT_LIVE', 'DELIVERED'].includes(String(l.status || '').toUpperCase())).length;
+      const emailBadge = document.getElementById('nav-badge-emails');
+      if (emailBadge) {
+        emailBadge.textContent = pendingEmails;
+        emailBadge.style.display = pendingEmails > 0 ? 'inline-flex' : 'none';
+      }
       const kpiEl = document.getElementById('kpi-total-emails');
       if (kpiEl) kpiEl.textContent = logs.length;
       const tbody = document.getElementById('email-station-tbody');
@@ -5909,7 +5941,12 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
 
     function renderLeadsTable() {
       const tbody = document.getElementById('adm-leads-tbody');
-      document.getElementById('nav-badge-leads').textContent = cachedLeads.length;
+      const newLeadsCount = (cachedLeads || []).filter(l => !['CONTACTED', 'RESOLVED', 'CLOSED', 'CONVERTED'].includes(String(l.status || '').toUpperCase())).length;
+      const leadsBadge = document.getElementById('nav-badge-leads');
+      if (leadsBadge) {
+        leadsBadge.textContent = newLeadsCount;
+        leadsBadge.style.display = newLeadsCount > 0 ? 'inline-flex' : 'none';
+      }
       if (!tbody) return;
       if (!cachedLeads.length) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:24px;">No inbound demo requests yet. Submit one on <a href="/website.html#demo-request-section" style="color:var(--emerald);">shiftrelayos.com</a> to see it appear live here!</td></tr>`;
