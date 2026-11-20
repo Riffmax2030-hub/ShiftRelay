@@ -79,15 +79,24 @@ export async function sendShiftRelayEmail({ to, subject, html, text, headers = {
   // Optional: If RESEND_API_KEY is configured in .env, dispatch live transactional email
   if (process.env.RESEND_API_KEY) {
     try {
-      await fetch('https://api.resend.com/emails', {
+      const resendFrom = process.env.RESEND_FROM_EMAIL || (from && !/@(gmail|yahoo|outlook|hotmail)\.com/i.test(from) ? from : 'ShiftRelay <onboarding@resend.dev>');
+      const resendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ from, to, subject, html, text, headers: safeHeaders })
+        body: JSON.stringify({ from: resendFrom, to, subject, html, text, headers: safeHeaders })
       });
-      console.log('✓ Dispatched to real inbox via Resend API');
+      if (resendRes.ok) {
+        const resendData = await resendRes.json().catch(() => ({}));
+        console.log('✓ Dispatched to real inbox via Resend API (Id: ' + (resendData.id || 'ok') + ')');
+        emailRecord.status = 'SENT_LIVE';
+        if (resendData.id) emailRecord.messageId = resendData.id;
+      } else {
+        const errBody = await resendRes.text().catch(() => '');
+        console.warn('⚠ Resend API returned HTTP ' + resendRes.status + ':', errBody);
+      }
     } catch (e) {
       console.warn('Resend dispatch failed (fallback to mock station):', e.message);
     }
