@@ -2306,6 +2306,7 @@ export function normalizeNotificationChannels(input = {}, existing = {}) {
     inApp: merged.inApp !== false,
     termiiSms: Boolean(merged.termiiSms),
     whatsappCloud: Boolean(merged.whatsappCloud),
+    smartWaterfall: merged.smartWaterfall !== false,
     whatsappDeskOverride: String(merged.whatsappDeskOverride || '').replace(/[^\d+]/g, '').slice(0, 20),
     termiiSenderId: String(merged.termiiSenderId || 'ShiftRelay').replace(/[^A-Za-z0-9]/g, '').slice(0, 11) || 'ShiftRelay'
   };
@@ -2337,11 +2338,14 @@ export async function dispatchChannelNotification({
   const phoneRaw = String(member?.phone || member?.phone_e164 || '').trim();
   const optedOut = Boolean(member?.notification_opt_out || member?.notificationOptOut);
 
+  // Smart Waterfall Routing: Try Meta WhatsApp Cloud API first (cost-effective, $0 if undelivered),
+  // and only fall back to Termii DND SMS if WhatsApp is unconfigured or fails to deliver.
   const targets = [];
-  if (channels.termiiSms) targets.push({ channel: 'termii_sms', provider: 'Termii Nigeria SMS' });
   if (channels.whatsappCloud) targets.push({ channel: 'whatsapp_cloud', provider: 'Meta WhatsApp Cloud API' });
+  if (channels.termiiSms) targets.push({ channel: 'termii_sms', provider: 'Termii Nigeria SMS' });
   if (targets.length === 0) return results;
 
+  let waterfallPrimarySent = false;
   for (const t of targets) {
     const channelDedupe = `${dedupeKey}:${t.channel}`;
     let alreadyLogged = false;
@@ -2367,6 +2371,10 @@ export async function dispatchChannelNotification({
       status = 'SKIPPED_NO_PHONE';
       dryRun = true;
       errorMessage = 'No E.164 phone on file for worker.';
+    } else if (channels.smartWaterfall && waterfallPrimarySent && t.channel === 'termii_sms') {
+      status = 'SUPPRESSED_BY_WATERFALL';
+      dryRun = true;
+      errorMessage = 'Smart Waterfall: suppressed Termii SMS because WhatsApp delivered.';
     } else if (t.channel === 'termii_sms' && process.env.TERMII_API_KEY) {
       dryRun = false;
       try {
@@ -2383,6 +2391,7 @@ export async function dispatchChannelNotification({
           })
         });
         status = resp.ok ? 'SENT_LIVE' : `PROVIDER_HTTP_${resp.status}`;
+        if (resp.ok) waterfallPrimarySent = true;
       } catch (err) {
         status = 'PROVIDER_ERROR';
         errorMessage = err?.message || 'Termii request failed';
