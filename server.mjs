@@ -1882,7 +1882,7 @@ async function signIn(body) {
   // Check demoMembers first for fast seeded login
   const demoMember = demoMembers.find((dm) => dm.email.toLowerCase() === emailOrUser);
   if (demoMember && (validCodes.includes(cleanCode) || cleanCode === 'RIF2026')) {
-    const passMatches = (body.password === 'Riffmax2026!' || await passwordMatches(body.password, DEFAULT_DEMO_MEMBER_PASSWORD_HASH));
+    const passMatches = await passwordMatches(body.password, DEFAULT_DEMO_MEMBER_PASSWORD_HASH);
     if (passMatches) {
       const sessId = await createSession(demoMember.id, demoMember.id);
       return {

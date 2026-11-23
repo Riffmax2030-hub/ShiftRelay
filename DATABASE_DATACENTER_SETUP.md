@@ -112,7 +112,7 @@ NODE_ENV=production
 PORT=4000
 
 # High-Availability Database via PgBouncer
-DATABASE_URL=postgres://shiftrelay_app:SuperSecretPassword123@pgbouncer.internal:6432/shiftrelay_prod?sslmode=require
+DATABASE_URL=postgres://shiftrelay_app:<DB_PASSWORD>@pgbouncer.internal:6432/shiftrelay_prod?sslmode=require
 
 # Real-Time WebSocket Pub/Sub Cluster
 REDIS_URL=rediss://default:RedisSecretToken@redis-cluster.internal:6379

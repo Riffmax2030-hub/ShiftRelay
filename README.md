@@ -1,146 +1,114 @@
 # ShiftRelay
 
-> **The Frontline Productivity Engine & Global Professional Network for 2.7 Billion Shift Workers**  
-> *"LinkedIn + Facebook for Frontline Teams"* — built for the OpenAI Build Week Challenge.
+> **Enterprise Workforce Continuity, Verified Attendance, Zero-Fee Earned Wage Access (EWA) & Nigeria Tax Act (NTA) 2025 Payroll OS**  
+> Built by **Riffmax Technology Limited** (`shiftrelayos.com`)
+
+ShiftRelay unifies **accountable shift handovers**, **tamper-resistant GPS + biometric/ID attendance**, **continuous real-time payroll accrual**, **CBN-compliant zero-fee Earned Wage Access**, and **Nigeria Tax Act (NTA) 2025 statutory compliance** into a single multi-tenant platform across Web, PWA, Android, and iOS.
 
 ---
 
-## 🚀 Hackathon Category
-**Work & Productivity** — Transforming shift handovers, team coordination, worker proof-of-work, and coverage marketplace across healthcare, manufacturing, logistics, hospitality, and energy.
+## Core Application Engines
+
+### 1. Nigeria Tax Act (NTA) 2025 & Labour Act Compliance Engine (`compliance-engine.mjs`)
+- **Zero Legacy CRA / 1% Minimum Tax:** Fully implements the NTA 2025 reform (effective Jan 1, 2026) with progressive annual bands:
+  - `₦0 – ₦800,000`: `0%`
+  - `₦800,001 – ₦3,000,000`: `15%`
+  - `₦3,000,001 – ₦12,000,000`: `18%`
+  - `₦12,000,001 – ₦25,000,000`: `21%`
+  - `₦25,000,001 – ₦50,000,000`: `23%`
+  - Above `₦50,000,000`: `25%`
+- **National Minimum Wage Exemption:** Employees earning `₦70,000/month` (`₦840,000/year`) or less are strictly exempt from PAYE (`₦0`).
+- **Allowable Reliefs & Statutory Deductions:**
+  - **Rent Relief:** `20%` of annual rent paid, capped at `₦500,000/year`, gated behind verified tenancy documentation (`rent_doc_verified`).
+  - **PenCom (PRA 2014):** `8%` Employee + `10%` Employer on **Basic + Housing + Transport (BHT)**, with compliance warning if BHT `< 50%` of gross.
+  - **NHF (`2.5%` of Basic)** with applicability toggle, **NHIS**, and **Life Assurance** pre-tax deductions.
+  - **NSITF (`1%` monthly payroll)** & **ITF (`1%` for qualifying employers with `>= 5` staff or `>= ₦50M` annual turnover)** as employer-only obligations.
+- **State of Residence IRS Mapping:** Maps each worker to their State Internal Revenue Service (`LIRS`, `FCT-IRS`, `RIRS`, etc.) and PFA (`pfa_name`, `pencom_rsa_pin`) for remittance exports (`?groupBy=state`, `?groupBy=pfa`).
+- **Net-to-Gross Reverse Solver & Overtime Matrix:** Binary-search net-to-gross convergence (`< ₦0.01`), casual daily pay accumulator, and `1.5x` weekday / `2.0x` Sunday & Federal Public Holiday overtime rules.
+- **Nigerian Labour Act Governance:** Automated **Section 7 Written Particulars** generator (`/api/hr/written-particulars`), statutory annual/maternity leave minimums (`6` working days / `12` weeks at `>=50%` pay), and tenure-based notice schedules (`1 day` to `1 month`).
+
+### 2. Continuous Real-Time Payroll, EWA & Treasury Float Engine (`billing-treasury-engine.mjs`)
+- **Strict Clock-In Accrual Guard:** Workers never accrue pay for unworked days (`0` clock-ins = `₦0.00` accrued). Withdrawable EWA unlocks strictly from **verified completed shifts** after prorated NTA 2025 PAYE, PenCom, and NHF deductions.
+- **Safety Cap & CBN Zero-Lending Guardrails:** Enforces a configurable `50%–70%` (`60%` default) safety cap on accrued net pay, `0%` interest, `₦0` worker fee, and no rollover debt.
+- **Concurrency & Idempotency:** `POST /api/wallet/ewa-disburse` uses a per-user in-flight lock (`EWA_CONCURRENT_LOCK`) and `Idempotency-Key` replay protection.
+- **Month-End Reconciliation:** `compilePayrollRun` deducts `ewaAdvanceDeduction` cleanly from final net bank payout without altering gross taxable income or statutory remittances.
+- **Dual Employer Funding Modes:** Supports **Prefunded Custody** (`payroll_net`, `paye`, `pencom`, `nhf`, `nsitf` float buckets) and **Employer-Authorized Direct Debit**.
+- **Dayforce-Style Tiered PEPM Billing & Pilot Credit:** Supports tiered base + PEPM pricing, seasonal surge flexibility, and `₦250,000` sandbox pilot credit lifecycle.
+
+### 3. Paystack NIP & Nigerian Multi-Bank Remittance Engine (`nigerian-banking.mjs`, `server.mjs`)
+- **CBN 22-Bank Directory & NUBAN Resolution:** Modulo-10 NUBAN validation and live Paystack `/bank/resolve` lookup.
+- **Paystack Transfer & Fail-Closed Webhook:** Supports `sk_test_...` and `sk_live_...` (`PAYSTACK_SECRET_KEY`) for NUBAN transfer recipients and payouts with graceful staging when approval is pending, plus HMAC-SHA512 `timingSafeEqual` verification on `POST /api/webhooks/paystack`.
+- **Multi-Bank Bulk CSV Profiles:** Formula-injection-safe CSV exports for **Generic**, **GTBank GAPS**, **AccessPay**, **Zenith Corporate**, and **NIBSS e-BillsPay/NIP**.
+
+### 4. Attendance Security, Biometrics & Exception Engine (`attendance-security.mjs`, `attendance-policy-engine.mjs`, `gps-guard.js`)
+- **Strict Physical Presence:** Geofence perimeter verification, biometric/facial capture & peer/kiosk badge handover verification (`verify_strict_gps_and_card.mjs`), and anti-spoofing guards.
+- **Attendance Exceptions & Auto-Clockout Watchdog:** Automated detection of missed clock-outs, late arrivals, early departures, and supervisor pardon/deduction resolution (`attendance-exceptions-ui.js`).
+
+### 5. Shift Handover, AI Briefing & Shift Score Engine (`shift-score-engine.mjs`, `team-realtime.js`, `phase1-shell.js`)
+- **AI-Structured Handovers:** Converts outgoing shift notes into prioritized action items, safety risks, and incoming acknowledgements (`Outgoing -> Supervisor -> Incoming`).
+- **Shift Score & Anti-Reward Farming:** Deterministic `0–100` reliability scoring (`A–F` grades) and ShiftCoin merit rewards with strict lifetime/daily anti-farming caps (`test-anti-farming.mjs`).
+
+### 6. Enterprise Report & Document Engine (`report-engine.mjs`)
+- Generates corporate-letterhead **PDF**, editable **Word (`.docx`)**, **Excel (`.xlsx`)**, **CSV**, and **HTML print** outputs for Attendance Registers, Executive Statutory Payroll Ledgers, Worker Operational Dossiers, and Terms/SLA documents — all branded with the official ShiftRelay crest (`icon-192.png` / `icon.svg`).
+
+### 7. Smart Waterfall Notifications & Email Engine (`email-engine.mjs`, `push-notifications.js`)
+- **Smart Waterfall Messaging:** Routes operational alerts via WhatsApp first with Termii SMS fallback, plus Resend/SMTP transactional emails (activation, password reset, shift handovers, weekly executive progress digests).
+
+### 8. Multi-Tenant Data, Admin OS & Security Architecture (`database.mjs`, `admin-auth.mjs`, `admin.html`)
+- **PostgreSQL (Supabase) + Local Fallback:** Full multi-tenant relational schema (`organisations`, `memberships`, `worker_pay_ledgers`, `settlement_float_accounts`, `time_entries`, `attendance_exceptions`, `idempotency_keys`, `audit_events`) with resilient local store fallback for offline/dev runs.
+- **ShiftRelay Admin OS (`admin.html`):** Sovereign RBAC console (`owner_root`, `admin_ops`, etc.) with TOTP 2FA/MFA, treasury float controls, onboarding agent, and rectification receipts.
+- **Security Hardening:** `HttpOnly` / `Secure` / `SameSite` cookies, strict tenant isolation, CSP & HSTS headers, rate limiting, and zero hardcoded credentials in source control.
+
+### 9. Native Mobile & Offline Resilience (`www/`, `android/`, `ios/`, `offline-queue.js`, `service-worker.js`)
+- **Capacitor 8:** Native Android and iOS wrappers with Camera, Haptics, Local Notifications, Network status, Preferences, and offline punch/handover queuing.
 
 ---
 
-## 🌟 What ShiftRelay Solves
-2.7 billion frontline workers operate in shifts, yet critical operational context is lost daily at shift handover. ShiftRelay replaces messy paper logs, fragmented WhatsApp chats, and rushed verbal notes with an **AI-powered handover relay** and an **enterprise frontline social network**.
+## Quick Start (Local Development)
 
-### Core Pillars
-1. **AI-Powered Shift Relay (GPT-5.6 Sol)**:
-   - Outgoing workers speak or type unstructured operational updates.
-   - AI extracts safety risks, prioritized action items, owners, deadlines, and flags missing operational context before departure.
-   - Accountable human-in-the-loop relay: Outgoing Worker &rarr; Shift Supervisor Review &rarr; Incoming Worker Acknowledgement.
-2. **Frontline Social Network & Shift Lounge**:
-   - A dedicated professional community for shift workers to share wins, shift updates, and site announcements.
-   - **Zero Emoji Action Controls**: Custom engineered SVG vector icons for **Like, Comment, Repost, Save, and Share**.
-   - **Workplace Confidentiality Shield**: Mandatory policy verification certifying that no proprietary patient, customer, or facility data is disclosed publicly.
-   - Direct coworker messaging modal for fast peer handovers.
-3. **Worker Passport & Proof-of-Work Reliability**:
-   - Verified worker badges, live on-time shift completion rates, and daily check-in streaks.
-   - Clean `2/2` shift task tracking compliance (e.g. `2/2` instead of verbose formats).
-   - Interactive peer skill endorsements with real-time counters to prove real frontline competence to future employers.
-4. **Shift Coverage Marketplace**:
-   - Instant open-shift broadcasting, quick-claim workflows, and peer shift swapping.
-5. **Native Mobile & Offline Resilience**:
-   - Built on Capacitor 8 for native **Android** and **iOS** deployment with camera, haptics, and status bar integration.
-   - PWA Service Worker caching for seamless offline operation on spotty industrial connectivity.
+### Prerequisites
+- Node.js `>= 18` (`20+` recommended)
+- PostgreSQL / Supabase connection string (optional — falls back cleanly to local store if `DATABASE_URL` is omitted)
 
----
-
-## 🛠️ Tech Stack & Architecture
-
-- **Backend Runtime**: Node.js 20+ (ES Modules), HTTP 206 Byte-Range streaming for video demos, Server-Sent Events (SSE) for real-time live feed & handover updates.
-- **AI Core**: OpenAI GPT-5.6 Sol & Whisper Voice Transcription API.
-- **Database & Datacenter**:
-  - PostgreSQL 16 with PgBouncer connection pooling (configured for 5,000+ concurrent frontline connections).
-  - Scalable data model for organisations, sites, memberships, handovers, feed posts, direct messages, and audit logs.
-  - Automatic fallback to high-concurrency local storage when running in standalone mode.
-- **Frontend**: Clean Vanilla JavaScript, Bento Grid UI, modern Glassmorphism, Zero-Emoji SVG iconography, responsive mobile-first layouts.
-- **Mobile Toolchain**: Capacitor 8 (`@capacitor/core`, `@capacitor/android`, `@capacitor/ios`, `@capacitor/camera`, `@capacitor/haptics`, `@capacitor/network`, `@capacitor/status-bar`).
-- **DevOps & Containers**: Docker, Docker Compose, Kubernetes manifests (`k8s/`), and GitHub Actions CI/CD workflows.
-
----
-
-## ⚡ Quick Start (Local Run)
-
-ShiftRelay strictly runs on **Port 4000**.
-
-### 1. Prerequisites
-- Node.js 18+ (Node 20+ recommended)
-- Git
-
-### 2. Clone and Install
+### Setup
 ```bash
-git clone https://github.com/Riffmax2030-hub/ShiftRelay.git
-cd ShiftRelay
 npm install
-```
-
-### 3. Run Development Server
-```bash
+cp .env.example .env
+# Populate your private keys in .env (never commit .env!)
 npm start
 ```
 
-Open **`http://localhost:4000`** in your browser.  
-Health check endpoint: **`http://localhost:4000/health`** (returns `{"status":"ok"}`).
+### Environment Variables (Configure in `.env` or Render)
+| Variable | Purpose |
+| :--- | :--- |
+| `PORT` | HTTP port (default `4000`) |
+| `DATABASE_URL` | PostgreSQL / Supabase connection string |
+| `SESSION_SECRET` | Session & card-signing secret |
+| `PAYSTACK_SECRET_KEY` | Paystack secret key (`sk_test_...` or `sk_live_...`) |
+| `RESEND_API_KEY` / `SMTP_*` | Transactional & digest email delivery |
+| `OPENAI_API_KEY` / `GEMINI_API_KEY` | AI handover briefing & vision verification |
+| `SHIFTRELAY_DEMO_MEMBER_PASS` | Optional override for local demo account seeding |
 
 ---
 
-## 🎯 Judge & Investor Quick Start
-
-No credentials required! ShiftRelay includes an interactive **Guided Investor Tour** and one-click **Role Preview**:
-
-1. **Launch Tour**: Click **"Start 60-Second Investor Tour"** on the landing page for a step-by-step interactive walkthrough.
-2. **Switch Roles**:
-   - **Amina Otieno (Operations Worker)**: Draft an AI-assisted handover, clock in with attendance streak tracking, or post in the Shift Lounge.
-   - **David Kariuki (Shift Supervisor)**: Review, edit risk ratings, and relay pending outgoing handovers.
-   - **Faith Wanjiku (Incoming Worker)**: Acknowledge the relayed handover and complete incoming tasks (`2/2`).
-   - **Jordan Lee (Organisation Owner)**: Review enterprise-wide workforce analytics, site compliance, and audit logs.
-3. **Explore the Shift Lounge**: Click **"Shift Lounge"** to see live video/image sharing, peer skill endorsements, and zero-emoji interaction controls.
-4. **Toggle Operational Modes**: Use the header mode switcher to toggle between **Investor Demo Mode** (seeded data & instant role switches) and **Clean Production Mode** (real worker sign-ups with zero mock accounts).
-
----
-
-## 📱 Mobile App (Android & iOS)
-
-To build and run the mobile apps:
+## Verification & Mobile Sync
 
 ```bash
-# 1. Package static assets into www/
-npm run build:mobile
+# Run syntax & compliance/unit test suites
+node test-compliance-engine.mjs
+node test-dayforce-billing-treasury.mjs --unit
+node test-anti-farming.mjs
+node test-forms-and-emails.mjs
+node test-nigeria-rollout.mjs --unit
+node verify_strict_gps_and_card.mjs --unit
 
-# 2. Synchronize native platforms with Capacitor plugins
+# Package web assets into www/ and sync Android & iOS Capacitor projects
 npm run cap:sync
-
-# 3. Open in Android Studio or Xcode
-npm run cap:android  # Launches Android Studio
-npm run cap:ios      # Launches Xcode (macOS)
 ```
 
 ---
 
-## 🐳 Docker & Datacenter Deployment
-
-Run the complete multi-tier enterprise stack (ShiftRelay Engine + PgBouncer + PostgreSQL + Redis):
-
-```bash
-docker-compose up -d
-```
-
-The database initializes automatically using [`schema.sql`](schema.sql).
-
-### Kubernetes
-Enterprise deployment and service manifests are located in [`k8s/deployment.yaml`](k8s/deployment.yaml) with automated rolling updates and readiness/liveness health probes.
-
----
-
-## 🌐 Cloud Deployment (Render / Cloud Run)
-
-The repository includes [`render.yaml`](render.yaml) for zero-config deployment:
-1. Connect `Riffmax2030-hub/ShiftRelay` in Render.
-2. Set Environment Variables:
-   - `PORT=4000`
-   - `DATABASE_URL` (Managed Postgres connection string)
-   - `OPENAI_API_KEY` (For live GPT-5.6 Sol handover synthesis)
-3. Deploy!
-
----
-
-## 🔒 Confidentiality & Security
-Frontline workers deal with sensitive operational environments (healthcare patients, industrial equipment, proprietary logistics). ShiftRelay enforces:
-- Strict **Workplace Confidentiality Shield** requiring certification prior to posting.
-- Server-side OpenAI API key isolation (keys are never exposed to browser or client devices).
-- Granular Role-Based Access Control (RBAC) and immutable audit event logging.
-
----
-
-## 📄 License
-MIT License. Built for the OpenAI Build Week Challenge.
+## Deployment Architecture
+- **App Hosting:** Render (`server.mjs` Node web service, auto-deploying from `main`).
+- **Database:** Supabase PostgreSQL (`DATABASE_URL`).
+- **Payments & Transfers:** Paystack (`PAYSTACK_SECRET_KEY` + `/api/webhooks/paystack`).

@@ -765,7 +765,7 @@ export const demoMembers = [
   { id: '00000000-0000-4000-8000-000000000024', staffId: 'RIF-0024', name: 'Chioma Anyanwu', email: 'chioma@riffmax.tech', role: 'worker', title: 'Office Concierge & Frontline Hospitality Lead', department: 'Facilities & Workplace Security', bank: 'GTBank', account: '0121000024', grossPay: 380000 }
 ];
 
-// Matches Riffmax2026! using ShiftRelay's scrypt format (salt:hex). Override via SHIFTRELAY_DEMO_MEMBER_PASS.
+// Local dev demo scrypt hash (salt:hex). Override via SHIFTRELAY_DEMO_MEMBER_PASS env var.
 export const DEFAULT_DEMO_MEMBER_PASSWORD_HASH = '7b31e66ba6e49c68372e58d0a00829d3:a5e2489fa6f3841ee9c8099bf3425c808ebd1ae72ac18fd7d188eb9a2daf728198fa664db814cbd38b16b81a6ad7f2edf39bf0ecbfd8a4863931aeaf1c35d96a';
 
 async function resolveDemoMemberPasswordHash() {
