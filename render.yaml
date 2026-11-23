@@ -36,3 +36,5 @@ services:
         sync: false
       - key: SHIFTRELAY_ADMIN_BOOTSTRAP_PASS
         sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false

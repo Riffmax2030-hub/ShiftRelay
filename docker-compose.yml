@@ -26,7 +26,7 @@ services:
     environment:
       - POSTGRES_DB=shiftrelay_prod
       - POSTGRES_USER=shiftrelay_user
-      - POSTGRES_PASSWORD=shiftrelay_secret
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set_password}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
     environment:
       - DB_USER=shiftrelay_user
-      - DB_PASSWORD=shiftrelay_secret
+      - DB_PASSWORD=${POSTGRES_PASSWORD:?set_password}
       - DB_HOST=postgres
       - DB_NAME=shiftrelay_prod
       - POOL_MODE=transaction

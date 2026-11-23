@@ -14646,9 +14646,12 @@
 
           <!-- Right Column (7 cols): Statutory Breakdown Donut & Aligned Ledger -->
           <div class="sr-card" style="margin:0;">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
               <h4 style="font-size:15px;font-weight:800;color:var(--p-text);margin:0;">Statutory Breakdown</h4>
-              <span style="font-size:11px;color:var(--p-text-3);">NIBSS &amp; Finance Act</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:11px;color:var(--p-text-3);">NIBSS &amp; NTA 2025</span>
+                <button type="button" id="sr-btn-claim-rent-relief" class="sr-btn sr-btn-secondary" style="font-size:11px;min-height:26px;padding:3px 9px;">Claim Rent Relief</button>
+              </div>
             </div>
             <p style="font-size:12px;color:var(--p-text-3);margin:0 0 16px;">Employer handles direct salary disbursement and statutory remittances.</p>
 
@@ -14889,6 +14892,31 @@
 
     // Ensure Monthly Salary is active by default and Rewards panel starts hidden
     activateSalariedTab();
+
+    document.getElementById('sr-btn-claim-rent-relief')?.addEventListener('click', () => {
+      document.getElementById('sr-rent-modal-root')?.remove();
+      const m = document.createElement('div');
+      m.id = 'sr-rent-modal-root';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(2,16,12,0.62);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
+      m.innerHTML = `<div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:14px;max-width:420px;width:100%;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,0.3);"><h3 style="margin:0 0 6px;font-size:15.5px;font-weight:800;">NTA 2025 Rent Relief (20%, max ₦500k/yr)</h3><p style="margin:0 0 14px;font-size:12px;color:var(--sr-text-muted);">Submit your annual rent and tenancy receipt for HR verification to reduce your monthly PAYE tax.</p><form id="sr-rent-claim-form"><label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Annual Rent Paid (₦)</label><input id="sr-rent-amt" type="number" class="sr-input" min="10000" step="10000" required placeholder="e.g. 1200000" style="width:100%;margin-bottom:10px;" /><label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Landlord / Property Name</label><input id="sr-rent-landlord" type="text" class="sr-input" placeholder="Optional" style="width:100%;margin-bottom:10px;" /><label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Tenancy Agreement / Receipt</label><input id="sr-rent-file" type="file" accept="image/*,.pdf" style="width:100%;font-size:12px;margin-bottom:14px;" /><div style="display:flex;justify-content:flex-end;gap:8px;"><button type="button" class="sr-btn sr-btn-secondary" id="sr-rent-cancel">Cancel</button><button type="submit" class="sr-btn sr-btn-primary">Submit for Review</button></div></form></div>`;
+      document.body.appendChild(m);
+      m.querySelector('#sr-rent-cancel')?.addEventListener('click', () => m.remove());
+      m.querySelector('#sr-rent-claim-form')?.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const annualRentNgn = Number(m.querySelector('#sr-rent-amt')?.value || 0);
+        const landlordName = m.querySelector('#sr-rent-landlord')?.value || '';
+        const file = m.querySelector('#sr-rent-file')?.files?.[0];
+        let receiptDataUrl = null;
+        if (file) receiptDataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => res(null); fr.readAsDataURL(file); });
+        try {
+          const res = await fetch('/api/earnings/rent-relief', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ annualRentNgn, landlordName, receiptDataUrl }) });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Submission failed');
+          m.remove();
+          if (typeof window.showToast === 'function') window.showToast(`Rent relief submitted (est. ₦${Number(data.estimatedAnnualReliefNgn || 0).toLocaleString()}/yr). Pending HR verification.`);
+        } catch (err) { if (typeof window.showToast === 'function') window.showToast(err.message, 'error'); else alert(err.message); }
+      });
+    });
 
     const ewaBtn = document.getElementById('sr-ewa-withdraw-btn');
     const ewaInput = document.getElementById('sr-ewa-amount-input');

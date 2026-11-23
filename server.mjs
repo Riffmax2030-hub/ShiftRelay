@@ -4345,8 +4345,13 @@ async function handleApi(request, response, url) {
     const headcount = Math.max(1, Math.min(50000, Math.round(Number(body.headcount || 1))));
     const basicSalary = Math.round(monthlyGross * basicRatio);
 
-    const statutory = calculateStatutoryDeductions(basicSalary, monthlyGross);
-    const paye = calculatePayeTax(monthlyGross, basicSalary);
+    const annualRentPaid = Math.max(0, Number(body.annualRentPaid || 0));
+    const rentVerified = body.rentVerified !== undefined ? Boolean(body.rentVerified) : annualRentPaid > 0;
+    const stateOfResidence = String(body.stateOfResidence || 'Lagos').trim() || 'Lagos';
+    const calcOpts = { annualRentPaid, rentVerified, stateOfResidence, employeeCount: headcount };
+
+    const statutory = calculateStatutoryDeductions(basicSalary, monthlyGross, calcOpts);
+    const paye = calculatePayeTax(monthlyGross, basicSalary, calcOpts);
 
     const empPenCom = statutory.employee.penComPension;
     const empNhf = statutory.employee.nhf;
@@ -4413,6 +4418,11 @@ async function handleApi(request, response, url) {
       perStaff: {
         monthlyGross,
         basicSalary,
+        bhtBase: statutory.bhtBase,
+        minimumWageExempt: Boolean(paye.minimumWageExempt),
+        rentReliefMonthly: paye.rentReliefMonthly || 0,
+        rentReliefAnnual: paye.rentReliefAnnual || 0,
+        stateAuthority: paye.stateAuthority || 'LIRS (Lagos State Internal Revenue Service)',
         annualGross: paye.annualGross,
         monthlyCra: paye.monthlyCra,
         annualCra: paye.annualCra,
@@ -4438,8 +4448,11 @@ async function handleApi(request, response, url) {
         totalEmployeePenCom: Math.round(empPenCom * headcount * 100) / 100,
         totalEmployerPenCom: Math.round(employerPenCom * headcount * 100) / 100,
         totalPenComRemittance: Math.round((empPenCom + employerPenCom) * headcount * 100) / 100,
+        totalBhtBase: Math.round((statutory.bhtBase || monthlyGross * 0.8) * headcount * 100) / 100,
+        totalRentReliefMonthly: Math.round((paye.rentReliefMonthly || 0) * headcount * 100) / 100,
         totalNhf: Math.round(empNhf * headcount * 100) / 100,
         totalNsitf: Math.round(employerNsitf * headcount * 100) / 100,
+        totalItf: Math.round(employerItf * headcount * 100) / 100,
         totalCostToEmployer: Math.round(totalEmployerCostPerStaff * headcount * 100) / 100
       },
       emailDispatched
@@ -8624,6 +8637,44 @@ async function getUserRewards(user, store) {
 
   // ── Activity Reward Center & 10-Year Career Roadmap Endpoints ───────────────
   // ── Continuous Real-Time Payroll & Zero-Fee EWA (Dayforce Wallet Model, CBN Compliant) ──
+  if (url.pathname === '/api/treasury/paystack-initialize' && request.method === 'POST') {
+    if (!['owner', 'finance_admin', 'workforce_admin'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Owner or Finance access required to fund custody float.' });
+    }
+    const body = await readJson(request);
+    const amountNgn = Math.round(Number(body.amountNgn || 0));
+    const bucket = ['payroll_net','paye','pencom','nhf','nsitf'].includes(body.bucket) ? body.bucket : 'payroll_net';
+    if (!Number.isFinite(amountNgn) || amountNgn < 1000) {
+      return sendJson(response, 400, { error: 'Minimum Paystack custody top-up is ₦1,000.' });
+    }
+    const key = String(process.env.PAYSTACK_SECRET_KEY || '').trim();
+    const ref = 'SR-FLT-' + Date.now().toString(36).toUpperCase();
+    if (!key) {
+      return sendJson(response, 200, { ok: true, mode: 'sandbox_staged', reference: ref, note: 'PAYSTACK_SECRET_KEY not set.' });
+    }
+    try {
+      const psRes = await fetch('https://api.paystack.co/transaction/initialize', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          amount: amountNgn * 100,
+          reference: ref,
+          currency: 'NGN',
+          metadata: { type: 'custody_float_topup', organisationId: user.organisation_id, bucket, amountNgn }
+        }),
+        signal: AbortSignal.timeout(6000)
+      });
+      const psJson = await psRes.json().catch(() => ({}));
+      if (!psRes.ok || !psJson?.status) {
+        return sendJson(response, 200, { ok: false, mode: key.startsWith('sk_test_') ? 'paystack_test_staged' : 'paystack_pending', reference: ref, note: psJson?.message || 'Paystack initialize pending.' });
+      }
+      return sendJson(response, 200, { ok: true, mode: key.startsWith('sk_test_') ? 'paystack_test' : 'paystack_live', reference: ref, authorization_url: psJson.data?.authorization_url, access_code: psJson.data?.access_code });
+    } catch (err) {
+      return sendJson(response, 200, { ok: false, mode: 'paystack_unreachable', reference: ref, note: err.message });
+    }
+  }
+
   if (url.pathname === '/api/webhooks/paystack' && request.method === 'POST') {
     const rawBody = await readTextBody(request).catch(() => '');
     const sig = String(request.headers['x-paystack-signature'] || '');
@@ -8643,7 +8694,36 @@ async function getUserRewards(user, store) {
     if (!Array.isArray(store.paystackWebhookEvents)) store.paystackWebhookEvents = [];
     store.paystackWebhookEvents.unshift({ id: 'PSW-' + Date.now(), event: evt.event || 'unknown', reference: evt.data?.reference || null, receivedAt: new Date().toISOString() });
     if (store.paystackWebhookEvents.length > 100) store.paystackWebhookEvents.length = 100;
-    if (evt.event === 'transfer.success' && evt.data?.reference && Array.isArray(store.ewaDisbursements)) {
+    if (evt.event === 'charge.success' && evt.data?.metadata?.type === 'custody_float_topup') {
+      const meta = evt.data.metadata;
+      const tenantId = meta.organisationId;
+      const bucket = ['payroll_net','paye','pencom','nhf','nsitf'].includes(meta.bucket) ? meta.bucket : 'payroll_net';
+      const amtNgn = Math.round(Number(evt.data.amount || 0) / 100);
+      const ref = String(evt.data.reference || '');
+      const org = (store.organisations || []).find(o => o.id === tenantId);
+      if (org && amtNgn > 0 && ref) {
+        const sf = ensureSettlementFloatState(store);
+        const already = sf.ledger.some(l => l.reference === ref);
+        if (!already) {
+          const floatAcc = getOrInitTenantFloatAccount(store, org);
+          floatAcc.balances[bucket] = Math.round((Number(floatAcc.balances[bucket] || 0) + amtNgn) * 100) / 100;
+          floatAcc.updatedAt = new Date().toISOString();
+          sf.ledger.unshift({
+            id: 'FLT-PS-' + Date.now().toString(36).toUpperCase(),
+            tenantId: org.id,
+            companyCode: floatAcc.companyCode,
+            entryType: 'PAYSTACK_CUSTODY_TOPUP',
+            bucket,
+            amountNgn: amtNgn,
+            custodyPartner: floatAcc.custodyPartner,
+            reference: ref,
+            actorEmail: evt.data.customer?.email || 'employer@paystack',
+            reconciliationStatus: 'CLEARED_PAYSTACK_CHARGE',
+            createdAt: floatAcc.updatedAt
+          });
+        }
+      }
+    } else if (evt.event === 'transfer.success' && evt.data?.reference && Array.isArray(store.ewaDisbursements)) {
       const hit = store.ewaDisbursements.find(d => d.id === evt.data.reference);
       if (hit) hit.paystackSettledAt = new Date().toISOString();
     } else if ((evt.event === 'transfer.failed' || evt.event === 'transfer.reversed') && evt.data?.reference && Array.isArray(store.ewaDisbursements)) {
@@ -9598,6 +9678,30 @@ async function getUserRewards(user, store) {
     await saveStore(store);
 
     return sendJson(response, 200, { ok: true, correction, resolvedClockOutIso, clockedOutAt: resolvedClockOutIso });
+  }
+
+  // ── Worker Self-Service NTA 2025 Rent Relief Claim ────────────────────────
+  if (url.pathname === '/api/earnings/rent-relief' && request.method === 'POST') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    const body = await readJson(request);
+    const annualRentNgn = Math.max(0, Math.round(Number(body.annualRentNgn || 0)));
+    if (!Number.isFinite(annualRentNgn) || annualRentNgn <= 0) {
+      return sendJson(response, 400, { error: 'Please enter your annual rent amount in Naira.' });
+    }
+    const store = await getStore();
+    const contract = (store.contracts || []).find(c => (c.tenant_id || c.organisation_id) === user.organisation_id && (c.userId === user.user_id || c.userId === user.id || c.membershipId === user.id));
+    if (!contract) return sendJson(response, 404, { error: 'Compensation contract not found yet. Ask HR to set up your contract.' });
+    contract.annual_rent_ngn = annualRentNgn;
+    contract.rent_landlord_name = String(body.landlordName || '').trim().slice(0, 120);
+    contract.rent_receipt_url = body.receiptDataUrl ? String(body.receiptDataUrl).slice(0, 350000) : (contract.rent_receipt_url || null);
+    contract.rent_doc_verified = false;
+    contract.rent_claim_status = 'pending_hr_review';
+    contract.rent_claimed_at = new Date().toISOString();
+    if (databaseReady && UUID_REGEX.test(String(user.organisation_id || ''))) {
+      await query('update memberships set annual_rent_ngn = $1, rent_doc_verified = false where organisation_id = $2 and (user_id = $3 or id = $3)', [annualRentNgn, user.organisation_id, user.id]).catch(() => {});
+    }
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, annualRentNgn, estimatedAnnualReliefNgn: Math.min(500000, Math.round(annualRentNgn * 0.20)), status: 'pending_hr_review' });
   }
 
   // ── Nigerian Labour Act Section 7 Written Particulars ─────────────────────
@@ -11882,16 +11986,17 @@ async function getUserRewards(user, store) {
       const pu = usersById.get(m.user_id) || {};
       const ct = contractsByUser.get(m.user_id) || {};
       const org = orgsById.get(m.organisation_id) || {};
-      const gross = Number(ct.monthly_rate ?? ct.monthlyRate ?? 150000);
-      const stat = calculateStatutoryDeductions(gross, gross * 0.5);
-      const paye = calculatePayeTax(gross);
-      const netPay = Math.max(0, Math.round(gross - (stat?.employee?.totalEmployeeDeductions || 0) - (paye?.monthlyTax || 0)));
+      const gross = Number(ct.monthly_rate ?? ct.monthlyRate ?? 0);
+      const statRes = calculateNigerianStatutory(gross, { annualRentPaid: ct.annual_rent_ngn || 0, rentVerified: Boolean(ct.rent_doc_verified), nhfEnabled: ct.nhf_enabled !== false, nhisMonthly: ct.nhis_monthly_ngn || 0, lifeAssuranceMonthly: ct.life_assurance_monthly_ngn || 0 });
+      const ewaDeduct = Math.round((store.ewaDisbursements || []).filter(d => d.organisationId === m.organisation_id && d.cycleMonth === month && (d.userId === m.user_id || d.membershipId === m.id)).reduce((sum, d) => sum + Number(d.amountNgn || 0), 0) * 100) / 100;
+      const netPay = Math.max(0, Math.round((statRes.netPay - ewaDeduct) * 100) / 100);
       const bName = ct.bank_name || ct.bankName || 'Guaranty Trust Bank (GTBank)';
       const resolvedBank = resolveCbnBank(bName) || { code: '058', name: bName };
       const nuban = String(ct.account_number || ct.nuban || '0123456789').padStart(10, '0').slice(0, 10);
       const staffName = String(pu.full_name || m.name || 'Frontline Specialist');
       const orgCode = org.company_code || org.code || 'SR-ORG';
       const nipSessionId = `NIP-${month.replace('-', '')}-${resolvedBank.code}-${randomBytes(4).toString('hex').toUpperCase()}`;
+      const psTr = (isPaystackLive && netPay > 0) ? await executePaystackTransfer({ amountNgn: netPay, recipientName: staffName, accountNumber: nuban, bankCode: resolvedBank.code, reason: `Payroll ${month} (${orgCode})`, reference: nipSessionId }) : { ok: false, mode: 'sandbox_ledger' };
       totalNetNgn += netPay;
       receipts.push({
         staffName,
@@ -11900,9 +12005,13 @@ async function getUserRewards(user, store) {
         bankName: resolvedBank.name,
         cbnCode: resolvedBank.code,
         nuban,
+        ewaDeductedNgn: ewaDeduct,
         netPayNgn: netPay,
         nipSessionId,
-        status: isPaystackLive ? 'QUEUED_PAYSTACK_TRANSFER' : 'SETTLED_CBN_NIP_SANDBOX'
+        paystackMode: psTr.mode,
+        paystackTransferCode: psTr.transferCode || null,
+        paystackNote: psTr.note || null,
+        status: psTr.ok ? 'DISPATCHED_TO_PAYSTACK' : (isPaystackLive ? 'STAGED_PENDING_APPROVAL' : 'SETTLED_CBN_NIP_SANDBOX')
       });
     }
 

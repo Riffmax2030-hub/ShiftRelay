@@ -34,7 +34,7 @@ export const LEGAL_ENTITY = Object.freeze({
   governingStatutes: [
     'Nigeria Data Protection Act (NDPA) 2023',
     'Nigerian Labour Act (Cap L1 LFN 2004)',
-    'Personal Income Tax Act (PITA 2011) & Finance Acts',
+    'Nigeria Tax Act (NTA) 2025 (Effective Jan 1, 2026 · superseding PITA 2011)',
     'Pension Reform Act (PRA) 2014 (PenCom 8% / 10%)',
     'National Housing Fund (NHF) Act & NSITF ECA 2010'
   ],

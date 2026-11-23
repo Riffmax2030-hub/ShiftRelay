@@ -665,7 +665,7 @@ export function renderNewsletterWelcomeEmail({
     <div style="background-color:#0d182b;border:1px solid #1e293b;border-radius:10px;padding:16px;margin:18px 0;">
       <div style="font-size:11px;font-weight:800;color:#00f5a0;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">What You Will Receive Monthly</div>
       <ul style="margin:0;padding-left:18px;font-size:13.5px;color:#cbd5e1;line-height:1.7;">
-        <li>Nigeria Finance Act PAYE, PenCom PRA 2014 (8%/10%), NHF &amp; NSITF filing deadlines</li>
+        <li>Nigeria Tax Act (NTA) 2025 PAYE, PenCom PRA 2014 (8%/10% BHT), NHF &amp; NSITF filing deadlines</li>
         <li>Frontline attendance exception, geofence &amp; zero-smart-phone Peer ID benchmarks</li>
         <li>Ready-to-use bank CSV &amp; rollout checklist templates for hospitals, plants &amp; logistics fleets</li>
       </ul>
@@ -759,7 +759,7 @@ export function renderMonthlyComplianceNewsletterEmail({
 
   return wrapEnterpriseEmail({
     title: `Nigeria Workforce & Statutory Brief — ${monthLabel}`,
-    preheader: `${monthLabel}: PenCom PRA 2014 reminders, Finance Act PAYE rules & frontline benchmarks`,
+    preheader: `${monthLabel}: PenCom PRA 2014 reminders, Nigeria Tax Act (NTA) 2025 PAYE rules & frontline benchmarks`,
     recipientName,
     deliveryReason: `Monthly ShiftRelay OS statutory brief (segment: ${roleSegment}).`,
     bodyHtml,
@@ -769,7 +769,7 @@ export function renderMonthlyComplianceNewsletterEmail({
     securityMetadata: {
       'Edition': monthLabel,
       'Audience Segment': String(roleSegment).toUpperCase(),
-      'Compliance Authority': 'NDPA 2023 / PITA 2011 / PRA 2014'
+      'Compliance Authority': 'NDPA 2023 / NTA 2025 / PRA 2014'
     },
     unsubUrl: unsubscribeUrl
   });

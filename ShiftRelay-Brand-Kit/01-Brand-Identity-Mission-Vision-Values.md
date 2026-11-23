@@ -1,6 +1,6 @@
 # ShiftRelay Brand Identity, Mission, Vision & Core Values
 **Operated by:** Riffmax Technology Limited (`shiftrelayos.com`)  
-**Compliance Posture:** NDPA 2023 Data Processor · ISO/IEC 27001 Controls Aligned · PenCom PRA 2014 & PITA/Finance Act Ready  
+**Compliance Posture:** NDPA 2023 Data Processor · ISO/IEC 27001 Controls Aligned · Nigeria Tax Act (NTA) 2025 (2026 PAYE) & PenCom PRA 2014 Ready  
 
 ---
 

@@ -1329,7 +1329,7 @@ export function generateTermsOfServiceHtml() {
         3.1. <strong>Strict Regulatory Compliance:</strong> ShiftRelay's payroll compilation engine executes calculations strictly in alignment with:
       </p>
       <ul>
-        <li><strong>Personal Income Tax Act (PITA 2011 as amended):</strong> Enforcing Consolidated Relief Allowance (higher of 1% annual gross or ₦200,000, plus 20% annual gross) and graduated PAYE tax brackets (7% to 24%).</li>
+        <li><strong>Nigeria Tax Act (NTA) 2025 (Effective Jan 1, 2026 &middot; superseding PITA 2011):</strong> Enforcing zero legacy CRA, First &#8358;800,000 tax-free (0%), 15%&ndash;25% progressive annual bands, &#8358;70,000/month National Minimum Wage exemption, 20% verified Rent Relief (up to &#8358;500,000/yr), and state-of-residence PAYE schedules (LIRS, FCT-IRS).</li>
         <li><strong>Pension Reform Act 2014:</strong> Mandatory 8% Employee deduction and 10% Employer contribution remitted to licensed Pension Fund Administrators (PFAs).</li>
         <li><strong>Employees' Compensation Act (ECA 2010):</strong> Mandatory 1% payroll liability borne 100% by the Employer to the Nigeria Social Insurance Trust Fund (NSITF). Zero deduction is assessed to the worker.</li>
         <li><strong>Industrial Training Fund (ITF):</strong> 1% employer levy for qualifying establishments.</li>
@@ -2211,7 +2211,7 @@ const TOS_LEGAL_SECTIONS = [
   {
     heading: '3. Nigerian Statutory Tax, Pension & Zero-Lending Boundaries',
     paragraphs: [
-      '3.1. Calculations align strictly with PITA 2011 (Finance Act CRA), Pension Reform Act 2014 (8% employee / 10% employer), NSITF ECA 2010 (1% employer), NHF, and ITF.',
+      '3.1. Calculations align strictly with Nigeria Tax Act (NTA) 2025 (superseding PITA 2011, zero legacy CRA), Pension Reform Act 2014 (8% employee / 10% employer on BHT), NSITF ECA 2010 (1% employer), NHF, and ITF.',
       '3.2. Zero-Lending Regulatory Boundary: ShiftRelay is strictly enterprise payroll software and operates no credit, consumer lending, or digital wallet facility. Actual transfers settle through Subscriber commercial banks (NIBSS).'
     ]
   },
