@@ -183,7 +183,10 @@ import {
 } from './nigerian-banking.mjs';
 import {
   calculatePayeTax,
-  calculateStatutoryDeductions
+  calculateStatutoryDeductions,
+  resolveStateTaxAuthority,
+  validateLabourActLeaveRequest,
+  generateSection7WrittenParticulars
 } from './compliance-engine.mjs';
 import {
   DEFAULT_ATTENDANCE_POLICY,
@@ -2027,45 +2030,42 @@ async function transcribeAudio(request) {
 }
 
 // ── Enterprise Regulatory Live Calculation Engine (Nigeria Finance Act / PenCom) ──
-export function calculateNigerianStatutory(grossSalary) {
+export function calculateNigerianStatutory(grossSalary, opts = {}) {
   const gross = Math.max(0, Number(grossSalary) || 0);
-  // 1. Consolidated Relief Allowance (CRA): Higher of ₦200,000/yr (₦16,666.67/mo) or 1% of gross, plus 20% of gross
-  const craBase = Math.max(16666.67, gross * 0.01);
-  const cra = craBase + (gross * 0.20);
-  // 2. Pension (PenCom): 8% Employee, 10% Employer
-  const pensionEmployee = gross * 0.08;
-  const pensionEmployer = gross * 0.10;
-  // 3. National Housing Fund (NHF): 2.5% of basic (basic is approx 50% of gross)
-  const nhf = (gross * 0.50) * 0.025;
-  // 4. NSITF: 1% Employer Contribution
-  const nsitf = gross * 0.01;
-  // 5. Taxable Income
-  const totalTaxRelief = cra + pensionEmployee + nhf;
-  const taxableIncome = Math.max(0, gross - totalTaxRelief);
-  // 6. Progressive PAYE Tax (monthly brackets)
-  let tax = 0;
-  let rem = taxableIncome;
-  if (rem > 0) { const b1 = Math.min(rem, 25000); tax += b1 * 0.07; rem -= b1; }
-  if (rem > 0) { const b2 = Math.min(rem, 25000); tax += b2 * 0.11; rem -= b2; }
-  if (rem > 0) { const b3 = Math.min(rem, 41666.67); tax += b3 * 0.15; rem -= b3; }
-  if (rem > 0) { const b4 = Math.min(rem, 41666.67); tax += b4 * 0.19; rem -= b4; }
-  if (rem > 0) { const b5 = Math.min(rem, 133333.33); tax += b5 * 0.21; rem -= b5; }
-  if (rem > 0) { tax += rem * 0.24; }
-  const minTax = gross * 0.01;
-  const payeTax = Math.max(tax, minTax);
-  const totalDeductions = payeTax + pensionEmployee + nhf;
-  const netPay = Math.max(0, gross - totalDeductions);
+  const basicRatio = Number(opts.basicRatio || 0.50);
+  const basic = opts.basicSalary != null ? Math.max(0, Number(opts.basicSalary) || 0) : Math.round(gross * basicRatio * 100) / 100;
+  const stat = calculateStatutoryDeductions(basic, gross, opts);
+  const paye = calculatePayeTax(gross, basic, opts);
+  const payeTax = Number(paye.monthlyTax || 0);
+  const pensionEmployee = Number(stat.employee.penComPension || 0);
+  const pensionEmployer = Number(stat.employer.penComPension || 0);
+  const nhf = Number(stat.employee.nhf || 0);
+  const nhis = Number(stat.employee.nhis || 0);
+  const lifeAssurance = Number(stat.employee.lifeAssurance || 0);
+  const nsitf = Number(stat.employer.nsitf || 0);
+  const itf = Number(stat.employer.itf || 0);
+  const totalDeductions = Math.round((payeTax + pensionEmployee + nhf + nhis + lifeAssurance) * 100) / 100;
+  const netPay = Math.max(0, Math.round((gross - totalDeductions) * 100) / 100);
   return {
     gross,
-    cra: Math.round(cra * 100) / 100,
-    pensionEmployee: Math.round(pensionEmployee * 100) / 100,
-    pensionEmployer: Math.round(pensionEmployer * 100) / 100,
-    nhf: Math.round(nhf * 100) / 100,
-    nsitf: Math.round(nsitf * 100) / 100,
-    taxableIncome: Math.round(taxableIncome * 100) / 100,
-    payeTax: Math.round(payeTax * 100) / 100,
-    totalDeductions: Math.round(totalDeductions * 100) / 100,
-    netPay: Math.round(netPay * 100) / 100
+    bhtBase: stat.bhtBase,
+    bhtComplianceWarning: stat.bhtComplianceWarning,
+    cra: 0,
+    rentReliefAnnual: paye.rentReliefAnnual || 0,
+    rentReliefMonthly: paye.rentReliefMonthly || 0,
+    minimumWageExempt: Boolean(paye.minimumWageExempt),
+    pensionEmployee,
+    pensionEmployer,
+    nhf,
+    nhis,
+    lifeAssurance,
+    nsitf,
+    itf,
+    taxableIncome: Math.round(((paye.annualTaxableIncome || 0) / 12) * 100) / 100,
+    payeTax,
+    totalDeductions,
+    netPay,
+    regime: 'NTA_2025'
   };
 }
 
@@ -2751,7 +2751,8 @@ export async function syncWorkerPayLedger(store, orgId, memberOrUserId, monthPar
     contract,
     completedHours,
     activeShiftHours,
-    ewaDisbursedNgn
+    ewaDisbursedNgn,
+    ewaMaxCapPct: Number(org.ewa_max_cap_pct || 0.60)
   });
   const record = {
     organisationId: orgId,
@@ -2853,6 +2854,17 @@ export function compilePayrollRun(store, tenantId = null, monthParam = null) {
       bank_name: resolvedBank.name || raw.bank_name || prev.bank_name || dm?.bank || 'GTBank',
       cbn_bank_code: resolvedBank.code || raw.cbn_bank_code || prev.cbn_bank_code || membership?.cbn_bank_code || '',
       pencom_rsa_pin: raw.pencom_rsa_pin || prev.pencom_rsa_pin || membership?.pencom_rsa_pin || '',
+      pfa_name: raw.pfa_name || prev.pfa_name || membership?.pfa_name || 'Standard PFA',
+      state_of_residence: raw.state_of_residence || prev.state_of_residence || membership?.state_of_residence || 'Lagos',
+      hire_date: raw.hire_date || prev.hire_date || membership?.hire_date || null,
+      annual_rent_ngn: Number(raw.annual_rent_ngn ?? prev.annual_rent_ngn ?? membership?.annual_rent_ngn ?? 0),
+      rent_doc_verified: Boolean(raw.rent_doc_verified ?? prev.rent_doc_verified ?? membership?.rent_doc_verified ?? false),
+      nhis_monthly_ngn: Number(raw.nhis_monthly_ngn ?? prev.nhis_monthly_ngn ?? membership?.nhis_monthly_ngn ?? 0),
+      life_assurance_monthly_ngn: Number(raw.life_assurance_monthly_ngn ?? prev.life_assurance_monthly_ngn ?? membership?.life_assurance_monthly_ngn ?? 0),
+      basic_pct: Number(raw.basic_pct ?? prev.basic_pct ?? membership?.basic_pct ?? 0.50),
+      housing_pct: raw.housing_pct ?? prev.housing_pct ?? membership?.housing_pct ?? null,
+      transport_pct: raw.transport_pct ?? prev.transport_pct ?? membership?.transport_pct ?? null,
+      nhf_enabled: (raw.nhf_enabled ?? prev.nhf_enabled ?? membership?.nhf_enabled) !== false,
       tin: raw.tin || prev.tin || membership?.tin || '',
       account_number: raw.account_number || prev.account_number || dm?.account || '0000000000',
       account_name: raw.account_name || prev.account_name || raw.userName || pu?.full_name || dm?.name || 'Staff Member'
@@ -2972,7 +2984,23 @@ export function compilePayrollRun(store, tenantId = null, monthParam = null) {
 
     const grossPay           = Math.max(0, Math.round(regularPay + overtimePay + performanceBonus - absenceDeduction));
 
-    const stat = calculateNigerianStatutory(grossPay);
+    const stat = calculateNigerianStatutory(grossPay, {
+      basicRatio: c.basic_pct || 0.50,
+      housingAllowance: c.housing_pct != null ? Math.round(grossPay * Number(c.housing_pct) * 100) / 100 : undefined,
+      transportAllowance: c.transport_pct != null ? Math.round(grossPay * Number(c.transport_pct) * 100) / 100 : undefined,
+      nhfEnabled: c.nhf_enabled !== false,
+      nhisMonthly: c.nhis_monthly_ngn || 0,
+      lifeAssuranceMonthly: c.life_assurance_monthly_ngn || 0,
+      annualRentPaid: c.annual_rent_ngn || 0,
+      rentVerified: Boolean(c.rent_doc_verified),
+      employeeCount: contracts.length,
+      annualTurnoverNgn: Number(org.annual_turnover_ngn || 0)
+    });
+    const ewaAdvanceDeduction = Math.round((store.ewaDisbursements || [])
+      .filter(d => d.organisationId === org.id && d.cycleMonth === month && (d.userId === c.userId || d.membershipId === c._membershipId || d.membershipId === c.userId))
+      .reduce((acc, d) => acc + Number(d.amountNgn || 0), 0) * 100) / 100;
+    const finalNetPay = Math.max(0, Math.round((stat.netPay - ewaAdvanceDeduction) * 100) / 100);
+    const taxJurisdiction = resolveStateTaxAuthority(c.state_of_residence || 'Lagos');
 
     return {
       userId:        c.userId || c.id || '',
@@ -3008,16 +3036,27 @@ export function compilePayrollRun(store, tenantId = null, monthParam = null) {
       overtimePay,
       absenceDeduction,
       grossPay,
-      // Nigerian statutory
-      cra:                   stat.cra,
+      // Nigerian statutory (NTA 2025 + BHT PenCom + EWA Reconciliation)
+      cra:                   0,
+      rentReliefMonthly:     stat.rentReliefMonthly || 0,
+      bhtBase:               stat.bhtBase || 0,
+      bhtComplianceWarning:  stat.bhtComplianceWarning || null,
+      stateOfResidence:      taxJurisdiction.state,
+      taxAuthority:          taxJurisdiction.authority,
+      pfa_name:              c.pfa_name || 'Standard PFA',
       taxableIncome:         stat.taxableIncome,
       payeTax:               stat.payeTax,
       pensionEmployee:       stat.pensionEmployee,
       pensionEmployer:       stat.pensionEmployer,
       nhf:                   stat.nhf,
+      nhis:                  stat.nhis || 0,
+      lifeAssurance:         stat.lifeAssurance || 0,
       nsitf:                 stat.nsitf,
+      itf:                   stat.itf || 0,
       totalStatutoryDeductions: stat.totalDeductions,
-      netPay:                stat.netPay,
+      netPayBeforeEwa:       stat.netPay,
+      ewaAdvanceDeduction,
+      netPay:                finalNetPay,
       email:         c.email         || '',
       phone:         c.phone         || '',
       bank_name:     c.bank_name     || 'Access Bank',
@@ -3040,7 +3079,7 @@ export function compilePayrollRun(store, tenantId = null, monthParam = null) {
         nhf:              '₦' + stat.nhf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         nsitf:            '₦' + stat.nsitf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         totalDeductions:  '₦' + stat.totalDeductions.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        netPay:           '₦' + stat.netPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        netPay:           '₦' + finalNetPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         shiftScore:       `${avgScore}/100 (Grade ${shiftGrade})`
       }
     };
@@ -3094,21 +3133,30 @@ export function generateBankPaymentCSV(employees, monthCompact = null, format = 
   return generateMultiBankPaymentCSV(employees, monthCompact, format);
 }
 
-export function generateTaxPensionCSV(employees) {
-  const headers = ['Employee Name', 'Staff ID', 'PenCom RSA PIN', 'TIN', 'Gross Pay (NGN)', 'Consolidated Relief (CRA)', 'Taxable Income', 'PAYE Tax (NGN)', 'Pension Employee 8%', 'Pension Employer 10%', 'NHF 2.5%', 'NSITF 1%', 'Net Pay (NGN)'];
-  const rows = (Array.isArray(employees) ? employees : []).map(e => [
+export function generateTaxPensionCSV(employees, { groupBy = '' } = {}) {
+  const list = Array.isArray(employees) ? [...employees] : [];
+  if (groupBy === 'pfa') list.sort((a, b) => String(a.pfa_name || '').localeCompare(String(b.pfa_name || '')));
+  if (groupBy === 'state') list.sort((a, b) => String(a.stateOfResidence || '').localeCompare(String(b.stateOfResidence || '')));
+  const headers = ['Employee Name', 'Staff ID', 'State of Residence', 'Tax Authority (IRS)', 'PFA Name', 'PenCom RSA PIN', 'TIN', 'Gross Pay (NGN)', 'BHT Base (NGN)', 'Rent Relief NTA2025 (NGN)', 'Taxable Income', 'PAYE Tax (NGN)', 'Pension Employee 8%', 'Pension Employer 10%', 'NHF 2.5%', 'NSITF 1%', 'ITF 1% (Employer)', 'EWA Advance Deducted (NGN)', 'Net Bank Payout (NGN)'];
+  const rows = list.map(e => [
     escapeCsvCell(e.userName),
     escapeCsvCell(e.staffId),
+    escapeCsvCell(e.stateOfResidence || 'Lagos'),
+    escapeCsvCell(e.taxAuthority || 'LIRS (Lagos State Internal Revenue Service)'),
+    escapeCsvCell(e.pfa_name || 'Standard PFA'),
     escapeCsvCell(e.pencom_rsa_pin || ''),
     escapeCsvCell(e.tin || ''),
     escapeCsvCell(e.grossPay, { numeric: true }),
-    escapeCsvCell(e.cra, { numeric: true }),
+    escapeCsvCell(e.bhtBase ?? e.grossPay, { numeric: true }),
+    escapeCsvCell(e.rentReliefMonthly || 0, { numeric: true }),
     escapeCsvCell(e.taxableIncome, { numeric: true }),
     escapeCsvCell(e.payeTax, { numeric: true }),
     escapeCsvCell(e.pensionEmployee, { numeric: true }),
     escapeCsvCell(e.pensionEmployer, { numeric: true }),
     escapeCsvCell(e.nhf, { numeric: true }),
     escapeCsvCell(e.nsitf, { numeric: true }),
+    escapeCsvCell(e.itf || 0, { numeric: true }),
+    escapeCsvCell(e.ewaAdvanceDeduction || 0, { numeric: true }),
     escapeCsvCell(e.netPay, { numeric: true })
   ]);
   return serializeCsvRows(headers, rows, { withBom: false });
@@ -8566,6 +8614,13 @@ async function getUserRewards(user, store) {
   }
 
   if (url.pathname === '/api/wallet/ewa-disburse' && request.method === 'POST') {
+    if (!globalThis.__srEwaInFlight) globalThis.__srEwaInFlight = new Set();
+    const ewaLockKey = `${user.organisation_id}:${user.id}`;
+    if (globalThis.__srEwaInFlight.has(ewaLockKey)) {
+      return sendJson(response, 409, { error: 'Another EWA payout request is already in progress. Please wait.', code: 'EWA_CONCURRENT_LOCK' });
+    }
+    globalThis.__srEwaInFlight.add(ewaLockKey);
+    try {
     const store = await loadPayrollStoreForTenant(user.organisation_id);
     if (isTenantOverdueReadonly(store, user.organisation_id)) {
       return sendJson(response, 402, {
@@ -8574,6 +8629,13 @@ async function getUserRewards(user, store) {
       });
     }
     const body = await readJson(request);
+    const idempKey = request.headers['idempotency-key'] || body.idempotencyKey || null;
+    if (idempKey) {
+      if (!store.ewaIdempotency || typeof store.ewaIdempotency !== 'object') store.ewaIdempotency = {};
+      if (store.ewaIdempotency[`${ewaLockKey}:${idempKey}`]) {
+        return sendJson(response, 200, { ...store.ewaIdempotency[`${ewaLockKey}:${idempKey}`], idempotentReplay: true });
+      }
+    }
     const amountNgn = Math.round(Number(body.amountNgn || body.amount || 0));
     if (!Number.isFinite(amountNgn) || amountNgn <= 0) {
       return sendJson(response, 400, { error: 'Requested disbursal amountNgn must be greater than 0.' });
@@ -8664,8 +8726,11 @@ async function getUserRewards(user, store) {
     }
 
     const afterLedger = await syncWorkerPayLedger(store, user.organisation_id, user.id);
+    const payload = { ok: true, disbursal, ledger: afterLedger, employerFloatAvailableNgn: floatAcc.balances.payroll_net };
+    if (idempKey) store.ewaIdempotency[`${ewaLockKey}:${idempKey}`] = payload;
     await saveStore(store);
-    return sendJson(response, 200, { ok: true, disbursal, ledger: afterLedger, employerFloatAvailableNgn: floatAcc.balances.payroll_net });
+    return sendJson(response, 200, payload);
+    } finally { globalThis.__srEwaInFlight.delete(ewaLockKey); }
   }
 
   if (url.pathname === '/api/rewards/overview' && request.method === 'GET') {
@@ -9459,6 +9524,19 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, correction, resolvedClockOutIso, clockedOutAt: resolvedClockOutIso });
   }
 
+  // ── Nigerian Labour Act Section 7 Written Particulars ─────────────────────
+  if (url.pathname === '/api/hr/written-particulars' && request.method === 'GET') {
+    if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
+    const store = await loadPayrollStoreForTenant(user.organisation_id);
+    const payroll = compilePayrollRun(store, user.organisation_id);
+    const org = (store.organisations || []).find(o => o.id === user.organisation_id) || {};
+    const targetUserId = url.searchParams.get('userId') || user.id;
+    const emp = payroll.employees.find(e => e.userId === targetUserId || e._membershipId === targetUserId) || {
+      userName: user.name, staffId: user.staff_code || 'SR-STAFF', role: user.title || user.role, department: user.department || 'Operations', grossPay: 0
+    };
+    return sendJson(response, 200, { ok: true, particulars: generateSection7WrittenParticulars(emp, org) });
+  }
+
   // ── Worker Earnings & Statements (Strict Self-Only Tenant Isolation) ─────
   if (url.pathname === '/api/earnings' && request.method === 'GET') {
     const monthParam = url.searchParams.get('month');
@@ -9810,7 +9888,8 @@ async function getUserRewards(user, store) {
     const monthParam = url.searchParams.get('month');
     const store = await loadPayrollStoreForTenant(user.organisation_id);
     const payroll = compilePayrollRun(store, user.organisation_id, monthParam);
-    const csvData = generateTaxPensionCSV(payroll.employees);
+    const groupBy = url.searchParams.get('groupBy') || '';
+    const csvData = generateTaxPensionCSV(payroll.employees, { groupBy });
     response.writeHead(200, {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="ShiftRelayOS_Statutory_Tax_Pension_Schedule_${payroll.monthCompact}.csv"`

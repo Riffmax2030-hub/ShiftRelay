@@ -142,7 +142,7 @@ function runUnitTests() {
   assert.ok(ledger80h.statutory_withheld_todate.total_employee_withheld > 0);
   assert.equal(
     ledger80h.net_available_disbursal,
-    Math.round((ledger80h.gross_earned_todate - ledger80h.statutory_withheld_todate.total_employee_withheld) * 100) / 100
+    Math.round(ledger80h.net_earned_todate * ledger80h.ewa_cap_pct * 100) / 100
   );
   assert.equal(ledger80h.ewaPolicy.employerSubscriptionNgn, 0);
   assert.equal(ledger80h.ewaPolicy.workerFeeNgn, 0);

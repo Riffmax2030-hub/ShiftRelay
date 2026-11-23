@@ -190,24 +190,40 @@ export function computeWorkerAccruedLedger({
   completedHours = 0,
   activeShiftHours = 0,
   ewaDisbursedNgn = 0,
-  scheduledMonthHours = 160
+  scheduledMonthHours = 160,
+  ewaMaxCapPct = 0.60,
+  complianceOpts = {}
 } = {}) {
   const isMonthly = (contract.compensation_type || 'fixed_monthly') === 'fixed_monthly';
   const monthlyRate = Number(contract.monthly_rate ?? contract.monthly_salary ?? 0);
   const hourlyRate = Number(contract.hourly_rate || (monthlyRate > 0 ? Math.round(monthlyRate / scheduledMonthHours) : 1500));
-  const totalWorkedHours = Math.max(0, Number(completedHours || 0) + Number(activeShiftHours || 0));
+  // Strict EWA guardrail: only verified completed shift hours unlock withdrawable EWA
+  const verifiedHours = Math.max(0, Number(completedHours || 0));
+  const pendingActiveHours = Math.max(0, Number(activeShiftHours || 0));
+  const totalWorkedHours = verifiedHours + pendingActiveHours;
 
   let grossEarnedTodate = 0;
   if (isMonthly && monthlyRate > 0) {
-    const ratio = Math.min(1, totalWorkedHours / Math.max(1, scheduledMonthHours));
+    const ratio = Math.min(1, verifiedHours / Math.max(1, scheduledMonthHours));
     grossEarnedTodate = Math.round(monthlyRate * ratio * 100) / 100;
   } else {
-    grossEarnedTodate = Math.round(totalWorkedHours * hourlyRate * 100) / 100;
+    grossEarnedTodate = Math.round(verifiedHours * hourlyRate * 100) / 100;
   }
 
-  const basicEarnedTodate = Math.round(grossEarnedTodate * 0.5 * 100) / 100;
-  const stat = calculateStatutoryDeductions(basicEarnedTodate, grossEarnedTodate);
-  const paye = calculatePayeTax(grossEarnedTodate, basicEarnedTodate);
+  const basicRatio = Number(contract.basic_pct || 0.50);
+  const basicEarnedTodate = Math.round(grossEarnedTodate * basicRatio * 100) / 100;
+  const statOpts = {
+    housingAllowance: contract.housing_pct != null ? Math.round(grossEarnedTodate * Number(contract.housing_pct) * 100) / 100 : undefined,
+    transportAllowance: contract.transport_pct != null ? Math.round(grossEarnedTodate * Number(contract.transport_pct) * 100) / 100 : undefined,
+    nhfEnabled: contract.nhf_enabled !== false,
+    nhisMonthly: Number(contract.nhis_monthly_ngn || 0) * Math.min(1, verifiedHours / Math.max(1, scheduledMonthHours)),
+    lifeAssuranceMonthly: Number(contract.life_assurance_monthly_ngn || 0) * Math.min(1, verifiedHours / Math.max(1, scheduledMonthHours)),
+    annualRentPaid: Number(contract.annual_rent_ngn || 0),
+    rentVerified: Boolean(contract.rent_doc_verified),
+    ...complianceOpts
+  };
+  const stat = calculateStatutoryDeductions(basicEarnedTodate, grossEarnedTodate, statOpts);
+  const paye = calculatePayeTax(grossEarnedTodate, basicEarnedTodate, statOpts);
 
   const payeNgn = Math.round(Number(paye.monthlyTax || 0) * 100) / 100;
   const pencomEmployeeNgn = Math.round(Number(stat.employee.penComPension || 0) * 100) / 100;
@@ -215,12 +231,15 @@ export function computeWorkerAccruedLedger({
   const nhfNgn = Math.round(Number(stat.employee.nhf || 0) * 100) / 100;
   const nsitfNgn = Math.round(Number(stat.employer.nsitf || 0) * 100) / 100;
 
-  const totalEmployeeWithheldNgn = Math.round((payeNgn + pencomEmployeeNgn + nhfNgn) * 100) / 100;
+  const totalEmployeeWithheldNgn = Math.round((payeNgn + pencomEmployeeNgn + nhfNgn + Number(stat.employee.nhis || 0) + Number(stat.employee.lifeAssurance || 0)) * 100) / 100;
   const netEarnedTodate = Math.max(0, Math.round((grossEarnedTodate - totalEmployeeWithheldNgn) * 100) / 100);
+  const safeCapPct = Math.min(0.70, Math.max(0.50, Number(ewaMaxCapPct || 0.60)));
+  const ewaCappedLimitNgn = Math.round(netEarnedTodate * safeCapPct * 100) / 100;
   const disbursedTodate = Math.max(0, Math.round(Number(ewaDisbursedNgn || 0) * 100) / 100);
-  const netAvailableDisbursal = Math.max(0, Math.round((netEarnedTodate - disbursedTodate) * 100) / 100);
+  const netAvailableDisbursal = Math.max(0, Math.round((ewaCappedLimitNgn - disbursedTodate) * 100) / 100);
 
   return {
+    verifiedWorkedHours: Math.round(verifiedHours * 100) / 100,
     totalWorkedHours: Math.round(totalWorkedHours * 100) / 100,
     gross_earned_todate: grossEarnedTodate,
     statutory_withheld_todate: {
@@ -232,12 +251,15 @@ export function computeWorkerAccruedLedger({
       total_employee_withheld: totalEmployeeWithheldNgn
     },
     net_earned_todate: netEarnedTodate,
+    ewa_cap_pct: safeCapPct,
+    ewa_capped_limit_ngn: ewaCappedLimitNgn,
     ewa_disbursed_todate: disbursedTodate,
     net_available_disbursal: netAvailableDisbursal,
     ewaPolicy: {
       employerSubscriptionNgn: 0,
       workerFeeNgn: 0,
       interestRatePct: 0,
+      safetyCapPct: Math.round(safeCapPct * 100),
       cbnZeroLendingCompliant: true,
       rails: ['Paystack NIP', 'Mono Open Banking']
     }

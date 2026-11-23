@@ -10,29 +10,34 @@ import {
 
 console.log('=== RUNNING NIGERIAN STATUTORY COMPLIANCE SUITE ===');
 
-// 1. Test Statutory Deductions (Gross ₦200,000, Basic ₦100,000)
+// 1. Test Statutory Deductions (Gross ₦200,000, Basic ₦100,000 -> BHT = ₦160,000 default 50%+20%+10%)
 {
   const stat = calculateStatutoryDeductions(100000, 200000);
-  console.log('[TEST 1] Statutory Deductions for ₦200,000 Gross / ₦100,000 Basic:');
+  console.log('[TEST 1] Statutory Deductions for ₦200,000 Gross / ₦100,000 Basic (BHT = ₦160,000):');
   console.log(stat);
-  assert.strictEqual(stat.employee.penComPension, 16000, 'Employee PenCom should be 8% of Gross (16,000)');
-  assert.strictEqual(stat.employer.penComPension, 20000, 'Employer PenCom should be 10% of Gross (20,000)');
+  assert.strictEqual(stat.bhtBase, 160000, 'BHT base should be 160,000 (50% Basic + 20% Housing + 10% Transport)');
+  assert.strictEqual(stat.employee.penComPension, 12800, 'Employee PenCom should be 8% of BHT (12,800)');
+  assert.strictEqual(stat.employer.penComPension, 16000, 'Employer PenCom should be 10% of BHT (16,000)');
   assert.strictEqual(stat.employee.nhf, 2500, 'NHF should be 2.5% of Basic (2,500)');
   assert.strictEqual(stat.employer.nsitf, 2000, 'NSITF should be 1% of Gross (2,000)');
   assert.strictEqual(stat.employer.itf, 2000, 'ITF should be 1% of Gross (2,000)');
-  console.log('✔ Test 1 Passed: Statutory deductions match PenCom & ECA statutes.');
+  console.log('✔ Test 1 Passed: Statutory deductions match PenCom BHT & ECA/ITF statutes.');
 }
 
-// 2. Test Finance Act PAYE & CRA
+// 2. Test NTA 2025 PAYE (Zero CRA, ₦800k 0% band, Rent Relief & ₦70k Min Wage Exempt)
 {
-  const tax = calculatePayeTax(250000, 125000);
-  console.log('\n[TEST 2] PAYE Tax for ₦250,000 Monthly Gross:');
+  const minWageTax = calculatePayeTax(70000, 35000);
+  assert.strictEqual(minWageTax.minimumWageExempt, true, '₦70,000/mo minimum wage must be PAYE exempt');
+  assert.strictEqual(minWageTax.monthlyTax, 0, '₦70,000/mo PAYE must be ₦0');
+
+  const tax = calculatePayeTax(250000, 125000, { annualRentPaid: 1200000, rentVerified: true });
+  console.log('\n[TEST 2] NTA 2025 PAYE Tax for ₦250,000 Monthly Gross (Verified Rent ₦1.2M/yr):');
   console.log(tax);
-  assert(tax.annualGross === 3000000, 'Annual Gross should be 3,000,000');
-  // CRA = max(1% gross, 200k) + 20% gross = 200,000 + 600,000 = 800,000
-  assert.strictEqual(tax.annualCra, 800000, 'Annual CRA should be ₦800,000');
-  assert(tax.monthlyTax > 0, 'Monthly PAYE tax should be positive');
-  console.log(`✔ Test 2 Passed: Finance Act CRA computed accurately (Monthly Tax: ₦${tax.monthlyTax}).`);
+  assert.strictEqual(tax.annualGross, 3000000, 'Annual Gross should be 3,000,000');
+  assert.strictEqual(tax.annualCra, 0, 'Legacy CRA must be 0 under NTA 2025');
+  assert.strictEqual(tax.rentReliefAnnual, 240000, 'Rent Relief should be 20% of ₦1.2M = ₦240,000');
+  assert(tax.monthlyTax > 0, 'Monthly PAYE tax should be positive above ₦800k band');
+  console.log(`✔ Test 2 Passed: NTA 2025 PAYE computed accurately (Monthly Tax: ₦${tax.monthlyTax}).`);
 }
 
 // 3. Test Net-to-Gross Reverse Resolver

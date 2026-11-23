@@ -176,6 +176,19 @@ const schema = `
   alter table memberships add column if not exists shift_end time;
   alter table memberships add column if not exists shift_days jsonb not null default '[]'::jsonb;
   alter table memberships add column if not exists staff_code varchar(32);
+  alter table memberships add column if not exists state_of_residence varchar(64) default 'Lagos';
+  alter table memberships add column if not exists pfa_name text;
+  alter table memberships add column if not exists hire_date date;
+  alter table memberships add column if not exists annual_rent_ngn numeric(14,2) default 0;
+  alter table memberships add column if not exists rent_doc_verified boolean default false;
+  alter table memberships add column if not exists nhis_monthly_ngn numeric(14,2) default 0;
+  alter table memberships add column if not exists life_assurance_monthly_ngn numeric(14,2) default 0;
+  alter table memberships add column if not exists basic_pct numeric(5,4) default 0.50;
+  alter table memberships add column if not exists housing_pct numeric(5,4) default 0.20;
+  alter table memberships add column if not exists transport_pct numeric(5,4) default 0.10;
+  alter table memberships add column if not exists nhf_enabled boolean default true;
+  alter table organisations add column if not exists annual_turnover_ngn numeric(16,2) default 0;
+  alter table organisations add column if not exists ewa_max_cap_pct numeric(4,2) default 0.60;
   create table if not exists time_entries (
     id uuid primary key,
     organisation_id uuid not null references organisations(id) on delete cascade,

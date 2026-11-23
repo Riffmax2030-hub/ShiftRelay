@@ -1,108 +1,233 @@
 /**
  * ShiftRelay Nigerian Labor Law, Payroll & Time Compliance Engine
- * Implements the Finance Act PAYE, Pension Reform Act (PenCom), NHF, NSITF,
- * Net-to-Gross Reverse Calculation, Casual Daily Pay & Public Holiday Overtime Matrix.
+ * Implements Nigeria Tax Act (NTA) 2025 (effective Jan 1, 2026),
+ * Pension Reform Act (PenCom BHT), NHF, NSITF, ITF,
+ * Net-to-Gross Reverse Calculation, Casual Daily Pay,
+ * Public Holiday Overtime Matrix, and Nigerian Labour Act Section 7 & Leave/Notice rules.
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. STATUTORY DEDUCTIONS MODULE (PenCom, NHF, NSITF, ITF)
+// 0. NIGERIAN STATE TAX AUTHORITIES & NTA 2025 CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const NIGERIAN_STATE_IRS_MAP = Object.freeze({
+  Lagos: 'LIRS (Lagos State Internal Revenue Service)',
+  FCT: 'FCT-IRS (FCT Internal Revenue Service)',
+  Abuja: 'FCT-IRS (FCT Internal Revenue Service)',
+  Rivers: 'RIRS (Rivers State Internal Revenue Service)',
+  Ogun: 'OGIRS (Ogun State Internal Revenue Service)',
+  Oyo: 'OYIRS (Oyo State Internal Revenue Service)',
+  Kano: 'KIRS (Kano State Internal Revenue Service)',
+  Kaduna: 'KADIRS (Kaduna State Internal Revenue Service)',
+  Enugu: 'ESIRS (Enugu State Internal Revenue Service)',
+  Delta: 'DSIRS (Delta State Internal Revenue Service)',
+  Edo: 'EIRS (Edo State Internal Revenue Service)'
+});
+
+export function resolveStateTaxAuthority(stateOfResidence = 'Lagos') {
+  const raw = String(stateOfResidence || 'Lagos').trim();
+  const hit = Object.entries(NIGERIAN_STATE_IRS_MAP).find(
+    ([k]) => k.toLowerCase() === raw.toLowerCase()
+  );
+  if (hit) return { state: hit[0], authority: hit[1] };
+  return {
+    state: raw || 'Lagos',
+    authority: `${raw || 'State'} Internal Revenue Service (SIRS)`
+  };
+}
+
+export const NTA_2025_MINIMUM_WAGE_MONTHLY = 70000;
+export const NTA_2025_MINIMUM_WAGE_ANNUAL = 840000;
+export const NTA_2025_MAX_RENT_RELIEF_ANNUAL = 500000;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. STATUTORY DEDUCTIONS MODULE (PenCom on BHT, NHF, NSITF, ITF)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Compute statutory deductions according to Nigerian regulatory standards.
+ * PenCom PRA 2014: minimum 8% Employee + 10% Employer on Basic + Housing + Transport (BHT).
+ *
  * @param {number} basicSalary - Monthly basic salary (NGN)
  * @param {number} grossSalary - Monthly gross salary (NGN)
+ * @param {object} [opts]
+ * @param {number} [opts.housingAllowance] - Monthly housing allowance (defaults to 20% gross if omitted)
+ * @param {number} [opts.transportAllowance] - Monthly transport allowance (defaults to 10% gross if omitted)
+ * @param {boolean} [opts.nhfEnabled=true] - Toggle for private-sector NHF applicability
+ * @param {number} [opts.nhisMonthly=0] - Monthly NHIS / Health Insurance employee contribution
+ * @param {number} [opts.lifeAssuranceMonthly=0] - Monthly Life Assurance premium
+ * @param {number} [opts.employeeCount=5] - Employer headcount for ITF threshold (>=5)
+ * @param {number} [opts.annualTurnoverNgn=0] - Employer annual turnover for ITF threshold (>=₦50M)
  * @returns {object} Breakdown of employee and employer statutory liabilities
  */
-export function calculateStatutoryDeductions(basicSalary, grossSalary) {
-  const b = Math.max(0, Number(basicSalary) || 0);
+export function calculateStatutoryDeductions(basicSalary, grossSalary, opts = {}) {
   const g = Math.max(0, Number(grossSalary) || 0);
+  const b = basicSalary != null && Number(basicSalary) >= 0
+    ? Math.max(0, Number(basicSalary) || 0)
+    : Math.round(g * 0.50 * 100) / 100;
 
-  // PenCom PRA 2014: 8% Employee, 10% Employer (on Gross or Basic+Housing+Transport)
-  const penComEmployee = Math.round(g * 0.08 * 100) / 100;
-  const penComEmployer = Math.round(g * 0.10 * 100) / 100;
+  const hasExplicitBht = opts.housingAllowance != null || opts.transportAllowance != null;
+  const housing = opts.housingAllowance != null
+    ? Math.max(0, Number(opts.housingAllowance) || 0)
+    : Math.round(g * 0.20 * 100) / 100;
+  const transport = opts.transportAllowance != null
+    ? Math.max(0, Number(opts.transportAllowance) || 0)
+    : Math.round(g * 0.10 * 100) / 100;
 
-  // National Housing Fund (NHF): 2.5% of Basic Salary
-  const nhf = Math.round(b * 0.025 * 100) / 100;
+  // PenCom PRA 2014 base = Basic + Housing + Transport (BHT), capped at gross
+  const rawBht = b + housing + transport;
+  const bhtBase = g > 0 ? Math.min(g, rawBht > 0 ? rawBht : g * 0.80) : 0;
+  const bhtRatio = g > 0 ? Math.round((bhtBase / g) * 10000) / 10000 : 0;
+  const bhtComplianceWarning = g > 0 && bhtRatio < 0.50
+    ? `BHT (${Math.round(bhtRatio * 100)}% of gross) is below the 50% statutory PenCom guideline.`
+    : null;
 
-  // Employees' Compensation Act (NSITF): 1% of Gross (Employer cost)
+  // PenCom: 8% Employee, 10% Employer on BHT
+  const penComEmployee = Math.round(bhtBase * 0.08 * 100) / 100;
+  const penComEmployer = Math.round(bhtBase * 0.10 * 100) / 100;
+
+  // National Housing Fund (NHF): 2.5% of Basic Salary (subject to toggle)
+  const nhfEnabled = opts.nhfEnabled !== false;
+  const nhf = nhfEnabled ? Math.round(b * 0.025 * 100) / 100 : 0;
+
+  const nhis = Math.max(0, Math.round((Number(opts.nhisMonthly) || 0) * 100) / 100);
+  const lifeAssurance = Math.max(0, Math.round((Number(opts.lifeAssuranceMonthly) || 0) * 100) / 100);
+
+  // Employees' Compensation Act (NSITF): 1% of total monthly payroll (Employer cost only)
   const nsitf = Math.round(g * 0.01 * 100) / 100;
 
-  // Industrial Training Fund (ITF): 1% of total payroll (Employer liability)
-  const itf = Math.round(g * 0.01 * 100) / 100;
+  // Industrial Training Fund (ITF): 1% of annual payroll for qualifying employers (5+ staff OR >= ₦50M turnover)
+  const empCount = Number(opts.employeeCount ?? 5);
+  const turnover = Number(opts.annualTurnoverNgn ?? 0);
+  const itfQualifies = opts.itfApplicable != null ? Boolean(opts.itfApplicable) : (empCount >= 5 || turnover >= 50_000_000);
+  const itf = itfQualifies ? Math.round(g * 0.01 * 100) / 100 : 0;
+
+  const totalEmployeeDeductions = Math.round((penComEmployee + nhf + nhis + lifeAssurance) * 100) / 100;
 
   return {
+    bhtBase: Math.round(bhtBase * 100) / 100,
+    bhtRatio,
+    bhtComplianceWarning,
+    hasExplicitBht,
+    itfQualifies,
     employee: {
       penComPension: penComEmployee,
-      nhf: nhf,
-      totalEmployeeDeductions: Math.round((penComEmployee + nhf) * 100) / 100
+      nhf,
+      nhis,
+      lifeAssurance,
+      totalEmployeeDeductions
     },
     employer: {
       penComPension: penComEmployer,
-      nsitf: nsitf,
-      itf: itf,
+      nsitf,
+      itf,
       totalEmployerContribution: Math.round((penComEmployer + nsitf + itf) * 100) / 100
     }
   };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. PIT / PAYE CALCULATOR (Nigeria Finance Act & Consolidated Relief Allowance)
+// 2. NTA 2025 PIT / PAYE CALCULATOR (Effective January 1, 2026)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Calculate Personal Income Tax (PAYE) per the Finance Act.
- * Consolidated Relief Allowance (CRA): Higher of 1% Gross or ₦200,000/yr (₦16,666.67/mo) + 20% Gross.
+ * Calculate Personal Income Tax (PAYE) per the Nigeria Tax Act (NTA) 2025:
+ * - Legacy CRA completely eliminated.
+ * - Legacy 1% minimum tax eliminated.
+ * - National Minimum Wage Exemption: <= ₦70,000/month (₦840,000/year) => ₦0 PAYE.
+ * - Rent Relief: 20% of annual rent paid, capped at ₦500,000/year (requires rentVerified=true).
+ * - Allowable Tax-Exempt Deductions: Employee PenCom (8% BHT), NHF (2.5% Basic), NHIS, Life Assurance.
+ * - Progressive NTA 2025 Annual Bands:
+ *   First ₦800,000: 0%
+ *   Next ₦2,200,000: 15%
+ *   Next ₦9,000,000: 18%
+ *   Next ₦13,000,000: 21%
+ *   Next ₦25,000,000: 23%
+ *   Above ₦50,000,000: 25%
+ *
  * @param {number} monthlyGross - Monthly gross income (NGN)
  * @param {number} basicSalary - Monthly basic salary (NGN)
- * @param {number} otherExemptions - Additional voluntary pension, NHIS or life assurance
- * @returns {object} Itemized tax breakdown
+ * @param {number|object} [otherOrOpts=0] - Additional monthly exemptions OR full options object
+ * @returns {object} Itemized NTA 2025 tax breakdown
  */
-export function calculatePayeTax(monthlyGross, basicSalary, otherExemptions = 0) {
+export function calculatePayeTax(monthlyGross, basicSalary, otherOrOpts = 0) {
+  const opts = typeof otherOrOpts === 'object' && otherOrOpts !== null
+    ? otherOrOpts
+    : { otherExemptions: Number(otherOrOpts) || 0 };
+
   const gross = Math.max(0, Number(monthlyGross) || 0);
   if (gross <= 0) {
-    return { gross: 0, cra: 0, taxableIncome: 0, annualTax: 0, monthlyTax: 0, effectiveTaxRate: 0 };
+    return {
+      monthlyGross: 0,
+      annualGross: 0,
+      minimumWageExempt: true,
+      rentReliefAnnual: 0,
+      rentReliefMonthly: 0,
+      monthlyCra: 0,
+      annualCra: 0,
+      annualTaxableIncome: 0,
+      monthlyTax: 0,
+      annualTax: 0,
+      effectiveTaxRate: 0,
+      regime: 'NTA_2025'
+    };
   }
 
   const annualGross = gross * 12;
-  const statutory = calculateStatutoryDeductions(basicSalary || gross * 0.5, gross);
+  const statutory = calculateStatutoryDeductions(basicSalary ?? gross * 0.50, gross, opts);
 
-  // Consolidated Relief Allowance (Annual)
-  // Higher of 1% annual gross OR ₦200,000, PLUS 20% of annual gross
-  const baseCra = Math.max(annualGross * 0.01, 200000);
-  const percentageCra = annualGross * 0.20;
-  const annualCra = baseCra + percentageCra;
+  // National Minimum Wage Exemption (₦70,000/month or ₦840,000/year)
+  if (annualGross <= NTA_2025_MINIMUM_WAGE_ANNUAL) {
+    return {
+      monthlyGross: gross,
+      annualGross,
+      minimumWageExempt: true,
+      rentReliefAnnual: 0,
+      rentReliefMonthly: 0,
+      monthlyCra: 0,
+      annualCra: 0,
+      annualTaxableIncome: 0,
+      monthlyTax: 0,
+      annualTax: 0,
+      effectiveTaxRate: 0,
+      statutory,
+      regime: 'NTA_2025'
+    };
+  }
 
-  // Annual tax-exempt deductions (Employee PenCom + NHF + Other Exemptions)
-  const annualExemptDeductions = (statutory.employee.totalEmployeeDeductions + otherExemptions) * 12;
+  // Rent Relief: 20% of annual rent paid, capped at ₦500,000/yr, ONLY if document-verified
+  const annualRentPaid = Math.max(0, Number(opts.annualRentPaid) || 0);
+  const rentVerified = Boolean(opts.rentVerified);
+  const rentReliefAnnual = rentVerified
+    ? Math.min(NTA_2025_MAX_RENT_RELIEF_ANNUAL, Math.round(annualRentPaid * 0.20 * 100) / 100)
+    : 0;
+  const rentReliefMonthly = Math.round((rentReliefAnnual / 12) * 100) / 100;
 
-  // Chargeable / Taxable Income
-  const taxableAnnualIncome = Math.max(0, annualGross - annualCra - annualExemptDeductions);
+  // Annual tax-exempt deductions (Employee PenCom + NHF + NHIS + Life Assurance + optional extra)
+  const extraMonthly = Math.max(0, Number(opts.otherExemptions) || 0);
+  const annualExemptDeductions = (statutory.employee.totalEmployeeDeductions + extraMonthly) * 12;
 
-  // Progressive Tax Bands (Sixth Schedule to the Personal Income Tax Act)
+  // Annual Chargeable / Taxable Income (NO legacy CRA)
+  const taxableAnnualIncome = Math.max(0, annualGross - rentReliefAnnual - annualExemptDeductions);
+
+  // Progressive Tax Bands (Nigeria Tax Act 2025)
   let remaining = taxableAnnualIncome;
   let annualTax = 0;
 
-  const BANDS = [
-    { limit: 300000, rate: 0.07 },
-    { limit: 300000, rate: 0.11 },
-    { limit: 500000, rate: 0.15 },
-    { limit: 500000, rate: 0.19 },
-    { limit: 1600000, rate: 0.21 },
-    { limit: Infinity, rate: 0.24 }
+  const NTA_2025_BANDS = [
+    { limit: 800000, rate: 0.00 },
+    { limit: 2200000, rate: 0.15 },
+    { limit: 9000000, rate: 0.18 },
+    { limit: 13000000, rate: 0.21 },
+    { limit: 25000000, rate: 0.23 },
+    { limit: Infinity, rate: 0.25 }
   ];
 
-  for (const band of BANDS) {
+  for (const band of NTA_2025_BANDS) {
     if (remaining <= 0) break;
     const taxableInBand = Math.min(remaining, band.limit);
     annualTax += taxableInBand * band.rate;
     remaining -= taxableInBand;
-  }
-
-  // Minimum Tax rule: Minimum 1% of Gross if calculated tax is lower (for low earners)
-  const minimumAnnualTax = annualGross * 0.01;
-  if (annualTax < minimumAnnualTax && taxableAnnualIncome > 0) {
-    annualTax = minimumAnnualTax;
   }
 
   const monthlyTax = Math.round((annualTax / 12) * 100) / 100;
@@ -111,12 +236,17 @@ export function calculatePayeTax(monthlyGross, basicSalary, otherExemptions = 0)
   return {
     monthlyGross: gross,
     annualGross,
-    monthlyCra: Math.round((annualCra / 12) * 100) / 100,
-    annualCra: Math.round(annualCra * 100) / 100,
+    minimumWageExempt: false,
+    rentReliefAnnual,
+    rentReliefMonthly,
+    monthlyCra: 0,
+    annualCra: 0,
     annualTaxableIncome: Math.round(taxableAnnualIncome * 100) / 100,
     monthlyTax,
     annualTax: Math.round(annualTax * 100) / 100,
-    effectiveTaxRate
+    effectiveTaxRate,
+    statutory,
+    regime: 'NTA_2025'
   };
 }
 
@@ -125,26 +255,27 @@ export function calculatePayeTax(monthlyGross, basicSalary, otherExemptions = 0)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Solves the gross salary backward from a desired net take-home salary.
+ * Solves the gross salary backward from a desired net take-home salary under NTA 2025.
  * Uses binary search convergence (< ₦0.01 tolerance).
  * @param {number} targetNet - Negotiated monthly net salary (NGN)
  * @param {number} basicRatio - Ratio of basic salary to gross (default: 0.50)
+ * @param {object} [opts] - Optional NTA 2025 reliefs/statutory flags
  * @returns {object} Derived gross, tax and deductions
  */
-export function calculateGrossFromNet(targetNet, basicRatio = 0.50) {
+export function calculateGrossFromNet(targetNet, basicRatio = 0.50, opts = {}) {
   const target = Math.max(0, Number(targetNet) || 0);
-  if (target === 0) return { gross: 0, net: 0, tax: 0, deductions: 0 };
+  if (target === 0) return { grossSalary: 0, targetNetSalary: 0, actualNetSalary: 0, monthlyPayeTax: 0 };
 
   let low = target;
-  let high = target * 1.65; // High bound estimate for top tax brackets
+  let high = target * 1.75;
   let iteration = 0;
 
-  while (iteration < 60) {
+  while (iteration < 65) {
     iteration++;
     const midGross = (low + high) / 2;
     const basic = midGross * basicRatio;
-    const statutory = calculateStatutoryDeductions(basic, midGross);
-    const tax = calculatePayeTax(midGross, basic);
+    const statutory = calculateStatutoryDeductions(basic, midGross, opts);
+    const tax = calculatePayeTax(midGross, basic, opts);
     const computedNet = midGross - statutory.employee.totalEmployeeDeductions - tax.monthlyTax;
 
     const diff = computedNet - target;
@@ -179,13 +310,6 @@ export function calculateGrossFromNet(targetNet, basicRatio = 0.50) {
 // 4. CASUAL LABOR & DAILY/WEEKLY PAY ACCUMULATOR
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Accumulate shift earnings for casual workers paid daily or weekly.
- * Generates ready-to-disburse transfer objects for banking / transfer APIs.
- * @param {Array} shiftRecords - Array of verified punches with hoursWorked
- * @param {number} hourlyRate - Agreed hourly rate (NGN)
- * @returns {object} Total hours, gross earnings, and payment recipient object
- */
 export function calculateCasualDailyPay(shiftRecords = [], hourlyRate = 1200) {
   const rate = Math.max(0, Number(hourlyRate) || 1200);
   let totalRegularHours = 0;
@@ -220,9 +344,6 @@ export function calculateCasualDailyPay(shiftRecords = [], hourlyRate = 1200) {
 // 5. PUBLIC HOLIDAY & OVERTIME MULTIPLIER MATRIX
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Official Federal Nigerian Public Holidays (Fixed and Calendar Dates)
- */
 export const NIGERIAN_PUBLIC_HOLIDAYS_2026 = [
   '2026-01-01', // New Year's Day
   '2026-04-03', // Good Friday
@@ -235,16 +356,6 @@ export const NIGERIAN_PUBLIC_HOLIDAYS_2026 = [
   '2026-12-26'  // Boxing Day
 ];
 
-/**
- * Determines whether a date is a Nigerian Public Holiday or Sunday rest day,
- * and returns the appropriate overtime multiplier:
- * - Normal Workday Overtime: 1.5x
- * - Sunday / Official Public Holiday Shift: 2.0x (Double Pay)
- * @param {string|Date} dateInput - ISO date or Date object
- * @param {number} hoursWorked - Total hours worked on shift
- * @param {number} regularHourlyRate - Base hourly rate (NGN)
- * @returns {object} Overtime rate classification and compensation
- */
 export function calculateHolidayOvertime(dateInput, hoursWorked, regularHourlyRate) {
   const d = new Date(dateInput);
   const dateStr = d.toISOString().slice(0, 10);
@@ -279,5 +390,112 @@ export function calculateHolidayOvertime(dateInput, hoursWorked, regularHourlyRa
     baseHourlyRate: baseRate,
     effectiveHourlyRate: baseRate * multiplier,
     totalCompensationNgn: Math.round(totalPay * 100) / 100
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. NIGERIAN LABOUR ACT GOVERNANCE (Section 7, Leave Minimums & Notice)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Computes statutory notice period & leave minimums under the Nigerian Labour Act (Cap L1).
+ * - Annual Leave: minimum 6 working days with full pay after 12 months continuous service.
+ * - Maternity Leave: minimum 12 weeks (84 days; 6 weeks before + 6 weeks after) at >= 50% pay.
+ * - Notice Period:
+ *   < 3 months: 1 day
+ *   3 months to < 2 years: 1 week
+ *   2 years to < 5 years: 2 weeks
+ *   >= 5 years: 1 month
+ */
+export function getLabourActEntitlements({ hireDate = null, asOfDate = new Date() } = {}) {
+  const ref = new Date(asOfDate);
+  const hired = hireDate ? new Date(hireDate) : null;
+  const tenureDays = hired && Number.isFinite(hired.getTime())
+    ? Math.max(0, Math.floor((ref.getTime() - hired.getTime()) / 86400000))
+    : 365;
+  const tenureMonths = tenureDays / 30.4375;
+
+  let statutoryNoticeLabel = '1 month';
+  let statutoryNoticeDays = 30;
+  if (tenureMonths < 3) {
+    statutoryNoticeLabel = '1 day';
+    statutoryNoticeDays = 1;
+  } else if (tenureMonths < 24) {
+    statutoryNoticeLabel = '1 week';
+    statutoryNoticeDays = 7;
+  } else if (tenureMonths < 60) {
+    statutoryNoticeLabel = '2 weeks';
+    statutoryNoticeDays = 14;
+  }
+
+  return {
+    tenureDays,
+    tenureMonths: Math.round(tenureMonths * 10) / 10,
+    annualLeaveMinimumWorkingDays: tenureMonths >= 12 ? 6 : 0,
+    annualLeaveEligible: tenureMonths >= 12,
+    maternityLeaveMinimumWeeks: 12,
+    maternityLeaveMinimumDays: 84,
+    maternityMinPayPct: 50,
+    statutoryNoticeLabel,
+    statutoryNoticeDays
+  };
+}
+
+export function validateLabourActLeaveRequest({ leaveType = 'annual', daysRequested = 0, hireDate = null, payPct = 100 } = {}) {
+  const ent = getLabourActEntitlements({ hireDate });
+  const type = String(leaveType || 'annual').toLowerCase();
+  const days = Math.max(0, Number(daysRequested) || 0);
+  const warnings = [];
+
+  if (type === 'maternity') {
+    if (days < 84) warnings.push('Nigerian Labour Act s.54 requires a minimum of 12 weeks (84 days) maternity leave.');
+    if (Number(payPct) < 50) warnings.push('Nigerian Labour Act s.54 requires at least 50% wages during statutory maternity leave.');
+  } else if (type === 'annual') {
+    if (!ent.annualLeaveEligible) {
+      warnings.push('Employee has under 12 months continuous service; statutory 6-day minimum accrues at 12 months (Labour Act s.18).');
+    } else if (days > 0 && days < 6) {
+      warnings.push('Note: Statutory annual leave entitlement is at least 6 working days with full pay after 12 months (Labour Act s.18).');
+    }
+  }
+  return { ok: warnings.length === 0, warnings, entitlements: ent };
+}
+
+export function generateSection7WrittenParticulars(employee = {}, org = {}) {
+  const ent = getLabourActEntitlements({ hireDate: employee.hireDate || employee.hire_date });
+  const gross = Number(employee.grossPay || employee.monthly_rate || 0);
+  const hireDateStr = (employee.hireDate || employee.hire_date || new Date().toISOString().slice(0, 10)).slice(0, 10);
+  const dueBy = new Date(new Date(hireDateStr).getTime() + 90 * 86400000).toISOString().slice(0, 10);
+  const taxJurisdiction = resolveStateTaxAuthority(employee.state_of_residence || org.state || 'Lagos');
+
+  return {
+    statute: 'Nigerian Labour Act Cap L1, Section 7 (Written Particulars of Employment)',
+    employerName: org.legal_name || org.trading_name || 'ShiftRelay Employer',
+    employerAddress: org.headquarters_address || org.address || 'Nigeria',
+    employeeName: employee.userName || employee.name || 'Employee',
+    staffId: employee.staffId || 'SR-STAFF',
+    jobTitle: employee.role || employee.title || 'Operations Specialist',
+    department: employee.department || 'Operations',
+    hireDate: hireDateStr,
+    writtenParticularsDueBy: dueBy,
+    remuneration: {
+      monthlyGrossNgn: gross,
+      payInterval: 'Monthly (25th)',
+      overtimeRate: '1.5x Weekday OT / 2.0x Sunday & Federal Public Holiday'
+    },
+    workingHours: employee.shiftWindow || '40 hours/week (8 hours/day standard)',
+    leaveEntitlements: {
+      annualLeave: 'Minimum 6 working days paid leave after 12 months continuous service (s.18)',
+      maternityLeave: 'Minimum 12 weeks (6 weeks pre-natal + 6 weeks post-natal) at >= 50% pay (s.54)',
+      sickLeave: 'Up to 12 working days paid sick leave per year on medical certificate (s.16)'
+    },
+    terminationNotice: {
+      currentTenureNotice: ent.statutoryNoticeLabel,
+      schedule: '<3m: 1 day | 3m-2y: 1 week | 2y-5y: 2 weeks | 5y+: 1 month (s.11)'
+    },
+    taxAndPension: {
+      payeStateAuthority: taxJurisdiction.authority,
+      pfaName: employee.pfa_name || 'Employee-Nominated PFA',
+      rsaPin: employee.pencom_rsa_pin || 'Pending RSA PIN'
+    }
   };
 }

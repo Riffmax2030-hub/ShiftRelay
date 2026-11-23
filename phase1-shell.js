@@ -14894,10 +14894,11 @@
         }
         ewaBtn.disabled = true;
         try {
+          const idemKey = 'ewa-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
           const r = await fetch('/api/wallet/ewa-disburse', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amountNgn: amt, rail: 'Paystack NIP' })
+            headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idemKey },
+            body: JSON.stringify({ amountNgn: amt, rail: 'Paystack NIP', idempotencyKey: idemKey })
           });
           const d = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(d.error || 'Withdrawal failed');
