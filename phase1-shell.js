@@ -15335,7 +15335,7 @@
               <span style="font-size:10px;padding:2px 7px;background:rgba(217,119,6,0.12);color:var(--sr-status-yellow-text);border-radius:99px;font-weight:700;">Statutory</span>
             </div>
             <span class="sr-v2-kpi-val" style="color:var(--sr-status-yellow-text);font-size:clamp(0.95rem,1.2vw,1.16rem);white-space:nowrap;">${summary.totalStatutoryFormatted || '₦0.00'}</span>
-            <span class="sr-v2-kpi-sub">Finance Act compliant</span>
+            <span class="sr-v2-kpi-sub">NTA 2025 compliant</span>
           </div>
           <div class="sr-v2-kpi-card" style="border-top:3px solid #10b981;padding:14px 15px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -15482,83 +15482,83 @@
         </div>
 
         <!-- Edit Contract Modal -->
-        <div id="sr-contract-modal-backdrop" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-          <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:12px;max-width:540px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 25px rgba(0,0,0,0.2);padding:24px;">
-            <h3 style="margin:0 0 16px;font-size:16px;font-weight:700;color:var(--sr-text-main);" id="sr-contract-modal-title">Edit Worker Contract</h3>
+        <div id="sr-contract-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(2,16,12,0.62);backdrop-filter:blur(4px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+          <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:14px;max-width:620px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,0.3);padding:20px 22px;">
+            <h3 style="margin:0 0 14px;font-size:15.5px;font-weight:800;color:var(--sr-text-main);" id="sr-contract-modal-title">Edit Worker Contract</h3>
             <form id="sr-contract-form">
               <input type="hidden" id="sr-contract-user-id" />
-              <div class="sr-field-group" style="margin-bottom:14px;">
-                <label class="sr-label" style="font-size:12px;font-weight:600;">Compensation Model</label>
-                <select id="sr-contract-comp-type" class="sr-input" style="width:100%;">
-                  <option value="fixed_monthly">Fixed Monthly (Nigerian Standard)</option>
-                  <option value="hourly_shift">Hourly Shift Rate</option>
-                </select>
-              </div>
-
-              <div class="sr-field-group" style="margin-bottom:14px;">
-                <label class="sr-label" style="font-size:12px;font-weight:600;">Monthly Base Rate (₦)</label>
-                <input type="number" id="sr-contract-monthly-rate" class="sr-input" style="width:100%;" min="0" step="1000" />
-              </div>
-
-              <div class="sr-field-group" style="margin-bottom:14px;">
-                <label class="sr-label" style="font-size:12px;font-weight:600;">Hourly Rate (₦) (if Hourly Shift)</label>
-                <input type="number" id="sr-contract-hourly-rate" class="sr-input" style="width:100%;" min="0" step="50" />
-              </div>
-
-              <div class="sr-field-group" style="margin-bottom:14px;">
-                <label class="sr-label" style="font-size:12px;font-weight:600;">Bank Name</label>
-                <input type="text" id="sr-contract-bank-name" class="sr-input" style="width:100%;" />
-              </div>
-
-              <div class="sr-field-group" style="margin-bottom:12px;">
-                <label class="sr-label" style="font-size:12px;font-weight:600;">NUBAN Account Number (10 digits)</label>
-                <input type="text" id="sr-contract-acc-num" class="sr-input" style="width:100%;" maxlength="10" />
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
                 <div>
-                  <label class="sr-label" style="font-size:12px;font-weight:600;">State of Residence (PAYE IRS)</label>
-                  <select id="sr-contract-state" class="sr-input" style="width:100%;">
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">Compensation Model</label>
+                  <select id="sr-contract-comp-type" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;">
+                    <option value="fixed_monthly">Fixed Monthly (Standard)</option>
+                    <option value="hourly_shift">Hourly Shift Rate</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">Monthly Base Rate (₦)</label>
+                  <input type="number" id="sr-contract-monthly-rate" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;" min="0" step="1000" />
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+                <div>
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">Hourly Rate (₦)</label>
+                  <input type="number" id="sr-contract-hourly-rate" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;" min="0" step="50" />
+                </div>
+                <div>
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">Bank Name</label>
+                  <input type="text" id="sr-contract-bank-name" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;" />
+                </div>
+                <div>
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">NUBAN (10 digits)</label>
+                  <input type="text" id="sr-contract-acc-num" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;" maxlength="10" />
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                <div>
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">State of Residence (PAYE IRS)</label>
+                  <select id="sr-contract-state" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;">
                     <option value="Lagos">Lagos (LIRS)</option><option value="FCT">Abuja FCT (FCT-IRS)</option><option value="Rivers">Rivers (RIRS)</option><option value="Ogun">Ogun (OGIRS)</option><option value="Oyo">Oyo (OYIRS)</option><option value="Kano">Kano (KIRS)</option><option value="Kaduna">Kaduna (KADIRS)</option><option value="Enugu">Enugu (ESIRS)</option><option value="Delta">Delta (DSIRS)</option><option value="Edo">Edo (EIRS)</option>
                   </select>
                 </div>
                 <div>
-                  <label class="sr-label" style="font-size:12px;font-weight:600;">Hire Date (Labour Act s.7)</label>
-                  <input type="date" id="sr-contract-hire-date" class="sr-input" style="width:100%;" />
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">Hire Date (Labour Act s.7)</label>
+                  <input type="date" id="sr-contract-hire-date" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;" />
                 </div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
                 <div>
-                  <label class="sr-label" style="font-size:12px;font-weight:600;">PFA Name (PenCom)</label>
-                  <input type="text" id="sr-contract-pfa-name" class="sr-input" style="width:100%;" placeholder="e.g. Stanbic IBTC Pension" />
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">PFA Name (PenCom)</label>
+                  <input type="text" id="sr-contract-pfa-name" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;" placeholder="e.g. Stanbic IBTC Pension" />
                 </div>
                 <div>
-                  <label class="sr-label" style="font-size:12px;font-weight:600;">PenCom RSA PIN</label>
-                  <input type="text" id="sr-contract-rsa-pin" class="sr-input" style="width:100%;" placeholder="PEN100..." />
-                </div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-                <div>
-                  <label class="sr-label" style="font-size:11.5px;font-weight:600;">Annual Rent (₦)</label>
-                  <input type="number" id="sr-contract-annual-rent" class="sr-input" style="width:100%;" min="0" step="10000" />
-                </div>
-                <div>
-                  <label class="sr-label" style="font-size:11.5px;font-weight:600;">NHIS (₦/mo)</label>
-                  <input type="number" id="sr-contract-nhis" class="sr-input" style="width:100%;" min="0" step="500" />
-                </div>
-                <div>
-                  <label class="sr-label" style="font-size:11.5px;font-weight:600;">Life Ins. (₦/mo)</label>
-                  <input type="number" id="sr-contract-life-ins" class="sr-input" style="width:100%;" min="0" step="500" />
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">PenCom RSA PIN</label>
+                  <input type="text" id="sr-contract-rsa-pin" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;" placeholder="PEN100..." />
                 </div>
               </div>
-              <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;font-size:12px;color:var(--sr-text-main);">
-                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="sr-contract-rent-verified" /> Tenancy Receipt Verified (20% Rent Relief)</label>
-                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="sr-contract-nhf-enabled" checked /> NHF 2.5% Applicable</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+                <div>
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">Annual Rent (₦)</label>
+                  <input type="number" id="sr-contract-annual-rent" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;" min="0" step="10000" />
+                </div>
+                <div>
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">NHIS (₦/mo)</label>
+                  <input type="number" id="sr-contract-nhis" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;" min="0" step="500" />
+                </div>
+                <div>
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;display:block;margin-bottom:4px;">Life Ins. (₦/mo)</label>
+                  <input type="number" id="sr-contract-life-ins" class="sr-input" style="width:100%;min-height:36px;padding:6px 10px;font-size:12.5px;" min="0" step="500" />
+                </div>
               </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-                <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-view-sec7" style="font-size:12px;">Section 7 Contract</button>
+              <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--sr-text-main);">
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="sr-contract-rent-verified" style="width:16px;height:16px;min-height:16px;margin:0;accent-color:#059669;" /> Tenancy Verified (20% Rent Relief)</label>
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="sr-contract-nhf-enabled" checked style="width:16px;height:16px;min-height:16px;margin:0;accent-color:#059669;" /> NHF 2.5% Applicable</label>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--sr-border-subtle);">
+                <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-view-sec7" style="font-size:12px;min-height:34px;padding:6px 12px;">Section 7 Contract</button>
                 <div style="display:flex;gap:8px;">
-                  <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-contract">Cancel</button>
-                  <button type="submit" class="sr-btn sr-btn-primary">Save Contract</button>
+                  <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-contract" style="font-size:12px;min-height:34px;padding:6px 14px;">Cancel</button>
+                  <button type="submit" class="sr-btn sr-btn-primary" style="font-size:12px;min-height:34px;padding:6px 16px;">Save Contract</button>
                 </div>
               </div>
             </form>
@@ -15759,6 +15759,7 @@
         if (document.getElementById('sr-contract-nhf-enabled')) document.getElementById('sr-contract-nhf-enabled').checked = emp.nhf_enabled !== false;
         document.getElementById('sr-contract-modal-title').textContent = `Edit Contract — ${emp.userName}`;
 
+        if (contractModal.parentElement !== document.body) document.body.appendChild(contractModal);
         contractModal.style.display = 'flex';
       });
     });
