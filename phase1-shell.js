@@ -1596,8 +1596,14 @@
               </button>
             `}
 
-            <!-- Sticky Sidebar Footer: Dedicated Settings & Log Out Buttons -->
+            <!-- Sticky Sidebar Footer: My Payout (for Sup/Exec), Settings & Log Out Buttons -->
             <div class="sr-sidebar-footer" style="margin-top:auto;padding-top:14px;border-top:1px solid var(--sr-border-subtle);display:flex;flex-direction:column;gap:4px;">
+              ${(isExecutive || isSupervisor) ? `
+              <button class="sr-nav-btn ${(view === 'earnings' || view === 'rewards') ? 'active' : ''}" data-sr-view="earnings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                <span>My Earnings &amp; Payout</span>
+              </button>
+              ` : ''}
               <button class="sr-nav-btn ${view === 'settings' ? 'active' : ''}" data-sr-view="settings">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 <span>Settings</span>
@@ -9465,7 +9471,7 @@
             <div class="sr-cv-hero-left">
               <div class="sr-cv-avatar-wrap sr-me-avatar-wrapper">
                 <div class="sr-avatar-clickable-hitbox" id="sr-me-avatar-tap-zone" title="Tap to update profile photo" style="cursor:pointer;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
-                  ${profile.avatarUrl ? `<img src="${escapeHtml(profile.avatarUrl)}" alt="${escapeHtml(user.name)}" class="sr-cv-avatar-img" id="sr-me-avatar-display" />` : escapeHtml(initials)}
+                  ${(profile.avatarUrl || user.avatar_data_url) ? `<img src="${escapeHtml(profile.avatarUrl || user.avatar_data_url)}" alt="${escapeHtml(user.name)}" class="sr-cv-avatar-img" id="sr-me-avatar-display" style="width:100%;height:100%;object-fit:cover;display:block;" />` : escapeHtml(initials)}
                 </div>
                 <input type="file" id="sr-avatar-file-input" accept="image/*" style="display:none;" />
               </div>
@@ -9861,17 +9867,17 @@
         const dataUrl = loadEvt.target?.result;
         if (!dataUrl) return;
 
-        // Immediate visual update on the page
-        const avatarWrapper = container.querySelector('.sr-me-avatar-wrapper');
-        if (avatarWrapper) {
-          const oldDisplay = document.getElementById('sr-me-avatar-display');
-          if (oldDisplay) oldDisplay.remove();
+        // Immediate visual update on the page: replace initials completely with the uploaded photo
+        const tapZone = document.getElementById('sr-me-avatar-tap-zone');
+        if (tapZone) {
+          tapZone.innerHTML = '';
           const img = document.createElement('img');
           img.src = dataUrl;
-          img.className = 'sr-me-avatar-img';
+          img.className = 'sr-cv-avatar-img';
           img.id = 'sr-me-avatar-display';
           img.alt = user.name || 'User Avatar';
-          avatarWrapper.prepend(img);
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+          tapZone.appendChild(img);
         }
 
         try {
@@ -14444,7 +14450,7 @@
       currentDay: curCycleDay,
       totalDays: totalCycleDays,
       targetDay: Math.min(25, totalCycleDays),
-      accrualPct: isUnassignedContract ? 0 : Math.min(100, Math.round((curCycleDay / Math.min(25, totalCycleDays)) * 100)),
+      accrualPct: 0,
       accruedNetFormatted: '₦0.00',
       accruedGrossFormatted: '₦0.00'
     };
@@ -14541,18 +14547,18 @@
                         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
                       </div>
                       <div>
-                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--p-text-3);">Career Grade</div>
-                        <div style="font-size:14.5px;font-weight:800;color:var(--p-text);">Level 4 &bull; Shift Specialist</div>
+                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--p-text-3);">Verified Merit Standing</div>
+                        <div id="sr-rwd-career-grade" style="font-size:14.5px;font-weight:800;color:var(--p-text);">Shift Specialist</div>
                       </div>
                     </div>
-                    <span class="sr-v2-num" style="font-size:12.5px;font-family:'JetBrains Mono',monospace;font-weight:700;color:#10b981;">2,450 / 3,000 XP</span>
+                    <span id="sr-rwd-career-xp" class="sr-v2-num" style="font-size:12.5px;font-family:'JetBrains Mono',monospace;font-weight:700;color:#10b981;">0 / 3,000 PTS</span>
                   </div>
                   <div style="margin-top:10px;height:6px;background:var(--sr-bg-subtle);border-radius:99px;overflow:hidden;">
-                    <div style="height:100%;width:81.6%;background:linear-gradient(90deg,#0d9488,#10b981);border-radius:99px;"></div>
+                    <div id="sr-rwd-career-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#0d9488,#10b981);border-radius:99px;"></div>
                   </div>
                   <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--sr-text-muted);margin-top:5px;">
-                    <span>Top 5% Facility Standing</span>
-                    <span style="color:#0ea5e9;font-weight:600;">550 XP to Level 5</span>
+                    <span>Live ShiftCoin Ledger</span>
+                    <span id="sr-rwd-career-rem" style="color:#0ea5e9;font-weight:600;">3,000 PTS to Payout</span>
                   </div>
                 </div>
               </div>
@@ -14590,7 +14596,7 @@
               </div>
               <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px;color:#cbd5e1;">
                 <span>${escapeHtml(period)}</span>
-                <span style="color:#34d399;font-weight:700;">${statementData.changeFromPrevious || '+₦14,250.00'} vs baseline</span>
+                <span style="color:#34d399;font-weight:700;">${Number(hours) > 0 ? `${Number(hours).toFixed(1)}h verified this cycle` : '0.0h logged — clock in to accrue'}</span>
               </div>
             </div>
 
@@ -14705,28 +14711,28 @@
               </div>
             </div>
 
-            ${walletAccrued ? `
+            ${(() => { const wa = walletAccrued || { net_available_disbursal: 0, gross_earned_todate: 0, statutory_withheld_todate: { total_employee_withheld: 0 }, ewa_disbursed_todate: 0 }; return `
             <div id="sr-ewa-wallet-card" style="margin-top:16px;padding:14px 16px;border-radius:12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.28);">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
                 <div>
                   <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;color:#059669;text-transform:uppercase;">Live Accrued Pay &amp; Zero-Fee EWA</div>
                   <div style="font-size:12px;color:var(--p-text-3);">0% Interest &bull; ₦0 Worker Fee &bull; ${walletFundingMode === 'direct_debit_mandate' ? 'Employer-Authorized Direct Debit (Mono / Paystack)' : `Funded from Employer Custody (${escapeHtml(walletCustodyPartner)})`}</div>
                 </div>
-                <span class="sr-v2-num" style="font-size:17px;font-weight:800;color:#059669;">₦${Number(walletAccrued.net_available_disbursal || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+                <span class="sr-v2-num" style="font-size:17px;font-weight:800;color:#059669;">₦${Number(wa.net_available_disbursal || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
               </div>
               <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--p-text-2);margin-bottom:10px;">
-                <span>Earned To-Date: <strong>₦${Number(walletAccrued.gross_earned_todate || 0).toLocaleString('en-NG')}</strong></span>
-                <span>Withheld (PAYE/PenCom/NHF): <strong>₦${Number(walletAccrued.statutory_withheld_todate?.total_employee_withheld || 0).toLocaleString('en-NG')}</strong></span>
-                <span>Early Cashout Taken: <strong>₦${Number(walletAccrued.ewa_disbursed_todate || 0).toLocaleString('en-NG')}</strong></span>
+                <span>Earned To-Date: <strong>₦${Number(wa.gross_earned_todate || 0).toLocaleString('en-NG')}</strong></span>
+                <span>Withheld (PAYE/PenCom/NHF): <strong>₦${Number(wa.statutory_withheld_todate?.total_employee_withheld || 0).toLocaleString('en-NG')}</strong></span>
+                <span>Early Cashout Taken: <strong>₦${Number(wa.ewa_disbursed_todate || 0).toLocaleString('en-NG')}</strong></span>
               </div>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <input id="sr-ewa-amount-input" type="number" min="500" step="500" max="${Math.floor(Number(walletAccrued.net_available_disbursal || 0))}" placeholder="Amount (₦)" style="flex:1;min-width:130px;padding:8px 10px;border-radius:8px;border:1px solid var(--sr-border-medium);background:var(--sr-bg-card);color:var(--sr-text-main);font-size:13px;" />
-                <button type="button" class="sr-btn sr-btn-primary" id="sr-ewa-withdraw-btn" style="padding:8px 14px;font-size:12.5px;" ${Number(walletAccrued.net_available_disbursal || 0) <= 0 || !walletCanWithdrawNow ? 'disabled' : ''}>
+                <input id="sr-ewa-amount-input" type="number" min="500" step="500" max="${Math.floor(Number(wa.net_available_disbursal || 0))}" placeholder="Amount (₦)" style="flex:1;min-width:130px;padding:8px 10px;border-radius:8px;border:1px solid var(--sr-border-medium);background:var(--sr-bg-card);color:var(--sr-text-main);font-size:13px;" />
+                <button type="button" class="sr-btn sr-btn-primary" id="sr-ewa-withdraw-btn" style="padding:8px 14px;font-size:12.5px;" ${Number(wa.net_available_disbursal || 0) <= 0 || !walletCanWithdrawNow ? 'disabled' : ''}>
                   ${walletCanWithdrawNow ? (walletFundingMode === 'direct_debit_mandate' ? 'Withdraw 0% Fee (Direct Debit)' : 'Withdraw 0% Fee (Paystack NIP)') : (walletFundingMode === 'direct_debit_mandate' ? 'Awaiting Employer Bank Mandate' : 'Awaiting Employer Custody Prefund')}
                 </button>
               </div>
             </div>
-            ` : ''}
+            `; })()}
           </div>
         </div>
 
@@ -14938,6 +14944,12 @@
       if (barEl) requestAnimationFrame(() => { barEl.style.width = pct + '%'; });
       const pctEl = document.getElementById('sr-rwd-pct');
       if (pctEl) pctEl.textContent = pct + '%';
+      const xpEl = document.getElementById('sr-rwd-career-xp');
+      if (xpEl) xpEl.textContent = `${stars.toLocaleString()} / 3,000 PTS`;
+      const cBarEl = document.getElementById('sr-rwd-career-bar');
+      if (cBarEl) cBarEl.style.width = pct + '%';
+      const remEl = document.getElementById('sr-rwd-career-rem');
+      if (remEl) remEl.textContent = stars >= 3000 ? 'Payout Unlocked' : `${(3000 - stars).toLocaleString()} PTS to Payout`;
 
       // Enable cashout button if enough stars
       const cashoutBtn = document.getElementById('sr-rwd-cashout-btn');
@@ -14956,7 +14968,7 @@
           { label: 'Clock Out (on schedule)', coin: 25, done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-clockout' && q.claimed), isMilestone: false },
           { label: 'Profile Photo Verified (Lifetime Cap)', coin: 50, done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-profile' && (q.progress||0) >= 35), isMilestone: true },
           { label: 'Cover Photo Verified (Lifetime Cap)', coin: 50, done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-profile' && (q.progress||0) >= 70), isMilestone: true },
-          { label: 'Higher Education Verified (Lifetime Cap)', coin: 50, done: true, isMilestone: true },
+          { label: 'Higher Education Verified (Lifetime Cap)', coin: 50, done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-education' && q.claimed), isMilestone: true },
           { label: 'Industry Certification Verified (Lifetime Cap)', coin: 50, done: true, isMilestone: true },
           { label: 'Support & AI Desk Consultation Relay', coin: 20, done: (rwData.weeklyQuests||[]).some(q => q.id === 'quest-ai' && q.claimed), isMilestone: false },
         ];
@@ -15348,16 +15360,20 @@
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-export-payroll-ledger" style="font-size:12px;padding:8px 12px;display:inline-flex;align-items:center;gap:6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-              <span>Remittance Ledger (PDF)</span>
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-payroll-my-payout" style="font-size:12px;padding:8px 12px;display:inline-flex;align-items:center;gap:5px;">
+              <span>My Payout (EWA)</span>
             </button>
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-export-payroll-xlsx" style="font-size:12px;padding:8px 11px;display:inline-flex;align-items:center;gap:5px;">
-              <span>Ledger Excel (.xlsx)</span>
-            </button>
-            <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-export-payroll-docx" style="font-size:12px;padding:8px 11px;display:inline-flex;align-items:center;gap:5px;">
-              <span>Word (.docx)</span>
-            </button>
+            <div style="display:inline-flex;align-items:center;gap:6px;background:var(--sr-bg-elevated);padding:3px 6px;border-radius:9px;border:1px solid var(--sr-border-subtle);">
+              <select id="sr-payroll-ledger-format" aria-label="Ledger Download Format" style="width:auto;min-height:32px;padding:4px 8px;border-radius:6px;border:none;background:transparent;color:var(--sr-text-main);font-size:12px;font-weight:600;cursor:pointer;">
+                <option value="pdf">PDF (.pdf)</option>
+                <option value="docx">Word (.docx)</option>
+                <option value="xlsx">Excel (.xlsx)</option>
+              </select>
+              <button type="button" class="sr-btn sr-btn-primary" id="sr-btn-export-payroll-ledger" style="font-size:12px;min-height:30px;padding:4px 12px;display:inline-flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Download Ledger</span>
+              </button>
+            </div>
             <div style="display:inline-flex;align-items:center;gap:6px;background:var(--sr-bg-elevated);padding:3px 6px;border-radius:9px;border:1px solid var(--sr-border-subtle);">
               <select id="sr-bank-csv-format" aria-label="Nigerian Bank CSV Upload Profile" style="width:auto;max-width:210px;min-height:32px;padding:4px 8px;border-radius:6px;border:none;background:transparent;color:var(--sr-text-main);font-size:12px;font-weight:600;cursor:pointer;">
                 <option value="generic">Bank Profile: Generic CSV</option>
@@ -15551,16 +15567,17 @@
 
     // Hook Print Audit -> Dedicated Printable Monthly Payment Data & Statutory Sheet
     const printAuditBtn = document.getElementById('sr-btn-print-audit');
+    document.getElementById('sr-btn-payroll-my-payout')?.addEventListener('click', () => {
+      navigate('earnings');
+    });
     document.getElementById('sr-btn-export-payroll-ledger')?.addEventListener('click', () => {
-      openPayrollLedgerModal(currentMonth);
-    });
-    document.getElementById('sr-btn-export-payroll-xlsx')?.addEventListener('click', () => {
-      const url = `/api/reports/payroll-ledger?month=${encodeURIComponent(currentMonth)}&format=xlsx`;
-      window.ShiftRelayMobile?.downloadReport ? window.ShiftRelayMobile.downloadReport(url, `ShiftRelay-Payroll-${currentMonth}.xlsx`) : window.open(url, '_blank', 'noopener');
-    });
-    document.getElementById('sr-btn-export-payroll-docx')?.addEventListener('click', () => {
-      const url = `/api/reports/payroll-ledger?month=${encodeURIComponent(currentMonth)}&format=docx`;
-      window.ShiftRelayMobile?.downloadReport ? window.ShiftRelayMobile.downloadReport(url, `ShiftRelay-Payroll-${currentMonth}.docx`) : window.open(url, '_blank', 'noopener');
+      const fmt = document.getElementById('sr-payroll-ledger-format')?.value || 'pdf';
+      if (fmt === 'pdf') {
+        openPayrollLedgerModal(currentMonth);
+      } else {
+        const url = `/api/reports/payroll-ledger?month=${encodeURIComponent(currentMonth)}&format=${encodeURIComponent(fmt)}`;
+        window.ShiftRelayMobile?.downloadReport ? window.ShiftRelayMobile.downloadReport(url, `ShiftRelay-Payroll-${currentMonth}.${fmt}`) : window.open(url, '_blank', 'noopener');
+      }
     });
 
     document.getElementById('sr-btn-open-email-lab')?.addEventListener('click', () => {
@@ -16981,21 +16998,17 @@
               <option value="all">All Departments</option>
             </select>
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <a id="sr-att-sheet-xlsx-btn" href="#" download class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
-              <span>Excel (.xlsx)</span>
-            </a>
-            <a id="sr-att-sheet-pdf-btn" href="#" download class="sr-btn sr-btn-primary" style="min-height:32px;padding:0 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
-              <span>PDF (.pdf)</span>
-            </a>
-            <a id="sr-att-sheet-docx-btn" href="#" download class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
-              <span>Word (.docx)</span>
-            </a>
-            <a id="sr-att-sheet-csv-btn" href="#" download class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
-              <span>CSV</span>
-            </a>
-            <a id="sr-att-sheet-print-btn" href="#" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
-              <span>Print</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select id="sr-att-sheet-format" aria-label="Download Format" class="sr-input" style="min-height:34px;padding:4px 10px;font-size:12.5px;width:auto;">
+              <option value="pdf">PDF (.pdf)</option>
+              <option value="docx">Word (.docx)</option>
+              <option value="xlsx">Excel (.xlsx)</option>
+              <option value="csv">CSV (.csv)</option>
+              <option value="html">Print Preview</option>
+            </select>
+            <a id="sr-att-sheet-download-btn" href="#" download class="sr-btn sr-btn-primary" style="min-height:34px;padding:0 14px;font-size:12px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Download</span>
             </a>
           </div>
         </div>
@@ -17013,29 +17026,32 @@
 
     const monthInput = backdrop.querySelector('#sr-att-sheet-month');
     const deptSelect = backdrop.querySelector('#sr-att-sheet-dept');
-    const xlsxLink = backdrop.querySelector('#sr-att-sheet-xlsx-btn');
-    const pdfLink = backdrop.querySelector('#sr-att-sheet-pdf-btn');
-    const docxLink = backdrop.querySelector('#sr-att-sheet-docx-btn');
-    const csvLink = backdrop.querySelector('#sr-att-sheet-csv-btn');
-    const printLink = backdrop.querySelector('#sr-att-sheet-print-btn');
+    const formatSelect = backdrop.querySelector('#sr-att-sheet-format');
+    const downloadBtn = backdrop.querySelector('#sr-att-sheet-download-btn');
     const bodyEl = backdrop.querySelector('#sr-att-sheet-body');
 
     const syncExportLinks = () => {
-      const q = `month=${encodeURIComponent(selectedMonth)}&department=${encodeURIComponent(selectedDept)}`;
-      if (xlsxLink) xlsxLink.href = `/api/reports/attendance-sheet?${q}&format=xlsx`;
-      if (pdfLink) pdfLink.href = `/api/reports/attendance-sheet?${q}&format=pdf`;
-      if (docxLink) docxLink.href = `/api/reports/attendance-sheet?${q}&format=docx`;
-      if (csvLink) csvLink.href = `/api/reports/attendance-sheet?${q}&format=csv`;
-      if (printLink) printLink.href = `/api/reports/attendance-sheet?${q}&format=html`;
-    };
-    [xlsxLink, pdfLink, docxLink, csvLink].forEach((lnk) => {
-      lnk?.addEventListener('click', (evt) => {
-        if (window.ShiftRelayMobile?.isNative?.()) {
-          evt.preventDefault();
-          const href = lnk.getAttribute('href');
-          if (href) window.ShiftRelayMobile.downloadReport(href, `ShiftRelay-Attendance-${selectedMonth}`);
+      const fmt = formatSelect?.value || 'pdf';
+      const q = `month=${encodeURIComponent(selectedMonth)}&department=${encodeURIComponent(selectedDept)}&format=${encodeURIComponent(fmt)}`;
+      if (downloadBtn) {
+        downloadBtn.href = `/api/reports/attendance-sheet?${q}`;
+        if (fmt === 'html') {
+          downloadBtn.removeAttribute('download');
+          downloadBtn.setAttribute('target', '_blank');
+          downloadBtn.setAttribute('rel', 'noopener noreferrer');
+        } else {
+          downloadBtn.setAttribute('download', '');
+          downloadBtn.removeAttribute('target');
         }
-      });
+      }
+    };
+    formatSelect?.addEventListener('change', syncExportLinks);
+    downloadBtn?.addEventListener('click', (evt) => {
+      if (window.ShiftRelayMobile?.isNative?.() && formatSelect?.value !== 'html') {
+        evt.preventDefault();
+        const href = downloadBtn.getAttribute('href');
+        if (href) window.ShiftRelayMobile.downloadReport(href, `ShiftRelay-Attendance-${selectedMonth}`);
+      }
     });
 
     async function loadSheet() {

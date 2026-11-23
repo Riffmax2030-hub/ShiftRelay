@@ -173,7 +173,7 @@ async function renderMeProfile(targetUserId) {
     // ── Avatar ──
     const avatarImgUrl = profile.avatarUrl || state.user?.avatar_data_url || null;
     const avatarHtml = avatarImgUrl
-      ? `<img src="${avatarImgUrl}" alt="${escape(profile.fullName || state.user?.name || 'Worker')}" />`
+      ? `<img src="${avatarImgUrl}" alt="${escape(profile.fullName || state.user?.name || 'Worker')}" style="display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
       : `<span>${escape((profile.fullName || state.user?.name || 'W').slice(0, 2).toUpperCase())}</span>`;
 
     // ── Verification badge ──
@@ -238,7 +238,7 @@ async function renderMeProfile(targetUserId) {
 
           <!-- Avatar overlapping cover -->
           <div class="me-avatar-wrap">
-            <div class="me-avatar" id="me-avatar-circle" title="${isSelf ? 'Tap to change photo' : ''}">
+            <div class="me-avatar${avatarImgUrl ? ' has-photo' : ''}" id="me-avatar-circle" title="${isSelf ? 'Tap to change photo' : ''}">
               ${avatarHtml}
               ${isSelf ? `<div class="me-avatar-edit-overlay">${MeIcons.camera()}</div>` : ''}
             </div>

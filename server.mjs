@@ -2721,7 +2721,7 @@ export async function syncWorkerPayLedger(store, orgId, memberOrUserId, monthPar
   const contract = (store.contracts || []).find(c =>
     (c.tenant_id || c.organisation_id) === orgId &&
     (c.userId === userId || c.user_id === userId || c.membershipId === membershipId)
-  ) || { compensation_type: 'fixed_monthly', monthly_rate: 150000 };
+  ) || { compensation_type: 'fixed_monthly', monthly_rate: 0, hourly_rate: 0 };
 
   const entries = (store.timeEntries || []).filter(e =>
     (e.membershipId === membershipId || e.membershipId === userId || e.userId === userId) &&
@@ -2933,9 +2933,9 @@ export function compilePayrollRun(store, tenantId = null, monthParam = null) {
     unverifiedShiftHours = Math.round(unverifiedShiftHours * 100) / 100;
     const unverifiedShiftHolds = pendingPresenceReviews + flaggedEarlyDepartures;
 
-    // Fall back to contract standard hours when no live entries exist yet
+    // Zero clock-ins = 0 worked hours (never fabricate standard hours when no punches exist)
     if (completedEntries.length === 0) {
-      regularHours  = isMonthly ? 160 : 80;
+      regularHours  = 0;
       overtimeHours = 0;
     }
 
@@ -9489,9 +9489,15 @@ async function getUserRewards(user, store) {
     const currentDay = Math.min(now.getDate(), 31);
     const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const targetDay = disbursementDay <= totalDays ? disbursementDay : totalDays;
-    const accrualPct = Math.min(100, Math.max(8, Math.round((currentDay / targetDay) * 100)));
-    const accruedNet = Math.round((accrualPct / 100) * emp.netPay);
-    const accruedGross = Math.round((accrualPct / 100) * emp.grossPay);
+    // Strict zero-accrual rule: never accrue earnings to a worker who has not clocked in
+    const walletLedger = await syncWorkerPayLedger(store, user.organisation_id, user.id, monthParam);
+    const workedHoursTotal = Number(walletLedger?.totalWorkedHours || 0);
+    const hasClockedIn = workedHoursTotal > 0 || (emp.completedShifts || 0) > 0;
+    const accrualPct = hasClockedIn
+      ? Math.min(100, Math.round((workedHoursTotal / 160) * 100))
+      : 0;
+    const accruedNet = hasClockedIn ? Number(walletLedger?.net_earned_todate || 0) : 0;
+    const accruedGross = hasClockedIn ? Number(walletLedger?.gross_earned_todate || 0) : 0;
     const effectiveHourlyRate = emp.grossPay > 0 ? Math.round(emp.grossPay / 173.333) : (emp.hourlyRate || 0);
     const pct = (part, total) => (total > 0 ? Math.round((part / total) * 10000) / 100 : 0);
     return sendJson(response, 200, {

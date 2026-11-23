@@ -1,4 +1,4 @@
-const CACHE = 'shiftrelay-v187-live';
+const CACHE = 'shiftrelay-v188-live';
 const CORE_SHELL_ASSETS = [
   '/',
   '/index.html',

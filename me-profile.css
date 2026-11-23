@@ -15,7 +15,7 @@
   height: 180px;
   background: linear-gradient(135deg, #0a3d38 0%, #0d524d 40%, #10b981 80%, #34d399 100%);
   border-radius: 16px;
-  overflow: hidden;
+  overflow: visible;
   margin-bottom: 60px;
   flex-shrink: 0;
 }
@@ -75,11 +75,15 @@
   cursor: pointer;
   position: relative;
 }
+.me-avatar.has-photo {
+  background: #041b14;
+}
 .me-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
+  display: block;
 }
 .me-avatar-edit-overlay {
   position: absolute;

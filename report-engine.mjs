@@ -4,6 +4,7 @@
  * and Terms of Service documents in pristine, print-ready, high-tech HTML/CSS format.
  */
 
+import { readFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 import writeXlsxFile from 'write-excel-file/node';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
@@ -61,44 +62,15 @@ function pngChunk(type, data) {
  */
 function getShiftRelayCrestPngBuffer(size = 96) {
   if (cachedCrestPng) return cachedCrestPng;
+  try {
+    cachedCrestPng = readFileSync(new URL('./icon-192.png', import.meta.url));
+    return cachedCrestPng;
+  } catch {}
   const rows = [];
-  const radius = 20;
-  const distSq = (x, y, cx, cy) => (x - cx) ** 2 + (y - cy) ** 2;
-  for (let y = 0; y < size; y++) {
-    const row = Buffer.alloc(1 + size * 4);
-    row[0] = 0;
-    for (let x = 0; x < size; x++) {
-      let inside = true;
-      if (x < radius && y < radius && distSq(x, y, radius, radius) > radius * radius) inside = false;
-      else if (x >= size - radius && y < radius && distSq(x, y, size - radius - 1, radius) > radius * radius) inside = false;
-      else if (x < radius && y >= size - radius && distSq(x, y, radius, size - radius - 1) > radius * radius) inside = false;
-      else if (x >= size - radius && y >= size - radius && distSq(x, y, size - radius - 1, size - radius - 1) > radius * radius) inside = false;
-      if (!inside) continue;
-
-      let r = 15, g = 39, b = 68, a = 255;
-      const dx = x - size / 2;
-      const dy = y - size / 2;
-      const dist = Math.hypot(dx, dy);
-      if (dist <= 9) { r = 255; g = 255; b = 255; }
-      else if (dist <= 13) { r = 5; g = 150; b = 105; }
-      else if (Math.abs(dx - dy) < 8 && dist < 34 && dist > 15) { r = 16; g = 185; b = 129; }
-      else if (Math.abs(dx + dy) < 8 && dist < 34 && dist > 15) { r = 14; g = 165; b = 233; }
-      else if (x < 4 || x >= size - 4 || y < 4 || y >= size - 4) { r = 5; g = 150; b = 105; }
-      const off = 1 + x * 4;
-      row[off] = r;
-      row[off + 1] = g;
-      row[off + 2] = b;
-      row[off + 3] = a;
-    }
-    rows.push(row);
-  }
   const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0);
-  ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8;
-  ihdr[9] = 6;
-  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-  cachedCrestPng = Buffer.concat([sig, pngChunk('IHDR', ihdr), pngChunk('IDAT', deflateSync(Buffer.concat(rows))), pngChunk('IEND', Buffer.alloc(0))]);
+  ihdr.writeUInt32BE(1, 0); ihdr.writeUInt32BE(1, 4); ihdr[8] = 8; ihdr[9] = 6;
+  rows.push(Buffer.from([0, 4, 27, 20, 255]));
+  cachedCrestPng = Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]), pngChunk('IHDR', ihdr), pngChunk('IDAT', deflateSync(Buffer.concat(rows))), pngChunk('IEND', Buffer.alloc(0))]);
   return cachedCrestPng;
 }
 
@@ -153,12 +125,59 @@ function fitPdfText(font, rawText, size, maxWidth) {
 }
 
 function getInlineCrestSvg() {
-  return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <rect x="2" y="2" width="28" height="28" rx="7" fill="#0F2744" stroke="#10B981" stroke-width="1.5"/>
-    <rect x="7" y="14" width="10" height="3.2" rx="1.6" transform="rotate(45 7 14)" fill="#10B981"/>
-    <rect x="14" y="21" width="10" height="3.2" rx="1.6" transform="rotate(-45 14 21)" fill="#38BDF8"/>
-    <circle cx="16" cy="16" r="3.4" fill="#FFFFFF" stroke="#059669" stroke-width="1.2"/>
-  </svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="32" height="32" aria-hidden="true">
+  <defs>
+    <linearGradient id="srDarkGreenBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07291E"/>
+      <stop offset="55%" stop-color="#041B14"/>
+      <stop offset="100%" stop-color="#02100C"/>
+    </linearGradient>
+    <radialGradient id="srEmeraldAmbient" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#1AD079" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#1AD079" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="srRidgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F0FDF4"/>
+      <stop offset="65%" stop-color="#D1FAE5"/>
+      <stop offset="100%" stop-color="#34D399"/>
+    </linearGradient>
+    <filter id="srGlow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Deep Dark Green Squircle Background -->
+  <rect x="6" y="6" width="308" height="308" rx="64" fill="url(#srDarkGreenBg)" stroke="#1AD079" stroke-opacity="0.4" stroke-width="4"/>
+  <circle cx="160" cy="136" r="130" fill="url(#srEmeraldAmbient)"/>
+
+  <!-- Biometric Fingerprint + Keyhole Lock Mark (Centered Upper Stage) -->
+  <g transform="translate(156, 126)" fill="none" stroke="url(#srRidgeGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#srGlow)">
+    <!-- Outer Top Arch -->
+    <path d="M -46 -42 C -32 -78, 32 -78, 48 -38 C 54 -22, 54 -4, 52 14"/>
+    <!-- Left Upper Ridge -->
+    <path d="M -54 -14 C -52 -42, -34 -62, -6 -64 C 24 -66, 40 -44, 40 -14 C 40 4, 38 18, 48 28"/>
+    <!-- Inner Swirl Loop & Ridge Lines -->
+    <path d="M -54 4 C -36 2, -24 -12, -20 -32 C -16 -48, 0 -52, 14 -46 C 26 -40, 28 -22, 26 -2 C 24 16, 28 30, 46 38"/>
+    <path d="M -52 22 C -30 18, -14 2, -8 -22 C -4 -36, 12 -34, 14 -18 C 16 2, 12 22, 24 38"/>
+    <path d="M -46 38 C -24 32, -6 16, 0 -10"/>
+    <!-- Y-Branch Ridge Core above Lower Arch -->
+    <path d="M -18 28 C -6 22, 6 22, 18 32"/>
+    <path d="M -2 10 L 4 23"/>
+    <!-- Bottom Concentric Arch Ridges -->
+    <path d="M -44 52 C -26 38, -2 36, 12 46"/>
+    <path d="M -38 68 C -22 54, -4 54, 8 64"/>
+    <path d="M -26 82 C -14 72, -2 72, 6 80"/>
+    <path d="M -14 92 C -8 87, -2 87, 3 91"/>
+
+    <!-- Circular Keyhole Lock Badge (Bottom-Right of Fingerprint) -->
+    <g transform="translate(38, 64)" stroke="none">
+      <circle cx="0" cy="0" r="32" fill="#1AD079"/>
+      <!-- Keyhole Cutout in Deep Dark Green -->
+      <circle cx="0" cy="-6" r="9" fill="#041B14"/>
+      <path d="M -5 -1 L 5 -1 L 9 16 L -9 16 Z" fill="#041B14"/>
+    </g>
+  </g>
+</svg>`;
 }
 
 function renderHtmlLetterheadHeader(org = {}, opts = {}, rightExtraHtml = '') {
@@ -171,7 +190,7 @@ function renderHtmlLetterheadHeader(org = {}, opts = {}, rightExtraHtml = '') {
     </div>
     <div class="sr-doc-header">
       <div class="sr-doc-brand">
-        <div class="sr-doc-brand-icon" style="background:#0f2744;border:1px solid #059669;">${getInlineCrestSvg()}</div>
+        <div class="sr-doc-brand-icon" style="background:#041B14;border:1px solid #1AD079;">${getInlineCrestSvg()}</div>
         <div class="sr-doc-brand-text">
           <h1>${escapeHtml(meta.orgName)}</h1>
           <p>${escapeHtml(meta.statutoryLine)}</p>
