@@ -4212,7 +4212,7 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         tenantsBadge.textContent = lockedTenantsCount;
         tenantsBadge.style.display = lockedTenantsCount > 0 ? 'inline-flex' : 'none';
       }
-      if (sel) sel.innerHTML = cachedTenants.map(t => `<option value="${t.id}">${t.tradingName || t.legalName || t.name} (${t.companyId || t.id})</option>`).join('');
+      if (sel) sel.innerHTML = cachedTenants.map(t => `<option value="${esc(t.id)}">${esc(t.tradingName || t.legalName || t.name)} (${esc(t.companyId || t.id)})</option>`).join('');
       if (!tbody) return;
       tbody.innerHTML = cachedTenants.map((t, i) => {
         const companyName = t.tradingName || t.legalName || t.name || 'Enterprise Client';

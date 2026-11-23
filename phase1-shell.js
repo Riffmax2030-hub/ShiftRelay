@@ -1440,6 +1440,13 @@
               <svg class="sr-context-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
             </button>
 
+            ${(isExecutive || isSupervisor) ? `
+            <!-- Quick Earnings & Payout Button -->
+            <button class="sr-icon-btn ${view === 'earnings' ? 'active' : ''}" data-sr-view="earnings" id="sr-shell-payout" aria-label="My Earnings & Payout" title="My Earnings & Payout">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </button>
+            ` : ''}
+
             <!-- Notifications Bell -->
             <button class="sr-icon-btn" id="sr-shell-bell" aria-label="Notifications" title="Notifications" aria-haspopup="dialog" aria-expanded="false" aria-controls="sr-notif-panel">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>

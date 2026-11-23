@@ -8628,9 +8628,14 @@ async function getUserRewards(user, store) {
     const rawBody = await readTextBody(request).catch(() => '');
     const sig = String(request.headers['x-paystack-signature'] || '');
     const secret = String(process.env.PAYSTACK_SECRET_KEY || '').trim();
-    if (secret) {
-      const expected = crypto.createHmac('sha512', secret).update(rawBody).digest('hex');
-      if (!sig || sig !== expected) return sendJson(response, 401, { error: 'Invalid Paystack signature.' });
+    if (!secret) {
+      return sendJson(response, 503, { error: 'Paystack webhook secret not configured.' });
+    }
+    const expected = crypto.createHmac('sha512', secret).update(rawBody).digest('hex');
+    const sigBuf = Buffer.from(sig, 'utf8');
+    const expBuf = Buffer.from(expected, 'utf8');
+    if (!sig || sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return sendJson(response, 401, { error: 'Invalid Paystack signature.' });
     }
     let evt = {};
     try { evt = JSON.parse(rawBody || '{}'); } catch { return sendJson(response, 400, { error: 'Invalid JSON payload.' }); }
