@@ -931,6 +931,8 @@
     }
     .btn-ghost:hover { border-color: var(--border-glass); }
 
+    .adm-input, .adm-select { min-height: 40px; }
+    .btn-emerald, .btn-ghost, .btn-amber, .btn-rose { min-height: 38px; }
     .adm-input, .adm-select, .adm-textarea {
       width: 100%;
       padding: 10px 12px;
@@ -1578,11 +1580,8 @@
             <div class="panel-card" style="border-color:rgba(16,185,129,0.28);">
               <div class="panel-head">
                 <div>
-                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">DAYFORCE-STYLE TIERED SAAS BILLING &amp; LIFECYCLE</span>
-                  <h2>Tenant Tiered Billing, Pilot Credits, Paystack Invoices &amp; Lifecycle</h2>
-                  <p style="font-size:12.5px; color:var(--text-slate);">
-                    <strong>100% Employer-Paid:</strong> Pro (<code>₦150k + ₦4.5k</code>, cap 150) &bull; Enterprise (<code>₦400k + ₦3.5k</code>, cap 500) &bull; Enterprise Plus (<code>₦750k + ₦2.5k</code>, cap 1,500) &bull; Surge &lt;90d (<code>₦2.5k</code>) &bull; Overage (<code>₦3k</code>). Recurring Base+PEPM starts only after onboarding completion; <code>₦250k</code> Sandbox Pilot credits 100% toward onboarding.
-                  </p>
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">SAAS BILLING &amp; LIFECYCLE</span>
+                  <h2>Tenant Tiered Billing &amp; Invoices</h2>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                   <button type="button" class="btn-ghost" onclick="window.loadAdminBillingAndDisbursals(true)">Refresh Billing &amp; Float</button>
@@ -1610,11 +1609,8 @@
             <div class="panel-card" style="border-color:rgba(56,189,248,0.28);">
               <div class="panel-head">
                 <div>
-                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">PARTNER CUSTODY SETTLEMENT &amp; TREASURY FLOAT (CBN COMPLIANT)</span>
-                  <h2>Prefunded Payroll &amp; Statutory Remittance Float Ledger</h2>
-                  <p style="font-size:12.5px; color:var(--text-slate);">
-                    Tracks employer prefunded net payroll, FIRS/LIRS PAYE, PenCom (18%), NHF, and NSITF balances held with licensed payment/bank partners prior to payday clearing. EWA remains <code>$0</code> employer subscription &amp; <code>0%</code> worker interest.
-                  </p>
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky);">TREASURY FLOAT LEDGER</span>
+                  <h2>Prefunded Payroll &amp; Statutory Remittance Float</h2>
                 </div>
                 <div id="owner-float-summary-chips" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                   <span class="chip emerald" id="owner-float-prefunded-chip">Prefunded: ₦0</span>
@@ -1947,11 +1943,8 @@
           <div class="panel-card" style="border-color:rgba(244,63,94,0.28);">
             <div class="panel-head">
               <div>
-                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--rose);">APP STORE &amp; NDPA 2023 COMPLIANCE // DATA ERASURE QUEUE</span>
-                <h2>Account &amp; Biometric Data Deletion Requests</h2>
-                <p style="font-size:13px; color:var(--text-slate);">
-                  Self-service requests submitted via <code>/delete-account.html</code> or the ShiftRelay OS mobile app. Process statutory identity checks and record completion.
-                </p>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--rose);">NDPA COMPLIANCE</span>
+                <h2>Account &amp; Data Deletion Requests</h2>
               </div>
               <span class="chip rose" id="adm-deletions-count-chip">0 Pending</span>
             </div>
@@ -2131,11 +2124,8 @@
           <div class="panel-card">
             <div class="panel-head">
               <div>
-                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--emerald); text-transform:uppercase; letter-spacing:0.06em;">Plugin &amp; Bridge Registry</span>
-                <h2>Core Enterprise Plugins, API Keys &amp; Native Bridges</h2>
-                <p style="font-size:12.5px; color:var(--text-slate);">
-                  Configure API credentials, verify live latency across Gemini AI, CBN/Paystack NUBAN, Termii SMS, WhatsApp Cloud, Transactional Mail, and Corporate OIDC SSO.
-                </p>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--emerald); text-transform:uppercase; letter-spacing:0.06em;">Plugins &amp; Bridges</span>
+                <h2>API Keys &amp; Native Bridges</h2>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button type="button" class="btn-ghost" onclick="window.openNubanResolverModal()">NUBAN Account Resolver</button>
@@ -2150,11 +2140,8 @@
           <div class="panel-card">
             <div class="panel-head">
               <div>
-                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--amber); text-transform:uppercase; letter-spacing:0.06em;">Inbound ERP / HRIS / BI Data Bridge</span>
-                <h2>ShiftRelay Public Bridge API Keys (<code>/api/v1/bridge/summary</code>)</h2>
-                <p style="font-size:12.5px; color:var(--text-slate);">
-                  Issue scoped <code>sr_live_...</code> bearer tokens so SAP, Workday, Dayforce, PowerBI, or custom finance pipelines can pull live compiled payroll &amp; attendance summaries.
-                </p>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--amber); text-transform:uppercase; letter-spacing:0.06em;">Inbound Bridge</span>
+                <h2>Bridge API Keys (<code>/api/v1/bridge/summary</code>)</h2>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button type="button" class="btn-ghost" onclick="window.testErpBridgeSummary()">Test Bridge JSON</button>
@@ -2185,11 +2172,8 @@
           <div class="panel-card">
             <div class="panel-head">
               <div>
-                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--sky); text-transform:uppercase; letter-spacing:0.06em;">Outbound Event Streams</span>
-                <h2>Outbound ERP &amp; Webhook Event Bridges</h2>
-                <p style="font-size:12.5px; color:var(--text-slate);">
-                  Push real-time signed JSON webhooks on <code>payroll.approved</code>, <code>attendance.exception_flagged</code>, and <code>support.ticket_created</code>.
-                </p>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--sky); text-transform:uppercase; letter-spacing:0.06em;">Outbound Webhooks</span>
+                <h2>Outbound Webhook Bridges</h2>
               </div>
               <button type="button" class="btn-emerald" onclick="window.openCreateWebhookModal()">+ Add Webhook Bridge</button>
             </div>
