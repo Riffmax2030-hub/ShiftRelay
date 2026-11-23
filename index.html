@@ -26,25 +26,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-    <link rel="preload" href="sr-premium.css?v=194" as="style" />
-    <link rel="preload" href="phase1-shell.js?v=194" as="script" />
-    <link rel="stylesheet" href="styles.css?v=194" />
-    <link rel="stylesheet" href="theme.css?v=194" />
-    <link rel="stylesheet" href="bento-ui.css?v=194" />
-    <link rel="stylesheet" href="dark-mode.css?v=194" />
-    <link rel="stylesheet" href="splash.css?v=194" />
-    <link rel="stylesheet" href="offline-queue.css?v=194" />
-    <link rel="stylesheet" href="me-profile.css?v=194" />
-    <link rel="stylesheet" href="phase1-shell.css?v=194" />
-    <link rel="stylesheet" href="sr-premium.css?v=194" />
+    <link rel="preload" href="sr-premium.css?v=195" as="style" />
+    <link rel="preload" href="phase1-shell.js?v=195" as="script" />
+    <link rel="stylesheet" href="styles.css?v=195" />
+    <link rel="stylesheet" href="theme.css?v=195" />
+    <link rel="stylesheet" href="bento-ui.css?v=195" />
+    <link rel="stylesheet" href="dark-mode.css?v=195" />
+    <link rel="stylesheet" href="splash.css?v=195" />
+    <link rel="stylesheet" href="offline-queue.css?v=195" />
+    <link rel="stylesheet" href="me-profile.css?v=195" />
+    <link rel="stylesheet" href="phase1-shell.css?v=195" />
+    <link rel="stylesheet" href="sr-premium.css?v=195" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v194' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v195' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v194');
+              localStorage.setItem('sr_restored_build', 'v195');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { Promise.resolve(r.update()).catch(function() {}); });
@@ -469,41 +469,41 @@
     </div>
 
     <div class="toast hidden" id="toast"></div>
-    <script src="icons.js?v=194" defer></script>
-    <script src="language.js?v=194" defer></script>
-    <script src="app.js?v=194" defer></script>
-    <script src="biometrics.js?v=194" defer></script>
-    <script type="module" src="qr-svg-generator.js?v=194"></script>
-    <script src="attendance-exceptions-ui.js?v=194" defer></script>
+    <script src="icons.js?v=195" defer></script>
+    <script src="language.js?v=195" defer></script>
+    <script src="app.js?v=195" defer></script>
+    <script src="biometrics.js?v=195" defer></script>
+    <script type="module" src="qr-svg-generator.js?v=195"></script>
+    <script src="attendance-exceptions-ui.js?v=195" defer></script>
     <script src="/vendor/read-excel-file.min.js" defer></script>
-    <script src="phase1-shell.js?v=194" defer></script>
-    <script src="splash.js?v=194" defer></script>
-    <script src="notifications.js?v=194" defer></script>
-    <script src="profile.js?v=194" defer></script>
-    <script src="checklists.js?v=194" defer></script>
-    <script src="account-menu.js?v=194" defer></script>
-    <script src="calendar-experience.js?v=194" defer></script>
-    <script src="notification-experience.js?v=194" defer></script>
-    <script src="community-experience.js?v=194" defer></script>
-    <script src="team-realtime.js?v=194" defer></script>
-    <script src="frontline-social.js?v=194" defer></script>
-    <script src="me-profile.js?v=194" defer></script>
-    <script src="navigation-fix.js?v=194" defer></script>
-    <script src="offline-queue.js?v=194" defer></script>
-    <script src="signature-pad.js?v=194" defer></script>
-    <script src="shift-calendar.js?v=194" defer></script>
-    <script src="safety-incident.js?v=194" defer></script>
-    <script src="worker-passport.js?v=194" defer></script>
-    <script src="notification-centre.js?v=194" defer></script>
-    <script src="dock-badges.js?v=194" defer></script>
-    <script src="swap-review.js?v=194" defer></script>
-    <script src="facility-zones.js?v=194" defer></script>
-    <script src="analytics-dashboard.js?v=194" defer></script>
-    <script src="first-shift-onboarding.js?v=194" defer></script>
-    <script src="push-notifications.js?v=194" defer></script>
-    <script src="facility-switcher.js?v=194" defer></script>
-    <script src="emergency-broadcast.js?v=194" defer></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=194',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script src="phase1-shell.js?v=195" defer></script>
+    <script src="splash.js?v=195" defer></script>
+    <script src="notifications.js?v=195" defer></script>
+    <script src="profile.js?v=195" defer></script>
+    <script src="checklists.js?v=195" defer></script>
+    <script src="account-menu.js?v=195" defer></script>
+    <script src="calendar-experience.js?v=195" defer></script>
+    <script src="notification-experience.js?v=195" defer></script>
+    <script src="community-experience.js?v=195" defer></script>
+    <script src="team-realtime.js?v=195" defer></script>
+    <script src="frontline-social.js?v=195" defer></script>
+    <script src="me-profile.js?v=195" defer></script>
+    <script src="navigation-fix.js?v=195" defer></script>
+    <script src="offline-queue.js?v=195" defer></script>
+    <script src="signature-pad.js?v=195" defer></script>
+    <script src="shift-calendar.js?v=195" defer></script>
+    <script src="safety-incident.js?v=195" defer></script>
+    <script src="worker-passport.js?v=195" defer></script>
+    <script src="notification-centre.js?v=195" defer></script>
+    <script src="dock-badges.js?v=195" defer></script>
+    <script src="swap-review.js?v=195" defer></script>
+    <script src="facility-zones.js?v=195" defer></script>
+    <script src="analytics-dashboard.js?v=195" defer></script>
+    <script src="first-shift-onboarding.js?v=195" defer></script>
+    <script src="push-notifications.js?v=195" defer></script>
+    <script src="facility-switcher.js?v=195" defer></script>
+    <script src="emergency-broadcast.js?v=195" defer></script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=195',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
   </body>
 </html>
 

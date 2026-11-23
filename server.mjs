@@ -11988,6 +11988,39 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, disbursals });
   }
 
+  if (url.pathname === '/api/admin/members/reporting' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'admin_ops']);
+    if (!adminCtx) return;
+    const tenantId = url.searchParams.get('tenantId') || (store.organisations?.[0]?.id || '');
+    const usersById = new Map((store.portalUsers || []).map(u => [u.id, u]));
+    const members = (store.memberships || []).filter(m => !tenantId || m.organisation_id === tenantId).map(m => {
+      const pu = usersById.get(m.user_id) || {};
+      return { id: m.id, user_id: m.user_id, name: pu.full_name || m.name || 'Staff Member', email: pu.email || m.email || '', role: m.role || 'worker', title: m.title || m.role || 'Specialist', department: m.department || 'Operations', staffId: m.staff_code || '', supervisor_membership_id: m.supervisor_membership_id || null, status: m.status || 'active' };
+    });
+    return sendJson(response, 200, { ok: true, tenantId, members });
+  }
+
+  if (url.pathname === '/api/admin/members/reporting' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'admin_ops']);
+    if (!adminCtx) return;
+    const body = await readJson(request);
+    const memberId = String(body.memberId || '').trim();
+    const supervisorMembershipId = body.supervisorMembershipId ? String(body.supervisorMembershipId).trim() : null;
+    if (!memberId) return sendJson(response, 400, { error: 'memberId is required.' });
+    if (supervisorMembershipId && supervisorMembershipId === memberId) return sendJson(response, 400, { error: 'Cannot report to self.' });
+    const m = (store.memberships || []).find(x => x.id === memberId || x.user_id === memberId);
+    if (!m) return sendJson(response, 404, { error: 'Member not found.' });
+    m.supervisor_membership_id = supervisorMembershipId;
+    if (body.department) m.department = String(body.department).trim().slice(0, 80);
+    if (databaseReady && UUID_REGEX.test(String(m.id || ''))) {
+      await query('update memberships set supervisor_membership_id = $1, department = coalesce($2, department) where id = $3', [supervisorMembershipId, body.department || null, m.id]).catch(() => {});
+    }
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, memberId: m.id, supervisorMembershipId: m.supervisor_membership_id, department: m.department });
+  }
+
   if (url.pathname === '/api/admin/payroll/disburse' && request.method === 'POST') {
     const store = await getStore();
     const adminCtx = await requireAdminGate(request, response, store, ['owner_root']);

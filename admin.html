@@ -2000,6 +2000,21 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
             </div>
             <div id="csv-validation-preview" style="display:none; margin-top:16px; border:1px solid var(--border-hairline); border-radius:12px; background:var(--bg-input); overflow:hidden;"></div>
           </div>
+
+          <div class="panel-card" id="adm-organogram-card">
+            <div class="panel-head">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--emerald); text-transform:uppercase;">Silent Reporting Hierarchy</span>
+                <h2>Tenant Organogram &amp; Reporting Tree</h2>
+                <p style="font-size:12.5px; color:var(--text-slate); margin-top:2px;">Drag staff cards between Supervisor/Department boxes (or pick a Lead) to route approvals &amp; team scope cleanly.</p>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <select id="adm-org-tenant-select" class="adm-select" style="width:auto; min-width:200px; margin-bottom:0;" onchange="window.loadAdminOrganogram()"></select>
+                <button type="button" class="btn-ghost" onclick="window.loadAdminOrganogram()">Refresh Tree</button>
+              </div>
+            </div>
+            <div id="adm-organogram-board" style="margin-top:12px;"><div style="color:var(--text-slate); font-size:12.5px;">Select a tenant to view or edit reporting lines.</div></div>
+          </div>
         </section>
 
         <!-- VIEW 5: WORKER RECTIFICATION RECEIPTS & NDPA ACCOUNT DELETIONS -->
@@ -4164,6 +4179,35 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       `).join('');
     }
 
+    window.loadAdminOrganogram = async function () {
+      const board = document.getElementById('adm-organogram-board');
+      const sel = document.getElementById('adm-org-tenant-select');
+      if (!board) return;
+      const tid = sel?.value || cachedTenants?.[0]?.id || '';
+      if (!tid) { board.innerHTML = '<div style="color:var(--text-slate);font-size:12.5px;">No tenant selected.</div>'; return; }
+      try {
+        const r = await admFetch('/api/admin/members/reporting?tenantId=' + encodeURIComponent(tid));
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Could not load organogram');
+        const mems = (d.members || []).filter(m => m.status === 'active');
+        const sups = mems.filter(m => ['supervisor', 'manager'].includes(String(m.role || '').toLowerCase()));
+        const supIds = new Set(sups.map(s => s.id));
+        const pool = mems.filter(m => !['owner', 'executive', 'workforce_admin'].includes(String(m.role || '').toLowerCase()));
+        const moveAdm = async (memberId, supervisorMembershipId, department) => {
+          const pr = await admFetch('/api/admin/members/reporting', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ memberId, supervisorMembershipId: supervisorMembershipId || null, department: department || undefined }) });
+          if (!pr.ok) { const pd = await pr.json().catch(()=>({})); return showToast(pd.error || 'Update failed'); }
+          showToast('Reporting line updated.'); window.loadAdminOrganogram();
+        };
+        const mkCard = (m) => `<div class="adm-org-card" draggable="true" data-mid="${escapeHtml(m.id)}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:9px;background:var(--bg-input);border:1px solid var(--border-hairline);cursor:grab;"><div><div style="font-size:12.5px;font-weight:700;color:var(--text-white);">${escapeHtml(m.name)}</div><div style="font-size:11px;color:var(--text-slate);">${escapeHtml(m.title)} • ${escapeHtml(m.staffId || '')}</div></div><select class="adm-select adm-org-move" data-mid="${escapeHtml(m.id)}" style="width:auto;max-width:125px;margin:0;padding:4px 6px;font-size:11px;"><option value="">Direct / Unassigned</option>${sups.filter(s=>s.id!==m.id).map(s=>`<option value="${escapeHtml(s.id)}" data-dept="${escapeHtml(s.department||'Operations')}" ${m.supervisor_membership_id===s.id?'selected':''}>&rarr; ${escapeHtml(s.name)}</option>`).join('')}</select></div>`;
+        const mkBox = (id, title, sub, dept, list) => `<div class="adm-org-box" data-sup="${escapeHtml(id)}" data-dept="${escapeHtml(dept)}" style="padding:12px;border-radius:12px;border:1.5px solid var(--border-hairline);background:rgba(255,255,255,0.02);min-height:150px;display:flex;flex-direction:column;gap:8px;"><div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid var(--border-hairline);"><div><div style="font-size:13px;font-weight:700;color:var(--text-white);">${escapeHtml(title)}</div><div style="font-size:11px;color:var(--emerald);">${escapeHtml(sub)}</div></div><span class="chip cyan">${list.length}</span></div><div style="display:flex;flex-direction:column;gap:6px;">${list.length?list.map(mkCard).join(''):'<div style="font-size:11px;color:var(--text-dim);text-align:center;padding:12px;border:1px dashed var(--border-hairline);border-radius:8px;">Drop staff here</div>'}</div></div>`;
+        const unassigned = pool.filter(m => !supIds.has(m.id) && (!m.supervisor_membership_id || !supIds.has(m.supervisor_membership_id)));
+        board.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;">${sups.map(s=>mkBox(s.id, s.name, (s.department||'Operations')+' • '+s.title, s.department||'Operations', pool.filter(m=>m.supervisor_membership_id===s.id))).join('')}${mkBox('', 'Direct to Executive / Unassigned', 'General Pool', 'Operations', unassigned)}</div>`;
+        board.querySelectorAll('.adm-org-card').forEach(c => { c.addEventListener('dragstart', ev => { ev.dataTransfer?.setData('text/plain', c.dataset.mid||''); }); });
+        board.querySelectorAll('.adm-org-box').forEach(b => { b.addEventListener('dragover', ev => { ev.preventDefault(); b.style.borderColor='#10b981'; }); b.addEventListener('dragleave', () => { b.style.borderColor='var(--border-hairline)'; }); b.addEventListener('drop', ev => { ev.preventDefault(); b.style.borderColor='var(--border-hairline)'; const mid = ev.dataTransfer?.getData('text/plain'); if (mid) moveAdm(mid, b.dataset.sup||null, b.dataset.dept||''); }); });
+        board.querySelectorAll('.adm-org-move').forEach(selEl => { selEl.addEventListener('change', () => { const opt = selEl.options[selEl.selectedIndex]; moveAdm(selEl.dataset.mid, selEl.value||null, opt?.dataset?.dept||''); }); });
+      } catch (err) { board.innerHTML = '<div style="color:#fb7185;font-size:12.5px;">' + escapeHtml(err.message) + '</div>'; }
+    };
+
     window.toggleStaffStatus = async function (staffId, nextStatus) {
       try {
         const res = await admFetch(`/api/admin/staff/${encodeURIComponent(staffId)}`, {
@@ -4213,6 +4257,8 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         tenantsBadge.style.display = lockedTenantsCount > 0 ? 'inline-flex' : 'none';
       }
       if (sel) sel.innerHTML = cachedTenants.map(t => `<option value="${esc(t.id)}">${esc(t.tradingName || t.legalName || t.name)} (${esc(t.companyId || t.id)})</option>`).join('');
+      const orgSel = document.getElementById('adm-org-tenant-select');
+      if (orgSel) { const prev = orgSel.value; orgSel.innerHTML = sel ? sel.innerHTML : ''; if (prev) orgSel.value = prev; window.loadAdminOrganogram?.(); }
       if (!tbody) return;
       tbody.innerHTML = cachedTenants.map((t, i) => {
         const companyName = t.tradingName || t.legalName || t.name || 'Enterprise Client';
