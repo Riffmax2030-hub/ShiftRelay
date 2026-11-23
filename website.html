@@ -1174,15 +1174,17 @@
     /* Before / After Operational Switcher */
     .ba-toggle-wrap {
       display: inline-flex;
-      gap: 4px;
-      padding: 4px;
-      border-radius: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 5px;
+      border-radius: 14px;
       background: #e2e8f0;
       margin-bottom: 24px;
     }
     .ba-btn {
-      padding: 8px 16px;
-      border-radius: 9px;
+      min-height: 40px;
+      padding: 9px 18px;
+      border-radius: 10px;
       border: none;
       background: transparent;
       color: #475569;
@@ -1190,6 +1192,16 @@
       font-weight: 700;
       cursor: pointer;
       transition: all 0.18s ease;
+    }
+    .hero-play-trigger,
+    .stage-tab,
+    .role-tab-btn,
+    .persona-tab-btn {
+      min-height: 40px !important;
+    }
+    button:focus-visible, a:focus-visible {
+      outline: 2px solid #059669;
+      outline-offset: 2px;
     }
     .ba-btn.active {
       background: #ffffff;

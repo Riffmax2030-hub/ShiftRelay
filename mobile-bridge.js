@@ -57,6 +57,25 @@
         const disp = res.headers.get('content-disposition') || '';
         const nameMatch = disp.match(/filename="?([^"]+)"?/i);
         const filename = nameMatch ? nameMatch[1] : fallbackFilename;
+        const nativePlugin = window.Capacitor?.Plugins?.ShiftRelayNative;
+        if (nativePlugin?.shareFileNative) {
+          const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const result = String(reader.result || '');
+              const idx = result.indexOf(',');
+              resolve(idx >= 0 ? result.slice(idx + 1) : result);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          await nativePlugin.shareFileNative({
+            filename,
+            mimeType: blob.type || 'application/octet-stream',
+            base64Data
+          });
+          return true;
+        }
         if (navigator.canShare && typeof File !== 'undefined') {
           const file = new File([blob], filename, { type: blob.type || 'application/octet-stream' });
           if (navigator.canShare({ files: [file] })) {
@@ -95,6 +114,49 @@
       } catch {
         return false;
       }
+    },
+    async getNetworkSnapshot() {
+      try {
+        const nativePlugin = window.Capacitor?.Plugins?.ShiftRelayNative;
+        if (nativePlugin?.getNetworkSnapshot && this.isNative()) {
+          return await nativePlugin.getNetworkSnapshot();
+        }
+        const netPlugin = window.Capacitor?.Plugins?.Network;
+        if (netPlugin?.getStatus) {
+          const st = await netPlugin.getStatus();
+          return { connected: !!st.connected, validated: !!st.connected, metered: st.connectionType === 'cellular', transport: st.connectionType || 'unknown' };
+        }
+      } catch (_) {}
+      return { connected: navigator.onLine !== false, validated: navigator.onLine !== false, metered: false, transport: 'web' };
+    },
+    async scheduleBackgroundSync() {
+      try {
+        const nativePlugin = window.Capacitor?.Plugins?.ShiftRelayNative;
+        if (nativePlugin?.scheduleBackgroundSync && this.isNative()) {
+          return await nativePlugin.scheduleBackgroundSync();
+        }
+      } catch (_) {}
+      return { scheduled: false };
+    },
+    async haptic(style = 'LIGHT') {
+      try {
+        const haptics = window.Capacitor?.Plugins?.Haptics;
+        if (haptics?.impact && this.isNative()) {
+          await haptics.impact({ style });
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    },
+    async setStatusBarTheme(isDark = true) {
+      try {
+        const sb = window.Capacitor?.Plugins?.StatusBar;
+        if (sb && this.isNative()) {
+          await sb.setStyle({ style: isDark ? 'DARK' : 'LIGHT' });
+          return true;
+        }
+      } catch (_) {}
+      return false;
     }
   };
 
@@ -109,6 +171,31 @@
       }
       return origFetch.call(this, input, init);
     };
+
+    // Wire ConnectivityManager / Network & App lifecycle + WorkManager background sync
+    try {
+      const plugins = window.Capacitor?.Plugins || {};
+      plugins.Network?.addListener?.('networkStatusChange', (status) => {
+        if (status?.connected) {
+          window.dispatchEvent(new Event('online'));
+          window.OfflineQueue?.flush?.();
+        } else {
+          window.dispatchEvent(new Event('offline'));
+          window.ShiftRelayMobile.scheduleBackgroundSync();
+        }
+      });
+      plugins.App?.addListener?.('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          window.ShiftRelayMobile.getNetworkSnapshot().then((snap) => {
+            if (snap?.connected) window.OfflineQueue?.flush?.();
+          });
+        } else {
+          window.ShiftRelayMobile.scheduleBackgroundSync();
+        }
+      });
+      window.ShiftRelayMobile.scheduleBackgroundSync();
+    } catch (_) {}
+
     console.log('[ShiftRelay Mobile Bridge] Active. Routing native calls to:', getBackendBase());
   }
 })();

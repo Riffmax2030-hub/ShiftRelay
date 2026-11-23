@@ -2409,3 +2409,41 @@ button.secondary:active {
   transform: scale(0.985);
 }
 
+/* ==========================================================================
+   Android Adaptive & Desktop Experience Polish (v197)
+   - High-contrast keyboard focus rings (:focus-visible)
+   - Consistent button-group spacing & >=44px coarse touch targets
+   - Sleek desktop/trackpad scrollbars
+   ========================================================================== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+.action-row,
+.btn-group,
+.card-actions,
+.toolbar-actions {
+  gap: 10px;
+}
+
+@media (pointer: coarse) {
+  button,
+  a.btn,
+  .btn,
+  [role="button"] {
+    min-height: 42px;
+  }
+}
+
+
