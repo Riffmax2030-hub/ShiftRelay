@@ -8084,6 +8084,7 @@
             <p class="sr-v2-page-sub sr-v2-num">${onShiftMembers.length} on shift now &middot; Verified personnel directory</p>
           </div>
           <div class="sr-v2-page-actions">
+            ${isOwner ? `<div class="sr-comp-switch" id="sr-team-view-switch" role="tablist" style="margin-right:4px;"><button type="button" class="sr-comp-option active" id="sr-team-tab-dir" role="tab">Directory</button><button type="button" class="sr-comp-option" id="sr-team-tab-org" role="tab">Organogram</button></div>` : ''}
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-team-scan-id-btn" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;border-color:rgba(13,148,136,0.35);color:var(--sr-primary);">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/></svg>
               <span>Peer Check-In</span>
@@ -8165,12 +8166,101 @@
           <span class="sr-search-count sr-v2-num" id="sr-team-count" style="margin-left:auto;font-size:12px;font-weight:700;color:var(--p-text-3);">${allMembers.length} of ${allMembers.length} staff</span>
         </div>
 
-        <section class="sr-card" aria-label="Team Directory" style="padding:0;overflow:hidden;">
+        <section class="sr-card" id="sr-team-dir-section" aria-label="Team Directory" style="padding:0;overflow:hidden;">
           <div id="sr-team-list-container"></div>
         </section>
+        <section id="sr-team-organogram-container" style="display:none;"></section>
       `;
 
       filterAndRender(teamSearchQuery);
+
+      function renderOrganogramBoard() {
+        const orgEl = document.getElementById('sr-team-organogram-container');
+        if (!orgEl) return;
+        const leads = activeMembers.filter(m => ['supervisor', 'manager', 'owner', 'executive'].includes(String(m.role || '').toLowerCase()));
+        const execs = activeMembers.filter(m => ['owner', 'executive', 'workforce_admin'].includes(String(m.role || '').toLowerCase()));
+        const supLeads = leads.filter(m => ['supervisor', 'manager'].includes(String(m.role || '').toLowerCase()));
+        const supIds = new Set(supLeads.map(s => s.id));
+        const staffPool = activeMembers.filter(m => !['owner', 'executive', 'workforce_admin'].includes(String(m.role || '').toLowerCase()));
+        const moveMember = async (memberId, supervisorMembershipId, department) => {
+          try {
+            const res = await fetch('/api/team/reporting', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ memberId, supervisorMembershipId: supervisorMembershipId || null, department: department || undefined })
+            });
+            const d = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(d.error || 'Could not update reporting line');
+            const hit = allMembers.find(x => x.id === memberId || x.user_id === memberId);
+            if (hit) { hit.supervisor_membership_id = d.supervisorMembershipId || null; if (d.department) hit.department = d.department; }
+            if (typeof showToast === 'function') showToast('Reporting line updated.', 'success');
+            renderOrganogramBoard();
+          } catch (err) { if (typeof showToast === 'function') showToast(err.message, 'error'); }
+        };
+        const cardHtml = (m) => `<div class="sr-org-person-card" draggable="true" data-member-id="${escapeHtml(m.id)}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:var(--sr-bg-page);border:1px solid var(--sr-border-subtle);cursor:grab;">
+          <div style="min-width:0;"><div style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(m.name)}</div><div style="font-size:11px;color:var(--sr-text-muted);">${escapeHtml(m.title || m.role)} &bull; ${escapeHtml(m.staffId || '')}</div></div>
+          <select class="sr-org-move-sel" data-member-id="${escapeHtml(m.id)}" aria-label="Assign supervisor" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid var(--sr-border-subtle);background:var(--sr-bg-card);color:var(--sr-text-main);max-width:120px;">
+            <option value="">Direct / Unassigned</option>
+            ${supLeads.filter(s => s.id !== m.id).map(s => `<option value="${escapeHtml(s.id)}" data-dept="${escapeHtml(s.department || 'Operations')}" ${m.supervisor_membership_id === s.id ? 'selected' : ''}>&rarr; ${escapeHtml(s.name)}</option>`).join('')}
+          </select>
+        </div>`;
+        const renderDropBox = (boxId, title, subtitle, dept, membersList) => `<div class="sr-card sr-org-drop-box" data-sup-id="${escapeHtml(boxId)}" data-dept="${escapeHtml(dept)}" style="margin:0;padding:14px;min-height:190px;display:flex;flex-direction:column;gap:8px;border:1.5px solid var(--sr-border-subtle);transition:border-color 0.15s,background 0.15s;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--sr-border-subtle);">
+            <div><div style="font-size:13.5px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(title)}</div><div style="font-size:11px;color:#059669;font-weight:600;">${escapeHtml(subtitle)}</div></div>
+            <span class="sr-v2-pill-meta sr-v2-num">${membersList.length}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex:1;">${membersList.length ? membersList.map(cardHtml).join('') : '<div style="font-size:11.5px;color:var(--sr-text-muted);padding:14px 6px;text-align:center;border:1px dashed var(--sr-border-subtle);border-radius:8px;">Drop staff here</div>'}</div>
+        </div>`;
+        const unassigned = staffPool.filter(m => !supIds.has(m.id) && (!m.supervisor_membership_id || !supIds.has(m.supervisor_membership_id)));
+        orgEl.innerHTML = `<div class="sr-card" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div><strong style="font-size:13.5px;color:var(--sr-text-main);">Company Organogram &amp; Reporting Lines</strong><div style="font-size:12px;color:var(--sr-text-muted);">Drag any person into a Supervisor/Department box (or use the dropdown) to update approvals &amp; team scope silently.</div></div>
+          <span class="sr-v2-pill-meta">Executive View Only</span>
+        </div>
+        <div style="margin-bottom:14px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#041b14,#064e3b);color:#ecfdf5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div><div style="font-size:10.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#34d399;">Executive Leadership</div><div style="font-size:14.5px;font-weight:800;">${execs.map(e => escapeHtml(e.name)).join(' • ') || escapeHtml(user.name)}</div></div>
+          <span style="font-size:11.5px;color:#a7f3d0;">${supLeads.length} Department Leads &bull; ${activeMembers.length} Total Staff</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;align-items:start;">
+          ${supLeads.map(sup => renderDropBox(sup.id, sup.name, `${sup.department || 'Operations'} • ${sup.title || 'Supervisor'}`, sup.department || 'Operations', staffPool.filter(m => m.supervisor_membership_id === sup.id))).join('')}
+          ${renderDropBox('', 'Direct to Executive / Unassigned', 'General Pool', 'Operations', unassigned)}
+        </div>`;
+        orgEl.querySelectorAll('.sr-org-person-card').forEach(card => {
+          card.addEventListener('dragstart', (ev) => { ev.dataTransfer?.setData('text/plain', card.dataset.memberId || ''); card.style.opacity = '0.5'; });
+          card.addEventListener('dragend', () => { card.style.opacity = '1'; });
+        });
+        orgEl.querySelectorAll('.sr-org-drop-box').forEach(box => {
+          box.addEventListener('dragover', (ev) => { ev.preventDefault(); box.style.borderColor = '#059669'; box.style.background = 'rgba(16,185,129,0.06)'; });
+          box.addEventListener('dragleave', () => { box.style.borderColor = 'var(--sr-border-subtle)'; box.style.background = ''; });
+          box.addEventListener('drop', (ev) => {
+            ev.preventDefault();
+            box.style.borderColor = 'var(--sr-border-subtle)'; box.style.background = '';
+            const mid = ev.dataTransfer?.getData('text/plain');
+            if (mid) moveMember(mid, box.dataset.supId || null, box.dataset.dept || '');
+          });
+        });
+        orgEl.querySelectorAll('.sr-org-move-sel').forEach(sel => {
+          sel.addEventListener('change', () => {
+            const opt = sel.options[sel.selectedIndex];
+            moveMember(sel.dataset.memberId, sel.value || null, opt?.dataset?.dept || '');
+          });
+        });
+      }
+
+      const tabDir = document.getElementById('sr-team-tab-dir');
+      const tabOrg = document.getElementById('sr-team-tab-org');
+      if (tabDir && tabOrg) {
+        tabDir.addEventListener('click', () => {
+          tabDir.classList.add('active'); tabOrg.classList.remove('active');
+          document.getElementById('sr-team-dir-section').style.display = '';
+          document.getElementById('sr-team-organogram-container').style.display = 'none';
+        });
+        tabOrg.addEventListener('click', () => {
+          tabOrg.classList.add('active'); tabDir.classList.remove('active');
+          document.getElementById('sr-team-dir-section').style.display = 'none';
+          document.getElementById('sr-team-organogram-container').style.display = 'block';
+          renderOrganogramBoard();
+        });
+      }
 
       document.getElementById('sr-team-refresh-btn')?.addEventListener('click', () => {
         renderTeamScreen();

@@ -6021,6 +6021,7 @@ async function getOrganisationRosterState(user) {
         role,
         title: entry.title || prev.title || dm?.title || contract.role || 'Staff Specialist',
         department: entry.department || prev.department || dm?.department || contract.department || 'Operations',
+        supervisor_membership_id: entry.supervisor_membership_id ?? prev.supervisor_membership_id ?? null,
         status: entry.status || prev.status || 'active',
         time_zone: entry.time_zone || prev.time_zone || 'Africa/Lagos',
         shift_start: shiftStart,
@@ -7049,7 +7050,9 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
             throw err;
           }
           const id = crypto.randomUUID();
+          const requesterMem = (store.memberships || []).find(m => m.organisation_id === user.organisation_id && (m.id === user.id || m.user_id === user.id));
           const newLeave = {
+            assigned_supervisor_id: requesterMem?.supervisor_membership_id || null,
             id,
             organisation_id: user.organisation_id,
             organisationId: user.organisation_id,
@@ -7532,6 +7535,32 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Directory is available for authenticated organisation accounts.' });
     const { members, summary } = await getOrganisationRosterState(user);
     return sendJson(response, 200, { members, summary });
+  }
+  if (url.pathname === '/api/team/reporting' && request.method === 'PUT') {
+    if (!['owner', 'workforce_admin', 'manager'].includes(user.role) || !user.organisation_id) {
+      return sendJson(response, 403, { error: 'Executive or HR access required to update reporting hierarchy.' });
+    }
+    const body = await readJson(request);
+    const memberId = String(body.memberId || '').trim();
+    const supervisorMembershipId = body.supervisorMembershipId ? String(body.supervisorMembershipId).trim() : null;
+    if (!memberId) return sendJson(response, 400, { error: 'memberId is required.' });
+    if (supervisorMembershipId && supervisorMembershipId === memberId) {
+      return sendJson(response, 400, { error: 'A staff member cannot report to themselves.' });
+    }
+    const store = await getStore();
+    if (!Array.isArray(store.memberships)) store.memberships = [];
+    const m = store.memberships.find(x => x.organisation_id === user.organisation_id && (x.id === memberId || x.user_id === memberId));
+    if (!m) return sendJson(response, 404, { error: 'Staff member not found in your organisation.' });
+    m.supervisor_membership_id = supervisorMembershipId;
+    if (body.department) m.department = String(body.department).trim().slice(0, 80);
+    if (body.role && ['worker', 'supervisor', 'owner', 'manager'].includes(body.role)) m.role = body.role;
+    const contract = (store.contracts || []).find(c => (c.tenant_id || c.organisation_id) === user.organisation_id && (c.userId === m.user_id || c.userId === m.id));
+    if (contract && body.department) contract.department = m.department;
+    if (databaseReady && UUID_REGEX.test(String(user.organisation_id || '')) && UUID_REGEX.test(String(m.id || ''))) {
+      await query('update memberships set supervisor_membership_id = $1, department = coalesce($2, department), role = coalesce($3, role) where id = $4 and organisation_id = $5', [supervisorMembershipId, body.department || null, body.role || null, m.id, user.organisation_id]).catch(() => {});
+    }
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, memberId: m.id, supervisorMembershipId: m.supervisor_membership_id, department: m.department, role: m.role });
   }
   if (url.pathname === '/api/team/id-cards' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
@@ -14837,6 +14866,7 @@ async function getUserRewards(user, store) {
 
     const prefix = (org.organisation_code || 'SR').slice(0, 3).toUpperCase();
     const existingEmails = new Set((store.portalUsers || []).map(u => u.email?.toLowerCase()));
+    const orgMembersNow = (store.memberships || []).filter(m => m.organisation_id === org.id);
     const provisioned = [];
     const skipped     = [];
 
@@ -14862,6 +14892,7 @@ async function getUserRewards(user, store) {
         status:           'pending_activation',
         activation_token: activationToken,
         verification_key: verificationKey,
+        supervisor_membership_id: (() => { const rt = String(emp.reportsTo || emp.reports_to || '').trim().toLowerCase(); if (!rt) return null; const sup = orgMembersNow.find(m => String(m.staff_code || m.staffId || '').toLowerCase() === rt || String(m.email || '').toLowerCase() === rt); return sup ? sup.id : null; })(),
         created_at:       new Date().toISOString()
       });
 
