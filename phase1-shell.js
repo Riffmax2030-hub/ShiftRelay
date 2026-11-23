@@ -1614,8 +1614,8 @@
               </button>
             </div>
           </nav>
-          <!-- Main Scrollable Area (Document Scroll + Safe Pull-to-Refresh) -->
-          <div class="sr-main-scroll-wrap" id="sr-main-scroll-wrap" style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: visible; position: relative;">
+          <!-- Main Scrollable Area (Fixed Header/Tabs, Content-Only Scroll) -->
+          <div class="sr-main-scroll-wrap" id="sr-main-scroll-wrap" style="flex: 1; min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; position: relative;">
             <div id="sr-ptr-indicator" aria-hidden="true" style="height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;font-weight:700;color:var(--sr-primary);transition:height 0.18s ease,opacity 0.18s ease;opacity:0;background:var(--sr-bg-card-subtle);">
               <svg id="sr-ptr-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="transition:transform 0.2s ease;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               <span id="sr-ptr-label">Pull down to refresh</span>
