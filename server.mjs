@@ -1,5 +1,5 @@
-
-// ── ShiftRelay Enterprise Email Delivery Engine ───────────────────────────
+﻿
+// â”€â”€ ShiftRelay Enterprise Email Delivery Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function sendShiftRelayEmail({ to, subject, html, text, headers = {}, source = 'ShiftRelay Engine' }) {
   const store = await getStore();
   if (!Array.isArray(store.emailStation)) store.emailStation = [];
@@ -34,18 +34,18 @@ export async function sendShiftRelayEmail({ to, subject, html, text, headers = {
   const clickableUrl = urlMatch ? urlMatch[0] : null;
   const maskedTo = String(to || '').replace(/^(.)[^@]*(@.*)$/, '$1***$2');
 
-  console.log('\n' + '╔═══════════════════════════════════════════════════════════════════════════════╗');
-  console.log('║ ✉ SHIFTRELAY EMAIL ENGINE DISPATCH                                            ║');
-  console.log('╠═══════════════════════════════════════════════════════════════════════════════╣');
-  console.log('║ Recipient: ' + maskedTo.padEnd(65) + '║');
-  console.log('║ Subject:   ' + subject.slice(0, 65).padEnd(65) + '║');
-  console.log('║ Source:    ' + source.padEnd(65) + '║');
+  console.log('\n' + 'â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—');
+  console.log('â•‘ âœ‰ SHIFTRELAY EMAIL ENGINE DISPATCH                                            â•‘');
+  console.log('â• â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•£');
+  console.log('â•‘ Recipient: ' + maskedTo.padEnd(65) + 'â•‘');
+  console.log('â•‘ Subject:   ' + subject.slice(0, 65).padEnd(65) + 'â•‘');
+  console.log('â•‘ Source:    ' + source.padEnd(65) + 'â•‘');
   if (clickableUrl && !/token=/i.test(clickableUrl)) {
-    console.log('║ Action Link: ' + clickableUrl.slice(0, 63).padEnd(63) + '║');
+    console.log('â•‘ Action Link: ' + clickableUrl.slice(0, 63).padEnd(63) + 'â•‘');
   }
-  console.log('╚═══════════════════════════════════════════════════════════════════════════════╝\n');
+  console.log('â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•\n');
 
-  // ── Live SMTP Delivery via Nodemailer (Gmail / Custom SMTP) ─────────────
+  // â”€â”€ Live SMTP Delivery via Nodemailer (Gmail / Custom SMTP) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     try {
       const nodemailer = await import('nodemailer');
@@ -68,11 +68,11 @@ export async function sendShiftRelayEmail({ to, subject, html, text, headers = {
         html,
         headers: safeHeaders
       });
-      console.log('✓ Dispatched live email via SMTP (MsgId: ' + mailRes.messageId + ')');
+      console.log('âœ“ Dispatched live email via SMTP (MsgId: ' + mailRes.messageId + ')');
       emailRecord.status = 'SENT_LIVE';
       emailRecord.messageId = mailRes.messageId;
     } catch (e) {
-      console.warn('⚠ Live SMTP dispatch failed (captured in outbox):', e.message);
+      console.warn('âš  Live SMTP dispatch failed (captured in outbox):', e.message);
     }
   }
 
@@ -90,12 +90,12 @@ export async function sendShiftRelayEmail({ to, subject, html, text, headers = {
       });
       if (resendRes.ok) {
         const resendData = await resendRes.json().catch(() => ({}));
-        console.log('✓ Dispatched to real inbox via Resend API (Id: ' + (resendData.id || 'ok') + ')');
+        console.log('âœ“ Dispatched to real inbox via Resend API (Id: ' + (resendData.id || 'ok') + ')');
         emailRecord.status = 'SENT_LIVE';
         if (resendData.id) emailRecord.messageId = resendData.id;
       } else {
         const errBody = await resendRes.text().catch(() => '');
-        console.warn('⚠ Resend API returned HTTP ' + resendRes.status + ':', errBody);
+        console.warn('âš  Resend API returned HTTP ' + resendRes.status + ':', errBody);
       }
     } catch (e) {
       console.warn('Resend dispatch failed (fallback to mock station):', e.message);
@@ -271,7 +271,7 @@ function loadEnvironment() {
 
 loadEnvironment();
 
-// ── Environment / startup safety flags ───────────────────────────────────────
+// â”€â”€ Environment / startup safety flags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PRODUCTION = NODE_ENV === 'production';
 const ALLOW_DEV_FALLBACK = process.env.ALLOW_DEV_FALLBACK === 'true';
@@ -330,7 +330,7 @@ const schema = {
 function applyStoreDefaults(store) {
   if (!store || typeof store !== 'object') store = { handovers: [], notifications: [] };
 
-  // ── Premier Enterprise Tenant: Riffmax Technology Limited ──
+  // â”€â”€ Premier Enterprise Tenant: Riffmax Technology Limited â”€â”€
   if (!Array.isArray(store.organisations) || store.organisations.length === 0) {
     store.organisations = [
       {
@@ -593,7 +593,7 @@ async function dispatchAdminWebhookEvent(store, eventName, payload) {
         webhookName: hook.name,
         targetUrl: hook.targetUrl,
         event: eventName,
-        signaturePrefix: signature.slice(0, 19) + '…',
+        signaturePrefix: signature.slice(0, 19) + 'â€¦',
         status: statusLabel,
         httpCode,
         latencyMs,
@@ -936,10 +936,10 @@ function evictMembershipClients(membershipId, reason = 'membership_deactivated')
   }
 }
 
-/* ── IP Rate Limiter (sliding window, in-memory) ────────────────────────────
+/* â”€â”€ IP Rate Limiter (sliding window, in-memory) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Protects all /api/ routes from brute-force and DDoS. Up to 120 requests
    per 60 seconds per IP. Sensitive auth endpoints get a tighter 25/min cap.
-   ──────────────────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const rateLimitBuckets = new Map();
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT_GENERAL = Math.max(300, Number(process.env.RATE_LIMIT_GENERAL) || 600);
@@ -974,7 +974,7 @@ async function readJson(request) {
   for await (const chunk of request) chunks.push(chunk);
   const raw = Buffer.concat(chunks).toString('utf8');
   const parsed = JSON.parse(raw);
-  // Prototype pollution guard — strip __proto__, constructor, prototype keys at top level.
+  // Prototype pollution guard â€” strip __proto__, constructor, prototype keys at top level.
   if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
     for (const key of Object.keys(parsed)) {
       if (key === '__proto__' || key === 'constructor' || key === 'prototype') delete parsed[key];
@@ -1157,6 +1157,7 @@ async function getUser(request) {
           const ackVer = row.policy_acknowledged_version || row.user_policy_ack_version || null;
           return {
             ...row,
+            avatar_data_url: row.avatar_data_url || storeForSecret?.workerProfiles?.[row.id]?.avatarUrl || storeForSecret?.workerProfiles?.[row.user_id]?.avatarUrl || null,
             staffId,
             ...cardFields,
             hub_name: geo.hubName,
@@ -1270,7 +1271,7 @@ async function databaseHandovers(user) {
   return result.rows.map((row) => ({ id: row.id, createdBy: row.created_by_membership_id, assignedTo: row.assigned_to_membership_id, handover: row.payload, status: row.status, acknowledgement: row.acknowledged_at ? { by: row.assigned_to_membership_id, at: row.acknowledged_at } : null, createdAt: row.created_at, updatedAt: row.updated_at, reviewedBy: row.reviewer_name }));
 }
 
-// ── Batch 4: Idempotency Key Helpers ─────────────────────────────────────────
+// â”€â”€ Batch 4: Idempotency Key Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const IDEMPOTENCY_TTL_HOURS = 24;
 
@@ -1286,9 +1287,9 @@ function requestFingerprint(body) {
 
 /**
  * Check for an existing valid idempotency record. Returns:
- *   { hit: true, statusCode, responseBody } — replay this cached response
- *   { hit: false, conflict: true }           — same key, different content (reject)
- *   { hit: false, conflict: false }          — new key, proceed
+ *   { hit: true, statusCode, responseBody } â€” replay this cached response
+ *   { hit: false, conflict: true }           â€” same key, different content (reject)
+ *   { hit: false, conflict: false }          â€” new key, proceed
  *
  * Auth+authz MUST be verified before calling this.
  */
@@ -1389,7 +1390,7 @@ async function withIdempotency(user, operation, clientKey, body, businessFn) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function createDatabaseHandover(user, body) {
   const runId = crypto.randomUUID();
@@ -1754,7 +1755,7 @@ const wellbeingQuotes = [
   ['care-2', 'Small progress during a shift is still progress worth noticing.', 'Unknown'],
   ['care-3', 'Teamwork makes the next person stronger than the last shift left them.', 'ShiftRelay'],
   ['care-4', 'Quality is everyone taking care of what comes next.', 'W. Edwards Deming'],
-  ['care-5', 'A calm, clear update can make someone else’s difficult shift easier.', 'ShiftRelay'],
+  ['care-5', 'A calm, clear update can make someone elseâ€™s difficult shift easier.', 'ShiftRelay'],
   ['care-6', 'Success is the sum of small efforts repeated day in and day out.', 'Robert Collier']
 ];
 async function timeSummary(user, month) {
@@ -1828,7 +1829,7 @@ async function dailyAttendance(organisationId) {
 }
 
 async function signIn(body) {
-  // ── Tri-Factor Authentication: Company ID + Username/Email + Password ───
+  // â”€â”€ Tri-Factor Authentication: Company ID + Username/Email + Password â”€â”€â”€
   const rawCompanyId = String(body.companyId || body.company_id || body.organisationCode || '').trim();
   const cleanCode = rawCompanyId.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   const emailOrUser = String(body.email || body.username || '').trim().toLowerCase();
@@ -1856,7 +1857,8 @@ async function signIn(body) {
       const staffId = member.staff_code || ('SR-' + String(member.user_id || member.id).slice(-4).toUpperCase());
       const storeForSecret = await loadSigningStoreForAuth();
       const cardFields = buildSessionStaffCardFields(org.organisation_code, staffId, storeForSecret);
-      return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, staffId, ...cardFields, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name, company_name: member.company_name, company_id: org.organisation_code, hub_name: geo.hubName, hub_lat: geo.hubLat, hub_lng: geo.hubLng, hub_perimeter: geo.perimeterMeters, industry: member.industry || dbProfile.label, industryKey: dbProfile.key, industryProfile: dbProfile } };
+      const wpAvatar = storeForSecret?.workerProfiles?.[member.id]?.avatarUrl || storeForSecret?.workerProfiles?.[member.user_id]?.avatarUrl || null;
+      return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, user_id: member.user_id, staffId, ...cardFields, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url || wpAvatar, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name, company_name: member.company_name, company_id: org.organisation_code, hub_name: geo.hubName, hub_lat: geo.hubLat, hub_lng: geo.hubLng, hub_perimeter: geo.perimeterMeters, industry: member.industry || dbProfile.label, industryKey: dbProfile.key, industryProfile: dbProfile } };
     } catch (dbErr) {
       if (ALLOW_DEV_FALLBACK && isDatabaseConnectionError(dbErr)) {
         console.warn('[AUTH FALLBACK] DB connection error during signIn; falling back to local credentials:', dbErr.message);
@@ -2029,7 +2031,7 @@ async function transcribeAudio(request) {
   return (await response.json()).text;
 }
 
-// ── Enterprise Regulatory Live Calculation Engine (Nigeria Finance Act / PenCom) ──
+// â”€â”€ Enterprise Regulatory Live Calculation Engine (Nigeria Finance Act / PenCom) â”€â”€
 export function calculateNigerianStatutory(grossSalary, opts = {}) {
   const gross = Math.max(0, Number(grossSalary) || 0);
   const basicRatio = Number(opts.basicRatio || 0.50);
@@ -2072,7 +2074,7 @@ export function calculateNigerianStatutory(grossSalary, opts = {}) {
 async function executePaystackTransfer({ amountNgn, recipientName, accountNumber, bankCode, reason, reference }) {
   const key = String(process.env.PAYSTACK_SECRET_KEY || '').trim();
   const isTest = key.startsWith('sk_test_');
-  if (!key) return { ok: false, mode: 'sandbox_ledger', note: 'PAYSTACK_SECRET_KEY not set — recorded on ledger.' };
+  if (!key) return { ok: false, mode: 'sandbox_ledger', note: 'PAYSTACK_SECRET_KEY not set â€” recorded on ledger.' };
   if (!/^\d{10}$/.test(String(accountNumber || '')) || !/^\d{3}$/.test(String(bankCode || ''))) {
     return { ok: false, mode: isTest ? 'paystack_test_staged' : 'paystack_pending_nuban', note: 'Valid 10-digit NUBAN & 3-digit CBN bank code required for live Paystack transfer.' };
   }
@@ -2289,7 +2291,7 @@ async function upsertAttendanceExceptionPg(orgId, ex, { resolveFields = null, do
   );
 }
 
-// ── Shared Legal Acceptance, Multi-Channel Notification & Newsletter Helpers ──
+// â”€â”€ Shared Legal Acceptance, Multi-Channel Notification & Newsletter Helpers â”€â”€
 export async function recordLegalAcceptance({
   organisationId = null,
   userId = null,
@@ -2830,7 +2832,7 @@ export async function syncWorkerPayLedger(store, orgId, memberOrUserId, monthPar
 }
 
 export function compilePayrollRun(store, tenantId = null, monthParam = null) {
-  // ── Filter & deduplicate contracts by tenant + userId ──────────────────────
+  // â”€â”€ Filter & deduplicate contracts by tenant + userId â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const resolvedTenantObj = tenantId
     ? (store.organisations || []).find(o =>
         o.id === tenantId ||
@@ -2942,7 +2944,7 @@ export function compilePayrollRun(store, tenantId = null, monthParam = null) {
     const baseRate   = Number(c.monthly_rate  || 0);
     const hourlyRate = Number(c.hourly_rate   || (baseRate > 0 ? Math.round(baseRate / 160) : 1500));
 
-    // ── Live attendance from store.timeEntries ─────────────────────────────
+    // â”€â”€ Live attendance from store.timeEntries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const memberEntries = (store.timeEntries || []).filter(e =>
       (e.membershipId === c.userId || (c._membershipId && e.membershipId === c._membershipId) || e.userId === c.userId) &&
       typeof e.clockedInAt === 'string' &&
@@ -2989,7 +2991,7 @@ export function compilePayrollRun(store, tenantId = null, monthParam = null) {
       overtimeHours = 0;
     }
 
-    // ── Shift Score integration (policy grace & pardons respected) ───────────
+    // â”€â”€ Shift Score integration (policy grace & pardons respected) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const normalizedScoreStore = memberEntries.some(e => e.membershipId !== c.userId)
       ? { ...store, timeEntries: (store.timeEntries || []).map(e => (memberEntries.includes(e) ? { ...e, membershipId: c.userId } : e)) }
       : store;
@@ -2999,7 +3001,7 @@ export function compilePayrollRun(store, tenantId = null, monthParam = null) {
     });
     const { avgScore, grade: shiftGrade, performanceBonusPct } = scoreData;
 
-    // ── Single-Source Pay & Attendance Exception Deduction Calculation ──────
+    // â”€â”€ Single-Source Pay & Attendance Exception Deduction Calculation â”€â”€â”€â”€â”€â”€
     // Fix: Never double-deduct open punches + attendanceDeductionDays!
     const regularPay         = isMonthly ? baseRate : Math.round(regularHours * hourlyRate);
     const overtimePay        = Math.round(overtimeHours * (hourlyRate * 1.5));
@@ -3106,18 +3108,18 @@ export function compilePayrollRun(store, tenantId = null, monthParam = null) {
       narration:    `Salary ${monthMeta.monthCompact} ShiftRelay Verified`,
       status:       unverifiedShiftHolds > 0 ? 'hold_presence_review' : 'verified_ready',
       formatted: {
-        basicSalary:      '₦' + regularPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        overtimeBonus:    '₦' + overtimePay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        performanceBonus: '₦' + performanceBonus.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        absenceDeduction: '₦' + absenceDeduction.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        grossTotal:       '₦' + grossPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        pensionEmployee:  '₦' + stat.pensionEmployee.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        pensionEmployer:  '₦' + stat.pensionEmployer.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        payeTax:          '₦' + stat.payeTax.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        nhf:              '₦' + stat.nhf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        nsitf:            '₦' + stat.nsitf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        totalDeductions:  '₦' + stat.totalDeductions.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-        netPay:           '₦' + finalNetPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        basicSalary:      'â‚¦' + regularPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        overtimeBonus:    'â‚¦' + overtimePay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        performanceBonus: 'â‚¦' + performanceBonus.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        absenceDeduction: 'â‚¦' + absenceDeduction.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        grossTotal:       'â‚¦' + grossPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        pensionEmployee:  'â‚¦' + stat.pensionEmployee.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        pensionEmployer:  'â‚¦' + stat.pensionEmployer.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        payeTax:          'â‚¦' + stat.payeTax.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        nhf:              'â‚¦' + stat.nhf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        nsitf:            'â‚¦' + stat.nsitf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        totalDeductions:  'â‚¦' + stat.totalDeductions.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        netPay:           'â‚¦' + finalNetPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         shiftScore:       `${avgScore}/100 (Grade ${shiftGrade})`
       }
     };
@@ -3141,7 +3143,7 @@ export function compilePayrollRun(store, tenantId = null, monthParam = null) {
     periodShort: monthMeta.periodShort,
     payDate:     monthMeta.payDate,
     currency:    'NGN',
-    currencySymbol: '₦',
+    currencySymbol: 'â‚¦',
     companyName: org.legal_name || org.trading_name || 'ShiftRelay Employer',
     companyId:   org.organisation_code || 'SR-000',
     dispatched:  store.lastPayrollDispatch || null,
@@ -3421,8 +3423,8 @@ function compileAttendanceSheet({ store, payrollStore, members, org, monthParam 
     da.exceptionsCount += empEx.length;
 
     const shiftWindow = (m.shift_start && m.shift_end)
-      ? `${String(m.shift_start).slice(0, 5)}–${String(m.shift_end).slice(0, 5)}`
-      : '06:00–14:00';
+      ? `${String(m.shift_start).slice(0, 5)}â€“${String(m.shift_end).slice(0, 5)}`
+      : '06:00â€“14:00';
 
     return {
       id: m.id,
@@ -3443,7 +3445,7 @@ function compileAttendanceSheet({ store, payrollStore, members, org, monthParam 
       shiftGrade: scoreData.grade,
       gpsCount,
       cardCount,
-      verificationMix: verificationParts.length > 0 ? verificationParts.join(' · ') : 'No punches yet',
+      verificationMix: verificationParts.length > 0 ? verificationParts.join(' Â· ') : 'No punches yet',
       currentStatus
     };
   });
@@ -3655,7 +3657,7 @@ async function handleApi(request, response, url) {
     }
   }
 
-  // ── Company Lookup for 3-Layer Login (Layer 1 Validation) ──────────────────
+  // â”€â”€ Company Lookup for 3-Layer Login (Layer 1 Validation) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/auth/company-lookup' && request.method === 'GET') {
     const rawCode = String(url.searchParams.get('code') || '').trim();
     const cleanCode = rawCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -3714,7 +3716,7 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── Executive Onboarding Submission (Strict Auth / Provisioning Guard) ────
+  // â”€â”€ Executive Onboarding Submission (Strict Auth / Provisioning Guard) â”€â”€â”€â”€
   if (url.pathname === '/api/auth/executive-onboard' && request.method === 'POST') {
     const authCtx = await getOpsOrAdminAuth(request);
     if (!authCtx || (authCtx.kind === 'user' && authCtx.user.role !== 'owner')) {
@@ -3848,7 +3850,7 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── Executive 1-Click Employee Invite & Enablement ─────────────────────────
+  // â”€â”€ Executive 1-Click Employee Invite & Enablement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/executive/invite-member' && request.method === 'POST') {
     const authUser = await getUser(request);
     if (!authUser || !['owner', 'supervisor', 'manager'].includes(authUser.role)) {
@@ -3914,7 +3916,7 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── ShiftRelay Email Outbox Dispatcher (Admin RBAC Protected) ─────────
+  // â”€â”€ ShiftRelay Email Outbox Dispatcher (Admin RBAC Protected) â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/dev/outbox' && request.method === 'GET') {
     if (IS_PRODUCTION || !ALLOW_DEV_FALLBACK) {
       return sendJson(response, 403, { error: 'Dev outbox is disabled outside development fallback mode.' });
@@ -3993,7 +3995,7 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── High-Tech Enterprise Reports & Documents API ──────────────────────────
+  // â”€â”€ High-Tech Enterprise Reports & Documents API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const REPORT_MIME = {
     xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     pdf: 'application/pdf',
@@ -4050,7 +4052,7 @@ async function handleApi(request, response, url) {
     return sendFormattedReport('html', reportEngine.generatePayrollReportHtml(payrollData, org), baseFilename);
   }
 
-  // ── Supervisor & Executive Official Attendance Sheet Generator (JSON / CSV / Print HTML) ──
+  // â”€â”€ Supervisor & Executive Official Attendance Sheet Generator (JSON / CSV / Print HTML) â”€â”€
   if (url.pathname === '/api/reports/attendance-sheet' && request.method === 'GET') {
     const authCtx = await getOpsOrAdminAuth(request);
     if (!authCtx) {
@@ -4103,7 +4105,7 @@ async function handleApi(request, response, url) {
     return sendJson(response, 200, { ok: true, org: { id: org.id, code: org.organisation_code, name: org.legal_name || org.trading_name }, sheet: sheetData });
   }
 
-  // ── Document & Spreadsheet Parser (Excel / PDF / Word) ────────────────────
+  // â”€â”€ Document & Spreadsheet Parser (Excel / PDF / Word) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/documents/parse' && request.method === 'POST') {
     const authCtx = await getOpsOrAdminAuth(request);
     if (!authCtx) {
@@ -4242,7 +4244,7 @@ async function handleApi(request, response, url) {
     }
   }
 
-  // ── Executive Clean-Slate Operational Data Reset (Preserves Workers & Contracts) ──
+  // â”€â”€ Executive Clean-Slate Operational Data Reset (Preserves Workers & Contracts) â”€â”€
   if (url.pathname === '/api/executive/reset-operational-data' && request.method === 'POST') {
     const authCtx = await getOpsOrAdminAuth(request);
     if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
@@ -4280,7 +4282,7 @@ async function handleApi(request, response, url) {
         punctuality: userEntries.length ? `${Math.max(0, 100 - excCount * 2).toFixed(1)}%` : '100.0%',
         incidents: String(excCount),
         handovers: String(handoversCount),
-        shiftWindow: matchedUser.shift_window || '06:00 – 14:00 WAT'
+        shiftWindow: matchedUser.shift_window || '06:00 â€“ 14:00 WAT'
       };
     } else {
       profile = {
@@ -4292,7 +4294,7 @@ async function handleApi(request, response, url) {
         punctuality: '99.4%',
         incidents: '0',
         handovers: '142',
-        shiftWindow: '06:00 – 14:00 WAT (Morning Shift)'
+        shiftWindow: '06:00 â€“ 14:00 WAT (Morning Shift)'
       };
     }
     const baseFilename = `ShiftRelay-Dossier-${String(profile.staffId || staffId).replace(/[^a-z0-9_-]+/gi, '-')}`;
@@ -4340,7 +4342,7 @@ async function handleApi(request, response, url) {
     return sendJson(response, 200, { ok: true, ...buildPublicLegalSnapshot() });
   }
 
-  // ── Public Nigerian PAYE & PenCom Statutory Calculator + Breakdown Funnel ──
+  // â”€â”€ Public Nigerian PAYE & PenCom Statutory Calculator + Breakdown Funnel â”€â”€
   if (url.pathname === '/api/public/payroll-calculate' && request.method === 'POST') {
     const body = await readJson(request).catch(() => ({}));
     const monthlyGross = Math.max(10000, Math.min(500000000, Number(body.monthlyGross || body.grossSalary || 250000)));
@@ -4386,11 +4388,11 @@ async function handleApi(request, response, url) {
         const unsubUrl = subResult?.subscriber?.unsubscribe_token
           ? `${cleanOrigin}/unsubscribe?token=${encodeURIComponent(subResult.subscriber.unsubscribe_token)}`
           : `${cleanOrigin}/unsubscribe`;
-        const summarySubject = `Nigerian Statutory PAYE & PenCom Schedule (${headcount} Staff · ₦${Math.round(monthlyGross).toLocaleString('en-NG')}/mo)`;
+        const summarySubject = `Nigerian Statutory PAYE & PenCom Schedule (${headcount} Staff Â· â‚¦${Math.round(monthlyGross).toLocaleString('en-NG')}/mo)`;
         const scheduleHtml = renderExecutivePayrollDigestEmail({
           executiveName: body.fullName || 'Finance & HR Team',
           orgName: body.companyName || 'Nigeria Payroll Estimate (ShiftRelay OS Calculator)',
-          period: `Estimate (${headcount} Staff · Monthly Run)`,
+          period: `Estimate (${headcount} Staff Â· Monthly Run)`,
           employeeCount: headcount,
           totalGrossNgn: Math.round(monthlyGross * headcount),
           netPayableNgn: Math.round(netPayPerStaff * headcount),
@@ -4403,7 +4405,7 @@ async function handleApi(request, response, url) {
           to: cleanEmail,
           subject: summarySubject,
           html: scheduleHtml,
-          text: `Per Staff Gross: ₦${monthlyGross.toLocaleString('en-NG')} | PAYE: ₦${empPaye.toLocaleString('en-NG')} | Employee PenCom 8%: ₦${empPenCom.toLocaleString('en-NG')} | Employer PenCom 10%: ₦${employerPenCom.toLocaleString('en-NG')} | Net Pay: ₦${netPayPerStaff.toLocaleString('en-NG')} | Unsubscribe: ${unsubUrl}`,
+          text: `Per Staff Gross: â‚¦${monthlyGross.toLocaleString('en-NG')} | PAYE: â‚¦${empPaye.toLocaleString('en-NG')} | Employee PenCom 8%: â‚¦${empPenCom.toLocaleString('en-NG')} | Employer PenCom 10%: â‚¦${employerPenCom.toLocaleString('en-NG')} | Net Pay: â‚¦${netPayPerStaff.toLocaleString('en-NG')} | Unsubscribe: ${unsubUrl}`,
           headers: {
             'List-Unsubscribe': `<${unsubUrl}>, <mailto:${LEGAL_ENTITY.supportEmail}?subject=unsubscribe>`,
             'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
@@ -4463,7 +4465,7 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── Public NDPA Newsletter Subscribe & One-Click Unsubscribe ───────────────
+  // â”€â”€ Public NDPA Newsletter Subscribe & One-Click Unsubscribe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/newsletter/subscribe' && request.method === 'POST') {
     const body = await readJson(request).catch(() => ({}));
     if (!body.consent) {
@@ -4521,7 +4523,7 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── Admin Newsletter Console (Subscribers, Schedule & Campaigns) ──────────
+  // â”€â”€ Admin Newsletter Console (Subscribers, Schedule & Campaigns) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/admin/newsletter' && request.method === 'GET') {
     const store = await getStore();
     const adminCtx = await requireAdminGate(request, response, store);
@@ -4652,7 +4654,7 @@ async function handleApi(request, response, url) {
     return sendJson(response, 200, { ok: true, mode: 'monthly_statutory', ...result });
   }
 
-  // ── Automated Weekly Progress Newsletter Dispatch ────────────────────────
+  // â”€â”€ Automated Weekly Progress Newsletter Dispatch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/newsletter/dispatch-weekly' && request.method === 'POST') {
     const authCtx = await getOpsOrAdminAuth(request);
     if (!authCtx) {
@@ -4680,14 +4682,14 @@ async function handleApi(request, response, url) {
         verifiedHoursLogged: Math.round(orgEntryCount * 8),
         punctualityRate: orgEntryCount > 0 ? '99.4%' : '100%',
         safetyIncidents: (store.incidents || []).length,
-        variance: '₦0.00'
+        variance: 'â‚¦0.00'
       },
       platformUrl
     });
 
     const emailRecord = await sendShiftRelayEmail({
       to: recipientEmail,
-      subject: `ShiftRelay Weekly Operational Dispatch — Verified ₦0.00 Variance`,
+      subject: `ShiftRelay Weekly Operational Dispatch â€” Verified â‚¦0.00 Variance`,
       html: newsletterHtml,
       text: `ShiftRelay Weekly Operational Dispatch\n\n${orgEntryCount} shifts accounted for with zero payroll variance.\n\nOpen your operational cockpit: ${platformUrl}`,
       source: 'Automated Weekly Dispatcher'
@@ -4700,7 +4702,7 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── Email Template Preview & Test Dispatch API ────────────────────────────
+  // â”€â”€ Email Template Preview & Test Dispatch API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/emails/preview' && request.method === 'GET') {
     if (IS_PRODUCTION) {
       const authCtx = await getOpsOrAdminAuth(request);
@@ -4735,7 +4737,7 @@ async function handleApi(request, response, url) {
         supervisorName: 'Olaide Emmanuela',
         outgoingWorkerName: 'Babatunde Adeleke',
         incomingWorkerName: 'Chidinma Okonjo',
-        shiftTitle: 'Morning Shift (06:00 – 14:00 WAT)',
+        shiftTitle: 'Morning Shift (06:00 â€“ 14:00 WAT)',
         facilityName: 'Riffmax Engineering Hub (Gate A)',
         checklistCompleted: 8,
         checklistTotal: 8,
@@ -4833,12 +4835,12 @@ async function handleApi(request, response, url) {
         expiresMinutes: 30
       });
     } else if (type === 'handover') {
-      subject = 'Shift Handover Brief: Morning Shift — Babatunde Adeleke';
+      subject = 'Shift Handover Brief: Morning Shift â€” Babatunde Adeleke';
       html = renderShiftHandoverEmail({
         supervisorName: 'Shift Supervisor',
         outgoingWorkerName: 'Babatunde Adeleke',
         incomingWorkerName: 'Chidinma Okonjo',
-        shiftTitle: 'Morning Shift (06:00 – 14:00 WAT)',
+        shiftTitle: 'Morning Shift (06:00 â€“ 14:00 WAT)',
         facilityName: 'Riffmax Engineering Hub Gate A',
         checklistCompleted: 8,
         checklistTotal: 8,
@@ -4847,7 +4849,7 @@ async function handleApi(request, response, url) {
         reviewUrl: `${publicOrigin}/#handovers`
       });
     } else if (type === 'payroll') {
-      subject = 'Executive Payroll & Remittance Digest — November 2026';
+      subject = 'Executive Payroll & Remittance Digest â€” November 2026';
       html = renderExecutivePayrollDigestEmail({
         executiveName: 'Executive Director',
         orgName: 'Riffmax Technology Limited',
@@ -4861,7 +4863,7 @@ async function handleApi(request, response, url) {
         reportDownloadUrl: `${publicOrigin}/api/reports/payroll-ledger`
       });
     } else {
-      subject = 'ShiftRelay Weekly Operational Dispatch — Issue #46';
+      subject = 'ShiftRelay Weekly Operational Dispatch â€” Issue #46';
       html = renderWeeklyProgressNewsletterEmail({
         recipientName: 'Operations Lead',
         orgName: 'Riffmax Technology Limited',
@@ -4885,7 +4887,7 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── Admin Live Database Updates: Tenant Editor ─────────────────────────────
+  // â”€â”€ Admin Live Database Updates: Tenant Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleSaveDailyChecklistsForTenant(targetTenantId, body, response) {
     const dailyChecklists = normalizeDailyChecklists(body.dailyChecklists || body.checklists || body.rules || []);
     const store = await getStore();
@@ -4921,7 +4923,7 @@ async function handleApi(request, response, url) {
     const body = await readJson(request).catch(() => ({}));
     return handleSaveDailyChecklistsForTenant(decodeURIComponent(adminChecklistMatchPre[1]), body, response);
   }
-  // ── Nigerian Employer Rollout Kit: Standardized Roster CSV Template & Pre-Checked Import ──
+  // â”€â”€ Nigerian Employer Rollout Kit: Standardized Roster CSV Template & Pre-Checked Import â”€â”€
   if (url.pathname === '/api/admin/roster-template.csv' && request.method === 'GET') {
     const authCtx = await getOpsOrAdminAuth(request);
     if (!authCtx) {
@@ -5098,7 +5100,7 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // ── Admin Tenant Notification Channels (Termii SMS / WhatsApp Cloud API) ──
+  // â”€â”€ Admin Tenant Notification Channels (Termii SMS / WhatsApp Cloud API) â”€â”€
   const adminNotifMatch = url.pathname.match(/^\/api\/admin\/tenants\/([^/]+)\/notifications$/);
   if (adminNotifMatch && (request.method === 'GET' || request.method === 'PUT')) {
     const store = await getStore();
@@ -5304,7 +5306,7 @@ async function handleApi(request, response, url) {
     return sendJson(response, 200, { ok: true, message: 'Tenant records updated successfully.', tenant: org });
   }
 
-  // ── Admin Live Database Updates: Employee Editor ───────────────────────────
+  // â”€â”€ Admin Live Database Updates: Employee Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname.startsWith('/api/admin/employees/') && request.method === 'PUT') {
     const store = await getStore();
     const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin', 'ops_support_admin']);
@@ -5364,7 +5366,7 @@ async function handleApi(request, response, url) {
     }
   }
 
-  // ── WebAuthn / Device Biometrics Endpoints ──────────────────────────────
+  // â”€â”€ WebAuthn / Device Biometrics Endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/auth/webauthn/register-options' && request.method === 'POST') {
     const authUser = await getUser(request);
     if (!authUser || authUser.status !== 'active') {
@@ -5574,7 +5576,7 @@ async function handleApi(request, response, url) {
       const body = await readJson(request);
       if (!body.currentPassword || !body.newPassword || body.newPassword.length < 10) throw new Error('Use a new password with at least 10 characters.');
 
-      // ── Fallback / demo mode: verify against demo password store ────────────
+      // â”€â”€ Fallback / demo mode: verify against demo password store â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (!databaseReady) {
         const store = await getStore();
         if (!store.demoPasswords) store.demoPasswords = {};
@@ -5585,7 +5587,7 @@ async function handleApi(request, response, url) {
         await saveStore(store);
         return sendJson(response, 200, { ok: true });
       }
-      // ── Real DB path ─────────────────────────────────────────────────────────
+      // â”€â”€ Real DB path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       const account = (await query('select u.id, u.password_hash from portal_users u join memberships m on m.user_id = u.id where m.id = $1', [user.id])).rows[0];
       if (!account || !(await passwordMatches(body.currentPassword, account.password_hash))) throw new Error('Your current password is not correct.');
       await query('update portal_users set password_hash = $1 where id = $2', [await hashPassword(body.newPassword), account.id]);
@@ -5614,7 +5616,7 @@ async function handleApi(request, response, url) {
     return sendJson(response, 401, { error: 'Authentication required. Please sign in.' });
   }
 
-  // ── Disabled Unsafe Pilot Endpoints ─────────────────────────────────────────
+  // â”€â”€ Disabled Unsafe Pilot Endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Shift swaps and open-shift claiming are enabled for active members.
   if (url.pathname.startsWith('/api/feed/') || url.pathname === '/api/feed/posts') {
     return sendJson(response, 501, { error: 'Social feed is disabled for this pilot.' });
@@ -5625,7 +5627,7 @@ async function handleApi(request, response, url) {
   }
   // Open shift claiming is enabled.
 
-  // ── Multi-Company Context Management ─────────────────────────────────────────
+  // â”€â”€ Multi-Company Context Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/user/memberships' && request.method === 'GET') {
     if (!databaseReady) return sendJson(response, 200, { memberships: [] });
     const res = await query(
@@ -5707,9 +5709,19 @@ async function handleApi(request, response, url) {
 
     if (avatar) {
       user.avatar_data_url = avatar;
+      if (user.user_id && store.workerProfiles[user.user_id]) store.workerProfiles[user.user_id].avatarUrl = avatar;
+      const pu = (store.portalUsers || []).find((u) => u.id === (user.user_id || user.id) || (user.email && u.email?.toLowerCase() === user.email.toLowerCase()));
+      if (pu) pu.avatar_data_url = avatar;
+      await saveStore(store);
       if (databaseReady) {
         try {
-          await query('update portal_users set avatar_data_url = $1 where id = (select user_id from memberships where id = $2)', [avatar, user.id]);
+          const upd = await query(
+            'update portal_users set avatar_data_url = $1 where id = coalesce($2, (select user_id from memberships where id = $3)) or lower(email) = lower($4)',
+            [avatar, user.user_id || null, user.id, user.email || '']
+          );
+          if (!upd.rowCount && user.id) {
+            await query('update portal_users set avatar_data_url = $1 where id = $2', [avatar, user.id]);
+          }
         } catch (dbErr) {
           console.warn('Could not update avatar in database, preserved in store:', dbErr.message);
         }
@@ -5850,7 +5862,7 @@ async function handleApi(request, response, url) {
         membershipId: newMembershipId,
         fullName,
         avatarUrl: passportPhotoUrl,
-        headline: `${title} · ${department}`
+        headline: `${title} Â· ${department}`
       };
     }
     await saveStore(store);
@@ -5906,7 +5918,7 @@ async function handleApi(request, response, url) {
     const cardCreds = buildStaffCardCredentials(orgCode, staffId, store);
     await sendShiftRelayEmail({
       to: email,
-      subject: `Welcome to ${user.organisation_name || orgCode} on ShiftRelay — Staff ID ${staffId}`,
+      subject: `Welcome to ${user.organisation_name || orgCode} on ShiftRelay â€” Staff ID ${staffId}`,
       html: renderAccountActivationEmail({
         workerName: fullName,
         companyName: user.organisation_name || orgCode,
@@ -6707,7 +6719,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
   }
   if (url.pathname === '/api/workflow-templates' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Workflow templates require an organisation account.' });
-    if (!databaseReady) return sendJson(response, 200, { templates: [{ id: 'demo-workflow-1', name: 'Standard shift handover', description: 'Outgoing worker → supervisor review → incoming worker acknowledgement.', created_at: new Date().toISOString() }] });
+    if (!databaseReady) return sendJson(response, 200, { templates: [{ id: 'demo-workflow-1', name: 'Standard shift handover', description: 'Outgoing worker â†’ supervisor review â†’ incoming worker acknowledgement.', created_at: new Date().toISOString() }] });
     const templates = await query('select id, name, description, created_at from workflow_templates where organisation_id = $1 order by created_at desc', [user.organisation_id]);
     return sendJson(response, 200, { templates: templates.rows });
   }
@@ -6939,7 +6951,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     const id = crypto.randomUUID(); await query('insert into direct_messages (id, organisation_id, sender_membership_id, recipient_membership_id, body) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, user.id, recipient.id, body.body.trim()]); await notifyMembership(user.organisation_id, recipient.id, `${user.name} sent you a private message.`); broadcastEvent('private-message', { organisationId: user.organisation_id, recipientMembershipId: recipient.id, senderMembershipId: user.id, body: body.body.trim(), id }); return sendJson(response, 201, { id });
   }
 
-  // ── User App Support & Rectification Tickets (Wired to Admin Customer Care) ─
+  // â”€â”€ User App Support & Rectification Tickets (Wired to Admin Customer Care) â”€
   if (url.pathname === '/api/support/tickets' && request.method === 'GET') {
     const store = await getStore();
     const allTickets = await listRectifications(store, databaseReady);
@@ -6958,7 +6970,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       return sendJson(response, 400, { error: 'Please describe your issue or request.' });
     }
     const store = await getStore();
-    const fullDetails = `[${priority}]${subject ? ' ' + subject + ' —' : ''} ${detailsText}${user.organisation_name ? ' (Org: ' + user.organisation_name + ')' : ''}`;
+    const fullDetails = `[${priority}]${subject ? ' ' + subject + ' â€”' : ''} ${detailsText}${user.organisation_name ? ' (Org: ' + user.organisation_name + ')' : ''}`;
     const ticket = await createRectificationTicket({
       workerName: user.name || 'ShiftRelay User',
       workerEmail: user.email || '',
@@ -6972,7 +6984,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     if (user.email) {
       sendShiftRelayEmail({
         to: user.email,
-        subject: `[${ticket.id}] Support Ticket Received — ShiftRelay Customer Care`,
+        subject: `[${ticket.id}] Support Ticket Received â€” ShiftRelay Customer Care`,
         html: `<p>Hello ${user.name || 'there'},</p><p>Your support ticket <strong>${ticket.id}</strong> (${category}) has been routed to ShiftRelay Customer Care for review.</p><p><strong>Details:</strong> ${detailsText}</p><p>We will update you here and via email once resolved.</p>`,
         source: 'User App Support Desk'
       }).catch(() => {});
@@ -7466,7 +7478,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     await saveStore(store);
     return sendJson(response, 200, { ok: true, policy: nextPolicy });
   }
-  // ── Worker NDPA Notification Preferences Opt-Out / Opt-In ────────────────
+  // â”€â”€ Worker NDPA Notification Preferences Opt-Out / Opt-In â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/employee/notification-preferences' && request.method === 'PUT') {
     if (!user || !user.organisation_id) return sendJson(response, 401, { error: 'Authentication required.' });
     const body = await readJson(request).catch(() => ({}));
@@ -7825,7 +7837,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     }
     return sendJson(response, 200, await timeSummary(user, monthParam ? `${monthParam}-01` : null));
   }
-  // ── Tenant Gate QR Poster Generator (Multilingual Rollout Kit) ──────────
+  // â”€â”€ Tenant Gate QR Poster Generator (Multilingual Rollout Kit) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname.startsWith('/api/tenants/') && url.pathname.endsWith('/gate-qr') && request.method === 'GET') {
     const tenantId = url.pathname.split('/')[3];
     const store = await getStore();
@@ -7862,7 +7874,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     });
   }
 
-  // ── Clock-In Page Assisted Worker ID Card Preview, Mandatory Facial Capture, Handover & Checklists ──
+  // â”€â”€ Clock-In Page Assisted Worker ID Card Preview, Mandatory Facial Capture, Handover & Checklists â”€â”€
   // 1) POST /api/time-entries/peer-card-preview
   // Validates the worker's physical Staff ID badge + live on-site GPS before live facial capture,
   // returning identity + profile avatar + active incoming handover & checklist items.
@@ -7944,7 +7956,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     const { targetMember, store, orgForGps, orgId, gpsProof, scanPhotoDataUrl } = v;
     const cardProofMode = 'physical_badge_facial_verify';
     const proofLabel = 'Physical ID Badge + Live Facial Verify';
-    const photoSuffix = ' · Live Facial Photo Attached';
+    const photoSuffix = ' Â· Live Facial Photo Attached';
     const now = new Date();
     const nowIso = now.toISOString();
     const todayPrefix = nowIso.slice(0, 10);
@@ -7977,7 +7989,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         activeEntry.exitScanPhotoDataUrl = scanPhotoDataUrl;
         if (!activeEntry.scanPhotoDataUrl) activeEntry.scanPhotoDataUrl = scanPhotoDataUrl;
         activeEntry.presenceVerificationStatus = 'verified_entry_and_exit';
-        activeEntry.clockOutDetails = `Verified Exit (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}${photoSuffix}`;
+        activeEntry.clockOutDetails = `Verified Exit (${proofLabel}) by ${scannerLabel} Â· GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}${photoSuffix}`;
         await saveStore(store);
         broadcastEvent('attendance-updated', { membershipId: targetMember.id, staffId: targetMember.staffId, action: 'clock-out' }, { organisationId: orgId });
 
@@ -8031,7 +8043,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         });
       }
 
-      const verificationDetails = `Worker ID Card + Facial Check-In (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${photoSuffix}`;
+      const verificationDetails = `Worker ID Card + Facial Check-In (${proofLabel}) by ${scannerLabel} Â· GPS ${gpsProof.distanceMeters}m from ${hubName}${photoSuffix}`;
       const scheduledEndMs = computeScheduledShiftEndMs(targetMember, now.getTime());
       const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
       const newEntryId = crypto.randomUUID();
@@ -8042,7 +8054,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         clockedInAt: nowIso,
         clockedOutAt: null,
         scheduledClockOutAt,
-        note: `Colleague ID Card Clock-In (${targetMember.staffId} · ${proofLabel})`,
+        note: `Colleague ID Card Clock-In (${targetMember.staffId} Â· ${proofLabel})`,
         verificationMode: 'colleague_card_scan',
         cardProofMode,
         scanPhotoDataUrl,
@@ -8108,7 +8120,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       }
       const scheduledEndMs = computeScheduledShiftEndMs(targetMember, new Date(existingOpen.clocked_in_at).getTime());
       const earlyDeparture = now.getTime() < scheduledEndMs;
-      const exitDetail = `Verified Exit (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}${photoSuffix}`;
+      const exitDetail = `Verified Exit (${proofLabel}) by ${scannerLabel} Â· GPS ${gpsProof.distanceMeters}m from ${hubName}${earlyDeparture ? ' (Early Departure)' : ''}${photoSuffix}`;
       await query(
         `update time_entries
          set clocked_out_at = $1,
@@ -8172,7 +8184,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       });
     }
 
-    const verificationDetails = `Worker ID Card + Facial Check-In (${proofLabel}) by ${scannerLabel} · GPS ${gpsProof.distanceMeters}m from ${hubName}${photoSuffix}`;
+    const verificationDetails = `Worker ID Card + Facial Check-In (${proofLabel}) by ${scannerLabel} Â· GPS ${gpsProof.distanceMeters}m from ${hubName}${photoSuffix}`;
     const scheduledEndMs = computeScheduledShiftEndMs(targetMember, now.getTime());
     const scheduledClockOutAt = new Date(scheduledEndMs).toISOString();
     const newEntryId = crypto.randomUUID();
@@ -8340,7 +8352,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
         if (activeEntry) {
           activeEntry.assistedHandoverAccepted = true;
           activeEntry.assistedChecklistCompletedCount = Object.values(store.workerTaskState[targetMember.id][dayKey]).filter(Boolean).length;
-          activeEntry.note = `${activeEntry.note || ''} · Assisted Handover & Checklists Accepted`.trim();
+          activeEntry.note = `${activeEntry.note || ''} Â· Assisted Handover & Checklists Accepted`.trim();
         }
       } else {
         if (UUID_REGEX.test(requestedHandoverId)) {
@@ -8642,7 +8654,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     return sendJson(response, 201, { ok: true });
   }
 
-// ── Frontline Star & Coin Rewards Engine (10-Year Career Plan) ─────────────
+// â”€â”€ Frontline Star & Coin Rewards Engine (10-Year Career Plan) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function getUserRewards(user, store) {
   if (!store.rewards) store.rewards = {};
   if (!store.rewards[user.id]) {
@@ -8668,8 +8680,8 @@ async function getUserRewards(user, store) {
 }
 
 
-  // ── Activity Reward Center & 10-Year Career Roadmap Endpoints ───────────────
-  // ── Continuous Real-Time Payroll & Zero-Fee EWA (Dayforce Wallet Model, CBN Compliant) ──
+  // â”€â”€ Activity Reward Center & 10-Year Career Roadmap Endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ Continuous Real-Time Payroll & Zero-Fee EWA (Dayforce Wallet Model, CBN Compliant) â”€â”€
   if (url.pathname === '/api/treasury/paystack-initialize' && request.method === 'POST') {
     if (!['owner', 'finance_admin', 'workforce_admin'].includes(user.role) || !user.organisation_id) {
       return sendJson(response, 403, { error: 'Owner or Finance access required to fund custody float.' });
@@ -8678,7 +8690,7 @@ async function getUserRewards(user, store) {
     const amountNgn = Math.round(Number(body.amountNgn || 0));
     const bucket = ['payroll_net','paye','pencom','nhf','nsitf'].includes(body.bucket) ? body.bucket : 'payroll_net';
     if (!Number.isFinite(amountNgn) || amountNgn < 1000) {
-      return sendJson(response, 400, { error: 'Minimum Paystack custody top-up is ₦1,000.' });
+      return sendJson(response, 400, { error: 'Minimum Paystack custody top-up is â‚¦1,000.' });
     }
     const key = String(process.env.PAYSTACK_SECRET_KEY || '').trim();
     const ref = 'SR-FLT-' + Date.now().toString(36).toUpperCase();
@@ -8817,13 +8829,13 @@ async function getUserRewards(user, store) {
     }
     const amountNgn = Math.round(Number(body.amountNgn || body.amount || 0));
     if (!Number.isSafeInteger(amountNgn) || amountNgn < 100 || amountNgn > 10_000_000) {
-      return sendJson(response, 400, { error: 'Requested disbursal amountNgn must be a valid integer between ₦100 and ₦10,000,000.' });
+      return sendJson(response, 400, { error: 'Requested disbursal amountNgn must be a valid integer between â‚¦100 and â‚¦10,000,000.' });
     }
     const beforeLedger = await syncWorkerPayLedger(store, user.organisation_id, user.id);
     const available = Number(beforeLedger?.net_available_disbursal || 0);
     if (amountNgn > available) {
       return sendJson(response, 409, {
-        error: `Requested ₦${amountNgn.toLocaleString()} exceeds accrued net available balance (₦${available.toLocaleString()}).`,
+        error: `Requested â‚¦${amountNgn.toLocaleString()} exceeds accrued net available balance (â‚¦${available.toLocaleString()}).`,
         code: 'EXCEEDS_ACCRUED_NET_PAY',
         net_available_disbursal: available
       });
@@ -8844,7 +8856,7 @@ async function getUserRewards(user, store) {
       }
     } else if (floatBal < amountNgn) {
       return sendJson(response, 409, {
-        error: `Employer prefunded payroll custody float is insufficient (₦${floatBal.toLocaleString()} in custody vs ₦${amountNgn.toLocaleString()} requested).`,
+        error: `Employer prefunded payroll custody float is insufficient (â‚¦${floatBal.toLocaleString()} in custody vs â‚¦${amountNgn.toLocaleString()} requested).`,
         code: 'EMPLOYER_FLOAT_UNDERFUNDED',
         employerFloatAvailableNgn: floatBal
       });
@@ -8969,7 +8981,7 @@ async function getUserRewards(user, store) {
         target: 1,
         completed: true,
         claimed: rw.claimedQuests.includes('quest-clockout'),
-        premiseLocation: 'Verified Departure Checkpoint · Scheduled Hours Locked',
+        premiseLocation: 'Verified Departure Checkpoint Â· Scheduled Hours Locked',
         badge: 'Punctual Exit'
       },
       {
@@ -9012,71 +9024,71 @@ async function getUserRewards(user, store) {
 
     // 10-Year Career Roadmap (Frontline Tenure & Milestones)
     const careerRoadmap10Year = [
-      { year: 1, title: 'Foundation Pioneer', tenureMonths: 12, cashBonus: 25000, starsBonus: 2500, insignia: '🥉 Bronze Pioneer Crest', reqs: 'Complete 300 on-time shifts with zero lost-context handovers', unlocked: true },
-      { year: 2, title: 'Vanguard Specialist', tenureMonths: 24, cashBonus: 40000, starsBonus: 4000, insignia: '🥈 Silver Vanguard Pin', reqs: 'Maintain 99.2% punch compliance & mentor 2 new recruits', unlocked: true },
-      { year: 3, title: 'Senior Operational Master', tenureMonths: 36, cashBonus: 60000, starsBonus: 6000, insignia: '🥇 Gold Shift Master Medal', reqs: 'Certified Shift Captain & emergency response lead', unlocked: false },
-      { year: 4, title: 'Frontline Commander', tenureMonths: 48, cashBonus: 85000, starsBonus: 8500, insignia: '💎 Sapphire Insignia', reqs: 'Cross-functional bay leadership & zero incident record', unlocked: false },
-      { year: 5, title: 'Diamond Frontline Veteran', tenureMonths: 60, cashBonus: 150000, starsBonus: 15000, insignia: '💠 Diamond 5-Year Crest', reqs: 'Half-decade frontline tenure milestone with verified distinction', unlocked: false },
-      { year: 6, title: 'Operational Architect', tenureMonths: 72, cashBonus: 180000, starsBonus: 18000, insignia: '🔴 Ruby Standardizer Pin', reqs: 'Standardize digital handovers across multiple operational lines', unlocked: false },
-      { year: 7, title: 'Industrial Captain', tenureMonths: 84, cashBonus: 220000, starsBonus: 22000, insignia: '⭐ Emerald Star of Honor', reqs: 'Cross-facility logistics coordinator & safety ambassador', unlocked: false },
-      { year: 8, title: 'Executive Operations Fellow', tenureMonths: 96, cashBonus: 280000, starsBonus: 28000, insignia: '🛡️ Titanium Shield of Merit', reqs: 'Senior advisor on workforce planning & statutory compliance', unlocked: false },
-      { year: 9, title: 'Frontline Luminary', tenureMonths: 108, cashBonus: 350000, starsBonus: 35000, insignia: '✨ Luminary Grand Insignia', reqs: 'ShiftRelay Frontline Hall of Fame induction', unlocked: false },
-      { year: 10, title: 'Decade Frontline Legend', tenureMonths: 120, cashBonus: 500000, starsBonus: 50000, insignia: '👑 10-Year Diamond Crown Trophy', reqs: 'Decade of continuous frontline excellence, loyalty and leadership', unlocked: false }
+      { year: 1, title: 'Foundation Pioneer', tenureMonths: 12, cashBonus: 25000, starsBonus: 2500, insignia: 'ðŸ¥‰ Bronze Pioneer Crest', reqs: 'Complete 300 on-time shifts with zero lost-context handovers', unlocked: true },
+      { year: 2, title: 'Vanguard Specialist', tenureMonths: 24, cashBonus: 40000, starsBonus: 4000, insignia: 'ðŸ¥ˆ Silver Vanguard Pin', reqs: 'Maintain 99.2% punch compliance & mentor 2 new recruits', unlocked: true },
+      { year: 3, title: 'Senior Operational Master', tenureMonths: 36, cashBonus: 60000, starsBonus: 6000, insignia: 'ðŸ¥‡ Gold Shift Master Medal', reqs: 'Certified Shift Captain & emergency response lead', unlocked: false },
+      { year: 4, title: 'Frontline Commander', tenureMonths: 48, cashBonus: 85000, starsBonus: 8500, insignia: 'ðŸ’Ž Sapphire Insignia', reqs: 'Cross-functional bay leadership & zero incident record', unlocked: false },
+      { year: 5, title: 'Diamond Frontline Veteran', tenureMonths: 60, cashBonus: 150000, starsBonus: 15000, insignia: 'ðŸ’  Diamond 5-Year Crest', reqs: 'Half-decade frontline tenure milestone with verified distinction', unlocked: false },
+      { year: 6, title: 'Operational Architect', tenureMonths: 72, cashBonus: 180000, starsBonus: 18000, insignia: 'ðŸ”´ Ruby Standardizer Pin', reqs: 'Standardize digital handovers across multiple operational lines', unlocked: false },
+      { year: 7, title: 'Industrial Captain', tenureMonths: 84, cashBonus: 220000, starsBonus: 22000, insignia: 'â­ Emerald Star of Honor', reqs: 'Cross-facility logistics coordinator & safety ambassador', unlocked: false },
+      { year: 8, title: 'Executive Operations Fellow', tenureMonths: 96, cashBonus: 280000, starsBonus: 28000, insignia: 'ðŸ›¡ï¸ Titanium Shield of Merit', reqs: 'Senior advisor on workforce planning & statutory compliance', unlocked: false },
+      { year: 9, title: 'Frontline Luminary', tenureMonths: 108, cashBonus: 350000, starsBonus: 35000, insignia: 'âœ¨ Luminary Grand Insignia', reqs: 'ShiftRelay Frontline Hall of Fame induction', unlocked: false },
+      { year: 10, title: 'Decade Frontline Legend', tenureMonths: 120, cashBonus: 500000, starsBonus: 50000, insignia: 'ðŸ‘‘ 10-Year Diamond Crown Trophy', reqs: 'Decade of continuous frontline excellence, loyalty and leadership', unlocked: false }
     ];
 
     // Cash and Gift Redemption Marketplace
     const redemptionShop = [
       {
         id: 'reward-cash-3000',
-        title: '₦3,000 Direct Cash Gift',
+        title: 'â‚¦3,000 Direct Cash Gift',
         description: 'Instant transfer to your verified salary account or frontline wallet',
         starsCost: 3000,
-        cashValueFormatted: '₦3,000.00',
+        cashValueFormatted: 'â‚¦3,000.00',
         badge: 'Most Popular',
         type: 'cash'
       },
       {
         id: 'reward-cash-5000',
-        title: '₦5,000 Direct Bank Payout',
+        title: 'â‚¦5,000 Direct Bank Payout',
         description: 'Direct wire remittance to your registered commercial bank',
         starsCost: 5000,
-        cashValueFormatted: '₦5,000.00',
+        cashValueFormatted: 'â‚¦5,000.00',
         badge: 'High Value',
         type: 'cash'
       },
       {
         id: 'reward-cash-10000',
-        title: '₦10,000 Milestone Bonus Payout',
+        title: 'â‚¦10,000 Milestone Bonus Payout',
         description: 'Tenure performance bonus credited directly on upcoming pay cycle',
         starsCost: 10000,
-        cashValueFormatted: '₦10,000.00',
+        cashValueFormatted: 'â‚¦10,000.00',
         badge: 'Executive',
         type: 'cash'
       },
       {
         id: 'reward-airtime-1500',
-        title: '₦1,500 Mobile Airtime & Data',
+        title: 'â‚¦1,500 Mobile Airtime & Data',
         description: 'Instant top-up for MTN, Airtel, Glo, or 9mobile',
         starsCost: 1500,
-        cashValueFormatted: '₦1,500.00',
+        cashValueFormatted: 'â‚¦1,500.00',
         badge: 'Instant',
         type: 'airtime'
       },
       {
         id: 'reward-fuel-3000',
-        title: '₦3,000 Fuel & Transport Voucher',
+        title: 'â‚¦3,000 Fuel & Transport Voucher',
         description: 'Redeemable at Total, NNPC, and Mobil filling stations nationwide',
         starsCost: 3000,
-        cashValueFormatted: '₦3,000.00',
+        cashValueFormatted: 'â‚¦3,000.00',
         badge: 'Commute',
         type: 'voucher'
       },
       {
         id: 'reward-grocery-5000',
-        title: '₦5,000 Supermarket Food Basket',
+        title: 'â‚¦5,000 Supermarket Food Basket',
         description: 'Redeemable at Shoprite, Spar, and Market Square nationwide',
         starsCost: 5000,
-        cashValueFormatted: '₦5,000.00',
+        cashValueFormatted: 'â‚¦5,000.00',
         badge: 'Living',
         type: 'grocery'
       }
@@ -9098,7 +9110,7 @@ async function getUserRewards(user, store) {
     });
   }
 
-  // ── Anti-Farming Idempotent Reward Activity Logger ───────────────────────
+  // â”€â”€ Anti-Farming Idempotent Reward Activity Logger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/rewards/record-activity' && request.method === 'POST') {
     const { actionLabel, uniqueKey, stars } = await readJson(request);
     if (!actionLabel) return sendJson(response, 400, { error: 'Action label is required.' });
@@ -9143,7 +9155,7 @@ async function getUserRewards(user, store) {
       alreadyAwarded: false,
       starsAdded: starsToAdd,
       starsBalance: rw.starsBalance,
-      message: `+${starsToAdd} PTS earned · ${actionLabel}`
+      message: `+${starsToAdd} PTS earned Â· ${actionLabel}`
     });
   }
 
@@ -9199,12 +9211,12 @@ async function getUserRewards(user, store) {
     const rw = await getUserRewards(user, store);
 
     const rewardCatalog = {
-      'reward-cash-3000': { title: '₦3,000 Direct Cash Gift', cost: 3000, value: 3000 },
-      'reward-cash-5000': { title: '₦5,000 Direct Bank Payout', cost: 5000, value: 5000 },
-      'reward-cash-10000': { title: '₦10,000 Milestone Bonus Payout', cost: 10000, value: 10000 },
-      'reward-airtime-1500': { title: '₦1,500 Mobile Airtime & Data', cost: 1500, value: 1500 },
-      'reward-fuel-3000': { title: '₦3,000 Fuel & Transport Voucher', cost: 3000, value: 3000 },
-      'reward-grocery-5000': { title: '₦5,000 Supermarket Food Basket', cost: 5000, value: 5000 }
+      'reward-cash-3000': { title: 'â‚¦3,000 Direct Cash Gift', cost: 3000, value: 3000 },
+      'reward-cash-5000': { title: 'â‚¦5,000 Direct Bank Payout', cost: 5000, value: 5000 },
+      'reward-cash-10000': { title: 'â‚¦10,000 Milestone Bonus Payout', cost: 10000, value: 10000 },
+      'reward-airtime-1500': { title: 'â‚¦1,500 Mobile Airtime & Data', cost: 1500, value: 1500 },
+      'reward-fuel-3000': { title: 'â‚¦3,000 Fuel & Transport Voucher', cost: 3000, value: 3000 },
+      'reward-grocery-5000': { title: 'â‚¦5,000 Supermarket Food Basket', cost: 5000, value: 5000 }
     };
 
     const item = rewardCatalog[rewardId];
@@ -9252,7 +9264,7 @@ async function getUserRewards(user, store) {
     });
   }
 
-  // ── Work Assistant Memory, ML Dataset & Multi-Turn Engine ─────────────────
+  // â”€â”€ Work Assistant Memory, ML Dataset & Multi-Turn Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/work-assistant/history' && request.method === 'GET') {
     const store = await getStore();
     if (!Array.isArray(store.assistantInteractions)) store.assistantInteractions = [];
@@ -9394,7 +9406,7 @@ async function getUserRewards(user, store) {
     }
   }
 
-  // ── Timesheets & Missed Punch Correction ─────────────────────────────────
+  // â”€â”€ Timesheets & Missed Punch Correction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/timesheets' && request.method === 'GET') {
     const requestedUserId = url.searchParams.get('userId') || user.id;
     const isManagerRole = ['owner', 'workforce_admin', 'supervisor', 'manager', 'finance_admin'].includes(user.role);
@@ -9715,7 +9727,7 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, correction, resolvedClockOutIso, clockedOutAt: resolvedClockOutIso });
   }
 
-  // ── Worker Self-Service NTA 2025 Rent Relief Claim ────────────────────────
+  // â”€â”€ Worker Self-Service NTA 2025 Rent Relief Claim â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/earnings/rent-relief' && request.method === 'POST') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
     const body = await readJson(request);
@@ -9739,7 +9751,7 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, annualRentNgn, estimatedAnnualReliefNgn: Math.min(500000, Math.round(annualRentNgn * 0.20)), status: 'pending_hr_review' });
   }
 
-  // ── Nigerian Labour Act Section 7 Written Particulars ─────────────────────
+  // â”€â”€ Nigerian Labour Act Section 7 Written Particulars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/hr/written-particulars' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
     const store = await loadPayrollStoreForTenant(user.organisation_id);
@@ -9752,7 +9764,7 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, particulars: generateSection7WrittenParticulars(emp, org) });
   }
 
-  // ── Worker Earnings & Statements (Strict Self-Only Tenant Isolation) ─────
+  // â”€â”€ Worker Earnings & Statements (Strict Self-Only Tenant Isolation) â”€â”€â”€â”€â”€
   if (url.pathname === '/api/earnings' && request.method === 'GET') {
     const monthParam = url.searchParams.get('month');
     const store = await loadPayrollStoreForTenant(user.organisation_id || null);
@@ -9801,16 +9813,16 @@ async function getUserRewards(user, store) {
         payModel,
         disbursementDay,
         effectiveHourlyRate,
-        effectiveHourlyFormatted: '₦' + effectiveHourlyRate.toLocaleString('en-NG') + '/hr',
+        effectiveHourlyFormatted: 'â‚¦' + effectiveHourlyRate.toLocaleString('en-NG') + '/hr',
         cycleProgress: {
           currentDay,
           totalDays,
           targetDay,
           accrualPct,
           accruedNet,
-          accruedNetFormatted: '₦' + accruedNet.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+          accruedNetFormatted: 'â‚¦' + accruedNet.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
           accruedGross,
-          accruedGrossFormatted: '₦' + accruedGross.toLocaleString('en-NG', { minimumFractionDigits: 2 })
+          accruedGrossFormatted: 'â‚¦' + accruedGross.toLocaleString('en-NG', { minimumFractionDigits: 2 })
         },
         month: payroll.month,
         period: payroll.period,
@@ -9818,26 +9830,26 @@ async function getUserRewards(user, store) {
         companyName: payroll.companyName,
         companyId: payroll.companyId,
         currency: 'NGN',
-        currencySymbol: '₦',
+        currencySymbol: 'â‚¦',
         netPay: emp.netPay,
-        netPayFormatted: '₦' + emp.netPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        netPayFormatted: 'â‚¦' + emp.netPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         hours: emp.regularHours + emp.overtimeHours,
         regularHours: emp.regularHours,
         overtimeHours: emp.overtimeHours,
         pardonedHours: emp.pardonedHours || 0,
         unexcusedDeductedHours: emp.unexcusedDeductedHours || 0,
         absenceDeduction: emp.absenceDeduction || 0,
-        absenceDeductionFormatted: '₦' + Number(emp.absenceDeduction || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        absenceDeductionFormatted: 'â‚¦' + Number(emp.absenceDeduction || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         grossPay: emp.grossPay,
-        grossPayFormatted: '₦' + emp.grossPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        grossPayFormatted: 'â‚¦' + emp.grossPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         preTaxDeductions: emp.pensionEmployee + emp.nhf,
-        preTaxFormatted: '₦' + (emp.pensionEmployee + emp.nhf).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        preTaxFormatted: 'â‚¦' + (emp.pensionEmployee + emp.nhf).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         preTaxPercentage: pct(emp.pensionEmployee + emp.nhf, emp.grossPay) + '%',
         netPayPercentage: pct(emp.netPay, emp.grossPay) + '%',
         taxes: emp.payeTax,
-        taxesFormatted: '₦' + emp.payeTax.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+        taxesFormatted: 'â‚¦' + emp.payeTax.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
         taxesPercentage: pct(emp.payeTax, emp.grossPay) + '%',
-        hourlyRate: '₦' + emp.hourlyRate.toLocaleString('en-NG') + '/hr',
+        hourlyRate: 'â‚¦' + emp.hourlyRate.toLocaleString('en-NG') + '/hr',
         compensationType: emp.compensation_type,
         breakdown: {
           netPayPct: pct(emp.netPay, emp.grossPay),
@@ -9851,7 +9863,7 @@ async function getUserRewards(user, store) {
     });
   }
 
-  // ── Worker Official Digital Payslip (Pay Advice · Strict Self-Only) ──────
+  // â”€â”€ Worker Official Digital Payslip (Pay Advice Â· Strict Self-Only) â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/worker-payslip' && request.method === 'GET') {
     const monthParam = url.searchParams.get('month');
     const store = await loadPayrollStoreForTenant(user.organisation_id || null);
@@ -9884,7 +9896,7 @@ async function getUserRewards(user, store) {
         department: emp.department,
         compensationType: emp.compensation_type,
         currency: 'NGN',
-        currencySymbol: '₦',
+        currencySymbol: 'â‚¦',
         bankName: emp.bank_name,
         accountNumber: emp.account_number,
         regularHours: emp.regularHours,
@@ -9910,22 +9922,22 @@ async function getUserRewards(user, store) {
         },
         netPay: emp.netPay,
         formatted: {
-          basicSalary: '₦' + emp.regularPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-          overtimeBonus: '₦' + emp.overtimePay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-          absenceDeduction: '₦' + Number(emp.absenceDeduction || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-          grossTotal: '₦' + emp.grossPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-          pensionEmployee: '₦' + emp.pensionEmployee.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-          payeTax: '₦' + emp.payeTax.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-          nhf: '₦' + emp.nhf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-          totalDeductions: '₦' + emp.totalStatutoryDeductions.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
-          netPay: '₦' + emp.netPay.toLocaleString('en-NG', { minimumFractionDigits: 2 })
+          basicSalary: 'â‚¦' + emp.regularPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+          overtimeBonus: 'â‚¦' + emp.overtimePay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+          absenceDeduction: 'â‚¦' + Number(emp.absenceDeduction || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+          grossTotal: 'â‚¦' + emp.grossPay.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+          pensionEmployee: 'â‚¦' + emp.pensionEmployee.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+          payeTax: 'â‚¦' + emp.payeTax.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+          nhf: 'â‚¦' + emp.nhf.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+          totalDeductions: 'â‚¦' + emp.totalStatutoryDeductions.toLocaleString('en-NG', { minimumFractionDigits: 2 }),
+          netPay: 'â‚¦' + emp.netPay.toLocaleString('en-NG', { minimumFractionDigits: 2 })
         },
-        verificationSeal: `ShiftRelay OS Certified Frontline Verification · ${payroll.companyId}-${payroll.monthCompact}`
+        verificationSeal: `ShiftRelay OS Certified Frontline Verification Â· ${payroll.companyId}-${payroll.monthCompact}`
       }
     });
   }
 
-  // ── Employee Contracts & Compensation Management (Owner / HR / Finance Only) ──
+  // â”€â”€ Employee Contracts & Compensation Management (Owner / HR / Finance Only) â”€â”€
   if (url.pathname === '/api/contracts' && request.method === 'GET') {
     if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
       return sendJson(response, 403, { error: 'Forbidden: compensation contracts require Owner, HR, or Finance access.' });
@@ -10012,7 +10024,7 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, contract });
   }
 
-  // ── Push to Finance: Master Month-End Payroll Compilation (Owner / HR / Finance Only) ──
+  // â”€â”€ Push to Finance: Master Month-End Payroll Compilation (Owner / HR / Finance Only) â”€â”€
   if (url.pathname === '/api/payroll/summary' && request.method === 'GET') {
     if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
       return sendJson(response, 403, { error: 'Forbidden: payroll summaries are restricted to Owner, HR, and Finance accounts.' });
@@ -10036,7 +10048,7 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, payroll });
   }
 
-  // ── Push to Finance: Dispatch to Accounts Desk (With Pre-Payroll Exception Gate) ──
+  // â”€â”€ Push to Finance: Dispatch to Accounts Desk (With Pre-Payroll Exception Gate) â”€â”€
   if (url.pathname === '/api/payroll/dispatch' && request.method === 'POST') {
     if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
       return sendJson(response, 403, { error: 'Forbidden: only Owners, HR, or Finance Admins can dispatch payroll.' });
@@ -10080,7 +10092,7 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, dispatch: dispatchRecord });
   }
 
-  // ── Push to Finance: Export Bank CSV Schedule ──────────────────────────────
+  // â”€â”€ Push to Finance: Export Bank CSV Schedule â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/payroll/export-readiness' && request.method === 'GET') {
     if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
       return sendJson(response, 403, { error: 'Forbidden: export readiness check requires Owner, HR, or Finance access.' });
@@ -10111,7 +10123,7 @@ async function getUserRewards(user, store) {
     return;
   }
 
-  // ── Push to Finance: Export Statutory Tax & Pension CSV Schedule ───────────
+  // â”€â”€ Push to Finance: Export Statutory Tax & Pension CSV Schedule â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/payroll/export-tax-csv' && request.method === 'GET') {
     if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role) || !user.organisation_id) {
       return sendJson(response, 403, { error: 'Forbidden: statutory remittance export requires Owner, HR, or Finance access.' });
@@ -10129,7 +10141,7 @@ async function getUserRewards(user, store) {
     return;
   }
 
-  // ── Attendance Exceptions Queue & Supervisor Resolution (Dayforce Grade) ─
+  // â”€â”€ Attendance Exceptions Queue & Supervisor Resolution (Dayforce Grade) â”€
   if (url.pathname === '/api/attendance/exceptions' && request.method === 'GET') {
     if (!user.organisation_id) return sendJson(response, 400, { error: 'Organisation membership required.' });
     const monthParam = url.searchParams.get('month');
@@ -10474,7 +10486,7 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, ...result });
   }
 
-  // ── Enterprise Concierge Lead Capture (Request an Enterprise Demo) ─────────
+  // â”€â”€ Enterprise Concierge Lead Capture (Request an Enterprise Demo) â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/enterprise/demo-request' && request.method === 'POST') {
     const lead = await readJson(request);
     if (!lead.companyName || !lead.workEmail || !lead.fullName) {
@@ -10501,7 +10513,7 @@ async function getUserRewards(user, store) {
     });
   }
 
-  // ── ENTERPRISE ADMIN AUTHENTICATION, RBAC & GOVERNANCE PIPELINE ───────────
+  // â”€â”€ ENTERPRISE ADMIN AUTHENTICATION, RBAC & GOVERNANCE PIPELINE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   // Legacy single-passcode endpoint retired
   if (url.pathname === '/api/admin/auth' && request.method === 'POST') {
@@ -11170,7 +11182,7 @@ async function getUserRewards(user, store) {
       sendShiftRelayEmail({
         to: updated.email,
         subject: `[${updated.id}] Customer Care Update: ${nextStatus}`,
-        html: `<p>Hello ${updated.name || 'there'},</p><p>Your ShiftRelay support ticket <strong>${updated.id}</strong> (${updated.category}) has been updated to <strong>${nextStatus}</strong>.</p>${resolutionNote ? `<p><strong>Solution / Response:</strong> ${resolutionNote}</p>` : ''}<p>— ShiftRelay Customer Care</p>`,
+        html: `<p>Hello ${updated.name || 'there'},</p><p>Your ShiftRelay support ticket <strong>${updated.id}</strong> (${updated.category}) has been updated to <strong>${nextStatus}</strong>.</p>${resolutionNote ? `<p><strong>Solution / Response:</strong> ${resolutionNote}</p>` : ''}<p>â€” ShiftRelay Customer Care</p>`,
         source: 'Customer Care Resolution'
       }).catch(() => {});
     }
@@ -11383,8 +11395,8 @@ async function getUserRewards(user, store) {
   const maskSecretHint = (val) => {
     const s = String(val || '').trim();
     if (!s) return 'Not configured';
-    if (s.length <= 6) return '••••••';
-    return `${s.slice(0, 3)}••••${s.slice(-4)}`;
+    if (s.length <= 6) return 'â€¢â€¢â€¢â€¢â€¢â€¢';
+    return `${s.slice(0, 3)}â€¢â€¢â€¢â€¢${s.slice(-4)}`;
   };
   const ensureAdminIntegrations = (store) => {
     if (!store.adminIntegrations || typeof store.adminIntegrations !== 'object') {
@@ -11398,7 +11410,7 @@ async function getUserRewards(user, store) {
           id: 'key-erp-default',
           name: 'SAP / Workday Payroll & Attendance Bridge',
           scope: 'read:payroll,read:attendance,read:tenants',
-          prefix: 'sr_live_erp0••••94b1',
+          prefix: 'sr_live_erp0â€¢â€¢â€¢â€¢94b1',
           keyHash: createHash('sha256').update('sr_live_erp0defaultbridgekey94b1').digest('hex'),
           status: 'ACTIVE',
           createdAt: '2026-11-01T08:00:00.000Z',
@@ -11413,7 +11425,7 @@ async function getUserRewards(user, store) {
           name: 'Enterprise ERP Monthly Payroll Ledger Sync',
           targetUrl: 'https://erp-bridge.shiftrelayos.com/webhooks/payroll-sync',
           events: ['payroll.approved', 'attendance.exception_flagged', 'support.ticket_created'],
-          secretHint: 'whsec_••••4f82',
+          secretHint: 'whsec_â€¢â€¢â€¢â€¢4f82',
           status: 'ACTIVE',
           lastStatus: 'READY',
           lastPingAt: null
@@ -11460,7 +11472,7 @@ async function getUserRewards(user, store) {
         status: paystackKey ? 'CONNECTED' : 'SANDBOX_ENGINE',
         healthy: true,
         keyHint: paystackKey ? maskSecretHint(paystackKey) : 'CBN Modulo-10 Local Active',
-        endpointOrModel: 'api.paystack.co • CBN 22-Bank NIP Registry',
+        endpointOrModel: 'api.paystack.co â€¢ CBN 22-Bank NIP Registry',
         envVars: ['PAYSTACK_SECRET_KEY'],
         capabilities: ['10-Digit NUBAN Check-Digit Verification', 'Instant Bulk Salary Transfer Batches', 'Fintech & Commercial Bank Routing'],
         config: { provider: ov.paymentProvider || 'Paystack + CBN NIP' }
@@ -11496,7 +11508,7 @@ async function getUserRewards(user, store) {
         status: (resendKey || smtpHost) ? 'CONNECTED' : 'LOCAL_AUTO_STATION',
         healthy: true,
         keyHint: resendKey ? maskSecretHint(resendKey) : (smtpHost ? `SMTP: ${smtpHost}` : 'Local Outbox Queue Active'),
-        endpointOrModel: `${emailProvider.toUpperCase()} • ${emailFrom}`,
+        endpointOrModel: `${emailProvider.toUpperCase()} â€¢ ${emailFrom}`,
         envVars: ['RESEND_API_KEY', 'SMTP_HOST', 'FROM_EMAIL'],
         capabilities: ['SR-REC-* Support Ticket Receipts', 'Weekly Ops & Monthly PAYE/PenCom Digests', 'RFC 8058 One-Click Unsubscribe'],
         config: { provider: emailProvider, fromEmail: emailFrom, smtpHost }
@@ -11508,7 +11520,7 @@ async function getUserRewards(user, store) {
         status: (oidcIssuer && oidcClientId) ? 'CONNECTED' : 'RBAC_2FA_ACTIVE',
         healthy: true,
         keyHint: oidcClientId ? maskSecretHint(oidcClientId) : 'HMAC-SHA256 + TOTP Active',
-        endpointOrModel: oidcIssuer || `${oidcProvider} • HMAC Digital ID Signer`,
+        endpointOrModel: oidcIssuer || `${oidcProvider} â€¢ HMAC Digital ID Signer`,
         envVars: ['ADMIN_OIDC_ISSUER', 'ADMIN_OIDC_CLIENT_ID', 'CARD_SIGNING_SECRET'],
         capabilities: ['Corporate IdP Single Sign-On (Okta / Entra)', 'TOTP 2FA Authenticator Enforcement', 'Tamper-Proof QR & Digital Staff ID Signing'],
         config: { provider: oidcProvider, issuer: oidcIssuer, clientId: oidcClientId }
@@ -11706,7 +11718,7 @@ async function getUserRewards(user, store) {
         pluginId,
         status: (process.env.RESEND_API_KEY || process.env.SMTP_HOST) ? 'LIVE_RELAY_READY' : 'AUTO_STATION_QUEUE_ACTIVE',
         latencyMs,
-        message: `Transactional Email Engine verified (${latencyMs}ms) — Outbox & RFC 8058 headers active.`
+        message: `Transactional Email Engine verified (${latencyMs}ms) â€” Outbox & RFC 8058 headers active.`
       });
     }
 
@@ -11734,7 +11746,7 @@ async function getUserRewards(user, store) {
     const scope = String(body.scope || 'read:payroll,read:attendance,read:tenants').trim();
     const rawSecret = `sr_live_${randomBytes(16).toString('hex')}`;
     const keyHash = createHash('sha256').update(rawSecret).digest('hex');
-    const prefix = `${rawSecret.slice(0, 12)}••••${rawSecret.slice(-4)}`;
+    const prefix = `${rawSecret.slice(0, 12)}â€¢â€¢â€¢â€¢${rawSecret.slice(-4)}`;
     const ai = ensureAdminIntegrations(store);
     const entry = {
       id: `key-${Date.now()}`,
@@ -11794,7 +11806,7 @@ async function getUserRewards(user, store) {
       name,
       targetUrl,
       events,
-      secretHint: `whsec_••••${rawWhSecret.slice(-4)}`,
+      secretHint: `whsec_â€¢â€¢â€¢â€¢${rawWhSecret.slice(-4)}`,
       status: 'ACTIVE',
       lastStatus: 'READY',
       lastPingAt: null
@@ -12190,8 +12202,8 @@ async function getUserRewards(user, store) {
         surgeFeeNgn: 0,
         pilotCreditAppliedNgn: 0
       };
-      subject = `[${invoiceId}] ShiftRelay 30-Day Paid Sandbox Pilot Invoice — ₦${amountNgn.toLocaleString()}`;
-      emailBody = `<p>Hello ${profile.companyName} Team,</p><p>Your 30-Day Paid Sandbox Pilot invoice <strong>${invoiceId}</strong> (up to 50 workers) is ready: <strong>₦${amountNgn.toLocaleString()}</strong> (100% creditable toward your one-time onboarding fee upon conversion).</p>`;
+      subject = `[${invoiceId}] ShiftRelay 30-Day Paid Sandbox Pilot Invoice â€” â‚¦${amountNgn.toLocaleString()}`;
+      emailBody = `<p>Hello ${profile.companyName} Team,</p><p>Your 30-Day Paid Sandbox Pilot invoice <strong>${invoiceId}</strong> (up to 50 workers) is ready: <strong>â‚¦${amountNgn.toLocaleString()}</strong> (100% creditable toward your one-time onboarding fee upon conversion).</p>`;
     } else if (invoiceType === 'onboarding' || invoiceType === 'one_time_onboarding') {
       const ob = calculateOnboardingInvoice({
         planKey: profile.planKey,
@@ -12209,8 +12221,8 @@ async function getUserRewards(user, store) {
         overageFeeNgn: 0,
         surgeFeeNgn: 0
       };
-      subject = `[${invoiceId}] ShiftRelay ${ob.planLabel} Onboarding Invoice — ₦${amountNgn.toLocaleString()}`;
-      emailBody = `<p>Hello ${profile.companyName} Team,</p><p>Your one-time <strong>${ob.planLabel}</strong> onboarding invoice <strong>${invoiceId}</strong> is ready.</p><p>Gross Onboarding Fee: ₦${ob.grossOnboardingFeeNgn.toLocaleString()}${ob.pilotCreditAppliedNgn > 0 ? ` &minus; 100% Sandbox Pilot Credit: ₦${ob.pilotCreditAppliedNgn.toLocaleString()}` : ''} = <strong>₦${amountNgn.toLocaleString()}</strong></p>`;
+      subject = `[${invoiceId}] ShiftRelay ${ob.planLabel} Onboarding Invoice â€” â‚¦${amountNgn.toLocaleString()}`;
+      emailBody = `<p>Hello ${profile.companyName} Team,</p><p>Your one-time <strong>${ob.planLabel}</strong> onboarding invoice <strong>${invoiceId}</strong> is ready.</p><p>Gross Onboarding Fee: â‚¦${ob.grossOnboardingFeeNgn.toLocaleString()}${ob.pilotCreditAppliedNgn > 0 ? ` &minus; 100% Sandbox Pilot Credit: â‚¦${ob.pilotCreditAppliedNgn.toLocaleString()}` : ''} = <strong>â‚¦${amountNgn.toLocaleString()}</strong></p>`;
     } else {
       if (!profile.recurringBillingEnabled) {
         return sendJson(response, 409, {
@@ -12243,8 +12255,8 @@ async function getUserRewards(user, store) {
         surgeFeeNgn: monthly.surgeFeeNgn,
         pilotCreditAppliedNgn: 0
       };
-      subject = `[${invoiceId}] ShiftRelay ${monthly.planLabel} Monthly Invoice (${month}) — ₦${amountNgn.toLocaleString()}`;
-      emailBody = `<p>Hello ${profile.companyName} Team,</p><p>Your monthly ShiftRelay <strong>${monthly.planLabel}</strong> invoice <strong>${invoiceId}</strong> for <strong>${month}</strong> is ready (Employer-Paid Only — ₦0 charged to workers).</p><p>Base: ₦${monthly.baseFeeNgn.toLocaleString()} + Core PEPM (${monthly.cappedCoreHeadcount} &times; ₦${monthly.pepmRateNgn.toLocaleString()}): ₦${monthly.corePepmFeeNgn.toLocaleString()}${monthly.overageFeeNgn > 0 ? ` + Overage (${monthly.overageHeadcount} &times; ₦3,000): ₦${monthly.overageFeeNgn.toLocaleString()}` : ''}${monthly.surgeFeeNgn > 0 ? ` + Seasonal Surge (${monthly.seasonalSurgeHeadcount} &times; ₦2,500): ₦${monthly.surgeFeeNgn.toLocaleString()}` : ''} = <strong>₦${amountNgn.toLocaleString()}</strong></p>`;
+      subject = `[${invoiceId}] ShiftRelay ${monthly.planLabel} Monthly Invoice (${month}) â€” â‚¦${amountNgn.toLocaleString()}`;
+      emailBody = `<p>Hello ${profile.companyName} Team,</p><p>Your monthly ShiftRelay <strong>${monthly.planLabel}</strong> invoice <strong>${invoiceId}</strong> for <strong>${month}</strong> is ready (Employer-Paid Only â€” â‚¦0 charged to workers).</p><p>Base: â‚¦${monthly.baseFeeNgn.toLocaleString()} + Core PEPM (${monthly.cappedCoreHeadcount} &times; â‚¦${monthly.pepmRateNgn.toLocaleString()}): â‚¦${monthly.corePepmFeeNgn.toLocaleString()}${monthly.overageFeeNgn > 0 ? ` + Overage (${monthly.overageHeadcount} &times; â‚¦3,000): â‚¦${monthly.overageFeeNgn.toLocaleString()}` : ''}${monthly.surgeFeeNgn > 0 ? ` + Seasonal Surge (${monthly.seasonalSurgeHeadcount} &times; â‚¦2,500): â‚¦${monthly.surgeFeeNgn.toLocaleString()}` : ''} = <strong>â‚¦${amountNgn.toLocaleString()}</strong></p>`;
     }
 
     let checkoutUrl = `https://paystack.com/pay/shiftrelay-${invoiceId.toLowerCase()}`;
@@ -12672,7 +12684,7 @@ async function getUserRewards(user, store) {
     const currentBal = Number(acc.balances[bucket] || 0);
     if (currentBal < amountNgn) {
       return sendJson(response, 409, {
-        error: `Insufficient prefunded ${bucket} float balance (₦${currentBal.toLocaleString()} available vs ₦${amountNgn.toLocaleString()} requested).`,
+        error: `Insufficient prefunded ${bucket} float balance (â‚¦${currentBal.toLocaleString()} available vs â‚¦${amountNgn.toLocaleString()} requested).`,
         code: 'INSUFFICIENT_PREFUNDED_FLOAT'
       });
     }
@@ -12808,7 +12820,7 @@ async function getUserRewards(user, store) {
     const leads = store.enterpriseDemoRequests || [];
     const payroll = compilePayrollRun(store);
     const totalGross = Number(payroll.summary?.totalGross || 0);
-    const formattedVolume = '₦' + totalGross.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formattedVolume = 'â‚¦' + totalGross.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const totalWorkers = payroll.summary?.employeeCount ?? contracts.length;
     const tenantBillingSummaries = tenants.map(o => getTenantBillingProfile(store, o));
@@ -12897,7 +12909,7 @@ async function getUserRewards(user, store) {
         totalPardonedHours: Number(sum.totalPardonedHours || 0),
         unresolvedExceptionsCount: Number(sum.unresolvedExceptionsCount || 0),
         policy: run.attendancePolicy || getEffectiveAttendancePolicy(org),
-        status: Number(sum.unresolvedExceptionsCount || 0) > 0 ? 'EXCEPTIONS PENDING' : 'AUDITED • READY'
+        status: Number(sum.unresolvedExceptionsCount || 0) > 0 ? 'EXCEPTIONS PENDING' : 'AUDITED â€¢ READY'
       };
     });
     const totals = tenants.reduce((acc, t) => {
@@ -13440,7 +13452,7 @@ async function getUserRewards(user, store) {
     });
   }
 
-  // ── Compliance & Goals Watch (Tailored per Company Industry) ───────────────
+  // â”€â”€ Compliance & Goals Watch (Tailored per Company Industry) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname === '/api/compliance-goals' && request.method === 'GET') {
     const profile = user.industryProfile || resolveIndustryProfile(user.industry, user.organisation_name);
     const regs = Array.isArray(profile.safetyRegulations) ? profile.safetyRegulations : [];
@@ -13519,7 +13531,7 @@ async function getUserRewards(user, store) {
     catch (error) { return sendJson(response, error instanceof Error && error.message === 'TRANSCRIPTION_NOT_CONFIGURED' ? 503 : 500, { error: error instanceof Error ? error.message : 'UNKNOWN_ERROR' }); }
   }
 
-  // ── Frontline Shift Tasks Persistence & Handover Task Bridge ──────────────
+  // â”€â”€ Frontline Shift Tasks Persistence & Handover Task Bridge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (url.pathname.match(/^\/api\/handovers\/[^/]+\/tasks\/[^/]+\/toggle$/) && request.method === 'POST') {
     const parts = url.pathname.split('/');
     const handoverId = parts[3];
@@ -13808,7 +13820,7 @@ async function getUserRewards(user, store) {
           organisationId: demoOrganisation.id,
           recipientId: user.id,
           category: 'attendance',
-          message: `Colleague ID Card Check-in verified at ${notifHub} — zero kiosk hardware used.`,
+          message: `Colleague ID Card Check-in verified at ${notifHub} â€” zero kiosk hardware used.`,
           read: true,
           createdAt: new Date(Date.now() - 7200000).toISOString()
         },
@@ -14014,12 +14026,12 @@ async function getUserRewards(user, store) {
           id: 'post-1',
           author_id: '00000000-0000-4000-8000-000000000012',
           author_name: 'Olaide Emmanuela',
-          author_role: 'Shift Supervisor · Operations',
+          author_role: 'Shift Supervisor Â· Operations',
           author_avatar: '/uploads/avatars/avatar-david.jpg',
           author_verified: true,
           organisation_name: 'ShiftRelay Global Ops',
           category: 'milestone',
-          content: 'Big win for Team Delta tonight — 100% handover completion rate for the third consecutive week! Every relay was acknowledged before the next shift clocked in. This is what operational excellence looks like. Proud of this crew.',
+          content: 'Big win for Team Delta tonight â€” 100% handover completion rate for the third consecutive week! Every relay was acknowledged before the next shift clocked in. This is what operational excellence looks like. Proud of this crew.',
           image_url: '/uploads/feed/feed-triage-handover.jpg',
           likes_count: 47,
           comments_count: 6,
@@ -14109,7 +14121,7 @@ async function getUserRewards(user, store) {
           author_verified: true,
           organisation_name: 'ShiftRelay Global Ops',
           category: 'milestone',
-          content: 'First solo shift as Incoming Lead and I hit every single checklist item. 7-day proof-of-work streak active! Grateful for the clean handover from Amina — gave me everything I needed to start confident. This app genuinely changes how teams communicate.',
+          content: 'First solo shift as Incoming Lead and I hit every single checklist item. 7-day proof-of-work streak active! Grateful for the clean handover from Amina â€” gave me everything I needed to start confident. This app genuinely changes how teams communicate.',
           image_url: null,
           likes_count: 112,
           comments_count: 14,
@@ -14350,14 +14362,14 @@ async function getUserRewards(user, store) {
             id: 'exp-1',
             title: prof.headline || 'Frontline Operations Specialist',
             company: prof.currentOrganisation || 'ShiftRelay Global Ops',
-            period: '2022 — Present',
+            period: '2022 â€” Present',
             description: 'Lead shift handover execution across operational bays, monitor cold chain compliance, and coordinate digital briefings with oncoming teams.'
           },
           {
             id: 'exp-2',
             title: 'Operations Assistant',
             company: 'Frontline Logistics Network',
-            period: '2019 — 2022',
+            period: '2019 â€” 2022',
             description: 'Supervised bay turnaround routines, maintained 99.2% on-time checklist compliance, and supported team safety training.'
           }
         ];
@@ -14448,7 +14460,7 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { profile: store.workerProfiles[user.id] });
   }
 
-  // ── Profile CV, Experience, Skills, Certifications, Education & Password Persistence ──
+  // â”€â”€ Profile CV, Experience, Skills, Certifications, Education & Password Persistence â”€â”€
   if (url.pathname === '/api/profile/cv' && request.method === 'PATCH') {
     const body = await readJson(request);
     const store = await getStore();
@@ -14722,12 +14734,12 @@ async function getUserRewards(user, store) {
     const store = await getStore();
     const realProfiles = Object.values(store.workerProfiles || {});
     const demoWorkers = [
-      { userId: 'w-1', fullName: 'Maria Santos, RN', headline: 'Triage Nurse · Healthcare', industry: 'Healthcare', verifiedStatus: 'verified', avatarUrl: '/uploads/avatars/avatar-maria.jpg', stats: { shiftsCompleted: 148, reliabilityScore: 99.4, checkInStreak: 7 }, skills: ['Triage Protocol', 'Patient Safety', 'HIPAA Compliance'] },
-      { userId: 'w-2', fullName: 'Marcus Brody', headline: 'Kitchen Logistics Lead · Hospitality', industry: 'Hospitality', verifiedStatus: 'verified', avatarUrl: '/uploads/avatars/avatar-marcus.jpg', stats: { shiftsCompleted: 201, reliabilityScore: 98.1, checkInStreak: 14 }, skills: ['Food Safety', 'Team Prep', 'Cold Chain'] },
-      { userId: 'w-3', fullName: 'Kwame Mensah', headline: 'Dispatch Supervisor · Logistics', industry: 'Logistics', verifiedStatus: 'verified', avatarUrl: '/uploads/avatars/avatar-kwame.jpg', stats: { shiftsCompleted: 312, reliabilityScore: 97.6, checkInStreak: 21 }, skills: ['Warehouse Ops', 'Handover Protocol', 'Safety Compliance'] },
-      { userId: 'w-4', fullName: 'Aisha Diallo', headline: 'Night Shift Floor Lead · Operations', industry: 'Operations', verifiedStatus: 'verified', avatarUrl: '/uploads/avatars/avatar-amina.jpg', stats: { shiftsCompleted: 89, reliabilityScore: 96.3, checkInStreak: 5 }, skills: ['Inventory Control', 'Loss Prevention', 'Team Leadership'] },
-      { userId: 'w-5', fullName: 'Tunde Okafor', headline: 'Security Supervisor · Facilities', industry: 'Security', verifiedStatus: 'unverified', avatarUrl: '/uploads/avatars/avatar-david.jpg', stats: { shiftsCompleted: 431, reliabilityScore: 99.1, checkInStreak: 30 }, skills: ['Perimeter Control', 'Incident Response', 'Shift Handover'] },
-      { userId: 'w-6', fullName: 'Sophie Chen', headline: 'Manufacturing Line Lead · Engineering', industry: 'Manufacturing', verifiedStatus: 'verified', avatarUrl: '/uploads/avatars/avatar-elena.jpg', stats: { shiftsCompleted: 256, reliabilityScore: 98.7, checkInStreak: 12 }, skills: ['Six Sigma', 'Quality Assurance', 'Line Supervision'] }
+      { userId: 'w-1', fullName: 'Maria Santos, RN', headline: 'Triage Nurse Â· Healthcare', industry: 'Healthcare', verifiedStatus: 'verified', avatarUrl: '/uploads/avatars/avatar-maria.jpg', stats: { shiftsCompleted: 148, reliabilityScore: 99.4, checkInStreak: 7 }, skills: ['Triage Protocol', 'Patient Safety', 'HIPAA Compliance'] },
+      { userId: 'w-2', fullName: 'Marcus Brody', headline: 'Kitchen Logistics Lead Â· Hospitality', industry: 'Hospitality', verifiedStatus: 'verified', avatarUrl: '/uploads/avatars/avatar-marcus.jpg', stats: { shiftsCompleted: 201, reliabilityScore: 98.1, checkInStreak: 14 }, skills: ['Food Safety', 'Team Prep', 'Cold Chain'] },
+      { userId: 'w-3', fullName: 'Kwame Mensah', headline: 'Dispatch Supervisor Â· Logistics', industry: 'Logistics', verifiedStatus: 'verified', avatarUrl: '/uploads/avatars/avatar-kwame.jpg', stats: { shiftsCompleted: 312, reliabilityScore: 97.6, checkInStreak: 21 }, skills: ['Warehouse Ops', 'Handover Protocol', 'Safety Compliance'] },
+      { userId: 'w-4', fullName: 'Aisha Diallo', headline: 'Night Shift Floor Lead Â· Operations', industry: 'Operations', verifiedStatus: 'verified', avatarUrl: '/uploads/avatars/avatar-amina.jpg', stats: { shiftsCompleted: 89, reliabilityScore: 96.3, checkInStreak: 5 }, skills: ['Inventory Control', 'Loss Prevention', 'Team Leadership'] },
+      { userId: 'w-5', fullName: 'Tunde Okafor', headline: 'Security Supervisor Â· Facilities', industry: 'Security', verifiedStatus: 'unverified', avatarUrl: '/uploads/avatars/avatar-david.jpg', stats: { shiftsCompleted: 431, reliabilityScore: 99.1, checkInStreak: 30 }, skills: ['Perimeter Control', 'Incident Response', 'Shift Handover'] },
+      { userId: 'w-6', fullName: 'Sophie Chen', headline: 'Manufacturing Line Lead Â· Engineering', industry: 'Manufacturing', verifiedStatus: 'verified', avatarUrl: '/uploads/avatars/avatar-elena.jpg', stats: { shiftsCompleted: 256, reliabilityScore: 98.7, checkInStreak: 12 }, skills: ['Six Sigma', 'Quality Assurance', 'Line Supervision'] }
     ];
     // Merge: real profiles first, then demo workers that don't clash
     const realIds = new Set(realProfiles.map((p) => p.userId));
@@ -14807,11 +14819,11 @@ async function getUserRewards(user, store) {
     }
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // SHIFT SCORE ENDPOINTS
-  // ══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-  // Worker: GET /api/shift-scores  — own shift scores with explainable breakdown
+  // Worker: GET /api/shift-scores  â€” own shift scores with explainable breakdown
   if (url.pathname === '/api/shift-scores' && request.method === 'GET') {
     const store = await getStore();
     const month = url.searchParams.get('month') || new Date().toISOString().slice(0, 7);
@@ -14839,7 +14851,7 @@ async function getUserRewards(user, store) {
     });
   }
 
-  // Employer: GET /api/shift-scores/team  — all workers in org with scores
+  // Employer: GET /api/shift-scores/team  â€” all workers in org with scores
   if (url.pathname === '/api/shift-scores/team' && request.method === 'GET') {
     if (!['owner', 'workforce_admin', 'supervisor', 'manager', 'finance_admin'].includes(user.role) || !user.organisation_id) {
       return sendJson(response, 403, { error: 'Manager access required.' });
@@ -14874,13 +14886,13 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { month, orgId, team });
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // STAFF IMPORT — Employer self-service (JSON rows, tenant-scoped)
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // STAFF IMPORT â€” Employer self-service (JSON rows, tenant-scoped)
   // POST /api/staff/import
   // Body: { employees: [{ fullName, email, phone, role, department,
   //         compensationType, monthlyRate, hourlyRate,
   //         bankName, accountNumber, accountName }] }
-  // ══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   if (url.pathname === '/api/staff/import' && request.method === 'POST') {
     if (!['owner', 'workforce_admin'].includes(user.role) || !user.organisation_id) {
       return sendJson(response, 403, { error: 'Only account owners can import staff.' });
@@ -14983,10 +14995,10 @@ async function getUserRewards(user, store) {
     });
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // TENANT-SCOPED PAYROLL — GET /api/payroll/tenant-summary?tenant=FLO-NG-6093
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // TENANT-SCOPED PAYROLL â€” GET /api/payroll/tenant-summary?tenant=FLO-NG-6093
   // Returns payroll driven by live attendance for a specific company account
-  // ══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   if (url.pathname === '/api/payroll/tenant-summary' && request.method === 'GET') {
     if (!['owner', 'workforce_admin', 'finance_admin'].includes(user.role)) {
       return sendJson(response, 403, { error: 'Forbidden: executive or finance clearance required for payroll summaries.' });
@@ -15357,7 +15369,7 @@ async function serveStatic(request, response, url) {
   if (CLEAN_HTML_ROUTES[cleanKey]) requestedPath = CLEAN_HTML_ROUTES[cleanKey];
   const safePath = normalize(requestedPath).replace(/^([.]{2}[/\\])+/, '');
 
-  // ── Block direct static access to uploads (must use handleUploadFileRequest) ──
+  // â”€â”€ Block direct static access to uploads (must use handleUploadFileRequest) â”€â”€
   const normalizedLower = safePath.replace(/\\/g, '/').toLowerCase();
   if (normalizedLower === 'uploads' || normalizedLower.startsWith('uploads/')) {
     response.writeHead(403, {
@@ -15370,7 +15382,7 @@ async function serveStatic(request, response, url) {
     return;
   }
 
-  // ── Path traversal + sensitive-file guard ──────────────────────────────
+  // â”€â”€ Path traversal + sensitive-file guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const filePath = resolve(publicDirectory, safePath);
   const publicDirResolved = resolve(publicDirectory);
   const isInPublicDir = filePath.startsWith(publicDirResolved + '\\') || filePath.startsWith(publicDirResolved + '/') || filePath === publicDirResolved;
@@ -15559,7 +15571,7 @@ const server = createServer((request, response) => {
       return response.end(sitemapXml);
     }
 
-    // ── IP Rate Limiting ─────────────────────────────────────────────────
+    // â”€â”€ IP Rate Limiting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (url.pathname.startsWith('/api/')) {
       const ip = (request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown').split(',')[0].trim();
       const isAuth = (
@@ -15574,7 +15586,7 @@ const server = createServer((request, response) => {
       if (isRateLimited(ip, isAuth)) {
         return sendJson(response, 429, { error: 'Too many requests. Please slow down and try again shortly.' });
       }
-    // ── 2026 ENTERPRISE HCM FRAMEWORK ENDPOINTS (Additive & Non-Destructive) ──
+    // â”€â”€ 2026 ENTERPRISE HCM FRAMEWORK ENDPOINTS (Additive & Non-Destructive) â”€â”€
     if (request.method === 'GET' && url.pathname === '/api/health/readiness') {
       const emailSmtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
       const emailResendConfigured = Boolean(process.env.RESEND_API_KEY);
@@ -15589,7 +15601,7 @@ const server = createServer((request, response) => {
         components: {
           webApp: { name: 'Web & Mobile App (app.shiftrelayos.com)', status: 'OPERATIONAL', latencyMs: 12 },
           attendanceWatchdog: { name: 'Attendance Exceptions & Reminder Watchdog', status: 'OPERATIONAL', tickSeconds: 60 },
-          payrollEngine: { name: 'Nigerian PAYE / PenCom / NIBSS CSV Engine', status: 'OPERATIONAL', variance: '₦0.00' },
+          payrollEngine: { name: 'Nigerian PAYE / PenCom / NIBSS CSV Engine', status: 'OPERATIONAL', variance: 'â‚¦0.00' },
           emailAutoStation: {
             name: 'Email Auto-Station & Newsletter Dispatcher',
             status: (emailSmtpConfigured || emailResendConfigured) ? 'OPERATIONAL_LIVE_RELAY' : 'OPERATIONAL_SANDBOX_OUTBOX',
@@ -15632,7 +15644,7 @@ const server = createServer((request, response) => {
       });
     }
 
-    // ── Riffmax Datacenter Autonomous Task & Approval Endpoints ──
+    // â”€â”€ Riffmax Datacenter Autonomous Task & Approval Endpoints â”€â”€
     if (request.method === 'GET' && url.pathname === '/api/datacenter/state') {
       const authCtx = await getOpsOrAdminAuth(request);
       if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
@@ -15671,7 +15683,7 @@ const server = createServer((request, response) => {
       return sendJson(response, 200, res);
     }
 
-    // ── Riffmax HITL Workspace Endpoints (Linear-Style Kanban & Collaboration) ──
+    // â”€â”€ Riffmax HITL Workspace Endpoints (Linear-Style Kanban & Collaboration) â”€â”€
     if (request.method === 'GET' && url.pathname === '/api/hitl/state') {
       const authCtx = await getOpsOrAdminAuth(request);
       if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
@@ -15730,7 +15742,7 @@ const server = createServer((request, response) => {
       return sendJson(response, 200, { ok: true, task });
     }
 
-    // ── Riffmax Official Monthly Payroll & Payslip Endpoints ──
+    // â”€â”€ Riffmax Official Monthly Payroll & Payslip Endpoints â”€â”€
     if (request.method === 'GET' && url.pathname === '/api/riffmax/payslips') {
       const authCtx = await getOpsOrAdminAuth(request);
       if (!authCtx) return sendJson(response, 401, { error: 'Authentication required to access payslip registers.' });
@@ -15767,7 +15779,7 @@ const server = createServer((request, response) => {
       return sendJson(response, 200, { ok: true, employee: emp, tenant: data.tenant, companyName: data.companyName, month: data.month, currency: data.currency });
     }
 
-    // ── External Prompt & Multi-Conversation Dispatch Bridge ──
+    // â”€â”€ External Prompt & Multi-Conversation Dispatch Bridge â”€â”€
     if (request.method === 'POST' && (url.pathname === '/api/riffmax/inbox' || url.pathname === '/api/hitl/prompt')) {
       const authCtx = await getOpsOrAdminAuth(request);
       if (!authCtx) return sendJson(response, 401, { error: 'Authentication required.' });
@@ -15925,7 +15937,7 @@ const server = createServer((request, response) => {
       const consentHash = 'NDPA-CONSENT-' + createHash('sha256').update(JSON.stringify(body) + Date.now()).digest('hex').slice(0, 12).toUpperCase();
       return sendJson(response, 200, {
         ok: true,
-        framework: 'Nigeria Data Protection Act (NDPA) 2023 — Section 26 Biometric Processing',
+        framework: 'Nigeria Data Protection Act (NDPA) 2023 â€” Section 26 Biometric Processing',
         consentHash,
         recordedAt: new Date().toISOString()
       });
@@ -15965,7 +15977,7 @@ const server = createServer((request, response) => {
       return handleApi(request, response, url);
     }
 
-    // ── Public One-Click Newsletter Unsubscribe Landing Page (Zero Login) ──
+    // â”€â”€ Public One-Click Newsletter Unsubscribe Landing Page (Zero Login) â”€â”€
     if (url.pathname === '/unsubscribe' && (request.method === 'GET' || request.method === 'POST')) {
       const token = url.searchParams.get('token') || '';
       const email = url.searchParams.get('email') || '';
@@ -15976,7 +15988,7 @@ const server = createServer((request, response) => {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>Unsubscribe · ShiftRelay OS Brief</title>
+  <title>Unsubscribe Â· ShiftRelay OS Brief</title>
 </head>
 <body style="margin:0;padding:32px 16px;background:#050a14;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:540px;margin:32px auto;background:#090f1d;border:1px solid #1e293b;border-radius:16px;padding:28px;box-shadow:0 24px 48px rgba(0,0,0,.45);">
@@ -16035,7 +16047,7 @@ const server = createServer((request, response) => {
           ['Accounting Period', periodRaw],
           ['Attestation Signature', `SR-${attestationSig}`],
           ['Verified Timestamp', issuedAtIso],
-          ['Compliance Framework', 'Nigeria Finance Act PAYE · PenCom (8%/10%) · NHF 2.5% · NSITF 1%'],
+          ['Compliance Framework', 'Nigeria Finance Act PAYE Â· PenCom (8%/10%) Â· NHF 2.5% Â· NSITF 1%'],
           ['Verification Origin', originWebsite]
         ];
       } else if (parts[1] === 'worker' && parts.length >= 3) {
@@ -16106,7 +16118,7 @@ const server = createServer((request, response) => {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>${escVerify(badgeTitle)} · ShiftRelay OS Verification</title>
+  <title>${escVerify(badgeTitle)} Â· ShiftRelay OS Verification</title>
 </head>
 <body style="margin:0;padding:24px 16px;background:#050a14;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:620px;margin:24px auto;background:#090f1d;border:1px solid #1e293b;border-radius:16px;overflow:hidden;box-shadow:0 24px 48px rgba(0,0,0,.45);">
@@ -16126,7 +16138,7 @@ const server = createServer((request, response) => {
         <a href="${originWebsite}" style="color:#38bdf8;font-size:13px;text-decoration:none;font-weight:600;">shiftrelayos.com</a>
         <a href="${originApp}" style="display:inline-block;padding:10px 18px;border-radius:10px;background:#10b981;color:#03180f;font-weight:800;font-size:13px;text-decoration:none;">Open ShiftRelay OS</a>
       </div>
-      <p style="margin:18px 0 0;font-size:11px;color:#64748b;">Issued by ShiftRelay OS (Riffmax Technology Limited) · Zero private bank details exposed on public verification pages.</p>
+      <p style="margin:18px 0 0;font-size:11px;color:#64748b;">Issued by ShiftRelay OS (Riffmax Technology Limited) Â· Zero private bank details exposed on public verification pages.</p>
     </div>
   </div>
 </body>
@@ -16166,7 +16178,7 @@ const server = createServer((request, response) => {
   });
 });
 
-// ── ShiftRelay Enterprise Background Engines (Crons & Shift Boundary Rules) ───
+// â”€â”€ ShiftRelay Enterprise Background Engines (Crons & Shift Boundary Rules) â”€â”€â”€
 export async function processShiftBoundaryAutoClockouts() {
   const now = new Date();
   const nowMs = now.getTime();
@@ -16186,8 +16198,8 @@ export async function processShiftBoundaryAutoClockouts() {
           const isCardScan = row.verification_mode === 'colleague_card_scan' || String(row.note || '').includes('Colleague ID Card');
           const presenceStatus = 'pending_supervisor_confirm';
           const flagNote = isCardScan
-            ? ' [AUTO_CLOCKED_OUT: Card shift auto-closed without exit scan · Pending supervisor presence review]'
-            : ' [AUTO_CLOCKED_OUT: Shift boundary reached · Pending exit presence confirmation]';
+            ? ' [AUTO_CLOCKED_OUT: Card shift auto-closed without exit scan Â· Pending supervisor presence review]'
+            : ' [AUTO_CLOCKED_OUT: Shift boundary reached Â· Pending exit presence confirmation]';
           await query(`
             UPDATE time_entries
             SET clocked_out_at = $1,
@@ -16242,7 +16254,7 @@ export async function processShiftBoundaryAutoClockouts() {
             if (card.verification_mode === 'colleague_card_scan') {
               card.presence_verification_status = 'pending_supervisor_confirm';
             }
-            card.note = (card.note ? card.note + ' · ' : '') + 'AUTO_CLOCKED_OUT: Shift boundary reached. Zero unapproved overtime.';
+            card.note = (card.note ? card.note + ' Â· ' : '') + 'AUTO_CLOCKED_OUT: Shift boundary reached. Zero unapproved overtime.';
             card.hours = Number(card.scheduled_hours) || 8;
             updated = true;
             console.log(`[AUTO-CLOCKOUT ENGINE] Auto-clocked out timecard ${card.id} for worker ${card.worker_name || card.user_id}`);
@@ -16298,7 +16310,7 @@ export async function processWeeklyNewsletterAutomation({ force = false, baseOri
       verifiedHours: 1420,
       punctualityScore: '99.4%',
       safetyIncidents: 0,
-      payrollVariance: '₦0.00'
+      payrollVariance: 'â‚¦0.00'
     };
 
     const recipientEmail = process.env.EXECUTIVE_DIGEST_EMAIL || process.env.SMTP_USER || 'sherifolaide2030@gmail.com';
@@ -16323,7 +16335,7 @@ export async function processWeeklyNewsletterAutomation({ force = false, baseOri
 
     await sendShiftRelayEmail({
       to: recipientEmail,
-      subject: `ShiftRelay Weekly Progress Report — Week ${weekNumber} · ₦0.00 Variance`,
+      subject: `ShiftRelay Weekly Progress Report â€” Week ${weekNumber} Â· â‚¦0.00 Variance`,
       html,
       headers: {
         'List-Unsubscribe': `<${unsubUrl}>, <mailto:${LEGAL_ENTITY.supportEmail}?subject=unsubscribe>`,
@@ -16410,7 +16422,7 @@ export async function processMonthlyNewsletterAutomation({ force = false, segmen
       });
       await sendShiftRelayEmail({
         to: sub.email,
-        subject: `Nigeria Workforce & Statutory Brief — ${monthMeta.period}`,
+        subject: `Nigeria Workforce & Statutory Brief â€” ${monthMeta.period}`,
         html,
         text: `ShiftRelay OS ${monthMeta.period} Statutory Brief. Calculate PAYE/PenCom: ${cleanBase}/calculator.html\nUnsubscribe: ${unsubUrl}`,
         headers: {
@@ -16602,7 +16614,7 @@ export async function processShiftAttendanceReminders({ onlyOrganisationId = nul
           });
           await sendShiftRelayEmail({
             to: item.workerEmail,
-            subject: `[${orgName}] ${item.label} — ShiftRelay OS`,
+            subject: `[${orgName}] ${item.label} â€” ShiftRelay OS`,
             html: emailHtml,
             source: 'Automated Shift Reminder Watchdog'
           }).catch(() => {});
@@ -16678,7 +16690,7 @@ let backgroundEnginesStarted = false;
 export function startEnterpriseBackgroundEngines() {
   if (backgroundEnginesStarted) return;
   backgroundEnginesStarted = true;
-  console.log('⚡ ShiftRelay OS Enterprise Background Engines Initialized:');
+  console.log('âš¡ ShiftRelay OS Enterprise Background Engines Initialized:');
   console.log('   - Shift Boundary & Overtime Shield Engine: Active (60s tick)');
   console.log('   - Automated Clock-In & Missed-Punch Watchdog: Active (60s tick)');
   console.log('   - Automated Weekly Progress Newsletter: Active (Hourly check)');
@@ -16752,7 +16764,7 @@ initializeDatabase()
       process.exit(1);
     }
 
-    // Development / staging — require explicit opt-in for file fallback.
+    // Development / staging â€” require explicit opt-in for file fallback.
     if (!ALLOW_DEV_FALLBACK) {
       console.error('[FATAL] Database unavailable and ALLOW_DEV_FALLBACK is not enabled.');
       console.error('[FATAL] Set ALLOW_DEV_FALLBACK=true to run without a database in development. Exiting.');

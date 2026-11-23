@@ -1312,7 +1312,7 @@
                 <path d="M 278 2 L 263 42 H 272.5 L 275.5 33.5 H 291 V 25.5 H 278.5 L 283 12.5 L 294 42 H 303 L 287 2 Z" transform="translate(8,1)" fill="currentColor"/>
                 <path d="M 289 2 L 301 23 V 42 H 310 V 23 L 322 2 H 312.5 L 305.5 15 L 298.5 2 Z" transform="translate(8,1)" fill="currentColor"/>
               </svg>
-              <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--sky);" id="sidebar-role-badge">OWNER ROOT</div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--sky);" id="sidebar-role-badge">ADMIN</div>
             </div>
           </div>
           <button type="button" class="adm-sidebar-close-btn" aria-label="Close" onclick="window.toggleAdminSidebar(false)">
@@ -1320,46 +1320,41 @@
           </button>
         </div>
 
-        <div class="nav-sec-label">Control</div>
         <button type="button" class="adm-nav-btn active" data-view="overview" onclick="window.switchAdminView('overview')">
-          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg> Control</span>
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg> Overview</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="tenants" onclick="window.switchAdminView('tenants')">
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/></svg> Clients</span>
+          <span class="badge-count" id="nav-badge-tenants">0</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="finance" onclick="window.switchAdminView('finance')">
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Payroll &amp; Billing</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="onboarding" onclick="window.switchAdminView('onboarding')">
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M3 12h18"/><circle cx="12" cy="12" r="9"/></svg> Onboarding</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="rectifications" onclick="window.switchAdminView('rectifications')">
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Support</span>
+          <span class="badge-count" id="nav-badge-rects">3</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="leads" onclick="window.switchAdminView('leads')">
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> Leads</span>
+          <span class="badge-count" id="nav-badge-leads">0</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="integrations" onclick="window.switchAdminView('integrations')">
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/><circle cx="12" cy="12" r="4"/></svg> Integrations</span>
+          <span class="badge-count" id="nav-badge-bridges">6</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="email-station" onclick="window.switchAdminView('email-station')">
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Email</span>
+          <span class="badge-count" id="nav-badge-emails">5</span>
+        </button>
+        <button type="button" class="adm-nav-btn" data-view="hosting" onclick="window.switchAdminView('hosting')">
+          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> System Files</span>
         </button>
         <button type="button" class="adm-nav-btn owner-btn" data-view="owner-vault" onclick="window.switchAdminView('owner-vault')">
           <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg> Owner Vault</span>
           <span class="badge-count" id="nav-badge-approvals">4</span>
-        </button>
-
-        <div class="nav-sec-label">Setup &amp; Care</div>
-        <button type="button" class="adm-nav-btn" data-view="onboarding" onclick="window.switchAdminView('onboarding')">
-          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M3 12h18"/><circle cx="12" cy="12" r="9"/></svg> Setup Engine</span>
-        </button>
-        <button type="button" class="adm-nav-btn" data-view="tenants" onclick="window.switchAdminView('tenants')">
-          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/></svg> Tenants &amp; Roster</span>
-          <span class="badge-count" id="nav-badge-tenants">0</span>
-        </button>
-        <button type="button" class="adm-nav-btn" data-view="rectifications" onclick="window.switchAdminView('rectifications')">
-          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Customer Care</span>
-          <span class="badge-count" id="nav-badge-rects">3</span>
-        </button>
-        <button type="button" class="adm-nav-btn" data-view="finance" onclick="window.switchAdminView('finance')">
-          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Payroll Audit</span>
-        </button>
-        <button type="button" class="adm-nav-btn" data-view="leads" onclick="window.switchAdminView('leads')">
-          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> Inbound Leads</span>
-          <span class="badge-count" id="nav-badge-leads">0</span>
-        </button>
-
-        <div class="nav-sec-label">System &amp; Bridges</div>
-        <button type="button" class="adm-nav-btn" data-view="integrations" onclick="window.switchAdminView('integrations')">
-          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/><circle cx="12" cy="12" r="4"/></svg> Plugins &amp; Bridges</span>
-          <span class="badge-count" id="nav-badge-bridges">6</span>
-        </button>
-        <button type="button" class="adm-nav-btn" data-view="email-station" onclick="window.switchAdminView('email-station')">
-          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Email Station</span>
-          <span class="badge-count" id="nav-badge-emails">5</span>
-        </button>
-        <button type="button" class="adm-nav-btn" data-view="hosting" onclick="window.switchAdminView('hosting')">
-          <span class="nav-label-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Backend Files</span>
         </button>
       </div>
 
@@ -1378,30 +1373,14 @@
             <span>Menu</span>
           </button>
           <div style="min-width:0;">
-            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sky); font-weight:600;" id="topbar-clearance-title">
-              OWNER ROOT
+            <div style="font-size:13.5px; color:var(--text-white); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="topbar-clearance-title">
+              Admin Console
             </div>
-            <div style="font-size:12px; color:var(--text-slate); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="topbar-clearance-desc">
-              Control • Setup Engine • Backend Files • Customer Care
-            </div>
+            <div style="font-size:11.5px; color:var(--text-slate); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="topbar-clearance-desc"></div>
           </div>
         </div>
 
         <div class="role-switcher-bar" id="adm-clearance-bar">
-          <button type="button" class="btn-ghost" id="adm-cmd-palette-btn" style="padding:5px 10px; font-size:11.5px; font-family:'JetBrains Mono',monospace;" onclick="window.openAdminCommandPalette()">
-            <span>Search</span> <kbd style="opacity:0.75; font-size:10px; padding:1px 5px; border-radius:4px; border:1px solid var(--border-hairline);">Ctrl+K</kbd>
-          </button>
-          <span class="chip cyan" id="adm-locked-role-chip" style="font-family:'JetBrains Mono',monospace;">RBAC</span>
-          <div id="adm-owner-preview-bar">
-            <button type="button" class="role-chip owner-chip active" data-switch-role="owner_root" onclick="window.setAdminActiveRole('owner_root')">Owner</button>
-            <button type="button" class="role-chip" data-switch-role="onboarding_admin" onclick="window.setAdminActiveRole('onboarding_admin')">Setup</button>
-            <button type="button" class="role-chip" data-switch-role="ops_support_admin" onclick="window.setAdminActiveRole('ops_support_admin')">Care</button>
-            <button type="button" class="role-chip" data-switch-role="finance_admin" onclick="window.setAdminActiveRole('finance_admin')">Finance</button>
-          </div>
-          <button type="button" class="adm-install-btn" data-pwa-install-btn onclick="window.installShiftRelayOS()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            <span>Install OS</span>
-          </button>
           <div class="theme-pill theme-icon-switch" role="group" aria-label="Theme">
             <button type="button" data-theme-btn="dark" class="active" aria-label="Dark mode" title="Dark mode" onclick="window.setAdminTheme('dark')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
@@ -1538,20 +1517,11 @@
 
         <!-- VIEW 2: OWNER-ONLY SOVEREIGN VAULT -->
         <section class="adm-view" id="view-owner-vault">
-          <div id="owner-restricted-banner" class="owner-shield-box" style="display:none;">
-            <span class="chip amber" style="margin-bottom:12px;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              OWNER-ONLY CLEARANCE REQUIRED
-            </span>
-            <h2 style="font-family:'Outfit',sans-serif; font-size:26px; margin-bottom:10px;">
-              Restricted to the Founder / Sovereign Owner
-            </h2>
-            <p style="color:var(--text-slate); font-size:14px; margin-bottom:22px;">
-              You are viewing the console as <strong id="restricted-worker-name">Department Admin</strong>. Separated admin workers prepare tasks in their assigned queues, while final approvals and SaaS revenue remain exclusive to the Owner.
-            </p>
-            <button type="button" class="btn-amber" onclick="window.setAdminActiveRole('owner_root')">
-              Switch Back to Owner Root Clearance
-            </button>
+          <div id="owner-restricted-banner" class="owner-shield-box" style="display:none; text-align:center; padding:42px 24px;">
+            <div style="width:52px; height:52px; border-radius:16px; margin:0 auto 14px; background:rgba(245,158,11,0.12); color:var(--amber); display:flex; align-items:center; justify-content:center;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h2 style="font-family:'Outfit',sans-serif; font-size:20px; margin:0;">Owner Access Only</h2>
           </div>
 
           <div id="owner-vault-unlocked">
@@ -1918,111 +1888,22 @@
           </div>
         </section>
 
-        <!-- VIEW 4: TENANTS & BULK CSV ROSTER -->
+        <!-- VIEW 4: SHIFTRELAY CLIENT LIST -->
         <section class="adm-view" id="view-tenants">
           <div class="panel-card">
-            <div class="panel-head">
+            <div class="panel-head" style="gap:12px; flex-wrap:wrap;">
               <div>
-                <h2>Onboarded Enterprise Tenants &amp; Company Codes</h2>
+                <h2>ShiftRelay Clients</h2>
               </div>
-              <button type="button" class="btn-emerald" id="ten-new-ent-btn" onclick="window.switchAdminView('onboarding')">+ Onboard New Enterprise</button>
-            </div>
-            <div class="table-scroll">
-              <table class="adm-table">
-                <thead>
-                  <tr>
-                    <th>Organization</th>
-                    <th>Company Code</th>
-                    <th>Owner OTP Email</th>
-                    <th>Primary Site &amp; Geofence</th>
-                    <th>Workers</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="adm-tenants-tbody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="panel-card">
-            <div class="panel-head">
-              <div>
-                <h2>Bulk Employee &amp; Digital Staff ID Import (CSV)</h2>
-                <p style="font-size:12.5px; color:var(--text-slate);">14-Column Standardized Nigerian Employer Roster (optional <code>reports_to</code> column for silent reporting tree): <code>staff_id, full_name, email, phone_e164, department, site_name, role, pay_basis, base_rate_ngn, pencom_rsa_pin, bank_name, cbn_bank_code, nuban_account_number, tin</code> (legacy 6-column rows also auto-supported)</p>
-              </div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <a href="/api/admin/roster-template.csv" download="shiftrelay_roster_template_14col.csv" class="btn-ghost" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  Download 14-Col Roster Template (CSV)
-                </a>
-                <label class="btn-ghost" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                  Load .CSV File
-                  <input id="csv-file-input" type="file" accept=".csv,text/csv" style="display:none;" onchange="window.handleRosterCsvFileSelect(this)" />
-                </label>
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input type="search" id="adm-clients-search" class="adm-input" style="margin-bottom:0; min-width:220px;" placeholder="Filter client or code..." oninput="window.renderTenantsTable?.()" />
+                <button type="button" class="btn-emerald" id="ten-new-ent-btn" onclick="window.switchAdminView('onboarding')">+ New Client</button>
               </div>
             </div>
-            <div class="grid-2">
-              <div>
-                <label class="lbl-sm">Select Target Tenant</label>
-                <select id="csv-tenant-select" class="adm-select"></select>
-              </div>
-              <div>
-                <label class="lbl-sm">Provisioning Mode</label>
-                <input type="text" class="adm-input" value="Mobile App + Digital Staff ID + Peer Scan + Bank/PenCom" readonly />
-              </div>
+            <div id="adm-clients-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px; margin-top:14px;"></div>
+            <div class="table-scroll" style="display:none;">
+              <table class="adm-table"><tbody id="adm-tenants-tbody"></tbody></table>
             </div>
-            <div style="margin-bottom:14px;">
-              <label class="lbl-sm">Employee Roster CSV (Header Optional — Pre-Check Validates NUBAN, CBN Code &amp; PenCom RSA PIN)</label>
-              <textarea id="csv-raw-input" class="adm-textarea" rows="5">staff_id,full_name,email,phone_e164,department,site_name,role,pay_basis,base_rate_ngn,pencom_rsa_pin,bank_name,cbn_bank_code,nuban_account_number,tin
-SR-0101,Musa Danjuma,musa.d@company.com,+2348031112233,Packaging Line A,Ikeja Hub,worker,monthly,145000,PEN100234567891,Guaranty Trust Bank (GTBank),058,0123456789,12345678-0001
-SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ikeja Hub,supervisor,monthly,260000,PEN100987654321,Access Bank,044,0234567891,23456789-0001</textarea>
-            </div>
-            <div style="margin:12px 0 16px; padding:14px 16px; border-radius:12px; background:rgba(14,165,233,0.06); border:1px solid rgba(14,165,233,0.28);">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-                <div>
-                  <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:var(--text-white); cursor:pointer;">
-                    <input type="checkbox" id="csv-sync-checklists" checked />
-                    <span>Workplace Safety &amp; Daily Mandatory Checklists (Saved &amp; Pushed to App During Staff Import)</span>
-                  </label>
-                </div>
-                <button type="button" class="btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="window.saveSelectedTenantChecklists()">Save Safety Rules Only</button>
-              </div>
-              <div id="csv-checklist-items" style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
-              <div class="chk-builder-row">
-                <input type="text" id="csv-chk-text" class="adm-input" style="margin-bottom:0;" placeholder="Add workplace safety or daily shift rule for this staff group..." />
-                <select id="csv-chk-category" class="adm-select" style="margin-bottom:0;">
-                  <option value="Workplace Safety">Workplace Safety</option>
-                  <option value="PPE &amp; Gear">PPE &amp; Gear</option>
-                  <option value="Hygiene &amp; Compliance">Hygiene &amp; Compliance</option>
-                  <option value="Shift Readiness">Shift Readiness</option>
-                </select>
-                <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-slate); white-space:nowrap; cursor:pointer;">
-                  <input type="checkbox" id="csv-chk-urgent" checked /> Urgent
-                </label>
-                <button type="button" class="btn-ghost" style="padding:8px 12px; font-size:12px; white-space:nowrap;" onclick="window.addOnboardingChecklistRule('csv')">+ Add Rule</button>
-              </div>
-            </div>
-            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-              <button type="button" class="btn-ghost" onclick="window.precheckRosterCsvImport()">Pre-Check &amp; Validate CSV</button>
-              <button type="button" class="btn-emerald" onclick="window.commitRosterCsvImport()">Commit Validated Staff &amp; Dispatch Welcome Emails &rarr;</button>
-            </div>
-            <div id="csv-validation-preview" style="display:none; margin-top:16px; border:1px solid var(--border-hairline); border-radius:12px; background:var(--bg-input); overflow:hidden;"></div>
-          </div>
-
-          <div class="panel-card" id="adm-organogram-card">
-            <div class="panel-head">
-              <div>
-                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--emerald); text-transform:uppercase;">Silent Reporting Hierarchy</span>
-                <h2>Tenant Organogram &amp; Reporting Tree</h2>
-                <p style="font-size:12.5px; color:var(--text-slate); margin-top:2px;">Drag staff cards between Supervisor/Department boxes (or pick a Lead) to route approvals &amp; team scope cleanly.</p>
-              </div>
-              <div style="display:flex; gap:8px; align-items:center;">
-                <select id="adm-org-tenant-select" class="adm-select" style="width:auto; min-width:200px; margin-bottom:0;" onchange="window.loadAdminOrganogram()"></select>
-                <button type="button" class="btn-ghost" onclick="window.loadAdminOrganogram()">Refresh Tree</button>
-              </div>
-            </div>
-            <div id="adm-organogram-board" style="margin-top:12px;"><div style="color:var(--text-slate); font-size:12.5px;">Select a tenant to view or edit reporting lines.</div></div>
           </div>
         </section>
 
@@ -2983,13 +2864,6 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       document.getElementById('auth-barrier').style.display = 'none';
       document.getElementById('console-root').classList.add('active');
       try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch (_) { window.scrollTo(0, 0); }
-      const previewBar = document.getElementById('adm-owner-preview-bar');
-      const lockedChip = document.getElementById('adm-locked-role-chip');
-      const isRoot = currentAdminRole === 'owner_root';
-      if (previewBar) previewBar.style.display = isRoot ? 'inline-flex' : 'none';
-      if (lockedChip) {
-        lockedChip.textContent = `CLEARANCE LOCKED: ${String(currentAdminRole || '').toUpperCase()}`;
-      }
       updateSecurityPostureUi();
       window.setAdminActiveRole(currentAdminRole, true);
       window.switchAdminView('overview');
@@ -3022,47 +2896,57 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       previewAdminRole = effectiveViewRole;
       const prof = ADMIN_ROLE_PROFILES[effectiveViewRole] || ADMIN_ROLE_PROFILES.ops_support_admin;
 
-      document.getElementById('sidebar-role-badge').textContent = prof.badge;
-      document.getElementById('topbar-clearance-title').textContent =
-        currentAdminUser ? `${prof.title} — ${currentAdminUser.fullName}` : prof.title;
-      document.getElementById('topbar-clearance-desc').textContent = prof.desc;
+      const badgeEl = document.getElementById('sidebar-role-badge');
+      if (badgeEl) badgeEl.textContent = effectiveViewRole === 'owner_root' ? 'OWNER' : prof.badge;
+      const topTitle = document.getElementById('topbar-clearance-title');
+      if (topTitle) {
+        topTitle.textContent = currentAdminUser ? `${currentAdminUser.fullName || 'Admin'}` : 'Admin Console';
+      }
+      const topDesc = document.getElementById('topbar-clearance-desc');
+      if (topDesc) {
+        const roleLabel = effectiveViewRole === 'owner_root' ? 'Owner' : prof.title;
+        topDesc.textContent = currentAdminUser?.email ? `${roleLabel} • ${currentAdminUser.email}` : roleLabel;
+      }
       const rw = document.getElementById('restricted-worker-name');
-      if (rw) rw.textContent = currentAdminUser ? `${currentAdminUser.fullName} (${currentAdminRole})` : prof.workerName;
-
-      document.querySelectorAll('.role-chip').forEach(c => {
-        c.classList.toggle('active', c.getAttribute('data-switch-role') === effectiveViewRole);
-      });
+      if (rw) rw.textContent = currentAdminUser ? `${currentAdminUser.fullName}` : prof.workerName;
 
       const allowed = Array.isArray(prof.allowedViews) ? prof.allowedViews : ['overview'];
       const isOwnerActive = currentAdminRole === 'owner_root' && effectiveViewRole === 'owner_root';
+      const LOCK_SVG = '<svg class="adm-padlock-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;opacity:0.75;flex-shrink:0;" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 
-      // Lock down & make numb any sidebar nav button outside active role clearance
+      // Lock down & mark with a clean padlock icon (no loud text) when outside clearance
       document.querySelectorAll('.adm-nav-btn[data-view]').forEach(btn => {
         const v = btn.getAttribute('data-view');
         const permitted = allowed.includes(v);
         btn.disabled = !permitted;
         btn.classList.toggle('is-locked', !permitted);
+        btn.querySelectorAll('.adm-padlock-icon').forEach(el => el.remove());
         if (!permitted) {
           btn.setAttribute('aria-disabled', 'true');
-          btn.title = 'Locked — Owner / authorized department clearance required';
+          btn.insertAdjacentHTML('beforeend', LOCK_SVG);
         } else {
           btn.removeAttribute('aria-disabled');
           btn.removeAttribute('title');
         }
       });
 
-      // Lock down cross-view / Owner-only action buttons when outside clearance
-      const lockBtn = (id, locked, reason) => {
+      // Lock down Owner-only action buttons with a clean padlock icon
+      const lockBtn = (id, locked) => {
         const el = document.getElementById(id);
         if (!el) return;
         el.disabled = Boolean(locked);
         el.classList.toggle('adm-btn-locked', Boolean(locked));
-        if (locked) { el.title = reason || 'Locked for your clearance level'; } else { el.removeAttribute('title'); }
+        el.querySelectorAll('.adm-padlock-icon').forEach(ic => ic.remove());
+        if (locked) {
+          el.insertAdjacentHTML('beforeend', LOCK_SVG.replace('margin-left:auto;', 'margin-left:6px;'));
+        } else {
+          el.removeAttribute('title');
+        }
       };
-      lockBtn('ov-manage-bridges-btn', !allowed.includes('integrations'), 'Locked — Owner Root required');
-      lockBtn('adm-btn-disburse-nip', !isOwnerActive, 'Locked — Final NIP disbursal requires Owner Root');
-      lockBtn('ten-new-ent-btn', !allowed.includes('onboarding'), 'Locked — Onboarding clearance required');
-      lockBtn('email-cfg-relay-btn', !allowed.includes('integrations'), 'Locked — Owner Root required');
+      lockBtn('ov-manage-bridges-btn', !allowed.includes('integrations'));
+      lockBtn('adm-btn-disburse-nip', !isOwnerActive);
+      lockBtn('ten-new-ent-btn', !allowed.includes('onboarding'));
+      lockBtn('email-cfg-relay-btn', !allowed.includes('integrations'));
 
       document.getElementById('owner-restricted-banner').style.display = isOwnerActive ? 'none' : 'block';
       document.getElementById('owner-vault-unlocked').style.display = isOwnerActive ? 'block' : 'none';
@@ -4255,8 +4139,48 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
       }
     };
 
+    window.downloadClientDataBundle = async function (tenantId, type) {
+      const tenant = (cachedTenants || []).find(t => String(t.id) === String(tenantId));
+      if (!tenant) return showToast('Client not found.');
+      const code = String(tenant.companyId || tenant.organisation_code || 'CLIENT').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const saveFile = (filename, content, mime) => {
+        const blob = new Blob([content], { type: mime });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 15000);
+      };
+      if (type === 'company') {
+        saveFile(`${code}-company-profile.json`, JSON.stringify(tenant, null, 2), 'application/json');
+        return showToast(`Downloaded ${code} company profile.`);
+      }
+      if (type === 'payroll') {
+        const rows = [['Company','Code','Plan','BillingStatus','StaffCount','MonthlyEstimateNGN']];
+        rows.push([tenant.tradingName || tenant.legalName || '', code, tenant.planTier || tenant.plan || 'Enterprise', tenant.subscriptionStatus || 'ACTIVE', tenant.employeeCount ?? 0, tenant.monthlyFeeNgn ?? tenant.monthlyTotalNgn ?? 0]);
+        saveFile(`${code}-payroll-summary.csv`, rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'), 'text/csv');
+        return showToast(`Downloaded ${code} payroll sheet.`);
+      }
+      if (type === 'attendance') {
+        try {
+          const data = await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/roster`);
+          const members = data?.roster || data?.members || [];
+          const rows = [['StaffID','FullName','Email','Role','Department','ShiftStart','ShiftEnd','Status']];
+          members.forEach(m => rows.push([m.staff_code || m.staffId || '', m.full_name || m.name || '', m.email || '', m.role || '', m.department || '', m.shift_start || '', m.shift_end || '', m.status || 'active']));
+          saveFile(`${code}-attendance-roster.csv`, rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'), 'text/csv');
+          return showToast(`Downloaded ${code} attendance sheet.`);
+        } catch (err) {
+          return showToast(err.message || 'Could not export attendance sheet.');
+        }
+      }
+    };
+
+    window.renderTenantsTable = renderTenantsTable;
     function renderTenantsTable() {
       if (typeof renderObBatchHistory === 'function') renderObBatchHistory();
+      const grid = document.getElementById('adm-clients-grid');
       const tbody = document.getElementById('adm-tenants-tbody');
       const sel = document.getElementById('csv-tenant-select');
       const lockedTenantsCount = (cachedTenants || []).filter(t => String(t.subscriptionStatus || '').toUpperCase() === 'LOCKED_READONLY').length;
@@ -4266,54 +4190,50 @@ SR-0102,Chioma Nwosu,chioma.n@company.com,+2348034445566,Quality Supervision,Ike
         tenantsBadge.style.display = lockedTenantsCount > 0 ? 'inline-flex' : 'none';
       }
       if (sel) sel.innerHTML = cachedTenants.map(t => `<option value="${esc(t.id)}">${esc(t.tradingName || t.legalName || t.name)} (${esc(t.companyId || t.id)})</option>`).join('');
-      const orgSel = document.getElementById('adm-org-tenant-select');
-      if (orgSel) { const prev = orgSel.value; orgSel.innerHTML = sel ? sel.innerHTML : ''; if (prev) orgSel.value = prev; window.loadAdminOrganogram?.(); }
+      const q = String(document.getElementById('adm-clients-search')?.value || '').trim().toLowerCase();
+      const list = (cachedTenants || []).filter(t => {
+        if (!q) return true;
+        const hay = `${t.tradingName || ''} ${t.legalName || ''} ${t.companyId || ''} ${t.industry || ''} ${t.masterAdminEmail || ''}`.toLowerCase();
+        return hay.includes(q);
+      });
+      if (grid) {
+        grid.innerHTML = list.length ? list.map((t) => {
+          const companyName = t.tradingName || t.legalName || t.name || 'Enterprise Client';
+          const companyCode = t.companyId || t.organisation_code || 'RIF-2026';
+          const adminEmail = t.masterAdminEmail || t.adminEmail || t.work_email || '—';
+          const siteName = t.hubName || t.siteName || 'Primary Hub';
+          const staffCount = Number(t.employeeCount ?? t.workerCount ?? 0);
+          const plan = String(t.planTier || t.plan || 'Enterprise').toUpperCase();
+          const subStatus = String(t.subscriptionStatus || 'ACTIVE').toUpperCase();
+          const fee = Number(t.monthlyFeeNgn ?? t.monthlyTotalNgn ?? 0);
+          const feeLabel = fee > 0 ? `₦${fee.toLocaleString()}/mo` : 'Active Billing';
+          const statusCls = subStatus.includes('LOCK') ? 'rose' : (subStatus.includes('TRIAL') || subStatus.includes('PILOT') ? 'amber' : 'emerald');
+          return `
+            <div style="background:var(--bg-input); border:1px solid var(--border-glass); border-radius:16px; padding:18px; display:flex; flex-direction:column; gap:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+                <div style="min-width:0;">
+                  <div style="font-size:15.5px; font-weight:800; color:var(--text-white); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(companyName)}</div>
+                  <div style="font-size:12px; color:var(--text-slate); margin-top:2px;">${escapeHtml(t.industry || 'Workforce')} &bull; <code style="color:var(--emerald);">${escapeHtml(companyCode)}</code></div>
+                </div>
+                <span class="chip ${statusCls}" style="flex-shrink:0;">${escapeHtml(subStatus)}</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px 12px; border-radius:10px; background:var(--bg-card); border:1px solid var(--border-hairline); font-size:12px;">
+                <div><span style="color:var(--text-slate); display:block; font-size:10.5px;">PLAN &amp; PAYMENT</span><strong>${escapeHtml(plan)} &bull; ${escapeHtml(feeLabel)}</strong></div>
+                <div><span style="color:var(--text-slate); display:block; font-size:10.5px;">WORKFORCE &amp; SITE</span><strong>${staffCount} Staff &bull; ${escapeHtml(siteName)}</strong></div>
+                <div style="grid-column:1/-1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><span style="color:var(--text-slate);">Owner:</span> <a href="mailto:${escapeHtml(adminEmail)}" style="color:#38bdf8; text-decoration:none;">${escapeHtml(adminEmail)}</a></div>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:auto;">
+                <button type="button" class="btn-ghost" style="padding:7px 11px; font-size:11.5px;" onclick="window.downloadClientDataBundle('${escapeHtml(t.id)}','company')">Company Data</button>
+                <button type="button" class="btn-ghost" style="padding:7px 11px; font-size:11.5px;" onclick="window.downloadClientDataBundle('${escapeHtml(t.id)}','payroll')">Payroll Sheet</button>
+                <button type="button" class="btn-ghost" style="padding:7px 11px; font-size:11.5px;" onclick="window.downloadClientDataBundle('${escapeHtml(t.id)}','attendance')">Attendance Sheet</button>
+                <button type="button" class="btn-emerald" style="padding:7px 11px; font-size:11.5px; margin-left:auto;" onclick="window.openEditTenantModal('${escapeHtml(t.id)}')">Edit</button>
+              </div>
+            </div>
+          `;
+        }).join('') : `<div style="color:var(--text-slate); font-size:13px;">No matching clients.</div>`;
+      }
       if (!tbody) return;
-      tbody.innerHTML = cachedTenants.map((t, i) => {
-        const companyName = t.tradingName || t.legalName || t.name || 'Enterprise Client';
-        const companyCode = t.companyId || t.organisation_code || 'RIF-2026';
-        const adminEmail = t.masterAdminEmail || t.adminEmail || t.work_email || 'sherif@riffmax.tech';
-        const siteName = t.hubName || t.siteName || 'Riffmax Engineering Hub (Victoria Island)';
-        const radius = t.hubRadius || t.hub_perimeter || 120;
-        const staffCount = Number(t.employeeCount ?? t.workerCount ?? 0);
-        const graceMin = Number(t.attendancePolicy?.graceMinutes ?? 10);
-        const bioCount = Number(t.biometricEnrolledCount ?? 0);
-        const chkCount = Number(t.dailyChecklistCount ?? (t.settings?.dailyChecklists?.length || 0));
-
-        return `
-          <tr>
-            <td>
-              <strong>${escapeHtml(companyName)}</strong>
-              <div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(t.legalName || companyName)} &bull; ${escapeHtml(t.industry || 'Enterprise SaaS & HCM')}</div>
-              <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:5px;">
-                <span class="chip cyan" style="font-size:10px; padding:2px 7px;">${graceMin}m Grace Policy</span>
-                <span class="chip emerald" style="font-size:10px; padding:2px 7px;">${bioCount}/${staffCount} Bio Enrolled</span>
-                <span class="chip amber" style="font-size:10px; padding:2px 7px;">${chkCount} Safety Rules</span>
-              </div>
-            </td>
-            <td><code style="color:var(--emerald); font-weight:800; font-family:'JetBrains Mono',monospace;">${escapeHtml(companyCode)}</code></td>
-            <td><a href="mailto:${escapeHtml(adminEmail)}" style="color:#38bdf8; text-decoration:none;">${escapeHtml(adminEmail)}</a></td>
-            <td>${escapeHtml(siteName)} (${radius}m)</td>
-            <td><span class="chip emerald">${staffCount} Staff</span></td>
-            <td>
-              <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                <button type="button" class="btn-emerald" style="padding:4px 9px; font-size:11px;" onclick="window.openEditTenantModal('${escapeHtml(t.id)}')">
-                  Edit
-                </button>
-                <button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="window.openTenantRosterModal('${escapeHtml(t.id)}')">
-                  Staffs
-                </button>
-                <button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="window.openAddStaffsModal('${escapeHtml(t.id)}')">
-                  + Add Staffs
-                </button>
-                <button type="button" class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="window.printGatePoster('${companyName.replace(/'/g, '')}', '${companyCode}', '${siteName.replace(/'/g, '')}', '${escapeHtml(t.id)}')">
-                  Gate QR
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
+      tbody.innerHTML = '';
     }
 
     window.openEditTenantModal = async function (tenantId) {

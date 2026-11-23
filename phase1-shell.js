@@ -861,7 +861,7 @@
     ];
     const allowedSupervisor = [
       'overview', 'schedule', 'handovers', 'team', 'approvals', 'me',
-      'timesheets', 'open-shifts', 'earnings', 'rewards', 'assistant',
+      'timesheets', 'open-shifts', 'rewards', 'assistant',
       'time-away', 'timeaway-leave', 'compliance', 'settings', 'kiosk', 'gate-kiosk', 'notifications'
     ];
     const allowedExecutive = [
@@ -1603,9 +1603,9 @@
               </button>
             `}
 
-            <!-- Sticky Sidebar Footer: My Payout (for Sup/Exec), Settings & Log Out Buttons -->
+            <!-- Sticky Sidebar Footer: My Payout (Executive only), Settings & Log Out Buttons -->
             <div class="sr-sidebar-footer" style="margin-top:auto;padding-top:14px;border-top:1px solid var(--sr-border-subtle);display:flex;flex-direction:column;gap:4px;">
-              ${(isExecutive || isSupervisor) ? `
+              ${isExecutive ? `
               <button class="sr-nav-btn ${(view === 'earnings' || view === 'rewards') ? 'active' : ''}" data-sr-view="earnings">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                 <span>My Earnings &amp; Payout</span>
@@ -12234,11 +12234,17 @@
                 <div style="font-size:14px;font-weight:600;color:var(--sr-text-main);">${isDark ? 'Dark Mode' : 'Light Mode'}</div>
                 <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">${isDark ? 'Holographic dark interface' : 'Clean light interface'}</div>
               </div>
-              <!-- iOS-style toggle -->
-              <button id="sr-settings-theme-toggle" role="switch" aria-checked="${isDark}" title="Toggle theme"
-                style="width:52px;height:28px;border-radius:99px;border:none;cursor:pointer;position:relative;transition:background .25s;background:${isDark ? 'var(--sr-primary)' : '#d1d5db'};">
-                <span style="position:absolute;top:3px;${isDark ? 'right:3px' : 'left:3px'};width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);transition:all .25s;display:block;"></span>
-              </button>
+              <!-- Clear Light / Dark Segmented Control -->
+              <div id="sr-settings-theme-toggle" role="group" aria-label="Theme mode" style="display:inline-flex;align-items:center;gap:6px;padding:4px;border-radius:999px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);">
+                <button type="button" data-theme-choice="light" style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:6px 14px;border-radius:999px;border:none;cursor:pointer;font-size:12px;font-weight:700;transition:all .18s;background:${!isDark ? 'var(--sr-primary)' : 'transparent'};color:${!isDark ? '#fff' : 'var(--sr-text-muted)'};">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                  <span>Light</span>
+                </button>
+                <button type="button" data-theme-choice="dark" style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:6px 14px;border-radius:999px;border:none;cursor:pointer;font-size:12px;font-weight:700;transition:all .18s;background:${isDark ? 'var(--sr-primary)' : 'transparent'};color:${isDark ? '#fff' : 'var(--sr-text-muted)'};">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                  <span>Dark</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -12468,9 +12474,13 @@
     });
 
     // ── Theme Toggle ───────────────────────────────────────────────────
-    document.getElementById('sr-settings-theme-toggle')?.addEventListener('click', () => {
-      toggleThemeAction();
-      renderAppSettings('appearance');
+    document.querySelectorAll('#sr-settings-theme-toggle [data-theme-choice]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const wantDark = btn.dataset.themeChoice === 'dark';
+        const currentDark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
+        if (wantDark !== currentDark) toggleThemeAction();
+        renderAppSettings('appearance');
+      });
     });
 
     // ── Industry Sector Operational Protocol Selector ──────────────────
