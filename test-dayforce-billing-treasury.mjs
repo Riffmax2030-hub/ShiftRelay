@@ -148,7 +148,28 @@ function runUnitTests() {
   assert.equal(ledger80h.ewaPolicy.workerFeeNgn, 0);
   assert.equal(ledger80h.ewaPolicy.interestRatePct, 0);
   assert.equal(ledger80h.ewaPolicy.cbnZeroLendingCompliant, true);
-  console.log('  PASS: Real-time accrued net pay & CBN zero-lending EWA policy verified.');
+
+  // Anti-cheat & post-withdrawal balance entitlement check:
+  // Withdrawing ₦20,000 must reduce net_available_disbursal by exact ₦20,000 and never go negative
+  const after20k = computeWorkerAccruedLedger({
+    contract: { compensation_type: 'fixed_monthly', monthly_rate: 240000 },
+    completedHours: 80,
+    activeShiftHours: 0,
+    ewaDisbursedNgn: 20000
+  });
+  assert.equal(after20k.ewa_disbursed_todate, 20000);
+  assert.equal(
+    after20k.net_available_disbursal,
+    Math.round((ledger80h.net_available_disbursal - 20000) * 100) / 100
+  );
+  const overWithdrawn = computeWorkerAccruedLedger({
+    contract: { compensation_type: 'fixed_monthly', monthly_rate: 240000 },
+    completedHours: 80,
+    activeShiftHours: 0,
+    ewaDisbursedNgn: 999999
+  });
+  assert.equal(overWithdrawn.net_available_disbursal, 0);
+  console.log('  PASS: Real-time accrued net pay, post-withdrawal deduction & CBN zero-lending EWA policy verified.');
 }
 
 async function runHttpIntegrationTests() {

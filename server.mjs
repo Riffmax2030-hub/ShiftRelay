@@ -2769,8 +2769,12 @@ export async function syncWorkerPayLedger(store, orgId, memberOrUserId, monthPar
     const inMs = new Date(e.clockedInAt).getTime();
     if (!Number.isFinite(inMs)) continue;
     if (e.clockedOutAt) {
+      if (e.presenceVerificationStatus === 'pending_supervisor_confirm') continue;
       const outMs = new Date(e.clockedOutAt).getTime();
-      if (Number.isFinite(outMs) && outMs > inMs) completedHours += (outMs - inMs) / 3600000;
+      if (Number.isFinite(outMs) && outMs > inMs) {
+        const worked = (outMs - inMs) / 3600000;
+        completedHours += e.presenceVerificationStatus === 'flagged_early_departure' ? Math.max(0, Number(e.verifiedHours ?? 0)) : worked;
+      }
     } else if (nowMs > inMs) {
       activeShiftHours += Math.min(12, (nowMs - inMs) / 3600000);
     }
@@ -2778,7 +2782,7 @@ export async function syncWorkerPayLedger(store, orgId, memberOrUserId, monthPar
 
   if (!Array.isArray(store.ewaDisbursements)) store.ewaDisbursements = [];
   const ewaDisbursedNgn = store.ewaDisbursements
-    .filter(d => d.organisationId === orgId && (d.membershipId === membershipId || d.userId === userId) && d.cycleMonth === month)
+    .filter(d => d.organisationId === orgId && (d.membershipId === membershipId || d.userId === userId) && d.cycleMonth === month && d.status !== 'TRANSFER_REVERSED')
     .reduce((s, d) => s + Number(d.amountNgn || 0), 0);
 
   const ledger = computeWorkerAccruedLedger({
@@ -3031,7 +3035,7 @@ export function compilePayrollRun(store, tenantId = null, monthParam = null) {
       annualTurnoverNgn: Number(org.annual_turnover_ngn || 0)
     });
     const ewaAdvanceDeduction = Math.round((store.ewaDisbursements || [])
-      .filter(d => d.organisationId === org.id && d.cycleMonth === month && (d.userId === c.userId || d.membershipId === c._membershipId || d.membershipId === c.userId))
+      .filter(d => d.organisationId === org.id && d.cycleMonth === month && d.status !== 'TRANSFER_REVERSED' && (d.userId === c.userId || d.membershipId === c._membershipId || d.membershipId === c.userId))
       .reduce((acc, d) => acc + Number(d.amountNgn || 0), 0) * 100) / 100;
     const finalNetPay = Math.max(0, Math.round((stat.netPay - ewaAdvanceDeduction) * 100) / 100);
     const taxJurisdiction = resolveStateTaxAuthority(c.state_of_residence || 'Lagos');
@@ -8760,10 +8764,12 @@ async function getUserRewards(user, store) {
   if (url.pathname === '/api/wallet/ewa-disburse' && request.method === 'POST') {
     if (!globalThis.__srEwaInFlight) globalThis.__srEwaInFlight = new Set();
     const ewaLockKey = `${user.organisation_id}:${user.id}`;
-    if (globalThis.__srEwaInFlight.has(ewaLockKey)) {
+    const orgFloatLockKey = `org:${user.organisation_id}`;
+    if (globalThis.__srEwaInFlight.has(ewaLockKey) || globalThis.__srEwaInFlight.has(orgFloatLockKey)) {
       return sendJson(response, 409, { error: 'Another EWA payout request is already in progress. Please wait.', code: 'EWA_CONCURRENT_LOCK' });
     }
     globalThis.__srEwaInFlight.add(ewaLockKey);
+    globalThis.__srEwaInFlight.add(orgFloatLockKey);
     try {
     const store = await loadPayrollStoreForTenant(user.organisation_id);
     if (isTenantOverdueReadonly(store, user.organisation_id)) {
@@ -8781,8 +8787,8 @@ async function getUserRewards(user, store) {
       }
     }
     const amountNgn = Math.round(Number(body.amountNgn || body.amount || 0));
-    if (!Number.isFinite(amountNgn) || amountNgn <= 0) {
-      return sendJson(response, 400, { error: 'Requested disbursal amountNgn must be greater than 0.' });
+    if (!Number.isSafeInteger(amountNgn) || amountNgn < 100 || amountNgn > 10_000_000) {
+      return sendJson(response, 400, { error: 'Requested disbursal amountNgn must be a valid integer between ₦100 and ₦10,000,000.' });
     }
     const beforeLedger = await syncWorkerPayLedger(store, user.organisation_id, user.id);
     const available = Number(beforeLedger?.net_available_disbursal || 0);
@@ -8886,7 +8892,7 @@ async function getUserRewards(user, store) {
     if (idempKey) store.ewaIdempotency[`${ewaLockKey}:${idempKey}`] = payload;
     await saveStore(store);
     return sendJson(response, 200, payload);
-    } finally { globalThis.__srEwaInFlight.delete(ewaLockKey); }
+    } finally { globalThis.__srEwaInFlight.delete(ewaLockKey); globalThis.__srEwaInFlight.delete(orgFloatLockKey); }
   }
 
   if (url.pathname === '/api/rewards/overview' && request.method === 'GET') {
@@ -11988,7 +11994,7 @@ async function getUserRewards(user, store) {
       const org = orgsById.get(m.organisation_id) || {};
       const gross = Number(ct.monthly_rate ?? ct.monthlyRate ?? 0);
       const statRes = calculateNigerianStatutory(gross, { annualRentPaid: ct.annual_rent_ngn || 0, rentVerified: Boolean(ct.rent_doc_verified), nhfEnabled: ct.nhf_enabled !== false, nhisMonthly: ct.nhis_monthly_ngn || 0, lifeAssuranceMonthly: ct.life_assurance_monthly_ngn || 0 });
-      const ewaDeduct = Math.round((store.ewaDisbursements || []).filter(d => d.organisationId === m.organisation_id && d.cycleMonth === month && (d.userId === m.user_id || d.membershipId === m.id)).reduce((sum, d) => sum + Number(d.amountNgn || 0), 0) * 100) / 100;
+      const ewaDeduct = Math.round((store.ewaDisbursements || []).filter(d => d.organisationId === m.organisation_id && d.cycleMonth === month && d.status !== 'TRANSFER_REVERSED' && (d.userId === m.user_id || d.membershipId === m.id)).reduce((sum, d) => sum + Number(d.amountNgn || 0), 0) * 100) / 100;
       const netPay = Math.max(0, Math.round((statRes.netPay - ewaDeduct) * 100) / 100);
       const bName = ct.bank_name || ct.bankName || 'Guaranty Trust Bank (GTBank)';
       const resolvedBank = resolveCbnBank(bName) || { code: '058', name: bName };
