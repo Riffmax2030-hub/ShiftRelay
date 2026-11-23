@@ -2069,6 +2069,40 @@ export function calculateNigerianStatutory(grossSalary, opts = {}) {
   };
 }
 
+async function executePaystackTransfer({ amountNgn, recipientName, accountNumber, bankCode, reason, reference }) {
+  const key = String(process.env.PAYSTACK_SECRET_KEY || '').trim();
+  const isTest = key.startsWith('sk_test_');
+  if (!key) return { ok: false, mode: 'sandbox_ledger', note: 'PAYSTACK_SECRET_KEY not set — recorded on ledger.' };
+  if (!/^\d{10}$/.test(String(accountNumber || '')) || !/^\d{3}$/.test(String(bankCode || ''))) {
+    return { ok: false, mode: isTest ? 'paystack_test_staged' : 'paystack_pending_nuban', note: 'Valid 10-digit NUBAN & 3-digit CBN bank code required for live Paystack transfer.' };
+  }
+  try {
+    const recRes = await fetch('https://api.paystack.co/transferrecipient', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'nuban', name: recipientName || 'ShiftRelay Worker', account_number: String(accountNumber), bank_code: String(bankCode), currency: 'NGN' }),
+      signal: AbortSignal.timeout(6000)
+    });
+    const recJson = await recRes.json().catch(() => ({}));
+    if (!recRes.ok || !recJson?.data?.recipient_code) {
+      return { ok: false, mode: isTest ? 'paystack_test_staged' : 'paystack_pending_approval', note: recJson?.message || 'Paystack recipient creation pending approval.' };
+    }
+    const trRes = await fetch('https://api.paystack.co/transfer', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: 'balance', amount: Math.round(Number(amountNgn) * 100), recipient: recJson.data.recipient_code, reference, reason: reason || 'ShiftRelay EWA Payout' }),
+      signal: AbortSignal.timeout(6000)
+    });
+    const trJson = await trRes.json().catch(() => ({}));
+    if (!trRes.ok || !trJson?.status) {
+      return { ok: false, mode: isTest ? 'paystack_test_staged' : 'paystack_pending_approval', note: trJson?.message || 'Paystack transfer pending approval.' };
+    }
+    return { ok: true, mode: isTest ? 'paystack_test' : 'paystack_live', transferCode: trJson.data?.transfer_code || null, reference: trJson.data?.reference || reference };
+  } catch (err) {
+    return { ok: false, mode: isTest ? 'paystack_test_staged' : 'paystack_pending_approval', note: err.message };
+  }
+}
+
 async function loadSigningStoreForAuth() {
   if (process.env.CARD_SIGNING_SECRET || process.env.SESSION_SECRET) return null;
   const store = await getStore().catch(() => null);
@@ -8590,6 +8624,31 @@ async function getUserRewards(user, store) {
 
   // ── Activity Reward Center & 10-Year Career Roadmap Endpoints ───────────────
   // ── Continuous Real-Time Payroll & Zero-Fee EWA (Dayforce Wallet Model, CBN Compliant) ──
+  if (url.pathname === '/api/webhooks/paystack' && request.method === 'POST') {
+    const rawBody = await readTextBody(request).catch(() => '');
+    const sig = String(request.headers['x-paystack-signature'] || '');
+    const secret = String(process.env.PAYSTACK_SECRET_KEY || '').trim();
+    if (secret) {
+      const expected = crypto.createHmac('sha512', secret).update(rawBody).digest('hex');
+      if (!sig || sig !== expected) return sendJson(response, 401, { error: 'Invalid Paystack signature.' });
+    }
+    let evt = {};
+    try { evt = JSON.parse(rawBody || '{}'); } catch { return sendJson(response, 400, { error: 'Invalid JSON payload.' }); }
+    const store = await getStore();
+    if (!Array.isArray(store.paystackWebhookEvents)) store.paystackWebhookEvents = [];
+    store.paystackWebhookEvents.unshift({ id: 'PSW-' + Date.now(), event: evt.event || 'unknown', reference: evt.data?.reference || null, receivedAt: new Date().toISOString() });
+    if (store.paystackWebhookEvents.length > 100) store.paystackWebhookEvents.length = 100;
+    if (evt.event === 'transfer.success' && evt.data?.reference && Array.isArray(store.ewaDisbursements)) {
+      const hit = store.ewaDisbursements.find(d => d.id === evt.data.reference);
+      if (hit) hit.paystackSettledAt = new Date().toISOString();
+    } else if ((evt.event === 'transfer.failed' || evt.event === 'transfer.reversed') && evt.data?.reference && Array.isArray(store.ewaDisbursements)) {
+      const hit = store.ewaDisbursements.find(d => d.id === evt.data.reference);
+      if (hit) { hit.status = 'TRANSFER_REVERSED'; hit.paystackNote = evt.data?.reason || evt.event; }
+    }
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, received: evt.event || 'ok' });
+  }
+
   if (url.pathname === '/api/wallet/accrued' && request.method === 'GET') {
     const store = await loadPayrollStoreForTenant(user.organisation_id);
     const ledger = await syncWorkerPayLedger(store, user.organisation_id, user.id);
@@ -8598,7 +8657,7 @@ async function getUserRewards(user, store) {
     const employerFloatAvailableNgn = Math.round(Number(floatAcc.balances?.payroll_net || 0));
     const ewaFundingMode = floatAcc.ewaFundingMode || org.ewa_funding_mode || 'prefunded_custody';
     const directDebitAuthorized = Boolean(floatAcc.directDebitAuthorized ?? org.direct_debit_authorized);
-    const directDebitBankName = floatAcc.directDebitBankName || 'Employer Corporate Bank (Mono / Paystack)';
+    const directDebitBankName = floatAcc.directDebitBankName || 'Employer Corporate Bank (Paystack Direct Debit)';
     const canWithdrawNow = ewaFundingMode === 'direct_debit_mandate' ? directDebitAuthorized : employerFloatAvailableNgn > 0;
     if (!databaseReady) await saveStore(store);
     return sendJson(response, 200, {
@@ -8675,8 +8734,17 @@ async function getUserRewards(user, store) {
       floatAcc.balances.payroll_net = Math.round(floatBal - amountNgn);
     }
     floatAcc.updatedAt = new Date().toISOString();
-    const rail = String(body.rail || (ewaFundingMode === 'direct_debit_mandate' ? 'Mono' : 'Paystack NIP')).trim();
+    const rail = String(body.rail || (ewaFundingMode === 'direct_debit_mandate' ? 'Paystack Direct Debit' : 'Paystack NIP')).trim();
     const disbursalId = 'EWA-' + Date.now().toString(36).toUpperCase();
+    const empContract = (store.contracts || []).find(c => (c.tenant_id || c.organisation_id) === user.organisation_id && (c.userId === user.user_id || c.userId === user.id || c.membershipId === user.id)) || {};
+    const paystackTransfer = await executePaystackTransfer({
+      amountNgn,
+      recipientName: user.name || empContract.account_name || 'ShiftRelay Worker',
+      accountNumber: empContract.account_number,
+      bankCode: empContract.cbn_bank_code || resolveCbnBank(empContract.bank_name || '').code,
+      reason: `ShiftRelay EWA Zero-Fee Payout (${beforeLedger.cycleMonth})`,
+      reference: disbursalId
+    });
     const disbursal = {
       id: disbursalId,
       organisationId: user.organisation_id,
@@ -8689,11 +8757,14 @@ async function getUserRewards(user, store) {
       employerSubscriptionNgn: 0,
       cbnZeroLendingCompliant: true,
       fundingMode: ewaFundingMode,
-      mandateRef: ewaFundingMode === 'direct_debit_mandate' ? (floatAcc.directDebitMandateRef || 'MONO-DD-AUTH') : null,
+      mandateRef: ewaFundingMode === 'direct_debit_mandate' ? (floatAcc.directDebitMandateRef || 'PAYSTACK-DD-AUTH') : null,
       custodyPartner: ewaFundingMode === 'direct_debit_mandate'
-        ? (floatAcc.directDebitBankName || 'Employer Direct Debit (Mono / Paystack)')
+        ? (floatAcc.directDebitBankName || 'Employer Direct Debit (Paystack)')
         : floatAcc.custodyPartner,
-      rail: rail === 'Mono' ? 'Mono Open Banking NIP' : 'Paystack NIP',
+      rail: rail.includes('Direct Debit') ? 'Paystack Direct Debit' : 'Paystack NIP',
+      paystackMode: paystackTransfer.mode,
+      paystackTransferCode: paystackTransfer.transferCode || null,
+      paystackNote: paystackTransfer.note || null,
       status: 'DISBURSED_ZERO_FEE',
       createdAt: floatAcc.updatedAt
     };
@@ -9746,6 +9817,14 @@ async function getUserRewards(user, store) {
     if (body.cbn_bank_code !== undefined) contract.cbn_bank_code = String(body.cbn_bank_code || '').trim();
     if (body.pencom_rsa_pin !== undefined) contract.pencom_rsa_pin = String(body.pencom_rsa_pin || '').trim().toUpperCase();
     if (body.tin !== undefined) contract.tin = String(body.tin || '').trim();
+    if (body.pfa_name !== undefined) contract.pfa_name = String(body.pfa_name || '').trim();
+    if (body.state_of_residence !== undefined) contract.state_of_residence = String(body.state_of_residence || 'Lagos').trim();
+    if (body.hire_date !== undefined) contract.hire_date = body.hire_date || null;
+    if (body.annual_rent_ngn !== undefined) contract.annual_rent_ngn = Math.max(0, Number(body.annual_rent_ngn) || 0);
+    if (body.rent_doc_verified !== undefined) contract.rent_doc_verified = Boolean(body.rent_doc_verified);
+    if (body.nhis_monthly_ngn !== undefined) contract.nhis_monthly_ngn = Math.max(0, Number(body.nhis_monthly_ngn) || 0);
+    if (body.life_assurance_monthly_ngn !== undefined) contract.life_assurance_monthly_ngn = Math.max(0, Number(body.life_assurance_monthly_ngn) || 0);
+    if (body.nhf_enabled !== undefined) contract.nhf_enabled = Boolean(body.nhf_enabled);
     if (body.account_number) contract.account_number = body.account_number;
     if (body.account_name) contract.account_name = body.account_name;
     if (databaseReady && UUID_REGEX.test(String(user.organisation_id || '')) && UUID_REGEX.test(String(targetUserId || ''))) {
@@ -9753,9 +9832,17 @@ async function getUserRewards(user, store) {
         `update memberships set
            cbn_bank_code = coalesce($1, cbn_bank_code),
            pencom_rsa_pin = coalesce($2, pencom_rsa_pin),
-           tin = coalesce($3, tin)
+           tin = coalesce($3, tin),
+           state_of_residence = coalesce($6, state_of_residence),
+           pfa_name = coalesce($7, pfa_name),
+           hire_date = coalesce($8, hire_date),
+           annual_rent_ngn = coalesce($9, annual_rent_ngn),
+           rent_doc_verified = coalesce($10, rent_doc_verified),
+           nhis_monthly_ngn = coalesce($11, nhis_monthly_ngn),
+           life_assurance_monthly_ngn = coalesce($12, life_assurance_monthly_ngn),
+           nhf_enabled = coalesce($13, nhf_enabled)
          where organisation_id = $4 and (user_id = $5 or id = $5)`,
-        [contract.cbn_bank_code || null, contract.pencom_rsa_pin || null, contract.tin || null, user.organisation_id, targetUserId]
+        [contract.cbn_bank_code || null, contract.pencom_rsa_pin || null, contract.tin || null, user.organisation_id, targetUserId, contract.state_of_residence || 'Lagos', contract.pfa_name || null, contract.hire_date || null, contract.annual_rent_ngn ?? 0, Boolean(contract.rent_doc_verified), contract.nhis_monthly_ngn ?? 0, contract.life_assurance_monthly_ngn ?? 0, contract.nhf_enabled !== false]
       ).catch(() => {});
       await query(
         `update employee_contracts set

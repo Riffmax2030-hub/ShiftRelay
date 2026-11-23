@@ -14716,7 +14716,7 @@
               <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
                 <div>
                   <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;color:#059669;text-transform:uppercase;">Live Accrued Pay &amp; Zero-Fee EWA</div>
-                  <div style="font-size:12px;color:var(--p-text-3);">0% Interest &bull; ₦0 Worker Fee &bull; ${walletFundingMode === 'direct_debit_mandate' ? 'Employer-Authorized Direct Debit (Mono / Paystack)' : `Funded from Employer Custody (${escapeHtml(walletCustodyPartner)})`}</div>
+                  <div style="font-size:12px;color:var(--p-text-3);">0% Interest &bull; ₦0 Worker Fee &bull; ${walletFundingMode === 'direct_debit_mandate' ? 'Employer-Authorized Direct Debit (Paystack)' : `Funded from Employer Custody (${escapeHtml(walletCustodyPartner)})`}</div>
                 </div>
                 <span class="sr-v2-num" style="font-size:17px;font-weight:800;color:#059669;">₦${Number(wa.net_available_disbursal || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
               </div>
@@ -15388,10 +15388,17 @@
                 <span>Bank CSV</span>
               </a>
             </div>
-            <a href="/api/payroll/export-tax-csv?month=${encodeURIComponent(currentMonth)}" download class="sr-btn sr-btn-secondary" id="sr-btn-export-tax-csv" style="font-size:12px;padding:8px 12px;display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              <span>Statutory CSV</span>
-            </a>
+            <div style="display:inline-flex;align-items:center;gap:6px;background:var(--sr-bg-elevated);padding:3px 6px;border-radius:9px;border:1px solid var(--sr-border-subtle);">
+              <select id="sr-tax-csv-groupby" aria-label="Statutory Schedule Grouping" style="width:auto;min-height:32px;padding:4px 8px;border-radius:6px;border:none;background:transparent;color:var(--sr-text-main);font-size:12px;font-weight:600;cursor:pointer;">
+                <option value="">NTA 2025 Schedule</option>
+                <option value="state">Group by State IRS</option>
+                <option value="pfa">Group by PFA</option>
+              </select>
+              <a href="/api/payroll/export-tax-csv?month=${encodeURIComponent(currentMonth)}" download class="sr-btn sr-btn-secondary" id="sr-btn-export-tax-csv" style="font-size:12px;min-height:30px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span>Statutory CSV</span>
+              </a>
+            </div>
             <a href="/calculator.html" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="font-size:12px;padding:8px 12px;display:inline-flex;align-items:center;gap:5px;text-decoration:none;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
               <span>PAYE Calculator</span>
@@ -15476,7 +15483,7 @@
 
         <!-- Edit Contract Modal -->
         <div id="sr-contract-modal-backdrop" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-          <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:12px;max-width:480px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.2);padding:24px;">
+          <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);border-radius:12px;max-width:540px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 25px rgba(0,0,0,0.2);padding:24px;">
             <h3 style="margin:0 0 16px;font-size:16px;font-weight:700;color:var(--sr-text-main);" id="sr-contract-modal-title">Edit Worker Contract</h3>
             <form id="sr-contract-form">
               <input type="hidden" id="sr-contract-user-id" />
@@ -15503,14 +15510,56 @@
                 <input type="text" id="sr-contract-bank-name" class="sr-input" style="width:100%;" />
               </div>
 
-              <div class="sr-field-group" style="margin-bottom:18px;">
+              <div class="sr-field-group" style="margin-bottom:12px;">
                 <label class="sr-label" style="font-size:12px;font-weight:600;">NUBAN Account Number (10 digits)</label>
                 <input type="text" id="sr-contract-acc-num" class="sr-input" style="width:100%;" maxlength="10" />
               </div>
-
-              <div style="display:flex;justify-content:flex-end;gap:10px;">
-                <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-contract">Cancel</button>
-                <button type="submit" class="sr-btn sr-btn-primary">Save Contract</button>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                <div>
+                  <label class="sr-label" style="font-size:12px;font-weight:600;">State of Residence (PAYE IRS)</label>
+                  <select id="sr-contract-state" class="sr-input" style="width:100%;">
+                    <option value="Lagos">Lagos (LIRS)</option><option value="FCT">Abuja FCT (FCT-IRS)</option><option value="Rivers">Rivers (RIRS)</option><option value="Ogun">Ogun (OGIRS)</option><option value="Oyo">Oyo (OYIRS)</option><option value="Kano">Kano (KIRS)</option><option value="Kaduna">Kaduna (KADIRS)</option><option value="Enugu">Enugu (ESIRS)</option><option value="Delta">Delta (DSIRS)</option><option value="Edo">Edo (EIRS)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="sr-label" style="font-size:12px;font-weight:600;">Hire Date (Labour Act s.7)</label>
+                  <input type="date" id="sr-contract-hire-date" class="sr-input" style="width:100%;" />
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                <div>
+                  <label class="sr-label" style="font-size:12px;font-weight:600;">PFA Name (PenCom)</label>
+                  <input type="text" id="sr-contract-pfa-name" class="sr-input" style="width:100%;" placeholder="e.g. Stanbic IBTC Pension" />
+                </div>
+                <div>
+                  <label class="sr-label" style="font-size:12px;font-weight:600;">PenCom RSA PIN</label>
+                  <input type="text" id="sr-contract-rsa-pin" class="sr-input" style="width:100%;" placeholder="PEN100..." />
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+                <div>
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;">Annual Rent (₦)</label>
+                  <input type="number" id="sr-contract-annual-rent" class="sr-input" style="width:100%;" min="0" step="10000" />
+                </div>
+                <div>
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;">NHIS (₦/mo)</label>
+                  <input type="number" id="sr-contract-nhis" class="sr-input" style="width:100%;" min="0" step="500" />
+                </div>
+                <div>
+                  <label class="sr-label" style="font-size:11.5px;font-weight:600;">Life Ins. (₦/mo)</label>
+                  <input type="number" id="sr-contract-life-ins" class="sr-input" style="width:100%;" min="0" step="500" />
+                </div>
+              </div>
+              <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;font-size:12px;color:var(--sr-text-main);">
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="sr-contract-rent-verified" /> Tenancy Receipt Verified (20% Rent Relief)</label>
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="sr-contract-nhf-enabled" checked /> NHF 2.5% Applicable</label>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-view-sec7" style="font-size:12px;">Section 7 Contract</button>
+                <div style="display:flex;gap:8px;">
+                  <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-cancel-contract">Cancel</button>
+                  <button type="submit" class="sr-btn sr-btn-primary">Save Contract</button>
+                </div>
               </div>
             </form>
           </div>
@@ -15608,6 +15657,11 @@
     if (bankFmtSel) {
       bankFmtSel.addEventListener('change', refreshBankExportReadiness);
     }
+    document.getElementById('sr-tax-csv-groupby')?.addEventListener('change', (e) => {
+      const taxLink = document.getElementById('sr-btn-export-tax-csv');
+      const gb = e.target.value || '';
+      if (taxLink) taxLink.href = `/api/payroll/export-tax-csv?month=${encodeURIComponent(currentMonth)}${gb ? '&groupBy=' + encodeURIComponent(gb) : ''}`;
+    });
     refreshBankExportReadiness();
 
     document.getElementById('sr-btn-payroll-attendance-sheet')?.addEventListener('click', () => {
@@ -15694,6 +15748,15 @@
         document.getElementById('sr-contract-hourly-rate').value = emp.hourly_rate || 1500;
         document.getElementById('sr-contract-bank-name').value = emp.bank_name || '';
         document.getElementById('sr-contract-acc-num').value = emp.account_number || '';
+        if (document.getElementById('sr-contract-state')) document.getElementById('sr-contract-state').value = emp.stateOfResidence || emp.state_of_residence || 'Lagos';
+        if (document.getElementById('sr-contract-hire-date')) document.getElementById('sr-contract-hire-date').value = emp.hire_date ? String(emp.hire_date).slice(0, 10) : '';
+        if (document.getElementById('sr-contract-pfa-name')) document.getElementById('sr-contract-pfa-name').value = emp.pfa_name || '';
+        if (document.getElementById('sr-contract-rsa-pin')) document.getElementById('sr-contract-rsa-pin').value = emp.pencom_rsa_pin || '';
+        if (document.getElementById('sr-contract-annual-rent')) document.getElementById('sr-contract-annual-rent').value = Number(emp.annual_rent_ngn || 0);
+        if (document.getElementById('sr-contract-nhis')) document.getElementById('sr-contract-nhis').value = Number(emp.nhis_monthly_ngn || emp.nhis || 0);
+        if (document.getElementById('sr-contract-life-ins')) document.getElementById('sr-contract-life-ins').value = Number(emp.life_assurance_monthly_ngn || emp.lifeAssurance || 0);
+        if (document.getElementById('sr-contract-rent-verified')) document.getElementById('sr-contract-rent-verified').checked = Boolean(emp.rent_doc_verified);
+        if (document.getElementById('sr-contract-nhf-enabled')) document.getElementById('sr-contract-nhf-enabled').checked = emp.nhf_enabled !== false;
         document.getElementById('sr-contract-modal-title').textContent = `Edit Contract — ${emp.userName}`;
 
         contractModal.style.display = 'flex';
@@ -15705,6 +15768,19 @@
         contractModal.style.display = 'none';
       });
     }
+    document.getElementById('sr-btn-view-sec7')?.addEventListener('click', async () => {
+      const uid = document.getElementById('sr-contract-user-id')?.value;
+      if (!uid) return;
+      try {
+        const r = await fetch(`/api/hr/written-particulars?userId=${encodeURIComponent(uid)}`);
+        const d = await r.json();
+        if (!r.ok || !d.particulars) throw new Error(d.error || 'Could not load Section 7 particulars');
+        const sp = d.particulars;
+        const w = window.open('', '_blank', 'width=760,height=820');
+        if (!w) return alert(`${sp.employeeName} — ${sp.statute}\nGross: ₦${sp.remuneration.monthlyGrossNgn.toLocaleString()}\nNotice: ${sp.terminationNotice.currentTenureNotice}`);
+        w.document.write(`<html><head><title>Section 7 Written Particulars — ${escapeHtml(sp.employeeName)}</title><style>body{font-family:Inter,sans-serif;padding:32px;color:#0f172a;line-height:1.55;}h1{font-size:18px;margin-bottom:4px;}table{width:100%;border-collapse:collapse;margin-top:16px;}td,th{border:1px solid #cbd5e1;padding:8px 10px;text-align:left;font-size:13px;}th{background:#f1f5f9;width:34%;}</style></head><body><h1>${escapeHtml(sp.employerName)}</h1><div style="color:#059669;font-weight:700;font-size:12px;">${escapeHtml(sp.statute)}</div><table><tr><th>Employee</th><td>${escapeHtml(sp.employeeName)} (${escapeHtml(sp.staffId)})</td></tr><tr><th>Job Title &amp; Dept</th><td>${escapeHtml(sp.jobTitle)} — ${escapeHtml(sp.department)}</td></tr><tr><th>Hire Date / Due By</th><td>${escapeHtml(sp.hireDate)} (Due within 3 months: ${escapeHtml(sp.writtenParticularsDueBy)})</td></tr><tr><th>Monthly Gross &amp; Interval</th><td>₦${Number(sp.remuneration.monthlyGrossNgn).toLocaleString()} — ${escapeHtml(sp.remuneration.payInterval)}</td></tr><tr><th>Hours &amp; Overtime</th><td>${escapeHtml(sp.workingHours)} | ${escapeHtml(sp.remuneration.overtimeRate)}</td></tr><tr><th>Leave Entitlements</th><td>${escapeHtml(sp.leaveEntitlements.annualLeave)}<br>${escapeHtml(sp.leaveEntitlements.maternityLeave)}</td></tr><tr><th>Statutory Notice</th><td>${escapeHtml(sp.terminationNotice.currentTenureNotice)} (${escapeHtml(sp.terminationNotice.schedule)})</td></tr><tr><th>PAYE State IRS &amp; PFA</th><td>${escapeHtml(sp.taxAndPension.payeStateAuthority)} | ${escapeHtml(sp.taxAndPension.pfaName)} (${escapeHtml(sp.taxAndPension.rsaPin)})</td></tr></table><p style="margin-top:20px;"><button onclick="window.print()" style="padding:8px 16px;background:#059669;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">Print / Save PDF</button></p></body></html>`);
+      } catch (err) { alert(err.message); }
+    });
 
     if (contractForm) {
       contractForm.addEventListener('submit', async (e) => {
@@ -15715,7 +15791,16 @@
           monthly_rate: Number(document.getElementById('sr-contract-monthly-rate').value),
           hourly_rate: Number(document.getElementById('sr-contract-hourly-rate').value),
           bank_name: document.getElementById('sr-contract-bank-name').value,
-          account_number: document.getElementById('sr-contract-acc-num').value
+          account_number: document.getElementById('sr-contract-acc-num').value,
+          state_of_residence: document.getElementById('sr-contract-state')?.value || 'Lagos',
+          hire_date: document.getElementById('sr-contract-hire-date')?.value || null,
+          pfa_name: document.getElementById('sr-contract-pfa-name')?.value || '',
+          pencom_rsa_pin: document.getElementById('sr-contract-rsa-pin')?.value || '',
+          annual_rent_ngn: Number(document.getElementById('sr-contract-annual-rent')?.value || 0),
+          nhis_monthly_ngn: Number(document.getElementById('sr-contract-nhis')?.value || 0),
+          life_assurance_monthly_ngn: Number(document.getElementById('sr-contract-life-ins')?.value || 0),
+          rent_doc_verified: Boolean(document.getElementById('sr-contract-rent-verified')?.checked),
+          nhf_enabled: Boolean(document.getElementById('sr-contract-nhf-enabled')?.checked)
         };
 
         try {
