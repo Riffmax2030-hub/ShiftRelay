@@ -21,7 +21,7 @@
 >
 > **ShiftRelay** is the Dayforce-grade Workforce & Automated Nigerian Statutory Payroll OS built for 50–1,500+ shift workers:
 > - **Zero-Hardware Verification:** Live facial identity match, rotating QR/Digital Staff IDs & 1.5s burst geofencing.
-> - **1-Click Statutory & Bank Settlement:** Continuous real-time net-pay accrual, automated FIRS PAYE (Finance Act CRA), PenCom (18%), NHF (2.5%), NSITF (1%), and CBN NIP/NIBSS bulk files (Paystack, GTBank, Zenith, Access).
+> - **1-Click Statutory & Bank Settlement:** Continuous real-time net-pay accrual, automated NTA 2025 PAYE (zero legacy CRA, LIRS/FCT-IRS), PenCom (18%), NHF (2.5%), NSITF (1%), and CBN NIP/NIBSS bulk files (Paystack, GTBank, Zenith, Access).
 > - **Zero-Fee Earned Wage Access:** Boost shift retention at 0% interest & ₦0 worker fee ($0 extra employer subscription, CBN zero-lending safe) — funded via Prefunded Partner Custody or Mono/Paystack Direct Debit.
 > - **100% Employer-Paid, Volume-Discounted Pricing:** From ₦150k/mo + ₦4,500 PEPM down to ₦2,500 PEPM at scale (seasonal surge just ₦2,500/worker/mo).
 >
@@ -38,7 +38,7 @@
 >
 > **2/4:** ShiftRelay replaces ₦3.5M biometric clocks with live facial verification, rotating QR Staff IDs & 1.5s burst geofencing—live in 48 hours, 100% employer-paid (₦0 charged to workers).
 >
-> **3/4:** As shifts happen, net pay accrues continuously with automated PAYE (CRA), PenCom (18%), NHF (2.5%), NSITF (1%), and 1-click CBN NIP/NIBSS bank files (Paystack, GTBank, Zenith, Access) + 0% interest Earned Wage Access (CBN zero-lending safe).
+> **3/4:** As shifts happen, net pay accrues continuously with automated NTA 2025 PAYE (zero legacy CRA), PenCom (18%), NHF (2.5%), NSITF (1%), and 1-click CBN NIP/NIBSS bank files (Paystack, GTBank, Zenith, Access) + 0% interest Earned Wage Access (CBN zero-lending safe).
 >
 > **4/4:** Eliminate payroll leakage & boost shift retention — start your ₦250k 30-Day Pilot (100% credited on conversion). Try our PAYE calculator or view volume-discounted tiers: `https://shiftrelayos.com/pricing.html`
 

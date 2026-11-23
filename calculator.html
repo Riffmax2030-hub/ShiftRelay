@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nigerian Statutory PAYE &amp; PenCom Payroll Calculator | ShiftRelay</title>
-  <meta name="description" content="Calculate accurate Nigerian Finance Act PAYE Tax, Consolidated Relief Allowance (CRA), PenCom (8% Employee / 10% Employer), NHF 2.5%, NSITF 1%, and Net Pay for single employees or multi-staff teams." />
+  <title>Nigeria Tax Act (NTA) 2025 PAYE &amp; PenCom Payroll Calculator | ShiftRelay</title>
+  <meta name="description" content="Calculate 2026 Nigerian PAYE Tax under the Nigeria Tax Act (NTA) 2025 (zero legacy CRA, First ₦800k tax-free, 15%–25% bands, ₦70k minimum wage exemption, 20% Rent Relief up to ₦500k), PenCom on BHT (8% EE / 10% ER), NHF 2.5%, NSITF 1%, ITF 1%, and Net Pay." />
   <link rel="canonical" href="https://shiftrelayos.com/calculator.html" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg?v=177" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -196,9 +196,9 @@
 
   <main>
     <div class="hero-top">
-      <span class="eyebrow">FREE NIGERIAN STATUTORY COMPLIANCE TOOL · PITA 2011 · PENCOM PRA 2014</span>
-      <h1>Nigeria PAYE Tax &amp; PenCom Payroll Calculator</h1>
-      <p style="color:var(--muted); max-width:780px;">Powered directly by ShiftRelay's production Nigerian statutory engine: Consolidated Relief Allowance (CRA), 8% Employee / 10% Employer PenCom, 2.5% NHF, 1% NSITF, and progressive PITA PAYE brackets.</p>
+      <span class="eyebrow">FREE NIGERIAN STATUTORY COMPLIANCE TOOL · NIGERIA TAX ACT (NTA) 2025 (EFFECTIVE JAN 1, 2026) · PENCOM PRA 2014</span>
+      <h1>Nigeria Tax Act (NTA) 2025 PAYE &amp; PenCom Calculator</h1>
+      <p style="color:var(--muted); max-width:820px;">Powered directly by ShiftRelay's 2026 Nigerian statutory engine: <strong>zero legacy CRA</strong>, first <strong>₦800,000 tax-free (0%)</strong>, progressive 15%&ndash;25% bands, <strong>₦70,000/mo National Minimum Wage exemption</strong>, verified <strong>Rent Relief (20% up to ₦500,000/yr)</strong>, 8% Employee / 10% Employer PenCom on <strong>Basic + Housing + Transport (BHT)</strong>, 2.5% NHF, 1% NSITF, 1% ITF, and State-of-Residence routing (LIRS, FCT-IRS).</p>
     </div>
 
     <div class="calc-grid">
@@ -211,29 +211,49 @@
 
         <label>Quick Gross Salary Presets (NGN / Month)</label>
         <div class="preset-row">
-          <button type="button" class="preset-btn" onclick="applyGrossPreset(120000)">₦120,000</button>
-          <button type="button" class="preset-btn active" onclick="applyGrossPreset(250000)">₦250,000</button>
-          <button type="button" class="preset-btn" onclick="applyGrossPreset(500000)">₦500,000</button>
-          <button type="button" class="preset-btn" onclick="applyGrossPreset(1200000)">₦1,200,000</button>
+          <button type="button" class="preset-btn" onclick="applyGrossPreset(70000, this)">₦70k (Min. Wage 0%)</button>
+          <button type="button" class="preset-btn" onclick="applyGrossPreset(150000, this)">₦150,000</button>
+          <button type="button" class="preset-btn active" onclick="applyGrossPreset(250000, this)">₦250,000</button>
+          <button type="button" class="preset-btn" onclick="applyGrossPreset(500000, this)">₦500,000</button>
+          <button type="button" class="preset-btn" onclick="applyGrossPreset(1200000, this)">₦1,200,000</button>
         </div>
 
         <div class="field">
           <label for="calc-gross">Monthly Gross Salary per Staff (NGN)</label>
           <input id="calc-gross" type="number" min="10000" step="1000" value="250000" />
         </div>
-        <div class="field">
-          <label for="calc-headcount">Staff Headcount Multiplier</label>
-          <input id="calc-headcount" type="number" min="1" max="50000" value="1" />
+        <div class="field" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label for="calc-headcount">Staff Headcount</label>
+            <input id="calc-headcount" type="number" min="1" max="50000" value="1" />
+          </div>
+          <div>
+            <label for="calc-state">State of Residence (PAYE SIRS)</label>
+            <select id="calc-state">
+              <option value="Lagos">Lagos (LIRS)</option>
+              <option value="FCT">Abuja FCT (FCT-IRS)</option>
+              <option value="Rivers">Rivers (RIRS)</option>
+              <option value="Ogun">Ogun (OGIRS)</option>
+              <option value="Oyo">Oyo (OYIRS)</option>
+              <option value="Kano">Kano (KIRS)</option>
+            </select>
+          </div>
         </div>
-        <div class="field">
-          <label for="calc-basic-ratio">Basic Salary Ratio (PenCom &amp; NHF Base)</label>
-          <select id="calc-basic-ratio">
-            <option value="0.5">50% of Gross (Standard Nigeria Structure)</option>
-            <option value="0.6">60% of Gross</option>
-            <option value="0.4">40% of Gross</option>
-          </select>
+        <div class="field" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label for="calc-basic-ratio">Basic Salary Ratio (BHT Base)</label>
+            <select id="calc-basic-ratio">
+              <option value="0.5">50% Basic (+20% Hsg, +10% Trans = 80% BHT)</option>
+              <option value="0.6">60% Basic (+20% Hsg, +10% Trans = 90% BHT)</option>
+              <option value="0.4">40% Basic (+20% Hsg, +10% Trans = 70% BHT)</option>
+            </select>
+          </div>
+          <div>
+            <label for="calc-rent">Verified Annual Rent Paid (20% Relief)</label>
+            <input id="calc-rent" type="number" min="0" step="50000" value="0" placeholder="e.g. 1200000 (max ₦500k relief)" />
+          </div>
         </div>
-        <button type="button" class="btn-main" onclick="runPayrollCalculator()">Calculate Nigerian Statutory Breakdown</button>
+        <button type="button" class="btn-main" onclick="runPayrollCalculator()">Calculate NTA 2025 Statutory Breakdown</button>
 
         <form id="calc-email-form" class="email-capture">
           <label style="color:var(--sky); margin-bottom:8px;">Email Me Full Schedule &amp; PenCom Breakdown</label>
@@ -252,15 +272,18 @@
       </section>
 
       <section class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px;">
-          <h2 style="font-family:'Outfit',sans-serif; font-size:20px; font-weight:800;">Verified Statutory Schedule (<span id="res-headcount-label">1 Staff</span>)</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+          <div>
+            <h2 style="font-family:'Outfit',sans-serif; font-size:20px; font-weight:800;">NTA 2025 Statutory Schedule (<span id="res-headcount-label">1 Staff</span>)</h2>
+            <div id="res-regime-badge" style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#059669; font-weight:700; margin-top:2px;">NTA 2025 PROGRESSIVE · ZERO LEGACY CRA · LIRS (LAGOS)</div>
+          </div>
           <button type="button" class="preset-btn" onclick="window.print()">Print PDF</button>
         </div>
 
         <div class="kpi-grid">
           <div class="kpi-box"><small>Total Take-Home Net Pay</small><strong id="kpi-net" style="color:var(--em);">₦—</strong></div>
-          <div class="kpi-box"><small>Total PenCom Remittance (18%)</small><strong id="kpi-pencom" style="color:var(--sky);">₦—</strong></div>
-          <div class="kpi-box"><small>Monthly PAYE Income Tax</small><strong id="kpi-paye">₦—</strong></div>
+          <div class="kpi-box"><small>Total PenCom on BHT (18%)</small><strong id="kpi-pencom" style="color:var(--sky);">₦—</strong></div>
+          <div class="kpi-box"><small>Monthly NTA 2025 PAYE Tax</small><strong id="kpi-paye">₦—</strong></div>
           <div class="kpi-box"><small>Total Cost to Employer</small><strong id="kpi-employer-cost">₦—</strong></div>
         </div>
 
@@ -281,46 +304,72 @@
       runPayrollCalculator();
     }
 
-    function applyGrossPreset(amount) {
+    function applyGrossPreset(amount, btn) {
       document.getElementById('calc-gross').value = String(amount);
+      if (btn) {
+        document.querySelectorAll('.preset-row .preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
       runPayrollCalculator();
     }
 
-    function computeLocalStatutoryFallback(monthlyGross, headcount, basicRatio) {
-      const basic = monthlyGross * basicRatio;
-      const empPenCom = monthlyGross * 0.08;
-      const erPenCom = monthlyGross * 0.10;
-      const nhf = basic * 0.025;
-      const nsitf = monthlyGross * 0.01;
+    function computeLocalStatutoryFallback(monthlyGross, headcount, basicRatio, annualRentPaid = 0, stateOfResidence = 'Lagos') {
+      const basic = Math.round(monthlyGross * basicRatio);
+      const housing = Math.round(monthlyGross * 0.20 * 100) / 100;
+      const transport = Math.round(monthlyGross * 0.10 * 100) / 100;
+      const bhtBase = Math.min(monthlyGross, basic + housing + transport);
+      const empPenCom = Math.round(bhtBase * 0.08 * 100) / 100;
+      const erPenCom = Math.round(bhtBase * 0.10 * 100) / 100;
+      const nhf = Math.round(basic * 0.025 * 100) / 100;
+      const nsitf = Math.round(monthlyGross * 0.01 * 100) / 100;
+      const itf = Math.round(monthlyGross * 0.01 * 100) / 100;
       const annualGross = monthlyGross * 12;
-      const cra = Math.max(200000, annualGross * 0.01) + annualGross * 0.20;
-      const annualTaxable = Math.max(0, annualGross - cra - (empPenCom + nhf) * 12);
+      const minWageExempt = annualGross <= 840000;
+      const rentReliefAnnual = minWageExempt ? 0 : Math.min(500000, Math.round(Math.max(0, annualRentPaid) * 0.20 * 100) / 100);
+      const rentReliefMonthly = Math.round((rentReliefAnnual / 12) * 100) / 100;
+      const annualTaxable = minWageExempt ? 0 : Math.max(0, annualGross - rentReliefAnnual - (empPenCom + nhf) * 12);
       const brackets = [
-        [300000, 0.07],
-        [300000, 0.11],
-        [500000, 0.15],
-        [500000, 0.19],
-        [1600000, 0.21],
-        [Infinity, 0.24]
+        [800000, 0.00],
+        [2200000, 0.15],
+        [9000000, 0.18],
+        [13000000, 0.21],
+        [25000000, 0.23],
+        [Infinity, 0.25]
       ];
       let rem = annualTaxable;
       let annualTax = 0;
-      for (const [cap, rate] of brackets) {
-        if (rem <= 0) break;
-        const slice = Math.min(rem, cap);
-        annualTax += slice * rate;
-        rem -= slice;
+      if (!minWageExempt) {
+        for (const [cap, rate] of brackets) {
+          if (rem <= 0) break;
+          const slice = Math.min(rem, cap);
+          annualTax += slice * rate;
+          rem -= slice;
+        }
       }
-      const monthlyPaye = annualTax / 12;
-      const net = monthlyGross - empPenCom - nhf - monthlyPaye;
+      const monthlyPaye = Math.round((annualTax / 12) * 100) / 100;
+      const net = Math.max(0, Math.round((monthlyGross - empPenCom - nhf - monthlyPaye) * 100) / 100);
+      const sirsMap = {
+        Lagos: 'LIRS (Lagos State Internal Revenue Service)',
+        FCT: 'FCT-IRS (FCT Internal Revenue Service)',
+        Rivers: 'RIRS (Rivers State Internal Revenue Service)',
+        Ogun: 'OGIRS (Ogun State Internal Revenue Service)',
+        Oyo: 'OYIRS (Oyo State Internal Revenue Service)',
+        Kano: 'KIRS (Kano State Internal Revenue Service)'
+      };
       return {
         perStaff: {
-          monthlyCra: cra / 12,
+          bhtBase,
+          minimumWageExempt: minWageExempt,
+          rentReliefMonthly,
+          rentReliefAnnual,
+          stateAuthority: sirsMap[stateOfResidence] || (stateOfResidence + ' SIRS'),
           annualTaxableIncome: annualTaxable,
-          effectiveTaxRate: ((monthlyPaye / monthlyGross) * 100).toFixed(2) + '%'
+          effectiveTaxRate: ((monthlyPaye / monthlyGross) * 100).toFixed(2)
         },
         companyTotals: {
           totalGross: monthlyGross * headcount,
+          totalBhtBase: bhtBase * headcount,
+          totalRentReliefMonthly: rentReliefMonthly * headcount,
           totalNetPay: net * headcount,
           totalPenComRemittance: (empPenCom + erPenCom) * headcount,
           totalPaye: monthlyPaye * headcount,
@@ -328,7 +377,8 @@
           totalEmployerPenCom: erPenCom * headcount,
           totalNhf: nhf * headcount,
           totalNsitf: nsitf * headcount,
-          totalCostToEmployer: (monthlyGross + erPenCom + nsitf) * headcount
+          totalItf: itf * headcount,
+          totalCostToEmployer: (monthlyGross + erPenCom + nsitf + itf) * headcount
         }
       };
     }
@@ -337,7 +387,17 @@
       const monthlyGross = Number(document.getElementById('calc-gross').value || 250000);
       const headcount = Math.max(1, Number(document.getElementById('calc-headcount').value || 1));
       const basicRatio = Number(document.getElementById('calc-basic-ratio').value || 0.5);
-      const payload = { monthlyGross, headcount, basicRatio, ...(extraEmailPayload || {}) };
+      const annualRentPaid = Math.max(0, Number(document.getElementById('calc-rent')?.value || 0));
+      const stateOfResidence = document.getElementById('calc-state')?.value || 'Lagos';
+      const payload = {
+        monthlyGross,
+        headcount,
+        basicRatio,
+        annualRentPaid,
+        rentVerified: annualRentPaid > 0,
+        stateOfResidence,
+        ...(extraEmailPayload || {})
+      };
       let data = null;
       try {
         const res = await fetch('/api/public/payroll-calculate', {
@@ -351,33 +411,49 @@
         if (extraEmailPayload) {
           return { error: 'Email delivery requires an active server connection.' };
         }
-        data = computeLocalStatutoryFallback(monthlyGross, headcount, basicRatio);
+        data = computeLocalStatutoryFallback(monthlyGross, headcount, basicRatio, annualRentPaid, stateOfResidence);
       }
 
-      const t = data.companyTotals;
-      const s = data.perStaff;
+      // Ensure NTA 2025 derived fields are always populated even if talking to an older server endpoint
+      const localNta = computeLocalStatutoryFallback(monthlyGross, headcount, basicRatio, annualRentPaid, stateOfResidence);
+      const t = { ...localNta.companyTotals, ...(data.companyTotals || {}) };
+      const s = { ...localNta.perStaff, ...(data.perStaff || {}) };
+      if (annualRentPaid > 0 && !data?.perStaff?.rentReliefAnnual) {
+        Object.assign(t, localNta.companyTotals);
+        Object.assign(s, localNta.perStaff);
+      }
+
       document.getElementById('res-headcount-label').textContent = headcount === 1 ? '1 Staff' : headcount + ' Staff';
+      const badgeEl = document.getElementById('res-regime-badge');
+      if (badgeEl) {
+        badgeEl.textContent = s.minimumWageExempt
+          ? `0% NATIONAL MINIMUM WAGE EXEMPT (≤ ₦70,000/MO) · ${s.stateAuthority}`
+          : `NTA 2025 PROGRESSIVE (FIRST ₦800K @ 0%) · ZERO LEGACY CRA · ${s.stateAuthority}`;
+      }
       document.getElementById('kpi-net').textContent = fmtNgn(t.totalNetPay);
       document.getElementById('kpi-pencom').textContent = fmtNgn(t.totalPenComRemittance);
       document.getElementById('kpi-paye').textContent = fmtNgn(t.totalPaye);
       document.getElementById('kpi-employer-cost').textContent = fmtNgn(t.totalCostToEmployer);
 
+      const effRateStr = String(s.effectiveTaxRate || '0').replace(/%$/, '') + '%';
       document.getElementById('calc-breakdown-rows').innerHTML = [
-        ['Total Gross Payroll', fmtNgn(t.totalGross)],
-        ['Consolidated Relief Allowance (Monthly / Staff)', fmtNgn(s.monthlyCra)],
-        ['Annual Taxable Income (Per Staff)', fmtNgn(s.annualTaxableIncome)],
-        ['PAYE Tax Liability (' + s.effectiveTaxRate + ' eff.)', fmtNgn(t.totalPaye)],
-        ['Employee PenCom Contribution (8%)', fmtNgn(t.totalEmployeePenCom)],
-        ['Employer PenCom Contribution (10%)', fmtNgn(t.totalEmployerPenCom)],
-        ['NHF Employee Contribution (2.5% Basic)', fmtNgn(t.totalNhf)],
-        ['NSITF Employer ECA Levy (1% Gross)', fmtNgn(t.totalNsitf)],
+        ['Total Monthly Gross Payroll', fmtNgn(t.totalGross)],
+        ['PenCom BHT Base (Basic + 20% Housing + 10% Transport)', fmtNgn(t.totalBhtBase)],
+        ['Verified Rent Relief (20% Annual Rent, max ₦500k/yr)', fmtNgn(s.rentReliefAnnual || 0) + ' / yr'],
+        ['Annual Chargeable Income (Per Staff · Zero Legacy CRA)', fmtNgn(s.annualTaxableIncome)],
+        ['NTA 2025 PAYE Tax (' + effRateStr + ' eff. · First ₦800k @ 0%)', fmtNgn(t.totalPaye)],
+        ['Employee PenCom Contribution (8% of BHT)', fmtNgn(t.totalEmployeePenCom)],
+        ['Employer PenCom Contribution (10% of BHT)', fmtNgn(t.totalEmployerPenCom)],
+        ['NHF Employee Contribution (2.5% of Basic)', fmtNgn(t.totalNhf)],
+        ['NSITF Employer ECA (1%) + ITF (1% Employer)', fmtNgn((t.totalNsitf || 0) + (t.totalItf || 0))],
         ['Net Salary Payable to Staff Bank CSV', fmtNgn(t.totalNetPay)]
       ].map(([k, v]) => `<tr><td style="color:#475569;">${k}</td><td>${v}</td></tr>`).join('');
       return data;
     }
 
-    ['calc-gross', 'calc-headcount', 'calc-basic-ratio'].forEach(id => {
-      document.getElementById(id).addEventListener('change', () => runPayrollCalculator());
+    ['calc-gross', 'calc-headcount', 'calc-basic-ratio', 'calc-rent', 'calc-state'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', () => runPayrollCalculator());
+      document.getElementById(id)?.addEventListener('input', () => runPayrollCalculator());
     });
 
     document.getElementById('calc-email-form').addEventListener('submit', async (ev) => {

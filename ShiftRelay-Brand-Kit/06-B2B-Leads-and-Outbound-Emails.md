@@ -34,7 +34,7 @@
 > **ShiftRelay** is a Dayforce-grade Workforce, Verified Attendance & Automated Nigerian Statutory Payroll OS — **100% employer-paid (₦0 charged to workers)**:
 >
 > - **Zero-Hardware Biometric + 1.5s Burst Geofencing:** Live facial identity verification and rotating QR/Digital Staff IDs — eliminating expensive biometric clocks.
-> - **1-Click Nigerian Statutory & Bank Settlement:** Continuous real-time net-pay accrual, automated FIRS PAYE (Finance Act CRA), PenCom (18%), NHF (2.5%), NSITF (1%), and CBN NIP/NIBSS bulk transfer files (Paystack, GTBank, Zenith, Access) backed by partner custody float reconciliation.
+> - **1-Click Nigerian Statutory & Bank Settlement:** Continuous real-time net-pay accrual, automated NTA 2025 PAYE (zero legacy CRA, LIRS/FCT-IRS), PenCom (18%), NHF (2.5%), NSITF (1%), and CBN NIP/NIBSS bulk transfer files (Paystack, GTBank, Zenith, Access) backed by partner custody float reconciliation.
 > - **Zero-Fee Earned Wage Access (CBN Zero-Lending Safe):** Boost shift retention by letting verified staff access earned wages at **0% interest and ₦0 worker fee** ($0 extra employer subscription) — funded via Prefunded Partner Custody or Authorized Corporate Bank Direct Debit (Mono / Paystack).
 > - **Volume-Discounted Enterprise Pricing:** From ₦150k/mo + ₦4,500 PEPM (Professional) down to ₦2,500 PEPM (Enterprise Plus), with seasonal/casual surge staff billed at just **₦2,500/worker/mo** and zero forced tier upgrades.
 >
@@ -57,7 +57,7 @@
 >
 > **ShiftRelay** (`shiftrelayos.com`) gives your hospital:
 > - **Zero-Hardware Verification:** Live facial check-in, rotating QR Staff IDs & 1.5s burst geofencing + strict 2/2 nursing handover sign-off.
-> - **1-Click Statutory Payroll & Bank Files:** Continuous net-pay accrual + automated FIRS PAYE (CRA), PenCom (18%), NHF (2.5%), NSITF (1%), and CBN NIP/NIBSS bulk files (Paystack, GTBank, Zenith, Access).
+> - **1-Click Statutory Payroll & Bank Files:** Continuous net-pay accrual + automated NTA 2025 PAYE (zero legacy CRA, LIRS/FCT-IRS), PenCom (18%), NHF (2.5%), NSITF (1%), and CBN NIP/NIBSS bulk files (Paystack, GTBank, Zenith, Access).
 > - **0% Interest Earned Wage Access:** Boost nurse & frontline retention at ₦0 worker fee ($0 extra employer cost, CBN zero-lending safe).
 >
 > **Eliminate payroll leakage & boost shift retention — start your ₦250k 30-Day Pilot (100% credited on conversion).** Monthly billing only begins after Go-Live sign-off.
