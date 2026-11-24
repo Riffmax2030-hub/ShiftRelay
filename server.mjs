@@ -366,6 +366,12 @@ function applyStoreDefaults(store) {
       }
     ];
   }
+  const rifOrg = (store.organisations || []).find(o => o.id === '00000000-0000-4000-8000-000000000100' || o.organisation_code === 'RIF-2026');
+  if (rifOrg && Math.abs(Number(rifOrg.hub_lat) - 6.4312) < 0.05 && Math.abs(Number(rifOrg.hub_lng) - 3.4244) < 0.05) {
+    rifOrg.hub_lat = -1.2921;
+    rifOrg.hub_lng = 36.8219;
+    rifOrg.hub_perimeter = Math.max(Number(rifOrg.hub_perimeter || 0), 500);
+  }
 
   const demoById = new Map(demoMembers.map(m => [m.id, m]));
   const defaultRsaForId = (uid) => {
