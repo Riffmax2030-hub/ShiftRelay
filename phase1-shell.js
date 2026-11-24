@@ -849,6 +849,63 @@
     return role === 'supervisor' || role === 'manager' || role === 'owner' || role === 'executive' || role === 'admin';
   }
 
+  async function openExecutivePayoutModal(disbursalId) {
+    document.getElementById('sr-exec-payout-modal')?.remove();
+    let item = null;
+    try {
+      const res = await fetch('/api/wallet/ewa-requests');
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.requests)) {
+        item = data.requests.find(r => r.id === disbursalId) || data.requests[0] || null;
+      }
+    } catch (_) {}
+    const modal = document.createElement('div');
+    modal.id = 'sr-exec-payout-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:2200;background:rgba(15,23,42,0.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;';
+    const amt = Number(item?.amountNgn || 0);
+    const st = item?.executiveStatus || item?.status || 'PENDING_APPROVAL';
+    modal.innerHTML = `
+      <div class="sr-card" style="max-width:460px;width:100%;margin:0;padding:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <h3 style="margin:0;font-size:17px;font-weight:800;">Payout Approval Details</h3>
+          <button type="button" id="sr-epm-close" class="sr-btn sr-btn-secondary" style="min-height:34px;padding:4px 10px;">Close</button>
+        </div>
+        ${item ? `
+          <div style="display:grid;gap:10px;padding:14px;border-radius:12px;background:var(--sr-bg-subtle);font-size:13px;margin-bottom:16px;">
+            <div><strong>Reference:</strong> <code>${escapeHtml(item.id)}</code></div>
+            <div><strong>Amount Requested:</strong> <strong style="color:#059669;">₦${amt.toLocaleString('en-NG')}</strong> (Fee: ₦0)</div>
+            <div><strong>Payment Rail:</strong> ${escapeHtml(item.rail || 'Paystack NIP')} &bull; ${escapeHtml(item.custodyPartner || 'Partner Custody')}</div>
+            <div><strong>Status:</strong> <strong>${escapeHtml(st)}</strong></div>
+            <div><strong>Requested At:</strong> ${escapeHtml(item.createdAt || '')}</div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+            <button type="button" id="sr-epm-decline" class="sr-btn sr-btn-secondary" style="color:#ef4444;min-height:38px;padding:6px 14px;">Decline</button>
+            <button type="button" id="sr-epm-approve" class="sr-btn sr-btn-primary" style="min-height:38px;padding:6px 16px;">Approve Payout</button>
+          </div>
+        ` : `<p style="color:var(--sr-text-muted);font-size:13px;">Payout record not found.</p>`}
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector('#sr-epm-close')?.addEventListener('click', () => modal.remove());
+    const decide = async (decision) => {
+      if (!item) return;
+      const res = await fetch('/api/wallet/ewa-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disbursalId: item.id, decision })
+      });
+      if (res.ok) {
+        showToast(decision === 'approved' ? 'Payout approved by Executive.' : 'Payout declined.', 'success');
+        modal.remove();
+        window.refreshShellNotifications?.();
+      } else {
+        showToast('Could not update payout status.', 'error');
+      }
+    };
+    modal.querySelector('#sr-epm-approve')?.addEventListener('click', () => decide('approved'));
+    modal.querySelector('#sr-epm-decline')?.addEventListener('click', () => decide('declined'));
+  }
+
   function isExecutiveRole(role) {
     return role === 'owner' || role === 'executive' || role === 'admin';
   }
@@ -1030,8 +1087,11 @@
       const meta = resolveNotificationMeta(n.message, n.category, isManager);
       const dest = isAuthorizedView(meta.dest, isManager) ? meta.dest : (isManager ? 'overview' : 'today');
 
+      const isPayoutAlert = n.category === 'payout_approval' || /Payout Alert:/i.test(n.message || '');
+      const payoutRef = isPayoutAlert ? (String(n.handoverId || n.workItemId || '').trim() || (String(n.message || '').match(/EWA-[A-Z0-9]+/i)?.[0] || '')) : '';
+
       return `
-        <div class="sr-notif-item ${isUnread ? 'unread' : 'read'}" data-notif-id="${escapeHtml(n.id)}" data-dest="${dest}" role="button" tabindex="0" aria-label="${escapeHtml(n.message)} (${isUnread ? 'Unread' : 'Read'})" style="display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid var(--sr-border-subtle);cursor:pointer;background:${isUnread ? 'linear-gradient(90deg, rgba(16,185,129,0.06) 0%, transparent 100%)' : 'transparent'};transition:background 0.18s ease;">
+        <div class="sr-notif-item ${isUnread ? 'unread' : 'read'}" data-notif-id="${escapeHtml(n.id)}" data-dest="${dest}" data-payout-id="${escapeHtml(payoutRef)}" role="button" tabindex="0" aria-label="${escapeHtml(n.message)} (${isUnread ? 'Unread' : 'Read'})" style="display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid var(--sr-border-subtle);cursor:pointer;background:${isUnread ? 'linear-gradient(90deg, rgba(16,185,129,0.06) 0%, transparent 100%)' : 'transparent'};transition:background 0.18s ease;">
           <div class="sr-notif-web3-node" style="background:${meta.tagBg};border-color:${meta.tagColor}33;">
             ${meta.iconSvg}
           </div>
@@ -1048,10 +1108,15 @@
             <p style="margin:0 0 6px;font-size:12.8px;line-height:1.42;color:var(--sr-text-main);font-weight:${isUnread ? '600' : '400'};">
               ${escapeHtml(n.message)}
             </p>
+            ${isPayoutAlert && isExecutiveRole(getUser()?.role) ? `
+              <button type="button" class="sr-btn sr-btn-primary sr-notif-approve-payout-btn" data-payout-id="${escapeHtml(payoutRef)}" style="min-height:32px;padding:4px 12px;font-size:11.5px;display:inline-flex;align-items:center;gap:5px;">
+                <span>Approve / Review Payout</span>
+              </button>
+            ` : `
             <div style="font-size:11px;color:var(--sr-primary);font-weight:700;display:inline-flex;align-items:center;gap:4px;letter-spacing:0.02em;">
               <span>Inspect in ${dest.replace('-', ' ').toUpperCase()}</span>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </div>
+            </div>`}
           </div>
           ${isUnread ? `
             <button type="button" class="sr-notif-mark-single" data-mark-id="${escapeHtml(n.id)}" title="Acknowledge signal" aria-label="Mark as read" style="background:rgba(148,163,184,0.1);border:1px solid var(--sr-border-subtle);cursor:pointer;color:var(--sr-text-muted);width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:8px;">
@@ -1102,6 +1167,12 @@
         }
 
         closeNotificationPanel(false);
+
+        const payoutId = itemEl.dataset.payoutId;
+        if (payoutId && isExecutiveRole(getUser()?.role)) {
+          openExecutivePayoutModal(payoutId);
+          return;
+        }
 
         const targetView = isAuthorizedView(dest, isManager) ? dest : (isManager ? 'overview' : 'today');
         navigate(targetView);
@@ -4169,10 +4240,6 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
               <span>+ Add Staff</span>
             </button>` : ''}
-            <button class="sr-btn sr-btn-secondary" id="sr-btn-toggle-executive-view" style="min-height:36px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Corporate Executive Analytics Layer">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-              <span>Executive View</span>
-            </button>
             <button class="sr-btn sr-btn-primary" id="sr-btn-open-broadcast" style="min-height:36px;padding:0 14px;font-size:12.5px;display:flex;align-items:center;gap:6px;">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
               <span>Broadcast</span>
@@ -7031,7 +7098,7 @@
         <div style="padding:0 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--p-border);flex-wrap:wrap;gap:8px;">
           <div class="sr-v2-tabs" role="tablist" style="margin:0 !important;border-bottom:none !important;">
             <button role="tab" aria-selected="${managerScheduleTab === 'shifts'}" id="sr-mgr-tab-shifts" data-mgr-sched-tab="shifts" class="sr-v2-tab ${managerScheduleTab === 'shifts' ? 'active' : ''}">Shift Calendar</button>
-            <button role="tab" aria-selected="${managerScheduleTab === 'leave'}" id="sr-mgr-tab-leave" data-mgr-sched-tab="leave" class="sr-v2-tab ${managerScheduleTab === 'leave' ? 'active' : ''}">Leave Requests</button>
+            <button role="tab" aria-selected="${managerScheduleTab === 'leave'}" id="sr-mgr-tab-leave" data-mgr-sched-tab="leave" class="sr-v2-tab ${managerScheduleTab === 'leave' ? 'active' : ''}">Leave Approvals</button>
           </div>
 
           <div style="display:flex;align-items:center;gap:8px;padding:6px 0;">

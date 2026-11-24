@@ -948,7 +948,7 @@ export function generateAttendanceSheetHtml(sheetData = {}, org = {}) {
       </div>
       <div style="background:#f0fdf4;padding:12px;border-radius:6px;border:1px solid #86efac;">
         <span style="font-size:10.5px;color:#166534;text-transform:uppercase;font-weight:700;">Punctuality</span>
-        <div style="font-size:16px;font-weight:800;color:var(--brand-emerald);margin-top:2px;">${Number(summary.punctualityRatePct ?? 100).toFixed(1)}%</div>
+        <div style="font-size:16px;font-weight:800;color:var(--brand-emerald);margin-top:2px;">${Number(summary.totalPunches || 0) > 0 ? `${Number(summary.punctualityRatePct ?? 0).toFixed(1)}%` : '0.0% (No punches)'}</div>
       </div>
       <div style="background:#fffbeb;padding:12px;border-radius:6px;border:1px solid #fde68a;">
         <span style="font-size:10.5px;color:#92400e;text-transform:uppercase;font-weight:700;">Exceptions / Flags</span>
@@ -1023,7 +1023,7 @@ export function generateCvReportHtml(user = {}, profile = {}, org = {}) {
   const punctuality = profile.punctuality || '99.4%';
   const incidents = profile.incidents || '0';
   const handovers = profile.handovers || '142';
-  const shiftWindow = profile.shiftWindow || '06:00 – 14:00 WAT (Morning Shift)';
+  const shiftWindow = profile.shiftWindow || '06:00 - 14:00 WAT (Morning Shift)';
 
   const qrSvg = generateQrSvg(`https://shiftrelayos.com/verify/worker/${staffId}`, 90);
 

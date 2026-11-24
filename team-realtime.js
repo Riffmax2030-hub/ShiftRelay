@@ -27,6 +27,20 @@ function connectTeamRealtime() {
     window.refreshShellNotifications?.();
   });
 
+  stream.addEventListener('shift-assigned', () => {
+    window.refreshShellNotifications?.();
+    if (typeof refreshNotifications === 'function') refreshNotifications();
+    const activeView = window.Phase1Shell?.getActiveView?.();
+    if (activeView === 'schedule') {
+      window.Phase1Shell?.mount?.('schedule');
+    }
+  });
+
+  stream.addEventListener('ewa-payout-requested', () => {
+    window.refreshShellNotifications?.();
+    if (typeof refreshNotifications === 'function') refreshNotifications();
+  });
+
   stream.addEventListener('shift-reminder', (e) => {
     try {
       const payload = JSON.parse(e.data || '{}');
