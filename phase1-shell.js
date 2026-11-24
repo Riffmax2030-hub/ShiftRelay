@@ -6732,6 +6732,7 @@
 
     const [year, mon] = scheduleMonth.split('-').map(Number);
     const monthLabel = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(year, mon - 1, 1));
+    const todayLabel = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: tz }).format(new Date());
 
     if (!['shifts', 'swaps', 'leave', 'handovers', 'attendance'].includes(scheduleTab)) {
       scheduleTab = 'shifts';
@@ -6743,12 +6744,16 @@
     container.innerHTML = `
       <div class="sr-v2-page-head">
         <div class="sr-v2-page-title-wrap">
-          <h2 class="sr-v2-page-title">Schedule</h2>
+          <h2 class="sr-v2-page-title">
+            <span>Schedule</span>
+            <span class="sr-v2-pill-meta">Today: ${escapeHtml(todayLabel)}</span>
+          </h2>
           <p class="sr-v2-page-sub">${escapeHtml(monthLabel)} &middot; Timezone: <strong>${escapeHtml(tz)}</strong></p>
         </div>
         <div class="sr-v2-page-actions">
           <div style="display:inline-flex;align-items:center;gap:4px;" aria-label="Month navigation">
             <button id="sr-sched-prev" aria-label="Previous month" style="padding:6px 10px;border:1px solid var(--p-border);border-radius:8px;background:var(--p-surface);cursor:pointer;font-size:14px;color:var(--p-text);">&#8249;</button>
+            <button id="sr-sched-today" class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 10px;font-size:12px;">Today</button>
             <span style="font-size:13px;font-weight:700;color:var(--p-text);min-width:104px;text-align:center;">${escapeHtml(monthLabel)}</span>
             <button id="sr-sched-next" aria-label="Next month" style="padding:6px 10px;border:1px solid var(--p-border);border-radius:8px;background:var(--p-surface);cursor:pointer;font-size:14px;color:var(--p-text);">&#8250;</button>
           </div>
@@ -6781,6 +6786,10 @@
       const [y, m] = scheduleMonth.split('-').map(Number);
       const d = new Date(y, m - 2, 1);
       scheduleMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      renderWorkerSchedule();
+    });
+    document.getElementById('sr-sched-today')?.addEventListener('click', () => {
+      scheduleMonth = new Date().toISOString().slice(0, 7);
       renderWorkerSchedule();
     });
     document.getElementById('sr-sched-next')?.addEventListener('click', () => {
@@ -6989,19 +6998,21 @@
     const tz = user.time_zone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Lagos';
     const [year, mon] = managerScheduleMonth.split('-').map(Number);
     const monthLabel = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(year, mon - 1, 1));
+    const todayLabel = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: tz }).format(new Date());
 
     container.innerHTML = `
       <div class="sr-v2-page-head">
         <div class="sr-v2-page-title-wrap">
           <h2 class="sr-v2-page-title">
             <span>${user.role === 'owner' ? 'Operations' : 'Roster'}</span>
-            <span class="sr-v2-pill-meta">${escapeHtml(monthLabel)}</span>
+            <span class="sr-v2-pill-meta">Today: ${escapeHtml(todayLabel)}</span>
           </h2>
-          <p class="sr-v2-page-sub">Monthly shift coverage &amp; leave roster &middot; ${escapeHtml(tz)}</p>
+          <p class="sr-v2-page-sub">${escapeHtml(monthLabel)} &middot; Monthly shift coverage &amp; leave roster &middot; ${escapeHtml(tz)}</p>
         </div>
         <div class="sr-v2-page-actions">
           <div style="display:inline-flex;align-items:center;gap:4px;" aria-label="Month navigation">
             <button id="sr-mgr-sched-prev" aria-label="Previous month" style="padding:6px 10px;border:1px solid var(--p-border);border-radius:8px;background:var(--p-surface);cursor:pointer;font-size:14px;color:var(--p-text);">&#8249;</button>
+            <button id="sr-mgr-sched-today" class="sr-btn sr-btn-secondary" style="min-height:32px;padding:0 10px;font-size:12px;">Today</button>
             <span style="font-size:13px;font-weight:700;color:var(--p-text);min-width:104px;text-align:center;">${escapeHtml(monthLabel)}</span>
             <button id="sr-mgr-sched-next" aria-label="Next month" style="padding:6px 10px;border:1px solid var(--p-border);border-radius:8px;background:var(--p-surface);cursor:pointer;font-size:14px;color:var(--p-text);">&#8250;</button>
           </div>
@@ -7039,6 +7050,10 @@
       const [y, m] = managerScheduleMonth.split('-').map(Number);
       const d = new Date(y, m - 2, 1);
       managerScheduleMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      renderManagerSchedule();
+    });
+    document.getElementById('sr-mgr-sched-today')?.addEventListener('click', () => {
+      managerScheduleMonth = new Date().toISOString().slice(0, 7);
       renderManagerSchedule();
     });
     document.getElementById('sr-mgr-sched-next')?.addEventListener('click', () => {

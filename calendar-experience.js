@@ -201,6 +201,7 @@ async function renderCalendar() {
 
     const canManage = ['owner', 'workforce_admin'].includes(state.user?.role);
     const monthName = calendarState.month.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+    const todayBanner = new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     const openCount = calendarState.marketCache.filter(s => !calendarState.claimedShiftIds.has(s.id) && s.status !== 'claimed').length;
 
     $('#dashboard').innerHTML = `
@@ -208,7 +209,7 @@ async function renderCalendar() {
         <!-- Calendar Month Bar -->
         <div class="schedule-header">
           <div>
-            <p class="eyebrow">WORKFORCE ROSTER</p>
+            <p class="eyebrow">TODAY: ${escape(todayBanner.toUpperCase())}</p>
             <h2>${monthName}</h2>
           </div>
           <div class="calendar-nav-buttons">
