@@ -72,13 +72,8 @@
   }
 
   function showWelcomeGate() {
-    if (!welcomeGateEl) {
-      openLoginScreen(true);
-      return;
-    }
-    welcomeGateEl.style.display = 'flex';
-    requestAnimationFrame(() => welcomeGateEl.classList.add('open'));
-    document.body.style.overflow = 'hidden';
+    if (welcomeGateEl) welcomeGateEl.style.display = 'none';
+    openLoginScreen(true);
   }
 
   function hideWelcomeGate() {
