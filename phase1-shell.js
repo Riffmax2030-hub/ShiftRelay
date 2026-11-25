@@ -6885,17 +6885,25 @@
 
     try {
       if (scheduleTab === 'shifts') {
-        const res = await fetch(`/api/calendar?month=${encodeURIComponent(scheduleMonth)}`);
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || `Server error ${res.status}`);
-        }
-        const data = await res.json();
-        const shifts = Array.isArray(data.shifts) ? data.shifts : [];
+        let shifts = [];
+        try {
+          const res = await fetch(`/api/calendar?month=${encodeURIComponent(scheduleMonth)}`);
+          if (res.ok) {
+            const data = await res.json();
+            shifts = Array.isArray(data.shifts) ? data.shifts : [];
+          }
+        } catch (_) {}
+        const obsidianCalHtml = (typeof window.renderShiftCalendarCard === 'function')
+          ? `<div style="padding:14px 16px 6px;">${window.renderShiftCalendarCard()}</div>`
+          : '';
         panel.innerHTML = `
           <div style="display:flex;flex-direction:column;gap:0;">
+            ${obsidianCalHtml}
             ${renderShiftsTab(shifts, user.id, tz)}
           </div>`;
+        if (typeof window.bindShiftCalendarEvents === 'function') {
+          window.bindShiftCalendarEvents(panel);
+        }
 
         panel.querySelectorAll('[data-swap-shift-btn]').forEach(btn => {
           btn.addEventListener('click', () => {
@@ -6938,31 +6946,6 @@
       } else if (scheduleTab === 'swaps') {
         panel.innerHTML = `
           <div style="padding:16px;">
-            <div style="margin-bottom:18px;">
-              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--p-text-3);margin-bottom:10px;">Open Overtime Opportunities</div>
-              <div class="sr-v2-2col-even">
-                <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:space-between;gap:12px;">
-                  <div>
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap;">
-                      <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">Weekend Core Systems Coverage</span>
-                      <span class="sr-badge" style="background:rgba(16,185,129,0.12);color:#10b981;font-size:10px;font-weight:800;">+₦24,000</span>
-                    </div>
-                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Saturday &bull; 06:00 – 14:00 WAT &bull; Backend Bay</div>
-                  </div>
-                  <button type="button" class="sr-btn sr-btn-primary" onclick="window.Phase1Shell.mount('open-shifts')" style="min-height:32px;padding:0 12px;font-size:11.5px;font-weight:700;white-space:nowrap;">Claim</button>
-                </div>
-                <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card);border:1px solid rgba(2,132,199,0.3);display:flex;align-items:center;justify-content:space-between;gap:12px;">
-                  <div>
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap;">
-                      <span style="font-size:13px;font-weight:800;color:var(--sr-text-main);">Sunday High-Availability Relay</span>
-                      <span class="sr-badge" style="background:rgba(2,132,199,0.12);color:#0284c7;font-size:10px;font-weight:800;">+₦28,000</span>
-                    </div>
-                    <div style="font-size:11.5px;color:var(--sr-text-muted);">Sunday &bull; 14:00 – 22:00 WAT &bull; Operations Hub</div>
-                  </div>
-                  <button type="button" class="sr-btn sr-btn-primary" onclick="window.Phase1Shell.mount('open-shifts')" style="min-height:32px;padding:0 12px;font-size:11.5px;font-weight:700;white-space:nowrap;background:#0284c7;">Claim</button>
-                </div>
-              </div>
-            </div>
             <div id="sr-inline-swaps-marketplace"></div>
           </div>
         `;
@@ -7262,19 +7245,28 @@
         const d = s.date || (s.starts_at ? s.starts_at.slice(0, 10) : '');
         return d === dateStr;
       });
-      const isToday = day === 10 || dateStr === todayIso;
+      const isToday = dateStr === todayIso;
       const isSelectedMobile = dateStr === selectedMobileRosterDate;
+      const cellDate = new Date(year, mon - 1, day);
+      const isMonday = cellDate.getDay() === 1 || day === 1;
+      const isoWeekNum = (() => {
+        const tmp = new Date(Date.UTC(year, mon - 1, day));
+        const dn = tmp.getUTCDay() || 7;
+        tmp.setUTCDate(tmp.getUTCDate() + 4 - dn);
+        const ys = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+        return Math.ceil((((tmp - ys) / 86400000) + 1) / 7);
+      })();
 
-      const dotHtml = dayShifts.slice(0, 3).map(ds => {
+      const dotHtml = dayShifts.slice(0, 5).map(ds => {
         const isMorning = (ds.start_time || '06:00').startsWith('06') || (ds.start_time || '').startsWith('07') || (ds.start_time || '').startsWith('08');
         const dotColor = ds.is_shift_supervisor ? '#0284c7' : (isMorning ? '#10b981' : '#f59e0b');
         return `<span class="sr-dnd-dot" style="background:${dotColor};"></span>`;
-      }).join('') + (dayShifts.length > 3 ? `<span class="sr-dnd-dot-more">+${dayShifts.length - 3}</span>` : '');
+      }).join('') + (dayShifts.length > 5 ? `<span class="sr-dnd-dot-more">+${dayShifts.length - 5}</span>` : '');
 
       calendarCellsHtml += `
-        <div class="sr-dnd-cal-day${isSelectedMobile ? ' is-selected-mobile' : ''}" data-drop-date="${dateStr}" title="Drop a worker here or tap to assign shift on ${dateStr}" style="${isToday ? 'border-color:#10b981;background:rgba(16,185,129,0.04);' : ''}">
+        <div class="sr-dnd-cal-day${isSelectedMobile ? ' is-selected-mobile' : ''}" data-drop-date="${dateStr}" title="Drop a worker here or tap to assign shift on ${dateStr}" style="${isToday ? 'border-color:#10b981;background:rgba(16,185,129,0.06);' : ''}">
           <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
-            <span class="sr-dnd-day-num" style="font-size:11.5px;font-weight:800;color:${isToday ? '#10b981' : 'var(--sr-text-main)'};">${day}</span>
+            <span class="sr-dnd-day-num" style="font-size:11.5px;font-weight:800;color:${isToday ? '#10b981' : 'var(--sr-text-main)'};display:inline-flex;align-items:center;gap:4px;">${day}${isMonday ? `<span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sr-text-muted);opacity:0.75;">W${String(isoWeekNum).padStart(2, '0')}</span>` : ''}</span>
             <svg class="sr-dnd-add-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.35;color:var(--sr-text-muted);" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </div>
           <div class="sr-dnd-mobile-dots">${dotHtml}</div>
@@ -7334,6 +7326,24 @@
       </div>
       <div id="sr-mobile-day-agenda" class="sr-v2-mobile-agenda"></div>
     `;
+
+    // Horizontal swipe month navigation on Manager/Executive Calendar
+    const mgrGridEl = panel.querySelector('#sr-dnd-calendar-grid');
+    if (mgrGridEl) {
+      let swipeStartX = null;
+      mgrGridEl.addEventListener('touchstart', (e) => { swipeStartX = e.changedTouches?.[0]?.clientX ?? null; }, { passive: true });
+      mgrGridEl.addEventListener('touchend', (e) => {
+        if (swipeStartX === null) return;
+        const dx = (e.changedTouches?.[0]?.clientX ?? swipeStartX) - swipeStartX;
+        swipeStartX = null;
+        if (Math.abs(dx) > 54) {
+          const [y, m] = managerScheduleMonth.split('-').map(Number);
+          const d = new Date(y, m - 1 + (dx < 0 ? 1 : -1), 1);
+          managerScheduleMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          renderManagerSchedule();
+        }
+      }, { passive: true });
+    }
 
     function renderMobileAgenda(activeDateStr) {
       const agendaEl = panel.querySelector('#sr-mobile-day-agenda');
