@@ -3,8 +3,9 @@
  * - Full 6-row month grid with adjacent-month leading/trailing days
  * - Dedicated ISO Week Number column (W44..W52) with clickable weekly summary
  * - Multi-dot shift/activity indicators (solid emerald dots + hollow pending dot, max 5)
+ * - Future dates: 1-tap "Apply for Leave on [Date]" action pre-filling the Leave Request form
+ * - Past dates: displays historical shift info & logged handovers for that exact date
  * - Touch/pointer horizontal swipe left/right + prev/next/Today controls + .ics export
- * - Syncs with live /api/calendar/shifts (with offline cache fallback)
  */
 
 (function () {
@@ -17,9 +18,14 @@
   let selectedDateKey = toDateKey(now0);
   let selectedWeekSummary = null;
   let cachedApiShifts = [];
+  let cachedHandovers = [];
 
   function toDateKey(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function escapeCalHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
   function getIsoWeekNumber(date) {
@@ -32,13 +38,17 @@
 
   function getDayData(d) {
     const today = new Date();
+    const todayKey = toDateKey(today);
     const key = toDateKey(d);
-    const isToday = d.toDateString() === today.toDateString();
+    const isToday = key === todayKey;
+    const isFuture = key > todayKey;
+    const isPast = key < todayKey;
     const isAdjacent = d.getMonth() !== viewMonth || d.getFullYear() !== viewYear;
     const dow = d.getDay();
     const isWeekend = dow === 0 || dow === 6;
 
-    const matchingShifts = cachedApiShifts.filter(s => String(s.starts_at || s.startsAt || '').slice(0, 10) === key);
+    const matchingShifts = cachedApiShifts.filter(s => String(s.date || s.starts_at || s.startsAt || '').slice(0, 10) === key);
+    const matchingHandovers = cachedHandovers.filter(h => String(h.created_at || h.createdAt || h.shift_date || '').slice(0, 10) === key);
     const hasShift = matchingShifts.length > 0 || !isWeekend;
     const dotCount = matchingShifts.length > 0 ? Math.min(5, matchingShifts.length) : (isWeekend ? 0 : 1);
     const hasPending = matchingShifts.some(s => String(s.status || '').toLowerCase() === 'pending');
@@ -48,13 +58,17 @@
       key,
       dayNum: d.getDate(),
       isToday,
+      isFuture,
+      isPast,
       isAdjacent,
       hasShift,
       dotCount,
       hasPending,
-      shiftTitle: matchingShifts[0]?.title || (isWeekend ? 'Rest Day' : 'Day Rotation (Turnover Relay)'),
+      matchingShifts,
+      matchingHandovers,
+      shiftTitle: matchingShifts[0]?.rotation || matchingShifts[0]?.title || (isWeekend ? 'Rest Day' : 'Day Rotation (Turnover Relay)'),
       shiftHours: matchingShifts[0]
-        ? `${String(matchingShifts[0].starts_at || matchingShifts[0].startsAt || '').slice(11, 16) || '07:00'} – ${String(matchingShifts[0].ends_at || matchingShifts[0].endsAt || '').slice(11, 16) || '15:30'}`
+        ? `${String(matchingShifts[0].start_time || String(matchingShifts[0].starts_at || matchingShifts[0].startsAt || '').slice(11, 16) || '07:00')} – ${String(matchingShifts[0].end_time || String(matchingShifts[0].ends_at || matchingShifts[0].endsAt || '').slice(11, 16) || '15:30')}`
         : (isWeekend ? 'Off Duty' : '07:00 – 15:30 (8.5 hrs)')
     };
   }
@@ -97,16 +111,81 @@
     repaintCalendar();
   }
 
-  function renderDots(dotCount, hasPending, isSel) {
-    if (!dotCount && !hasPending) return '<span style="height:6px;display:block;"></span>';
+  function renderDots(dotCount, hasPending, isSel, hasHandover) {
+    if (!dotCount && !hasPending && !hasHandover) return '<span style="height:6px;display:block;"></span>';
     const dots = [];
-    for (let i = 0; i < Math.min(5, dotCount); i++) {
+    for (let i = 0; i < Math.min(4, dotCount); i++) {
       dots.push(`<span style="width:4.5px;height:4.5px;border-radius:50%;background:${isSel ? '#ffffff' : '#10b981'};display:inline-block;"></span>`);
+    }
+    if (hasHandover && dots.length < 5) {
+      dots.push(`<span style="width:4.5px;height:4.5px;border-radius:50%;background:${isSel ? '#fde68a' : '#0284c7'};display:inline-block;"></span>`);
     }
     if (hasPending && dots.length < 5) {
       dots.push(`<span style="width:4.5px;height:4.5px;border-radius:50%;border:1.2px solid ${isSel ? '#ffffff' : '#f59e0b'};display:inline-block;"></span>`);
     }
     return `<span style="display:inline-flex;align-items:center;justify-content:center;gap:2.5px;height:6px;">${dots.join('')}</span>`;
+  }
+
+  function renderDayDetailContent(selectedObj) {
+    if (selectedWeekSummary) {
+      return `
+        <div>
+          <h4 class="day-shift-title" id="day-detail-title">${escapeCalHtml(selectedWeekSummary.title)}</h4>
+          <p class="day-shift-subtitle" id="day-detail-hours">${escapeCalHtml(selectedWeekSummary.subtitle)}</p>
+        </div>
+        <span class="badge" id="day-detail-badge" style="background:#0284c7;color:#fff;font-weight:700;font-size:11px;">WEEKLY</span>
+      `;
+    }
+
+    // Future date: show shift + 1-tap Apply for Leave button
+    if (selectedObj.isFuture) {
+      return `
+        <div style="flex:1;min-width:0;">
+          <h4 class="day-shift-title" id="day-detail-title">${escapeCalHtml(selectedObj.shiftTitle)}</h4>
+          <p class="day-shift-subtitle" id="day-detail-hours">${escapeCalHtml(selectedObj.key)} &middot; ${escapeCalHtml(selectedObj.shiftHours)} &middot; Upcoming</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button type="button" id="sr-cal-apply-leave-btn" data-leave-date="${escapeCalHtml(selectedObj.key)}" class="sr-btn sr-btn-primary" style="min-height:32px;padding:5px 12px;font-size:11.5px;font-weight:700;white-space:nowrap;">
+            Apply for Leave
+          </button>
+        </div>
+      `;
+    }
+
+    // Past date: show historical shift info & handovers for that exact day
+    if (selectedObj.isPast) {
+      const hoHtml = selectedObj.matchingHandovers.length > 0
+        ? selectedObj.matchingHandovers.slice(0, 2).map(h => `
+            <div style="margin-top:6px;padding:7px 10px;border-radius:8px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);font-size:11.5px;color:var(--sr-text-main);">
+              <strong>Handover (${escapeCalHtml(h.author_name || h.authorName || 'Team')}):</strong> ${escapeCalHtml(String(h.summary || h.notes || 'Shift handover recorded').slice(0, 120))}
+            </div>
+          `).join('')
+        : `<div style="margin-top:6px;font-size:11.5px;color:var(--sr-text-muted);">No handover logs recorded on ${escapeCalHtml(selectedObj.key)}.</div>`;
+
+      return `
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+            <h4 class="day-shift-title" id="day-detail-title" style="margin:0;">${escapeCalHtml(selectedObj.shiftTitle)}</h4>
+            <span class="badge" style="background:#475569;color:#fff;font-weight:700;font-size:10.5px;">PAST LOG</span>
+          </div>
+          <p class="day-shift-subtitle" id="day-detail-hours" style="margin:3px 0 0;">${escapeCalHtml(selectedObj.key)} &middot; ${escapeCalHtml(selectedObj.shiftHours)}</p>
+          ${hoHtml}
+        </div>
+      `;
+    }
+
+    // Today
+    return `
+      <div style="flex:1;min-width:0;">
+        <h4 class="day-shift-title" id="day-detail-title">${escapeCalHtml(selectedObj.shiftTitle)}</h4>
+        <p class="day-shift-subtitle" id="day-detail-hours">${escapeCalHtml(selectedObj.key)} &middot; ${escapeCalHtml(selectedObj.shiftHours)} &middot; Today</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span class="badge" id="day-detail-badge" style="background:${selectedObj.hasShift ? '#10b981' : '#64748b'};color:#fff;font-weight:700;font-size:11px;">
+          ${selectedObj.hasShift ? 'TODAY' : 'REST'}
+        </span>
+      </div>
+    `;
   }
 
   function renderShiftCalendarCard() {
@@ -138,7 +217,7 @@
           ${WEEKDAYS.map(w => `<div style="font-size:10.5px;font-weight:800;color:var(--sr-text-muted,#64748b);text-transform:uppercase;padding:4px 0;">${w}</div>`).join('')}
         </div>
 
-        <!-- 6-Row Obsidian Grid (ISO Week Number + 7 Days with Adjacent Month Overflow) -->
+        <!-- 6-Row Obsidian Grid -->
         <div id="sr-month-grid" style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px;">
           ${rows.map(row => `
             <div style="display:grid;grid-template-columns:34px repeat(7,1fr);gap:4px;align-items:center;">
@@ -156,7 +235,7 @@
                   <button type="button" class="sr-month-day-btn ${isSel ? 'active' : ''}" data-date-key="${c.key}" data-adj="${c.isAdjacent ? '1' : '0'}"
                     style="height:44px;border-radius:10px;border:${border};background:${bg};color:${fg};opacity:${opacity};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-weight:${c.isToday || isSel ? '800' : '600'};font-size:12.5px;transition:all .12s;">
                     <span>${c.dayNum}</span>
-                    ${renderDots(c.dotCount, c.hasPending, isSel)}
+                    ${renderDots(c.dotCount, c.hasPending, isSel, c.matchingHandovers.length > 0)}
                   </button>
                 `;
               }).join('')}
@@ -164,17 +243,11 @@
           `).join('')}
         </div>
 
-        <div style="font-size:11px;color:var(--sr-text-muted);text-align:center;margin-bottom:10px;">Swipe left/right to switch months &middot; Tap W## for weekly summary</div>
+        <div style="font-size:11px;color:var(--sr-text-muted);text-align:center;margin-bottom:10px;">Tap past dates for shift &amp; handover history &middot; Tap future dates to apply for leave &middot; Swipe to switch months</div>
 
         <!-- Selected Day or Week Detail Banner -->
-        <div class="active-day-shift-detail" id="active-day-detail">
-          <div>
-            <h4 class="day-shift-title" id="day-detail-title">${selectedWeekSummary ? selectedWeekSummary.title : selectedObj.shiftTitle}</h4>
-            <p class="day-shift-subtitle" id="day-detail-hours">${selectedWeekSummary ? selectedWeekSummary.subtitle : `${selectedObj.key} &middot; ${selectedObj.shiftHours} &middot; Station Verified`}</p>
-          </div>
-          <span class="badge" id="day-detail-badge" style="background:${selectedWeekSummary ? '#0284c7' : (selectedObj.hasShift ? '#10b981' : '#64748b')};color:#fff;font-weight:700;font-size:11px;">
-            ${selectedWeekSummary ? 'WEEKLY' : (selectedObj.hasShift ? 'SCHEDULED' : 'REST')}
-          </span>
+        <div class="active-day-shift-detail" id="active-day-detail" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          ${renderDayDetailContent(selectedObj)}
         </div>
       </section>
     `;
@@ -191,6 +264,22 @@
       selectedDateKey = toDateKey(t);
       selectedWeekSummary = null;
       repaintCalendar();
+    });
+
+    // Future date: 1-tap Apply for Leave pre-filling Leave form
+    document.getElementById('sr-cal-apply-leave-btn')?.addEventListener('click', (e) => {
+      const targetDate = e.currentTarget.dataset.leaveDate || selectedDateKey;
+      const leaveTabBtn = document.getElementById('sr-sched-tab-leave');
+      if (leaveTabBtn) {
+        leaveTabBtn.click();
+        setTimeout(() => {
+          const sEl = document.getElementById('sr-leave-start');
+          const eEl = document.getElementById('sr-leave-end');
+          if (sEl) sEl.value = targetDate;
+          if (eEl) eEl.value = targetDate;
+          sEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 280);
+      }
     });
 
     if (section) {
@@ -240,15 +329,19 @@
 
     document.getElementById('btn-export-ics')?.addEventListener('click', () => exportScheduleToICS());
 
-    // Background hydrate from /api/calendar/shifts (online or cached offline)
+    // Hydrate real shifts & past handovers in background (works offline via window.api cache)
     if (typeof window.api === 'function' && !section?.dataset.hydrated) {
       if (section) section.dataset.hydrated = '1';
-      window.api('/api/calendar/shifts').then((res) => {
-        if (Array.isArray(res?.shifts)) {
-          cachedApiShifts = res.shifts;
-          repaintCalendar();
-        }
-      }).catch(() => {});
+      Promise.all([
+        window.api('/api/calendar/shifts').catch(() => null),
+        window.api('/api/handovers').catch(() => null)
+      ]).then(([shiftRes, hoRes]) => {
+        let changed = false;
+        if (Array.isArray(shiftRes?.shifts)) { cachedApiShifts = shiftRes.shifts; changed = true; }
+        if (Array.isArray(hoRes?.handovers)) { cachedHandovers = hoRes.handovers; changed = true; }
+        else if (Array.isArray(hoRes)) { cachedHandovers = hoRes; changed = true; }
+        if (changed) repaintCalendar();
+      });
     }
   }
 

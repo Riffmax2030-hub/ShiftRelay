@@ -6642,31 +6642,12 @@
     const mine = merged.filter(s =>
       s.membership_id === myId || s.membershipId === myId
     );
-    const displayList = mine.length > 0 ? mine : merged.slice(0, 4);
+    const displayList = mine.length > 0 ? mine : [];
 
-    // 7-Day Interactive Week Strip
-    const stripDays = ['Mon 10', 'Tue 11', 'Wed 12', 'Thu 13', 'Fri 14', 'Sat 15', 'Sun 16'];
-    const stripHtml = `
-      <div style="padding:14px 16px;background:var(--sr-bg-card-subtle);border-bottom:1px solid var(--sr-border-subtle);">
-        <div class="sr-v2-week-strip">
-          ${stripDays.map((lbl, idx) => {
-            const dayNum = String(10 + idx);
-            const hasShift = displayList.find(s => String(s.date || s.starts_at || '').includes(`-${dayNum}`));
-            const [dow, num] = lbl.split(' ');
-            return `
-              <button type="button" class="sr-v2-week-day ${idx === 0 ? 'is-today' : ''} ${!hasShift ? 'is-off' : ''}" data-week-day="${dayNum}">
-                <span style="font-size:10px;font-weight:700;color:var(--p-text-3);text-transform:uppercase;">${dow}</span>
-                <span class="sr-v2-num" style="font-size:15px;font-weight:800;color:var(--p-text);">${num}</span>
-                <span class="sr-v2-num" style="font-size:10px;font-weight:700;color:${hasShift ? 'var(--p-green)' : 'var(--p-text-3)'};">${hasShift ? (hasShift.start_time || '06:00') : 'OFF'}</span>
-              </button>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
-
+    const MONTH_ABBR = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
     const cardsHtml = displayList.map(s => {
-      const dateStr = s.date || (s.starts_at ? s.starts_at.slice(0, 10) : '2026-11-10');
+      const dateStr = s.date || (s.starts_at ? s.starts_at.slice(0, 10) : new Date().toISOString().slice(0, 10));
+      const mIdx = Math.max(0, Math.min(11, parseInt(dateStr.slice(5, 7), 10) - 1 || 0));
       const timeWindow = (s.start_time && s.end_time)
         ? `${s.start_time} – ${s.end_time} WAT`
         : `${formatScheduleDate(s.starts_at, tz)} – ${formatScheduleDate(s.ends_at, tz)}`;
@@ -6677,7 +6658,7 @@
       return `
         <div class="sr-review-item" data-shift-date-row="${escapeHtml(dateStr.slice(-2))}" style="align-items:center;gap:12px;padding:15px 16px;border-bottom:1px solid var(--sr-border-subtle);">
           <div style="width:44px;height:44px;border-radius:12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#059669;">
-            <span style="font-size:10px;font-weight:800;text-transform:uppercase;line-height:1;">NOV</span>
+            <span style="font-size:10px;font-weight:800;text-transform:uppercase;line-height:1;">${MONTH_ABBR[mIdx]}</span>
             <span class="sr-v2-num" style="font-size:15px;font-weight:800;line-height:1.15;">${escapeHtml(dateStr.slice(-2))}</span>
           </div>
           <div style="flex:1;min-width:0;">
@@ -6734,10 +6715,10 @@
     `;
 
     const emptyShiftNotice = displayList.length === 0
-      ? `<div style="text-align:center;padding:34px 18px;color:var(--sr-text-muted);font-size:13.5px;">No shifts assigned for this period yet.</div>`
+      ? ''
       : '';
 
-    return stripHtml + (cardsHtml || emptyShiftNotice) + teamPartnersHtml;
+    return (cardsHtml || emptyShiftNotice) + teamPartnersHtml;
   }
 
   function renderLeaveTab(requests, tz) {
@@ -7273,60 +7254,68 @@
     }
 
     const firstDayOfMonth = new Date(year, mon - 1, 1);
-    const daysInMonth = new Date(year, mon, 0).getDate();
-    // Monday-based offset (0 = Mon ... 6 = Sun)
     const startOffset = (firstDayOfMonth.getDay() + 6) % 7;
+    const gridStart = new Date(year, mon - 1, 1 - startOffset);
 
     const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    let calendarCellsHtml = weekdays.map(w => `<div class="sr-dnd-cal-weekday">${w}</div>`).join('');
+    let calendarCellsHtml = `<div class="sr-dnd-cal-weekday" style="font-family:'JetBrains Mono',monospace;">W</div>`
+      + weekdays.map(w => `<div class="sr-dnd-cal-weekday">${w}</div>`).join('');
 
-    for (let i = 0; i < startOffset; i++) {
-      calendarCellsHtml += `<div class="sr-dnd-cal-day" style="opacity:0.32;pointer-events:none;background:var(--sr-bg-subtle);"></div>`;
-    }
+    const calcIsoWeek = (dt) => {
+      const tmp = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+      const dn = tmp.getUTCDay() || 7;
+      tmp.setUTCDate(tmp.getUTCDate() + 4 - dn);
+      const ys = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+      return Math.ceil((((tmp - ys) / 86400000) + 1) / 7);
+    };
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${managerScheduleMonth}-${String(day).padStart(2, '0')}`;
-      const dayShifts = filteredShifts.filter(s => {
-        const d = s.date || (s.starts_at ? s.starts_at.slice(0, 10) : '');
-        return d === dateStr;
-      });
-      const isToday = dateStr === todayIso;
-      const isSelectedMobile = dateStr === selectedMobileRosterDate;
-      const cellDate = new Date(year, mon - 1, day);
-      const isMonday = cellDate.getDay() === 1 || day === 1;
-      const isoWeekNum = (() => {
-        const tmp = new Date(Date.UTC(year, mon - 1, day));
-        const dn = tmp.getUTCDay() || 7;
-        tmp.setUTCDate(tmp.getUTCDate() + 4 - dn);
-        const ys = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-        return Math.ceil((((tmp - ys) / 86400000) + 1) / 7);
-      })();
+    for (let row = 0; row < 6; row++) {
+      const weekDate = new Date(gridStart);
+      weekDate.setDate(gridStart.getDate() + row * 7);
+      const isoWeekNum = calcIsoWeek(weekDate);
+      calendarCellsHtml += `<div style="border-radius:10px;background:var(--sr-bg-subtle,rgba(148,163,184,0.08));display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;color:var(--sr-text-muted);min-height:66px;">W${String(isoWeekNum).padStart(2, '0')}</div>`;
 
-      const dotHtml = dayShifts.slice(0, 5).map(ds => {
-        const isMorning = (ds.start_time || '06:00').startsWith('06') || (ds.start_time || '').startsWith('07') || (ds.start_time || '').startsWith('08');
-        const dotColor = ds.is_shift_supervisor ? '#0284c7' : (isMorning ? '#10b981' : '#f59e0b');
-        return `<span class="sr-dnd-dot" style="background:${dotColor};"></span>`;
-      }).join('') + (dayShifts.length > 5 ? `<span class="sr-dnd-dot-more">+${dayShifts.length - 5}</span>` : '');
+      for (let col = 0; col < 7; col++) {
+        const cellDate = new Date(weekDate);
+        cellDate.setDate(weekDate.getDate() + col);
+        const cYear = cellDate.getFullYear();
+        const cMon = String(cellDate.getMonth() + 1).padStart(2, '0');
+        const cDay = cellDate.getDate();
+        const dateStr = `${cYear}-${cMon}-${String(cDay).padStart(2, '0')}`;
+        const isAdjacent = (cellDate.getMonth() !== (mon - 1)) || (cYear !== year);
+        const dayShifts = filteredShifts.filter(s => {
+          const d = s.date || (s.starts_at ? s.starts_at.slice(0, 10) : '');
+          return d === dateStr;
+        });
+        const isToday = dateStr === todayIso;
+        const isSelectedMobile = dateStr === selectedMobileRosterDate;
 
-      calendarCellsHtml += `
-        <div class="sr-dnd-cal-day${isSelectedMobile ? ' is-selected-mobile' : ''}" data-drop-date="${dateStr}" title="Drop a worker here or tap to assign shift on ${dateStr}" style="${isToday ? 'border-color:#10b981;background:rgba(16,185,129,0.06);' : ''}">
-          <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
-            <span class="sr-dnd-day-num" style="font-size:11.5px;font-weight:800;color:${isToday ? '#10b981' : 'var(--sr-text-main)'};display:inline-flex;align-items:center;gap:4px;">${day}${isMonday ? `<span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sr-text-muted);opacity:0.75;">W${String(isoWeekNum).padStart(2, '0')}</span>` : ''}</span>
-            <svg class="sr-dnd-add-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.35;color:var(--sr-text-muted);" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        const dotHtml = dayShifts.slice(0, 5).map(ds => {
+          const isMorning = (ds.start_time || '06:00').startsWith('06') || (ds.start_time || '').startsWith('07') || (ds.start_time || '').startsWith('08');
+          const dotColor = ds.is_shift_supervisor ? '#0284c7' : (isMorning ? '#10b981' : '#f59e0b');
+          return `<span class="sr-dnd-dot" style="background:${dotColor};"></span>`;
+        }).join('') + (dayShifts.length > 5 ? `<span class="sr-dnd-dot-more">+${dayShifts.length - 5}</span>` : '');
+
+        calendarCellsHtml += `
+          <div class="sr-dnd-cal-day${isSelectedMobile ? ' is-selected-mobile' : ''}" data-drop-date="${dateStr}" title="Drop a worker here or tap to assign shift on ${dateStr}" style="${isToday ? 'border-color:#10b981;background:rgba(16,185,129,0.08);' : ''}${isAdjacent ? 'opacity:0.48;' : ''}">
+            <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+              <span class="sr-dnd-day-num" style="font-size:11.5px;font-weight:800;color:${isToday ? '#10b981' : 'var(--sr-text-main)'};">${cDay}</span>
+              <svg class="sr-dnd-add-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.35;color:var(--sr-text-muted);" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            <div class="sr-dnd-mobile-dots">${dotHtml}</div>
+            <div class="sr-dnd-desktop-pills" style="display:flex;flex-direction:column;gap:3px;margin-top:2px;">
+              ${dayShifts.map(ds => {
+                const firstName = (ds.worker_name || 'Staff').split(' ')[0];
+                const hrs = ds.start_time ? `${ds.start_time}–${ds.end_time || '14:00'}` : '06:00–14:00';
+                const isMorning = (ds.start_time || '06:00').startsWith('06') || (ds.start_time || '').startsWith('07') || (ds.start_time || '').startsWith('08');
+                const bg = ds.is_shift_supervisor ? 'rgba(2,132,199,0.16)' : (isMorning ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.16)');
+                const fg = ds.is_shift_supervisor ? '#0369a1' : (isMorning ? '#047857' : '#b45309');
+                return `<div class="sr-dnd-shift-pill" style="background:${bg};color:${fg};border:1px solid ${fg}33;" title="${escapeHtml(ds.worker_name || 'Staff')} • ${escapeHtml(hrs)} • ${escapeHtml(ds.station || 'Main Floor')}">${escapeHtml(firstName)} · ${escapeHtml(hrs)}</div>`;
+              }).join('')}
+            </div>
           </div>
-          <div class="sr-dnd-mobile-dots">${dotHtml}</div>
-          <div class="sr-dnd-desktop-pills" style="display:flex;flex-direction:column;gap:3px;margin-top:2px;">
-            ${dayShifts.map(ds => {
-              const firstName = (ds.worker_name || 'Staff').split(' ')[0];
-              const hrs = ds.start_time ? `${ds.start_time}–${ds.end_time || '14:00'}` : '06:00–14:00';
-              const isMorning = (ds.start_time || '06:00').startsWith('06') || (ds.start_time || '').startsWith('07') || (ds.start_time || '').startsWith('08');
-              const bg = ds.is_shift_supervisor ? 'rgba(2,132,199,0.16)' : (isMorning ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.16)');
-              const fg = ds.is_shift_supervisor ? '#0369a1' : (isMorning ? '#047857' : '#b45309');
-              return `<div class="sr-dnd-shift-pill" style="background:${bg};color:${fg};border:1px solid ${fg}33;" title="${escapeHtml(ds.worker_name || 'Staff')} • ${escapeHtml(hrs)} • ${escapeHtml(ds.station || 'Main Floor')}">${escapeHtml(firstName)} · ${escapeHtml(hrs)}</div>`;
-            }).join('')}
-          </div>
-        </div>
-      `;
+        `;
+      }
     }
 
     panel.innerHTML = `
