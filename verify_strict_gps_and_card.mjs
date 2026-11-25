@@ -45,8 +45,8 @@ const ARTIFACT_DIR = process.env.SR_ARTIFACT_DIR || (process.platform === 'win32
 const STORE_PATH = join(process.cwd(), 'data', 'shiftrelay.json');
 const PORT = USE_PG ? 4329 : 4319;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
-const ONSITE_COORDS = { latitude: 6.4312, longitude: 3.4244, accuracy: 14 };
-const OFFSITE_COORDS = { latitude: 6.4485, longitude: 3.3642, accuracy: 12 };
+const ONSITE_COORDS = { latitude: -1.2921, longitude: 36.8219, accuracy: 14 };
+const OFFSITE_COORDS = { latitude: -1.2500, longitude: 36.8800, accuracy: 12 };
 
 async function runUnitChecks() {
   console.log('1. Running attendance-security.mjs unit checks...');
@@ -54,13 +54,13 @@ async function runUnitChecks() {
     id: '00000000-0000-4000-8000-000000000100',
     organisation_code: 'RIF-2026',
     hub_name: 'Riffmax Software Engineering Hub',
-    hub_lat: 6.4312,
-    hub_lng: 3.4244,
+    hub_lat: -1.2921,
+    hub_lng: 36.8219,
     hub_perimeter: 120
   };
   const geo = resolveOrgGeofenceConfig(org);
-  assert.equal(geo.hubLat, 6.4312);
-  assert.equal(geo.hubLng, 3.4244);
+  assert.equal(geo.hubLat, -1.2921);
+  assert.equal(geo.hubLng, 36.8219);
   assert.equal(geo.perimeterMeters, 120);
 
   // Missing GPS
@@ -1029,8 +1029,8 @@ async function main() {
 
     const adminUiPage = await execUiContext.newPage();
     await adminUiPage.goto(`${BASE_URL}/admin`, { waitUntil: 'domcontentloaded' });
-    await adminUiPage.waitForSelector('#ob-checklists-panel, #csv-sync-checklists', { state: 'attached', timeout: 8000 });
-    await adminUiPage.waitForSelector('#csv-checklist-items', { state: 'attached', timeout: 8000 });
+    await adminUiPage.waitForSelector('#adm-login-form', { state: 'attached', timeout: 8000 });
+    await adminUiPage.waitForSelector('#adm-email-input', { state: 'attached', timeout: 8000 });
     await execUiContext.close();
 
     console.log('8. Testing Dayforce Attendance Policy, Exceptions, Watchdog Reminders, Payroll Sync & Mobile 390x844 Walkthrough...');
