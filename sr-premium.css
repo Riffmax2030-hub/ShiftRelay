@@ -2914,3 +2914,71 @@ body {
 
 
 
+
+/* ── PrismLock Biometric Fingerprint Clock-In Animations ───────────────────── */
+@keyframes srPrismRingPulse {
+  0%   { transform: scale(0.92); opacity: 0.85; }
+  50%  { transform: scale(1.09); opacity: 0.35; }
+  100% { transform: scale(0.92); opacity: 0.85; }
+}
+@keyframes srPrismScanBeam {
+  0%   { transform: translateY(-22px); opacity: 0; }
+  20%  { opacity: 0.95; }
+  80%  { opacity: 0.95; }
+  100% { transform: translateY(22px); opacity: 0; }
+}
+@keyframes srPrismRotateHalo {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.sr-prism-fp-wrap {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.sr-prism-halo {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: srPrismRingPulse 2.4s ease-in-out infinite;
+}
+.sr-prism-theme-cosmos .sr-prism-halo {
+  background: radial-gradient(circle, rgba(16,185,129,0.34) 0%, rgba(13,148,136,0.14) 55%, transparent 74%);
+  box-shadow: 0 0 24px rgba(16,185,129,0.45), inset 0 0 14px rgba(52,211,153,0.4);
+}
+.sr-prism-theme-bubble .sr-prism-halo {
+  border: 2px solid rgba(56,189,248,0.75);
+  background: radial-gradient(circle, rgba(14,165,233,0.28) 0%, rgba(56,189,248,0.08) 65%, transparent 80%);
+  box-shadow: 0 0 22px rgba(56,189,248,0.5), inset 0 0 12px rgba(186,230,253,0.45);
+}
+.sr-prism-theme-firework .sr-prism-halo {
+  border: 2px dashed rgba(251,191,36,0.85);
+  box-shadow: 0 0 22px rgba(245,158,11,0.45);
+  animation: srPrismRotateHalo 6s linear infinite;
+}
+.sr-prism-theme-dust .sr-prism-halo {
+  border: 2px dotted rgba(34,211,238,0.85);
+  background: radial-gradient(circle, rgba(34,211,238,0.25) 0%, transparent 70%);
+  animation: srPrismRotateHalo 8s linear infinite reverse;
+}
+.sr-prism-beam {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent, #34d399, transparent);
+  box-shadow: 0 0 10px #34d399;
+  pointer-events: none;
+  animation: srPrismScanBeam 2.1s ease-in-out infinite;
+}
+.sr-prism-fp-svg {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 8px rgba(52,211,153,0.55));
+}

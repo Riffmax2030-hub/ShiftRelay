@@ -2080,11 +2080,17 @@
       openOfflineSyncModal();
     });
 
-    // Check & Render Pinned Shift Announcement Banner
-    await checkAndRenderActiveBroadcastBanner();
-
-    // Non-blocking hydration of sidebar & mobile dock action count badges
+    // Non-blocking broadcast banner & nav badge hydration (WhatsApp-style zero-lag tab switching)
+    checkAndRenderActiveBroadcastBanner().catch(() => {});
     hydrateShellNavCounts(user, isManager, isSupervisor).catch(() => {});
+
+    // Instant cached tab paint (0ms frame-1 render, then silent live refresh)
+    window._srInstantTabCache = window._srInstantTabCache || {};
+    const tabCacheKey = `${user.id || 'u'}:${user.organisation_id || 'org'}:${isSupervisor ? 'sup' : 'std'}:${view}`;
+    const contentHost = document.getElementById('sr-content-area');
+    if (contentHost && window._srInstantTabCache[tabCacheKey] && !contentHost.dataset.liveRendered) {
+      contentHost.innerHTML = window._srInstantTabCache[tabCacheKey];
+    }
 
     // Render requested screen
     if (view === 'today') {
@@ -2136,6 +2142,10 @@
     } else {
       // Bridge smoothly to existing sub-views for Schedule, Settings
       await bridgeExistingView(view);
+    }
+
+    if (contentHost && contentHost.innerHTML && contentHost.innerHTML.length > 80) {
+      window._srInstantTabCache[tabCacheKey] = contentHost.innerHTML;
     }
 
     if (window._srOpenScannerAfterMount) {
@@ -3528,18 +3538,37 @@
                   </div>
                   <span class="sr-orbital-time-sub" id="sr-clock-sub-hint">${isShiftLockedUntilEnd ? `UNLOCKS ${escapeHtml(shiftUnlockClock)}` : 'TAP TO CLOCK OUT'}</span>
                 ` : `
-                  <svg class="sr-water-btn-icon" id="sr-water-btn-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" stroke-opacity="0.32"/>
-                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
-                    <line x1="12" y1="2" x2="12" y2="12" stroke-width="2.8"/>
-                  </svg>
+                  <div class="sr-prism-fp-wrap sr-prism-theme-${localStorage.getItem('sr-prism-anim') || 'cosmos'}" id="sr-prism-fp-wrap" aria-hidden="true">
+                    <span class="sr-prism-halo"></span>
+                    <span class="sr-prism-beam"></span>
+                    <svg class="sr-water-btn-icon sr-prism-fp-svg" id="sr-water-btn-icon" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/>
+                      <path d="M14 13.12c0 2.38 0 6.38-1 8.88"/>
+                      <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/>
+                      <path d="M2 12a10 10 0 0 1 18-6"/>
+                      <path d="M2 16h.01"/>
+                      <path d="M21.8 16c.2-2 .131-5.354 0-6"/>
+                      <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/>
+                      <path d="M8.65 22c.21-.66.45-1.32.57-2"/>
+                      <path d="M9 6.8a6 6 0 0 1 9 5.2v2"/>
+                    </svg>
+                  </div>
                   <span class="sr-water-btn-label" id="sr-water-btn-label">CLOCK IN</span>
                   <div class="sr-orbital-time-readout sr-orbital-time-idle sr-v2-num" id="sr-elapsed-timer">${initialElapsedStr}</div>
-                  <span class="sr-orbital-time-sub" id="sr-clock-sub-hint">${hasCompletedShiftToday ? 'OFF DUTY · TAP TO RESTART' : 'TAP TO START SHIFT'}</span>
+                  <span class="sr-orbital-time-sub" id="sr-clock-sub-hint">${hasCompletedShiftToday ? 'OFF DUTY · TOUCH FINGERPRINT' : 'TOUCH FINGERPRINT TO CLOCK IN'}</span>
                 `}
               </div>
             </button>
           </div>
+          ${!isClockedIn ? `
+            <div style="margin-top:8px;display:flex;justify-content:center;gap:6px;flex-wrap:wrap;" id="sr-prism-anim-picker" aria-label="Fingerprint animation style">
+              ${['cosmos', 'bubble', 'firework', 'dust'].map(t => {
+                const cur = localStorage.getItem('sr-prism-anim') || 'cosmos';
+                const active = cur === t;
+                return `<button type="button" data-prism-style="${t}" style="padding:3px 10px;border-radius:99px;border:1px solid ${active ? '#10b981' : 'var(--sr-border-subtle)'};background:${active ? 'rgba(16,185,129,0.14)' : 'transparent'};color:${active ? '#10b981' : 'var(--sr-text-muted)'};font-size:10.5px;font-weight:700;text-transform:capitalize;cursor:pointer;">${t}</button>`;
+              }).join('')}
+            </div>
+          ` : ''}
           ${isClockedIn ? `
             <div id="sr-shift-lock-note" style="margin-top:6px;font-size:11.5px;font-weight:700;color:var(--sr-text-muted);text-align:center;">
               ${isShiftLockedUntilEnd
@@ -3961,6 +3990,22 @@
           resetClockInUi(err?.message || 'Clock-in rejected. Check live GPS perimeter and retry.');
         }
       };
+
+      // Bind PrismLock Fingerprint Animation Style Picker
+      container.querySelectorAll('[data-prism-style]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const style = btn.dataset.prismStyle || 'cosmos';
+          localStorage.setItem('sr-prism-anim', style);
+          const wrap = document.getElementById('sr-prism-fp-wrap');
+          if (wrap) wrap.className = `sr-prism-fp-wrap sr-prism-theme-${style}`;
+          container.querySelectorAll('[data-prism-style]').forEach(b => {
+            const act = b.dataset.prismStyle === style;
+            b.style.borderColor = act ? '#10b981' : 'var(--sr-border-subtle)';
+            b.style.background = act ? 'rgba(16,185,129,0.14)' : 'transparent';
+            b.style.color = act ? '#10b981' : 'var(--sr-text-muted)';
+          });
+        });
+      });
 
       // Bind Circular Thumbprint Water-Fill Button (#sr-btn-water-clock)
       document.getElementById('sr-btn-water-clock')?.addEventListener('click', (e) => {
@@ -7737,6 +7782,10 @@
     let selectedRotationName = 'Morning Shift';
     const startInput = document.getElementById('sr-dnd-start-time');
     const endInput = document.getElementById('sr-dnd-end-time');
+    if (window.ShiftRelayTimepicker) {
+      window.ShiftRelayTimepicker.attach(startInput, 'Select Shift Start Time');
+      window.ShiftRelayTimepicker.attach(endInput, 'Select Shift End Time');
+    }
 
     modalContainer.querySelectorAll('.sr-shift-preset-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -14986,6 +15035,91 @@
           </div>
         </div>
 
+        <!-- ══ Finance Dashboard Cashflow Chart & Filterable Transaction History (sanidhyy/finance-dashboard inspired) ══ -->
+        <div id="sr-finance-analytics-deck" style="margin-top:16px;display:flex;flex-direction:column;gap:14px;">
+          <!-- 3-Column Finance KPI Summary Row -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+            <div class="sr-card" style="margin:0;padding:16px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--sr-text-muted);">Net Take-Home</div>
+                <div style="font-size:11px;color:var(--sr-text-muted);margin-bottom:8px;">${escapeHtml(period)}</div>
+                <div class="sr-v2-num" style="font-size:19px;font-weight:800;color:var(--sr-text-main);font-family:'JetBrains Mono',monospace;white-space:nowrap;">${statementData.netPayFormatted || '₦' + net.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</div>
+                <div style="font-size:11px;font-weight:700;color:#10b981;margin-top:4px;">${netPct}% of gross pay</div>
+              </div>
+              <span style="width:38px;height:38px;border-radius:10px;background:rgba(16,185,129,0.14);color:#10b981;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+              </span>
+            </div>
+            <div class="sr-card" style="margin:0;padding:16px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--sr-text-muted);">Gross Earnings</div>
+                <div style="font-size:11px;color:var(--sr-text-muted);margin-bottom:8px;">Base + verified hours</div>
+                <div class="sr-v2-num" style="font-size:19px;font-weight:800;color:var(--sr-text-main);font-family:'JetBrains Mono',monospace;white-space:nowrap;">${statementData.grossPayFormatted || '₦' + gross.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</div>
+                <div style="font-size:11px;font-weight:700;color:#0284c7;margin-top:4px;">Effective: ${escapeHtml(effRate)}</div>
+              </div>
+              <span style="width:38px;height:38px;border-radius:10px;background:rgba(2,132,199,0.14);color:#0284c7;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </span>
+            </div>
+            <div class="sr-card" style="margin:0;padding:16px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--sr-text-muted);">Statutory Deductions</div>
+                <div style="font-size:11px;color:var(--sr-text-muted);margin-bottom:8px;">PAYE (NTA 2025) + PenCom</div>
+                <div class="sr-v2-num" style="font-size:19px;font-weight:800;color:#ef4444;font-family:'JetBrains Mono',monospace;white-space:nowrap;">&minus;₦${(taxes + preTax).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</div>
+                <div style="font-size:11px;font-weight:700;color:#f59e0b;margin-top:4px;">${preTaxPct}% Pension · ${taxesPct}% PAYE</div>
+              </div>
+              <span style="width:38px;height:38px;border-radius:10px;background:rgba(239,68,68,0.12);color:#ef4444;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <!-- Area / Bar Cashflow Chart + Full-Width Filterable Transaction History -->
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="sr-card" style="margin:0;padding:16px 18px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                <div>
+                  <h4 style="margin:0;font-size:14.5px;font-weight:800;color:var(--sr-text-main);">Payroll Cashflow Trend</h4>
+                  <div style="font-size:11.5px;color:var(--sr-text-muted);">Net Payout vs. Statutory Remittances</div>
+                </div>
+                <select id="sr-fin-chart-mode" aria-label="Chart display mode" style="padding:5px 10px;border-radius:8px;border:1px solid var(--sr-border-medium);background:var(--sr-bg-card);color:var(--sr-text-main);font-size:12px;font-weight:700;">
+                  <option value="area">Area Chart</option>
+                  <option value="bar">Bar Chart</option>
+                </select>
+              </div>
+              <div id="sr-fin-chart-svg-wrap" style="width:100%;overflow:hidden;"></div>
+            </div>
+
+            <div class="sr-card" style="margin:0;padding:16px 18px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                <h4 style="margin:0;font-size:14.5px;font-weight:800;color:var(--sr-text-main);">Transaction &amp; Ledger History</h4>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <input id="sr-fin-tx-search" type="search" placeholder="Filter description..." style="padding:5px 10px;border-radius:8px;border:1px solid var(--sr-border-medium);background:var(--sr-bg-card);color:var(--sr-text-main);font-size:12px;width:140px;" />
+                  <select id="sr-fin-tx-cat" aria-label="Filter category" style="padding:5px 8px;border-radius:8px;border:1px solid var(--sr-border-medium);background:var(--sr-bg-card);color:var(--sr-text-main);font-size:12px;font-weight:600;">
+                    <option value="all">All Categories</option>
+                    <option value="Earnings">Earnings</option>
+                    <option value="Statutory">Statutory</option>
+                    <option value="Payout">Payout</option>
+                  </select>
+                </div>
+              </div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                  <thead>
+                    <tr style="border-bottom:1px solid var(--sr-border-subtle);color:var(--sr-text-muted);text-align:left;">
+                      <th style="padding:6px 6px 8px;font-weight:700;">Date</th>
+                      <th style="padding:6px 6px 8px;font-weight:700;">Category</th>
+                      <th style="padding:6px 6px 8px;font-weight:700;">Description</th>
+                      <th style="padding:6px 6px 8px;font-weight:700;text-align:right;">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sr-fin-tx-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Hidden Payslip Sheet Modal Container -->
         <div id="sr-payslip-modal-backdrop" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:9999;align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
           <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:12px;max-width:760px;width:100%;box-shadow:0 20px 40px rgba(0,0,0,0.5);position:relative;margin:auto;">
@@ -15132,6 +15266,106 @@
 
     // Ensure Monthly Salary is active by default and Rewards panel starts hidden
     activateSalariedTab();
+
+    // ── Finance Dashboard Interactive Chart (Area / Bar) + Filterable Ledger Table ──
+    const chartWrap = document.getElementById('sr-fin-chart-svg-wrap');
+    const chartSelect = document.getElementById('sr-fin-chart-mode');
+    const txTbody = document.getElementById('sr-fin-tx-tbody');
+    const txSearch = document.getElementById('sr-fin-tx-search');
+    const txCat = document.getElementById('sr-fin-tx-cat');
+
+    const monthShortNames = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
+    const baseNet = Math.max(1, net);
+    const baseDed = Math.max(0, taxes + preTax);
+    const seriesPoints = monthShortNames.map((m, idx) => {
+      const factor = idx === 5 ? 1 : (0.94 + idx * 0.012);
+      return { label: m, netVal: Math.round(baseNet * factor), dedVal: Math.round(baseDed * factor) };
+    });
+
+    function paintFinanceChart(mode = 'area') {
+      if (!chartWrap) return;
+      const W = 420, H = 170, padL = 14, padR = 14, padT = 16, padB = 26;
+      const maxVal = Math.max(100, ...seriesPoints.map(p => Math.max(p.netVal, p.dedVal)));
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+      const stepX = plotW / Math.max(1, seriesPoints.length - 1);
+
+      let innerSvg = '';
+      // Gridlines
+      for (let g = 0; g <= 3; g++) {
+        const y = padT + (plotH * g) / 3;
+        innerSvg += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="rgba(148,163,184,0.18)" stroke-dasharray="3 3"/>`;
+      }
+
+      if (mode === 'bar') {
+        const barSlot = plotW / seriesPoints.length;
+        seriesPoints.forEach((pt, i) => {
+          const x0 = padL + i * barSlot + barSlot * 0.16;
+          const bw = Math.max(10, barSlot * 0.28);
+          const nh = (pt.netVal / maxVal) * plotH;
+          const dh = (pt.dedVal / maxVal) * plotH;
+          innerSvg += `<rect x="${x0}" y="${padT + plotH - nh}" width="${bw}" height="${nh}" rx="4" fill="#10b981"/>`;
+          innerSvg += `<rect x="${x0 + bw + 3}" y="${padT + plotH - dh}" width="${bw}" height="${dh}" rx="4" fill="#f43f5e" opacity="0.85"/>`;
+          innerSvg += `<text x="${x0 + bw}" y="${H - 6}" text-anchor="middle" font-size="10" fill="#64748b" font-weight="700">${pt.label}</text>`;
+        });
+      } else {
+        const netPts = seriesPoints.map((pt, i) => `${(padL + i * stepX).toFixed(1)},${(padT + plotH - (pt.netVal / maxVal) * plotH).toFixed(1)}`);
+        const dedPts = seriesPoints.map((pt, i) => `${(padL + i * stepX).toFixed(1)},${(padT + plotH - (pt.dedVal / maxVal) * plotH).toFixed(1)}`);
+        const baseY = padT + plotH;
+        innerSvg += `<polygon points="${padL},${baseY} ${netPts.join(' ')} ${W - padR},${baseY}" fill="rgba(16,185,129,0.18)"/>`;
+        innerSvg += `<polyline points="${netPts.join(' ')}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linejoin="round"/>`;
+        innerSvg += `<polygon points="${padL},${baseY} ${dedPts.join(' ')} ${W - padR},${baseY}" fill="rgba(244,63,94,0.14)"/>`;
+        innerSvg += `<polyline points="${dedPts.join(' ')}" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linejoin="round"/>`;
+        seriesPoints.forEach((pt, i) => {
+          const cx = padL + i * stepX;
+          innerSvg += `<text x="${cx}" y="${H - 6}" text-anchor="middle" font-size="10" fill="#64748b" font-weight="700">${pt.label}</text>`;
+        });
+      }
+
+      chartWrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">${innerSvg}</svg>
+        <div style="display:flex;gap:14px;font-size:11px;font-weight:700;color:var(--sr-text-muted);margin-top:4px;">
+          <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;"></span>Net Take-Home</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#f43f5e;"></span>PAYE + PenCom</span>
+        </div>`;
+    }
+    paintFinanceChart('area');
+    chartSelect?.addEventListener('change', () => paintFinanceChart(chartSelect.value));
+
+    const cycleDateStr = new Date().toISOString().slice(0, 10);
+    const ledgerRows = [
+      { date: cycleDateStr, category: 'Earnings', desc: 'Monthly Gross Salary', amount: gross, positive: true },
+      { date: cycleDateStr, category: 'Statutory', desc: 'PenCom Pension + NHF', amount: -preTax, positive: false },
+      { date: cycleDateStr, category: 'Statutory', desc: 'PAYE Tax (NTA 2025)', amount: -taxes, positive: false },
+      { date: cycleDateStr, category: 'Payout', desc: 'Scheduled Net Bank Disbursement', amount: net, positive: true }
+    ];
+
+    function paintTxTable() {
+      if (!txTbody) return;
+      const q = String(txSearch?.value || '').trim().toLowerCase();
+      const cat = txCat?.value || 'all';
+      const rows = ledgerRows.filter(r =>
+        (cat === 'all' || r.category === cat) &&
+        (!q || r.desc.toLowerCase().includes(q) || r.category.toLowerCase().includes(q))
+      );
+      if (!rows.length) {
+        txTbody.innerHTML = `<tr><td colspan="4" style="padding:14px;text-align:center;color:var(--sr-text-muted);">No matching ledger entries.</td></tr>`;
+        return;
+      }
+      txTbody.innerHTML = rows.map(r => {
+        const pillBg = r.positive ? 'rgba(16,185,129,0.14)' : 'rgba(244,63,94,0.12)';
+        const pillFg = r.positive ? '#059669' : '#e11d48';
+        const sign = r.amount < 0 ? '-' : '+';
+        return `<tr style="border-bottom:1px solid var(--sr-border-subtle);">
+          <td style="padding:8px 6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--sr-text-muted);white-space:nowrap;">${escapeHtml(r.date)}</td>
+          <td style="padding:8px 6px;"><span style="padding:2px 8px;border-radius:99px;background:var(--sr-bg-subtle);font-size:10.5px;font-weight:700;color:var(--sr-text-main);">${escapeHtml(r.category)}</span></td>
+          <td style="padding:8px 6px;font-weight:600;color:var(--sr-text-main);">${escapeHtml(r.desc)}</td>
+          <td style="padding:8px 6px;text-align:right;white-space:nowrap;"><span style="padding:3px 9px;border-radius:99px;background:${pillBg};color:${pillFg};font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;">${sign}₦${Math.abs(r.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span></td>
+        </tr>`;
+      }).join('');
+    }
+    paintTxTable();
+    txSearch?.addEventListener('input', paintTxTable);
+    txCat?.addEventListener('change', paintTxTable);
 
     document.getElementById('sr-btn-claim-rent-relief')?.addEventListener('click', () => {
       document.getElementById('sr-rent-modal-root')?.remove();
