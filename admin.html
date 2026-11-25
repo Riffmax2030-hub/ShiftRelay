@@ -1473,8 +1473,8 @@
                 <div style="font-weight:700; font-size:13.5px; margin-top:4px; color:var(--sky);" id="ov-bridge-paystack">22-Bank NUBAN Active</div>
               </div>
               <div style="padding:12px 14px; border-radius:12px; background:var(--bg-input); border:1px solid var(--border-hairline);">
-                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-slate);">WATCHDOG SMS &amp; WHATSAPP</div>
-                <div style="font-weight:700; font-size:13.5px; margin-top:4px; color:var(--text-white);" id="ov-bridge-messaging">Termii / Meta Cloud</div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-slate);">EMAIL &amp; WHATSAPP BRIDGE</div>
+                <div style="font-weight:700; font-size:13.5px; margin-top:4px; color:var(--text-white);" id="ov-bridge-messaging">Email + Meta Cloud</div>
               </div>
               <div style="padding:12px 14px; border-radius:12px; background:var(--bg-input); border:1px solid var(--border-hairline);">
                 <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-slate);">ERP / HRIS REST BRIDGE</div>
@@ -3234,12 +3234,11 @@
       if (ovPay && payP) {
         ovPay.textContent = payP.status === 'CONNECTED' ? 'Paystack + CBN NIP Live' : 'CBN 22-Bank Engine Ready';
       }
-      const smsP = plugins.find(p => p.id === 'termii_sms');
       const waP = plugins.find(p => p.id === 'whatsapp_cloud');
       const ovMsg = document.getElementById('ov-bridge-messaging');
       if (ovMsg) {
-        const liveSms = smsP?.status === 'CONNECTED' || waP?.status === 'CONNECTED';
-        ovMsg.textContent = liveSms ? 'Termii / WhatsApp Connected' : 'Watchdog Queue Active';
+        const liveWa = waP?.status === 'CONNECTED';
+        ovMsg.textContent = liveWa ? 'Email + WhatsApp Connected' : 'Email + Push Active';
       }
       const ovErp = document.getElementById('ov-bridge-erp');
       if (ovErp) {
@@ -3435,7 +3434,7 @@
         { group: 'View', label: 'Tenants & Roster', sub: 'Onboarded Companies, Staffs & Gate QR', run: () => window.switchAdminView('tenants') },
         { group: 'View', label: 'Customer Care & Support Tickets', sub: 'Live SSE Support Queue & NDPA Erasure', run: () => window.switchAdminView('rectifications') },
         { group: 'View', label: 'Payroll Audit & Bank NIP Export', sub: 'PenCom, PAYE, NHF & Bank NIP CSV', run: () => window.switchAdminView('finance') },
-        { group: 'View', label: 'Plugins, API Keys & Enterprise Bridges', sub: 'Gemini, Paystack, Termii, WhatsApp, ERP REST & Webhooks', run: () => window.switchAdminView('integrations') },
+        { group: 'View', label: 'Plugins, API Keys & Enterprise Bridges', sub: 'Gemini, Paystack, Email, WhatsApp, ERP REST & Webhooks', run: () => window.switchAdminView('integrations') },
         { group: 'View', label: 'Email Auto-Station & Newsletter', sub: 'Transactional Outbox & Statutory Digests', run: () => window.switchAdminView('email-station') },
         { group: 'View', label: 'Backend Files & Engines Inspector', sub: 'Live Server Modules & Read-Only Code Preview', run: () => window.switchAdminView('hosting') },
         { group: 'Action', label: 'Verify 10-Digit NUBAN Account Name', sub: 'CBN Modulo-10 + Paystack Resolver', run: () => window.openNubanResolverModal() },
@@ -3562,17 +3561,6 @@
           <div>
             <label class="lbl-sm">PAYSTACK_SECRET_KEY (Leave blank to keep existing)</label>
             <input id="pcfg-key" type="password" class="adm-input" placeholder="sk_live_••••••••••••••••••••" />
-          </div>
-        `;
-      } else if (pluginId === 'termii_sms') {
-        extraFields = `
-          <div>
-            <label class="lbl-sm">DND Corporate Sender ID (Max 11 chars)</label>
-            <input id="pcfg-sender" type="text" class="adm-input" maxlength="11" value="${escapeHtml(p.config?.senderId || 'ShiftRelay')}" />
-          </div>
-          <div>
-            <label class="lbl-sm">TERMII_API_KEY</label>
-            <input id="pcfg-key" type="password" class="adm-input" placeholder="TL••••••••••••••••••••••••" />
           </div>
         `;
       } else if (pluginId === 'whatsapp_cloud') {
@@ -4346,16 +4334,10 @@
                   <input id="adm-edit-ch-inapp" type="checkbox" checked /> In-App Push Alert
                 </label>
                 <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-white);cursor:pointer;">
-                  <input id="adm-edit-ch-termii" type="checkbox" /> Termii SMS (Nigeria)
-                </label>
-                <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-white);cursor:pointer;">
                   <input id="adm-edit-ch-whatsapp" type="checkbox" /> WhatsApp Cloud API
                 </label>
               </div>
-              <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
-                <label style="flex:1;min-width:140px;font-size:11px;font-weight:700;color:var(--text-slate);">Termii / SMS Sender ID
-                  <input id="adm-edit-ch-sender" type="text" value="ShiftRelay" maxlength="11" class="adm-input" style="margin-top:3px;padding:6px 9px;font-size:12px;font-family:'JetBrains Mono',monospace;" />
-                </label>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <button type="button" id="adm-edit-ch-probe" class="btn-ghost" style="padding:7px 11px;font-size:11.5px;">Send Channel Probe (Dry-Run/Live)</button>
               </div>
               <div id="adm-edit-ch-logs" style="font-size:11px;color:#94a3b8;line-height:1.45;"></div>
@@ -4413,9 +4395,7 @@
             body: JSON.stringify({
               email: Boolean(document.getElementById('adm-edit-ch-email')?.checked),
               inApp: Boolean(document.getElementById('adm-edit-ch-inapp')?.checked),
-              termiiSms: Boolean(document.getElementById('adm-edit-ch-termii')?.checked),
-              whatsappCloud: Boolean(document.getElementById('adm-edit-ch-whatsapp')?.checked),
-              termiiSenderId: (document.getElementById('adm-edit-ch-sender')?.value || 'ShiftRelay').trim()
+              whatsappCloud: Boolean(document.getElementById('adm-edit-ch-whatsapp')?.checked)
             })
           }).catch(() => {});
           modal.remove();
@@ -4433,11 +4413,11 @@
         const paintChannelLogs = (logs) => {
           if (!logsEl) return;
           if (!Array.isArray(logs) || !logs.length) {
-            logsEl.innerHTML = 'No recent SMS/WhatsApp dispatches recorded for this tenant yet.';
+            logsEl.innerHTML = 'No recent WhatsApp dispatches recorded for this tenant yet.';
             return;
           }
           logsEl.innerHTML = 'Recent logs: ' + logs.slice(0, 3).map(l =>
-            `<span style="display:inline-block;margin:2px 6px 2px 0;padding:2px 7px;border-radius:6px;background:var(--bg-input);border:1px solid var(--border-hairline);">${escapeHtml(l.channel || 'sms')} · ${escapeHtml(l.status || 'LOGGED')} (${escapeHtml(l.recipient_masked || l.recipientMasked || '***')})</span>`
+            `<span style="display:inline-block;margin:2px 6px 2px 0;padding:2px 7px;border-radius:6px;background:var(--bg-input);border:1px solid var(--border-hairline);">${escapeHtml(l.channel || 'whatsapp_cloud')} · ${escapeHtml(l.status || 'LOGGED')} (${escapeHtml(l.recipient_masked || l.recipientMasked || '***')})</span>`
           ).join('');
         };
         try {
@@ -4447,12 +4427,10 @@
             const c = chData.channels || {};
             if (modal.querySelector('#adm-edit-ch-email')) modal.querySelector('#adm-edit-ch-email').checked = c.email !== false;
             if (modal.querySelector('#adm-edit-ch-inapp')) modal.querySelector('#adm-edit-ch-inapp').checked = c.inApp !== false;
-            if (modal.querySelector('#adm-edit-ch-termii')) modal.querySelector('#adm-edit-ch-termii').checked = Boolean(c.termiiSms);
             if (modal.querySelector('#adm-edit-ch-whatsapp')) modal.querySelector('#adm-edit-ch-whatsapp').checked = Boolean(c.whatsappCloud);
-            if (modal.querySelector('#adm-edit-ch-sender')) modal.querySelector('#adm-edit-ch-sender').value = c.termiiSenderId || 'ShiftRelay';
             const pc = chData.providersConfigured || {};
             if (statusEl) {
-              statusEl.textContent = `Termii: ${pc.termiiLive ? 'LIVE' : 'DRY_RUN_LOGGED'} · WhatsApp: ${pc.whatsappCloudLive ? 'LIVE' : 'DRY_RUN_LOGGED'}`;
+              statusEl.textContent = `Email & Push: ACTIVE · WhatsApp: ${pc.whatsappCloudLive ? 'LIVE' : 'DRY_RUN_LOGGED'}`;
             }
             paintChannelLogs(chData.logs);
           }
@@ -4466,9 +4444,7 @@
               const pRes = await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/notifications/test`, {
                 method: 'POST',
                 body: JSON.stringify({
-                  termiiSms: Boolean(modal.querySelector('#adm-edit-ch-termii')?.checked),
-                  whatsappCloud: Boolean(modal.querySelector('#adm-edit-ch-whatsapp')?.checked),
-                  termiiSenderId: (modal.querySelector('#adm-edit-ch-sender')?.value || 'ShiftRelay').trim()
+                  whatsappCloud: Boolean(modal.querySelector('#adm-edit-ch-whatsapp')?.checked)
                 })
               });
               const pData = await pRes.json();

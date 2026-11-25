@@ -343,22 +343,22 @@ async function runHttpIntegrationChecks() {
       assert(qrJson.qrSvg.includes('<svg') && qrJson.qrPayload.includes('SHIFTRELAY:GATE:RIF-2026'));
     }
 
-    // Tenant SMS/WhatsApp Channel Config & Deterministic Dry-Run Test Probe
+    // Tenant Email/Push/WhatsApp Channel Config & Deterministic Dry-Run Test Probe
     const putChRes = await fetch(`${baseUrl}/api/admin/tenants/RIF-2026/notifications`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
-      body: JSON.stringify({ email: true, inApp: true, termiiSms: true, whatsappCloud: true, termiiSenderId: 'ShiftRelay' })
+      body: JSON.stringify({ email: true, inApp: true, whatsappCloud: true })
     });
     assert.equal(putChRes.status, 200);
     const probeRes = await fetch(`${baseUrl}/api/admin/tenants/RIF-2026/notifications/test`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
-      body: JSON.stringify({ termiiSms: true, whatsappCloud: true, termiiSenderId: 'ShiftRelay' })
+      body: JSON.stringify({ whatsappCloud: true })
     });
     assert.equal(probeRes.status, 200);
     const probeJson = await probeRes.json();
     assert.equal(probeJson.ok, true);
-    assert(Array.isArray(probeJson.logs) && probeJson.logs.length >= 2, 'Expected Termii SMS and WhatsApp Cloud audit logs');
+    assert(Array.isArray(probeJson.logs) && probeJson.logs.length >= 1, 'Expected WhatsApp Cloud audit logs');
     assert(probeJson.logs.some(l => String(l.recipientMasked || l.recipient_masked || '').includes('*')));
 
     // Worker NDPA opt-out + policy acceptance audit

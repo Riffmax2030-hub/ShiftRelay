@@ -58,9 +58,9 @@ export const LEGAL_ENTITY = Object.freeze({
       safeguard: 'Zero ad-tech sharing; RFC 8058 tokenized unsubscribe headers'
     },
     {
-      name: 'Termii Nigeria / Meta WhatsApp Cloud API (Optional Tenant-Enabled)',
+      name: 'Meta WhatsApp Cloud API (Optional Tenant-Enabled)',
       role: 'Clock-In Reminders & Supervisor Escalation Notifications',
-      region: 'Nigeria Telecom Routes / Meta Cloud',
+      region: 'Meta Cloud Infrastructure',
       safeguard: 'Opt-in only; NDPA worker opt-out enforced prior to dispatch'
     }
   ]

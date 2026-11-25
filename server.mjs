@@ -2379,11 +2379,8 @@ export function normalizeNotificationChannels(input = {}, existing = {}) {
   return {
     email: merged.email !== false,
     inApp: merged.inApp !== false,
-    termiiSms: Boolean(merged.termiiSms),
     whatsappCloud: Boolean(merged.whatsappCloud),
-    smartWaterfall: merged.smartWaterfall !== false,
-    whatsappDeskOverride: String(merged.whatsappDeskOverride || '').replace(/[^\d+]/g, '').slice(0, 20),
-    termiiSenderId: String(merged.termiiSenderId || 'ShiftRelay').replace(/[^A-Za-z0-9]/g, '').slice(0, 11) || 'ShiftRelay'
+    whatsappDeskOverride: String(merged.whatsappDeskOverride || '').replace(/[^\d+]/g, '').slice(0, 20)
   };
 }
 
@@ -2413,14 +2410,11 @@ export async function dispatchChannelNotification({
   const phoneRaw = String(member?.phone || member?.phone_e164 || '').trim();
   const optedOut = Boolean(member?.notification_opt_out || member?.notificationOptOut);
 
-  // Smart Waterfall Routing: Try Meta WhatsApp Cloud API first (cost-effective, $0 if undelivered),
-  // and only fall back to Termii DND SMS if WhatsApp is unconfigured or fails to deliver.
+  // Optional Meta WhatsApp Cloud API dispatch (Email + In-App Push are primary zero-cost channels)
   const targets = [];
   if (channels.whatsappCloud) targets.push({ channel: 'whatsapp_cloud', provider: 'Meta WhatsApp Cloud API' });
-  if (channels.termiiSms) targets.push({ channel: 'termii_sms', provider: 'Termii Nigeria SMS' });
   if (targets.length === 0) return results;
 
-  let waterfallPrimarySent = false;
   for (const t of targets) {
     const channelDedupe = `${dedupeKey}:${t.channel}`;
     let alreadyLogged = false;
@@ -2446,31 +2440,6 @@ export async function dispatchChannelNotification({
       status = 'SKIPPED_NO_PHONE';
       dryRun = true;
       errorMessage = 'No E.164 phone on file for worker.';
-    } else if (channels.smartWaterfall && waterfallPrimarySent && t.channel === 'termii_sms') {
-      status = 'SUPPRESSED_BY_WATERFALL';
-      dryRun = true;
-      errorMessage = 'Smart Waterfall: suppressed Termii SMS because WhatsApp delivered.';
-    } else if (t.channel === 'termii_sms' && process.env.TERMII_API_KEY) {
-      dryRun = false;
-      try {
-        const resp = await fetch('https://api.ng.termii.com/api/sms/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: phoneRaw.replace(/^\+/, ''),
-            from: channels.termiiSenderId || 'ShiftRelay',
-            sms: String(message || '').slice(0, 160),
-            type: 'plain',
-            channel: 'generic',
-            api_key: process.env.TERMII_API_KEY
-          })
-        });
-        status = resp.ok ? 'SENT_LIVE' : `PROVIDER_HTTP_${resp.status}`;
-        if (resp.ok) waterfallPrimarySent = true;
-      } catch (err) {
-        status = 'PROVIDER_ERROR';
-        errorMessage = err?.message || 'Termii request failed';
-      }
     } else if (t.channel === 'whatsapp_cloud' && process.env.WHATSAPP_CLOUD_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
       dryRun = false;
       try {
@@ -5116,7 +5085,7 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // -- Admin Tenant Notification Channels (Termii SMS / WhatsApp Cloud API) --
+  // -- Admin Tenant Notification Channels (Email / In-App Push / WhatsApp Cloud API) --
   const adminNotifMatch = url.pathname.match(/^\/api\/admin\/tenants\/([^/]+)\/notifications$/);
   if (adminNotifMatch && (request.method === 'GET' || request.method === 'PUT')) {
     const store = await getStore();
@@ -5155,7 +5124,6 @@ async function handleApi(request, response, url) {
       tenantId: org.id,
       channels: getOrgNotificationChannels(org),
       providersConfigured: {
-        termiiLive: Boolean(process.env.TERMII_API_KEY),
         whatsappCloudLive: Boolean(process.env.WHATSAPP_CLOUD_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID)
       },
       logs
@@ -11500,8 +11468,6 @@ async function getUserRewards(user, store) {
     const geminiKey = ov.geminiApiKey || process.env.GEMINI_API_KEY || '';
     const geminiModel = ov.geminiModel || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
     const paystackKey = ov.paystackSecretKey || process.env.PAYSTACK_SECRET_KEY || '';
-    const termiiKey = ov.termiiApiKey || process.env.TERMII_API_KEY || '';
-    const termiiSender = ov.termiiSenderId || 'ShiftRelay';
     const waToken = ov.whatsappCloudToken || process.env.WHATSAPP_CLOUD_TOKEN || '';
     const waPhoneId = ov.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '';
     const resendKey = ov.resendApiKey || process.env.RESEND_API_KEY || '';
@@ -11536,18 +11502,6 @@ async function getUserRewards(user, store) {
         envVars: ['PAYSTACK_SECRET_KEY'],
         capabilities: ['10-Digit NUBAN Check-Digit Verification', 'Instant Bulk Salary Transfer Batches', 'Fintech & Commercial Bank Routing'],
         config: { provider: ov.paymentProvider || 'Paystack + CBN NIP' }
-      },
-      {
-        id: 'termii_sms',
-        name: 'Termii DND SMS & OTP Watchdog Bridge',
-        category: 'Frontline Messaging & Security OTPs',
-        status: termiiKey ? 'CONNECTED' : 'SIMULATED_OUTBOX',
-        healthy: Boolean(termiiKey),
-        keyHint: maskSecretHint(termiiKey),
-        endpointOrModel: `Sender ID: ${termiiSender} (DND Corporate Route)`,
-        envVars: ['TERMII_API_KEY'],
-        capabilities: ['Pre-Shift Watchdog SMS Reminders (30/15/0m)', '6-Digit Tenant & Staff Security OTPs', 'Missed Clock-In Escalation Alerts'],
-        config: { senderId: termiiSender }
       },
       {
         id: 'whatsapp_cloud',
@@ -11633,12 +11587,6 @@ async function getUserRewards(user, store) {
         process.env.PAYSTACK_SECRET_KEY = ov.paystackSecretKey;
       }
       if (body.provider) ov.paymentProvider = String(body.provider).trim();
-    } else if (pluginId === 'termii_sms') {
-      if (body.apiKey && String(body.apiKey).trim()) {
-        ov.termiiApiKey = String(body.apiKey).trim();
-        process.env.TERMII_API_KEY = ov.termiiApiKey;
-      }
-      if (body.senderId) ov.termiiSenderId = String(body.senderId).trim().slice(0, 11);
     } else if (pluginId === 'whatsapp_cloud') {
       if (body.apiKey && String(body.apiKey).trim()) {
         ov.whatsappCloudToken = String(body.apiKey).trim();
@@ -11757,16 +11705,16 @@ async function getUserRewards(user, store) {
       });
     }
 
-    if (pluginId === 'termii_sms' || pluginId === 'whatsapp_cloud') {
+    if (pluginId === 'whatsapp_cloud') {
       const latencyMs = Date.now() - t0;
-      const isLive = pluginId === 'termii_sms' ? Boolean(process.env.TERMII_API_KEY) : Boolean(process.env.WHATSAPP_CLOUD_TOKEN);
+      const isLive = Boolean(process.env.WHATSAPP_CLOUD_TOKEN);
       return sendJson(response, 200, {
         ok: true,
         pluginId,
         status: isLive ? 'LIVE_BRIDGE_READY' : 'OUTBOX_SIMULATION_READY',
         latencyMs,
         message: isLive
-          ? `${pluginId === 'termii_sms' ? 'Termii DND SMS' : 'WhatsApp Cloud'} credentials verified (${latencyMs}ms).`
+          ? `WhatsApp Cloud credentials verified (${latencyMs}ms).`
           : `Bridge running in local simulated dispatch mode (${latencyMs}ms). Add live API token to route externally.`
       });
     }
@@ -15669,9 +15617,8 @@ const server = createServer((request, response) => {
             resendLive: emailResendConfigured
           },
           messagingChannels: {
-            name: 'Termii SMS & WhatsApp Cloud Reminder Bridge',
-            status: (process.env.TERMII_API_KEY || process.env.WHATSAPP_CLOUD_TOKEN) ? 'OPERATIONAL_LIVE' : 'DRY_RUN_READY',
-            termiiConfigured: Boolean(process.env.TERMII_API_KEY),
+            name: 'Email & WhatsApp Cloud Reminder Bridge',
+            status: (emailSmtpConfigured || emailResendConfigured || process.env.WHATSAPP_CLOUD_TOKEN) ? 'OPERATIONAL_LIVE' : 'DRY_RUN_READY',
             whatsappCloudConfigured: Boolean(process.env.WHATSAPP_CLOUD_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID)
           }
         },
@@ -16641,7 +16588,7 @@ export async function processShiftAttendanceReminders({ onlyOrganisationId = nul
           });
         }
 
-        // Multi-channel SMS (Termii) / WhatsApp Cloud dispatch for critical shift stages (respects NDPA opt-out + dedupe)
+        // Optional WhatsApp Cloud dispatch for critical shift stages (respects NDPA opt-out + dedupe)
         if (['pre_shift_15m', 'start_0', 'missed_clock_in', 'clock_out_overdue'].includes(item.stage)) {
           const targetMember = members.find(m => m.id === item.membershipId) || { id: item.membershipId, email: item.workerEmail };
           const shiftDateStr = String(item.startsAt || new Date(nowMs).toISOString()).slice(0, 10);
@@ -16658,8 +16605,8 @@ export async function processShiftAttendanceReminders({ onlyOrganisationId = nul
           if (channelLogs.length > 0 && !databaseReady) storeChanged = true;
         }
 
-        // Send mobile-ready transactional email on critical reminders (0m start, missed clock-in escalation, overdue clock-out)
-        if (item.workerEmail && ['start_0', 'missed_clock_in', 'clock_out_overdue'].includes(item.stage)) {
+        // Send mobile-ready transactional email on shift reminders (15m pre-shift, 0m start, missed clock-in escalation, overdue clock-out)
+        if (item.workerEmail && ['pre_shift_15m', 'start_0', 'missed_clock_in', 'clock_out_overdue'].includes(item.stage)) {
           const orgName = org.trading_name || org.legal_name || 'ShiftRelay OS Employer';
           const appOrigin = getPublicAppOrigin();
           const emailHtml = renderAttendanceReminderEmail({
