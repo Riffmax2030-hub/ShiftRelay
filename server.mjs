@@ -5206,6 +5206,25 @@ async function handleApi(request, response, url) {
     await saveStore(store);
     return sendJson(response, 200, { ok: true, tenantId: org.id, attendancePolicy: updatedPolicy });
   }
+  if (url.pathname.startsWith('/api/admin/tenants/') && !url.pathname.endsWith('/checklists') && !url.pathname.endsWith('/attendance-policy') && !url.pathname.endsWith('/notifications') && request.method === 'DELETE') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin']);
+    if (!adminCtx) return;
+    const targetTenantId = decodeURIComponent(url.pathname.split('/')[4] || '');
+    const orgIndex = (store.organisations || []).findIndex(o => o.id === targetTenantId || o.organisation_code === targetTenantId);
+    if (orgIndex === -1) return sendJson(response, 404, { error: 'Tenant organisation not found.' });
+    const org = store.organisations[orgIndex];
+    if (org.organisation_code === 'RIF-2026' || org.id === '00000000-0000-4000-8000-000000000100') {
+      return sendJson(response, 400, { error: 'Primary organisation RIF-2026 cannot be deleted.' });
+    }
+    store.organisations.splice(orgIndex, 1);
+    if (databaseReady && UUID_REGEX.test(String(org.id || ''))) {
+      await query('delete from organisations where id = $1', [org.id]).catch(() => {});
+    }
+    await saveStore(store);
+    return sendJson(response, 200, { ok: true, deletedId: org.id });
+  }
+
   if (url.pathname.startsWith('/api/admin/tenants/') && !url.pathname.endsWith('/checklists') && !url.pathname.endsWith('/attendance-policy') && !url.pathname.endsWith('/notifications') && request.method === 'PUT') {
     const store = await getStore();
     const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin']);
@@ -6831,12 +6850,7 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     if (!databaseReady) {
       const store = await getStore();
       if (!Array.isArray(store.openShifts)) {
-        store.openShifts = [
-          { id: 'open-shift-1', title: 'Weekend ICU Night Coverage', facility: 'St. Jude General Hospital', starts_at: new Date(Date.now() + 86400000).toISOString(), ends_at: new Date(Date.now() + 86400000 + 8 * 3600000).toISOString(), slots: 2, hourly_rate: '$48/hr', status: 'open', notes: 'Urgent night coverage needed for telemetry floor.' },
-          { id: 'open-shift-2', title: 'Morning Dispatch & Relay Lead', facility: 'DHL Logistics Hub', starts_at: new Date(Date.now() + 2 * 86400000).toISOString(), ends_at: new Date(Date.now() + 2 * 86400000 + 8 * 3600000).toISOString(), slots: 1, hourly_rate: '$36/hr', status: 'open', notes: 'Lead morning inbound sorting and shift brief.' },
-          { id: 'open-shift-3', title: 'Emergency Evening Cover', facility: 'Royal Free Healthcare', starts_at: new Date(Date.now() + 3 * 86400000).toISOString(), ends_at: new Date(Date.now() + 3 * 86400000 + 6 * 3600000).toISOString(), slots: 3, hourly_rate: '$44/hr', status: 'open', notes: 'Acute triage support and digital handover brief.' }
-        ];
-        await saveStore(store);
+        store.openShifts = [];
       }
       return sendJson(response, 200, { shifts: store.openShifts.filter(s => s.status === 'open') });
     }

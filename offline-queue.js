@@ -233,7 +233,10 @@
 
   window.addEventListener('offline', () => {
     isOnline = false;
-    updatePill(`Offline Mode (Basement / Cold-Storage)`, 'offline');
+    const count = loadQueue().length;
+    if (count > 0) {
+      updatePill(`Offline · ${count} update${count > 1 ? 's' : ''} queued`, 'offline');
+    }
   });
 
   // Periodic network heartbeat check

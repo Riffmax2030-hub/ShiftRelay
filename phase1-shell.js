@@ -1501,6 +1501,12 @@
               </div>
             ` : ''}
 
+            <!-- Live Real-Time Date & Clock (Updates Every Second) -->
+            <div id="sr-live-header-clock" class="sr-v2-num" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--sr-bg-card-subtle,rgba(15,23,42,0.06));border:1px solid var(--sr-border-subtle,rgba(148,163,184,0.25));font-size:11.5px;font-weight:700;color:var(--sr-text-main);white-space:nowrap;">
+              <span style="width:6px;height:6px;border-radius:50%;background:#10b981;"></span>
+              <span id="sr-live-clock-text">${new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} &middot; ${new Date().toLocaleTimeString('en-GB', { hour12: false })}</span>
+            </div>
+
             <!-- Company & Site Context Pill (Top Bar Right, away from ShiftRelay wordmark) -->
             <button class="sr-context-pill" id="sr-btn-context" aria-label="Workplace context" title="${escapeHtml(companyName)} · ${escapeHtml(deptOrSite)} · ${escapeHtml(formattedRole)}">
               <span class="sr-dot"></span>
@@ -9709,7 +9715,6 @@
                 </h2>
                 <div class="sr-cv-hero-headline" id="sr-me-display-role">${escapeHtml(roleDisplay)}</div>
                 <div class="sr-cv-hero-meta-chips">
-                  <span class="sr-cv-meta-chip">${escapeHtml(orgName)}</span>
                   <span class="sr-cv-meta-chip">${escapeHtml(deptName)}</span>
                   <span class="sr-cv-meta-chip sr-v2-num">ID: <strong style="color:#ffffff;">${escapeHtml(staffCode)}</strong></span>
                   <span class="sr-cv-meta-chip">${escapeHtml(workEmail)}</span>
@@ -12413,8 +12418,8 @@
                   </div>
                 </div>
                 <button class="sr-notif-toggle" data-pref="sound" role="switch" aria-checked="${notifPrefs.sound}"
-                  style="width:48px;height:26px;border-radius:99px;border:none;cursor:pointer;position:relative;transition:background .2s;background:${notifPrefs.sound ? 'var(--sr-primary)' : '#d1d5db'};">
-                  <span style="position:absolute;top:3px;${notifPrefs.sound ? 'right:3px' : 'left:3px'};width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);transition:all .2s;display:block;"></span>
+                  style="min-width:68px;height:30px;border-radius:99px;border:none;cursor:pointer;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:800;color:#ffffff;transition:background .2s;background:${notifPrefs.sound ? '#10b981' : '#64748b'};">
+                  ${notifPrefs.sound ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span>ON</span>' : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>OFF</span>'}
                 </button>
               </div>
 
@@ -12430,8 +12435,8 @@
                   </div>
                 </div>
                 <button class="sr-notif-toggle" data-pref="vibration" role="switch" aria-checked="${notifPrefs.vibration}"
-                  style="width:48px;height:26px;border-radius:99px;border:none;cursor:pointer;position:relative;transition:background .2s;background:${notifPrefs.vibration ? 'var(--sr-primary)' : '#d1d5db'};">
-                  <span style="position:absolute;top:3px;${notifPrefs.vibration ? 'right:3px' : 'left:3px'};width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);transition:all .2s;display:block;"></span>
+                  style="min-width:68px;height:30px;border-radius:99px;border:none;cursor:pointer;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:800;color:#ffffff;transition:background .2s;background:${notifPrefs.vibration ? '#10b981' : '#64748b'};">
+                  ${notifPrefs.vibration ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span>ON</span>' : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>OFF</span>'}
                 </button>
               </div>
 
@@ -12447,8 +12452,8 @@
                   </div>
                 </div>
                 <button class="sr-notif-toggle" data-pref="push" role="switch" aria-checked="${notifPrefs.push}"
-                  style="width:48px;height:26px;border-radius:99px;border:none;cursor:pointer;position:relative;transition:background .2s;background:${notifPrefs.push ? 'var(--sr-primary)' : '#d1d5db'};">
-                  <span style="position:absolute;top:3px;${notifPrefs.push ? 'right:3px' : 'left:3px'};width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);transition:all .2s;display:block;"></span>
+                  style="min-width:68px;height:30px;border-radius:99px;border:none;cursor:pointer;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:800;color:#ffffff;transition:background .2s;background:${notifPrefs.push ? '#10b981' : '#64748b'};">
+                  ${notifPrefs.push ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span>ON</span>' : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>OFF</span>'}
                 </button>
               </div>
 
@@ -12464,25 +12469,25 @@
                   </div>
                 </div>
                 <button class="sr-notif-toggle" data-pref="email" role="switch" aria-checked="${notifPrefs.email}"
-                  style="width:48px;height:26px;border-radius:99px;border:none;cursor:pointer;position:relative;transition:background .2s;background:${notifPrefs.email ? 'var(--sr-primary)' : '#d1d5db'};">
-                  <span style="position:absolute;top:3px;${notifPrefs.email ? 'right:3px' : 'left:3px'};width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);transition:all .2s;display:block;"></span>
+                  style="min-width:68px;height:30px;border-radius:99px;border:none;cursor:pointer;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:800;color:#ffffff;transition:background .2s;background:${notifPrefs.email ? '#10b981' : '#64748b'};">
+                  ${notifPrefs.email ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span>ON</span>' : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>OFF</span>'}
                 </button>
               </div>
 
-              <!-- NDPA 2023 SMS & WhatsApp Clock-In Reminder Consent -->
+              <!-- NDPA 2023 WhatsApp & Email Clock-In Reminder Consent -->
               <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--sr-border-subtle);">
                 <div style="display:flex;align-items:center;gap:11px;">
                   <div style="width:38px;height:38px;border-radius:10px;background:rgba(16,185,129,0.12);color:#059669;display:flex;align-items:center;justify-content:center;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                   </div>
                   <div>
-                    <div style="font-size:13.5px;font-weight:600;color:var(--sr-text-main);">SMS &amp; WhatsApp Reminders</div>
+                    <div style="font-size:13.5px;font-weight:600;color:var(--sr-text-main);">WhatsApp &amp; Email Reminders</div>
                     <div style="font-size:11.5px;color:var(--sr-text-muted);">Shift start &amp; attendance alerts</div>
                   </div>
                 </div>
                 <button id="sr-ndpa-sms-whatsapp-toggle" role="switch" aria-checked="${notifPrefs.smsWhatsapp !== false}"
-                  style="width:48px;height:26px;border-radius:99px;border:none;cursor:pointer;position:relative;transition:background .2s;background:${notifPrefs.smsWhatsapp !== false ? 'var(--sr-primary)' : '#d1d5db'};">
-                  <span style="position:absolute;top:3px;${notifPrefs.smsWhatsapp !== false ? 'right:3px' : 'left:3px'};width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);transition:all .2s;display:block;"></span>
+                  style="min-width:68px;height:30px;border-radius:99px;border:none;cursor:pointer;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:800;color:#ffffff;transition:background .2s;background:${notifPrefs.smsWhatsapp !== false ? '#10b981' : '#64748b'};">
+                  ${notifPrefs.smsWhatsapp !== false ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span>ON</span>' : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>OFF</span>'}
                 </button>
               </div>
 
@@ -12635,18 +12640,22 @@
     });
 
     // ── Notification Toggles ───────────────────────────────────────────
+    const paintSwitchVisual = (btn, isOn) => {
+      btn.style.background = isOn ? '#10b981' : '#64748b';
+      btn.setAttribute('aria-checked', String(isOn));
+      btn.innerHTML = isOn
+        ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span>ON</span>'
+        : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>OFF</span>';
+    };
+
     container.querySelectorAll('.sr-notif-toggle').forEach(btn => {
       btn.addEventListener('click', () => {
         const pref = btn.dataset.pref;
         const prefs = JSON.parse(localStorage.getItem('sr-notif-prefs') || '{"sound":true,"vibration":true,"push":true,"email":false}');
         prefs[pref] = !prefs[pref];
         localStorage.setItem('sr-notif-prefs', JSON.stringify(prefs));
-        // Update toggle visual in-place without full re-render
-        const isOn = prefs[pref];
-        btn.style.background = isOn ? 'var(--sr-primary)' : '#d1d5db';
-        btn.setAttribute('aria-checked', isOn);
-        const knob = btn.querySelector('span');
-        if (knob) { knob.style.right = isOn ? '3px' : ''; knob.style.left = isOn ? '' : '3px'; }
+        const isOn = Boolean(prefs[pref]);
+        paintSwitchVisual(btn, isOn);
         if (typeof showToast === 'function') showToast(`${pref.charAt(0).toUpperCase()+pref.slice(1)} alerts ${isOn ? 'enabled' : 'disabled'}`, 'info');
       });
     });
@@ -12657,10 +12666,7 @@
       const nextOn = prefs.smsWhatsapp === false;
       prefs.smsWhatsapp = nextOn;
       localStorage.setItem('sr-notif-prefs', JSON.stringify(prefs));
-      btn.style.background = nextOn ? 'var(--sr-primary)' : '#d1d5db';
-      btn.setAttribute('aria-checked', String(nextOn));
-      const knob = btn.querySelector('span');
-      if (knob) { knob.style.right = nextOn ? '3px' : ''; knob.style.left = nextOn ? '' : '3px'; }
+      paintSwitchVisual(btn, nextOn);
       try {
         await fetch('/api/employee/notification-preferences', {
           method: 'PUT',
@@ -12670,7 +12676,7 @@
         });
       } catch (_) {}
       if (typeof showToast === 'function') {
-        showToast(nextOn ? 'SMS & WhatsApp clock-in reminders enabled (NDPA 2023).' : 'Opted out of SMS & WhatsApp clock-in reminders (NDPA 2023).', 'info');
+        showToast(nextOn ? 'WhatsApp & Email clock-in reminders enabled (NDPA 2023).' : 'Opted out of WhatsApp & Email clock-in reminders (NDPA 2023).', 'info');
       }
     });
 
@@ -18102,4 +18108,15 @@
       } catch (_) {}
     }
   }, true);
+
+  // Live 1-second ticking date & clock updater
+  if (!window._srLiveClockTimer) {
+    window._srLiveClockTimer = setInterval(() => {
+      const el = document.getElementById('sr-live-clock-text');
+      if (el) {
+        const now = new Date();
+        el.textContent = `${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} · ${now.toLocaleTimeString('en-GB', { hour12: false })}`;
+      }
+    }, 1000);
+  }
 })();

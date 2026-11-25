@@ -1,4 +1,4 @@
-const CACHE = 'shiftrelay-v201-live';
+const CACHE = 'shiftrelay-v207-live';
 const CORE_SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -6,7 +6,38 @@ const CORE_SHELL_ASSETS = [
   '/trust.html',
   '/calculator.html',
   '/status.html',
-  '/icon.svg?v=177'
+  '/icon.svg?v=177',
+  '/styles.css?v=201',
+  '/theme.css?v=201',
+  '/bento-ui.css?v=201',
+  '/dark-mode.css?v=201',
+  '/splash.css?v=201',
+  '/sr-premium.css?v=201',
+  '/phase1-shell.css?v=201',
+  '/me-profile.css?v=201',
+  '/offline-queue.css?v=201',
+  '/icons.js?v=201',
+  '/language.js?v=201',
+  '/app.js?v=201',
+  '/biometrics.js?v=201',
+  '/qr-svg-generator.js?v=201',
+  '/attendance-exceptions-ui.js?v=201',
+  '/phase1-shell.js?v=201',
+  '/splash.js?v=201',
+  '/notifications.js?v=201',
+  '/profile.js?v=201',
+  '/checklists.js?v=201',
+  '/account-menu.js?v=201',
+  '/calendar-experience.js?v=201',
+  '/notification-experience.js?v=201',
+  '/community-experience.js?v=201',
+  '/team-realtime.js?v=201',
+  '/frontline-social.js?v=201',
+  '/me-profile.js?v=201',
+  '/navigation-fix.js?v=201',
+  '/offline-queue.js?v=201',
+  '/shift-calendar.js?v=201',
+  '/gps-guard.js?v=201'
 ];
 
 self.addEventListener('install', (event) => {
