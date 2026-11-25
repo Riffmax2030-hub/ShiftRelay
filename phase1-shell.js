@@ -8616,26 +8616,61 @@
           if (printBtn) printBtn.disabled = false;
         }
         const companyTitle = user.organisation_name || 'Riffmax Technology Limited';
+        const brandPrimary = user.brandPrimaryColor || '#065f46';
+        const brandSecondary = user.brandSecondaryColor || '#0d9488';
+        const hubLabel = user.hub_name || 'Primary Operations Hub';
+        const csvRows = [['staff_id', 'full_name', 'title', 'department', 'role_tier', 'company_code', 'company_name', 'sec_pin', 'qr_payload', 'photo_url']];
         const cardsMarkup = cardMembers.map(m => {
           const code = m.staffId || ('RIF-' + String(m.id || '').slice(-4));
           const secCode = m.cardVerifyCode || '';
           const payload = m.cardQrPayload || (secCode ? `SHIFTRELAY:ID:${companyCode}:${code}:${secCode}` : `SHIFTRELAY:ID:${companyCode}:${code}`);
-          const qr = (typeof window.generateQrSvg === 'function') ? window.generateQrSvg(payload, 92) : '';
+          const qr = (typeof window.generateQrSvg === 'function') ? window.generateQrSvg(payload, 118) : '';
+          const roleRaw = String(m.role || 'worker').toLowerCase();
+          const roleLabel = roleRaw === 'owner' ? 'Executive' : (roleRaw === 'supervisor' || roleRaw === 'manager' ? 'Supervisor' : 'Full-Time');
+          const roleBg = roleRaw === 'owner' ? '#fef3c7' : (roleRaw === 'supervisor' || roleRaw === 'manager' ? '#e0f2fe' : '#dcfce7');
+          const roleFg = roleRaw === 'owner' ? '#92400e' : (roleRaw === 'supervisor' || roleRaw === 'manager' ? '#075985' : '#166534');
+          const initials = String(m.name || 'SR').split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0].toUpperCase()).join('');
+          const photoUrl = m.passportPhotoDataUrl || m.avatarUrl || '';
+          csvRows.push([code, m.name || '', m.title || '', m.department || '', roleLabel, companyCode, companyTitle, secCode, payload, photoUrl].map(v => `"${String(v).replace(/"/g, '""')}"`));
+          const avatarHtml = photoUrl
+            ? `<img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(m.name)}" style="width:74px;height:74px;border-radius:14px;object-fit:cover;border:2.5px solid #ffffff;box-shadow:0 4px 12px rgba(15,23,42,0.16);" />`
+            : `<div style="width:74px;height:74px;border-radius:14px;background:${brandPrimary};color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;border:2.5px solid #ffffff;box-shadow:0 4px 12px rgba(15,23,42,0.16);">${escapeHtml(initials)}</div>`;
           return `
-            <div style="border:1.5px solid #cbd5e1;border-radius:12px;padding:12px;background:#ffffff;color:#0f172a;display:flex;align-items:center;justify-content:space-between;gap:12px;break-inside:avoid;">
-              <div style="min-width:0;">
-                <div style="font-size:9.5px;font-weight:800;color:#0d9488;text-transform:uppercase;letter-spacing:0.06em;">${escapeHtml(companyTitle)}</div>
-                <div style="font-size:14px;font-weight:800;margin:3px 0 2px;">${escapeHtml(m.name)}</div>
-                <div style="font-size:11px;color:#475569;">${escapeHtml(m.title)}</div>
-                <div style="font-size:10.5px;color:#64748b;margin-top:2px;">${escapeHtml(m.department)}</div>
-                <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">
-                  <span style="display:inline-block;padding:2px 8px;border-radius:5px;background:#f1f5f9;border:1px solid #cbd5e1;font-family:monospace;font-size:11px;font-weight:700;color:#0f172a;">ID: ${escapeHtml(code)}</span>
-                  ${secCode ? `<span style="display:inline-block;padding:2px 8px;border-radius:5px;background:#ecfdf5;border:1px solid #6ee7b7;font-family:monospace;font-size:11px;font-weight:800;color:#065f46;">SEC: ${escapeHtml(secCode)}</span>` : ''}
+            <div class="sr-cr80-pair" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;break-inside:avoid;padding:8px;border:1px dashed #cbd5e1;border-radius:14px;background:#f8fafc;">
+              <!-- FRONT (CR80 Portrait 54x86mm) -->
+              <div class="sr-cr80-card" style="width:204px;height:325px;border-radius:12px;background:#ffffff;color:#0f172a;border:1px solid #cbd5e1;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 6px 18px rgba(15,23,42,0.08);">
+                <div style="background:linear-gradient(135deg,${brandPrimary},${brandSecondary});padding:16px 12px 12px;color:#ffffff;text-align:center;">
+                  <div style="width:28px;height:4px;border-radius:99px;background:rgba(255,255,255,0.45);margin:0 auto 8px;" title="Lanyard Slot Safe Zone"></div>
+                  <div style="font-size:9.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;line-height:1.25;">${escapeHtml(companyTitle)}</div>
+                </div>
+                <div style="flex:1;padding:12px 14px;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;">
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:900;color:${brandPrimary};opacity:0.04;pointer-events:none;user-select:none;">${escapeHtml(companyCode)}</div>
+                  <div style="margin-top:-24px;z-index:1;">${avatarHtml}</div>
+                  <div style="font-size:14.5px;font-weight:800;color:#0f172a;margin-top:10px;line-height:1.2;">${escapeHtml(m.name)}</div>
+                  <div style="font-size:10.5px;font-weight:600;color:#475569;margin-top:3px;">${escapeHtml(m.title)}</div>
+                  <div style="font-size:9.5px;color:#64748b;margin-top:2px;">${escapeHtml(m.department)}</div>
+                  <span style="margin-top:8px;padding:3px 10px;border-radius:99px;background:${roleBg};color:${roleFg};font-size:9.5px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">${escapeHtml(roleLabel)}</span>
+                </div>
+                <div style="padding:8px 12px;border-top:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-family:monospace;font-size:10.5px;font-weight:800;color:#0f172a;">${escapeHtml(code)}</span>
+                  <span style="font-size:8.5px;font-weight:700;color:${brandPrimary};text-transform:uppercase;">FRONT</span>
                 </div>
               </div>
-              <div style="flex-shrink:0;text-align:center;">
-                ${qr}
-                <div style="font-size:8.5px;color:#64748b;font-weight:700;margin-top:2px;">SIGNED ON-SITE QR</div>
+              <!-- BACK (CR80 Portrait 54x86mm - Upper-Half QR + Fallback) -->
+              <div class="sr-cr80-card" style="width:204px;height:325px;border-radius:12px;background:#ffffff;color:#0f172a;border:1px solid #cbd5e1;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 6px 18px rgba(15,23,42,0.08);">
+                <div style="padding:14px 12px 6px;display:flex;flex-direction:column;align-items:center;text-align:center;">
+                  <div style="width:28px;height:4px;border-radius:99px;background:#e2e8f0;margin:0 auto 10px;"></div>
+                  <div style="padding:6px;background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;display:inline-flex;">${qr}</div>
+                  <div style="margin-top:8px;font-family:monospace;font-size:11px;font-weight:800;color:#0f172a;">${escapeHtml(code)}${secCode ? ` &middot; PIN ${escapeHtml(secCode)}` : ''}</div>
+                  <div style="font-size:8.5px;font-weight:700;color:#059669;letter-spacing:0.05em;text-transform:uppercase;margin-top:2px;">Scan for Peer Clock-In</div>
+                </div>
+                <div style="padding:0 14px 10px;text-align:center;font-size:8.5px;color:#64748b;line-height:1.4;">
+                  If found, please return to <strong>${escapeHtml(companyTitle)}</strong> (${escapeHtml(hubLabel)}).
+                </div>
+                <div style="padding:7px 12px;background:#0f172a;color:#94a3b8;display:flex;justify-content:space-between;align-items:center;font-size:8.5px;font-weight:700;">
+                  <span>Verified by <strong style="color:#34d399;">ShiftRelay</strong></span>
+                  <span>BACK</span>
+                </div>
               </div>
             </div>
           `;
@@ -8644,18 +8679,19 @@
         idModal.id = 'sr-print-id-cards-modal';
         idModal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
         idModal.innerHTML = `
-          <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;max-width:860px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
-            <div style="padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div style="background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:16px;max-width:980px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
               <div>
-                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">Printable Staff ID Cards (${cardMembers.length} Approved Personnel)</h3>
-                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">Signed Staff ID cards (QR + Security PIN). Both Check-In and Exit Card Scans require strict on-site GPS verification.</div>
+                <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">CR80 Portrait Staff ID Cards (${cardMembers.length} Personnel · Front &amp; Back)</h3>
+                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">54mm × 86mm print-ready layout with ISO quiet-zone QR &amp; manual PIN fallback.</div>
               </div>
-              <div style="display:flex;gap:8px;">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="sr-btn sr-btn-secondary" id="sr-export-id-csv-btn" style="padding:7px 12px;font-size:12px;">Export Print-Shop CSV</button>
                 <button type="button" class="sr-btn sr-btn-primary" id="sr-print-ids-now-btn" style="padding:7px 14px;font-size:12px;">Print Sheet</button>
                 <button type="button" class="sr-btn sr-btn-secondary" id="sr-print-ids-close-btn" style="padding:7px 12px;font-size:12px;">Close</button>
               </div>
             </div>
-            <div style="padding:16px 20px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;">
+            <div style="padding:16px 20px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:14px;">
               ${cardsMarkup}
             </div>
           </div>
@@ -8664,6 +8700,15 @@
         idModal.querySelector('#sr-print-ids-close-btn')?.addEventListener('click', () => idModal.remove());
         idModal.addEventListener('click', (e) => { if (e.target === idModal) idModal.remove(); });
         idModal.querySelector('#sr-print-ids-now-btn')?.addEventListener('click', () => window.print());
+        idModal.querySelector('#sr-export-id-csv-btn')?.addEventListener('click', () => {
+          const csvText = csvRows.map(r => r.join(',')).join('\n');
+          const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `${companyCode}-print-shop-id-cards.csv`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+        });
       });
 
       // Bind unified department dropdown & All / On Shift pill toggle
@@ -9636,11 +9681,11 @@
     const rawSuffix = String(user.id || '0001').slice(-4).padStart(4, '0');
     const staffCode = user.staffId || user.employee_code || ('RIF-' + rawSuffix);
     const orgCode = user.company_id || 'RIF-2026';
-    const qrPayload = user.cardQrPayload || `SHIFTRELAY:ID:${orgCode}:${staffCode}`;
+    const secCode = user.cardVerifyCode || '';
+    const qrPayload = user.cardQrPayload || (secCode ? `SHIFTRELAY:ID:${orgCode}:${staffCode}:${secCode}` : `SHIFTRELAY:ID:${orgCode}:${staffCode}`);
     const qrSvg = (typeof window !== 'undefined' && typeof window.generateQrSvg === 'function')
-      ? window.generateQrSvg(qrPayload, 128)
-      : (typeof generateQrSvg === 'function' ? generateQrSvg(qrPayload, 128) : '');
-    const barcodeSvg = generateBarcode128Svg(staffCode, 240, 52);
+      ? window.generateQrSvg(qrPayload, 148)
+      : (typeof generateQrSvg === 'function' ? generateQrSvg(qrPayload, 148) : '');
 
     container.innerHTML = `
       <div class="sr-modern-cv-wrap">
@@ -9701,14 +9746,11 @@
               <span style="padding:4px 10px;border-radius:99px;background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#34d399;font-size:10.5px;font-weight:800;letter-spacing:0.04em;white-space:nowrap;">Verified</span>
             </div>
 
-            <div class="sr-v2-id-scan-tray">
-              <div style="text-align:center;flex-shrink:0;">
-                <div id="sr-profile-qr-svg">${qrSvg}</div>
-                <div class="sr-v2-num" style="font-size:9.5px;font-weight:800;color:#0f172a;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;"><span id="sr-profile-staff-code">${escapeHtml(staffCode)}</span></div>
-              </div>
-              <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
-                <div class="sr-v2-num" style="font-size:9.5px;font-weight:700;color:#64748b;letter-spacing:0.06em;text-transform:uppercase;">Staff Barcode</div>
-                ${barcodeSvg}
+            <div class="sr-v2-id-scan-tray" style="justify-content:center;">
+              <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                <div id="sr-profile-qr-svg" style="background:#ffffff;padding:6px;border-radius:12px;border:1px solid #e2e8f0;display:inline-flex;">${qrSvg}</div>
+                <div class="sr-v2-num" style="font-size:11px;font-weight:800;color:#0f172a;letter-spacing:0.06em;text-transform:uppercase;"><span id="sr-profile-staff-code">${escapeHtml(staffCode)}</span>${secCode ? ` &middot; PIN ${escapeHtml(secCode)}` : ''}</div>
+                <div style="font-size:10px;font-weight:700;color:#059669;letter-spacing:0.04em;text-transform:uppercase;">Signed On-Site QR &middot; Scan to Clock In</div>
               </div>
             </div>
 

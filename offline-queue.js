@@ -258,7 +258,59 @@
     }
   }, 25000);
 
-  // ── Monkeypatch Global api() with Offline Fallback ────────────────────────────
+  // ── Monkeypatch Global api() with Preloaded GET Cache + Offline Mutation Queue ──
+  function getApiCacheKey(path) {
+    const { userId, orgId } = getActiveUserScope();
+    return `sr_api_cache_${userId}_${orgId}_${String(path || '').split('?')[0]}`;
+  }
+  function saveApiCache(path, data) {
+    try {
+      if (data && typeof data === 'object') {
+        localStorage.setItem(getApiCacheKey(path), JSON.stringify({ data, cachedAt: Date.now() }));
+      }
+    } catch (_) {}
+  }
+  function readApiCache(path) {
+    try {
+      const raw = localStorage.getItem(getApiCacheKey(path));
+      return raw ? JSON.parse(raw).data : null;
+    } catch (_) { return null; }
+  }
+
+  function buildOptimisticOfflineResponse(path, options) {
+    const parsed = (() => {
+      try { return typeof options.body === 'string' ? JSON.parse(options.body) : {}; } catch (_) { return {}; }
+    })();
+    if (path.includes('/like')) return { ok: true, success: true, queued: true };
+    if (path.includes('/comment')) {
+      return {
+        ok: true,
+        queued: true,
+        comment: {
+          content: parsed.content || '',
+          author_name: window.state?.user?.name || 'You (Offline)',
+          created_at: new Date().toISOString()
+        }
+      };
+    }
+    if (path.includes('/time-entries/clock-in')) {
+      return { ok: true, success: true, queued: true, offlineQueued: true, message: 'Clock-in saved offline. Will auto-sync when connected.' };
+    }
+    if (path.includes('/time-entries/clock-out')) {
+      return { ok: true, success: true, queued: true, offlineQueued: true, message: 'Clock-out saved offline. Will auto-sync when connected.' };
+    }
+    if (path.includes('/calendar/shifts')) {
+      return { ok: true, success: true, queued: true, offlineQueued: true, message: 'Shift assignment queued offline. Will auto-sync when connected.' };
+    }
+    if (path.includes('/payroll') || path.includes('/payout') || path.includes('/leave')) {
+      return { ok: true, success: true, queued: true, offlineQueued: true, message: 'Approval queued offline. Will auto-sync when connected.' };
+    }
+    if (path.includes('/handovers')) {
+      return { ok: true, success: true, queued: true, offlineQueued: true, message: 'Handover saved offline. Will sync when back online.' };
+    }
+    return { ok: true, success: true, queued: true, offlineQueued: true };
+  }
+
   function installOfflineInterceptor() {
     const originalApi = window.api;
     if (typeof originalApi !== 'function') {
@@ -268,35 +320,32 @@
 
     window.api = async function (path, options = {}) {
       const method = (options.method || 'GET').toUpperCase();
+      if (!isOnline && method === 'GET') {
+        const cached = readApiCache(path);
+        if (cached !== null) return cached;
+        throw new Error('Offline — this section was not preloaded yet.');
+      }
       if (!isOnline && method !== 'GET') {
         enqueue(path, options);
-        // Optimistic simulated response for common actions
-        if (path.includes('/like')) {
-          return { success: true, queued: true };
-        } else if (path.includes('/comment')) {
-          const parsed = options.body ? JSON.parse(options.body) : {};
-          return {
-            queued: true,
-            comment: {
-              content: parsed.content || '',
-              author_name: window.state?.user?.name || 'You (Offline)',
-              created_at: new Date().toISOString()
-            }
-          };
-        } else if (path.includes('/handovers')) {
-          return { success: true, queued: true, message: 'Saved to local queue. Will sync when back online.' };
-        }
-        return { success: true, queued: true };
+        return buildOptimisticOfflineResponse(path, options);
       }
 
       try {
-        return await originalApi(path, options);
+        const result = await originalApi(path, options);
+        if (method === 'GET') saveApiCache(path, result);
+        return result;
       } catch (err) {
-        // If network failed and it's a mutating action, queue it!
-        if (method !== 'GET' && (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError') || !navigator.onLine)) {
+        const isNetErr = !navigator.onLine || /failed to fetch|networkerror|load failed|took too long/i.test(String(err?.message || ''));
+        if (isNetErr && method === 'GET') {
+          isOnline = false;
+          const cached = readApiCache(path);
+          if (cached !== null) return cached;
+          throw new Error('Offline — this section was not preloaded yet.');
+        }
+        if (method !== 'GET' && isNetErr) {
           isOnline = false;
           enqueue(path, options);
-          return { success: true, queued: true };
+          return buildOptimisticOfflineResponse(path, options);
         }
         throw err;
       }

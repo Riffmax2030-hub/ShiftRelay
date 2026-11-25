@@ -41,6 +41,35 @@
   const EYE_OPEN_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
   const EYE_OFF_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
 
+  const OFFLINE_VAULT_KEY = 'shiftrelay_offline_vault_v1';
+  async function computeOfflineVerifier(companyId, email, password) {
+    const raw = `sr_off_v1:${String(companyId || '').trim().toUpperCase()}:${String(email || '').trim().toLowerCase()}:${String(password || '')}`;
+    if (window.crypto?.subtle) {
+      const buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    let h = 2166136261;
+    for (let i = 0; i < raw.length; i++) { h ^= raw.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return 'f_' + (h >>> 0).toString(16);
+  }
+  function readOfflineVault() {
+    try { return JSON.parse(localStorage.getItem(OFFLINE_VAULT_KEY) || '{}'); } catch (_) { return {}; }
+  }
+  async function saveOfflineCredential(companyId, email, password, user, company) {
+    try {
+      const vault = readOfflineVault();
+      const key = `${String(companyId || '').trim().toUpperCase()}::${String(email || '').trim().toLowerCase()}`;
+      vault[key] = {
+        verifier: await computeOfflineVerifier(companyId, email, password),
+        user,
+        company: company || { tradingName: user?.organisation_name || 'Verified Organisation' },
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem(OFFLINE_VAULT_KEY, JSON.stringify(vault));
+      localStorage.setItem('shiftrelay-user-data', JSON.stringify(user));
+    } catch (_) {}
+  }
+
   function setMsg(text, isError) {
     if (!msgEl) return;
     msgEl.textContent = text || '';
@@ -143,7 +172,25 @@
 
       setStep(2);
     } catch (err) {
-      setMsg(err.message || 'Unable to verify Unique ID.', true);
+      const isNetErr = !navigator.onLine || /failed to fetch|networkerror|load failed/i.test(String(err?.message || ''));
+      if (isNetErr) {
+        const vault = readOfflineVault();
+        const prefix = `${rawCode.toUpperCase()}::`;
+        const matchKey = Object.keys(vault).find(k => k.startsWith(prefix));
+        if (matchKey && vault[matchKey]?.company) {
+          verifiedCompany = vault[matchKey].company;
+          const orgDisplay = verifiedCompany.tradingName || verifiedCompany.legalName || 'Offline Cached Workspace';
+          const compNameEl = document.getElementById('sr-verified-company-name');
+          const summaryCompEl = document.getElementById('sr-summary-company');
+          if (compNameEl) compNameEl.textContent = `${orgDisplay} (${rawCode.toUpperCase()} · Offline)`;
+          if (summaryCompEl) summaryCompEl.textContent = `${orgDisplay} · ${rawCode.toUpperCase()} (Offline)`;
+          setStep(2);
+          return;
+        }
+        setMsg('Offline — connect to the internet once to activate this company ID on this device.', true);
+      } else {
+        setMsg(err.message || 'Unable to verify Unique ID.', true);
+      }
       companyInput?.focus();
     } finally {
       if (step1Btn) {
@@ -212,13 +259,32 @@
         throw new Error(data.error || 'Invalid email or password.');
       }
 
+      await saveOfflineCredential(companyId, email, password, data.user, verifiedCompany);
       closeLoginScreen();
       if (passwordInput) passwordInput.value = '';
       if (typeof window._srLoginCallback === 'function') {
         window._srLoginCallback(data.user);
       }
     } catch (err) {
-      setMsg(err.message || 'Sign in failed. Please check your credentials.', true);
+      const isNetErr = !navigator.onLine || /failed to fetch|networkerror|load failed/i.test(String(err?.message || ''));
+      if (isNetErr) {
+        const vault = readOfflineVault();
+        const key = `${companyId.toUpperCase()}::${email}`;
+        const entry = vault[key];
+        const candidateHash = await computeOfflineVerifier(companyId, email, password);
+        if (entry && entry.user && entry.verifier === candidateHash) {
+          localStorage.setItem('shiftrelay-user-data', JSON.stringify(entry.user));
+          closeLoginScreen();
+          if (passwordInput) passwordInput.value = '';
+          if (typeof window._srLoginCallback === 'function') {
+            window._srLoginCallback({ ...entry.user, _offlineSession: true });
+          }
+          return;
+        }
+        setMsg(entry ? 'Incorrect password for offline sign-in.' : 'Offline — connect to the internet once to enable offline login for this account.', true);
+      } else {
+        setMsg(err.message || 'Sign in failed. Please check your credentials.', true);
+      }
       passwordInput?.focus();
     } finally {
       if (step3Btn) {
@@ -342,8 +408,18 @@
         showWelcomeGate();
       }
     } catch (_) {
+      const storedUser = (() => {
+        try {
+          const raw = localStorage.getItem('shiftrelay-user-data');
+          return raw ? JSON.parse(raw) : null;
+        } catch (_) { return null; }
+      })();
       hideSplash();
-      showWelcomeGate();
+      if (storedUser && typeof window._srLoginCallback === 'function' && !window._srState?.user) {
+        window._srLoginCallback({ ...storedUser, _offlineSession: true });
+      } else {
+        showWelcomeGate();
+      }
     } finally {
       window._srReady = true;
       window.dispatchEvent(new CustomEvent('sr:ready'));

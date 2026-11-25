@@ -52,11 +52,12 @@ function reedSolomonCompute(data, ecCount) {
   return Array.from(msg.slice(data.length));
 }
 
-// Version table definitions (Version 3: 29x29, Version 4: 33x33)
+// Version table definitions (Version 3: 29x29, Version 4: 33x33, Version 5: 37x37, Version 6: 41x41)
 const QR_CONFIGS = {
   3: { size: 29, totalBytes: 70, ecBytes: 15, dataBytes: 55, align: [6, 22] },
   4: { size: 33, totalBytes: 100, ecBytes: 20, dataBytes: 80, align: [6, 26] },
-  5: { size: 37, totalBytes: 134, ecBytes: 26, dataBytes: 108, align: [6, 30] }
+  5: { size: 37, totalBytes: 134, ecBytes: 26, dataBytes: 108, align: [6, 30] },
+  6: { size: 41, totalBytes: 172, ecBytes: 36, dataBytes: 136, align: [6, 34] }
 };
 
 function generateQrMatrix(text) {
@@ -64,6 +65,7 @@ function generateQrMatrix(text) {
   let ver = 3;
   if (bytes.length > 50) ver = 4;
   if (bytes.length > 75) ver = 5;
+  if (bytes.length > 103) ver = 6;
   const cfg = QR_CONFIGS[ver];
 
   // 1. Bitstream packaging: Mode Indicator (8-bit Byte = 0100) + Character Count + Payload
@@ -230,7 +232,7 @@ function generateQrMatrix(text) {
 function generateQrSvg(text, size = 240, darkColor = '#0f172a', lightColor = '#ffffff') {
   const matrix = generateQrMatrix(text);
   const N = matrix.length;
-  const padding = 3;
+  const padding = 4; // ISO/IEC 18004 minimum 4-module quiet zone for reliable mobile camera scanning
   const totalCells = N + padding * 2;
   const cellSize = 8;
   const totalPixels = totalCells * cellSize;
