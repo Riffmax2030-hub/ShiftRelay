@@ -483,6 +483,32 @@
       box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
     }
     .store-play:hover { border-color: var(--emerald); box-shadow: 0 10px 24px rgba(5, 150, 105, 0.16); }
+    .store-apk {
+      background: linear-gradient(135deg, rgba(4, 120, 87, 0.96) 0%, rgba(5, 150, 105, 0.96) 100%);
+      color: #ffffff;
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      box-shadow: 0 8px 22px rgba(5, 150, 105, 0.24);
+    }
+    .store-apk:hover {
+      background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+      border-color: #34d399;
+      box-shadow: 0 12px 28px rgba(5, 150, 105, 0.34);
+    }
+    .apk-version-chip {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 4px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #ecfdf5;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
     .store-badge-text {
       display: flex;
       flex-direction: column;
@@ -1155,16 +1181,25 @@
     }
     @media (max-width: 640px) {
       .nav-cta-cluster .btn-outline { display: none; }
-      .nav-cta-cluster .btn-primary-emerald { white-space: nowrap; padding: 8px 13px; font-size: 12.5px; }
+      .nav-cta-cluster .btn-primary-emerald { white-space: nowrap; padding: 8px 12px; font-size: 12px; }
       .brand-wordmark { font-size: 17.5px; }
+      .brand-mark-static { width: 36px; height: 36px; }
+      .brand-lockup { gap: 8px; min-width: 0; }
+      .brand-lockup svg { height: 16px; width: auto; max-width: 120px; }
+      .navbar-inner { gap: 10px; }
       .roi-metrics-grid, .sr-nws-grid { grid-template-columns: 1fr !important; }
     }
-    @media (max-width: 390px) {
+    @media (max-width: 420px) {
       .site-navbar { padding: 10px 12px; }
-      .brand-wordmark { font-size: 16px; }
-      .nav-cta-cluster .btn-primary-emerald { padding: 7px 11px; font-size: 11.5px; }
+      .brand-mark-static { width: 32px; height: 32px; border-radius: 9px; }
+      .brand-lockup svg { height: 14px; max-width: 106px; }
+      .nav-cta-cluster { gap: 6px; flex-shrink: 0; }
+      .nav-cta-cluster .btn-primary-emerald { padding: 7px 10px; font-size: 11px; }
       .hero-actions a { width: 100%; justify-content: center; }
       .hero-float-badge { display: none; }
+    }
+    @media (max-width: 380px) {
+      .nav-cta-cluster .btn-primary-emerald { display: none; }
     }
 
     /* ── Scroll Progress Bar & Interactive Enhancements ── */
@@ -1421,6 +1456,17 @@
             <span class="store-badge-text">
               <small>GET IT ON</small>
               <strong>Google Play</strong>
+            </span>
+          </a>
+          <a href="/download/apk" download id="sr-hero-apk-btn" class="store-badge-btn store-apk" aria-label="Download latest ShiftRelay Android APK directly">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" x2="12" y1="15" y2="3"/>
+            </svg>
+            <span class="store-badge-text">
+              <small id="sr-apk-eyebrow">DIRECT ANDROID APK</small>
+              <strong style="display:inline-flex;align-items:center;gap:5px;">Download APK <span class="apk-version-chip" id="sr-apk-version-badge">v2.0.2</span></strong>
             </span>
           </a>
         </div>
@@ -2313,6 +2359,7 @@
         <h4>Mobile App &amp; Support</h4>
         <a href="https://apps.apple.com/search?term=ShiftRelay" target="_blank" rel="noopener noreferrer">Download on App Store</a>
         <a href="https://play.google.com/store/apps/details?id=com.shiftrelayos.app" target="_blank" rel="noopener noreferrer">Get it on Google Play</a>
+        <a href="/download/apk" download id="sr-footer-apk-link">Download Latest Android APK (v2.0.2)</a>
         <a href="/status.html">System Status</a>
         <a href="/support-security.html">Support &amp; Security</a>
         <a href="#demo-request-section">Start 30-Day Pilot</a>
@@ -2714,6 +2761,32 @@
         if (btn) { btn.disabled = false; btn.textContent = 'Request Pilot Workspace →'; }
       }
     };
+
+    // Hydrate Direct Android APK Download Button with Live Latest Release Version & Size
+    (async function hydrateLatestApkBadge() {
+      try {
+        const res = await fetch('/api/app/apk-release', { cache: 'no-store' });
+        if (!res.ok) return;
+        const meta = await res.json();
+        const badge = document.getElementById('sr-apk-version-badge');
+        const eyebrow = document.getElementById('sr-apk-eyebrow');
+        const btn = document.getElementById('sr-hero-apk-btn');
+        const footerLink = document.getElementById('sr-footer-apk-link');
+        if (badge && meta.version) {
+          badge.textContent = `v${meta.version}`;
+        }
+        if (eyebrow && meta.sizeLabel) {
+          eyebrow.textContent = `DIRECT ANDROID APK · ${meta.sizeLabel}`;
+        }
+        if (btn && meta.downloadUrl) {
+          btn.setAttribute('href', meta.downloadUrl);
+        }
+        if (footerLink && meta.version) {
+          footerLink.textContent = `Download Latest Android APK (v${meta.version}${meta.sizeLabel ? ' · ' + meta.sizeLabel : ''})`;
+          if (meta.downloadUrl) footerLink.setAttribute('href', meta.downloadUrl);
+        }
+      } catch (_) {}
+    })();
   </script>
 </body>
 </html>

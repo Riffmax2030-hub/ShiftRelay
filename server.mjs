@@ -109,7 +109,7 @@ import { createServer } from 'node:http';
 import { createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
+import { createReadStream, readFileSync } from 'node:fs';
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib';
 import { basename, extname, join, normalize, resolve } from 'node:path';
 import { databaseConfigured, demoMembers, demoOrganisation, getPool, initializeDatabase, isDatabaseConnectionError, sanitizeDatabaseError, query, seedDemoOrganisation, DEFAULT_DEMO_MEMBER_PASSWORD_HASH } from './database.mjs';
@@ -320,7 +320,8 @@ const mimeTypes = {
   '.woff2': 'font/woff2',
   '.woff': 'font/woff',
   '.ttf': 'font/ttf',
-  '.mjs': 'application/javascript'
+  '.mjs': 'application/javascript',
+  '.apk': 'application/vnd.android.package-archive'
 };
 const users = demoMembers;
 let databaseReady = false;
@@ -16698,6 +16699,94 @@ const server = createServer((request, response) => {
       return;
     }
     if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok' });
+
+    // -- Direct Android APK Release Metadata & Stream Download (Always Latest Version) --
+    if (request.method === 'GET' && url.pathname === '/api/app/apk-release') {
+      const downloadsDir = join(publicDirectory, 'downloads');
+      const apkFile = join(downloadsDir, 'shiftrelay-latest.apk');
+      const metaFile = join(downloadsDir, 'release-meta.json');
+      const externalUrl = String(process.env.ANDROID_APK_DOWNLOAD_URL || '').trim();
+      let meta = {
+        appName: 'ShiftRelay',
+        packageId: 'com.shiftrelayos.app',
+        version: '2.0.2',
+        versionCode: 202,
+        fileName: 'ShiftRelay-v2.0.2.apk',
+        sizeBytes: 0,
+        sizeLabel: '',
+        updatedAt: null,
+        sha256: null,
+        releaseNotes: 'Universal Android & iPhone mobile layout, GPS + Peer ID verification, and statutory Nigerian payroll.'
+      };
+      try {
+        const raw = await readFile(metaFile, 'utf8');
+        meta = { ...meta, ...JSON.parse(raw) };
+      } catch (_) {}
+      let localAvailable = false;
+      try {
+        const st = await stat(apkFile);
+        if (st.isFile() && st.size > 0) {
+          localAvailable = true;
+          meta.sizeBytes = st.size;
+          meta.sizeLabel = `${(st.size / (1024 * 1024)).toFixed(1)} MB`;
+          if (!meta.updatedAt) meta.updatedAt = st.mtime.toISOString();
+        }
+      } catch (_) {}
+      return sendJson(response, 200, {
+        ...meta,
+        available: localAvailable || Boolean(externalUrl),
+        downloadUrl: externalUrl || '/download/apk'
+      });
+    }
+
+    if ((request.method === 'GET' || request.method === 'HEAD') && (url.pathname === '/download/apk' || url.pathname === '/downloads/shiftrelay-latest.apk')) {
+      const externalUrl = String(process.env.ANDROID_APK_DOWNLOAD_URL || '').trim();
+      if (externalUrl) {
+        response.writeHead(302, {
+          Location: externalUrl,
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          ...SECURITY_HEADERS
+        });
+        return response.end();
+      }
+      const downloadsDir = join(publicDirectory, 'downloads');
+      const apkFile = join(downloadsDir, 'shiftrelay-latest.apk');
+      const metaFile = join(downloadsDir, 'release-meta.json');
+      let version = '2.0.2';
+      let fileName = 'ShiftRelay-v2.0.2.apk';
+      try {
+        const meta = JSON.parse(await readFile(metaFile, 'utf8'));
+        if (meta.version) version = String(meta.version).replace(/[^0-9A-Za-z._-]/g, '');
+        if (meta.fileName) fileName = String(meta.fileName).replace(/[^0-9A-Za-z._-]/g, '');
+      } catch (_) {}
+      try {
+        const st = await stat(apkFile);
+        if (!st.isFile() || st.size <= 0) throw new Error('missing');
+        response.writeHead(200, {
+          'Content-Type': 'application/vnd.android.package-archive',
+          'Content-Disposition': `attachment; filename="${fileName}"`,
+          'Content-Length': st.size,
+          'Cache-Control': 'no-cache, must-revalidate',
+          'X-ShiftRelay-App-Version': version,
+          ...SECURITY_HEADERS
+        });
+        if (request.method === 'HEAD') return response.end();
+        const stream = createReadStream(apkFile);
+        stream.on('error', () => {
+          if (!response.headersSent) {
+            response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS });
+          }
+          response.end('APK download stream error.');
+        });
+        stream.pipe(response);
+        return;
+      } catch (_) {
+        return sendJson(response, 404, {
+          error: 'Android APK release build is not yet published on this server.',
+          version
+        });
+      }
+    }
 
     if (request.method === 'GET' && url.pathname === '/robots.txt') {
       const marketingOrigin = normalizeOriginUrl(process.env.WEBSITE_URL || '') || 'https://shiftrelayos.com';

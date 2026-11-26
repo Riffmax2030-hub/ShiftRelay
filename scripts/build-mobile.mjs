@@ -40,7 +40,8 @@ const excludedDirs = new Set([
   'docs',
   'riffmax-brain',
   'visual-inspections',
-  'visuals'
+  'visuals',
+  'downloads'
 ]);
 
 function copyDir(src, dest) {
