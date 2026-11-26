@@ -72,7 +72,7 @@ jobs:
           ls -lhR android/app/build/outputs/ 2>/dev/null || echo "No outputs dir found"
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ShiftRelay-Debug-APK
           path: android/app/build/outputs/apk/**/*.apk
