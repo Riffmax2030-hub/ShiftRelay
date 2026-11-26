@@ -5,7 +5,12 @@ import {
   renderShiftHandoverEmail,
   renderExecutivePayrollDigestEmail,
   renderWeeklyProgressNewsletterEmail,
-  renderAttendanceReminderEmail
+  renderAttendanceReminderEmail,
+  renderOnboardingIntakeInviteEmail,
+  renderBillingPaymentLinkEmail,
+  renderOfficialPaymentReceiptEmail,
+  renderSupportTicketEmail,
+  EMAIL_TEMPLATE_CATALOG
 } from './email-engine.mjs';
 import {
   generatePayrollReportHtml,
@@ -110,6 +115,53 @@ if (!reminderHtml.includes('shiftrelayos.com')) throw new Error('Missing shiftre
 if (!reminderHtml.includes('15 minutes (within grace = zero pay deduction)')) throw new Error('Missing transparent grace policy text');
 if (!reminderHtml.includes('Review Attendance Exception')) throw new Error('Missing escalation CTA');
 console.log('✔ Automated attendance reminder & escalation email template passed');
+
+// 7. Onboarding Intake, Paystack Payment Link, Official Riffmax Receipt & Support Ticket Templates
+const inviteHtml = renderOnboardingIntakeInviteEmail({
+  companyName: 'Prime Logistics Nigeria Ltd',
+  recipientName: 'Chinedu Okafor',
+  intakeUrl: 'https://app.shiftrelayos.com/onboard.html'
+});
+if (!inviteHtml.includes('Powered by Riffmax Technology Limited') || !inviteHtml.includes('Open Company Onboarding Form')) {
+  throw new Error('Onboarding intake invite email failed branding/CTA check');
+}
+const payLinkHtml = renderBillingPaymentLinkEmail({
+  companyName: 'Prime Logistics Nigeria Ltd',
+  companyCode: 'PRI-NG-4021',
+  invoiceId: 'INV-SR-202611-4021',
+  planLabel: 'Business',
+  totalAmountNgn: 150000,
+  checkoutUrl: 'https://checkout.paystack.com/test'
+});
+if (!payLinkHtml.includes('Pay ₦150,000 Securely via Paystack') || !payLinkHtml.includes('Riffmax Technology Limited')) {
+  throw new Error('Billing Paystack payment link email failed check');
+}
+const receiptHtml = renderOfficialPaymentReceiptEmail({
+  companyName: 'Prime Logistics Nigeria Ltd',
+  companyCode: 'PRI-NG-4021',
+  receiptNumber: 'RCP-SR-20261126-4021',
+  invoiceId: 'INV-SR-202611-4021',
+  paystackReference: 'INV-SR-202611-4021',
+  totalPaidNgn: 150000
+});
+if (!receiptHtml.includes('OFFICIAL PAYMENT RECEIPT') || !receiptHtml.includes('Powered by Riffmax Technology Limited')) {
+  throw new Error('Official receipt email failed check');
+}
+const supportHtml = renderSupportTicketEmail({
+  recipientName: 'Amina Bello',
+  ticketId: 'REC-2026-0412',
+  status: 'RESOLVED',
+  headline: 'Ticket Resolved',
+  messageBody: 'Hours credited cleanly.'
+});
+if (!supportHtml.includes('REC-2026-0412') || !supportHtml.includes('Powered by Riffmax Technology Limited')) {
+  throw new Error('Support ticket email failed check');
+}
+if (EMAIL_TEMPLATE_CATALOG.length < 12) throw new Error('Expected 12 email templates in catalog');
+for (const sample of [activationHtml, resetHtml, handoverHtml, payrollDigestHtml, newsletterHtml, reminderHtml, inviteHtml, payLinkHtml, receiptHtml, supportHtml]) {
+  if (/[\u26A1\u{1F512}\u2728]/u.test(sample)) throw new Error('Raw emoji detected in enterprise HTML email template');
+}
+console.log('✔ Onboarding invite, Paystack link, Official Riffmax receipt & Support ticket HTML templates passed (12/12 zero-emoji)');
 
 console.log('\n=== 2. TESTING HIGH-TECH REPORT TEMPLATES ===');
 

@@ -162,7 +162,9 @@ import {
   renderMonthlyComplianceNewsletterEmail,
   renderBillingPaymentLinkEmail,
   renderOfficialPaymentReceiptEmail,
-  renderOnboardingIntakeInviteEmail
+  renderOnboardingIntakeInviteEmail,
+  renderSupportTicketEmail,
+  EMAIL_TEMPLATE_CATALOG
 } from './email-engine.mjs';
 import {
   LEGAL_ENTITY,
@@ -5044,90 +5046,232 @@ async function handleApi(request, response, url) {
     });
   }
 
-  // -- Email Template Preview & Test Dispatch API ----------------------------
-  if (url.pathname === '/api/emails/preview' && request.method === 'GET') {
-    if (IS_PRODUCTION) {
-      const authCtx = await getOpsOrAdminAuth(request);
-      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required for email template preview in production.' });
-    }
-    const type = url.searchParams.get('type') || 'activation';
-    const publicOrigin = getPublicAppOrigin(request);
-    const sampleUrl = `${publicOrigin}/activate?token=sample-preview-token`;
+  // -- Email Template Catalog, Preview & Test Dispatch API -------------------
+  if (url.pathname === '/api/emails/templates' && request.method === 'GET') {
+    const authCtx = await getOpsOrAdminAuth(request);
+    if (!authCtx) return sendJson(response, 401, { error: 'Authentication required to list email templates.' });
+    return sendJson(response, 200, { ok: true, templates: EMAIL_TEMPLATE_CATALOG });
+  }
 
-    let html = '';
+  function renderSampleEmailTemplateByKey(type, publicOrigin, toEmail = 'finance@primelogistics.ng') {
+    const sampleUrl = `${publicOrigin}/activate?token=sample-preview-token`;
+    const onboardUrl = `${publicOrigin}/onboard.html`;
+    if (type === 'onboarding-invite') {
+      return {
+        subject: 'Complete Your ShiftRelay Company Onboarding Form — Prime Logistics Nigeria Ltd',
+        html: renderOnboardingIntakeInviteEmail({
+          companyName: 'Prime Logistics Nigeria Ltd',
+          recipientName: 'Chinedu Okafor',
+          intakeUrl: onboardUrl,
+          note: 'Welcome! Fill in your company details and headcount so we can send your secure Paystack payment link.'
+        })
+      };
+    }
+    if (type === 'billing-payment-link') {
+      return {
+        subject: '[INV-SR-202611-4021] ShiftRelay Business Setup & Deployment Payment Link — ₦150,000',
+        html: renderBillingPaymentLinkEmail({
+          companyName: 'Prime Logistics Nigeria Ltd',
+          companyCode: 'PRI-NG-4021',
+          recipientName: 'Chinedu Okafor',
+          invoiceId: 'INV-SR-202611-4021',
+          invoiceTypeLabel: 'One-Time Setup & Deployment (40 workers)',
+          planLabel: 'Business (21–50 workers)',
+          cycleMonth: '2026-11',
+          breakdownLines: [
+            { label: 'Business Plan — One-Time Setup & Deployment (21–50 workers)', note: 'Workspace provisioning, geofencing, CR80 Staff IDs & statutory payroll setup', amountNgn: 150000 }
+          ],
+          totalAmountNgn: 150000,
+          checkoutUrl: 'https://checkout.paystack.com/sample-shiftrelay-setup',
+          isOnboarding: true,
+          loginPortalUrl: `${onboardUrl}?token=sample-onboarding-token`
+        })
+      };
+    }
+    if (type === 'billing-annual-link') {
+      return {
+        subject: '[INV-SR-202611-4099] ShiftRelay Business Full-Year Annual Plan + Setup — ₦2,070,000',
+        html: renderBillingPaymentLinkEmail({
+          companyName: 'Prime Logistics Nigeria Ltd',
+          companyCode: 'PRI-NG-4021',
+          recipientName: 'Chinedu Okafor',
+          invoiceId: 'INV-SR-202611-4099',
+          invoiceTypeLabel: 'Full-Year Annual Plan + Setup (40 workers · 12 Months)',
+          planLabel: 'Business (21–50 workers)',
+          cycleMonth: '2026-11',
+          breakdownLines: [
+            { label: 'Business Plan — One-Time Setup & Deployment', note: '48-hour launch & CR80 Staff IDs', amountNgn: 150000 },
+            { label: 'Business Plan — 12-Month Platform Maintenance Base', note: '₦60,000/mo × 12 months', amountNgn: 720000 },
+            { label: '12-Month Active Workforce Headcount (40 workers × ₦2,500 × 12 mos)', note: 'Employer-paid annual license', amountNgn: 1200000 }
+          ],
+          totalAmountNgn: 2070000,
+          checkoutUrl: 'https://checkout.paystack.com/sample-shiftrelay-annual',
+          isOnboarding: true,
+          loginPortalUrl: `${onboardUrl}?token=sample-onboarding-token`
+        })
+      };
+    }
+    if (type === 'official-receipt') {
+      return {
+        subject: 'Official Payment Receipt [RCP-SR-20261126-4021] — ShiftRelay (Business · ₦150,000)',
+        html: renderOfficialPaymentReceiptEmail({
+          companyName: 'Prime Logistics Nigeria Ltd',
+          companyCode: 'PRI-NG-4021',
+          recipientName: 'Chinedu Okafor',
+          receiptNumber: 'RCP-SR-20261126-4021',
+          invoiceId: 'INV-SR-202611-4021',
+          paystackReference: 'INV-SR-202611-4021',
+          invoiceTypeLabel: 'One-Time Setup & Deployment',
+          planLabel: 'Business (21–50 workers)',
+          cycleMonth: '2026-11',
+          breakdownLines: [
+            { label: 'Business Plan — One-Time Setup & Deployment (21–50 workers)', note: 'Paid via Paystack Bank Transfer', amountNgn: 150000 }
+          ],
+          totalPaidNgn: 150000,
+          paymentChannel: 'Paystack (Bank transfer)',
+          loginPortalUrl: `${onboardUrl}?token=sample-onboarding-token`
+        })
+      };
+    }
     if (type === 'activation') {
-      html = renderAccountActivationEmail({
-        recipientName: 'Tariq Al-Hassan',
-        recipientEmail: 'tariq@riffmax.tech',
-        orgName: 'Riffmax Technology Limited',
-        orgCode: 'RIF-2026',
-        roleTitle: 'Senior Distributed Systems Engineer',
-        department: 'Backend Infrastructure',
-        activationUrl: sampleUrl,
-        expiresHours: 48
-      });
-    } else if (type === 'reset') {
-      html = renderPasswordResetEmail({
-        recipientName: 'Olaide Emmanuela',
-        recipientEmail: 'olaide@riffmax.tech',
-        resetUrl: `${publicOrigin}/reset-password?token=sample-reset-token`,
-        requestIp: '102.89.34.12 (Lagos, NG)',
-        expiresMinutes: 30
-      });
-    } else if (type === 'handover') {
-      html = renderShiftHandoverEmail({
-        supervisorName: 'Olaide Emmanuela',
-        outgoingWorkerName: 'Babatunde Adeleke',
-        incomingWorkerName: 'Chidinma Okonjo',
-        shiftTitle: 'Morning Shift (06:00 - 14:00 WAT)',
-        facilityName: 'Riffmax Engineering Hub (Gate A)',
-        checklistCompleted: 8,
-        checklistTotal: 8,
-        priority: 'NORMAL',
-        handoverSummary: 'All microservices healthy. Database connection pool stabilized. 0 open safety alarms.',
-        reviewUrl: `${publicOrigin}/#handovers`
-      });
-    } else if (type === 'payroll') {
-      html = renderExecutivePayrollDigestEmail({
-        executiveName: 'Sherif Akanmu',
-        orgName: 'Riffmax Technology Limited',
-        period: 'November 2026',
-        employeeCount: 142,
-        totalGrossNgn: 13920000,
-        netPayableNgn: 9445200,
-        penComRemittanceNgn: 2505600,
-        payeTaxNgn: 1842000,
-        varianceNgn: 0,
-        reportDownloadUrl: `${publicOrigin}/api/reports/payroll-ledger`
-      });
-    } else if (type === 'newsletter') {
-      html = renderWeeklyProgressNewsletterEmail({
+      return {
+        subject: 'Activate your ShiftRelay Profile — Riffmax Technology Limited',
+        html: renderAccountActivationEmail({
+          recipientName: 'Tariq Al-Hassan',
+          recipientEmail: toEmail,
+          orgName: 'Riffmax Technology Limited',
+          orgCode: 'RIF-2026',
+          staffId: 'RIF-0104',
+          roleTitle: 'Senior Distributed Systems Engineer',
+          department: 'Backend Infrastructure',
+          activationUrl: sampleUrl,
+          expiresHours: 48
+        })
+      };
+    }
+    if (type === 'reset') {
+      return {
+        subject: 'ShiftRelay Security: Reset Your Account Password',
+        html: renderPasswordResetEmail({
+          recipientName: 'Olaide Emmanuela',
+          recipientEmail: toEmail,
+          resetUrl: `${publicOrigin}/reset-password?token=sample-reset-token`,
+          requestIp: '102.89.34.12 (Lagos, NG)',
+          expiresMinutes: 30
+        })
+      };
+    }
+    if (type === 'handover') {
+      return {
+        subject: 'Shift Handover Brief: Morning Shift (Babatunde Adeleke)',
+        html: renderShiftHandoverEmail({
+          supervisorName: 'Olaide Emmanuela',
+          outgoingWorkerName: 'Babatunde Adeleke',
+          incomingWorkerName: 'Chidinma Okonjo',
+          shiftTitle: 'Morning Shift (06:00 - 14:00 WAT)',
+          facilityName: 'Riffmax Engineering Hub (Gate A)',
+          checklistCompleted: 8,
+          checklistTotal: 8,
+          priority: 'NORMAL',
+          handoverSummary: 'All microservices healthy. Database connection pool stabilized. 0 open safety alarms.',
+          reviewUrl: `${publicOrigin}/#handovers`
+        })
+      };
+    }
+    if (type === 'attendance-reminder') {
+      return {
+        subject: '[Riffmax Technology Limited] Clock-In Reminder — ShiftRelay OS',
+        html: renderAttendanceReminderEmail({
+          recipientName: 'Babatunde Adeleke',
+          orgName: 'Riffmax Technology Limited',
+          stageLabel: 'Pre-Shift Clock-In Reminder',
+          urgency: 'REMINDER',
+          headline: 'Your Morning Shift starts in 15 minutes',
+          message: 'Open ShiftRelay OS on-site to clock in via fingerprint geofencing or colleague CR80 ID scan.',
+          shiftWindow: '08:00 – 16:00 WAT',
+          graceMinutes: 10,
+          actionUrl: `${publicOrigin}/#today`
+        })
+      };
+    }
+    if (type === 'payroll') {
+      return {
+        subject: 'Executive Payroll & Remittance Digest — November 2026',
+        html: renderExecutivePayrollDigestEmail({
+          executiveName: 'Sherif Akanmu',
+          orgName: 'Riffmax Technology Limited',
+          period: 'November 2026',
+          employeeCount: 142,
+          totalGrossNgn: 13920000,
+          netPayableNgn: 9445200,
+          penComRemittanceNgn: 2505600,
+          payeTaxNgn: 1842000,
+          varianceNgn: 0,
+          reportDownloadUrl: `${publicOrigin}/api/reports/payroll-ledger`
+        })
+      };
+    }
+    if (type === 'support-ticket') {
+      return {
+        subject: '[REC-2026-0412] Customer Care Update: RESOLVED — ShiftRelay',
+        html: renderSupportTicketEmail({
+          recipientName: 'Amina Bello',
+          ticketId: 'REC-2026-0412',
+          category: 'Attendance Rectification',
+          status: 'RESOLVED',
+          headline: 'Your missed clock-out adjustment has been approved',
+          messageBody: 'Your supervisor verified your gate sign-out at 17:04 WAT and your shift hours have been credited in full for November payroll.',
+          agentName: 'ShiftRelay Customer Care',
+          portalUrl: publicOrigin
+        })
+      };
+    }
+    if (type === 'newsletter-welcome') {
+      return {
+        subject: 'Subscribed: ShiftRelay OS Workforce & Statutory Brief',
+        html: renderNewsletterWelcomeEmail({
+          email: toEmail,
+          fullName: 'Adaeze Nwosu',
+          roleSegment: 'hr_payroll',
+          unsubscribeUrl: 'https://shiftrelayos.com/unsubscribe?token=sample-preview',
+          marketingUrl: 'https://shiftrelayos.com'
+        })
+      };
+    }
+    if (type === 'monthly-compliance') {
+      return {
+        subject: `Nigeria Workforce & Statutory Brief — ${formatMonthMeta().period}`,
+        html: renderMonthlyComplianceNewsletterEmail({
+          recipientName: 'Operations & HR Lead',
+          roleSegment: 'hr_payroll',
+          monthLabel: formatMonthMeta().period,
+          calculatorUrl: 'https://shiftrelayos.com/calculator.html',
+          unsubscribeUrl: 'https://shiftrelayos.com/unsubscribe?token=sample-preview'
+        })
+      };
+    }
+    return {
+      subject: 'ShiftRelay Weekly Operational Dispatch — Week 46',
+      html: renderWeeklyProgressNewsletterEmail({
         recipientName: 'Sherif Akanmu',
         orgName: LEGAL_ENTITY.companyLegalName,
         weekNumber: 46,
         year: 2026,
         platformUrl: publicOrigin,
         unsubUrl: 'https://shiftrelayos.com/unsubscribe?token=sample-preview'
-      });
-    } else if (type === 'newsletter-welcome') {
-      html = renderNewsletterWelcomeEmail({
-        email: 'hr-lead@company.ng',
-        fullName: 'Adaeze Nwosu',
-        roleSegment: 'hr_payroll',
-        unsubscribeUrl: 'https://shiftrelayos.com/unsubscribe?token=sample-preview',
-        marketingUrl: 'https://shiftrelayos.com'
-      });
-    } else if (type === 'monthly-compliance') {
-      html = renderMonthlyComplianceNewsletterEmail({
-        recipientName: 'Operations & HR Lead',
-        roleSegment: 'hr_payroll',
-        monthLabel: formatMonthMeta().period,
-        calculatorUrl: 'https://shiftrelayos.com/calculator.html',
-        unsubscribeUrl: 'https://shiftrelayos.com/unsubscribe?token=sample-preview'
-      });
-    } else {
-      html = '<p>Unknown template type. Use ?type=activation|reset|handover|payroll|newsletter|newsletter-welcome|monthly-compliance</p>';
+      })
+    };
+  }
+
+  if (url.pathname === '/api/emails/preview' && request.method === 'GET') {
+    if (IS_PRODUCTION) {
+      const authCtx = await getOpsOrAdminAuth(request);
+      if (!authCtx) return sendJson(response, 401, { error: 'Authentication required for email template preview in production.' });
     }
+    const type = url.searchParams.get('type') || 'onboarding-invite';
+    const publicOrigin = getPublicAppOrigin(request);
+    const rendered = renderSampleEmailTemplateByKey(type, publicOrigin);
+    const html = rendered.html;
 
     response.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
@@ -5147,79 +5291,15 @@ async function handleApi(request, response, url) {
     }
     const body = await readJson(request);
     const to = body.to || process.env.EXECUTIVE_DIGEST_EMAIL || 'sherifolaide2030@gmail.com';
-    const type = body.type || 'newsletter';
+    const type = body.type || 'onboarding-invite';
 
     const publicOrigin = getPublicAppOrigin(request);
-    const sampleUrl = `${publicOrigin}/activate?token=test-token`;
-
-    let html = '';
-    let subject = '';
-
-    if (type === 'activation') {
-      subject = 'ShiftRelay Security: Activate Your Workplace Profile';
-      html = renderAccountActivationEmail({
-        recipientName: 'Test Recipient',
-        recipientEmail: to,
-        orgName: 'Riffmax Technology Limited',
-        orgCode: 'RIF-2026',
-        roleTitle: 'Verified Specialist',
-        department: 'Operations Core',
-        activationUrl: sampleUrl,
-        expiresHours: 48
-      });
-    } else if (type === 'reset') {
-      subject = 'ShiftRelay Security: Password Reset Link';
-      html = renderPasswordResetEmail({
-        recipientName: 'Test Recipient',
-        recipientEmail: to,
-        resetUrl: `${publicOrigin}/reset-password?token=test-reset`,
-        requestIp: '102.89.34.12 (Lagos, NG)',
-        expiresMinutes: 30
-      });
-    } else if (type === 'handover') {
-      subject = 'Shift Handover Brief: Morning Shift — Babatunde Adeleke';
-      html = renderShiftHandoverEmail({
-        supervisorName: 'Shift Supervisor',
-        outgoingWorkerName: 'Babatunde Adeleke',
-        incomingWorkerName: 'Chidinma Okonjo',
-        shiftTitle: 'Morning Shift (06:00 - 14:00 WAT)',
-        facilityName: 'Riffmax Engineering Hub Gate A',
-        checklistCompleted: 8,
-        checklistTotal: 8,
-        priority: 'NORMAL',
-        handoverSummary: 'All microservices healthy. Database connection pool stabilized. 0 open safety alarms.',
-        reviewUrl: `${publicOrigin}/#handovers`
-      });
-    } else if (type === 'payroll') {
-      subject = 'Executive Payroll & Remittance Digest — November 2026';
-      html = renderExecutivePayrollDigestEmail({
-        executiveName: 'Executive Director',
-        orgName: 'Riffmax Technology Limited',
-        period: 'November 2026',
-        employeeCount: 142,
-        totalGrossNgn: 13920000,
-        netPayableNgn: 9445200,
-        penComRemittanceNgn: 2505600,
-        payeTaxNgn: 1842000,
-        varianceNgn: 0,
-        reportDownloadUrl: `${publicOrigin}/api/reports/payroll-ledger`
-      });
-    } else {
-      subject = 'ShiftRelay Weekly Operational Dispatch — Issue #46';
-      html = renderWeeklyProgressNewsletterEmail({
-        recipientName: 'Operations Lead',
-        orgName: 'Riffmax Technology Limited',
-        weekNumber: 46,
-        year: 2026,
-        platformUrl: publicOrigin
-      });
-    }
-
+    const rendered = renderSampleEmailTemplateByKey(type, publicOrigin, to);
     const emailRecord = await sendShiftRelayEmail({
       to,
-      subject,
-      html,
-      source: `Test Dispatch Console (${type})`
+      subject: `[TEST] ${rendered.subject}`,
+      html: rendered.html,
+      source: `Email Template Studio (${type})`
     });
 
     return sendJson(response, 200, {
@@ -6506,9 +6586,10 @@ async function handleApi(request, response, url) {
       to: email,
       subject: `Welcome to ${user.organisation_name || orgCode} on ShiftRelay — Staff ID ${staffId}`,
       html: renderAccountActivationEmail({
-        workerName: fullName,
-        companyName: user.organisation_name || orgCode,
-        companyCode: orgCode,
+        recipientName: fullName,
+        recipientEmail: email,
+        orgName: user.organisation_name || orgCode,
+        orgCode,
         department,
         roleTitle: title,
         staffId,
@@ -7571,7 +7652,16 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
       sendShiftRelayEmail({
         to: user.email,
         subject: `[${ticket.id}] Support Ticket Received — ShiftRelay Customer Care`,
-        html: `<p>Hello ${user.name || 'there'},</p><p>Your support ticket <strong>${ticket.id}</strong> (${category}) has been routed to ShiftRelay Customer Care for review.</p><p><strong>Details:</strong> ${detailsText}</p><p>We will update you here and via email once resolved.</p>`,
+        html: renderSupportTicketEmail({
+          recipientName: user.name || 'Team Member',
+          ticketId: ticket.id,
+          category,
+          status: 'OPEN',
+          headline: 'Your support ticket has been logged',
+          messageBody: detailsText,
+          agentName: 'ShiftRelay Customer Care',
+          portalUrl: getPublicAppOrigin(request)
+        }),
         source: 'User App Support Desk'
       }).catch(() => {});
     }
@@ -11748,7 +11838,16 @@ async function getUserRewards(user, store) {
       sendShiftRelayEmail({
         to: updated.email,
         subject: `[${updated.id}] Customer Care Update: ${nextStatus}`,
-        html: `<p>Hello ${updated.name || 'there'},</p><p>Your ShiftRelay support ticket <strong>${updated.id}</strong> (${updated.category}) has been updated to <strong>${nextStatus}</strong>.</p>${resolutionNote ? `<p><strong>Solution / Response:</strong> ${resolutionNote}</p>` : ''}<p>— ShiftRelay Customer Care</p>`,
+        html: renderSupportTicketEmail({
+          recipientName: updated.name || 'Team Member',
+          ticketId: updated.id,
+          category: updated.category || 'Support',
+          status: nextStatus,
+          headline: `Your support ticket status is now ${nextStatus}`,
+          messageBody: resolutionNote || 'Our Customer Care desk has completed review of your request.',
+          agentName: adminCtx.adminUser.fullName || 'ShiftRelay Customer Care',
+          portalUrl: getPublicAppOrigin(request)
+        }),
         source: 'Customer Care Resolution'
       }).catch(() => {});
     }
@@ -11775,7 +11874,16 @@ async function getUserRewards(user, store) {
       sendShiftRelayEmail({
         to: updated.email,
         subject: `[${updated.id}] New Reply from ShiftRelay Customer Care`,
-        html: `<p>Hello ${updated.name || 'there'},</p><p>Customer Care replied to your support ticket <strong>${updated.id}</strong>:</p><blockquote style="border-left:3px solid #10b981;padding-left:12px;">${message}</blockquote><p>You can view and reply directly inside the ShiftRelay app Support Desk.</p>`,
+        html: renderSupportTicketEmail({
+          recipientName: updated.name || 'Team Member',
+          ticketId: updated.id,
+          category: updated.category || 'Support',
+          status: updated.status || 'IN_PROGRESS',
+          headline: 'New reply from ShiftRelay Customer Care',
+          messageBody: message,
+          agentName: adminCtx.adminUser.fullName || 'ShiftRelay Customer Care',
+          portalUrl: getPublicAppOrigin(request)
+        }),
         source: 'Customer Care Reply'
       }).catch(() => {});
     }

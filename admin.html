@@ -2373,6 +2373,51 @@
             </div>
           </div>
 
+          <div class="panel-card" style="border-color:rgba(16,185,129,0.34);">
+            <div class="panel-head" style="gap:12px; flex-wrap:wrap;">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">BRANDED HTML EMAIL ENGINE &middot; RIFFMAX TECHNOLOGY LIMITED</span>
+                <h2>ShiftRelay Email HTML Template Studio (12 Official Templates)</h2>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <div class="theme-pill">
+                  <button type="button" id="tpl-vw-desktop" class="active" onclick="window.setEmailStudioViewport('desktop')">Desktop</button>
+                  <button type="button" id="tpl-vw-mobile" onclick="window.setEmailStudioViewport('mobile')">Mobile</button>
+                </div>
+                <button type="button" class="btn-ghost" style="padding:7px 11px; font-size:12px;" onclick="window.copyActiveEmailTemplateHtml()">Copy HTML Source</button>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1.4fr 1.1fr auto; gap:10px; align-items:end; margin-bottom:14px;">
+              <div>
+                <label class="lbl-sm" style="margin-bottom:4px;">Select Email HTML Template</label>
+                <select id="adm-email-template-select" class="adm-select" style="margin:0;" onchange="window.loadEmailTemplatePreview(this.value)">
+                  <option value="onboarding-invite">Stage 1: Company Onboarding Form Invite</option>
+                  <option value="billing-payment-link">Stage 2: Paystack Setup / Monthly Payment Link</option>
+                  <option value="billing-annual-link">Stage 2: Paystack Annual (12-Month) Bundle Link</option>
+                  <option value="official-receipt">Stage 3: Official Payment Receipt (ShiftRelay · Riffmax)</option>
+                  <option value="activation">Workforce: Staff Account Activation &amp; Welcome Invite</option>
+                  <option value="reset">Security: Password Reset Link (30-Min Expiry)</option>
+                  <option value="handover">Operations: Shift Handover &amp; Escalation Brief</option>
+                  <option value="attendance-reminder">Operations: Attendance Watchdog Reminder</option>
+                  <option value="payroll">Finance: Executive Statutory Payroll &amp; Remittance Digest</option>
+                  <option value="support-ticket">Customer Care: Support Ticket &amp; Resolution Update</option>
+                  <option value="newsletter">Brief: Weekly Operational Progress Dispatch</option>
+                  <option value="monthly-compliance">Brief: Monthly Nigeria PAYE &amp; PenCom Statutory Brief</option>
+                </select>
+              </div>
+              <div>
+                <label class="lbl-sm" style="margin-bottom:4px;">Send Live Test To Email</label>
+                <input id="adm-email-template-test-to" type="email" class="adm-input" style="margin:0;" placeholder="sherifolaide2030@gmail.com" />
+              </div>
+              <button type="button" id="adm-email-template-send-btn" class="btn-emerald" style="padding:9px 14px; white-space:nowrap;" onclick="window.sendSelectedEmailTemplateTest()">Send Live Test &rarr;</button>
+            </div>
+
+            <div style="background:#e2e8f0; border-radius:14px; padding:14px; display:flex; justify-content:center; border:1px solid var(--border-hairline);">
+              <iframe id="adm-email-template-iframe" title="ShiftRelay Email HTML Template Preview" style="width:100%; max-width:680px; height:540px; border:none; border-radius:10px; background:#f1f5f9; transition:max-width 0.2s;"></iframe>
+            </div>
+          </div>
+
           <div class="panel-card">
             <div class="panel-head">
               <div>
@@ -3995,6 +4040,7 @@
       if (!currentAdminUser) return;
       const myEpoch = adminSessionEpoch;
       renderEmailStationTable();
+      window.loadEmailTemplatePreview?.();
       window.loadAdminSystemFiles();
       window.loadAdminIntegrations();
       window.loadAdminBillingAndDisbursals();
@@ -5576,6 +5622,63 @@
         `;
       }).join('');
     }
+
+    let lastPreviewedTemplateHtml = '';
+    window.setEmailStudioViewport = function (mode) {
+      const iframe = document.getElementById('adm-email-template-iframe');
+      const dBtn = document.getElementById('tpl-vw-desktop');
+      const mBtn = document.getElementById('tpl-vw-mobile');
+      if (dBtn) dBtn.classList.toggle('active', mode !== 'mobile');
+      if (mBtn) mBtn.classList.toggle('active', mode === 'mobile');
+      if (iframe) iframe.style.maxWidth = mode === 'mobile' ? '390px' : '680px';
+    };
+
+    window.loadEmailTemplatePreview = async function (templateKey) {
+      const key = templateKey || document.getElementById('adm-email-template-select')?.value || 'onboarding-invite';
+      const iframe = document.getElementById('adm-email-template-iframe');
+      if (!iframe) return;
+      try {
+        const res = await admFetch(`/api/emails/preview?type=${encodeURIComponent(key)}`);
+        if (!res.ok) return;
+        const html = await res.text();
+        lastPreviewedTemplateHtml = html;
+        iframe.srcdoc = html;
+      } catch (_) {}
+    };
+
+    window.copyActiveEmailTemplateHtml = async function () {
+      if (!lastPreviewedTemplateHtml) await window.loadEmailTemplatePreview();
+      if (!lastPreviewedTemplateHtml) return showToast('Load a template preview first.');
+      try {
+        await navigator.clipboard.writeText(lastPreviewedTemplateHtml);
+        showToast('Copied production HTML email template source to clipboard!');
+      } catch (_) {
+        showToast('Clipboard blocked — open Preview in a tab to copy.');
+      }
+    };
+
+    window.sendSelectedEmailTemplateTest = async function () {
+      const type = document.getElementById('adm-email-template-select')?.value || 'onboarding-invite';
+      const to = document.getElementById('adm-email-template-test-to')?.value.trim() || currentAdminUser?.email || '';
+      if (!to || !to.includes('@')) return showToast('Enter a valid recipient email address for the test.');
+      const btn = document.getElementById('adm-email-template-send-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+      try {
+        const res = await admFetch('/api/emails/test-send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type, to })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send test template');
+        await renderEmailStationTable();
+        showToast(`Dispatched "${type}" HTML email template to ${to}!`);
+      } catch (err) {
+        showToast('Template test error: ' + err.message);
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Send Live Test →'; }
+      }
+    };
 
     window.triggerTestAutoStationEmail = async function () {
       const to = prompt('Enter recipient email to test Auto-Station dispatch:', 'owner@shiftrelayos.com');
