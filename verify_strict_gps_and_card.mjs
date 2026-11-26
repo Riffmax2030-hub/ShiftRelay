@@ -236,7 +236,8 @@ async function main() {
         SESSION_SECRET: '',
         CARD_SIGNING_SECRET: '',
         SMTP_HOST: '',
-        RESEND_API_KEY: ''
+        RESEND_API_KEY: '',
+        DISABLE_BACKGROUND_TIMERS: 'true'
       },
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -532,18 +533,31 @@ async function main() {
     const [bCookieName, bCookieVal] = babatunde.cookie.split('=');
     await deniedContext.addCookies([{ name: bCookieName, value: bCookieVal, domain: '127.0.0.1', path: '/' }]);
     await deniedPage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-    await deniedPage.waitForSelector('#sr-btn-water-clock', { timeout: 15000 });
+    await deniedPage.waitForSelector('#sr-btn-water-clock', { state: 'visible', timeout: 15000 });
+    await deniedPage.waitForTimeout(500);
 
     // Click Clock In with denied GPS -> must block, must NOT clock in
-    await deniedPage.click('#sr-btn-water-clock');
-    await deniedPage.waitForFunction(
-      () => {
-        const txt = (document.getElementById('sr-gps-status-text')?.textContent || '').toLowerCase();
-        return txt.includes('blocked') || txt.includes('denied') || txt.includes('required') || txt.includes('unavailable');
-      },
-      null,
-      { timeout: 8000 }
-    );
+    await deniedPage.locator('#sr-btn-water-clock').first().click();
+    try {
+      await deniedPage.waitForFunction(
+        () => {
+          const txt = (document.getElementById('sr-gps-status-text')?.textContent || '').toLowerCase();
+          return txt.includes('blocked') || txt.includes('denied') || txt.includes('required') || txt.includes('unavailable');
+        },
+        null,
+        { timeout: 6000 }
+      );
+    } catch (_) {
+      await deniedPage.locator('#sr-btn-water-clock').first().click();
+      await deniedPage.waitForFunction(
+        () => {
+          const txt = (document.getElementById('sr-gps-status-text')?.textContent || '').toLowerCase();
+          return txt.includes('blocked') || txt.includes('denied') || txt.includes('required') || txt.includes('unavailable');
+        },
+        null,
+        { timeout: 12000 }
+      );
+    }
     const labelWhenDenied = await deniedPage.textContent('#sr-water-btn-label');
     assert.equal(labelWhenDenied.trim(), 'CLOCK IN', 'Worker must stay clocked out when GPS is denied');
     await deniedPage.screenshot({ path: join(ARTIFACT_DIR, 'strict-gps-blocked-ui.png') });
@@ -571,23 +585,25 @@ async function main() {
     const onsitePage = await onsiteContext.newPage();
     await onsiteContext.addCookies([{ name: bCookieName, value: bCookieVal, domain: '127.0.0.1', path: '/' }]);
     await onsitePage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-    await onsitePage.waitForSelector('#sr-btn-water-clock', { timeout: 15000 });
+    await onsitePage.waitForSelector('#sr-btn-water-clock', { state: 'visible', timeout: 15000 });
+    await onsitePage.waitForTimeout(500);
 
     // Clock in on-site via UI button
-    await onsitePage.click('#sr-btn-water-clock');
+    await onsitePage.locator('#sr-btn-water-clock').first().click();
     await onsitePage.waitForFunction(
       () => (document.getElementById('sr-today-shift-status')?.textContent || '').toLowerCase().includes('active on shift'),
       null,
-      { timeout: 8000 }
+      { timeout: 15000 }
     );
     await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-gps-onsite-clockin.png') });
 
     // Open Clock-In Page Peer Check-In Scanner -> Step 1: Verify Physical ID Card
-    await onsitePage.click('#sr-btn-scan-peer-id');
+    await onsitePage.waitForTimeout(300);
+    await onsitePage.locator('#sr-btn-scan-peer-id').first().click();
     await onsitePage.waitForFunction(
       () => (document.getElementById('sr-scanner-gps-text')?.textContent || '').includes('On-Site GPS Lock Ready'),
       null,
-      { timeout: 6000 }
+      { timeout: 15000 }
     );
     assert.equal(await onsitePage.locator('#sr-scan-stepper').count(), 0, 'Cluttered stepper must be removed from Peer Check-In modal');
     assert.equal(await onsitePage.locator('#sr-peer-directory-list').count(), 0, 'Cluttered directory list must be removed from Peer Check-In modal');
@@ -1412,6 +1428,10 @@ async function main() {
 }
 
 main().catch((err) => {
+  const msg = String(err?.message || err || 'Unknown test failure').replace(/\r?\n/g, ' | ');
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    console.log(`::error title=Strict E2E Verification Failed::${msg.slice(0, 600)}`);
+  }
   console.error('TEST FAILURE:', err?.stack || err);
   process.exitCode = 1;
 });

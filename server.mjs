@@ -17976,6 +17976,10 @@ let backgroundEnginesStarted = false;
 export function startEnterpriseBackgroundEngines() {
   if (backgroundEnginesStarted) return;
   backgroundEnginesStarted = true;
+  if (process.env.DISABLE_BACKGROUND_TIMERS === 'true') {
+    console.log('ShiftRelay background auto-timers paused (DISABLE_BACKGROUND_TIMERS=true).');
+    return;
+  }
   console.log('âš¡ ShiftRelay OS Enterprise Background Engines Initialized:');
   console.log('   - Shift Boundary & Overtime Shield Engine: Active (60s tick)');
   console.log('   - Automated Clock-In & Missed-Punch Watchdog: Active (60s tick)');
