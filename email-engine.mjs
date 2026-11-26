@@ -1,7 +1,7 @@
 /**
  * ShiftRelay Enterprise Email HTML Template & Dispatch Engine
- * Executive Light/Obsidian Hybrid Responsive HTML Email Architecture
- * Zero-Emoji · Bulletproof Outlook (VML), Gmail, Apple Mail & Mobile Compliant
+ * Tier-1 Fintech / Enterprise SaaS Email Design System (Stripe / Paystack / Linear / Apple Standard)
+ * Zero-Emoji · Bulletproof Outlook (VML), Gmail, Apple Mail & Mobile Responsive
  * Branded: ShiftRelay OS · Powered by Riffmax Technology Limited
  */
 
@@ -46,16 +46,34 @@ export function getEmailMarketingBaseUrl() {
 export function getEmailLogoUrl() {
   const explicit = String(process.env.EMAIL_LOGO_URL || '').trim();
   if (explicit) return explicit;
-  // Use live HTTPS Render origin until custom domain DNS is live so Gmail/iOS Mail always loads the real ShiftRelay logo PNG
+  // Live HTTPS origin so Gmail, Apple Mail (iPhone), and Outlook always render the crisp ShiftRelay logo PNG
   return 'https://shiftrelay-vjkf.onrender.com/icon-192.png';
 }
 
+const FONT_SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+const FONT_MONO = "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace";
+
+function renderKeyValueRows(rows = []) {
+  const valid = rows.filter((r) => r && r.label && r.value !== undefined && r.value !== null && r.value !== '');
+  return valid.map((r, idx) => {
+    const borderTop = idx === 0 ? 'none' : '1px solid #f1f5f9';
+    const valColor = r.color || '#0f172a';
+    const valFont = r.mono ? FONT_MONO : FONT_SANS;
+    const valWeight = r.bold === false ? '500' : '600';
+    return `
+      <tr>
+        <td style="padding:10px 0;border-top:${borderTop};font-family:${FONT_SANS};font-size:13px;color:#64748b;vertical-align:top;width:42%;">${escapeHtml(r.label)}</td>
+        <td align="right" style="padding:10px 0;border-top:${borderTop};font-family:${valFont};font-size:13px;font-weight:${valWeight};color:${valColor};vertical-align:top;text-align:right;word-break:break-word;">${r.rawHtml ? r.value : escapeHtml(String(r.value))}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
 /**
- * Universal Executive HTML Email Envelope Wrapper
- * - Clean Obsidian Command Header (#070d19) + Emerald 4px accent bar
- * - High-contrast Pure White (#ffffff) reading surface (immune to Gmail/Outlook dark inversion bugs)
- * - Bulletproof VML + CSS primary CTA button + unbroken fallback URL
- * - Enterprise Security & Audit Trace + Anti-Phishing Advisory + Riffmax Legal Footer
+ * Universal Tier-1 Fintech / Enterprise SaaS Email Envelope
+ * Clean #f6f8fa outer canvas · Single crisp #ffffff 580px sheet · 3px emerald brand top bar
+ * Minimalist white corporate letterhead with real ShiftRelay Logo PNG + subtle right-aligned badge
+ * Generous whitespace · Bulletproof VML + CSS CTA · Quiet audit trace · Off-card legal footer
  */
 export function wrapEnterpriseEmail({
   title,
@@ -68,7 +86,9 @@ export function wrapEnterpriseEmail({
   secondaryNote,
   securityMetadata = {},
   unsubUrl,
-  badgeLabel = 'VERIFIED DISPATCH'
+  badgeLabel = 'VERIFIED DISPATCH',
+  badgeTone = 'emerald',
+  hideGreeting = false
 }) {
   const currentYear = new Date().getFullYear();
   const watTime = new Date().toLocaleString('en-NG', {
@@ -77,14 +97,26 @@ export function wrapEnterpriseEmail({
     timeStyle: 'short'
   }) + ' WAT';
 
-  const metaRows = Object.entries(securityMetadata)
-    .filter(([_, v]) => v !== undefined && v !== null && v !== '')
-    .map(([k, v]) => `
-      <tr>
-        <td style="padding:5px 8px;font-size:11px;color:#64748b;font-family:'JetBrains Mono',Consolas,monospace;text-transform:uppercase;letter-spacing:0.04em;border-top:1px solid #e2e8f0;">${escapeHtml(k)}</td>
-        <td style="padding:5px 8px;font-size:11.5px;color:#0f172a;font-family:'JetBrains Mono',Consolas,monospace;font-weight:700;text-align:right;border-top:1px solid #e2e8f0;">${escapeHtml(String(v))}</td>
-      </tr>
-    `).join('');
+  const tonePalette = {
+    emerald: { bg: '#ecfdf5', border: '#a7f3d0', text: '#047857', accent: '#059669' },
+    amber:   { bg: '#fffbeb', border: '#fde68a', text: '#b45309', accent: '#d97706' },
+    red:     { bg: '#fef2f2', border: '#fecaca', text: '#b91c1c', accent: '#dc2626' },
+    sky:     { bg: '#f0f9ff', border: '#bae6fd', text: '#0369a1', accent: '#0284c7' },
+    slate:   { bg: '#f8fafc', border: '#e2e8f0', text: '#334155', accent: '#059669' }
+  }[badgeTone] || { bg: '#ecfdf5', border: '#a7f3d0', text: '#047857', accent: '#059669' };
+
+  const preheaderFiller = '&zwnj;&nbsp;'.repeat(42);
+  const metaEntries = [
+    ['Dispatched', watTime],
+    ...Object.entries(securityMetadata).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+  ];
+
+  const metaRowsHtml = metaEntries.map(([k, v]) => `
+    <tr>
+      <td style="padding:3px 0;font-family:${FONT_SANS};font-size:11.5px;color:#94a3b8;width:44%;vertical-align:top;">${escapeHtml(k)}</td>
+      <td align="right" style="padding:3px 0;font-family:${FONT_MONO};font-size:11px;color:#475569;text-align:right;vertical-align:top;word-break:break-word;">${escapeHtml(String(v))}</td>
+    </tr>
+  `).join('');
 
   return `<!DOCTYPE html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -92,6 +124,8 @@ export function wrapEnterpriseEmail({
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">
   <meta name="color-scheme" content="light">
   <meta name="supported-color-schemes" content="light">
   <title>${escapeHtml(title)}</title>
@@ -105,164 +139,168 @@ export function wrapEnterpriseEmail({
   </noscript>
   <![endif]-->
   <style>
-    @media only screen and (max-width: 620px) {
-      .sr-container { width: 100% !important; border-radius: 0 !important; }
-      .sr-pad { padding: 22px 18px !important; }
-      .sr-btn { display: block !important; width: 100% !important; text-align: center !important; box-sizing: border-box !important; }
-      .sr-meta-table td { font-size: 10.5px !important; }
+    html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #f6f8fa !important; }
+    * { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    a { text-decoration: none; }
+    @media only screen and (max-width: 600px) {
+      .sr-outer-pad { padding: 14px 10px 32px !important; }
+      .sr-card { width: 100% !important; border-radius: 12px !important; }
+      .sr-hdr-pad { padding: 20px 20px 18px !important; }
+      .sr-body-pad { padding: 24px 20px 22px !important; }
+      .sr-audit-pad { padding: 18px 20px 20px !important; }
+      .sr-cta-btn { display: block !important; width: 100% !important; box-sizing: border-box !important; text-align: center !important; padding: 14px 18px !important; }
+      .sr-hero-num { font-size: 32px !important; }
+      .sr-stack-col { display: block !important; width: 100% !important; box-sizing: border-box !important; padding-bottom: 10px !important; }
+      .sr-stack-gap { display: none !important; }
+      .sr-badge-cell { display: none !important; }
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background-color:#f1f5f9;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
-  <div style="display:none;font-size:1px;color:#f1f5f9;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
-    ${escapeHtml(preheader || title)} &middot; ShiftRelay OS by ${escapeHtml(COMPANY_LEGAL)}
+<body style="margin:0;padding:0;background-color:#f6f8fa;color:#0f172a;font-family:${FONT_SANS};-webkit-font-smoothing:antialiased;">
+  <!-- Inbox Preheader Snippet (Hidden in body, clean in Gmail & iOS Mail preview) -->
+  <div style="display:none;font-size:1px;color:#f6f8fa;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;">
+    ${escapeHtml(preheader || title)} &mdash; ShiftRelay OS by ${escapeHtml(COMPANY_LEGAL)}${preheaderFiller}
   </div>
 
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f1f5f9;table-layout:fixed;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f6f8fa;table-layout:fixed;">
     <tr>
-      <td align="center" style="padding:28px 12px 48px;">
-        <table role="presentation" class="sr-container" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #cbd5e1;border-radius:16px;overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,0.08);">
+      <td align="center" class="sr-outer-pad" style="padding:32px 14px 48px;">
+        <!--[if mso]>
+        <table role="presentation" width="580" cellspacing="0" cellpadding="0" border="0" align="center"><tr><td>
+        <![endif]-->
+        <table role="presentation" class="sr-card" width="580" cellspacing="0" cellpadding="0" border="0" style="max-width:580px;width:100%;background-color:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.04),0 12px 28px rgba(15,23,42,0.04);">
 
-          <!-- Canva-Aligned Obsidian Corporate Header with Real ShiftRelay Logo PNG -->
+          <!-- 3px Precision Brand Top Accent -->
           <tr>
-            <td class="sr-pad" align="center" style="background-color:#050a14;padding:28px 28px 24px;">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center">
-                <tr>
-                  <td valign="middle" style="padding-right:14px;">
-                    <img src="${escapeHtml(getEmailLogoUrl())}" width="52" height="52" alt="ShiftRelay Logo" style="display:block;width:52px;height:52px;border-radius:13px;border:1.5px solid rgba(16,185,129,0.45);background-color:#071915;" />
-                  </td>
-                  <td valign="middle" align="left">
-                    <div style="font-size:24px;font-weight:800;letter-spacing:-0.025em;color:#ffffff;line-height:1.1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-                      Shift<span style="color:#10b981;">Relay</span>
-                    </div>
-                    <div style="font-size:11.5px;color:#cbd5e1;font-weight:600;letter-spacing:0.01em;margin-top:4px;">
-                      Powered by ${escapeHtml(COMPANY_LEGAL)}
-                    </div>
-                  </td>
-                </tr>
-              </table>
-              <div style="margin-top:14px;">
-                <span style="display:inline-block;padding:4px 12px;background-color:rgba(16,185,129,0.14);border:1px solid rgba(52,211,153,0.45);border-radius:999px;font-size:10px;font-weight:800;color:#34d399;text-transform:uppercase;letter-spacing:0.08em;">
-                  ${escapeHtml(badgeLabel)}
-                </span>
-              </div>
-            </td>
+            <td style="height:3px;background-color:${tonePalette.accent};font-size:0;line-height:0;">&nbsp;</td>
           </tr>
 
-          <!-- Signature 4px Emerald Divider Bar (Canva Brand Accent) -->
+          <!-- Minimalist Stripe/Paystack-Grade Corporate Letterhead -->
           <tr>
-            <td style="height:4px;background-color:#10b981;font-size:0;line-height:0;">&nbsp;</td>
-          </tr>
-
-          <!-- Delivery Reason Strip -->
-          ${deliveryReason ? `
-          <tr>
-            <td style="background-color:#f8fafc;padding:10px 32px;border-bottom:1px solid #e2e8f0;">
+            <td class="sr-hdr-pad" style="padding:24px 36px 20px;border-bottom:1px solid #f1f5f9;background-color:#ffffff;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
-                  <td style="font-size:12px;color:#475569;line-height:1.45;">
-                    <strong style="color:#059669;">Why you received this:</strong> ${escapeHtml(deliveryReason)}
+                  <td valign="middle">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td valign="middle" style="padding-right:11px;">
+                          <img src="${escapeHtml(getEmailLogoUrl())}" width="38" height="38" alt="ShiftRelay" style="display:block;width:38px;height:38px;border-radius:9px;background-color:#06231a;" />
+                        </td>
+                        <td valign="middle">
+                          <div style="font-family:${FONT_SANS};font-size:19px;font-weight:800;letter-spacing:-0.03em;color:#0f172a;line-height:1.1;">
+                            Shift<span style="color:#059669;">Relay</span>
+                          </div>
+                          <div style="font-family:${FONT_SANS};font-size:11px;font-weight:500;color:#64748b;letter-spacing:0.005em;margin-top:2px;">
+                            Powered by ${escapeHtml(COMPANY_LEGAL)}
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td align="right" valign="middle" class="sr-badge-cell">
+                    <span style="display:inline-block;padding:4px 10px;background-color:${tonePalette.bg};border:1px solid ${tonePalette.border};border-radius:999px;font-family:${FONT_MONO};font-size:10px;font-weight:700;color:${tonePalette.text};letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap;">
+                      ${escapeHtml(badgeLabel)}
+                    </span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
-          ` : ''}
 
-          <!-- Pure White High-Readability Main Canvas (Canva Clean Card Layout) -->
+          <!-- Pristine Main Reading Surface -->
           <tr>
-            <td class="sr-pad" style="padding:32px 34px 28px;background-color:#ffffff;">
-              ${recipientName ? `
-                <p style="margin:0 0 12px;font-size:18px;font-weight:800;color:#0f172a;letter-spacing:-0.01em;">
-                  Hello ${escapeHtml(recipientName)},
+            <td class="sr-body-pad" style="padding:32px 36px 28px;background-color:#ffffff;">
+              ${(!hideGreeting && recipientName) ? `
+                <p style="margin:0 0 14px;font-family:${FONT_SANS};font-size:15.5px;font-weight:700;color:#0f172a;line-height:1.4;">
+                  Hi ${escapeHtml(recipientName)},
                 </p>
               ` : ''}
 
-              <div style="font-size:14.5px;line-height:1.68;color:#334155;">
+              <div style="font-family:${FONT_SANS};font-size:14.5px;line-height:1.65;color:#334155;">
                 ${bodyHtml}
               </div>
 
-              <!-- Canva-Styled Bulletproof Emerald Pill CTA Button -->
+              <!-- Single Unmistakable Primary Action Button (Bulletproof VML + CSS) -->
               ${primaryCtaText && primaryCtaUrl ? `
-                <div style="margin:28px 0 20px;text-align:center;">
+                <div style="margin:28px 0 0;">
                   <!--[if mso]>
-                  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${primaryCtaUrl}" style="height:50px;v-text-anchor:middle;width:320px;" arcsize="20%" stroke="f" fillcolor="#0ea572">
+                  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${primaryCtaUrl}" style="height:48px;v-text-anchor:middle;width:300px;" arcsize="20%" stroke="f" fillcolor="#059669">
                     <w:anchorlock/>
-                    <center style="color:#ffffff;font-family:sans-serif;font-size:15px;font-weight:bold;">${escapeHtml(primaryCtaText)}</center>
+                    <center style="color:#ffffff;font-family:sans-serif;font-size:14.5px;font-weight:bold;">${escapeHtml(primaryCtaText)}</center>
                   </v:roundrect>
                   <![endif]-->
                   <!--[if !mso]><!-->
-                  <a href="${primaryCtaUrl}" class="sr-btn" style="display:inline-block;padding:15px 38px;background-color:#0ea572;color:#ffffff;font-size:15px;font-weight:800;letter-spacing:-0.01em;text-decoration:none;border-radius:10px;text-align:center;">
+                  <a href="${primaryCtaUrl}" class="sr-cta-btn" style="display:inline-block;padding:13px 28px;background-color:#059669;color:#ffffff;font-family:${FONT_SANS};font-size:14.5px;font-weight:700;letter-spacing:-0.01em;text-decoration:none;border-radius:9px;text-align:center;">
                     ${escapeHtml(primaryCtaText)} &rarr;
                   </a>
                   <!--<![endif]-->
                 </div>
 
-                <!-- Unbroken Raw Fallback Link -->
-                <div style="background-color:#f8fafc;padding:11px 14px;border-radius:10px;border:1px solid #e2e8f0;margin:14px 0 20px;word-break:break-all;">
-                  <p style="margin:0 0 4px;font-size:11.5px;color:#64748b;font-weight:600;">
-                    Button not working? Copy and paste this secure link into your browser:
-                  </p>
-                  <a href="${primaryCtaUrl}" style="font-size:11.5px;color:#059669;text-decoration:underline;font-family:'JetBrains Mono',Consolas,monospace;">
-                    ${primaryCtaUrl}
-                  </a>
-                </div>
+                <!-- Quiet Fallback Link (Stripe/Linear style — zero bulky box) -->
+                <p style="margin:14px 0 0;font-family:${FONT_SANS};font-size:12px;color:#94a3b8;line-height:1.55;">
+                  If the button doesn&rsquo;t open, paste this link into your browser:<br>
+                  <a href="${primaryCtaUrl}" style="color:#059669;text-decoration:underline;font-family:${FONT_MONO};font-size:11px;word-break:break-all;">${primaryCtaUrl}</a>
+                </p>
               ` : ''}
 
               ${secondaryNote ? `
-                <p style="margin:16px 0 0;font-size:13px;color:#64748b;line-height:1.55;">
+                <p style="margin:18px 0 0;font-family:${FONT_SANS};font-size:12.5px;color:#64748b;line-height:1.55;">
                   ${secondaryNote}
                 </p>
               ` : ''}
-
-              <!-- Canva Mint-Bordered Security Verification & Audit Card -->
-              <div style="margin-top:24px;background-color:#f0fdf4;border:1px solid #a7f3d0;border-radius:12px;padding:14px 16px;">
-                <table role="presentation" class="sr-meta-table" width="100%" cellspacing="0" cellpadding="0" border="0">
-                  <tr>
-                    <td colspan="2" style="padding-bottom:6px;font-size:11.5px;font-weight:800;color:#065f46;letter-spacing:0.04em;text-transform:uppercase;">
-                      Enterprise Security &amp; Audit Trace &middot; Verified &amp; Logged
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding:6px 8px 5px;font-size:11px;color:#475569;font-family:'JetBrains Mono',Consolas,monospace;text-transform:uppercase;border-top:1px solid #d1fae5;">Dispatched At</td>
-                    <td style="padding:6px 8px 5px;font-size:11.5px;color:#0f172a;font-family:'JetBrains Mono',Consolas,monospace;font-weight:700;text-align:right;border-top:1px solid #d1fae5;">${watTime}</td>
-                  </tr>
-                  ${metaRows}
-                </table>
-              </div>
-
-              <!-- Subtle Anti-Phishing Advisory -->
-              <div style="margin-top:14px;padding:10px 14px;background-color:#f8fafc;border-left:3px solid #94a3b8;border-radius:0 8px 8px 0;">
-                <p style="margin:0;font-size:11.5px;color:#475569;line-height:1.5;">
-                  <strong>Security Notice:</strong> ShiftRelay staff will <em>never</em> ask for your password, PIN, or BVN by email or phone. Need help? Contact <a href="mailto:${SUPPORT_EMAIL}" style="color:#059669;font-weight:700;">${SUPPORT_EMAIL}</a>.
-                </p>
-              </div>
             </td>
           </tr>
 
-          <!-- Sleek Obsidian Corporate Footer (Canva Exact Footer Style) -->
+          <!-- Quiet Verification & Audit Footer Inside Card -->
           <tr>
-            <td style="background-color:#050a14;padding:22px 28px;text-align:center;">
-              <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#f8fafc;">
-                ${escapeHtml(BRAND_NAME)} by ${escapeHtml(COMPANY_LEGAL)} (${escapeHtml(COMPANY_RC)})
-              </p>
-              <p style="margin:0 0 10px;font-size:11px;color:#94a3b8;line-height:1.5;">
-                ${escapeHtml(HEADQUARTERS)}
-              </p>
-              <div style="font-size:11.5px;color:#cbd5e1;">
-                <a href="${escapeHtml(getEmailMarketingBaseUrl())}/terms.html" style="color:#cbd5e1;text-decoration:none;margin:0 7px;">Terms</a> &middot;
-                <a href="${escapeHtml(getEmailMarketingBaseUrl())}/privacy.html" style="color:#cbd5e1;text-decoration:none;margin:0 7px;">Privacy</a> &middot;
-                <a href="${escapeHtml(getEmailMarketingBaseUrl())}/trust.html" style="color:#cbd5e1;text-decoration:none;margin:0 7px;">Trust Center</a> &middot;
-                <a href="mailto:${SUPPORT_EMAIL}" style="color:#cbd5e1;text-decoration:none;margin:0 7px;">Support</a>
-                ${unsubUrl ? `&middot; <a href="${escapeHtml(unsubUrl)}" style="color:#34d399;text-decoration:none;margin:0 7px;">Unsubscribe</a>` : ''}
+            <td class="sr-audit-pad" style="padding:20px 36px 24px;background-color:#fafbfc;border-top:1px solid #f1f5f9;">
+              <div style="font-family:${FONT_MONO};font-size:10px;font-weight:700;color:#64748b;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">
+                Enterprise Security &amp; Audit Trace
               </div>
-              <p style="margin:12px 0 0;font-size:10.5px;color:#64748b;">
-                &copy; ${currentYear} ${escapeHtml(BRAND_NAME)} by ${escapeHtml(COMPANY_LEGAL)}. All operational records cryptographically logged.
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                ${metaRowsHtml}
+              </table>
+              ${deliveryReason ? `
+                <p style="margin:12px 0 0;padding-top:10px;border-top:1px solid #eef2f6;font-family:${FONT_SANS};font-size:11.5px;color:#64748b;line-height:1.5;">
+                  <strong style="color:#475569;">Why you received this:</strong> ${escapeHtml(deliveryReason)}
+                </p>
+              ` : ''}
+              <p style="margin:6px 0 0;font-family:${FONT_SANS};font-size:11px;color:#94a3b8;line-height:1.5;">
+                Security reminder: ShiftRelay will never request your password, PIN, or BVN via email or phone. Questions? Reply or contact <a href="mailto:${SUPPORT_EMAIL}" style="color:#059669;font-weight:600;">${SUPPORT_EMAIL}</a>.
               </p>
             </td>
           </tr>
 
         </table>
+
+        <!-- Airy Off-Card Corporate Legal Footer (Stripe / Apple / Wise Signature) -->
+        <table role="presentation" width="580" cellspacing="0" cellpadding="0" border="0" style="max-width:580px;width:100%;">
+          <tr>
+            <td align="center" style="padding:24px 16px 0;text-align:center;">
+              <p style="margin:0 0 6px;font-family:${FONT_SANS};font-size:12px;font-weight:600;color:#64748b;">
+                ${escapeHtml(BRAND_NAME)} by ${escapeHtml(COMPANY_LEGAL)} &middot; ${escapeHtml(COMPANY_RC)}
+              </p>
+              <p style="margin:0 0 10px;font-family:${FONT_SANS};font-size:11.5px;color:#94a3b8;line-height:1.5;">
+                ${escapeHtml(HEADQUARTERS)}
+              </p>
+              <p style="margin:0 0 10px;font-family:${FONT_SANS};font-size:11.5px;color:#64748b;">
+                <a href="${escapeHtml(getEmailMarketingBaseUrl())}/terms.html" style="color:#64748b;text-decoration:none;margin:0 6px;">Terms</a> &middot;
+                <a href="${escapeHtml(getEmailMarketingBaseUrl())}/privacy.html" style="color:#64748b;text-decoration:none;margin:0 6px;">Privacy</a> &middot;
+                <a href="${escapeHtml(getEmailMarketingBaseUrl())}/trust.html" style="color:#64748b;text-decoration:none;margin:0 6px;">Trust Center</a> &middot;
+                <a href="mailto:${SUPPORT_EMAIL}" style="color:#64748b;text-decoration:none;margin:0 6px;">Support</a>
+                ${unsubUrl ? `&middot; <a href="${escapeHtml(unsubUrl)}" style="color:#059669;text-decoration:none;margin:0 6px;font-weight:600;">Unsubscribe</a>` : ''}
+              </p>
+              <p style="margin:0;font-family:${FONT_SANS};font-size:11px;color:#94a3b8;">
+                &copy; ${currentYear} ${escapeHtml(BRAND_NAME)} by ${escapeHtml(COMPANY_LEGAL)}. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+        <!--[if mso]>
+        </td></tr></table>
+        <![endif]-->
       </td>
     </tr>
   </table>
@@ -272,7 +310,6 @@ export function wrapEnterpriseEmail({
 
 /**
  * 1. Account Activation & Workplace Invitation Email
- * Supports both { recipientName, orgName, orgCode } and legacy { workerName, companyName, companyCode }
  */
 export function renderAccountActivationEmail({
   recipientName,
@@ -294,59 +331,46 @@ export function renderAccountActivationEmail({
   const safeCode = orgCode || companyCode || 'SR-ORG';
 
   const bodyHtml = `
-    <p style="margin:0 0 14px;">
-      Welcome to your organisation's verified operational portal. Leadership at <strong>${escapeHtml(safeOrg)}</strong> has provisioned your duty profile on <strong>ShiftRelay</strong>.
+    <h1 style="margin:0 0 10px;font-family:${FONT_SANS};font-size:22px;font-weight:800;letter-spacing:-0.025em;color:#0f172a;line-height:1.25;">
+      You&rsquo;re invited to ${escapeHtml(safeOrg)}
+    </h1>
+    <p style="margin:0 0 22px;color:#475569;">
+      Your workplace profile has been provisioned on <strong>ShiftRelay</strong>. Activate your account to set your password and unlock your live shift schedule, digital CR80 Staff ID card, and verified attendance tracker.
     </p>
-    <div style="background-color:#f8fafc;padding:16px;border-radius:12px;margin:18px 0;border:1px solid #e2e8f0;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="5" border="0" style="font-size:13px;">
-        <tr>
-          <td style="color:#64748b;width:140px;">Company Code:</td>
-          <td style="color:#059669;font-family:'JetBrains Mono',Consolas,monospace;font-weight:800;">${escapeHtml(safeCode)}</td>
-        </tr>
-        ${staffId ? `
-        <tr>
-          <td style="color:#64748b;">Staff ID:</td>
-          <td style="color:#0f172a;font-family:'JetBrains Mono',Consolas,monospace;font-weight:700;">${escapeHtml(staffId)}</td>
-        </tr>` : ''}
-        <tr>
-          <td style="color:#64748b;">Assigned Role:</td>
-          <td style="color:#0f172a;font-weight:700;">${escapeHtml(roleTitle)}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Duty Department:</td>
-          <td style="color:#0f172a;">${escapeHtml(department || 'Operations Core')}</td>
-        </tr>
-        ${verificationHint ? `
-        <tr>
-          <td style="color:#64748b;">Verification Key:</td>
-          <td style="color:#0284c7;font-weight:700;">${escapeHtml(verificationHint)}</td>
-        </tr>` : ''}
-        <tr>
-          <td style="color:#64748b;">Link Validity:</td>
-          <td style="color:#b45309;font-weight:700;">${expiresHours} Hours</td>
-        </tr>
-      </table>
-    </div>
-    <p style="margin:14px 0 0;">
-      Tap the button below to confirm your profile, set your secure password, and unlock your live shift schedule, scannable CR80 Staff ID card, and verified attendance tracker.
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin:0 0 20px;">
+      ${renderKeyValueRows([
+        { label: 'Organisation', value: safeOrg },
+        { label: 'Company Code', value: safeCode, mono: true, color: '#059669' },
+        ...(staffId ? [{ label: 'Staff ID', value: staffId, mono: true }] : []),
+        { label: 'Assigned Role', value: roleTitle },
+        { label: 'Department', value: department || 'Operations Core', bold: false },
+        ...(verificationHint ? [{ label: 'Verification Key', value: verificationHint, mono: true, color: '#0284c7' }] : []),
+        { label: 'Link Expires In', value: `${expiresHours} Hours`, color: '#b45309' }
+      ])}
+    </table>
+
+    <p style="margin:0;font-size:13.5px;color:#475569;">
+      Once activated, sign in anytime with Company Code <strong style="font-family:${FONT_MONO};color:#059669;">${escapeHtml(safeCode)}</strong> and your work email.
     </p>
   `;
 
   return wrapEnterpriseEmail({
     title: `Activate your ShiftRelay Profile — ${safeOrg}`,
-    preheader: `Set your password and access your duty roster at ${safeOrg}`,
+    preheader: `You're invited to ${safeOrg} on ShiftRelay — activate your profile within ${expiresHours} hours`,
     recipientName: safeName,
     deliveryReason: `Your work profile was authorized by ${safeOrg} management.`,
     bodyHtml,
     primaryCtaText: 'Activate My Workplace Profile',
     primaryCtaUrl: activationUrl,
-    secondaryNote: `If you were not expecting this invitation, no action is required; the activation link expires in ${expiresHours} hours.`,
+    secondaryNote: `Not expecting this invitation? You can safely ignore this email — the link expires automatically in ${expiresHours} hours.`,
     badgeLabel: 'WORKPLACE INVITE',
+    badgeTone: 'emerald',
     securityMetadata: {
       'Provisioned Account': recipientEmail || safeName,
       'Organization Code': safeCode,
       'Role Classification': roleTitle,
-      'Cryptographic Action': 'PROFILE_ACTIVATION'
+      'Action': 'PROFILE_ACTIVATION'
     }
   });
 }
@@ -362,32 +386,37 @@ export function renderPasswordResetEmail({
   expiresMinutes = 30
 }) {
   const bodyHtml = `
-    <p style="margin:0 0 14px;">
-      A password reset was requested for your ShiftRelay account (<strong>${escapeHtml(recipientEmail)}</strong>).
+    <h1 style="margin:0 0 10px;font-family:${FONT_SANS};font-size:22px;font-weight:800;letter-spacing:-0.025em;color:#0f172a;line-height:1.25;">
+      Reset your ShiftRelay password
+    </h1>
+    <p style="margin:0 0 18px;color:#475569;">
+      We received a request to reset the password for <strong>${escapeHtml(recipientEmail)}</strong>. Use the secure button below to choose a new password.
     </p>
-    <p style="margin:0 0 14px;">
-      For your operational protection, this security link is strictly valid for <strong>${expiresMinutes} minutes</strong> and can only be used once.
-    </p>
-    <p style="margin:0 0 14px;">
-      Click the button below to set your new password and resume access to your shift roster, handover logs, and earnings.
-    </p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin:0 0 6px;">
+      ${renderKeyValueRows([
+        { label: 'Account', value: recipientEmail, mono: true },
+        { label: 'Valid Window', value: `${expiresMinutes} Minutes (Single-Use)`, color: '#b45309' },
+        { label: 'Request Origin', value: requestIp, mono: true, bold: false }
+      ])}
+    </table>
   `;
 
   return wrapEnterpriseEmail({
     title: 'ShiftRelay Security: Reset Your Account Password',
-    preheader: 'Secure single-use link to reset your ShiftRelay password',
+    preheader: `Single-use password reset link valid for ${expiresMinutes} minutes`,
     recipientName,
-    deliveryReason: 'A password reset was requested from the ShiftRelay mobile/web portal.',
+    deliveryReason: 'A password reset was requested from the ShiftRelay portal.',
     bodyHtml,
     primaryCtaText: 'Reset ShiftRelay Password',
     primaryCtaUrl: resetUrl,
-    secondaryNote: 'If you did not make this request, please disregard this email. Your current password remains encrypted and active.',
-    badgeLabel: 'SECURITY NOTICE',
+    secondaryNote: 'If you did not request a password reset, no action is needed — your existing password remains encrypted and unchanged.',
+    badgeLabel: 'SECURITY',
+    badgeTone: 'amber',
     securityMetadata: {
       'Authorized Account': recipientEmail,
       'Requesting IP': requestIp,
       'Token Expiration': `${expiresMinutes} Minutes`,
-      'Action Protocol': 'PASSWORD_CREDENTIAL_ROTATION'
+      'Protocol': 'PASSWORD_CREDENTIAL_ROTATION'
     }
   });
 }
@@ -408,53 +437,45 @@ export function renderShiftHandoverEmail({
   reviewUrl
 }) {
   const priorityColor = priority === 'CRITICAL' ? '#dc2626' : priority === 'HIGH' ? '#d97706' : '#059669';
+  const tone = priority === 'CRITICAL' ? 'red' : priority === 'HIGH' ? 'amber' : 'emerald';
 
   const bodyHtml = `
-    <p style="margin:0 0 14px;">
-      A live shift changeover has been submitted by outgoing personnel <strong>${escapeHtml(outgoingWorkerName)}</strong> for <strong>${escapeHtml(shiftTitle)}</strong> at <strong>${escapeHtml(facilityName)}</strong>.
+    <h1 style="margin:0 0 10px;font-family:${FONT_SANS};font-size:21px;font-weight:800;letter-spacing:-0.025em;color:#0f172a;line-height:1.25;">
+      Shift handover ready for sign-off
+    </h1>
+    <p style="margin:0 0 20px;color:#475569;">
+      <strong>${escapeHtml(outgoingWorkerName)}</strong> submitted a verified changeover brief for <strong>${escapeHtml(shiftTitle)}</strong> at <strong>${escapeHtml(facilityName)}</strong>.
     </p>
-    <div style="background-color:#f8fafc;padding:16px;border-radius:12px;margin:18px 0;border:1px solid #e2e8f0;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="5" border="0" style="font-size:13px;">
-        <tr>
-          <td style="color:#64748b;width:145px;">Outgoing Specialist:</td>
-          <td style="color:#0f172a;font-weight:700;">${escapeHtml(outgoingWorkerName)}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Incoming Reliever:</td>
-          <td style="color:#0f172a;">${escapeHtml(incomingWorkerName || 'Designated Shift Reliever')}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Checklist Status:</td>
-          <td style="color:#059669;font-weight:800;">${checklistCompleted} of ${checklistTotal} Tasks Certified</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Operational Priority:</td>
-          <td style="color:${priorityColor};font-weight:800;">${escapeHtml(priority)}</td>
-        </tr>
-      </table>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin:0 0 20px;">
+      ${renderKeyValueRows([
+        { label: 'Outgoing Specialist', value: outgoingWorkerName },
+        { label: 'Incoming Reliever', value: incomingWorkerName || 'Designated Shift Reliever', bold: false },
+        { label: 'Checklist Status', value: `${checklistCompleted} of ${checklistTotal} Tasks Certified`, color: '#059669' },
+        { label: 'Priority', value: priority, color: priorityColor }
+      ])}
+    </table>
+
+    <div style="border-left:3px solid #059669;padding:2px 0 2px 14px;margin:0 0 6px;">
+      <div style="font-family:${FONT_MONO};font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Handover Summary</div>
+      <p style="margin:0;font-size:14px;color:#0f172a;line-height:1.6;">${escapeHtml(handoverSummary)}</p>
     </div>
-    <div style="background-color:#f0fdf4;padding:14px 16px;border-left:3px solid #10b981;border-radius:0 10px 10px 0;margin:16px 0;">
-      <strong style="font-size:11px;color:#047857;text-transform:uppercase;letter-spacing:0.05em;">Handover Summary</strong>
-      <p style="margin:6px 0 0;font-size:13.5px;color:#0f172a;line-height:1.55;">${escapeHtml(handoverSummary)}</p>
-    </div>
-    <p style="margin:14px 0 0;">
-      Please review and sign off on this handover to transfer operational responsibility to the incoming shift.
-    </p>
   `;
 
   return wrapEnterpriseEmail({
     title: `Shift Handover Brief: ${shiftTitle} (${outgoingWorkerName})`,
-    preheader: `Handover submitted by ${outgoingWorkerName} at ${facilityName}`,
+    preheader: `${outgoingWorkerName} completed ${checklistCompleted}/${checklistTotal} checks at ${facilityName}`,
     recipientName: supervisorName,
     deliveryReason: 'You are the registered shift supervisor for this operational unit.',
     bodyHtml,
     primaryCtaText: 'Review & Authorize Handover',
     primaryCtaUrl: reviewUrl,
     badgeLabel: 'SHIFT HANDOVER',
+    badgeTone: tone,
     securityMetadata: {
-      'Facility Location': facilityName,
+      'Facility': facilityName,
       'Shift Window': shiftTitle,
-      'Handoff Checksum': 'SHA256-' + Math.random().toString(36).slice(2, 10).toUpperCase()
+      'Checksum': 'SHA256-' + Math.random().toString(36).slice(2, 10).toUpperCase()
     }
   });
 }
@@ -474,56 +495,51 @@ export function renderExecutivePayrollDigestEmail({
   varianceNgn = 0,
   reportDownloadUrl
 }) {
+  const fmtMoney = (n) => `₦${Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+
   const bodyHtml = `
-    <p style="margin:0 0 14px;">
-      The statutory payroll cycle for <strong>${escapeHtml(orgName)}</strong> (<strong>${escapeHtml(period)}</strong>) has been compiled directly from verified attendance records.
-    </p>
-    <div style="background-color:#f8fafc;padding:16px 18px;border-radius:12px;margin:18px 0;border:1px solid #e2e8f0;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="7" border="0" style="font-size:13px;">
-        <tr>
-          <td style="color:#64748b;border-bottom:1px solid #e2e8f0;">Verified Headcount:</td>
-          <td style="color:#0f172a;font-weight:700;text-align:right;border-bottom:1px solid #e2e8f0;">${employeeCount} Verified Specialists</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;border-bottom:1px solid #e2e8f0;">Total Gross Payroll:</td>
-          <td style="color:#0f172a;font-weight:700;text-align:right;border-bottom:1px solid #e2e8f0;">₦${Number(totalGrossNgn).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;border-bottom:1px solid #e2e8f0;">PenCom Remittance (8% + 10%):</td>
-          <td style="color:#0284c7;font-weight:700;text-align:right;border-bottom:1px solid #e2e8f0;">₦${Number(penComRemittanceNgn).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;border-bottom:1px solid #e2e8f0;">PAYE Tax Withheld (NTA 2025):</td>
-          <td style="color:#0284c7;font-weight:700;text-align:right;border-bottom:1px solid #e2e8f0;">₦${Number(payeTaxNgn).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;border-bottom:1px solid #e2e8f0;">Net Bank Disbursement:</td>
-          <td style="color:#0f172a;font-weight:800;font-size:14.5px;text-align:right;border-bottom:1px solid #e2e8f0;">₦${Number(netPayableNgn).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Payroll Variance Check:</td>
-          <td style="color:#059669;font-weight:900;text-align:right;">₦${Number(varianceNgn).toFixed(2)} (100% RECONCILED)</td>
-        </tr>
-      </table>
+    <div style="margin:0 0 22px;padding-bottom:20px;border-bottom:1px solid #f1f5f9;">
+      <div style="font-family:${FONT_MONO};font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">
+        Net Bank Disbursement &middot; ${escapeHtml(period)}
+      </div>
+      <div class="sr-hero-num" style="font-family:${FONT_SANS};font-size:34px;font-weight:800;letter-spacing:-0.035em;color:#0f172a;line-height:1.1;font-variant-numeric:tabular-nums;">
+        ${fmtMoney(netPayableNgn)}
+      </div>
+      <div style="margin-top:8px;font-size:13px;color:#059669;font-weight:700;">
+        Variance: ₦${Number(varianceNgn).toFixed(2)} (100% RECONCILED)
+      </div>
     </div>
-    <p style="margin:14px 0 0;">
-      Click below to inspect the Executive Statutory Remittance Ledger and export bank-ready disbursement schedules.
+
+    <p style="margin:0 0 18px;color:#475569;">
+      The monthly statutory payroll run for <strong>${escapeHtml(orgName)}</strong> has been compiled directly from verified attendance punches and is ready for executive review.
     </p>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin:0 0 6px;">
+      ${renderKeyValueRows([
+        { label: 'Verified Headcount', value: `${employeeCount} Specialists` },
+        { label: 'Total Gross Payroll', value: fmtMoney(totalGrossNgn), mono: true },
+        { label: 'PenCom Remittance (8% + 10%)', value: fmtMoney(penComRemittanceNgn), mono: true, color: '#0369a1' },
+        { label: 'PAYE Tax Withheld (NTA 2025)', value: fmtMoney(payeTaxNgn), mono: true, color: '#0369a1' },
+        { label: 'Net Bank Disbursement', value: fmtMoney(netPayableNgn), mono: true, color: '#0f172a' },
+        { label: 'Payroll Variance Check', value: `₦${Number(varianceNgn).toFixed(2)} (100% RECONCILED)`, color: '#059669' }
+      ])}
+    </table>
   `;
 
   return wrapEnterpriseEmail({
     title: `Executive Payroll & Remittance Digest — ${period}`,
-    preheader: `₦${Number(totalGrossNgn).toLocaleString()} gross compiled with ₦0.00 variance`,
+    preheader: `${orgName}: ${fmtMoney(netPayableNgn)} net disbursement compiled with ₦0.00 variance`,
     recipientName: executiveName,
     deliveryReason: 'You are listed as an Executive Director or Payroll Officer for this organisation.',
     bodyHtml,
     primaryCtaText: 'Download Statutory Payroll Ledger',
     primaryCtaUrl: reportDownloadUrl,
     badgeLabel: 'PAYROLL DIGEST',
+    badgeTone: 'emerald',
     securityMetadata: {
       'Corporate Entity': orgName,
       'Statutory Period': period,
-      'Reconciliation State': 'ZERO_VARIANCE_CERTIFIED'
+      'Reconciliation': 'ZERO_VARIANCE_CERTIFIED'
     }
   });
 }
@@ -551,57 +567,64 @@ export function renderWeeklyProgressNewsletterEmail({
   platformUrl = getEmailPlatformBaseUrl(),
   unsubUrl = `${getEmailMarketingBaseUrl()}/unsubscribe`
 }) {
-  const practicesHtml = topPractices.map(p => `
-    <div style="background-color:#f8fafc;padding:12px 14px;border-radius:10px;margin-bottom:10px;border-left:3px solid #10b981;border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
-      <strong style="color:#0f172a;font-size:13.5px;display:block;">${escapeHtml(p.title)}</strong>
-      <span style="color:#475569;font-size:12.5px;line-height:1.45;display:block;margin-top:3px;">${escapeHtml(p.desc)}</span>
-    </div>
+  const practicesHtml = topPractices.map((p, idx) => `
+    <tr>
+      <td style="padding:12px 0;border-top:${idx === 0 ? '1px solid #e2e8f0' : '1px solid #f1f5f9'};">
+        <div style="font-size:14px;font-weight:700;color:#0f172a;">${escapeHtml(p.title)}</div>
+        <div style="font-size:13px;color:#64748b;line-height:1.5;margin-top:3px;">${escapeHtml(p.desc)}</div>
+      </td>
+    </tr>
   `).join('');
 
   const bodyHtml = `
-    <p style="margin:0 0 16px;">
-      Welcome to your <strong>ShiftRelay Weekly Operational Dispatch</strong> for Week ${weekNumber}, ${year}. Here is ${escapeHtml(orgName)}'s verified operational summary.
+    <h1 style="margin:0 0 8px;font-family:${FONT_SANS};font-size:21px;font-weight:800;letter-spacing:-0.025em;color:#0f172a;line-height:1.25;">
+      ShiftRelay Weekly Operational Dispatch
+    </h1>
+    <p style="margin:0 0 22px;color:#475569;">
+      Week ${weekNumber}, ${year} performance summary for <strong>${escapeHtml(orgName)}</strong>.
     </p>
 
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:18px 0;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 22px;">
       <tr>
-        <td width="48%" style="background-color:#f8fafc;padding:15px;border-radius:12px;border:1px solid #e2e8f0;vertical-align:top;">
-          <span style="font-size:10.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Shifts Accounted</span>
-          <div style="font-size:24px;font-weight:900;color:#059669;margin-top:4px;">${stats.totalShiftsAccounted}</div>
-          <span style="font-size:11px;color:#64748b;">100% Verified Handovers</span>
+        <td class="sr-stack-col" width="48%" style="padding:16px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;vertical-align:top;">
+          <div style="font-family:${FONT_MONO};font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Shifts Accounted</div>
+          <div style="font-size:26px;font-weight:800;letter-spacing:-0.03em;color:#0f172a;margin-top:4px;font-variant-numeric:tabular-nums;">${stats.totalShiftsAccounted}</div>
+          <div style="font-size:11.5px;color:#059669;font-weight:600;margin-top:2px;">100% Verified Handovers</div>
         </td>
-        <td width="4%"></td>
-        <td width="48%" style="background-color:#f8fafc;padding:15px;border-radius:12px;border:1px solid #e2e8f0;vertical-align:top;">
-          <span style="font-size:10.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Punctuality Score</span>
-          <div style="font-size:24px;font-weight:900;color:#0284c7;margin-top:4px;">${stats.punctualityRate}</div>
-          <span style="font-size:11px;color:#64748b;">On-Time Gate Arrival</span>
+        <td class="sr-stack-gap" width="4%">&nbsp;</td>
+        <td class="sr-stack-col" width="48%" style="padding:16px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;vertical-align:top;">
+          <div style="font-family:${FONT_MONO};font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Punctuality Score</div>
+          <div style="font-size:26px;font-weight:800;letter-spacing:-0.03em;color:#0f172a;margin-top:4px;font-variant-numeric:tabular-nums;">${stats.punctualityRate}</div>
+          <div style="font-size:11.5px;color:#0369a1;font-weight:600;margin-top:2px;">On-Time Gate Arrival</div>
         </td>
       </tr>
-      <tr><td height="10" colspan="3"></td></tr>
+      <tr><td height="10" colspan="3" style="font-size:0;line-height:0;">&nbsp;</td></tr>
       <tr>
-        <td width="48%" style="background-color:#f8fafc;padding:15px;border-radius:12px;border:1px solid #e2e8f0;vertical-align:top;">
-          <span style="font-size:10.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Verified Hours</span>
-          <div style="font-size:24px;font-weight:900;color:#0f172a;margin-top:4px;">${Number(stats.verifiedHoursLogged).toLocaleString()} hrs</div>
-          <span style="font-size:11px;color:#64748b;">Biometric GPS Authenticated</span>
+        <td class="sr-stack-col" width="48%" style="padding:16px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;vertical-align:top;">
+          <div style="font-family:${FONT_MONO};font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Verified Hours</div>
+          <div style="font-size:26px;font-weight:800;letter-spacing:-0.03em;color:#0f172a;margin-top:4px;font-variant-numeric:tabular-nums;">${Number(stats.verifiedHoursLogged).toLocaleString()} hrs</div>
+          <div style="font-size:11.5px;color:#64748b;margin-top:2px;">GPS + Peer Authenticated</div>
         </td>
-        <td width="4%"></td>
-        <td width="48%" style="background-color:#f8fafc;padding:15px;border-radius:12px;border:1px solid #e2e8f0;vertical-align:top;">
-          <span style="font-size:10.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Payroll Variance</span>
-          <div style="font-size:24px;font-weight:900;color:#059669;margin-top:4px;">${stats.variance}</div>
-          <span style="font-size:11px;color:#64748b;">Zero Leakage Guaranteed</span>
+        <td class="sr-stack-gap" width="4%">&nbsp;</td>
+        <td class="sr-stack-col" width="48%" style="padding:16px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;vertical-align:top;">
+          <div style="font-family:${FONT_MONO};font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Payroll Variance</div>
+          <div style="font-size:26px;font-weight:800;letter-spacing:-0.03em;color:#059669;margin-top:4px;font-variant-numeric:tabular-nums;">${stats.variance}</div>
+          <div style="font-size:11.5px;color:#64748b;margin-top:2px;">Zero Leakage Reconciled</div>
         </td>
       </tr>
     </table>
 
-    <h3 style="margin:20px 0 10px;font-size:12.5px;font-weight:800;color:#0f172a;letter-spacing:0.05em;text-transform:uppercase;">
-      Operational Highlights &amp; Platform Wins
-    </h3>
-    ${practicesHtml}
+    <div style="font-family:${FONT_MONO};font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin:0 0 8px;">
+      Operational Highlights
+    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-bottom:1px solid #e2e8f0;">
+      ${practicesHtml}
+    </table>
   `;
 
   return wrapEnterpriseEmail({
     title: `ShiftRelay Weekly Operational Dispatch — Week ${weekNumber}`,
-    preheader: `${stats.totalShiftsAccounted} shifts accounted for with ${stats.punctualityRate} punctuality score`,
+    preheader: `Week ${weekNumber}: ${stats.totalShiftsAccounted} shifts verified · ${stats.punctualityRate} punctuality · ${stats.variance} variance`,
     recipientName,
     deliveryReason: 'You are subscribed to the weekly workforce operations digest.',
     bodyHtml,
@@ -609,10 +632,10 @@ export function renderWeeklyProgressNewsletterEmail({
     primaryCtaUrl: platformUrl,
     secondaryNote: 'Use the one-click Unsubscribe link below anytime to stop receiving weekly digest emails.',
     badgeLabel: 'WEEKLY DISPATCH',
+    badgeTone: 'slate',
     securityMetadata: {
-      'Digest Cadence': 'WEEKLY_OPERATIONAL_SUMMARY',
       'Reporting Week': `W${weekNumber}-${year}`,
-      'Safety Record': `${stats.safetyIncidents} Incidents Logged`
+      'Safety Incidents': `${stats.safetyIncidents} Logged`
     },
     unsubUrl
   });
@@ -632,34 +655,29 @@ export function renderAttendanceReminderEmail({
   graceMinutes = 10,
   actionUrl = `${getEmailPlatformBaseUrl()}/#today`
 }) {
-  const accent = urgency === 'ESCALATION' ? '#dc2626' : urgency === 'ACTION_REQUIRED' ? '#d97706' : '#059669';
-  const bgTint = urgency === 'ESCALATION' ? '#fef2f2' : urgency === 'ACTION_REQUIRED' ? '#fffbeb' : '#f0fdf4';
+  const isEsc = urgency === 'ESCALATION';
+  const accent = isEsc ? '#dc2626' : urgency === 'ACTION_REQUIRED' ? '#d97706' : '#059669';
+  const tone = isEsc ? 'red' : urgency === 'ACTION_REQUIRED' ? 'amber' : 'emerald';
 
   const bodyHtml = `
-    <div style="background-color:${bgTint};padding:16px;border-radius:12px;border-left:4px solid ${accent};margin:0 0 18px;">
-      <div style="font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:${accent};margin-bottom:5px;">
+    <div style="border-left:3px solid ${accent};padding:2px 0 2px 14px;margin:0 0 20px;">
+      <div style="font-family:${FONT_MONO};font-size:10.5px;font-weight:700;color:${accent};text-transform:uppercase;letter-spacing:0.06em;">
         ${escapeHtml(stageLabel)} &middot; ${escapeHtml(urgency)}
       </div>
-      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:5px;">
+      <h1 style="margin:4px 0 6px;font-family:${FONT_SANS};font-size:20px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;line-height:1.25;">
         ${escapeHtml(headline)}
-      </div>
-      <p style="margin:0;font-size:13.5px;color:#334155;line-height:1.5;">
+      </h1>
+      <p style="margin:0;font-size:14px;color:#475569;line-height:1.55;">
         ${escapeHtml(message)}
       </p>
     </div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="7" border="0" style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;">
-      <tr>
-        <td style="color:#64748b;width:145px;">Employer:</td>
-        <td style="color:#0f172a;font-weight:700;">${escapeHtml(orgName)}</td>
-      </tr>
-      <tr>
-        <td style="color:#64748b;border-top:1px solid #e2e8f0;">Scheduled Window:</td>
-        <td style="color:#0284c7;font-family:'JetBrains Mono',Consolas,monospace;font-weight:700;border-top:1px solid #e2e8f0;">${escapeHtml(shiftWindow)}</td>
-      </tr>
-      <tr>
-        <td style="color:#64748b;border-top:1px solid #e2e8f0;">Grace Policy:</td>
-        <td style="color:#059669;font-weight:700;border-top:1px solid #e2e8f0;">${Number(graceMinutes)} minutes (within grace = zero pay deduction)</td>
-      </tr>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin:0 0 6px;">
+      ${renderKeyValueRows([
+        { label: 'Employer', value: orgName },
+        { label: 'Scheduled Shift', value: shiftWindow, mono: true, color: '#0369a1' },
+        { label: 'Grace Policy', value: `${Number(graceMinutes)} minutes (within grace = zero pay deduction)`, color: '#059669' }
+      ])}
     </table>
   `;
 
@@ -669,13 +687,14 @@ export function renderAttendanceReminderEmail({
     recipientName,
     deliveryReason: `Automated ShiftRelay OS attendance watchdog for ${orgName}.`,
     bodyHtml,
-    primaryCtaText: urgency === 'ESCALATION' ? 'Review Attendance Exception' : 'Open ShiftRelay OS Clock-In',
+    primaryCtaText: isEsc ? 'Review Attendance Exception' : 'Open ShiftRelay OS Clock-In',
     primaryCtaUrl: actionUrl,
-    secondaryNote: 'Phone battery low or offline? A verified on-site colleague can scan your physical CR80 Staff ID card inside ShiftRelay OS.',
-    badgeLabel: urgency === 'ESCALATION' ? 'ESCALATION' : 'ATTENDANCE',
+    secondaryNote: 'Phone battery low or offline? Any verified on-site colleague can scan your physical CR80 Staff ID card inside ShiftRelay OS.',
+    badgeLabel: isEsc ? 'ESCALATION' : 'ATTENDANCE',
+    badgeTone: tone,
     securityMetadata: {
       'Organisation': orgName,
-      'Reminder Stage': stageLabel,
+      'Stage': stageLabel,
       'Grace Window': `${Number(graceMinutes)} Minutes`
     }
   });
@@ -698,18 +717,19 @@ export function renderNewsletterWelcomeEmail({
     general: 'Workforce & Statutory Brief'
   };
   const segLabel = segmentLabels[roleSegment] || segmentLabels.general;
+
   const bodyHtml = `
-    <p style="margin:0 0 14px;">
-      Welcome to the <strong>ShiftRelay OS Workforce &amp; Statutory Brief</strong> by ${escapeHtml(COMPANY_LEGAL)}. Your subscription is active under NDPA 2023 explicit consent rules.
+    <h1 style="margin:0 0 10px;font-family:${FONT_SANS};font-size:22px;font-weight:800;letter-spacing:-0.025em;color:#0f172a;line-height:1.25;">
+      You&rsquo;re subscribed to the Statutory Brief
+    </h1>
+    <p style="margin:0 0 18px;color:#475569;">
+      Welcome to the <strong>ShiftRelay OS Workforce &amp; Statutory Brief</strong> by ${escapeHtml(COMPANY_LEGAL)}. Your monthly track (<strong>${escapeHtml(segLabel)}</strong>) is active under NDPA 2023 explicit consent.
     </p>
-    <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0;">
-      <div style="font-size:11px;font-weight:800;color:#059669;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">What You Will Receive Monthly</div>
-      <ul style="margin:0;padding-left:18px;font-size:13.5px;color:#334155;line-height:1.7;">
-        <li>Nigeria Tax Act (NTA) 2025 PAYE, PenCom PRA 2014 (8%/10% BHT), NHF &amp; NSITF filing deadlines</li>
-        <li>Frontline attendance exception, geofence &amp; zero-smartphone Peer ID benchmarks</li>
-        <li>Ready-to-use bank CSV &amp; rollout checklists for hospitals, plants &amp; logistics fleets</li>
-      </ul>
-    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin:0 0 6px;">
+      <tr><td style="padding:11px 0;font-size:13.5px;color:#334155;"><strong>1. Statutory Deadlines</strong> &mdash; NTA 2025 PAYE, PenCom PRA 2014 (8%/10% BHT), NHF &amp; NSITF filing alerts.</td></tr>
+      <tr><td style="padding:11px 0;border-top:1px solid #f1f5f9;font-size:13.5px;color:#334155;"><strong>2. Frontline Benchmarks</strong> &mdash; Geofence verification, exception governance &amp; zero-smartphone Peer ID guides.</td></tr>
+      <tr><td style="padding:11px 0;border-top:1px solid #f1f5f9;font-size:13.5px;color:#334155;"><strong>3. Payroll Templates</strong> &mdash; Ready-to-use bank CSV &amp; rollout checklists for multi-site operations.</td></tr>
+    </table>
   `;
 
   return wrapEnterpriseEmail({
@@ -720,12 +740,13 @@ export function renderNewsletterWelcomeEmail({
     bodyHtml,
     primaryCtaText: 'Open PAYE & PenCom Calculator',
     primaryCtaUrl: `${marketingUrl}/calculator.html`,
-    secondaryNote: 'Click Unsubscribe below anytime with one click (RFC 8058 compliant).',
+    secondaryNote: 'Unsubscribe anytime in one click using the link in the footer (RFC 8058 compliant).',
     badgeLabel: 'SUBSCRIBED',
+    badgeTone: 'emerald',
     securityMetadata: {
-      'Track / Segment': segLabel,
-      'Subscriber Email': email,
-      'NDPA Legal Basis': 'EXPLICIT_OPT_IN_CONSENT'
+      'Track': segLabel,
+      'Subscriber': email,
+      'NDPA Basis': 'EXPLICIT_OPT_IN_CONSENT'
     },
     unsubUrl: unsubscribeUrl || `${marketingUrl}/unsubscribe`
   });
@@ -760,44 +781,53 @@ export function renderMonthlyComplianceNewsletterEmail({
   calculatorUrl = `${getEmailMarketingBaseUrl()}/calculator.html`,
   unsubscribeUrl = `${getEmailMarketingBaseUrl()}/unsubscribe`
 }) {
-  const highlightsHtml = complianceHighlights.map(item => `
-    <div style="background-color:#f8fafc;padding:13px 15px;border-radius:10px;margin-bottom:10px;border-left:3px solid #0284c7;border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
-      <strong style="color:#0f172a;font-size:13.5px;display:block;">${escapeHtml(item.title)}</strong>
-      <span style="color:#475569;font-size:12.5px;line-height:1.5;display:block;margin-top:4px;">${escapeHtml(item.desc)}</span>
-    </div>
+  const highlightsHtml = complianceHighlights.map((item, idx) => `
+    <tr>
+      <td style="padding:12px 0;border-top:${idx === 0 ? '1px solid #e2e8f0' : '1px solid #f1f5f9'};">
+        <div style="font-size:14px;font-weight:700;color:#0f172a;">${escapeHtml(item.title)}</div>
+        <div style="font-size:13px;color:#64748b;line-height:1.55;margin-top:3px;">${escapeHtml(item.desc)}</div>
+      </td>
+    </tr>
   `).join('');
 
   const bodyHtml = `
-    <p style="margin:0 0 16px;">
-      Here is your <strong>${escapeHtml(monthLabel)}</strong> Nigerian Workforce &amp; Statutory Compliance Brief from ${escapeHtml(COMPANY_LEGAL)}.
+    <h1 style="margin:0 0 8px;font-family:${FONT_SANS};font-size:21px;font-weight:800;letter-spacing:-0.025em;color:#0f172a;line-height:1.25;">
+      Nigeria Workforce &amp; Statutory Brief
+    </h1>
+    <p style="margin:0 0 20px;color:#475569;">
+      <strong>${escapeHtml(monthLabel)}</strong> edition from ${escapeHtml(COMPANY_LEGAL)} &mdash; key payroll, PenCom, and NDPA updates.
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 18px;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 22px;">
       <tr>
-        <td style="width:32%;padding:12px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;">
-          <div style="font-size:20px;font-weight:900;color:#059669;">${escapeHtml(operationalBenchmarks.avgClockInLatency)}</div>
-          <div style="font-size:11px;color:#64748b;">Avg Gate Scan</div>
+        <td class="sr-stack-col" style="width:32%;padding:14px 10px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:#059669;letter-spacing:-0.02em;">${escapeHtml(operationalBenchmarks.avgClockInLatency)}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:2px;">Avg Gate Scan</div>
         </td>
-        <td style="width:2%;"></td>
-        <td style="width:32%;padding:12px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;">
-          <div style="font-size:20px;font-weight:900;color:#0284c7;">${escapeHtml(operationalBenchmarks.exceptionResolutionSla)}</div>
-          <div style="font-size:11px;color:#64748b;">Exception SLA</div>
+        <td class="sr-stack-gap" style="width:2%;">&nbsp;</td>
+        <td class="sr-stack-col" style="width:32%;padding:14px 10px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:#0369a1;letter-spacing:-0.02em;">${escapeHtml(operationalBenchmarks.exceptionResolutionSla)}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:2px;">Exception SLA</div>
         </td>
-        <td style="width:2%;"></td>
-        <td style="width:32%;padding:12px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;">
-          <div style="font-size:20px;font-weight:900;color:#0f172a;">${escapeHtml(operationalBenchmarks.payrollVariance)}</div>
-          <div style="font-size:11px;color:#64748b;">Remittance Drift</div>
+        <td class="sr-stack-gap" style="width:2%;">&nbsp;</td>
+        <td class="sr-stack-col" style="width:32%;padding:14px 10px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;">${escapeHtml(operationalBenchmarks.payrollVariance)}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:2px;">Remittance Drift</div>
         </td>
       </tr>
     </table>
-    <h3 style="margin:0 0 10px;font-size:12.5px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.05em;">
-      Statutory &amp; Operational Advisories
-    </h3>
-    ${highlightsHtml}
+
+    <div style="font-family:${FONT_MONO};font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin:0 0 8px;">
+      Statutory Advisories
+    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-bottom:1px solid #e2e8f0;">
+      ${highlightsHtml}
+    </table>
   `;
 
   return wrapEnterpriseEmail({
     title: `Nigeria Workforce & Statutory Brief — ${monthLabel}`,
-    preheader: `${monthLabel}: PenCom PRA 2014 reminders, Nigeria Tax Act (NTA) 2025 PAYE rules & frontline benchmarks`,
+    preheader: `${monthLabel}: PenCom PRA 2014 reminders, Nigeria Tax Act (NTA) 2025 PAYE rules & benchmarks`,
     recipientName,
     deliveryReason: `Monthly ShiftRelay OS statutory brief (segment: ${roleSegment}).`,
     bodyHtml,
@@ -805,17 +835,18 @@ export function renderMonthlyComplianceNewsletterEmail({
     primaryCtaUrl: calculatorUrl,
     secondaryNote: 'Instant one-click unsubscribe supported below (RFC 8058 compliant).',
     badgeLabel: 'STATUTORY BRIEF',
+    badgeTone: 'sky',
     securityMetadata: {
       'Edition': monthLabel,
-      'Audience Segment': String(roleSegment).toUpperCase(),
-      'Compliance Authority': 'NDPA 2023 / NTA 2025 / PRA 2014'
+      'Segment': String(roleSegment).toUpperCase(),
+      'Frameworks': 'NDPA 2023 / NTA 2025 / PRA 2014'
     },
     unsubUrl: unsubscribeUrl
   });
 }
 
 /**
- * 9. Employer Billing & Onboarding Secure Paystack Payment Link Email
+ * 9. Employer Billing & Onboarding Secure Paystack Payment Link Email (Stripe / Paystack Invoice Standard)
  * Branded: ShiftRelay · Powered by Riffmax Technology Limited
  */
 export function renderBillingPaymentLinkEmail({
@@ -833,97 +864,91 @@ export function renderBillingPaymentLinkEmail({
   loginPortalUrl = ''
 }) {
   const fmtNgn = (v) => `₦${Math.round(Number(v || 0)).toLocaleString('en-NG')}`;
-  const rowsHtml = (Array.isArray(breakdownLines) && breakdownLines.length > 0
+  const items = Array.isArray(breakdownLines) && breakdownLines.length > 0
     ? breakdownLines
-    : [{ label: invoiceTypeLabel, amountNgn: totalAmountNgn }]
-  ).map((line) => `
+    : [{ label: invoiceTypeLabel, amountNgn: totalAmountNgn }];
+
+  const rowsHtml = items.map((line) => `
     <tr>
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:#1e293b;font-size:13px;">
-        <strong>${escapeHtml(line.label)}</strong>
-        ${line.note ? `<div style="font-size:11.5px;color:#64748b;margin-top:2px;">${escapeHtml(line.note)}</div>` : ''}
+      <td style="padding:12px 0;border-bottom:1px solid #f1f5f9;font-family:${FONT_SANS};font-size:13.5px;color:#0f172a;vertical-align:top;">
+        <div style="font-weight:600;color:#0f172a;">${escapeHtml(line.label)}</div>
+        ${line.note ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtml(line.note)}</div>` : ''}
       </td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-weight:800;font-size:13px;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',Consolas,monospace;">
+      <td align="right" style="padding:12px 0;border-bottom:1px solid #f1f5f9;font-family:${FONT_MONO};font-size:13.5px;font-weight:600;color:#0f172a;text-align:right;white-space:nowrap;vertical-align:top;">
         ${line.isCredit ? '&minus;' : ''}${fmtNgn(Math.abs(Number(line.amountNgn || 0)))}
       </td>
     </tr>
   `).join('');
 
   const bodyHtml = `
-    <div style="background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px 18px;margin:0 0 18px;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-        <tr>
-          <td>
-            <div style="font-size:10.5px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#047857;">
-              ShiftRelay Billing Invoice &middot; Powered by ${escapeHtml(COMPANY_LEGAL)}
-            </div>
-            <div style="font-size:17px;font-weight:800;color:#0f172a;margin-top:3px;">
-              ${escapeHtml(invoiceTypeLabel)} (${escapeHtml(planLabel)})
-            </div>
-          </td>
-          <td align="right" valign="top">
-            <span style="display:inline-block;padding:4px 10px;border-radius:999px;background-color:#fef3c7;border:1px solid #f59e0b;color:#b45309;font-size:10.5px;font-weight:800;letter-spacing:0.05em;">
-              PAYMENT DUE
-            </span>
-          </td>
-        </tr>
-      </table>
+    <!-- Stripe / Paystack Hero Invoice Amount -->
+    <div style="margin:0 0 24px;padding-bottom:22px;border-bottom:1px solid #f1f5f9;">
+      <div style="font-family:${FONT_MONO};font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">
+        Invoice from ShiftRelay &middot; ${escapeHtml(invoiceId)}
+      </div>
+      <div class="sr-hero-num" style="margin:8px 0 6px;font-family:${FONT_SANS};font-size:38px;font-weight:800;letter-spacing:-0.035em;color:#0f172a;line-height:1.08;font-variant-numeric:tabular-nums;">
+        ${fmtNgn(totalAmountNgn)}
+      </div>
+      <div style="font-size:13px;color:#64748b;">
+        ${escapeHtml(invoiceTypeLabel)} &middot; <strong style="color:#0f172a;">${escapeHtml(planLabel)}</strong>${cycleMonth ? ` &middot; ${escapeHtml(cycleMonth)}` : ''}
+      </div>
     </div>
 
-    <p style="margin:0 0 14px;">
+    <p style="margin:0 0 20px;color:#475569;">
       ${isOnboarding
-        ? `Welcome to <strong>ShiftRelay</strong>! Your dedicated workspace for <strong>${escapeHtml(companyName)}</strong>${companyCode ? ` (Company Code: <code style="color:#059669;font-weight:800;">${escapeHtml(companyCode)}</code>)` : ''} is ready. Complete your secure payment via <strong>Paystack</strong> (Bank Transfer, Corporate/Debit Card, or USSD) to unlock staff roster submission and full production go-live.`
-        : `Your itemized ShiftRelay billing invoice <strong>${escapeHtml(invoiceId)}</strong> for <strong>${escapeHtml(companyName)}</strong>${cycleMonth ? ` (${escapeHtml(cycleMonth)})` : ''} is ready. Employer-paid only — <strong>₦0 is ever deducted from workers</strong>.`}
+        ? `Your dedicated workspace for <strong>${escapeHtml(companyName)}</strong>${companyCode ? ` (<span style="font-family:${FONT_MONO};color:#059669;font-weight:700;">${escapeHtml(companyCode)}</span>)` : ''} is configured and ready. Settle this invoice securely via <strong>Paystack</strong> (Bank Transfer, Card, or USSD) to immediately unlock staff roster onboarding.`
+        : `Your itemized ShiftRelay billing statement for <strong>${escapeHtml(companyName)}</strong> is ready. 100% employer-paid &mdash; <strong>₦0 is ever deducted from staff salaries</strong>.`}
     </p>
 
-    <div style="border:1px solid #cbd5e1;border-radius:12px;overflow:hidden;margin:18px 0;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-        <thead>
-          <tr style="background-color:#f8fafc;">
-            <th align="left" style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;border-bottom:1px solid #cbd5e1;">Description</th>
-            <th align="right" style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;border-bottom:1px solid #cbd5e1;">Amount (NGN)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rowsHtml}
-          <tr style="background-color:#ecfdf5;">
-            <td style="padding:13px 12px;font-size:14px;font-weight:800;color:#065f46;border-top:1px solid #a7f3d0;">Total Payable via Paystack</td>
-            <td style="padding:13px 12px;font-size:18px;font-weight:900;color:#059669;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',Consolas,monospace;border-top:1px solid #a7f3d0;">
-              ${fmtNgn(totalAmountNgn)}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- Clean Typographic Line-Item Ledger -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 18px;">
+      <thead>
+        <tr>
+          <th align="left" style="padding:0 0 8px;border-bottom:1px solid #e2e8f0;font-family:${FONT_MONO};font-size:10.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">Item</th>
+          <th align="right" style="padding:0 0 8px;border-bottom:1px solid #e2e8f0;font-family:${FONT_MONO};font-size:10.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml}
+        <tr>
+          <td style="padding:14px 0 0;font-family:${FONT_SANS};font-size:14.5px;font-weight:700;color:#0f172a;">Amount Due</td>
+          <td align="right" style="padding:14px 0 0;font-family:${FONT_MONO};font-size:18px;font-weight:800;color:#059669;text-align:right;white-space:nowrap;">
+            ${fmtNgn(totalAmountNgn)}
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-    <p style="margin:12px 0 0;font-size:13px;color:#475569;">
-      <strong>Instant Automated Receipt:</strong> As soon as Paystack confirms settlement, your official <strong>ShiftRelay (Powered by ${escapeHtml(COMPANY_LEGAL)})</strong> payment receipt is emailed automatically to this address.
-      ${loginPortalUrl ? `<br>Onboarding / Workspace Portal: <a href="${escapeHtml(loginPortalUrl)}" style="color:#0284c7;font-weight:600;">${escapeHtml(loginPortalUrl)}</a>` : ''}
+    <p style="margin:0;font-size:12.5px;color:#64748b;line-height:1.55;">
+      Your official <strong>ShiftRelay (Powered by ${escapeHtml(COMPANY_LEGAL)})</strong> payment receipt is issued automatically the moment Paystack confirms payment.${loginPortalUrl ? `<br>Portal link: <a href="${escapeHtml(loginPortalUrl)}" style="color:#059669;font-weight:600;">${escapeHtml(loginPortalUrl)}</a>` : ''}
     </p>
   `;
 
   return wrapEnterpriseEmail({
     title: `[${invoiceId}] ShiftRelay ${invoiceTypeLabel} — ${fmtNgn(totalAmountNgn)}`,
-    preheader: `${companyName}: Pay ${fmtNgn(totalAmountNgn)} securely via Paystack (${planLabel})`,
+    preheader: `${companyName}: Invoice ${invoiceId} for ${fmtNgn(totalAmountNgn)} — pay securely via Paystack`,
     recipientName,
-    deliveryReason: `Official ShiftRelay billing notice issued by ${COMPANY_LEGAL} for ${companyName}.`,
+    deliveryReason: `Official ShiftRelay billing invoice issued by ${COMPANY_LEGAL} for ${companyName}.`,
     bodyHtml,
     primaryCtaText: `Pay ${fmtNgn(totalAmountNgn)} Securely via Paystack`,
     primaryCtaUrl: checkoutUrl,
-    secondaryNote: `Accepted via Paystack: Instant Nigerian Bank Transfer, Corporate/Debit Cards (Verve, Visa, Mastercard), and USSD. Invoice Ref: ${invoiceId}.`,
-    badgeLabel: 'PAYSTACK INVOICE',
+    secondaryNote: `Accepted on Paystack: Instant Nigerian Bank Transfer, Verve / Visa / Mastercard, and USSD.`,
+    badgeLabel: 'PAYMENT DUE',
+    badgeTone: 'amber',
+    hideGreeting: true,
     securityMetadata: {
-      'Invoice Reference': invoiceId,
-      'Client Entity': companyName,
+      'Invoice ID': invoiceId,
+      'Client': companyName,
       'Company Code': companyCode || 'PENDING',
-      'Subscription Tier': planLabel,
-      'Payment Processor': 'PAYSTACK LIVE (CBN LICENSED)',
+      'Plan Tier': planLabel,
+      'Processor': 'Paystack Live (PCI-DSS Level 1)',
       'Issuer': `${BRAND_NAME} · ${COMPANY_LEGAL} (${COMPANY_RC})`
     }
   });
 }
 
 /**
- * 10. Official Automated Payment Receipt Email
+ * 10. Official Automated Payment Receipt Email (Exact Stripe / Paystack / Wise Receipt Standard)
  * Branded: ShiftRelay · Powered by Riffmax Technology Limited
  */
 export function renderOfficialPaymentReceiptEmail({
@@ -949,113 +974,91 @@ export function renderOfficialPaymentReceiptEmail({
     timeStyle: 'short'
   }) + ' WAT';
 
-  const rowsHtml = (Array.isArray(breakdownLines) && breakdownLines.length > 0
+  const items = Array.isArray(breakdownLines) && breakdownLines.length > 0
     ? breakdownLines
-    : [{ label: invoiceTypeLabel, amountNgn: totalPaidNgn }]
-  ).map((line) => `
+    : [{ label: invoiceTypeLabel, amountNgn: totalPaidNgn }];
+
+  const rowsHtml = items.map((line) => `
     <tr>
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:#1e293b;font-size:13px;">
-        <strong>${escapeHtml(line.label)}</strong>
-        ${line.note ? `<div style="font-size:11.5px;color:#64748b;margin-top:2px;">${escapeHtml(line.note)}</div>` : ''}
+      <td style="padding:12px 0;border-bottom:1px solid #f1f5f9;font-family:${FONT_SANS};font-size:13.5px;color:#0f172a;vertical-align:top;">
+        <div style="font-weight:600;color:#0f172a;">${escapeHtml(line.label)}</div>
+        ${line.note ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtml(line.note)}</div>` : ''}
       </td>
-      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-weight:800;font-size:13px;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',Consolas,monospace;">
+      <td align="right" style="padding:12px 0;border-bottom:1px solid #f1f5f9;font-family:${FONT_MONO};font-size:13.5px;font-weight:600;color:#0f172a;text-align:right;white-space:nowrap;vertical-align:top;">
         ${line.isCredit ? '&minus;' : ''}${fmtNgn(Math.abs(Number(line.amountNgn || 0)))}
       </td>
     </tr>
   `).join('');
 
   const bodyHtml = `
-    <div style="background-color:#ecfdf5;border:1.5px solid #10b981;border-radius:12px;padding:18px;margin:0 0 18px;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+    <!-- Stripe / Paystack Signature Centered Receipt Hero -->
+    <div style="text-align:center;padding:4px 0 24px;border-bottom:1px solid #f1f5f9;margin:0 0 22px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto 12px;">
         <tr>
-          <td>
-            <div style="font-size:10.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#047857;">
-              OFFICIAL PAYMENT RECEIPT &middot; SHIFTRELAY
-            </div>
-            <div style="font-size:18px;font-weight:900;color:#0f172a;margin-top:3px;">
-              Powered by ${escapeHtml(COMPANY_LEGAL)}
-            </div>
-            <div style="font-size:11.5px;color:#475569;margin-top:2px;">
-              ${escapeHtml(COMPANY_RC)} &middot; ${escapeHtml(HEADQUARTERS)}
-            </div>
-          </td>
-          <td align="right" valign="top">
-            <span style="display:inline-block;padding:6px 12px;border-radius:999px;background-color:#059669;color:#ffffff;font-size:11px;font-weight:900;letter-spacing:0.08em;">
-              PAID
-            </span>
+          <td width="44" height="44" align="center" valign="middle" style="width:44px;height:44px;border-radius:999px;background-color:#ecfdf5;border:1.5px solid #a7f3d0;font-family:${FONT_SANS};font-size:20px;font-weight:800;color:#059669;line-height:44px;">
+            &#10003;
           </td>
         </tr>
       </table>
+      <div style="font-family:${FONT_MONO};font-size:11px;font-weight:700;color:#059669;letter-spacing:0.08em;text-transform:uppercase;">
+        OFFICIAL PAYMENT RECEIPT &middot; PAID
+      </div>
+      <div class="sr-hero-num" style="margin:8px 0 6px;font-family:${FONT_SANS};font-size:40px;font-weight:800;letter-spacing:-0.035em;color:#0f172a;line-height:1.05;font-variant-numeric:tabular-nums;">
+        ${fmtNgn(totalPaidNgn)}
+      </div>
+      <div style="font-size:13px;color:#64748b;">
+        Paid on ${escapeHtml(paidDateWat)} &middot; Powered by ${escapeHtml(COMPANY_LEGAL)}
+      </div>
     </div>
 
-    <p style="margin:0 0 16px;">
-      Thank you! We confirm receipt of <strong>${fmtNgn(totalPaidNgn)}</strong> from <strong>${escapeHtml(companyName)}</strong>. Your ShiftRelay subscription ledger has been updated automatically. Retain this email as your official corporate payment receipt for audit and accounting records.
+    <p style="margin:0 0 20px;color:#475569;">
+      Thank you, <strong>${escapeHtml(recipientName)}</strong>. We have received your payment for <strong>${escapeHtml(companyName)}</strong>. Retain this email as your official corporate accounting receipt.
     </p>
 
-    <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin:0 0 18px;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="5" border="0" style="font-size:12.5px;">
-        <tr>
-          <td style="color:#64748b;width:160px;">Receipt Number:</td>
-          <td style="color:#059669;font-weight:800;font-family:'JetBrains Mono',Consolas,monospace;">${escapeHtml(receiptNumber)}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Invoice ID:</td>
-          <td style="color:#0f172a;font-family:'JetBrains Mono',Consolas,monospace;font-weight:700;">${escapeHtml(invoiceId)}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Paystack Reference:</td>
-          <td style="color:#0284c7;font-family:'JetBrains Mono',Consolas,monospace;font-weight:700;">${escapeHtml(paystackReference || invoiceId)}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Billed Organisation:</td>
-          <td style="color:#0f172a;font-weight:700;">${escapeHtml(companyName)}${companyCode ? ` (${escapeHtml(companyCode)})` : ''}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Plan &amp; Billing Type:</td>
-          <td style="color:#0f172a;">${escapeHtml(planLabel)} — ${escapeHtml(invoiceTypeLabel)}${cycleMonth ? ` (${escapeHtml(cycleMonth)})` : ''}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Payment Channel:</td>
-          <td style="color:#0f172a;">${escapeHtml(paymentChannel)}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Confirmed At:</td>
-          <td style="color:#0f172a;">${escapeHtml(paidDateWat)}</td>
-        </tr>
-      </table>
-    </div>
+    <!-- Clean Metadata Grid -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin:0 0 22px;">
+      ${renderKeyValueRows([
+        { label: 'Receipt Number', value: receiptNumber, mono: true, color: '#059669' },
+        { label: 'Invoice ID', value: invoiceId, mono: true },
+        { label: 'Paystack Reference', value: paystackReference || invoiceId, mono: true, color: '#0369a1' },
+        { label: 'Billed Organisation', value: `${companyName}${companyCode ? ` (${companyCode})` : ''}` },
+        { label: 'Plan & Billing Type', value: `${planLabel} — ${invoiceTypeLabel}${cycleMonth ? ` (${cycleMonth})` : ''}`, bold: false },
+        { label: 'Payment Channel', value: paymentChannel, bold: false }
+      ])}
+    </table>
 
-    <div style="border:1px solid #cbd5e1;border-radius:12px;overflow:hidden;margin:0 0 16px;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-        <thead>
-          <tr style="background-color:#f8fafc;">
-            <th align="left" style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;border-bottom:1px solid #cbd5e1;">Paid Item</th>
-            <th align="right" style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;border-bottom:1px solid #cbd5e1;">Amount (NGN)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rowsHtml}
-          <tr style="background-color:#ecfdf5;">
-            <td style="padding:13px 12px;font-size:14px;font-weight:800;color:#065f46;border-top:1px solid #a7f3d0;">Total Paid (Balance Due: ₦0)</td>
-            <td style="padding:13px 12px;font-size:18px;font-weight:900;color:#059669;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',Consolas,monospace;border-top:1px solid #a7f3d0;">
-              ${fmtNgn(totalPaidNgn)}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- Itemized Paid Ledger -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 8px;">
+      <thead>
+        <tr>
+          <th align="left" style="padding:0 0 8px;border-bottom:1px solid #e2e8f0;font-family:${FONT_MONO};font-size:10.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">Paid Item</th>
+          <th align="right" style="padding:0 0 8px;border-bottom:1px solid #e2e8f0;font-family:${FONT_MONO};font-size:10.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml}
+        <tr>
+          <td style="padding:14px 0 0;font-family:${FONT_SANS};font-size:14.5px;font-weight:700;color:#0f172a;">Amount Paid <span style="font-weight:500;color:#64748b;font-size:12.5px;">(Balance Due: ₦0)</span></td>
+          <td align="right" style="padding:14px 0 0;font-family:${FONT_MONO};font-size:18px;font-weight:800;color:#059669;text-align:right;white-space:nowrap;">
+            ${fmtNgn(totalPaidNgn)}
+          </td>
+        </tr>
+      </tbody>
+    </table>
   `;
 
   return wrapEnterpriseEmail({
     title: `Official Receipt ${receiptNumber} — ShiftRelay (${fmtNgn(totalPaidNgn)} Paid)`,
-    preheader: `Payment confirmed for ${companyName}: ${fmtNgn(totalPaidNgn)} · Official ShiftRelay Receipt powered by ${COMPANY_LEGAL}`,
+    preheader: `Receipt ${receiptNumber}: ${fmtNgn(totalPaidNgn)} paid by ${companyName} · Powered by ${COMPANY_LEGAL}`,
     recipientName,
     deliveryReason: `Automated official payment receipt issued by ShiftRelay (Powered by ${COMPANY_LEGAL}) upon verified payment settlement.`,
     bodyHtml,
     primaryCtaText: loginPortalUrl && loginPortalUrl.includes('onboard.html') ? 'Submit Your Staff Roster Now' : 'Open ShiftRelay Workspace',
     primaryCtaUrl: loginPortalUrl || getEmailPlatformBaseUrl(),
-    secondaryNote: `For corporate finance documentation, contact ${LEGAL_ENTITY.financeEmail}. Issued electronically by ${BRAND_NAME}, powered by ${COMPANY_LEGAL} (${COMPANY_RC}).`,
+    secondaryNote: `For corporate finance queries, contact ${LEGAL_ENTITY.financeEmail}. Issued electronically by ${BRAND_NAME}, powered by ${COMPANY_LEGAL} (${COMPANY_RC}).`,
     badgeLabel: 'OFFICIAL RECEIPT',
+    badgeTone: 'emerald',
+    hideGreeting: true,
     securityMetadata: {
       'Receipt Number': receiptNumber,
       'Paystack Reference': paystackReference || invoiceId,
@@ -1075,37 +1078,59 @@ export function renderOnboardingIntakeInviteEmail({
   note = ''
 }) {
   const bodyHtml = `
-    <div style="background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px 18px;margin:0 0 18px;">
-      <div style="font-size:10.5px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#047857;">
-        Stage 1 of 3 &middot; Company Onboarding Intake
-      </div>
-      <div style="font-size:17px;font-weight:800;color:#0f172a;margin-top:3px;">
-        ShiftRelay Onboarding Portal — Powered by ${escapeHtml(COMPANY_LEGAL)}
-      </div>
-    </div>
-    <p style="margin:0 0 14px;">
-      We are ready to onboard <strong>${escapeHtml(companyName)}</strong> onto <strong>ShiftRelay</strong>. Click below to provide your basic company details and number of active workers so we assign the right plan tier (<strong>Startup, Business, Enterprise, Corporate, or Mega</strong>) — with your choice of <strong>Monthly</strong> or <strong>Annual (12-Month)</strong> billing.
+    <h1 style="margin:0 0 10px;font-family:${FONT_SANS};font-size:22px;font-weight:800;letter-spacing:-0.025em;color:#0f172a;line-height:1.25;">
+      Let&rsquo;s get ${escapeHtml(companyName)} live on ShiftRelay
+    </h1>
+    <p style="margin:0 0 20px;color:#475569;">
+      Complete our 2-minute onboarding intake form with your basic company details and worker headcount so we assign the right scalable plan tier (<strong>Startup, Business, Enterprise, Corporate, or Mega</strong>) with your choice of <strong>Monthly</strong> or <strong>Annual (12-Month)</strong> billing.
     </p>
-    ${note ? `<div style="background-color:#f8fafc;border-left:3px solid #0284c7;padding:12px 14px;border-radius:0 8px 8px 0;margin:0 0 16px;font-size:13px;color:#334155;">${escapeHtml(note)}</div>` : ''}
-    <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin:16px 0;font-size:13px;color:#334155;">
-      <strong style="color:#0f172a;display:block;margin-bottom:6px;">How Your 3-Step Onboarding Works:</strong>
-      <div>1. <strong>Submit Company Info &amp; Worker Count</strong> using the secure link below (2 minutes).</div>
-      <div style="margin-top:4px;">2. <strong>Pay Securely via Paystack</strong> using the itemized payment link emailed for your tier.</div>
-      <div style="margin-top:4px;">3. <strong>Upload Staff Roster &amp; Details</strong> — unlocked immediately after payment along with your official <strong>ShiftRelay &middot; Powered by ${escapeHtml(COMPANY_LEGAL)}</strong> receipt.</div>
-    </div>
+    ${note ? `<div style="border-left:3px solid #059669;padding:4px 0 4px 14px;margin:0 0 20px;font-size:13.5px;color:#334155;">${escapeHtml(note)}</div>` : ''}
+
+    <!-- Clean 3-Step Numbered Timeline (Stripe / Mercury Onboarding Style) -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin:0 0 6px;">
+      <tr>
+        <td width="34" valign="top" style="padding:13px 0;">
+          <div style="width:24px;height:24px;border-radius:999px;background-color:#ecfdf5;border:1px solid #a7f3d0;color:#047857;font-family:${FONT_MONO};font-size:11.5px;font-weight:800;text-align:center;line-height:24px;">1</div>
+        </td>
+        <td valign="top" style="padding:13px 0;font-size:13.5px;color:#334155;">
+          <strong style="color:#0f172a;">Submit Company Info &amp; Headcount</strong><br>
+          <span style="color:#64748b;font-size:12.5px;">Takes 2 minutes &mdash; auto-matches your exact plan tier.</span>
+        </td>
+      </tr>
+      <tr>
+        <td width="34" valign="top" style="padding:13px 0;border-top:1px solid #f1f5f9;">
+          <div style="width:24px;height:24px;border-radius:999px;background-color:#f8fafc;border:1px solid #e2e8f0;color:#475569;font-family:${FONT_MONO};font-size:11.5px;font-weight:800;text-align:center;line-height:24px;">2</div>
+        </td>
+        <td valign="top" style="padding:13px 0;border-top:1px solid #f1f5f9;font-size:13.5px;color:#334155;">
+          <strong style="color:#0f172a;">Settle Setup via Paystack</strong><br>
+          <span style="color:#64748b;font-size:12.5px;">Pay by Bank Transfer, Card, or USSD and receive an instant official ShiftRelay receipt.</span>
+        </td>
+      </tr>
+      <tr>
+        <td width="34" valign="top" style="padding:13px 0;border-top:1px solid #f1f5f9;">
+          <div style="width:24px;height:24px;border-radius:999px;background-color:#f8fafc;border:1px solid #e2e8f0;color:#475569;font-family:${FONT_MONO};font-size:11.5px;font-weight:800;text-align:center;line-height:24px;">3</div>
+        </td>
+        <td valign="top" style="padding:13px 0;border-top:1px solid #f1f5f9;font-size:13.5px;color:#334155;">
+          <strong style="color:#0f172a;">Upload Staff Roster &amp; Go Live</strong><br>
+          <span style="color:#64748b;font-size:12.5px;">Unlocks automatically after payment along with Staff ID cards &amp; statutory payroll setup.</span>
+        </td>
+      </tr>
+    </table>
   `;
+
   return wrapEnterpriseEmail({
     title: `Complete Your ShiftRelay Company Onboarding Form — ${companyName}`,
-    preheader: `Submit your basic company details & headcount to begin ShiftRelay onboarding`,
+    preheader: `2-minute company onboarding form for ${companyName} — Powered by ${COMPANY_LEGAL}`,
     recipientName,
     deliveryReason: `ShiftRelay onboarding invitation issued by ${COMPANY_LEGAL}.`,
     bodyHtml,
     primaryCtaText: 'Open Company Onboarding Form',
     primaryCtaUrl: intakeUrl,
-    secondaryNote: 'No staff details or payment are required on Step 1 — staff roster upload unlocks immediately after your tier payment is confirmed.',
-    badgeLabel: 'ONBOARDING STEP 1',
+    secondaryNote: 'No staff details or payment are needed on Step 1 — staff roster upload unlocks immediately after payment confirmation.',
+    badgeLabel: 'ONBOARDING · STEP 1',
+    badgeTone: 'emerald',
     securityMetadata: {
-      'Onboarding Stage': 'STAGE_1_COMPANY_INTAKE',
+      'Stage': 'STAGE_1_COMPANY_INTAKE',
       'Issuer': `ShiftRelay · Powered by ${COMPANY_LEGAL} (${COMPANY_RC})`
     }
   });
@@ -1125,45 +1150,29 @@ export function renderSupportTicketEmail({
   portalUrl = getEmailPlatformBaseUrl()
 }) {
   const isResolved = String(status || '').toUpperCase() === 'RESOLVED';
-  const badgeColor = isResolved ? '#059669' : '#0284c7';
-  const bgTint = isResolved ? '#ecfdf5' : '#f0f9ff';
 
   const bodyHtml = `
-    <div style="background-color:${bgTint};border-left:4px solid ${badgeColor};border-radius:0 12px 12px 0;padding:15px 16px;margin:0 0 18px;">
-      <div style="font-size:10.5px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:${badgeColor};">
-        Ticket ${escapeHtml(ticketId)} &middot; ${escapeHtml(status)}
-      </div>
-      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:4px;">
-        ${escapeHtml(headline)}
-      </div>
-    </div>
-
-    <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin:0 0 16px;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="4" border="0" style="font-size:13px;">
-        <tr>
-          <td style="color:#64748b;width:130px;">Ticket Reference:</td>
-          <td style="color:#0f172a;font-family:'JetBrains Mono',Consolas,monospace;font-weight:700;">${escapeHtml(ticketId)}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Category:</td>
-          <td style="color:#0f172a;font-weight:600;">${escapeHtml(category)}</td>
-        </tr>
-        <tr>
-          <td style="color:#64748b;">Handled By:</td>
-          <td style="color:#0f172a;">${escapeHtml(agentName)}</td>
-        </tr>
-      </table>
-    </div>
+    <h1 style="margin:0 0 8px;font-family:${FONT_SANS};font-size:21px;font-weight:800;letter-spacing:-0.025em;color:#0f172a;line-height:1.25;">
+      ${escapeHtml(headline)}
+    </h1>
+    <p style="margin:0 0 18px;color:#64748b;font-size:13.5px;">
+      Ticket <strong style="font-family:${FONT_MONO};color:#0f172a;">${escapeHtml(ticketId)}</strong> &middot; ${escapeHtml(category)}
+    </p>
 
     ${messageBody ? `
-      <div style="background-color:#ffffff;border:1px solid #cbd5e1;border-left:3px solid #10b981;border-radius:0 10px 10px 0;padding:14px 16px;margin:0 0 16px;font-size:14px;color:#1e293b;line-height:1.6;">
+      <div style="border-left:3px solid #059669;padding:4px 0 4px 14px;margin:0 0 20px;font-size:14.5px;color:#1e293b;line-height:1.65;">
         ${escapeHtml(messageBody)}
       </div>
     ` : ''}
 
-    <p style="margin:0;font-size:13.5px;color:#475569;">
-      You can view your complete ticket history and reply anytime inside the ShiftRelay Support Desk.
-    </p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin:0 0 6px;">
+      ${renderKeyValueRows([
+        { label: 'Ticket Reference', value: ticketId, mono: true },
+        { label: 'Status', value: String(status).toUpperCase(), color: isResolved ? '#059669' : '#0369a1' },
+        { label: 'Category', value: category, bold: false },
+        { label: 'Handled By', value: agentName, bold: false }
+      ])}
+    </table>
   `;
 
   return wrapEnterpriseEmail({
@@ -1175,9 +1184,10 @@ export function renderSupportTicketEmail({
     primaryCtaText: 'Open ShiftRelay Support Desk',
     primaryCtaUrl: portalUrl,
     badgeLabel: isResolved ? 'TICKET RESOLVED' : 'CUSTOMER CARE',
+    badgeTone: isResolved ? 'emerald' : 'sky',
     securityMetadata: {
       'Ticket ID': ticketId,
-      'Ticket Status': String(status).toUpperCase(),
+      'Status': String(status).toUpperCase(),
       'Category': category
     }
   });
