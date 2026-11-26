@@ -1741,34 +1741,231 @@
 }
 
 /* ==========================================================================
-   DIRECT 3-STEP LOGIN SCREEN (Splash -> Unique ID -> Email -> Password)
+   DIRECT 3-STEP LOGIN SCREEN (Biometric Logo -> Unique ID -> Email -> Password)
    ========================================================================== */
+@keyframes srEmblemSpinCw {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes srEmblemSpinCcw {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+@keyframes srEmblemLaser {
+  0% { transform: translateY(-28px); opacity: 0; }
+  18% { opacity: 0.9; }
+  82% { opacity: 0.9; }
+  100% { transform: translateY(28px); opacity: 0; }
+}
+@keyframes srAuthStepSlide {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes srEmblemStepPulse {
+  0% { box-shadow: 0 0 0 0 rgba(26, 208, 121, 0.48); }
+  100% { box-shadow: 0 0 0 18px rgba(26, 208, 121, 0); }
+}
+
+.sr-splash-grid,
+.sr-auth-grid-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at 50% 44%, rgba(0, 0, 0, 0.92) 18%, transparent 74%);
+  -webkit-mask-image: radial-gradient(circle at 50% 44%, rgba(0, 0, 0, 0.92) 18%, transparent 74%);
+}
+.sr-splash-grid {
+  background-image:
+    linear-gradient(to right, rgba(26, 208, 121, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(26, 208, 121, 0.07) 1px, transparent 1px);
+}
+.sr-auth-grid-backdrop {
+  background-image:
+    linear-gradient(to right, rgba(5, 150, 105, 0.065) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(5, 150, 105, 0.065) 1px, transparent 1px);
+}
+[data-theme="dark"] .sr-auth-grid-backdrop {
+  background-image:
+    linear-gradient(to right, rgba(26, 208, 121, 0.075) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(26, 208, 121, 0.075) 1px, transparent 1px);
+}
+
+.sr-auth-biometric-emblem {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.sr-auth-biometric-emblem.sr-emblem-lg {
+  width: 116px;
+  height: 116px;
+}
+.sr-auth-biometric-emblem.is-pulsing {
+  animation: srEmblemStepPulse 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sr-emblem-ring-cw {
+  position: absolute;
+  inset: 0;
+  animation: srEmblemSpinCw 9.5s linear infinite;
+}
+.sr-emblem-ring-ccw {
+  position: absolute;
+  inset: 7px;
+  animation: srEmblemSpinCcw 13.5s linear infinite;
+}
+.sr-emblem-lg .sr-emblem-ring-ccw {
+  inset: 8px;
+}
+.sr-emblem-icon-box {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 28px rgba(5, 150, 105, 0.28), 0 0 0 1px rgba(26, 208, 121, 0.35);
+}
+.sr-emblem-lg .sr-emblem-icon-box {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+}
+.sr-emblem-icon-box img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.sr-emblem-laser {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  top: 50%;
+  height: 2px;
+  border-radius: 99px;
+  background: #1AD079;
+  box-shadow: 0 0 10px #1AD079, 0 0 3px #ECFDF5;
+  pointer-events: none;
+  animation: srEmblemLaser 2.8s ease-in-out infinite;
+}
+
+.sr-auth-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 0 20px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.035);
+  border: 1px solid rgba(15, 23, 42, 0.07);
+}
+[data-theme="dark"] .sr-auth-stepper {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.sr-step-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  transition: color 0.22s ease;
+}
+.sr-step-dot {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  background: #e2e8f0;
+  color: #475569;
+  transition: background 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+}
+[data-theme="dark"] .sr-step-node { color: #64748b; }
+[data-theme="dark"] .sr-step-dot { background: #1e293b; color: #94a3b8; }
+.sr-step-node.is-active {
+  color: #059669;
+  font-weight: 700;
+}
+[data-theme="dark"] .sr-step-node.is-active { color: #34d399; }
+.sr-step-node.is-active .sr-step-dot {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+.sr-step-node.is-done {
+  color: #0f172a;
+}
+[data-theme="dark"] .sr-step-node.is-done { color: #cbd5e1; }
+.sr-step-node.is-done .sr-step-dot {
+  background: #059669;
+  color: #ffffff;
+}
+.sr-step-line {
+  flex: 1;
+  min-width: 12px;
+  max-width: 28px;
+  height: 2px;
+  border-radius: 99px;
+  background: #e2e8f0;
+  transition: background 0.28s ease;
+}
+[data-theme="dark"] .sr-step-line { background: #1f2937; }
+.sr-step-line.is-done {
+  background: #10b981;
+}
+
+.sr-auth-step.sr-step-animate {
+  animation: srAuthStepSlide 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 #sr-login-modal.sr-auth-screen {
   align-items: center !important;
   justify-content: center !important;
   padding: 20px !important;
-  background: radial-gradient(circle at 20% 15%, rgba(13, 148, 136, 0.08), transparent 45%),
+  background: radial-gradient(circle at 50% 18%, rgba(16, 185, 129, 0.12), transparent 52%),
               radial-gradient(circle at 80% 85%, rgba(15, 23, 42, 0.05), transparent 50%),
               #f8fafc !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  overflow: hidden;
 }
 
 [data-theme="dark"] #sr-login-modal.sr-auth-screen {
-  background: radial-gradient(circle at 50% 20%, rgba(16, 185, 129, 0.1), transparent 55%),
-              #090e1a !important;
+  background: radial-gradient(circle at 50% 24%, rgba(26, 208, 121, 0.14), transparent 54%),
+              #050C0B !important;
 }
 
 #sr-login-modal.sr-auth-screen .sr-auth-card {
+  position: relative;
+  z-index: 2;
   width: 100%;
   max-width: 420px;
-  border-radius: 22px !important;
-  padding: 28px 26px 26px !important;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 20px 50px -12px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.03) !important;
+  border-radius: 24px !important;
+  padding: 26px 26px 24px !important;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(5, 150, 105, 0.16);
+  box-shadow: 0 24px 60px -12px rgba(4, 27, 20, 0.14), 0 0 0 1px rgba(15, 23, 42, 0.03) !important;
   transform: translateY(10px) scale(0.98);
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.26s ease;
+  overflow: hidden;
+}
+#sr-login-modal.sr-auth-screen .sr-auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #059669 0%, #1AD079 55%, #6EE7B7 100%);
 }
 
 #sr-login-modal.sr-auth-screen.open .sr-auth-card {
@@ -1776,9 +1973,15 @@
 }
 
 [data-theme="dark"] #sr-login-modal.sr-auth-screen .sr-auth-card {
-  background: #111827;
-  border-color: #1f2937;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5) !important;
+  background: rgba(11, 19, 24, 0.94);
+  border-color: rgba(26, 208, 121, 0.2);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.62) !important;
+}
+
+@media (max-width: 360px) {
+  .sr-auth-stepper { padding: 7px 6px; gap: 4px; }
+  .sr-step-node { font-size: 10.5px; gap: 4px; }
+  .sr-step-dot { width: 17px; height: 17px; font-size: 9.5px; }
 }
 
 .sr-auth-brand-bar {

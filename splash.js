@@ -84,14 +84,46 @@
   }
 
   function setStep(step) {
+    const prevStep = currentStep;
     currentStep = step;
     setMsg('', false);
 
     [1, 2, 3].forEach((n) => {
       if (stepEls[n]) {
-        stepEls[n].style.display = n === step ? '' : 'none';
+        const active = n === step;
+        stepEls[n].style.display = active ? '' : 'none';
+        stepEls[n].classList.remove('sr-step-animate');
+        if (active) {
+          void stepEls[n].offsetWidth;
+          stepEls[n].classList.add('sr-step-animate');
+        }
       }
     });
+
+    // Update 3-step visual progress stepper
+    document.querySelectorAll('#sr-auth-stepper [data-step-node]').forEach((node) => {
+      const n = Number(node.getAttribute('data-step-node'));
+      const dot = node.querySelector('.sr-step-dot');
+      node.classList.toggle('is-active', n === step);
+      node.classList.toggle('is-done', n < step);
+      if (dot) {
+        dot.innerHTML = n < step
+          ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+          : String(n);
+      }
+    });
+    document.querySelectorAll('#sr-auth-stepper [data-step-line]').forEach((line) => {
+      const idx = Number(line.getAttribute('data-step-line'));
+      line.classList.toggle('is-done', idx < step);
+    });
+
+    // Subtle biometric ring pulse on step advance
+    const emblem = document.getElementById('sr-auth-logo-emblem');
+    if (emblem && step !== prevStep) {
+      emblem.classList.remove('is-pulsing');
+      void emblem.offsetWidth;
+      emblem.classList.add('is-pulsing');
+    }
 
     setTimeout(() => {
       if (step === 1) companyInput?.focus();
@@ -245,8 +277,15 @@
     setMsg('', false);
     if (step3Btn) {
       step3Btn.disabled = true;
-      step3Btn.querySelector('span').textContent = 'Logging in...';
+      step3Btn.querySelector('span').textContent = 'Signing in...';
     }
+
+    const orgLabel = verifiedCompany?.tradingName || verifiedCompany?.legalName || companyId.toUpperCase();
+    window.ShiftRelaySignInMotion?.start({
+      mode: 'app',
+      contextLabel: `${orgLabel} · ${companyId.toUpperCase()}`,
+      minHoldMs: 2450
+    });
 
     try {
       const res = await fetch('/api/auth/sign-in', {
@@ -265,6 +304,7 @@
       if (typeof window._srLoginCallback === 'function') {
         window._srLoginCallback(data.user);
       }
+      await window.ShiftRelaySignInMotion?.finishSuccess('Workspace Ready');
     } catch (err) {
       const isNetErr = !navigator.onLine || /failed to fetch|networkerror|load failed/i.test(String(err?.message || ''));
       if (isNetErr) {
@@ -279,10 +319,13 @@
           if (typeof window._srLoginCallback === 'function') {
             window._srLoginCallback({ ...entry.user, _offlineSession: true });
           }
+          await window.ShiftRelaySignInMotion?.finishSuccess('Offline Workspace Ready');
           return;
         }
+        window.ShiftRelaySignInMotion?.abort();
         setMsg(entry ? 'Incorrect password for offline sign-in.' : 'Offline — connect to the internet once to enable offline login for this account.', true);
       } else {
+        window.ShiftRelaySignInMotion?.abort();
         setMsg(err.message || 'Sign in failed. Please check your credentials.', true);
       }
       passwordInput?.focus();
@@ -360,6 +403,11 @@
             const target = r === 'owner' ? execU : (r === 'supervisor' ? supU : wrkU);
             if (!target) return;
             btn.disabled = true;
+            window.ShiftRelaySignInMotion?.start({
+              mode: 'app',
+              contextLabel: `Riffmax Technology Limited · RIF-2026`,
+              minHoldMs: 2450
+            });
             let signedUser = target;
             try {
               const res = await fetch('/api/auth/sign-in', {
@@ -382,6 +430,7 @@
               closeLoginScreen();
               window._srLoginCallback(signedUser);
             }
+            await window.ShiftRelaySignInMotion?.finishSuccess('Workspace Ready');
           });
         });
       }

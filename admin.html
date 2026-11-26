@@ -280,8 +280,31 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
-       1. ANTIGRAVITY GLASSMORPHISM LOGIN GATE (#auth-barrier)
+       1. BIOMETRIC PULSE LOGIN GATE (#auth-barrier)
        ═══════════════════════════════════════════════════════════════════════ */
+    @keyframes admEmblemSpinCw {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes admEmblemSpinCcw {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(-360deg); }
+    }
+    @keyframes admEmblemLaser {
+      0% { transform: translateY(-28px); opacity: 0; }
+      18% { opacity: 0.92; }
+      82% { opacity: 0.92; }
+      100% { transform: translateY(28px); opacity: 0; }
+    }
+    @keyframes admStepSlide {
+      0% { opacity: 0; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes admEmblemPulse {
+      0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.5); }
+      100% { box-shadow: 0 0 0 18px rgba(56, 189, 248, 0); }
+    }
+
     #auth-barrier {
       min-height: 100vh;
       display: flex;
@@ -290,6 +313,144 @@
       justify-content: center;
       padding: 76px 18px 36px;
       position: relative;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 24%, rgba(56, 189, 248, 0.11), transparent 52%),
+                  radial-gradient(circle at 50% 78%, rgba(26, 208, 121, 0.08), transparent 56%),
+                  var(--bg-canvas);
+    }
+    .adm-auth-grid-backdrop {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(to right, rgba(56, 189, 248, 0.065) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(26, 208, 121, 0.055) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(circle at 50% 46%, rgba(0, 0, 0, 0.92) 20%, transparent 74%);
+      -webkit-mask-image: radial-gradient(circle at 50% 46%, rgba(0, 0, 0, 0.92) 20%, transparent 74%);
+    }
+    .adm-auth-biometric-emblem {
+      position: relative;
+      width: 96px;
+      height: 96px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    .adm-auth-biometric-emblem.is-pulsing {
+      animation: admEmblemPulse 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .adm-emblem-ring-cw {
+      position: absolute;
+      inset: 0;
+      animation: admEmblemSpinCw 9.5s linear infinite;
+    }
+    .adm-emblem-ring-ccw {
+      position: absolute;
+      inset: 7px;
+      animation: admEmblemSpinCcw 13.5s linear infinite;
+    }
+    .adm-emblem-icon-box {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(56, 189, 248, 0.35);
+    }
+    .adm-emblem-icon-box img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .adm-emblem-laser {
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      top: 50%;
+      height: 2px;
+      border-radius: 99px;
+      background: #38BDF8;
+      box-shadow: 0 0 10px #38BDF8, 0 0 3px #E0F2FE;
+      pointer-events: none;
+      animation: admEmblemLaser 2.8s ease-in-out infinite;
+    }
+    .adm-auth-stepper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 0 18px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    html[data-theme="light"] .adm-auth-stepper {
+      background: rgba(15, 23, 42, 0.035);
+      border-color: rgba(15, 23, 42, 0.08);
+    }
+    .adm-step-node {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-dim);
+      white-space: nowrap;
+      transition: color 0.22s ease;
+    }
+    .adm-step-dot {
+      width: 19px;
+      height: 19px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10.5px;
+      font-weight: 800;
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--text-slate);
+      transition: background 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+    }
+    .adm-step-node.is-active {
+      color: #38BDF8;
+      font-weight: 700;
+    }
+    html[data-theme="light"] .adm-step-node.is-active { color: #0284C7; }
+    .adm-step-node.is-active .adm-step-dot {
+      background: linear-gradient(135deg, #0284C7 0%, #38BDF8 100%);
+      color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    }
+    .adm-step-node.is-done {
+      color: #34D399;
+    }
+    .adm-step-node.is-done .adm-step-dot {
+      background: #059669;
+      color: #ffffff;
+    }
+    .adm-step-line {
+      flex: 1;
+      max-width: 42px;
+      height: 2px;
+      border-radius: 99px;
+      background: rgba(148, 163, 184, 0.2);
+      transition: background 0.28s ease;
+    }
+    .adm-step-line.is-done { background: #10B981; }
+    .adm-step-animate {
+      animation: admStepSlide 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #0284C7 0%, #38BDF8 50%, #1AD079 100%);
     }
     .auth-topbar-float {
       position: fixed;
@@ -1166,11 +1327,37 @@
       </div>
     </div>
 
-    <div class="auth-center-wrap">
+    <div class="adm-auth-grid-backdrop" aria-hidden="true"></div>
+    <script src="/signin-motion.js?v=222"></script>
+    <div class="auth-center-wrap" style="position:relative;z-index:2;">
       <div class="auth-card">
-        <div class="adm-auth-brand-bar" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
-          <img src="/icon.svg?v=177" alt="ShiftRelay" style="width:68px;height:68px;border-radius:16px;display:block;box-shadow:0 10px 24px rgba(5,150,105,0.28);" />
+        <div class="adm-auth-brand-bar" style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:16px;">
+          <div class="adm-auth-biometric-emblem" id="adm-auth-logo-emblem" aria-hidden="true">
+            <svg class="adm-emblem-ring-cw" viewBox="0 0 96 96" width="96" height="96">
+              <circle cx="48" cy="48" r="44" fill="none" stroke="#38BDF8" stroke-opacity="0.26" stroke-width="1.5"/>
+              <path d="M 48 4 A 44 44 0 0 1 92 48" fill="none" stroke="#38BDF8" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+            <svg class="adm-emblem-ring-ccw" viewBox="0 0 82 82" width="82" height="82">
+              <circle cx="41" cy="41" r="38" fill="none" stroke="#1AD079" stroke-opacity="0.36" stroke-width="1.2" stroke-dasharray="4 6" stroke-linecap="round"/>
+            </svg>
+            <div class="adm-emblem-icon-box">
+              <img src="/icon.svg?v=177" alt="ShiftRelay" />
+              <span class="adm-emblem-laser"></span>
+            </div>
+          </div>
           <span class="adm-os-pill">SHIFTRELAY ADMIN OS</span>
+        </div>
+
+        <div class="adm-auth-stepper" id="adm-auth-stepper" aria-label="Admin sign-in steps">
+          <div class="adm-step-node is-active" data-adm-step-node="1">
+            <span class="adm-step-dot">1</span>
+            <span>Work Email</span>
+          </div>
+          <div class="adm-step-line" data-adm-step-line="1"></div>
+          <div class="adm-step-node" data-adm-step-node="2">
+            <span class="adm-step-dot">2</span>
+            <span>Password</span>
+          </div>
         </div>
 
         <form id="adm-login-form" onsubmit="window.handleAdminLogin(event)" novalidate>
@@ -2724,6 +2911,7 @@
     let currentAdminLoginStep = 1;
 
     window.setAdminLoginStep = function (step) {
+      const prevStep = currentAdminLoginStep;
       currentAdminLoginStep = step === 2 ? 2 : 1;
       const step1El = document.getElementById('adm-step-1');
       const step2El = document.getElementById('adm-step-2');
@@ -2731,8 +2919,39 @@
       const err2 = document.getElementById('adm-login-err');
       if (err1) err1.style.display = 'none';
       if (err2) err2.style.display = 'none';
-      if (step1El) step1El.style.display = currentAdminLoginStep === 1 ? 'block' : 'none';
-      if (step2El) step2El.style.display = currentAdminLoginStep === 2 ? 'block' : 'none';
+      if (step1El) {
+        step1El.style.display = currentAdminLoginStep === 1 ? 'block' : 'none';
+        step1El.classList.remove('adm-step-animate');
+        if (currentAdminLoginStep === 1) { void step1El.offsetWidth; step1El.classList.add('adm-step-animate'); }
+      }
+      if (step2El) {
+        step2El.style.display = currentAdminLoginStep === 2 ? 'block' : 'none';
+        step2El.classList.remove('adm-step-animate');
+        if (currentAdminLoginStep === 2) { void step2El.offsetWidth; step2El.classList.add('adm-step-animate'); }
+      }
+
+      document.querySelectorAll('#adm-auth-stepper [data-adm-step-node]').forEach((node) => {
+        const n = Number(node.getAttribute('data-adm-step-node'));
+        const dot = node.querySelector('.adm-step-dot');
+        node.classList.toggle('is-active', n === currentAdminLoginStep);
+        node.classList.toggle('is-done', n < currentAdminLoginStep);
+        if (dot) {
+          dot.innerHTML = n < currentAdminLoginStep
+            ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+            : String(n);
+        }
+      });
+      document.querySelectorAll('#adm-auth-stepper [data-adm-step-line]').forEach((line) => {
+        const idx = Number(line.getAttribute('data-adm-step-line'));
+        line.classList.toggle('is-done', idx < currentAdminLoginStep);
+      });
+
+      const emblem = document.getElementById('adm-auth-logo-emblem');
+      if (emblem && prevStep !== currentAdminLoginStep) {
+        emblem.classList.remove('is-pulsing');
+        void emblem.offsetWidth;
+        emblem.classList.add('is-pulsing');
+      }
 
       const emailVal = (document.getElementById('adm-email-input')?.value || '').trim();
       const summaryEmail = document.getElementById('adm-summary-email');
@@ -2908,6 +3127,12 @@
       if (submitBtn) submitBtn.disabled = true;
       if (submitLabel) submitLabel.textContent = 'Signing in...';
 
+      window.ShiftRelaySignInMotion?.start({
+        mode: 'admin',
+        contextLabel: email,
+        minHoldMs: 2450
+      });
+
       try {
         const res = await fetch('/api/admin/auth/login', {
           method: 'POST',
@@ -2919,6 +3144,7 @@
         if (!res.ok) throw new Error(data.error || 'Authentication failed');
 
         if (data.mfaRequired) {
+          window.ShiftRelaySignInMotion?.abort();
           pendingMfaChallenge = data.challengeToken;
           document.getElementById('adm-mfa-email').textContent = data.email || email;
           document.getElementById('adm-login-form').style.display = 'none';
@@ -2933,7 +3159,9 @@
         document.getElementById('adm-password-input').value = '';
         window.setAdminLoginStep(1);
         enterAdminConsole();
+        await window.ShiftRelaySignInMotion?.finishSuccess('Clearance Verified');
       } catch (err) {
+        window.ShiftRelaySignInMotion?.abort();
         if (errEl) {
           errEl.textContent = err.message;
           errEl.style.display = 'block';
@@ -2949,6 +3177,12 @@
       const code = document.getElementById('adm-mfa-code').value.trim();
       const errEl = document.getElementById('adm-mfa-err');
       if (errEl) errEl.style.display = 'none';
+
+      window.ShiftRelaySignInMotion?.start({
+        mode: 'admin',
+        contextLabel: document.getElementById('adm-mfa-email')?.textContent || '2FA Clearance',
+        minHoldMs: 2150
+      });
 
       try {
         const res = await fetch('/api/admin/auth/mfa/verify', {
@@ -2969,7 +3203,9 @@
         document.getElementById('adm-mfa-code').value = '';
         window.setAdminLoginStep(1);
         enterAdminConsole();
+        await window.ShiftRelaySignInMotion?.finishSuccess('Clearance Verified');
       } catch (err) {
+        window.ShiftRelaySignInMotion?.abort();
         if (errEl) {
           errEl.textContent = err.message;
           errEl.style.display = 'block';
