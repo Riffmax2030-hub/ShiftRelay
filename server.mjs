@@ -256,6 +256,7 @@ import {
   normalizeBillingLifecycleStatus,
   countTenantBillableHeadcount,
   calculateTenantMonthlyInvoice,
+  calculateTenantAnnualInvoice,
   calculateOnboardingInvoice,
   calculateSandboxPilotInvoice,
   computeWorkerAccruedLedger,
@@ -2710,7 +2711,10 @@ function serializePublicOnboardingApp(app) {
     setupFeeNgn: Number(app.setupFeeNgn ?? tier.onboardingFeeNgn),
     monthlyBaseFeeNgn: Number(app.monthlyBaseFeeNgn ?? tier.baseFeeNgn),
     pepmRateNgn: Number(app.pepmRateNgn ?? tier.pepmRateNgn),
+    billingCycle: app.billingCycle === 'annual' ? 'annual' : 'monthly',
     estimatedMonthlyTotalNgn: Number(app.estimatedMonthlyTotalNgn ?? (tier.baseFeeNgn + Number(app.workerCount || 1) * tier.pepmRateNgn)),
+    estimatedAnnualTotalNgn: Number(app.estimatedAnnualTotalNgn ?? ((tier.baseFeeNgn + Number(app.workerCount || 1) * tier.pepmRateNgn) * 12)),
+    annualFullDueNgn: Number(app.annualFullDueNgn ?? (Number(app.setupFeeNgn ?? tier.onboardingFeeNgn) + ((tier.baseFeeNgn + Number(app.workerCount || 1) * tier.pepmRateNgn) * 12))),
     companyCode: app.companyCode || null,
     invoiceId: app.invoiceId || null,
     checkoutUrl: app.checkoutUrl || null,
@@ -2728,6 +2732,8 @@ function getInvoiceTypeDisplayLabel(invoiceType) {
   const norm = String(invoiceType || '').toUpperCase();
   if (norm === 'SANDBOX_PILOT_30D' || norm === 'PILOT') return '30-Day Sandbox Pilot';
   if (norm === 'ONBOARDING_ONE_TIME' || norm === 'ONBOARDING') return 'One-Time Setup & Deployment';
+  if (norm === 'ANNUAL_ONBOARDING_BUNDLE') return 'Full-Year Annual Plan (Setup + 12 Months)';
+  if (norm === 'ANNUAL_RECURRING') return 'Annual Subscription (12 Months · Maintenance + Headcount)';
   return 'Monthly Subscription (Maintenance + Headcount)';
 }
 
@@ -2740,6 +2746,46 @@ function buildInvoiceBreakdownLines(inv = {}) {
       note: '100% creditable toward One-Time Setup & Deployment upon conversion',
       amountNgn: Number(inv.amountNgn || SANDBOX_PILOT_CONFIG.feeNgn)
     }];
+  }
+  if (type === 'ANNUAL_ONBOARDING_BUNDLE' || type === 'ANNUAL_RECURRING') {
+    const lines = [];
+    if (type === 'ANNUAL_ONBOARDING_BUNDLE' && Number(inv.grossOnboardingFeeNgn ?? inv.netOnboardingFeeNgn ?? 0) > 0) {
+      lines.push({
+        label: `${tier.label} Plan — One-Time Setup & Deployment (${tier.workerBand})`,
+        note: 'Workspace provisioning, geofence calibration, CR80 Staff ID setup & statutory payroll onboarding',
+        amountNgn: Number(inv.grossOnboardingFeeNgn ?? inv.netOnboardingFeeNgn)
+      });
+      if (Number(inv.pilotCreditAppliedNgn || 0) > 0) {
+        lines.push({
+          label: '100% Sandbox Pilot Credit Applied',
+          amountNgn: Number(inv.pilotCreditAppliedNgn),
+          isCredit: true
+        });
+      }
+    }
+    const annualBase = Number(inv.annualBaseFeeNgn ?? (Number(inv.baseFeeNgn || tier.baseFeeNgn) * 12));
+    lines.push({
+      label: `${tier.label} Plan — 12-Month Platform Maintenance Base`,
+      note: `₦${Math.round(annualBase / 12).toLocaleString('en-NG')}/mo × 12 months (full-year settlement)`,
+      amountNgn: annualBase
+    });
+    const capped = Number(inv.cappedCoreHeadcount ?? inv.coreHeadcount ?? 0);
+    const pepmRate = Number(inv.pepmRateNgn ?? tier.pepmRateNgn);
+    const annualPepm = Number(inv.annualCorePepmFeeNgn ?? inv.pepmFeeNgn ?? (capped * pepmRate * 12));
+    if (capped > 0 || annualPepm > 0) {
+      lines.push({
+        label: `12-Month Active Workforce Headcount (${capped} workers × ₦${pepmRate.toLocaleString('en-NG')} × 12 mos)`,
+        note: 'Employer-paid annual workforce license (₦0 deducted from workers)',
+        amountNgn: annualPepm
+      });
+    }
+    if (Number(inv.overageFeeNgn || 0) > 0) {
+      lines.push({ label: '12-Month Headcount Overage', amountNgn: Number(inv.overageFeeNgn) });
+    }
+    if (Number(inv.surgeFeeNgn || 0) > 0) {
+      lines.push({ label: '12-Month Seasonal / Surge Staff', amountNgn: Number(inv.surgeFeeNgn) });
+    }
+    return lines;
   }
   if (type === 'ONBOARDING_ONE_TIME') {
     const lines = [{
@@ -2856,16 +2902,34 @@ async function settleTenantInvoiceAndSendReceipt({
       org.pilot_paid = true;
       org.pilot_credit_ngn = SANDBOX_PILOT_CONFIG.feeNgn;
       org.billing_status = 'pilot_active';
-    } else if (invoice.invoiceType === 'ONBOARDING_ONE_TIME') {
+    } else if (invoice.invoiceType === 'ONBOARDING_ONE_TIME' || invoice.invoiceType === 'ANNUAL_ONBOARDING_BUNDLE') {
       planState.onboardingFeePaid = true;
       planState.onboardingCompleted = true;
       planState.onboardingCompletedAt = paidAtIso;
       planState.billingStatus = 'active_subscription';
+      if (invoice.invoiceType === 'ANNUAL_ONBOARDING_BUNDLE') {
+        planState.billingCycle = 'annual';
+        const nextYear = new Date(paidAtIso);
+        nextYear.setFullYear(nextYear.getFullYear() + 1);
+        planState.annualPaidUntil = nextYear.toISOString();
+        org.billing_cycle = 'annual';
+        org.annual_paid_until = nextYear.toISOString();
+      }
       tb.statuses[org.id] = 'active_subscription';
       org.onboarding_fee_paid = true;
       org.onboarding_completed = true;
       org.onboarding_completed_at = paidAtIso;
       org.billing_status = 'active_subscription';
+    } else if (invoice.invoiceType === 'ANNUAL_RECURRING') {
+      planState.billingStatus = 'active_subscription';
+      planState.billingCycle = 'annual';
+      const nextYear = new Date(paidAtIso);
+      nextYear.setFullYear(nextYear.getFullYear() + 1);
+      planState.annualPaidUntil = nextYear.toISOString();
+      tb.statuses[org.id] = 'active_subscription';
+      org.billing_status = 'active_subscription';
+      org.billing_cycle = 'annual';
+      org.annual_paid_until = nextYear.toISOString();
     } else {
       planState.billingStatus = 'active_subscription';
       tb.statuses[org.id] = 'active_subscription';
@@ -2915,7 +2979,7 @@ async function settleTenantInvoiceAndSendReceipt({
     (a.invoiceId && a.invoiceId === invoice.invoiceId) ||
     (a.tenantId && a.tenantId === invoice.tenantId)
   );
-  if (linkedApp && invoice.invoiceType === 'ONBOARDING_ONE_TIME') {
+  if (linkedApp && (invoice.invoiceType === 'ONBOARDING_ONE_TIME' || invoice.invoiceType === 'ANNUAL_ONBOARDING_BUNDLE')) {
     linkedApp.receiptNumber = receiptNumber;
     linkedApp.paidAt = paidAtIso;
     if (!['ROSTER_SUBMITTED', 'LIVE'].includes(linkedApp.status)) {
@@ -5916,7 +5980,10 @@ async function handleApi(request, response, url) {
     const store = await getStore();
     const apps = ensureOnboardingApplicationsState(store);
     const tier = recommendPlanTierForHeadcount(workerCount);
+    const billingCycle = String(body.billingCycle || 'monthly').toLowerCase() === 'annual' ? 'annual' : 'monthly';
     const estMonthly = tier.baseFeeNgn + (workerCount * tier.pepmRateNgn);
+    const estAnnual = estMonthly * 12;
+    const annualFullDue = tier.onboardingFeeNgn + estAnnual;
     const nowIso = new Date().toISOString();
     const appRec = {
       id: `APP-SR-${Date.now().toString().slice(-6)}`,
@@ -5933,6 +6000,7 @@ async function handleApi(request, response, url) {
       state: String(body.state || 'Lagos').trim(),
       address: String(body.address || '').trim(),
       workerCount,
+      billingCycle,
       planTier: tier.key,
       planLabel: tier.label,
       workerBand: tier.workerBand,
@@ -5940,6 +6008,8 @@ async function handleApi(request, response, url) {
       monthlyBaseFeeNgn: tier.baseFeeNgn,
       pepmRateNgn: tier.pepmRateNgn,
       estimatedMonthlyTotalNgn: estMonthly,
+      estimatedAnnualTotalNgn: estAnnual,
+      annualFullDueNgn: annualFullDue,
       tenantId: null,
       companyCode: null,
       invoiceId: null,
@@ -12704,6 +12774,50 @@ async function getUserRewards(user, store) {
         surgeFeeNgn: 0
       };
       subject = `[${invoiceId}] ShiftRelay ${ob.planLabel} Setup & Deployment Payment Link — ₦${amountNgn.toLocaleString('en-NG')}`;
+    } else if (invoiceType === 'annual_recurring' || invoiceType === 'annual' || invoiceType === 'annual_onboarding') {
+      const includeSetup = invoiceType === 'annual_onboarding';
+      if (!includeSetup && !profile.recurringBillingEnabled) {
+        return sendJson(response, 409, {
+          error: `Recurring Annual Subscription cannot start while tenant is in '${profile.billingStatus}' (onboarding not yet marked complete).`,
+          code: 'ONBOARDING_NOT_COMPLETED',
+          billingStatus: profile.billingStatus,
+          onboardingCompleted: profile.onboardingCompleted
+        });
+      }
+      const annual = calculateTenantAnnualInvoice({
+        planKey: profile.planKey,
+        coreHeadcount: body.coreHeadcount ?? profile.coreHeadcount ?? org.estimated_headcount ?? 1,
+        seasonalSurgeHeadcount: body.seasonalSurgeHeadcount ?? profile.seasonalSurgeHeadcount ?? 0,
+        billingStatus: profile.billingStatus,
+        onboardingCompleted: !includeSetup || profile.onboardingCompleted,
+        includeSetupFee: includeSetup,
+        pilotPaid: profile.pilotPaid,
+        pilotCreditAmountNgn: SANDBOX_PILOT_CONFIG.feeNgn
+      });
+      amountNgn = annual.totalDueNgn;
+      breakdown = {
+        invoiceType: annual.invoiceType,
+        billingCycle: 'annual',
+        billingMonths: 12,
+        planKey: annual.planKey,
+        planLabel: annual.planLabel,
+        coreHeadcount: annual.coreHeadcount,
+        cappedCoreHeadcount: annual.cappedCoreHeadcount,
+        overageHeadcount: annual.overageHeadcount,
+        seasonalHeadcount: annual.seasonalSurgeHeadcount,
+        grossOnboardingFeeNgn: annual.grossOnboardingFeeNgn,
+        netOnboardingFeeNgn: annual.netOnboardingFeeNgn,
+        pilotCreditAppliedNgn: annual.pilotCreditAppliedNgn,
+        baseFeeNgn: annual.annualBaseFeeNgn,
+        annualBaseFeeNgn: annual.annualBaseFeeNgn,
+        pepmRateNgn: annual.pepmRateNgn,
+        pepmFeeNgn: annual.annualCorePepmFeeNgn,
+        annualCorePepmFeeNgn: annual.annualCorePepmFeeNgn,
+        overageFeeNgn: annual.annualOverageFeeNgn,
+        surgeFeeNgn: annual.annualSurgeFeeNgn,
+        annualSubscriptionTotalNgn: annual.annualSubscriptionTotalNgn
+      };
+      subject = `[${invoiceId}] ShiftRelay ${annual.planLabel} ${includeSetup ? 'Full-Year Setup + 12-Month' : '12-Month Annual'} Plan — ₦${amountNgn.toLocaleString('en-NG')}`;
     } else {
       if (!profile.recurringBillingEnabled) {
         return sendJson(response, 409, {
@@ -13575,10 +13689,14 @@ async function getUserRewards(user, store) {
     appRec.planTier = tier.key;
     appRec.planLabel = tier.label;
     appRec.workerBand = tier.workerBand;
+    if (body.billingCycle) appRec.billingCycle = String(body.billingCycle).toLowerCase() === 'annual' ? 'annual' : 'monthly';
+    const isAnnual = appRec.billingCycle === 'annual';
     appRec.setupFeeNgn = tier.onboardingFeeNgn;
     appRec.monthlyBaseFeeNgn = tier.baseFeeNgn;
     appRec.pepmRateNgn = tier.pepmRateNgn;
     appRec.estimatedMonthlyTotalNgn = tier.baseFeeNgn + (appRec.workerCount * tier.pepmRateNgn);
+    appRec.estimatedAnnualTotalNgn = appRec.estimatedMonthlyTotalNgn * 12;
+    appRec.annualFullDueNgn = tier.onboardingFeeNgn + appRec.estimatedAnnualTotalNgn;
 
     // Provision tenant shell if not yet linked
     if (!Array.isArray(store.organisations)) store.organisations = [];
@@ -13682,9 +13800,15 @@ async function getUserRewards(user, store) {
     const appOrigin = (process.env.APP_URL || (reqHost ? `${reqProto}://${reqHost}` : LEGAL_ENTITY.appOrigin)).replace(/\/+$/, '');
     const trackingUrl = `${appOrigin}/onboard.html?token=${encodeURIComponent(appRec.token)}`;
 
+    const annualCalc = isAnnual
+      ? calculateTenantAnnualInvoice({ planKey: tier.key, coreHeadcount: appRec.workerCount, includeSetupFee: true })
+      : null;
+    const invoiceAmountNgn = isAnnual ? annualCalc.totalDueNgn : tier.onboardingFeeNgn;
+    const invoiceTypeStr = isAnnual ? 'ANNUAL_ONBOARDING_BUNDLE' : 'ONBOARDING_ONE_TIME';
+
     const psInit = await initializePaystackBillingCheckout({
       email: appRec.contactEmail,
-      amountNgn: tier.onboardingFeeNgn,
+      amountNgn: invoiceAmountNgn,
       reference: invoiceId,
       callbackUrl: `${trackingUrl}&paid=1`,
       metadata: {
@@ -13694,7 +13818,8 @@ async function getUserRewards(user, store) {
         tenantId: org.id,
         companyName: appRec.companyName,
         companyCode: org.organisation_code,
-        invoiceType: 'ONBOARDING_ONE_TIME',
+        invoiceType: invoiceTypeStr,
+        billingCycle: isAnnual ? 'annual' : 'monthly',
         planKey: tier.key,
         planLabel: tier.label,
         workerCount: appRec.workerCount,
@@ -13712,16 +13837,24 @@ async function getUserRewards(user, store) {
       month,
       billedTo: 'EMPLOYER_ONLY',
       workerChargeNgn: 0,
-      invoiceType: 'ONBOARDING_ONE_TIME',
+      invoiceType: invoiceTypeStr,
+      billingCycle: isAnnual ? 'annual' : 'monthly',
+      billingMonths: isAnnual ? 12 : 1,
       planKey: tier.key,
       planLabel: tier.label,
+      coreHeadcount: appRec.workerCount,
+      cappedCoreHeadcount: isAnnual ? annualCalc.cappedCoreHeadcount : appRec.workerCount,
       grossOnboardingFeeNgn: tier.onboardingFeeNgn,
+      netOnboardingFeeNgn: tier.onboardingFeeNgn,
       pilotCreditAppliedNgn: 0,
-      baseFeeNgn: tier.onboardingFeeNgn,
-      pepmFeeNgn: 0,
-      overageFeeNgn: 0,
+      baseFeeNgn: isAnnual ? annualCalc.annualBaseFeeNgn : tier.onboardingFeeNgn,
+      annualBaseFeeNgn: isAnnual ? annualCalc.annualBaseFeeNgn : 0,
+      pepmRateNgn: tier.pepmRateNgn,
+      pepmFeeNgn: isAnnual ? annualCalc.annualCorePepmFeeNgn : 0,
+      annualCorePepmFeeNgn: isAnnual ? annualCalc.annualCorePepmFeeNgn : 0,
+      overageFeeNgn: isAnnual ? annualCalc.annualOverageFeeNgn : 0,
       surgeFeeNgn: 0,
-      amountNgn: tier.onboardingFeeNgn,
+      amountNgn: invoiceAmountNgn,
       status: 'UNPAID',
       checkoutUrl: psInit.checkoutUrl,
       paystackLive: psInit.paystackLive,
@@ -13742,11 +13875,13 @@ async function getUserRewards(user, store) {
       companyCode: org.organisation_code,
       recipientName: appRec.contactName,
       invoiceId,
-      invoiceTypeLabel: `One-Time Setup & Deployment (${appRec.workerCount} workers)`,
+      invoiceTypeLabel: isAnnual
+        ? `Full-Year Annual Plan + Setup (${appRec.workerCount} workers · 12 Months)`
+        : `One-Time Setup & Deployment (${appRec.workerCount} workers)`,
       planLabel: `${tier.label} (${tier.workerBand})`,
       cycleMonth: month,
       breakdownLines: buildInvoiceBreakdownLines(invoice),
-      totalAmountNgn: tier.onboardingFeeNgn,
+      totalAmountNgn: invoiceAmountNgn,
       checkoutUrl: psInit.checkoutUrl,
       isOnboarding: true,
       loginPortalUrl: trackingUrl
@@ -13754,9 +13889,9 @@ async function getUserRewards(user, store) {
 
     sendShiftRelayEmail({
       to: appRec.contactEmail,
-      subject: `[${invoiceId}] Step 2: Complete ${tier.label} Setup Payment (₦${tier.onboardingFeeNgn.toLocaleString('en-NG')}) — ShiftRelay`,
+      subject: `[${invoiceId}] Step 2: Complete ${tier.label} ${isAnnual ? 'Annual (12-Month)' : 'Setup'} Payment (₦${invoiceAmountNgn.toLocaleString('en-NG')}) — ShiftRelay`,
       html,
-      text: `ShiftRelay (${LEGAL_ENTITY.companyLegalName})\nTier: ${tier.label} (${tier.workerBand})\nSetup Payment Due: NGN ${tier.onboardingFeeNgn.toLocaleString('en-NG')}\nPay securely via Paystack: ${psInit.checkoutUrl}\nAfter payment, upload your staff roster at: ${trackingUrl}`,
+      text: `ShiftRelay (${LEGAL_ENTITY.companyLegalName})\nTier: ${tier.label} (${tier.workerBand})\nBilling Plan: ${isAnnual ? 'Annual (12 Months + Setup)' : 'One-Time Setup (Monthly Plan)'}\nAmount Due: NGN ${invoiceAmountNgn.toLocaleString('en-NG')}\nPay securely via Paystack: ${psInit.checkoutUrl}\nAfter payment, upload your staff roster at: ${trackingUrl}`,
       source: 'Onboarding Stage 2 Paystack Link'
     }).catch(() => {});
 
@@ -14008,11 +14143,18 @@ async function getUserRewards(user, store) {
     if (body.sendOnboardingPaymentLink) {
       const month = new Date().toISOString().slice(0, 7);
       const invoiceId = `INV-SR-${month.replace('-', '')}-${Date.now().toString().slice(-4)}`;
+      const isAnnual = String(body.billingCycle || 'monthly').toLowerCase() === 'annual';
+      const estHeadcount = Math.max(1, Math.round(Number(body.estimatedHeadcount || 20)));
       const obCalc = calculateOnboardingInvoice({ planKey: assignedTier.key, pilotPaid: false });
+      const annualCalc = isAnnual
+        ? calculateTenantAnnualInvoice({ planKey: assignedTier.key, coreHeadcount: estHeadcount, includeSetupFee: true })
+        : null;
+      const invoiceAmountNgn = isAnnual ? annualCalc.totalDueNgn : obCalc.netOnboardingFeeNgn;
+      const invoiceTypeStr = isAnnual ? 'ANNUAL_ONBOARDING_BUNDLE' : 'ONBOARDING_ONE_TIME';
       const appOrigin = String(process.env.APP_URL || LEGAL_ENTITY.appOrigin || 'https://app.shiftrelayos.com').replace(/\/+$/, '');
       const psInit = await initializePaystackBillingCheckout({
         email: cleanAdminEmail,
-        amountNgn: obCalc.netOnboardingFeeNgn,
+        amountNgn: invoiceAmountNgn,
         reference: invoiceId,
         callbackUrl: `${appOrigin}/?billingRef=${encodeURIComponent(invoiceId)}`,
         metadata: {
@@ -14021,7 +14163,8 @@ async function getUserRewards(user, store) {
           tenantId,
           companyName: legalName,
           companyCode: generatedCompanyId,
-          invoiceType: 'ONBOARDING_ONE_TIME',
+          invoiceType: invoiceTypeStr,
+          billingCycle: isAnnual ? 'annual' : 'monthly',
           planKey: assignedTier.key,
           planLabel: assignedTier.label,
           billedTo: 'EMPLOYER_ONLY'
@@ -14036,16 +14179,24 @@ async function getUserRewards(user, store) {
         month,
         billedTo: 'EMPLOYER_ONLY',
         workerChargeNgn: 0,
-        invoiceType: 'ONBOARDING_ONE_TIME',
+        invoiceType: invoiceTypeStr,
+        billingCycle: isAnnual ? 'annual' : 'monthly',
+        billingMonths: isAnnual ? 12 : 1,
         planKey: assignedTier.key,
         planLabel: assignedTier.label,
+        coreHeadcount: estHeadcount,
+        cappedCoreHeadcount: isAnnual ? annualCalc.cappedCoreHeadcount : estHeadcount,
         grossOnboardingFeeNgn: obCalc.grossOnboardingFeeNgn,
+        netOnboardingFeeNgn: obCalc.netOnboardingFeeNgn,
         pilotCreditAppliedNgn: 0,
-        baseFeeNgn: obCalc.netOnboardingFeeNgn,
-        pepmFeeNgn: 0,
-        overageFeeNgn: 0,
+        baseFeeNgn: isAnnual ? annualCalc.annualBaseFeeNgn : obCalc.netOnboardingFeeNgn,
+        annualBaseFeeNgn: isAnnual ? annualCalc.annualBaseFeeNgn : 0,
+        pepmRateNgn: assignedTier.pepmRateNgn,
+        pepmFeeNgn: isAnnual ? annualCalc.annualCorePepmFeeNgn : 0,
+        annualCorePepmFeeNgn: isAnnual ? annualCalc.annualCorePepmFeeNgn : 0,
+        overageFeeNgn: isAnnual ? annualCalc.annualOverageFeeNgn : 0,
         surgeFeeNgn: 0,
-        amountNgn: obCalc.netOnboardingFeeNgn,
+        amountNgn: invoiceAmountNgn,
         status: 'UNPAID',
         checkoutUrl: psInit.checkoutUrl,
         paystackLive: psInit.paystackLive,
@@ -14058,20 +14209,20 @@ async function getUserRewards(user, store) {
         companyCode: generatedCompanyId,
         recipientName: body.adminName.trim(),
         invoiceId,
-        invoiceTypeLabel: 'One-Time Setup & Deployment',
+        invoiceTypeLabel: isAnnual ? `Full-Year Annual Plan + Setup (${estHeadcount} workers · 12 Months)` : 'One-Time Setup & Deployment',
         planLabel: assignedTier.label,
         cycleMonth: month,
         breakdownLines: buildInvoiceBreakdownLines(onboardingInvoice),
-        totalAmountNgn: obCalc.netOnboardingFeeNgn,
+        totalAmountNgn: invoiceAmountNgn,
         checkoutUrl: psInit.checkoutUrl,
         isOnboarding: true,
         loginPortalUrl: `${appOrigin}/?companyId=${encodeURIComponent(generatedCompanyId)}`
       });
       sendShiftRelayEmail({
         to: cleanAdminEmail,
-        subject: `[${invoiceId}] Welcome to ShiftRelay — Complete ${assignedTier.label} Setup Payment (₦${obCalc.netOnboardingFeeNgn.toLocaleString('en-NG')})`,
+        subject: `[${invoiceId}] Welcome to ShiftRelay — Complete ${assignedTier.label} ${isAnnual ? 'Annual (12-Month)' : 'Setup'} Payment (₦${invoiceAmountNgn.toLocaleString('en-NG')})`,
         html,
-        text: `Welcome to ShiftRelay (Powered by ${LEGAL_ENTITY.companyLegalName})!\nCompany Code: ${generatedCompanyId}\nPlan: ${assignedTier.label}\nSetup Fee: NGN ${obCalc.netOnboardingFeeNgn.toLocaleString('en-NG')}\nPay securely via Paystack: ${psInit.checkoutUrl}`,
+        text: `Welcome to ShiftRelay (Powered by ${LEGAL_ENTITY.companyLegalName})!\nCompany Code: ${generatedCompanyId}\nPlan: ${assignedTier.label} (${isAnnual ? 'Annual 12 Months + Setup' : 'Monthly Plan'})\nAmount Due: NGN ${invoiceAmountNgn.toLocaleString('en-NG')}\nPay securely via Paystack: ${psInit.checkoutUrl}`,
         source: 'ShiftRelay Onboarding Paystack Checkout'
       }).catch(() => {});
     }

@@ -1986,10 +1986,14 @@
                   </select>
                 </div>
               </div>
-              <div style="display:flex; align-items:center; gap:10px; margin:0 0 12px;">
-                <input type="checkbox" id="ob-send-payment-link" checked style="width:18px; height:18px; accent-color:var(--emerald); cursor:pointer;" />
-                <label for="ob-send-payment-link" style="font-size:12.5px; color:var(--text-white); cursor:pointer; font-weight:600;">
-                  Auto-email secure Paystack Setup Payment Link to client upon provisioning
+              <div style="display:flex; flex-wrap:wrap; align-items:center; gap:18px; margin:0 0 12px;">
+                <label for="ob-billing-annual" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--sky); cursor:pointer; font-weight:700;">
+                  <input type="checkbox" id="ob-billing-annual" style="width:18px; height:18px; accent-color:var(--sky); cursor:pointer;" />
+                  Charge Annual Plan (Full 12-Month Settlement + Setup)
+                </label>
+                <label for="ob-send-payment-link" style="display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-white); cursor:pointer; font-weight:600;">
+                  <input type="checkbox" id="ob-send-payment-link" checked style="width:18px; height:18px; accent-color:var(--emerald); cursor:pointer;" />
+                  Auto-email secure Paystack Payment Link upon provisioning
                 </label>
               </div>
 
@@ -4394,8 +4398,11 @@
               <div><span class="chip cyan" style="font-size:10px;margin-top:3px;">${escapeHtml(a.planLabel)} (${escapeHtml(a.workerBand || '')})</span></div>
             </td>
             <td>
-              <strong style="color:var(--emerald);">${formatNgn(a.setupFeeNgn)}</strong> <span style="font-size:10.5px;color:var(--text-slate);">setup</span>
-              <div style="font-size:11px;color:var(--amber);">${formatNgn(a.estimatedMonthlyTotalNgn)}/mo est.</div>
+              ${a.billingCycle === 'annual'
+                ? `<strong style="color:var(--emerald);">${formatNgn(a.annualFullDueNgn || (Number(a.setupFeeNgn || 0) + Number(a.estimatedAnnualTotalNgn || 0)))}</strong> <span class="chip cyan" style="font-size:9.5px;">ANNUAL 12 MO</span>
+                   <div style="font-size:10.5px;color:var(--text-slate);">Setup ${formatNgn(a.setupFeeNgn)} + 12-Mo ${formatNgn(a.estimatedAnnualTotalNgn)}</div>`
+                : `<strong style="color:var(--emerald);">${formatNgn(a.setupFeeNgn)}</strong> <span style="font-size:10.5px;color:var(--text-slate);">setup</span>
+                   <div style="font-size:11px;color:var(--amber);">${formatNgn(a.estimatedMonthlyTotalNgn)}/mo est.</div>`}
             </td>
             <td>
               <span class="chip ${tone}" style="font-size:10px;">${escapeHtml(st.replace(/_/g, ' '))}</span>
@@ -4924,6 +4931,7 @@
         industry: document.getElementById('ob-industry').value,
         estimatedHeadcount: Number(document.getElementById('ob-worker-count')?.value || 20),
         planTier: document.getElementById('ob-plan-tier')?.value || 'startup',
+        billingCycle: document.getElementById('ob-billing-annual')?.checked ? 'annual' : 'monthly',
         sendOnboardingPaymentLink: Boolean(document.getElementById('ob-send-payment-link')?.checked),
         adminName: document.getElementById('ob-admin-name').value.trim(),
         adminEmail: document.getElementById('ob-admin-email').value.trim(),
@@ -5980,6 +5988,7 @@
                 <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;" onclick="window.generateTenantPepmInvoice('${escapeHtml(t.tenantId)}','pilot')">Pilot ₦50k</button>
                 <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;" onclick="window.generateTenantPepmInvoice('${escapeHtml(t.tenantId)}','onboarding')">Email Setup Link</button>
                 <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;" onclick="window.generateTenantPepmInvoice('${escapeHtml(t.tenantId)}','monthly_recurring')">Email Monthly Link</button>
+                <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;color:var(--sky);" onclick="window.generateTenantPepmInvoice('${escapeHtml(t.tenantId)}','annual_recurring')">Email Annual (12 Mo)</button>
                 ${!t.onboardingCompleted ? `<button type="button" class="btn-emerald" style="padding:4px 8px;font-size:10.5px;" onclick="window.completeTenantOnboarding('${escapeHtml(t.tenantId)}')">Mark Go-Live</button>` : ''}
                 ${isRoot && inv && inv.status !== 'PAID' ? `<button type="button" class="btn-emerald" style="padding:4px 8px;font-size:10.5px;" onclick="window.updateTenantBillingStatus('${escapeHtml(t.tenantId)}',null,'${escapeHtml(inv.invoiceId)}')">Mark Paid + Receipt</button>` : ''}
                 ${isRoot ? `<button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;color:${st === 'overdue_readonly' ? 'var(--emerald)' : 'var(--rose)'};" onclick="window.updateTenantBillingStatus('${escapeHtml(t.tenantId)}','${st === 'overdue_readonly' ? 'active_subscription' : 'overdue_readonly'}')">${st === 'overdue_readonly' ? 'Unlock' : 'Lock Read-Only'}</button>` : ''}

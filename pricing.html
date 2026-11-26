@@ -712,6 +712,10 @@
         </div>
       </div>
       <input type="range" id="est-workers-slider" class="estimator-slider" min="5" max="400" step="5" value="60" aria-label="Active Worker Headcount" />
+      <label for="est-annual-checkbox" style="display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(5,150,105,0.08);border:1px solid var(--border-emerald);cursor:pointer;margin-bottom:16px;font-size:13.5px;font-weight:700;color:var(--text);">
+        <input type="checkbox" id="est-annual-checkbox" style="width:18px;height:18px;accent-color:var(--em);cursor:pointer;" />
+        Calculate Annual Plan (Settle Full 12 Months at Once)
+      </label>
       <div class="estimator-grid">
         <div class="estimator-metric">
           <span>One-Time Setup Fee</span>
@@ -719,19 +723,19 @@
           <small>Paid once via Paystack after intake</small>
         </div>
         <div class="estimator-metric">
-          <span>Monthly Maintenance</span>
+          <span id="est-base-lbl">Monthly Maintenance</span>
           <strong id="est-base-fee">₦120,000</strong>
-          <small>Platform hosting, updates &amp; support</small>
+          <small id="est-base-sub">Platform hosting, updates &amp; support</small>
         </div>
         <div class="estimator-metric">
-          <span>Headcount Fee</span>
+          <span id="est-pepm-lbl">Headcount Fee</span>
           <strong id="est-pepm-fee">₦135,000</strong>
           <small id="est-pepm-formula">60 workers &times; ₦2,250/mo</small>
         </div>
         <div class="estimator-metric highlight">
-          <span>Combined Monthly Total</span>
+          <span id="est-total-lbl">Combined Monthly Total</span>
           <strong id="est-monthly-total">₦255,000 / mo</strong>
-          <small>Single itemized invoice · ₦0 to workers</small>
+          <small id="est-total-sub">Single itemized invoice · ₦0 to workers</small>
         </div>
       </div>
       <div style="margin-top:18px; display:flex; justify-content:flex-end;">
@@ -831,8 +835,10 @@
       var slider = document.getElementById('est-workers-slider');
       if (!slider) return;
       var fmt = function (n) { return '₦' + Math.round(n).toLocaleString('en-NG'); };
+      var annualChk = document.getElementById('est-annual-checkbox');
       function updateEstimator() {
         var workers = Math.max(1, parseInt(slider.value, 10) || 60);
+        var isAnnual = Boolean(annualChk && annualChk.checked);
         var tier = workers <= 20
           ? { key: 'startup', label: 'Startup (1–20)', setup: 75000, base: 30000, pepm: 2500 }
           : (workers <= 50
@@ -844,19 +850,39 @@
                 : { key: 'mega', label: 'Mega (201+)', setup: 1000000, base: 350000, pepm: 1750 })));
         var pepmTotal = workers * tier.pepm;
         var monthlyTotal = tier.base + pepmTotal;
+        var annualSub = monthlyTotal * 12;
+        var yearOneTotal = tier.setup + annualSub;
         document.getElementById('est-workers-display').textContent = workers;
-        document.getElementById('est-tier-badge').textContent = tier.label;
+        document.getElementById('est-tier-badge').textContent = tier.label + (isAnnual ? ' · Annual' : '');
         document.getElementById('est-setup-fee').textContent = fmt(tier.setup);
-        document.getElementById('est-base-fee').textContent = fmt(tier.base);
-        document.getElementById('est-pepm-fee').textContent = fmt(pepmTotal);
-        document.getElementById('est-pepm-formula').textContent = workers + ' workers × ' + fmt(tier.pepm) + '/mo';
-        document.getElementById('est-monthly-total').textContent = fmt(monthlyTotal) + ' / mo';
+        if (isAnnual) {
+          document.getElementById('est-base-lbl').textContent = '12-Mo Maintenance';
+          document.getElementById('est-base-fee').textContent = fmt(tier.base * 12);
+          document.getElementById('est-base-sub').textContent = fmt(tier.base) + '/mo × 12 months';
+          document.getElementById('est-pepm-lbl').textContent = '12-Mo Headcount';
+          document.getElementById('est-pepm-fee').textContent = fmt(pepmTotal * 12);
+          document.getElementById('est-pepm-formula').textContent = workers + ' workers × ' + fmt(tier.pepm) + ' × 12 mos';
+          document.getElementById('est-total-lbl').textContent = 'Full 12-Month Plan';
+          document.getElementById('est-monthly-total').textContent = fmt(annualSub) + ' / yr';
+          document.getElementById('est-total-sub').textContent = 'With Setup (Year 1): ' + fmt(yearOneTotal);
+        } else {
+          document.getElementById('est-base-lbl').textContent = 'Monthly Maintenance';
+          document.getElementById('est-base-fee').textContent = fmt(tier.base);
+          document.getElementById('est-base-sub').textContent = 'Platform hosting, updates & support';
+          document.getElementById('est-pepm-lbl').textContent = 'Headcount Fee';
+          document.getElementById('est-pepm-fee').textContent = fmt(pepmTotal);
+          document.getElementById('est-pepm-formula').textContent = workers + ' workers × ' + fmt(tier.pepm) + '/mo';
+          document.getElementById('est-total-lbl').textContent = 'Combined Monthly Total';
+          document.getElementById('est-monthly-total').textContent = fmt(monthlyTotal) + ' / mo';
+          document.getElementById('est-total-sub').textContent = 'Single itemized invoice · ₦0 to workers';
+        }
         ['startup', 'business', 'enterprise', 'corporate', 'mega'].forEach(function (k) {
           var card = document.getElementById('tier-card-' + k);
           if (card) card.classList.toggle('featured', k === tier.key);
         });
       }
       slider.addEventListener('input', updateEstimator);
+      if (annualChk) annualChk.addEventListener('change', updateEstimator);
       updateEstimator();
     })();
   </script>

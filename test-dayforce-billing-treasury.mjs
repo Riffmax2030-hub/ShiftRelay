@@ -13,6 +13,7 @@ import {
   recommendPlanTierForHeadcount,
   computeTierDistributionMetrics,
   calculateTenantMonthlyInvoice,
+  calculateTenantAnnualInvoice,
   calculateOnboardingInvoice,
   calculateSandboxPilotInvoice,
   computeWorkerAccruedLedger
@@ -128,6 +129,18 @@ function runUnitTests() {
   assert.equal(mega.baseFeeNgn, 350000);
   assert.equal(mega.pepmRateNgn, 1750);
   assert.equal(mega.recurringMonthlyTotalNgn, 350000 + 300 * 1750);
+
+  // Annual 12-Month Full-Year Plan calculation (with & without Setup Fee)
+  const annualBizWithSetup = calculateTenantAnnualInvoice({
+    planKey: 'business',
+    coreHeadcount: 40,
+    includeSetupFee: true
+  });
+  assert.equal(annualBizWithSetup.invoiceType, 'ANNUAL_ONBOARDING_BUNDLE');
+  assert.equal(annualBizWithSetup.annualBaseFeeNgn, 60000 * 12);
+  assert.equal(annualBizWithSetup.annualCorePepmFeeNgn, 40 * 2500 * 12);
+  assert.equal(annualBizWithSetup.annualSubscriptionTotalNgn, (60000 + 40 * 2500) * 12);
+  assert.equal(annualBizWithSetup.totalDueNgn, 150000 + (60000 + 40 * 2500) * 12);
 
   // Tier Distribution Metrics
   const dist = computeTierDistributionMetrics([startup, biz, ent, corp, mega]);
@@ -359,7 +372,7 @@ async function runHttpIntegrationTests() {
     assert.equal(recurringInv.amountNgn, 318000);
     assert.equal(recurringInv.workerChargeNgn, 0);
 
-    // 4d-2. Test Full 3-Stage Onboarding Pipeline (Intake -> Payment Gate -> Paystack Webhook Unlock -> Staff Roster -> Import Live)
+    // 4d-2. Test Full 3-Stage Onboarding Pipeline with ANNUAL (12-Month) Plan selected (Intake -> 402 Gate -> Paystack Webhook Unlock -> Roster -> Live)
     const intakeRes = await fetch(`${baseUrl}/api/public/onboarding/intake`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -371,18 +384,22 @@ async function runHttpIntegrationTests() {
         industryKey: 'logistics',
         siteName: 'Apapa Cold Hub',
         state: 'Lagos',
-        workerCount: 140
+        workerCount: 140,
+        billingCycle: 'annual'
       })
     });
     assert.equal(intakeRes.status, 201);
     const intakeJson = await intakeRes.json();
     assert.equal(intakeJson.application.planTier, 'corporate');
+    assert.equal(intakeJson.application.billingCycle, 'annual');
     assert.equal(intakeJson.application.setupFeeNgn, 550000);
+    const expectedAnnualFull = 550000 + ((200000 + 140 * 2000) * 12);
+    assert.equal(intakeJson.application.annualFullDueNgn, expectedAnnualFull);
     assert.equal(intakeJson.application.rosterUnlocked, false);
     const appId = intakeJson.application.id;
     const appToken = intakeJson.application.token;
 
-    // Roster MUST be blocked (402) before setup payment is confirmed!
+    // Roster MUST be blocked (402) before setup/annual payment is confirmed!
     const blockedRosterRes = await fetch(`${baseUrl}/api/public/onboarding/roster`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -393,7 +410,7 @@ async function runHttpIntegrationTests() {
     });
     assert.equal(blockedRosterRes.status, 402);
 
-    // Admin approves intake and sends secure Paystack Payment Link
+    // Admin approves intake and sends secure Paystack Payment Link (full-year bundle!)
     const sendLinkRes = await fetch(`${baseUrl}/api/admin/onboarding/applications/${encodeURIComponent(appId)}/send-payment-link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: admCookie },
@@ -402,14 +419,16 @@ async function runHttpIntegrationTests() {
     assert.equal(sendLinkRes.status, 200);
     const sendLinkJson = await sendLinkRes.json();
     assert.equal(sendLinkJson.application.status, 'PAYMENT_LINK_SENT');
+    assert.equal(sendLinkJson.invoice.invoiceType, 'ANNUAL_ONBOARDING_BUNDLE');
+    assert.equal(sendLinkJson.invoice.amountNgn, expectedAnnualFull);
     const appInvoiceId = sendLinkJson.invoice.invoiceId;
 
-    // Simulate Paystack webhook settling the onboarding setup fee -> unlocks Stage 3!
+    // Simulate Paystack webhook settling the annual bundle -> unlocks Stage 3!
     const appWhPayload = JSON.stringify({
       event: 'charge.success',
       data: {
         reference: appInvoiceId,
-        amount: 550000 * 100,
+        amount: expectedAnnualFull * 100,
         channel: 'bank_transfer',
         paid_at: new Date().toISOString(),
         customer: { email: 'kemi@apexcoldchain.ng' },

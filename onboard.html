@@ -506,13 +506,21 @@
           <input id="in-address" class="inp" type="text" placeholder="e.g. Plot 14 Oba Akran Avenue, Ikeja, Lagos" />
         </div>
 
+        <label for="in-billing-annual" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:14px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.34);cursor:pointer;margin-bottom:16px;">
+          <input id="in-billing-annual" type="checkbox" style="width:20px;height:20px;margin-top:2px;accent-color:var(--em);cursor:pointer;flex-shrink:0;" />
+          <span>
+            <strong style="display:block;font-size:14px;color:var(--text);">Pay Annually (Settle for a Full Year — 12 Months)</strong>
+            <span style="display:block;font-size:12.5px;color:var(--muted);margin-top:2px;">Check this box to calculate and settle your full 12-month subscription together with your One-Time Setup Fee in one single Paystack payment. Leave unchecked for monthly billing after setup.</span>
+          </span>
+        </label>
+
         <div class="tier-preview" aria-live="polite">
           <div class="tier-preview-head">
             <div>
               <div style="font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Auto-Matched Plan Tier Based on Headcount</div>
               <div style="font-size:18px;font-weight:800;margin-top:2px;" id="tp-title">Business Tier (21–50 workers)</div>
             </div>
-            <span class="tier-chip" id="tp-badge">BUSINESS</span>
+            <span class="tier-chip" id="tp-badge">BUSINESS · MONTHLY</span>
           </div>
           <div class="tier-nums">
             <div class="tier-num-box">
@@ -520,19 +528,23 @@
               <strong id="tp-setup">₦150,000</strong>
             </div>
             <div class="tier-num-box">
-              <span>Monthly Maintenance</span>
+              <span id="tp-base-lbl">Monthly Maintenance</span>
               <strong id="tp-base">₦60,000</strong>
             </div>
             <div class="tier-num-box">
-              <span>Per-Worker Rate</span>
+              <span id="tp-pepm-lbl">Per-Worker Rate</span>
               <strong id="tp-pepm">₦2,500/mo</strong>
             </div>
             <div class="tier-num-box accent">
-              <span>Est. Combined Monthly</span>
+              <span id="tp-total-lbl">Est. Combined Monthly</span>
               <strong id="tp-monthly">₦122,500/mo</strong>
             </div>
           </div>
-          <div style="font-size:12px;color:var(--muted);margin-top:10px;">
+          <div id="tp-annual-bar" style="display:none;margin-top:12px;padding:12px 14px;border-radius:12px;background:rgba(16,185,129,0.16);border:1px solid rgba(16,185,129,0.45);display:none;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span style="font-size:13px;color:#e2e8f0;font-weight:700;">Full-Year Settlement Due Now (One-Time Setup + 12-Month Subscription):</span>
+            <strong id="tp-annual-due-now" style="font-family:'Space Grotesk',sans-serif;font-size:20px;color:var(--em-bright);">₦0</strong>
+          </div>
+          <div id="tp-foot-note" style="font-size:12px;color:var(--muted);margin-top:10px;">
             100% employer-paid (₦0 deducted from worker wages). Monthly billing begins only after your 48-hour Go-Live sign-off.
           </div>
         </div>
@@ -679,17 +691,43 @@
 
       function updateTierPreview() {
         const count = Math.max(1, parseInt(document.getElementById('in-worker-count')?.value, 10) || 1);
+        const isAnnual = Boolean(document.getElementById('in-billing-annual')?.checked);
         const t = pickTier(count);
         const monthly = t.base + (count * t.pepm);
+        const annualSub = monthly * 12;
+        const annualFullDue = t.setup + annualSub;
         document.getElementById('tp-title').textContent = `${t.label} Tier (${t.band})`;
-        document.getElementById('tp-badge').textContent = t.label.toUpperCase();
+        document.getElementById('tp-badge').textContent = `${t.label.toUpperCase()} · ${isAnnual ? 'ANNUAL (12 MO)' : 'MONTHLY'}`;
         document.getElementById('tp-setup').textContent = fmtNgn(t.setup);
-        document.getElementById('tp-base').textContent = fmtNgn(t.base);
-        document.getElementById('tp-pepm').textContent = `${fmtNgn(t.pepm)}/mo`;
-        document.getElementById('tp-monthly').textContent = `${fmtNgn(monthly)}/mo`;
+        if (isAnnual) {
+          document.getElementById('tp-base-lbl').textContent = '12-Mo Maintenance';
+          document.getElementById('tp-base').textContent = fmtNgn(t.base * 12);
+          document.getElementById('tp-pepm-lbl').textContent = '12-Mo Headcount';
+          document.getElementById('tp-pepm').textContent = fmtNgn(count * t.pepm * 12);
+          document.getElementById('tp-total-lbl').textContent = '12-Month Subscription';
+          document.getElementById('tp-monthly').textContent = `${fmtNgn(annualSub)}/yr`;
+          const bar = document.getElementById('tp-annual-bar');
+          if (bar) bar.style.display = 'flex';
+          const dueEl = document.getElementById('tp-annual-due-now');
+          if (dueEl) dueEl.textContent = fmtNgn(annualFullDue);
+          const fn = document.getElementById('tp-foot-note');
+          if (fn) fn.textContent = `Annual Plan selected: settle your One-Time Setup (${fmtNgn(t.setup)}) + Full 12-Month Subscription (${fmtNgn(annualSub)}) = ${fmtNgn(annualFullDue)} once via Paystack — zero monthly invoices for the next 12 months.`;
+        } else {
+          document.getElementById('tp-base-lbl').textContent = 'Monthly Maintenance';
+          document.getElementById('tp-base').textContent = fmtNgn(t.base);
+          document.getElementById('tp-pepm-lbl').textContent = 'Per-Worker Rate';
+          document.getElementById('tp-pepm').textContent = `${fmtNgn(t.pepm)}/mo`;
+          document.getElementById('tp-total-lbl').textContent = 'Est. Combined Monthly';
+          document.getElementById('tp-monthly').textContent = `${fmtNgn(monthly)}/mo`;
+          const bar = document.getElementById('tp-annual-bar');
+          if (bar) bar.style.display = 'none';
+          const fn = document.getElementById('tp-foot-note');
+          if (fn) fn.textContent = '100% employer-paid (₦0 deducted from worker wages). Monthly billing begins only after your 48-hour Go-Live sign-off.';
+        }
       }
 
       document.getElementById('in-worker-count')?.addEventListener('input', updateTierPreview);
+      document.getElementById('in-billing-annual')?.addEventListener('change', updateTierPreview);
       updateTierPreview();
 
       function setStepper(activeStep) {
@@ -715,22 +753,24 @@
           const banner = document.getElementById('s2-banner');
           const payBtn = document.getElementById('s2-paystack-btn');
           const hasLink = Boolean(app.checkoutUrl && app.status === 'PAYMENT_LINK_SENT');
+          const isAnnual = app.billingCycle === 'annual';
+          const dueNowNgn = isAnnual ? Number(app.annualFullDueNgn || (Number(app.setupFeeNgn || 0) + Number(app.estimatedAnnualTotalNgn || 0))) : Number(app.setupFeeNgn || 0);
           banner.className = hasLink ? 'status-banner warn' : 'status-banner';
           banner.innerHTML = hasLink
-            ? `<strong>Secure Paystack Payment Link Ready:</strong> Complete your one-time setup payment (${fmtNgn(app.setupFeeNgn)}) to receive your official <strong>ShiftRelay · Powered by Riffmax Technology Limited</strong> receipt and unlock Step 3 (Staff Roster Upload).`
-            : `<strong>Application Logged (${app.id}):</strong> Our onboarding desk has received your company details. As soon as your account is verified, we will email your secure <strong>Paystack</strong> payment link to <strong>${app.contactEmail}</strong> (and it will also appear right here).`;
+            ? `<strong>Secure Paystack Payment Link Ready:</strong> Complete your ${isAnnual ? '<strong>Full-Year Annual Plan + Setup</strong>' : '<strong>One-Time Setup</strong>'} payment (<strong>${fmtNgn(dueNowNgn)}</strong>) to receive your official <strong>ShiftRelay · Powered by Riffmax Technology Limited</strong> receipt and unlock Step 3 (Staff Roster Upload).`
+            : `<strong>Application Logged (${app.id}):</strong> Our onboarding desk has received your company details (${isAnnual ? '<strong>Annual 12-Month Plan</strong>' : '<strong>Monthly Plan</strong>'}). As soon as your account is verified, we will email your secure <strong>Paystack</strong> payment link to <strong>${app.contactEmail}</strong> (and it will also appear right here).`;
           document.getElementById('s2-heading').textContent = hasLink
-            ? `Step 2: Complete ${app.planLabel} Setup Payment`
+            ? `Step 2: Complete ${app.planLabel} ${isAnnual ? 'Annual (12-Month)' : 'Setup'} Payment`
             : 'Step 1 Complete — Awaiting Secure Payment Link';
           document.getElementById('s2-desc').textContent = hasLink
-            ? `Your ${app.planLabel} tier (${app.workerCount} workers) is approved. Pay via Nigerian Bank Transfer, Corporate/Debit Card, or USSD through Paystack.`
+            ? `Your ${app.planLabel} tier (${app.workerCount} workers · ${isAnnual ? 'Annual 12-Month Prepay' : 'Monthly Plan'}) is approved. Pay via Nigerian Bank Transfer, Corporate/Debit Card, or USSD through Paystack.`
             : 'Keep this page bookmarked or click "Refresh Payment Status" once you receive our email.';
           document.getElementById('s2-company-meta').textContent = `${app.companyName} · ${app.contactEmail}${app.companyCode ? ' · Code: ' + app.companyCode : ''}`;
-          document.getElementById('s2-tier-title').textContent = `${app.planLabel} Tier (${app.workerBand || ''})`;
+          document.getElementById('s2-tier-title').textContent = `${app.planLabel} Tier (${app.workerBand || ''}) · ${isAnnual ? 'Annual Plan (12 Months)' : 'Monthly Plan'}`;
           document.getElementById('s2-status-chip').textContent = app.status.replace(/_/g, ' ');
           document.getElementById('s2-workers').textContent = `${app.workerCount} workers`;
-          document.getElementById('s2-setup').textContent = fmtNgn(app.setupFeeNgn);
-          document.getElementById('s2-base').textContent = fmtNgn(app.monthlyBaseFeeNgn);
+          document.getElementById('s2-setup').textContent = fmtNgn(dueNowNgn);
+          document.getElementById('s2-base').textContent = isAnnual ? `${fmtNgn(app.estimatedAnnualTotalNgn)}/yr` : fmtNgn(app.monthlyBaseFeeNgn);
           document.getElementById('s2-monthly').textContent = `${fmtNgn(app.estimatedMonthlyTotalNgn)}/mo`;
           if (hasLink) {
             payBtn.href = app.checkoutUrl;
@@ -882,7 +922,8 @@
             contactPhone: document.getElementById('in-contact-phone').value.trim(),
             siteName: document.getElementById('in-site-name').value.trim(),
             address: document.getElementById('in-address').value.trim(),
-            workerCount: Number(document.getElementById('in-worker-count').value || 1)
+            workerCount: Number(document.getElementById('in-worker-count').value || 1),
+            billingCycle: document.getElementById('in-billing-annual')?.checked ? 'annual' : 'monthly'
           };
           const res = await fetch('/api/public/onboarding/intake', {
             method: 'POST',

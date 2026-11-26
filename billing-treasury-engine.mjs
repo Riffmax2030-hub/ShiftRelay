@@ -282,6 +282,65 @@ export function calculateSandboxPilotInvoice() {
   };
 }
 
+export function calculateTenantAnnualInvoice({
+  planKey = 'startup',
+  coreHeadcount = 0,
+  seasonalSurgeHeadcount = 0,
+  billingStatus = 'active_subscription',
+  onboardingCompleted = true,
+  includeSetupFee = false,
+  pilotPaid = false,
+  pilotCreditAmountNgn = SANDBOX_PILOT_CONFIG.feeNgn
+} = {}) {
+  const monthly = calculateTenantMonthlyInvoice({
+    planKey,
+    coreHeadcount,
+    seasonalSurgeHeadcount,
+    billingStatus,
+    onboardingCompleted
+  });
+  const onboarding = includeSetupFee
+    ? calculateOnboardingInvoice({ planKey: monthly.planKey, pilotPaid, pilotCreditAmountNgn })
+    : null;
+  const annualBaseFeeNgn = monthly.baseFeeNgn * 12;
+  const annualCorePepmFeeNgn = monthly.corePepmFeeNgn * 12;
+  const annualOverageFeeNgn = monthly.overageFeeNgn * 12;
+  const annualSurgeFeeNgn = monthly.surgeFeeNgn * 12;
+  const annualSubscriptionTotalNgn = monthly.recurringMonthlyTotalNgn * 12;
+  const netOnboardingFeeNgn = onboarding ? onboarding.netOnboardingFeeNgn : 0;
+  const grossOnboardingFeeNgn = onboarding ? onboarding.grossOnboardingFeeNgn : 0;
+  const pilotCreditAppliedNgn = onboarding ? onboarding.pilotCreditAppliedNgn : 0;
+  const totalDueNgn = annualSubscriptionTotalNgn + netOnboardingFeeNgn;
+
+  return {
+    invoiceType: includeSetupFee ? 'ANNUAL_ONBOARDING_BUNDLE' : 'ANNUAL_RECURRING',
+    billingCycle: 'annual',
+    billingMonths: 12,
+    planKey: monthly.planKey,
+    planLabel: monthly.planLabel,
+    tierCap: monthly.tierCap,
+    coreHeadcount: monthly.coreHeadcount,
+    cappedCoreHeadcount: monthly.cappedCoreHeadcount,
+    overageHeadcount: monthly.overageHeadcount,
+    seasonalSurgeHeadcount: monthly.seasonalSurgeHeadcount,
+    monthlyBaseFeeNgn: monthly.baseFeeNgn,
+    pepmRateNgn: monthly.pepmRateNgn,
+    monthlyCombinedTotalNgn: monthly.recurringMonthlyTotalNgn,
+    annualBaseFeeNgn,
+    annualCorePepmFeeNgn,
+    annualOverageFeeNgn,
+    annualSurgeFeeNgn,
+    annualSubscriptionTotalNgn,
+    includeSetupFee: Boolean(includeSetupFee),
+    grossOnboardingFeeNgn,
+    pilotCreditAppliedNgn,
+    netOnboardingFeeNgn,
+    totalDueNgn,
+    billedTo: 'EMPLOYER_ONLY',
+    workerChargeNgn: 0
+  };
+}
+
 // ── 2. Continuous Real-Time Payroll & Zero-Fee EWA Ledger (CBN Compliant) ────
 export function computeWorkerAccruedLedger({
   contract = {},
