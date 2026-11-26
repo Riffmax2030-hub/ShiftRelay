@@ -1,41 +1,49 @@
 import { calculatePayeTax, calculateStatutoryDeductions } from './compliance-engine.mjs';
 
 // ── 1. Employer-Paid SaaS Plans (Workers NEVER Charged) ──────────────────────
+// 3-Tier Scalable Model: One-Time Setup & Deployment + Combined Monthly Subscription
+// (Monthly Maintenance Base + Active Workers × Per-Worker Fee)
 export const SAAS_PLAN_TIERS = {
-  professional: {
-    key: 'professional',
-    label: 'Professional',
-    maxWorkers: 150,
-    baseFeeNgn: 150000,
-    pepmRateNgn: 4500,
-    onboardingFeeNgn: 750000,
-    overagePepmNgn: 3000,
-    surgePepmNgn: 2500
+  startup: {
+    key: 'startup',
+    label: 'Startup',
+    workerBand: '1–50 workers',
+    minWorkers: 1,
+    maxWorkers: 50,
+    baseFeeNgn: 50000,
+    pepmRateNgn: 2500,
+    onboardingFeeNgn: 100000,
+    overagePepmNgn: 2500,
+    surgePepmNgn: 2000
+  },
+  business: {
+    key: 'business',
+    label: 'Business',
+    workerBand: '51–100 workers',
+    minWorkers: 51,
+    maxWorkers: 100,
+    baseFeeNgn: 100000,
+    pepmRateNgn: 2500,
+    onboardingFeeNgn: 250000,
+    overagePepmNgn: 2500,
+    surgePepmNgn: 2000
   },
   enterprise: {
     key: 'enterprise',
     label: 'Enterprise',
+    workerBand: '101–500 workers',
+    minWorkers: 101,
     maxWorkers: 500,
-    baseFeeNgn: 400000,
-    pepmRateNgn: 3500,
-    onboardingFeeNgn: 1500000,
-    overagePepmNgn: 3000,
-    surgePepmNgn: 2500
-  },
-  enterprise_plus: {
-    key: 'enterprise_plus',
-    label: 'Enterprise Plus',
-    maxWorkers: 1500,
-    baseFeeNgn: 750000,
-    pepmRateNgn: 2500,
-    onboardingFeeNgn: 3000000,
-    overagePepmNgn: 3000,
-    surgePepmNgn: 2500
+    baseFeeNgn: 250000,
+    pepmRateNgn: 2000,
+    onboardingFeeNgn: 750000,
+    overagePepmNgn: 2000,
+    surgePepmNgn: 1800
   }
 };
 
 export const SANDBOX_PILOT_CONFIG = {
-  feeNgn: 250000,
+  feeNgn: 50000,
   durationDays: 30,
   maxWorkers: 50,
   creditOnConversionPct: 100
@@ -48,14 +56,25 @@ export const BILLING_LIFECYCLE_STATES = [
   'overdue_readonly'
 ];
 
+export function recommendPlanTierForHeadcount(headcount = 1) {
+  const n = Math.max(1, Math.round(Number(headcount || 1)));
+  if (n <= SAAS_PLAN_TIERS.startup.maxWorkers) return SAAS_PLAN_TIERS.startup;
+  if (n <= SAAS_PLAN_TIERS.business.maxWorkers) return SAAS_PLAN_TIERS.business;
+  return SAAS_PLAN_TIERS.enterprise;
+}
+
 export function resolvePlanTier(planKeyOrOrg) {
   const raw = typeof planKeyOrOrg === 'string'
     ? planKeyOrOrg
-    : (planKeyOrOrg?.plan_tier || planKeyOrOrg?.planTier || planKeyOrOrg?.subscription_tier || 'professional');
+    : (planKeyOrOrg?.plan_tier || planKeyOrOrg?.planTier || planKeyOrOrg?.subscription_tier || 'startup');
   const norm = String(raw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-  if (norm === 'enterprise_plus' || norm === 'ent_plus') return SAAS_PLAN_TIERS.enterprise_plus;
-  if (norm === 'enterprise' || norm === 'enterprise_founding_partner') return SAAS_PLAN_TIERS.enterprise;
-  return SAAS_PLAN_TIERS.professional;
+  if (norm === 'enterprise' || norm === 'enterprise_plus' || norm === 'ent_plus' || norm === 'enterprise_founding_partner') {
+    return SAAS_PLAN_TIERS.enterprise;
+  }
+  if (norm === 'business' || norm === 'professional' || norm === 'growth') {
+    return SAAS_PLAN_TIERS.business;
+  }
+  return SAAS_PLAN_TIERS.startup;
 }
 
 export function normalizeBillingLifecycleStatus(rawStatus) {

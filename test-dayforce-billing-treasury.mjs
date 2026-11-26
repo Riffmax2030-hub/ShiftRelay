@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import net from 'node:net';
 import { existsSync } from 'node:fs';
@@ -7,6 +8,8 @@ import { join } from 'node:path';
 import {
   SAAS_PLAN_TIERS,
   SANDBOX_PILOT_CONFIG,
+  resolvePlanTier,
+  recommendPlanTierForHeadcount,
   calculateTenantMonthlyInvoice,
   calculateOnboardingInvoice,
   calculateSandboxPilotInvoice,
@@ -42,40 +45,55 @@ async function waitForHealth(port, timeoutMs = 20000) {
 }
 
 function runUnitTests() {
-  console.log('=== 1. TESTING DAYFORCE-STYLE TIERED BASE + PEPM & ELASTICITY ===');
+  console.log('=== 1. TESTING 3-TIER SCALABLE PRICING (STARTUP / BUSINESS / ENTERPRISE) ===');
 
-  // Professional (cap 150): 150k base + 4,500 PEPM + 750k onboarding
-  const pro = calculateTenantMonthlyInvoice({
-    planKey: 'professional',
-    coreHeadcount: 100,
+  // Headcount tier recommendation helper
+  assert.equal(recommendPlanTierForHeadcount(1).key, 'startup');
+  assert.equal(recommendPlanTierForHeadcount(50).key, 'startup');
+  assert.equal(recommendPlanTierForHeadcount(51).key, 'business');
+  assert.equal(recommendPlanTierForHeadcount(100).key, 'business');
+  assert.equal(recommendPlanTierForHeadcount(101).key, 'enterprise');
+  assert.equal(recommendPlanTierForHeadcount(500).key, 'enterprise');
+
+  // Backward-compatible aliases
+  assert.equal(resolvePlanTier('professional').key, 'business');
+  assert.equal(resolvePlanTier('enterprise_plus').key, 'enterprise');
+
+  // Startup (1-50): ₦50k base + ₦2,500 PEPM + ₦100k setup
+  const startup = calculateTenantMonthlyInvoice({
+    planKey: 'startup',
+    coreHeadcount: 30,
     seasonalSurgeHeadcount: 0,
     billingStatus: 'active_subscription',
     onboardingCompleted: true
   });
-  assert.equal(pro.baseFeeNgn, 150000);
-  assert.equal(pro.pepmRateNgn, 4500);
-  assert.equal(pro.corePepmFeeNgn, 450000);
-  assert.equal(pro.recurringMonthlyTotalNgn, 600000);
-  assert.equal(pro.workerChargeNgn, 0);
-  assert.equal(pro.billedTo, 'EMPLOYER_ONLY');
+  assert.equal(startup.planKey, 'startup');
+  assert.equal(startup.baseFeeNgn, 50000);
+  assert.equal(startup.pepmRateNgn, 2500);
+  assert.equal(startup.corePepmFeeNgn, 75000);
+  assert.equal(startup.recurringMonthlyTotalNgn, 125000);
+  assert.equal(startup.workerChargeNgn, 0);
+  assert.equal(startup.billedTo, 'EMPLOYER_ONLY');
 
-  // Headcount Elasticity: 160 core (10 overage @ 3,000) + 20 seasonal surge (<90d @ 2,500) on Professional (no tier upgrade)
-  const proElastic = calculateTenantMonthlyInvoice({
-    planKey: 'professional',
-    coreHeadcount: 160,
-    seasonalSurgeHeadcount: 20,
+  // Business (51-100): ₦100k base + ₦2,500 PEPM + ₦250k setup (+ elasticity overage & surge)
+  const bizElastic = calculateTenantMonthlyInvoice({
+    planKey: 'business',
+    coreHeadcount: 110,
+    seasonalSurgeHeadcount: 10,
     billingStatus: 'active_subscription',
     onboardingCompleted: true
   });
-  assert.equal(proElastic.planKey, 'professional');
-  assert.equal(proElastic.cappedCoreHeadcount, 150);
-  assert.equal(proElastic.overageHeadcount, 10);
-  assert.equal(proElastic.corePepmFeeNgn, 150 * 4500);
-  assert.equal(proElastic.overageFeeNgn, 10 * 3000);
-  assert.equal(proElastic.surgeFeeNgn, 20 * 2500);
-  assert.equal(proElastic.recurringMonthlyTotalNgn, 150000 + 675000 + 30000 + 50000);
+  assert.equal(bizElastic.planKey, 'business');
+  assert.equal(bizElastic.baseFeeNgn, 100000);
+  assert.equal(bizElastic.pepmRateNgn, 2500);
+  assert.equal(bizElastic.cappedCoreHeadcount, 100);
+  assert.equal(bizElastic.overageHeadcount, 10);
+  assert.equal(bizElastic.corePepmFeeNgn, 100 * 2500);
+  assert.equal(bizElastic.overageFeeNgn, 10 * 2500);
+  assert.equal(bizElastic.surgeFeeNgn, 10 * 2000);
+  assert.equal(bizElastic.recurringMonthlyTotalNgn, 100000 + 250000 + 25000 + 20000);
 
-  // Enterprise (cap 500): 400k base + 3,500 PEPM + 1.5M onboarding
+  // Enterprise (101-500): ₦250k base + ₦2,000 PEPM + ₦750k setup
   const ent = calculateTenantMonthlyInvoice({
     planKey: 'enterprise',
     coreHeadcount: 300,
@@ -83,42 +101,31 @@ function runUnitTests() {
     billingStatus: 'active_subscription',
     onboardingCompleted: true
   });
-  assert.equal(ent.baseFeeNgn, 400000);
-  assert.equal(ent.pepmRateNgn, 3500);
-  assert.equal(ent.recurringMonthlyTotalNgn, 400000 + (300 * 3500) + (10 * 2500));
+  assert.equal(ent.planKey, 'enterprise');
+  assert.equal(ent.baseFeeNgn, 250000);
+  assert.equal(ent.pepmRateNgn, 2000);
+  assert.equal(ent.recurringMonthlyTotalNgn, 250000 + (300 * 2000) + (10 * 1800));
 
-  // Enterprise Plus (cap 1500): 750k base + 2,500 PEPM + 3M onboarding
-  const entPlus = calculateTenantMonthlyInvoice({
-    planKey: 'enterprise_plus',
-    coreHeadcount: 1600,
-    seasonalSurgeHeadcount: 50,
-    billingStatus: 'active_subscription',
-    onboardingCompleted: true
-  });
-  assert.equal(entPlus.baseFeeNgn, 750000);
-  assert.equal(entPlus.pepmRateNgn, 2500);
-  assert.equal(entPlus.cappedCoreHeadcount, 1500);
-  assert.equal(entPlus.overageHeadcount, 100);
-  assert.equal(entPlus.recurringMonthlyTotalNgn, 750000 + (1500 * 2500) + (100 * 3000) + (50 * 2500));
+  console.log('  PASS: All 3 scalable tiers (Startup, Business, Enterprise) & elasticity verified.');
 
-  console.log('  PASS: All 3 tiered plans & elasticity calculations verified.');
-
-  console.log('=== 2. TESTING ₦250k SANDBOX PILOT CREDIT & POST-ONBOARDING GATE ===');
+  console.log('=== 2. TESTING ₦50k SANDBOX PILOT CREDIT & POST-ONBOARDING GATE ===');
   const pilot = calculateSandboxPilotInvoice();
-  assert.equal(pilot.amountNgn, 250000);
+  assert.equal(pilot.amountNgn, 50000);
   assert.equal(pilot.maxWorkers, 50);
   assert.equal(pilot.durationDays, 30);
 
-  const obProWithPilot = calculateOnboardingInvoice({ planKey: 'professional', pilotPaid: true });
-  assert.equal(obProWithPilot.grossOnboardingFeeNgn, 750000);
-  assert.equal(obProWithPilot.pilotCreditAppliedNgn, 250000);
-  assert.equal(obProWithPilot.netOnboardingFeeNgn, 500000);
+  const obStartupWithPilot = calculateOnboardingInvoice({ planKey: 'startup', pilotPaid: true });
+  assert.equal(obStartupWithPilot.grossOnboardingFeeNgn, 100000);
+  assert.equal(obStartupWithPilot.pilotCreditAppliedNgn, 50000);
+  assert.equal(obStartupWithPilot.netOnboardingFeeNgn, 50000);
+
+  const obBizWithPilot = calculateOnboardingInvoice({ planKey: 'business', pilotPaid: true });
+  assert.equal(obBizWithPilot.grossOnboardingFeeNgn, 250000);
+  assert.equal(obBizWithPilot.netOnboardingFeeNgn, 200000);
 
   const obEntWithPilot = calculateOnboardingInvoice({ planKey: 'enterprise', pilotPaid: true });
-  assert.equal(obEntWithPilot.netOnboardingFeeNgn, 1250000);
-
-  const obPlusNoPilot = calculateOnboardingInvoice({ planKey: 'enterprise_plus', pilotPaid: false });
-  assert.equal(obPlusNoPilot.netOnboardingFeeNgn, 3000000);
+  assert.equal(obEntWithPilot.grossOnboardingFeeNgn, 750000);
+  assert.equal(obEntWithPilot.netOnboardingFeeNgn, 700000);
 
   // Pre-go-live recurring billing must be 0
   const preLive = calculateTenantMonthlyInvoice({
@@ -176,6 +183,7 @@ async function runHttpIntegrationTests() {
   console.log('=== 4. RUNNING LIVE HTTP INTEGRATION TESTS (LIFECYCLE, EWA, FLOAT) ===');
   const originalStoreRaw = existsSync(STORE_PATH) ? await readFile(STORE_PATH, 'utf8') : null;
   const port = await pickFreePort();
+  const testPaystackSecret = 'sk_test_shiftrelay_unit_webhook_secret';
   const child = spawn(process.execPath, ['server.mjs'], {
     cwd: process.cwd(),
     env: {
@@ -183,6 +191,7 @@ async function runHttpIntegrationTests() {
       PORT: String(port),
       NODE_ENV: 'development',
       DATABASE_URL: '',
+      PAYSTACK_SECRET_KEY: testPaystackSecret,
       ALLOW_DEV_FALLBACK: 'true',
       ALLOW_DEV_DEMO_AUTH: 'true'
     },
@@ -221,7 +230,7 @@ async function runHttpIntegrationTests() {
     const createdJson = await createTenant.json();
     const tenantId = createdJson.tenant.id;
 
-    // 4a. Transition to pilot_active and issue ₦250,000 Sandbox Pilot invoice
+    // 4a. Transition to pilot_active and issue ₦50,000 Sandbox Pilot invoice
     const setPilotRes = await fetch(`${baseUrl}/api/admin/billing/tenants/${tenantId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Cookie: admCookie },
@@ -236,10 +245,10 @@ async function runHttpIntegrationTests() {
     });
     assert.equal(pilotInvRes.status, 201);
     const pilotInv = (await pilotInvRes.json()).invoice;
-    assert.equal(pilotInv.amountNgn, 250000);
+    assert.equal(pilotInv.amountNgn, 50000);
     assert.equal(pilotInv.invoiceType, 'SANDBOX_PILOT_30D');
 
-    // Mark pilot invoice PAID -> pilotPaid=true, pilotCreditNgn=250000
+    // Mark pilot invoice PAID -> pilotPaid=true, pilotCreditNgn=50000
     const markPilotPaid = await fetch(`${baseUrl}/api/admin/billing/tenants/${tenantId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Cookie: admCookie },
@@ -248,7 +257,7 @@ async function runHttpIntegrationTests() {
     assert.equal(markPilotPaid.status, 200);
     const afterPilotPaid = await markPilotPaid.json();
     assert.equal(afterPilotPaid.tenant.pilotPaid, true);
-    assert.equal(afterPilotPaid.tenant.pilotCreditAppliedNgn, 250000);
+    assert.equal(afterPilotPaid.tenant.pilotCreditAppliedNgn, 50000);
 
     // 4b. Recurring monthly invoice MUST be blocked (409) before onboarding/go-live is marked complete!
     const blockedMonthlyRes = await fetch(`${baseUrl}/api/admin/billing/invoice`, {
@@ -260,7 +269,7 @@ async function runHttpIntegrationTests() {
     const blockedJson = await blockedMonthlyRes.json();
     assert.equal(blockedJson.code, 'ONBOARDING_NOT_COMPLETED');
 
-    // 4c. Convert to full Enterprise contract: issue Onboarding invoice -> automatic ₦250,000 credit (₦1,500,000 - ₦250,000 = ₦1,250,000)
+    // 4c. Convert to full Enterprise contract: issue Onboarding invoice -> automatic ₦50,000 credit (₦750,000 - ₦50,000 = ₦700,000)
     const obInvRes = await fetch(`${baseUrl}/api/admin/billing/invoice`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: admCookie },
@@ -268,19 +277,42 @@ async function runHttpIntegrationTests() {
     });
     assert.equal(obInvRes.status, 201);
     const obInv = (await obInvRes.json()).invoice;
-    assert.equal(obInv.grossOnboardingFeeNgn, 1500000);
-    assert.equal(obInv.pilotCreditAppliedNgn, 250000);
-    assert.equal(obInv.amountNgn, 1250000);
+    assert.equal(obInv.grossOnboardingFeeNgn, 750000);
+    assert.equal(obInv.pilotCreditAppliedNgn, 50000);
+    assert.equal(obInv.amountNgn, 700000);
 
-    // 4d. Mark onboarding complete -> transitions to active_subscription and unlocks recurring Base + PEPM invoice!
-    const completeObRes = await fetch(`${baseUrl}/api/admin/billing/tenants/${tenantId}/complete-onboarding`, {
-      method: 'POST',
-      headers: { Cookie: admCookie }
+    // 4d. Simulate signed Paystack charge.success webhook -> auto-marks Onboarding PAID, activates tenant & issues Official Receipt!
+    const webhookPayload = JSON.stringify({
+      event: 'charge.success',
+      data: {
+        reference: obInv.invoiceId,
+        amount: obInv.amountNgn * 100,
+        channel: 'bank_transfer',
+        paid_at: new Date().toISOString(),
+        customer: { email: 'emeka@atlanticterminal.ng' },
+        metadata: { type: 'saas_billing_invoice', invoiceId: obInv.invoiceId, tenantId }
+      }
     });
-    assert.equal(completeObRes.status, 200);
-    const completeObJson = await completeObRes.json();
-    assert.equal(completeObJson.tenant.billingStatus, 'active_subscription');
-    assert.equal(completeObJson.tenant.onboardingCompleted, true);
+    const sig = crypto.createHmac('sha512', testPaystackSecret).update(webhookPayload).digest('hex');
+    const whRes = await fetch(`${baseUrl}/api/webhooks/paystack`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-paystack-signature': sig },
+      body: webhookPayload
+    });
+    assert.equal(whRes.status, 200);
+
+    // Verify receipt & active_subscription state via /api/admin/billing
+    const billingSnapRes = await fetch(`${baseUrl}/api/admin/billing`, { headers: { Cookie: admCookie } });
+    assert.equal(billingSnapRes.status, 200);
+    const billingSnap = await billingSnapRes.json();
+    const updatedTenant = billingSnap.tenants.find(t => t.tenantId === tenantId);
+    assert.equal(updatedTenant.billingStatus, 'active_subscription');
+    assert.equal(updatedTenant.onboardingCompleted, true);
+    assert.equal(updatedTenant.onboardingFeePaid, true);
+    const officialReceipt = (billingSnap.receipts || []).find(r => r.invoiceId === obInv.invoiceId);
+    assert.ok(officialReceipt, 'Official payment receipt must be recorded automatically on Paystack webhook');
+    assert.ok(officialReceipt.issuer.includes('Riffmax Technology Limited'));
+    assert.equal(officialReceipt.totalPaidNgn, 700000);
 
     const recurringInvRes = await fetch(`${baseUrl}/api/admin/billing/invoice`, {
       method: 'POST',
@@ -289,10 +321,10 @@ async function runHttpIntegrationTests() {
     });
     assert.equal(recurringInvRes.status, 201);
     const recurringInv = (await recurringInvRes.json()).invoice;
-    assert.equal(recurringInv.baseFeeNgn, 400000);
-    assert.equal(recurringInv.pepmFeeNgn, 350000);
-    assert.equal(recurringInv.surgeFeeNgn, 25000);
-    assert.equal(recurringInv.amountNgn, 775000);
+    assert.equal(recurringInv.baseFeeNgn, 250000);
+    assert.equal(recurringInv.pepmFeeNgn, 200000);
+    assert.equal(recurringInv.surgeFeeNgn, 18000);
+    assert.equal(recurringInv.amountNgn, 468000);
     assert.equal(recurringInv.workerChargeNgn, 0);
 
     // 4e. Settlement & Treasury Float Ledger (Deposit, Clear, Insufficient Float guard)

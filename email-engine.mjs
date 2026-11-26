@@ -775,6 +775,255 @@ export function renderMonthlyComplianceNewsletterEmail({
   });
 }
 
+/**
+ * 9. Employer Billing & Onboarding Secure Paystack Payment Link Email
+ * Branded: ShiftRelay · Powered by Riffmax Technology Limited
+ */
+export function renderBillingPaymentLinkEmail({
+  companyName,
+  companyCode = '',
+  recipientName = 'Executive Team',
+  invoiceId,
+  invoiceTypeLabel = 'One-Time Setup & Deployment',
+  planLabel = 'Startup',
+  cycleMonth = '',
+  breakdownLines = [],
+  totalAmountNgn = 0,
+  checkoutUrl,
+  isOnboarding = false,
+  loginPortalUrl = ''
+}) {
+  const fmtNgn = (v) => `₦${Math.round(Number(v || 0)).toLocaleString('en-NG')}`;
+  const rowsHtml = (Array.isArray(breakdownLines) && breakdownLines.length > 0
+    ? breakdownLines
+    : [{ label: invoiceTypeLabel, amountNgn: totalAmountNgn }]
+  ).map((line) => `
+    <tr>
+      <td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,0.06);color:#cbd5e1;font-size:13px;">
+        ${escapeHtml(line.label)}
+        ${line.note ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">${escapeHtml(line.note)}</div>` : ''}
+      </td>
+      <td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,0.06);color:#ffffff;font-weight:700;font-size:13px;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',monospace,sans-serif;">
+        ${line.isCredit ? '&minus;' : ''}${fmtNgn(Math.abs(Number(line.amountNgn || 0)))}
+      </td>
+    </tr>
+  `).join('');
+
+  const bodyHtml = `
+    <div style="background:linear-gradient(135deg, rgba(0,245,160,0.09) 0%, rgba(56,189,248,0.06) 100%);border:1px solid rgba(0,245,160,0.28);border-radius:12px;padding:16px 18px;margin:0 0 20px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+          <td>
+            <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#00f5a0;">
+              ShiftRelay Billing Invoice · Powered by ${escapeHtml(COMPANY_LEGAL)}
+            </div>
+            <div style="font-size:17px;font-weight:800;color:#ffffff;margin-top:4px;">
+              ${escapeHtml(invoiceTypeLabel)} (${escapeHtml(planLabel)} Plan)
+            </div>
+          </td>
+          <td align="right" valign="top">
+            <span style="display:inline-block;padding:4px 10px;border-radius:999px;background:rgba(245,158,11,0.16);border:1px solid rgba(245,158,11,0.4);color:#fbbf24;font-size:10.5px;font-weight:800;letter-spacing:0.06em;">
+              PAYMENT DUE
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="margin:0 0 14px;">
+      ${isOnboarding
+        ? `Welcome to <strong>ShiftRelay</strong>! Your dedicated workspace for <strong>${escapeHtml(companyName)}</strong>${companyCode ? ` (Company Code: <code style="color:#00f5a0;font-weight:700;">${escapeHtml(companyCode)}</code>)` : ''} is provisioned. Complete your secure payment below via <strong>Paystack</strong> (Bank Transfer, Debit/Corporate Card, or USSD) to activate full production deployment.`
+        : `Your itemized ShiftRelay billing invoice <strong>${escapeHtml(invoiceId)}</strong> for <strong>${escapeHtml(companyName)}</strong>${cycleMonth ? ` (${escapeHtml(cycleMonth)})` : ''} is ready. Employer-paid only — <strong>₦0 is ever deducted from workers</strong>.`}
+    </p>
+
+    <div style="background-color:#0d182b;border:1px solid #1e293b;border-radius:12px;overflow:hidden;margin:18px 0;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <thead>
+          <tr style="background-color:#060c18;">
+            <th align="left" style="padding:10px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;">Description</th>
+            <th align="right" style="padding:10px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;">Amount (NGN)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+          <tr style="background-color:#060c18;">
+            <td style="padding:12px 10px;font-size:14px;font-weight:800;color:#ffffff;">Total Payable</td>
+            <td style="padding:12px 10px;font-size:18px;font-weight:900;color:#00f5a0;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',monospace,sans-serif;">
+              ${fmtNgn(totalAmountNgn)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin:14px 0 0;font-size:13px;color:#94a3b8;">
+      <strong>Instant Automated Receipt:</strong> As soon as Paystack confirms your payment, your tenant subscription updates automatically and an official <strong>ShiftRelay (Powered by ${escapeHtml(COMPANY_LEGAL)})</strong> payment receipt is emailed straight to this address.
+      ${loginPortalUrl ? `<br>Workspace Portal: <a href="${escapeHtml(loginPortalUrl)}" style="color:#38bdf8;">${escapeHtml(loginPortalUrl)}</a>` : ''}
+    </p>
+  `;
+
+  return wrapEnterpriseEmail({
+    title: `[${invoiceId}] ShiftRelay ${invoiceTypeLabel} — ${fmtNgn(totalAmountNgn)}`,
+    preheader: `${companyName}: Pay ${fmtNgn(totalAmountNgn)} securely via Paystack (${planLabel} Tier)`,
+    recipientName,
+    deliveryReason: `Official ShiftRelay billing notice issued by ${COMPANY_LEGAL} for ${companyName}.`,
+    bodyHtml,
+    primaryCtaText: `Pay ${fmtNgn(totalAmountNgn)} Securely via Paystack`,
+    primaryCtaUrl: checkoutUrl,
+    secondaryNote: `Accepted via Paystack: Nigerian Bank Transfer (instant NIP), Corporate/Debit Cards (Verve, Visa, Mastercard), and USSD. Reference: ${invoiceId}.`,
+    securityMetadata: {
+      'Invoice Reference': invoiceId,
+      'Client Entity': companyName,
+      'Company Code': companyCode || 'PENDING',
+      'Subscription Tier': planLabel,
+      'Payment Processor': 'PAYSTACK LIVE (CBN LICENSED)',
+      'Issuer': `${BRAND_NAME} · ${COMPANY_LEGAL} (${COMPANY_RC})`
+    }
+  });
+}
+
+/**
+ * 10. Official Automated Payment Receipt Email (Triggered on Paystack Webhook / Payment Confirmation)
+ * Branded: ShiftRelay · Powered by Riffmax Technology Limited
+ */
+export function renderOfficialPaymentReceiptEmail({
+  companyName,
+  companyCode = '',
+  recipientName = 'Executive Team',
+  receiptNumber,
+  invoiceId,
+  paystackReference,
+  invoiceTypeLabel = 'One-Time Setup & Deployment',
+  planLabel = 'Startup',
+  cycleMonth = '',
+  breakdownLines = [],
+  totalPaidNgn = 0,
+  paidAtIso = new Date().toISOString(),
+  paymentChannel = 'Paystack Verified',
+  loginPortalUrl = ''
+}) {
+  const fmtNgn = (v) => `₦${Math.round(Number(v || 0)).toLocaleString('en-NG')}`;
+  const paidDateWat = new Date(paidAtIso || Date.now()).toLocaleString('en-NG', {
+    timeZone: 'Africa/Lagos',
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }) + ' WAT';
+
+  const rowsHtml = (Array.isArray(breakdownLines) && breakdownLines.length > 0
+    ? breakdownLines
+    : [{ label: invoiceTypeLabel, amountNgn: totalPaidNgn }]
+  ).map((line) => `
+    <tr>
+      <td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,0.06);color:#cbd5e1;font-size:13px;">
+        ${escapeHtml(line.label)}
+        ${line.note ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;">${escapeHtml(line.note)}</div>` : ''}
+      </td>
+      <td style="padding:9px 10px;border-bottom:1px solid rgba(255,255,255,0.06);color:#ffffff;font-weight:700;font-size:13px;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',monospace,sans-serif;">
+        ${line.isCredit ? '&minus;' : ''}${fmtNgn(Math.abs(Number(line.amountNgn || 0)))}
+      </td>
+    </tr>
+  `).join('');
+
+  const bodyHtml = `
+    <div style="background:linear-gradient(135deg, rgba(16,185,129,0.16) 0%, rgba(5,150,105,0.08) 100%);border:1px solid rgba(16,185,129,0.45);border-radius:12px;padding:18px;margin:0 0 20px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+          <td>
+            <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#34d399;">
+              OFFICIAL PAYMENT RECEIPT · SHIFTRELAY
+            </div>
+            <div style="font-size:18px;font-weight:900;color:#ffffff;margin-top:4px;">
+              Powered by ${escapeHtml(COMPANY_LEGAL)}
+            </div>
+            <div style="font-size:11.5px;color:#cbd5e1;margin-top:2px;">
+              ${escapeHtml(COMPANY_RC)} · ${escapeHtml(HEADQUARTERS)}
+            </div>
+          </td>
+          <td align="right" valign="top">
+            <span style="display:inline-block;padding:6px 12px;border-radius:999px;background:#10b981;color:#03180f;font-size:11px;font-weight:900;letter-spacing:0.08em;">
+              PAID ✓
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="margin:0 0 16px;">
+      Thank you! We confirm receipt of <strong>${fmtNgn(totalPaidNgn)}</strong> from <strong>${escapeHtml(companyName)}</strong>. Your ShiftRelay subscription ledger has been updated automatically. Please retain this email as your official corporate payment receipt for audit and accounting records.
+    </p>
+
+    <div style="background-color:#060c18;border:1px solid #1e293b;border-radius:10px;padding:14px 16px;margin:0 0 18px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="4" border="0" style="font-size:12.5px;">
+        <tr>
+          <td style="color:#94a3b8;width:165px;">Receipt Number:</td>
+          <td style="color:#00f5a0;font-weight:800;font-family:'JetBrains Mono',monospace,sans-serif;">${escapeHtml(receiptNumber)}</td>
+        </tr>
+        <tr>
+          <td style="color:#94a3b8;">Invoice ID:</td>
+          <td style="color:#ffffff;font-family:'JetBrains Mono',monospace,sans-serif;">${escapeHtml(invoiceId)}</td>
+        </tr>
+        <tr>
+          <td style="color:#94a3b8;">Paystack Reference:</td>
+          <td style="color:#38bdf8;font-family:'JetBrains Mono',monospace,sans-serif;">${escapeHtml(paystackReference || invoiceId)}</td>
+        </tr>
+        <tr>
+          <td style="color:#94a3b8;">Billed Organisation:</td>
+          <td style="color:#ffffff;font-weight:700;">${escapeHtml(companyName)}${companyCode ? ` (${escapeHtml(companyCode)})` : ''}</td>
+        </tr>
+        <tr>
+          <td style="color:#94a3b8;">Plan &amp; Billing Type:</td>
+          <td style="color:#ffffff;">${escapeHtml(planLabel)} — ${escapeHtml(invoiceTypeLabel)}${cycleMonth ? ` (${escapeHtml(cycleMonth)})` : ''}</td>
+        </tr>
+        <tr>
+          <td style="color:#94a3b8;">Payment Channel:</td>
+          <td style="color:#ffffff;">${escapeHtml(paymentChannel)}</td>
+        </tr>
+        <tr>
+          <td style="color:#94a3b8;">Payment Confirmed:</td>
+          <td style="color:#ffffff;">${escapeHtml(paidDateWat)}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="background-color:#0d182b;border:1px solid #1e293b;border-radius:12px;overflow:hidden;margin:0 0 18px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <thead>
+          <tr style="background-color:#060c18;">
+            <th align="left" style="padding:10px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;">Paid Item</th>
+            <th align="right" style="padding:10px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;">Amount (NGN)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+          <tr style="background-color:#060c18;">
+            <td style="padding:12px 10px;font-size:14px;font-weight:800;color:#ffffff;">Total Paid (Balance Due: ₦0)</td>
+            <td style="padding:12px 10px;font-size:18px;font-weight:900;color:#34d399;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',monospace,sans-serif;">
+              ${fmtNgn(totalPaidNgn)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  return wrapEnterpriseEmail({
+    title: `Official Receipt ${receiptNumber} — ShiftRelay (${fmtNgn(totalPaidNgn)} Paid)`,
+    preheader: `Payment confirmed for ${companyName}: ${fmtNgn(totalPaidNgn)} · Official ShiftRelay Receipt powered by ${COMPANY_LEGAL}`,
+    recipientName,
+    deliveryReason: `Automated official payment receipt issued by ShiftRelay (Powered by ${COMPANY_LEGAL}) upon verified payment settlement.`,
+    bodyHtml,
+    primaryCtaText: loginPortalUrl ? 'Open ShiftRelay Workspace' : 'Visit ShiftRelay Platform',
+    primaryCtaUrl: loginPortalUrl || getEmailPlatformBaseUrl(),
+    secondaryNote: `For billing inquiries or corporate finance documentation, reply or email ${LEGAL_ENTITY.financeEmail}. Issued electronically by ${BRAND_NAME}, powered by ${COMPANY_LEGAL} (${COMPANY_RC}).`,
+    securityMetadata: {
+      'Receipt Number': receiptNumber,
+      'Paystack Reference': paystackReference || invoiceId,
+      'Settlement Status': 'PAID_AND_RECONCILED',
+      'Issuer': `ShiftRelay · Powered by ${COMPANY_LEGAL} (${COMPANY_RC})`
+    }
+  });
+}
+
 function escapeHtml(str) {
   if (typeof str !== 'string') return String(str ?? '');
   return str

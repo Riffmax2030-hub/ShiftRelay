@@ -1926,10 +1926,27 @@
                 </div>
               </div>
 
+              <div class="grid-2">
+                <div>
+                  <label class="lbl-sm">Subscription Plan Tier (Setup + Combined Monthly) *</label>
+                  <select id="ob-plan-tier" class="adm-select">
+                    <option value="startup" selected>Startup (1–50 workers · ₦100k Setup · ₦50k + ₦2,500/worker/mo)</option>
+                    <option value="business">Business (51–100 workers · ₦250k Setup · ₦100k + ₦2,500/worker/mo)</option>
+                    <option value="enterprise">Enterprise (101–500 workers · ₦750k Setup · ₦250k + ₦2,000/worker/mo)</option>
+                  </select>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; padding-top:18px;">
+                  <input type="checkbox" id="ob-send-payment-link" checked style="width:18px; height:18px; accent-color:var(--emerald); cursor:pointer;" />
+                  <label for="ob-send-payment-link" style="font-size:12.5px; color:var(--text-white); cursor:pointer; font-weight:600;">
+                    Auto-email secure Paystack Setup Payment Link to client
+                  </label>
+                </div>
+              </div>
+
               <div id="ob-attendance-policy-panel" style="margin:12px 0 16px; padding:12px 14px; border-radius:12px; background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.24); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
                 <div>
                   <div style="font-size:12.5px; font-weight:700; color:var(--text-white);">Auto-Applied Defaults: 10-Min Grace &bull; Sector Safety Checklists &bull; Watchdog Reminders</div>
-                  <div style="font-size:11.5px; color:var(--text-slate);">Customize grace rules, SMS/WhatsApp reminders, and shift checklists anytime in <strong>Tenants &amp; Roster &rarr; Edit</strong>.</div>
+                  <div style="font-size:11.5px; color:var(--text-slate);">Customize grace rules, email/push reminders, and shift checklists anytime in <strong>Tenants &amp; Roster &rarr; Edit</strong>.</div>
                 </div>
                 <select id="ob-grace-minutes" class="adm-select" style="width:auto; min-width:170px; margin:0;">
                   <option value="5">5 Min Grace</option>
@@ -4663,6 +4680,8 @@
         legalName: companyName,
         name: companyName,
         industry: document.getElementById('ob-industry').value,
+        planTier: document.getElementById('ob-plan-tier')?.value || 'startup',
+        sendOnboardingPaymentLink: Boolean(document.getElementById('ob-send-payment-link')?.checked),
         adminName: document.getElementById('ob-admin-name').value.trim(),
         adminEmail: document.getElementById('ob-admin-email').value.trim(),
         siteName: document.getElementById('ob-site-name').value.trim(),
@@ -4693,14 +4712,20 @@
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           from: 'onboarding@shiftrelayos.com',
           to: payload.adminEmail,
-          subject: `Welcome to ShiftRelay OS — Company ID & Owner OTP Setup for ${companyName}`,
+          subject: data.onboardingInvoice
+            ? `[${data.onboardingInvoice.invoiceId}] Welcome & Paystack Setup Payment Link (${formatNgn(data.onboardingInvoice.amountNgn)})`
+            : `Welcome to ShiftRelay OS — Company ID & Owner OTP Setup for ${companyName}`,
           source: 'Onboarding Wizard',
           status: 'DELIVERED'
         });
         document.getElementById('adm-onboard-form').reset();
+        const sendChk = document.getElementById('ob-send-payment-link');
+        if (sendChk) sendChk.checked = true;
         window.loadSectorSafetyDefaults('ob');
         await refreshAdminData();
-        showToast('Tenant provisioned with daily workplace safety checklists & routed to Owner Vault!');
+        showToast(data.onboardingInvoice
+          ? `Tenant provisioned (${data.companyId}) & secure Paystack Setup Link emailed (${formatNgn(data.onboardingInvoice.amountNgn)})!`
+          : 'Tenant provisioned with daily workplace safety checklists & routed to Owner Vault!');
         window.switchAdminView('tenants');
       } catch (err) {
         showToast('Error: ' + err.message);
@@ -5668,9 +5693,11 @@
         const tone = st === 'active_subscription' ? 'emerald' : (st === 'pilot_active' ? 'cyan' : (st === 'onboarding_pending' ? 'amber' : 'rose'));
         const inv = t.latestInvoice;
         const invHtml = inv
-          ? `<code>${escapeHtml(inv.invoiceId)}</code> <span class="chip ${inv.status === 'PAID' ? 'emerald' : 'amber'}" style="font-size:9.5px;">${escapeHtml(inv.status)}</span><div style="font-size:10px;color:var(--text-slate);">${escapeHtml(inv.invoiceType || 'MONTHLY')} • ${formatNgn(inv.amountNgn || 0)}</div>`
+          ? `<code>${escapeHtml(inv.invoiceId)}</code> <span class="chip ${inv.status === 'PAID' ? 'emerald' : 'amber'}" style="font-size:9.5px;">${escapeHtml(inv.status)}</span>
+             <div style="font-size:10px;color:var(--text-slate);">${escapeHtml(inv.invoiceType || 'MONTHLY')} • ${formatNgn(inv.amountNgn || 0)}</div>
+             ${inv.receiptNumber ? `<div style="font-size:10px;color:var(--emerald);">Receipt: <code>${escapeHtml(inv.receiptNumber)}</code></div>` : (inv.checkoutUrl ? `<div style="margin-top:3px;"><a href="${escapeHtml(inv.checkoutUrl)}" target="_blank" rel="noopener" style="font-size:10px;color:var(--sky);text-decoration:underline;">Open Paystack Link &rarr;</a></div>` : '')}`
           : '<span style="color:var(--text-slate);font-size:12px;">No invoice issued</span>';
-        const pilotNote = t.pilotPaid ? `<div style="font-size:10px;color:var(--emerald);">₦250k Pilot Credit Active → Net Onboarding: ${formatNgn(t.netOnboardingFeeNgn)}</div>` : `<div style="font-size:10px;color:var(--text-slate);">Onboarding: ${formatNgn(t.grossOnboardingFeeNgn)}</div>`;
+        const pilotNote = t.pilotPaid ? `<div style="font-size:10px;color:var(--emerald);">₦50k Pilot Credit Active → Net Setup: ${formatNgn(t.netOnboardingFeeNgn)}</div>` : `<div style="font-size:10px;color:var(--text-slate);">One-Time Setup: ${formatNgn(t.grossOnboardingFeeNgn)}</div>`;
         return `
           <tr>
             <td>
@@ -5678,20 +5705,20 @@
               <div style="font-size:11px;color:var(--text-slate);"><code>${escapeHtml(t.companyCode)}</code></div>
               ${isRoot ? `
                 <select class="adm-input" style="margin-top:6px;padding:4px 8px;font-size:11px;" onchange="window.changeTenantPlanTier('${escapeHtml(t.tenantId)}', this.value)">
-                  <option value="professional" ${t.planKey === 'professional' ? 'selected' : ''}>Professional (₦150k + ₦4.5k PEPM)</option>
-                  <option value="enterprise" ${t.planKey === 'enterprise' ? 'selected' : ''}>Enterprise (₦400k + ₦3.5k PEPM)</option>
-                  <option value="enterprise_plus" ${t.planKey === 'enterprise_plus' ? 'selected' : ''}>Enterprise Plus (₦750k + ₦2.5k PEPM)</option>
+                  <option value="startup" ${t.planKey === 'startup' ? 'selected' : ''}>Startup 1–50 (₦50k + ₦2.5k/worker · ₦100k Setup)</option>
+                  <option value="business" ${t.planKey === 'business' ? 'selected' : ''}>Business 51–100 (₦100k + ₦2.5k/worker · ₦250k Setup)</option>
+                  <option value="enterprise" ${t.planKey === 'enterprise' ? 'selected' : ''}>Enterprise 101–500 (₦250k + ₦2k/worker · ₦750k Setup)</option>
                 </select>
               ` : `<div style="font-size:11px;color:var(--emerald);">${escapeHtml(t.planLabel || t.planKey)}</div>`}
             </td>
             <td>
               <strong>${t.coreHeadcount}</strong> core (cap ${t.tierCap})
-              ${t.overageHeadcount > 0 ? `<div style="font-size:10.5px;color:var(--amber);">+${t.overageHeadcount} overage (₦3k)</div>` : ''}
-              ${t.seasonalSurgeHeadcount > 0 ? `<div style="font-size:10.5px;color:var(--sky);">+${t.seasonalSurgeHeadcount} surge &lt;90d (₦2.5k)</div>` : ''}
+              ${t.overageHeadcount > 0 ? `<div style="font-size:10.5px;color:var(--amber);">+${t.overageHeadcount} overage</div>` : ''}
+              ${t.seasonalSurgeHeadcount > 0 ? `<div style="font-size:10.5px;color:var(--sky);">+${t.seasonalSurgeHeadcount} surge &lt;90d</div>` : ''}
             </td>
             <td>
               <strong style="color:var(--amber);">${formatNgn(t.recurringMonthlyTotalNgn)}</strong>/mo
-              <div style="font-size:10.5px;color:var(--text-slate);">Base ${formatNgn(t.baseFeeNgn)} + ${t.cappedCoreHeadcount} &times; ${formatNgn(t.pepmRateNgn)}</div>
+              <div style="font-size:10.5px;color:var(--text-slate);">Maint. ${formatNgn(t.baseFeeNgn)} + ${t.cappedCoreHeadcount} &times; ${formatNgn(t.pepmRateNgn)}</div>
               ${pilotNote}
             </td>
             <td>${invHtml}</td>
@@ -5701,11 +5728,11 @@
             </td>
             <td>
               <div style="display:flex;gap:5px;flex-wrap:wrap;">
-                <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;" onclick="window.generateTenantPepmInvoice('${escapeHtml(t.tenantId)}','pilot')">Pilot ₦250k</button>
-                <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;" onclick="window.generateTenantPepmInvoice('${escapeHtml(t.tenantId)}','onboarding')">Onboarding</button>
-                <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;" onclick="window.generateTenantPepmInvoice('${escapeHtml(t.tenantId)}','monthly_recurring')">Monthly</button>
+                <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;" onclick="window.generateTenantPepmInvoice('${escapeHtml(t.tenantId)}','pilot')">Pilot ₦50k</button>
+                <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;" onclick="window.generateTenantPepmInvoice('${escapeHtml(t.tenantId)}','onboarding')">Email Setup Link</button>
+                <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;" onclick="window.generateTenantPepmInvoice('${escapeHtml(t.tenantId)}','monthly_recurring')">Email Monthly Link</button>
                 ${!t.onboardingCompleted ? `<button type="button" class="btn-emerald" style="padding:4px 8px;font-size:10.5px;" onclick="window.completeTenantOnboarding('${escapeHtml(t.tenantId)}')">Mark Go-Live</button>` : ''}
-                ${isRoot && inv && inv.status !== 'PAID' ? `<button type="button" class="btn-emerald" style="padding:4px 8px;font-size:10.5px;" onclick="window.updateTenantBillingStatus('${escapeHtml(t.tenantId)}',null,'${escapeHtml(inv.invoiceId)}')">Mark Paid</button>` : ''}
+                ${isRoot && inv && inv.status !== 'PAID' ? `<button type="button" class="btn-emerald" style="padding:4px 8px;font-size:10.5px;" onclick="window.updateTenantBillingStatus('${escapeHtml(t.tenantId)}',null,'${escapeHtml(inv.invoiceId)}')">Mark Paid + Receipt</button>` : ''}
                 ${isRoot ? `<button type="button" class="btn-ghost" style="padding:4px 8px;font-size:10.5px;color:${st === 'overdue_readonly' ? 'var(--emerald)' : 'var(--rose)'};" onclick="window.updateTenantBillingStatus('${escapeHtml(t.tenantId)}','${st === 'overdue_readonly' ? 'active_subscription' : 'overdue_readonly'}')">${st === 'overdue_readonly' ? 'Unlock' : 'Lock Read-Only'}</button>` : ''}
               </div>
             </td>

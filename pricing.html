@@ -153,6 +153,84 @@
       max-width: 820px;
     }
 
+    .estimator-card {
+      background: var(--surface);
+      border: 1px solid var(--border-emerald);
+      border-radius: 20px;
+      padding: 26px 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 28px rgba(5, 150, 105, 0.06);
+    }
+
+    .estimator-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .estimator-slider {
+      width: 100%;
+      accent-color: var(--em);
+      height: 8px;
+      cursor: pointer;
+      margin: 8px 0 18px;
+    }
+
+    .estimator-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .estimator-metric {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+
+    .estimator-metric.highlight {
+      background: rgba(5, 150, 105, 0.08);
+      border-color: var(--border-emerald);
+    }
+
+    .estimator-metric span {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--subtle);
+      margin-bottom: 4px;
+    }
+
+    .estimator-metric strong {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      color: var(--text);
+    }
+
+    .estimator-metric.highlight strong {
+      color: var(--em-deep);
+    }
+
+    .estimator-metric small {
+      display: block;
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    @media (max-width: 900px) {
+      .estimator-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .estimator-grid { grid-template-columns: 1fr; }
+    }
+
     .tiers-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -469,112 +547,149 @@
   <main class="container">
     <section class="hero-card">
       <span class="badge">Employer-Provisioned Multi-Tenant OS</span>
-      <h1>Enterprise Workforce &amp; Payroll Licensing</h1>
+      <h1>Simple, Scalable Workforce &amp; Payroll Pricing</h1>
       <p>
-        ShiftRelay (by <strong>Riffmax Technology Limited</strong>) operates strictly on an employer-provisioned enterprise deployment model. All fees are <strong>paid by the employer</strong> (never deducted from worker wages): a one-time <strong>48-hour Onboarding &amp; Site Blueprinting Fee</strong> at launch, followed by a recurring <strong>Monthly Base Fee + volume-discounted Per-Employee-Per-Month (PEPM)</strong> subscription after go-live.
+        ShiftRelay (powered by <strong>Riffmax Technology Limited</strong>) uses a transparent 2-part billing model — <strong>100% employer-paid (₦0 ever deducted from workers)</strong>: a <strong>One-Time Setup &amp; Deployment Fee</strong> to launch your company in 48 hours, followed by a single <strong>Combined Monthly Subscription</strong> (Monthly Maintenance Base + Active Workers &times; Per-Worker Rate) paid securely via <strong>Paystack</strong> with automated official receipts.
       </p>
     </section>
 
-    <section class="tiers-grid" aria-label="Enterprise Pricing Tiers">
-      <article class="tier-card">
+    <section class="tiers-grid" aria-label="ShiftRelay Pricing Tiers">
+      <article class="tier-card" id="tier-card-startup">
         <div>
-          <span class="tier-tag">Single-Site Operations</span>
-          <h2>Professional</h2>
-          <p class="tier-target">Light manufacturing, bakeries, packaging &amp; clinics (up to 150 workers)</p>
+          <span class="tier-tag">1 – 50 Workers</span>
+          <h2>Startup</h2>
+          <p class="tier-target">Growing teams, clinics, retail hubs, restaurants &amp; agile offices</p>
           <div class="price-block">
-            <div class="price-row">
-              <span>Monthly Base Fee</span>
-              <strong>₦150,000 / mo</strong>
-            </div>
-            <div class="price-row">
-              <span>Per-Worker Rate (PEPM)</span>
-              <strong>₦4,500 / worker</strong>
-            </div>
             <div class="price-row onboarding">
-              <span>One-Time Onboarding Fee</span>
-              <strong>₦750,000</strong>
-            </div>
-          </div>
-          <ul class="features-list">
-            <li>Isolated Company Code &amp; PostgreSQL tenant isolation</li>
-            <li>GPS Snapshot, Peer-Assisted Clock-In (Colleague QR + Live Face Match)</li>
-            <li>Premium Corporate Staff ID Cards issued for all onboarded staff &amp; executives</li>
-            <li>Automated Nigerian Statutory Engine (PAYE, PenCom 8%/10%, NHF, NSITF)</li>
-            <li>Business Hours Support (Mon–Sat, 4-hr WhatsApp &amp; Email SLA)</li>
-          </ul>
-        </div>
-        <a href="/website.html#demo-request-section" class="btn-tier">Request Professional Quote</a>
-      </article>
-
-      <article class="tier-card featured">
-        <div>
-          <span class="tier-tag">Core Industrial Beachhead</span>
-          <h2>Enterprise</h2>
-          <p class="tier-target">24/7 plants, FMCG bottling, logistics fleets &amp; hospitals (up to 500 workers)</p>
-          <div class="price-block">
-            <div class="price-row">
-              <span>Monthly Base Fee</span>
-              <strong>₦400,000 / mo</strong>
+              <span>One-Time Setup Fee</span>
+              <strong>₦100,000</strong>
             </div>
             <div class="price-row">
-              <span>Per-Worker Rate (PEPM)</span>
-              <strong>₦3,500 / worker</strong>
-            </div>
-            <div class="price-row onboarding">
-              <span>One-Time Onboarding Fee</span>
-              <strong>₦1,500,000</strong>
-            </div>
-          </div>
-          <ul class="features-list">
-            <li>Everything in Professional + WebAuthn biometric sign-in &amp; offline punch sync</li>
-            <li>3-Step Peer ID Scanner + Live Selfie vs. HR Passport verification</li>
-            <li>Month-End Banking CSV &amp; Payment Data Voucher printouts</li>
-            <li>24/7 Priority Hotline, Dedicated Account Manager &amp; auto statutory updates</li>
-          </ul>
-        </div>
-        <a href="/website.html#demo-request-section" class="btn-tier">Start 30-Day Pilot</a>
-      </article>
-
-      <article class="tier-card">
-        <div>
-          <span class="tier-tag">Multi-Plant Conglomerates</span>
-          <h2>Enterprise Plus</h2>
-          <p class="tier-target">Multi-site conglomerates, cement plants &amp; port terminals (up to 1,500 workers)</p>
-          <div class="price-block">
-            <div class="price-row">
-              <span>Monthly Base Fee</span>
-              <strong>₦750,000 / mo</strong>
+              <span>Monthly Maintenance</span>
+              <strong>₦50,000 / mo</strong>
             </div>
             <div class="price-row">
-              <span>Per-Worker Rate (PEPM)</span>
+              <span>Per-Worker Rate</span>
               <strong>₦2,500 / worker</strong>
             </div>
+          </div>
+          <ul class="features-list">
+            <li>Isolated Company Code &amp; multi-tenant PostgreSQL workspace</li>
+            <li>GPS Geofencing, Fingerprint Clock-In &amp; Peer-Assisted Face Scan</li>
+            <li>CR80 Digital &amp; Print-Ready Staff ID Cards with cryptographic QR</li>
+            <li>Automated Nigerian Statutory Engine (NTA 2025 PAYE, PenCom 8%/10%, NHF, NSITF)</li>
+            <li>Email &amp; Push attendance alerts + Business Hours Support</li>
+          </ul>
+        </div>
+        <a href="/website.html#demo-request-section" class="btn-tier">Start with Startup Plan</a>
+      </article>
+
+      <article class="tier-card featured" id="tier-card-business">
+        <div>
+          <span class="tier-tag">51 – 100 Workers · Most Popular</span>
+          <h2>Business</h2>
+          <p class="tier-target">Multi-shift factories, logistics depots, hotels &amp; regional hospitals</p>
+          <div class="price-block">
             <div class="price-row onboarding">
-              <span>One-Time Onboarding Fee</span>
-              <strong>₦3,000,000</strong>
+              <span>One-Time Setup Fee</span>
+              <strong>₦250,000</strong>
+            </div>
+            <div class="price-row">
+              <span>Monthly Maintenance</span>
+              <strong>₦100,000 / mo</strong>
+            </div>
+            <div class="price-row">
+              <span>Per-Worker Rate</span>
+              <strong>₦2,500 / worker</strong>
             </div>
           </div>
           <ul class="features-list">
-            <li>Multi-site perimeter command &amp; custom union CBA overtime rules</li>
-            <li>Custom ERP batch connectors (SAP / Oracle) &amp; forensic audit reports</li>
-            <li>Quarterly on-site forensic payroll compliance reviews</li>
-            <li>1-Hour Dedicated Critical SLA + On-Site Emergency Dispatch</li>
+            <li>Everything in Startup + WebAuthn biometric sign-in &amp; offline punch sync</li>
+            <li>3-Step Peer ID Scanner + Live Selfie vs. HR Passport verification</li>
+            <li>Drag-and-Drop Shift Calendar, Leave Workflow &amp; Handover Audits</li>
+            <li>Month-End Banking CSV (Paystack, GTBank, Zenith, Access) &amp; Payment Vouchers</li>
+            <li>Priority WhatsApp/Email SLA &amp; Dedicated Onboarding Engineer</li>
+          </ul>
+        </div>
+        <a href="/website.html#demo-request-section" class="btn-tier">Launch Business Plan</a>
+      </article>
+
+      <article class="tier-card" id="tier-card-enterprise">
+        <div>
+          <span class="tier-tag">101 – 500 Workers (500+ Custom)</span>
+          <h2>Enterprise</h2>
+          <p class="tier-target">24/7 industrial plants, FMCG bottling, security fleets &amp; port terminals</p>
+          <div class="price-block">
+            <div class="price-row onboarding">
+              <span>One-Time Setup Fee</span>
+              <strong>₦750,000</strong>
+            </div>
+            <div class="price-row">
+              <span>Monthly Maintenance</span>
+              <strong>₦250,000 / mo</strong>
+            </div>
+            <div class="price-row">
+              <span>Per-Worker Rate</span>
+              <strong>₦2,000 / worker</strong>
+            </div>
+          </div>
+          <ul class="features-list">
+            <li>Everything in Business + Multi-site perimeter command &amp; custom overtime rules</li>
+            <li>Lower per-worker volume rate (₦2,000/worker) across 101–500 active staff</li>
+            <li>Zero-Fee Earned Wage Access (0% interest) &amp; Prefunded Treasury Float Ledger</li>
+            <li>Custom ERP batch exports, forensic compliance reviews &amp; 24/7 Critical SLA</li>
+            <li>Need 500+ workers? Custom volume enterprise licensing available</li>
           </ul>
         </div>
         <a href="/website.html#demo-request-section" class="btn-tier">Contact Enterprise Sales</a>
       </article>
     </section>
 
+    <section class="estimator-card" aria-label="Interactive Monthly & Setup Cost Calculator">
+      <div class="estimator-top">
+        <div>
+          <span class="badge" style="margin-bottom:6px;">Live Combined Subscription Estimator</span>
+          <h2 style="font-size:20px;">Estimate Your Exact Monthly Total</h2>
+        </div>
+        <div style="font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:var(--em-deep);">
+          <span id="est-workers-display">50</span> Active Workers &rarr; <span id="est-tier-badge">Startup</span>
+        </div>
+      </div>
+      <input type="range" id="est-workers-slider" class="estimator-slider" min="5" max="500" step="5" value="50" aria-label="Active Worker Headcount" />
+      <div class="estimator-grid">
+        <div class="estimator-metric">
+          <span>One-Time Setup Fee</span>
+          <strong id="est-setup-fee">₦100,000</strong>
+          <small>Paid once at onboarding via Paystack</small>
+        </div>
+        <div class="estimator-metric">
+          <span>Monthly Maintenance</span>
+          <strong id="est-base-fee">₦50,000</strong>
+          <small>Platform hosting, updates &amp; support</small>
+        </div>
+        <div class="estimator-metric">
+          <span>Headcount Fee</span>
+          <strong id="est-pepm-fee">₦125,000</strong>
+          <small id="est-pepm-formula">50 workers &times; ₦2,500/mo</small>
+        </div>
+        <div class="estimator-metric highlight">
+          <span>Combined Monthly Total</span>
+          <strong id="est-monthly-total">₦175,000 / mo</strong>
+          <small>Single itemized invoice · ₦0 to workers</small>
+        </div>
+      </div>
+    </section>
+
     <section class="pilot-banner">
       <div>
-        <h3>Eliminate Payroll Leakage &amp; Boost Shift Retention — ₦250,000 30-Day Pilot</h3>
+        <h3>Test Risk-Free First — ₦50,000 30-Day Sandbox Pilot</h3>
         <p>
-          Test ShiftRelay live on up to 50 workers for 30 days. Convert to a full contract and <strong>100% (₦250,000) is credited straight toward your onboarding fee</strong> — and recurring monthly billing never starts until your Go-Live is signed off.
+          Run ShiftRelay live on up to 50 workers for 30 days. Convert to any full plan and <strong>100% (₦50,000) is credited straight toward your One-Time Setup Fee</strong> — and your Combined Monthly Subscription never starts until Go-Live is confirmed.
         </p>
       </div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <a href="/calculator.html" class="pill" style="padding:12px 18px; border-radius:10px;">Launch PAYE &amp; ROI Calculator</a>
-        <a href="/website.html#demo-request-section" class="btn-cta">Start ₦250k 30-Day Pilot &rarr;</a>
+        <a href="/website.html#demo-request-section" class="btn-cta">Start ₦50k 30-Day Pilot &rarr;</a>
       </div>
     </section>
 
@@ -598,13 +713,13 @@
         </div>
         <div class="deliverable-item">
           <h3>Headcount Elasticity Without Tier Penalties</h3>
-          <p>Seasonal/casual surge staff (&lt;90 days) are billed at just <strong>₦2,500 / worker / month</strong> with zero forced tier upgrades, and all Nigeria Tax Act (NTA) 2025 / statutory updates deploy automatically at zero extra charge.</p>
+          <p>Seasonal/casual surge staff (&lt;90 days) are billed at discounted surge rates (<strong>₦2,000/worker</strong> on Startup &amp; Business, <strong>₦1,800/worker</strong> on Enterprise) with zero forced tier upgrades, and all Nigeria Tax Act (NTA) 2025 statutory updates deploy automatically at zero extra charge.</p>
         </div>
       </div>
     </section>
 
     <section class="section-card">
-      <h2>What the One-Time Onboarding &amp; Setup Fee Covers (48-Hour Go-Live)</h2>
+      <h2>What the One-Time Setup &amp; Deployment Fee Covers (48-Hour Go-Live)</h2>
       <p>
         Unlike legacy biometric hardware vendors requiring ₦2.5M–₦4.5M in turnstiles and 8-week lead times, ShiftRelay Engineers deliver a complete operational launch in 48 hours:
       </p>
@@ -615,33 +730,33 @@
         </div>
         <div class="deliverable-item">
           <h3>2. Employee Roster &amp; Historical Data Migration</h3>
-          <p>Sanitization, de-duplication, and CSV bulk import of staff profiles, shift bands, department codes, and PenCom RSA PINs, plus SMS/WhatsApp activation tokens and automated emails via <code>mail.shiftrelayos.com</code>.</p>
+          <p>Sanitization, de-duplication, and CSV bulk import of staff profiles, shift bands, department codes, and PenCom RSA PINs, plus automated welcome emails and push activation tokens.</p>
         </div>
         <div class="deliverable-item">
           <h3>3. Statutory Payroll Engine Calibration</h3>
           <p>Configuration of plant overtime multipliers (1.25x–2.0x) and validation of state-of-residence NTA 2025 PAYE tables (e.g., LIRS, FCT-IRS, OGIRS), verified Rent Relief (20% up to ₦500k/yr), PenCom BHT (8%/10%), NHF (2.5%), NSITF (1%), and ITF (1%).</p>
         </div>
         <div class="deliverable-item">
-          <h3>4. On-Site Plant &amp; Supervisor Training</h3>
-          <p>2-day hands-on training for Shift Supervisors, Plant Engineers, and Security Gate Commanders, plus frontline worker orientation on WebAuthn biometric login and offline punch buffering.</p>
+          <h3>4. Paystack Billing &amp; Automated Official Receipts</h3>
+          <p>Onboarded companies receive a secure Paystack payment link via email (supporting Nigerian Bank Transfer, Corporate/Debit Cards &amp; USSD). Instant payment confirmation activates your workspace and emails an official <strong>ShiftRelay (Powered by Riffmax Technology Limited)</strong> payment receipt.</p>
         </div>
       </div>
     </section>
 
     <section class="section-card">
-      <h2>Headcount Elasticity &amp; Seasonal Surge Pricing</h2>
-      <p>Your core platform base tier never shifts upward due to temporary peak-season hiring.</p>
+      <h2>How Billing &amp; Headcount Elasticity Work</h2>
+      <p>Your core platform tier never jumps unexpectedly due to temporary peak-season hiring.</p>
       <ul class="features-list" style="margin-bottom:0;">
-        <li><strong>Employer-Paid Billing Cycle:</strong> The one-time onboarding fee covers initial site deployment; recurring monthly Base + PEPM invoices are billed to the company after go-live (workers never pay).</li>
-        <li><strong>Seasonal / Casual Surge Rate (&lt;90 days):</strong> Temporary peak-quarter staff are billed strictly at <strong>₦2,500 / worker / month</strong> with zero base fee increase.</li>
-        <li><strong>Enterprise Overage Elasticity:</strong> Additional permanent workers above tier limits on Enterprise plans are billed at <strong>₦3,000 / worker / month</strong>.</li>
+        <li><strong>Employer-Paid Billing Cycle:</strong> The One-Time Setup Fee covers initial 48-hour deployment; your Combined Monthly Subscription (Monthly Maintenance Base + Active Headcount &times; Per-Worker Fee) starts only after Go-Live (workers never pay).</li>
+        <li><strong>Automatic Paystack Receipts:</strong> Every setup and monthly invoice includes an instant Paystack checkout link and generates an automated official <strong>ShiftRelay · Powered by Riffmax Technology Limited</strong> receipt on confirmation.</li>
+        <li><strong>Seasonal / Casual Surge Rate (&lt;90 days):</strong> Temporary peak-season staff are billed at <strong>₦2,000 / worker</strong> (Startup &amp; Business) or <strong>₦1,800 / worker</strong> (Enterprise) with zero base fee increase.</li>
         <li><strong>Zero-Cost Statutory Updates:</strong> All Nigeria Tax Act (NTA) 2025, PenCom PRA 2014, NHF, NSITF, and Labour Act legislative amendments are deployed automatically platform-wide at zero extra charge.</li>
       </ul>
     </section>
 
     <footer class="legal-footer">
       <div>
-        <strong>&copy; 2026 Riffmax Technology Limited (shiftrelayos.com)</strong> &middot; Enterprise Workforce &amp; Payroll OS
+        <strong>&copy; 2026 ShiftRelay · Powered by Riffmax Technology Limited (shiftrelayos.com)</strong> &middot; Enterprise Workforce &amp; Payroll OS
       </div>
       <div class="footer-links">
         <a href="/calculator.html">PAYE Calculator</a>
@@ -652,5 +767,35 @@
       </div>
     </footer>
   </main>
+  <script>
+    (function () {
+      var slider = document.getElementById('est-workers-slider');
+      if (!slider) return;
+      var fmt = function (n) { return '₦' + Math.round(n).toLocaleString('en-NG'); };
+      function updateEstimator() {
+        var workers = Math.max(1, parseInt(slider.value, 10) || 50);
+        var tier = workers <= 50
+          ? { key: 'startup', label: 'Startup (1–50)', setup: 100000, base: 50000, pepm: 2500 }
+          : (workers <= 100
+            ? { key: 'business', label: 'Business (51–100)', setup: 250000, base: 100000, pepm: 2500 }
+            : { key: 'enterprise', label: 'Enterprise (101–500)', setup: 750000, base: 250000, pepm: 2000 });
+        var pepmTotal = workers * tier.pepm;
+        var monthlyTotal = tier.base + pepmTotal;
+        document.getElementById('est-workers-display').textContent = workers;
+        document.getElementById('est-tier-badge').textContent = tier.label;
+        document.getElementById('est-setup-fee').textContent = fmt(tier.setup);
+        document.getElementById('est-base-fee').textContent = fmt(tier.base);
+        document.getElementById('est-pepm-fee').textContent = fmt(pepmTotal);
+        document.getElementById('est-pepm-formula').textContent = workers + ' workers × ' + fmt(tier.pepm) + '/mo';
+        document.getElementById('est-monthly-total').textContent = fmt(monthlyTotal) + ' / mo';
+        ['startup', 'business', 'enterprise'].forEach(function (k) {
+          var card = document.getElementById('tier-card-' + k);
+          if (card) card.classList.toggle('featured', k === tier.key);
+        });
+      }
+      slider.addEventListener('input', updateEstimator);
+      updateEstimator();
+    })();
+  </script>
 </body>
 </html>
