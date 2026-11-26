@@ -5209,7 +5209,8 @@
     a.download = filename;
     document.body.appendChild(a);
     a.click();
-    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 150);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
   // ── Calendar Sync Engine (.ics RFC 5545 & Google Calendar Web) ──────────────
@@ -8755,13 +8756,9 @@
         idModal.addEventListener('click', (e) => { if (e.target === idModal) idModal.remove(); });
         idModal.querySelector('#sr-print-ids-now-btn')?.addEventListener('click', () => window.print());
         idModal.querySelector('#sr-export-id-csv-btn')?.addEventListener('click', () => {
-          const csvText = csvRows.map(r => r.join(',')).join('\n');
-          const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = `${companyCode}-print-shop-id-cards.csv`;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+          const csvText = '\uFEFF' + csvRows.map(r => r.join(',')).join('\n');
+          downloadFile(csvText, `${companyCode}-print-shop-id-cards.csv`, 'text/csv;charset=utf-8;');
+          showToast('Exported Print-Shop Staff ID CSV.', 'success');
         });
       });
 
@@ -10132,21 +10129,61 @@
       avatarInput?.click();
     });
 
+    function compressAvatarImageFile(file, maxDim = 512, quality = 0.82) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Could not read image file.'));
+        reader.onload = () => {
+          const rawUrl = String(reader.result || '');
+          const img = new Image();
+          img.onerror = () => resolve(rawUrl);
+          img.onload = () => {
+            try {
+              let w = img.naturalWidth || img.width || maxDim;
+              let h = img.naturalHeight || img.height || maxDim;
+              if (w > maxDim || h > maxDim) {
+                const ratio = Math.min(maxDim / w, maxDim / h);
+                w = Math.max(1, Math.round(w * ratio));
+                h = Math.max(1, Math.round(h * ratio));
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return resolve(rawUrl);
+              ctx.drawImage(img, 0, 0, w, h);
+              const compressed = canvas.toDataURL('image/jpeg', quality);
+              resolve(compressed && compressed.length < rawUrl.length ? compressed : rawUrl);
+            } catch (_) {
+              resolve(rawUrl);
+            }
+          };
+          img.src = rawUrl;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
     avatarInput?.addEventListener('change', async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      if (!/^image\//i.test(file.type || '')) {
+        showToast('Please select a valid image file (PNG, JPEG, or WebP).', 'error');
+        return;
+      }
 
-      const reader = new FileReader();
-      reader.onload = async (loadEvt) => {
-        const dataUrl = loadEvt.target?.result;
-        if (!dataUrl) return;
+      const tapZone = document.getElementById('sr-me-avatar-tap-zone');
+      const prevMarkup = tapZone ? tapZone.innerHTML : '';
 
-        // Immediate visual update on the page: replace initials completely with the uploaded photo
-        const tapZone = document.getElementById('sr-me-avatar-tap-zone');
+      try {
+        showToast('Saving profile picture...', 'info');
+        const compressedDataUrl = await compressAvatarImageFile(file, 512, 0.82);
+
+        // Immediate visual update while persisting to PostgreSQL + profile store
         if (tapZone) {
           tapZone.innerHTML = '';
           const img = document.createElement('img');
-          img.src = dataUrl;
+          img.src = compressedDataUrl;
           img.className = 'sr-cv-avatar-img';
           img.id = 'sr-me-avatar-display';
           img.alt = user.name || 'User Avatar';
@@ -10154,43 +10191,49 @@
           tapZone.appendChild(img);
         }
 
-        try {
-          // Attempt POST to /api/upload
-          let savedUrl = dataUrl;
-          try {
-            const upRes = await fetch('/api/upload', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ dataUrl })
-            });
-            if (upRes.ok) {
-              const upJson = await upRes.json();
-              if (upJson.url) savedUrl = upJson.url;
-            }
-          } catch (upErr) {
-            console.warn('Upload endpoint unavailable, saving directly to profile:', upErr);
-          }
-
-          // Save to worker profile
-          const saveRes = await fetch('/api/worker-profile', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ avatarUrl: savedUrl })
-          });
-          if (saveRes.ok) {
-            const avRes = await recordStarActivity(50, 'Profile Avatar Uploaded', 'lifetime_milestone_avatar');
-            if (!avRes.alreadyAwarded) {
-              showToast('Profile picture updated (+50 PTS first-time bonus!)', 'success');
-            } else {
-              showToast('Profile picture updated successfully.', 'success');
-            }
-          }
-        } catch (err) {
-          console.error('Failed to save profile picture:', err);
-          showToast('Could not save photo: ' + err.message, 'error');
+        // Persist durable base64 avatar directly into PostgreSQL portal_users + workerProfiles (never ephemeral /uploads disk)
+        const saveRes = await fetch('/api/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatarDataUrl: compressedDataUrl })
+        });
+        const saveJson = await saveRes.json().catch(() => ({}));
+        if (!saveRes.ok) {
+          throw new Error(saveJson.error || `Server rejected photo (HTTP ${saveRes.status})`);
         }
-      };
-      reader.readAsDataURL(file);
+        const persistedAvatar = saveJson.avatarDataUrl || compressedDataUrl;
+
+        // Sync across live session memory & localStorage so avatar persists immediately and across reloads/sign-out
+        user.avatar_data_url = persistedAvatar;
+        profile.avatarUrl = persistedAvatar;
+        if (window._srActiveUser) window._srActiveUser.avatar_data_url = persistedAvatar;
+        if (window._srState?.user) window._srState.user.avatar_data_url = persistedAvatar;
+        try {
+          const cachedRaw = localStorage.getItem('shiftrelay-user-data');
+          if (cachedRaw) {
+            const cachedObj = JSON.parse(cachedRaw);
+            cachedObj.avatar_data_url = persistedAvatar;
+            localStorage.setItem('shiftrelay-user-data', JSON.stringify(cachedObj));
+          }
+        } catch (_) {}
+        const ha = document.getElementById('header-avatar');
+        if (ha) {
+          ha.innerHTML = `<img src="${persistedAvatar}" alt="${escapeHtml(user.name || 'User')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+        }
+
+        const avRes = await recordStarActivity(50, 'Profile Avatar Uploaded', 'lifetime_milestone_avatar');
+        if (!avRes.alreadyAwarded) {
+          showToast('Profile picture saved permanently (+50 PTS first-time bonus!)', 'success');
+        } else {
+          showToast('Profile picture saved permanently.', 'success');
+        }
+      } catch (err) {
+        if (tapZone && prevMarkup) tapZone.innerHTML = prevMarkup;
+        console.error('Failed to save profile picture:', err);
+        showToast('Could not save photo: ' + (err?.message || 'Upload failed'), 'error');
+      } finally {
+        try { avatarInput.value = ''; } catch (_) {}
+      }
     });
 
     // ── Bind Edit CV Modal ──────────────────────────────────────────────────
@@ -15975,6 +16018,17 @@
       const gb = e.target.value || '';
       if (taxLink) taxLink.href = `/api/payroll/export-tax-csv?month=${encodeURIComponent(currentMonth)}${gb ? '&groupBy=' + encodeURIComponent(gb) : ''}`;
     });
+    const wireNativeCsvDownload = (el, fallbackName) => {
+      el?.addEventListener('click', (evt) => {
+        if (window.ShiftRelayMobile?.isNative?.()) {
+          evt.preventDefault();
+          const href = el.getAttribute('href');
+          if (href) window.ShiftRelayMobile.downloadReport(href, fallbackName);
+        }
+      });
+    };
+    wireNativeCsvDownload(bankCsvLink, `ShiftRelay-Bank-Transfer-${currentMonth}.csv`);
+    wireNativeCsvDownload(document.getElementById('sr-btn-export-tax-csv'), `ShiftRelay-Statutory-Tax-${currentMonth}.csv`);
     refreshBankExportReadiness();
 
     document.getElementById('sr-btn-payroll-attendance-sheet')?.addEventListener('click', () => {
@@ -18050,13 +18104,12 @@
         ``,
         `CONFIDENTIAL — SHIFTRELAY ENTERPRISE HCM — INTERNAL USE ONLY`,
       ];
-      const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ShiftRelay-Audit-Brief-${tenant.companyId}-${(tenant.reportPeriod || '').replace(/\s/g, '-')}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadFile(
+        lines.join('\n'),
+        `ShiftRelay-Audit-Brief-${tenant.companyId}-${(tenant.reportPeriod || 'current').replace(/\s+/g, '-')}.txt`,
+        'text/plain;charset=utf-8'
+      );
+      showToast('Executive audit brief downloaded.', 'success');
     });
   }
   window.renderExecutiveAnalytics = renderExecutiveAnalytics;

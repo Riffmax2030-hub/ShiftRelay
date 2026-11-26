@@ -26,25 +26,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-    <link rel="preload" href="sr-premium.css?v=218" as="style" />
-    <link rel="preload" href="phase1-shell.js?v=218" as="script" />
-    <link rel="stylesheet" href="styles.css?v=218" />
-    <link rel="stylesheet" href="theme.css?v=218" />
-    <link rel="stylesheet" href="bento-ui.css?v=218" />
-    <link rel="stylesheet" href="dark-mode.css?v=218" />
-    <link rel="stylesheet" href="splash.css?v=218" />
-    <link rel="stylesheet" href="offline-queue.css?v=218" />
-    <link rel="stylesheet" href="me-profile.css?v=218" />
-    <link rel="stylesheet" href="phase1-shell.css?v=218" />
-    <link rel="stylesheet" href="sr-premium.css?v=218" />
+    <link rel="preload" href="sr-premium.css?v=219" as="style" />
+    <link rel="preload" href="phase1-shell.js?v=219" as="script" />
+    <link rel="stylesheet" href="styles.css?v=219" />
+    <link rel="stylesheet" href="theme.css?v=219" />
+    <link rel="stylesheet" href="bento-ui.css?v=219" />
+    <link rel="stylesheet" href="dark-mode.css?v=219" />
+    <link rel="stylesheet" href="splash.css?v=219" />
+    <link rel="stylesheet" href="offline-queue.css?v=219" />
+    <link rel="stylesheet" href="me-profile.css?v=219" />
+    <link rel="stylesheet" href="phase1-shell.css?v=219" />
+    <link rel="stylesheet" href="sr-premium.css?v=219" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v218' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v219' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v218');
+              localStorage.setItem('sr_restored_build', 'v219');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { Promise.resolve(r.update()).catch(function() {}); });
@@ -442,7 +442,7 @@
     <script type="module" src="qr-svg-generator.js?v=212"></script>
     <script src="attendance-exceptions-ui.js?v=212" defer></script>
     <script src="/vendor/read-excel-file.min.js" defer></script>
-    <script src="phase1-shell.js?v=218" defer></script>
+    <script src="phase1-shell.js?v=219" defer></script>
     <script src="splash.js?v=212" defer></script>
     <script src="notifications.js?v=212" defer></script>
     <script src="profile.js?v=212" defer></script>
@@ -453,7 +453,7 @@
     <script src="community-experience.js?v=212" defer></script>
     <script src="team-realtime.js?v=212" defer></script>
     <script src="frontline-social.js?v=212" defer></script>
-    <script src="me-profile.js?v=212" defer></script>
+    <script src="me-profile.js?v=219" defer></script>
     <script src="navigation-fix.js?v=212" defer></script>
     <script src="offline-queue.js?v=212" defer></script>
     <script src="signature-pad.js?v=212" defer></script>
@@ -470,7 +470,7 @@
     <script src="push-notifications.js?v=212" defer></script>
     <script src="facility-switcher.js?v=212" defer></script>
     <script src="emergency-broadcast.js?v=212" defer></script>
-    <script>if('serviceWorker' in navigator){var srHadSw=Boolean(navigator.serviceWorker.controller);var srSwRefreshed=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!srHadSw||srSwRefreshed)return;if(sessionStorage.getItem('sr_sw_reloaded_v218'))return;srSwRefreshed=true;sessionStorage.setItem('sr_sw_reloaded_v218','1');window.location.reload();});navigator.serviceWorker.register('/service-worker.js?v=218',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(){});}</script>
+    <script>if('serviceWorker' in navigator){var srHadSw=Boolean(navigator.serviceWorker.controller);var srSwRefreshed=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!srHadSw||srSwRefreshed)return;if(sessionStorage.getItem('sr_sw_reloaded_v219'))return;srSwRefreshed=true;sessionStorage.setItem('sr_sw_reloaded_v219','1');window.location.reload();});navigator.serviceWorker.register('/service-worker.js?v=219',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(){});}</script>
   </body>
 </html>
 

@@ -2454,9 +2454,6 @@
                 <h2>Automated Newsletter &amp; Statutory Brief Control Center</h2>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <a href="/api/admin/newsletter/subscribers.csv" download="shiftrelay_newsletter_subscribers.csv" class="btn-ghost" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
-                  Export Subscribers CSV
-                </a>
                 <button type="button" class="btn-ghost" onclick="window.refreshNewsletterAdminPanel()">Refresh Live Data</button>
               </div>
             </div>
@@ -4298,42 +4295,16 @@
       }
     };
 
-    window.downloadClientDataBundle = async function (tenantId, type) {
-      const tenant = (cachedTenants || []).find(t => String(t.id) === String(tenantId));
-      if (!tenant) return showToast('Client not found.');
-      const code = String(tenant.companyId || tenant.organisation_code || 'CLIENT').replace(/[^a-zA-Z0-9_-]/g, '_');
-      const saveFile = (filename, content, mime) => {
-        const blob = new Blob([content], { type: mime });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 15000);
-      };
-      if (type === 'company') {
-        saveFile(`${code}-company-profile.json`, JSON.stringify(tenant, null, 2), 'application/json');
-        return showToast(`Downloaded ${code} company profile.`);
-      }
-      if (type === 'payroll') {
-        const rows = [['Company','Code','Plan','BillingStatus','StaffCount','MonthlyEstimateNGN']];
-        rows.push([tenant.tradingName || tenant.legalName || '', code, tenant.planTier || tenant.plan || 'Enterprise', tenant.subscriptionStatus || 'ACTIVE', tenant.employeeCount ?? 0, tenant.monthlyFeeNgn ?? tenant.monthlyTotalNgn ?? 0]);
-        saveFile(`${code}-payroll-summary.csv`, rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'), 'text/csv');
-        return showToast(`Downloaded ${code} payroll sheet.`);
-      }
-      if (type === 'attendance') {
-        try {
-          const data = await admFetch(`/api/admin/tenants/${encodeURIComponent(tenantId)}/roster`);
-          const members = data?.roster || data?.members || [];
-          const rows = [['StaffID','FullName','Email','Role','Department','ShiftStart','ShiftEnd','Status']];
-          members.forEach(m => rows.push([m.staff_code || m.staffId || '', m.full_name || m.name || '', m.email || '', m.role || '', m.department || '', m.shift_start || '', m.shift_end || '', m.status || 'active']));
-          saveFile(`${code}-attendance-roster.csv`, rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'), 'text/csv');
-          return showToast(`Downloaded ${code} attendance sheet.`);
-        } catch (err) {
-          return showToast(err.message || 'Could not export attendance sheet.');
-        }
-      }
+    window.triggerAdminBlobDownload = function (content, filename, mimeType = 'text/csv;charset=utf-8;') {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
     };
 
     let cachedTierMetrics = null;
@@ -4573,10 +4544,7 @@
                 <div style="grid-column:1/-1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><span style="color:var(--text-slate);">Owner:</span> <a href="mailto:${escapeHtml(adminEmail)}" style="color:#38bdf8; text-decoration:none;">${escapeHtml(adminEmail)}</a></div>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:auto;">
-                <button type="button" class="btn-ghost" style="padding:7px 11px; font-size:11.5px;" onclick="window.downloadClientDataBundle('${escapeHtml(t.id)}','company')">Company Data</button>
-                <button type="button" class="btn-ghost" style="padding:7px 11px; font-size:11.5px;" onclick="window.downloadClientDataBundle('${escapeHtml(t.id)}','payroll')">Payroll Sheet</button>
-                <button type="button" class="btn-ghost" style="padding:7px 11px; font-size:11.5px;" onclick="window.downloadClientDataBundle('${escapeHtml(t.id)}','attendance')">Attendance Sheet</button>
-                <button type="button" class="btn-emerald" style="padding:7px 11px; font-size:11.5px; margin-left:auto;" onclick="window.openEditTenantModal('${escapeHtml(t.id)}')">Edit</button>
+                <button type="button" class="btn-emerald" style="padding:7px 14px; font-size:11.5px; margin-left:auto;" onclick="window.openEditTenantModal('${escapeHtml(t.id)}')">Edit Client</button>
               </div>
             </div>
           `;
@@ -5852,11 +5820,7 @@
           r.openExCount
         ].join(','));
       });
-      const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `ShiftRelay_OS_Statutory_Schedule_${monthLabel}.csv`;
-      a.click();
+      window.triggerAdminBlobDownload('\uFEFF' + csvLines.join('\n'), `ShiftRelay_OS_Statutory_Schedule_${monthLabel}.csv`, 'text/csv;charset=utf-8;');
       showToast(`Downloaded live Statutory PenCom & PAYE CSV (${monthLabel}).`);
     };
 
@@ -5867,11 +5831,7 @@
         const res = await admFetch(`/api/admin/payroll-nip-export?month=${encodeURIComponent(month)}&format=paystack`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not generate Bank NIP CSV');
-        const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8;' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = data.filename || `ShiftRelay_NIP_Bank_Transfer_${month}.csv`;
-        a.click();
+        window.triggerAdminBlobDownload('\uFEFF' + (data.csv || ''), data.filename || `ShiftRelay_NIP_Bank_Transfer_${month}.csv`, 'text/csv;charset=utf-8;');
         showToast(`Downloaded Bank NIP Transfer CSV (${data.rowCount} staff • ${formatNgn(data.totalNetNgn)} Net).`);
       } catch (err) {
         showToast('Bank NIP export error: ' + err.message);
@@ -6353,7 +6313,7 @@
           <td><strong>${escapeHtml(l.companyName)}</strong></td>
           <td>${escapeHtml(l.fullName)}</td>
           <td><div>${escapeHtml(l.workEmail)}</div><div style="font-size:11.5px; color:var(--text-slate);">${escapeHtml(l.phone || '')}</div></td>
-          <td><span class="chip cyan">${escapeHtml(l.headcount || '50-200')} • ${escapeHtml(l.industry || 'Enterprise')}</span></td>
+          <td><span class="chip cyan">${escapeHtml(l.headcount || '21-50 (Business)')} • ${escapeHtml(l.industry || 'Enterprise')}</span></td>
           <td><button type="button" class="btn-emerald" style="padding:5px 10px; font-size:11.5px;" onclick="window.convertLeadToOnboarding(${idx})">Convert to Onboarding →</button></td>
         </tr>
       `).join('');
@@ -6365,6 +6325,20 @@
       document.getElementById('ob-company-name').value = l.companyName || '';
       document.getElementById('ob-admin-name').value = l.fullName || '';
       document.getElementById('ob-admin-email').value = l.workEmail || '';
+      const hcRaw = String(l.headcount || '');
+      const hcMap = [
+        { re: /1\s*[-–]\s*20|startup/i, count: 15 },
+        { re: /21\s*[-–]\s*50|business/i, count: 35 },
+        { re: /51\s*[-–]\s*100|enterprise/i, count: 75 },
+        { re: /101\s*[-–]\s*200|corporate/i, count: 150 },
+        { re: /201\+|mega|500|2000/i, count: 250 }
+      ];
+      const matched = hcMap.find(m => m.re.test(hcRaw));
+      const workerCountEl = document.getElementById('ob-worker-count');
+      if (workerCountEl && matched) {
+        workerCountEl.value = String(matched.count);
+        if (typeof window.syncManualOnboardingTier === 'function') window.syncManualOnboardingTier(matched.count);
+      }
       window.switchAdminView('onboarding');
       showToast('Pre-filled Onboarding Wizard with lead: ' + l.companyName);
     };
@@ -7047,12 +7021,8 @@
 
       document.getElementById('sp-dl-csv-btn').onclick = () => {
         const rows = sheetMap[activeSheet] || [];
-        const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = title.replace(/\.[^.]+$/, '') + '.csv';
-        a.click();
+        const csv = '\uFEFF' + rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+        window.triggerAdminBlobDownload(csv, title.replace(/\.[^.]+$/, '') + '.csv', 'text/csv;charset=utf-8;');
       };
 
       document.getElementById('sp-dl-xlsx-btn').onclick = async () => {
@@ -7521,9 +7491,6 @@
             <button type="button" class="btn-ghost" onclick="window.openSpreadsheetPreviewModal({ title: '${escapeHtml(comp.companyName)} Roster', csvText: staffRowsToCsv(obAgentDrafts['${draftId}'].parsed.rows) })">
               Preview Sheet / .XLSX
             </button>
-            <button type="button" class="btn-ghost" onclick="window.downloadObDraftAuditCsv('${draftId}')">
-              Download Audit / Error Log CSV
-            </button>
           </div>
         `;
       }
@@ -7609,23 +7576,6 @@
       }
       const tbody = document.getElementById(`${draftId}-tbody`);
       if (tbody) tbody.innerHTML = window.buildObDraftRowsHtml(draftId);
-    };
-
-    window.downloadObDraftAuditCsv = function (draftId) {
-      const draft = obAgentDrafts[draftId];
-      if (!draft || !draft.parsed?.rows?.length) return showToast('No rows in draft.');
-      const header = 'staff_id,full_name,email,phone_e164,department,site_name,role,pay_basis,base_rate_ngn,pencom_rsa_pin,bank_name,cbn_bank_code,nuban_account_number,tin,audit_status';
-      const lines = draft.parsed.rows.map(r => [
-        r.staff_id, r.full_name, r.email, r.phone_e164, r.department, r.site_name,
-        r.role, r.pay_basis, r.base_rate_ngn, r.pencom_rsa_pin, r.bank_name,
-        r.cbn_bank_code, r.nuban_account_number, r.tin, r._status || 'OK'
-      ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
-      const blob = new Blob([[header, ...lines].join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `ShiftRelay_Onboarding_Audit_${draftId}.csv`;
-      a.click();
-      showToast('Downloaded Pre-Import Audit & Validation CSV.');
     };
 
     window.downloadDayforceXlsxTemplate = async function () {

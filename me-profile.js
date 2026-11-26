@@ -760,14 +760,25 @@ async function renderMeProfile(targetUserId) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ avatarDataUrl: compressedDataUrl }),
           });
-          state.user.avatar_data_url = result.avatarDataUrl || compressedDataUrl;
+          const persisted = result.avatarDataUrl || compressedDataUrl;
+          state.user.avatar_data_url = persisted;
+          if (window._srActiveUser) window._srActiveUser.avatar_data_url = persisted;
+          if (window._srState?.user) window._srState.user.avatar_data_url = persisted;
+          try {
+            const raw = localStorage.getItem('shiftrelay-user-data');
+            if (raw) {
+              const obj = JSON.parse(raw);
+              obj.avatar_data_url = persisted;
+              localStorage.setItem('shiftrelay-user-data', JSON.stringify(obj));
+            }
+          } catch (_) {}
 
           // Update header avatar instantly
           const ha = document.getElementById('header-avatar');
           if (ha) {
-            ha.innerHTML = `<img src="${compressedDataUrl}" alt="${escape(state.user.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+            ha.innerHTML = `<img src="${persisted}" alt="${escape(state.user.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
           }
-          toast('Profile photo updated.');
+          toast('Profile photo saved permanently.');
           renderMeProfile(targetUserId);
         } catch (err) {
           toast(err.message || 'Photo upload failed.');

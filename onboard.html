@@ -823,12 +823,16 @@
       };
 
       window.downloadSampleCsv = function () {
-        const csv = 'Full Name,Work Email,Phone,Role,Department,Monthly Salary NGN,Bank Name,Account Number\nAmina Bello,amina@company.com,+2348031112222,Shift Operator,Operations,180000,GTBank,0123456789\nTunde Adeyemi,tunde@company.com,+2348093334444,Supervisor,Logistics,280000,Access Bank,0987654321\n';
+        const csv = '\uFEFFFull Name,Work Email,Phone,Role,Department,Monthly Salary NGN,Bank Name,Account Number\nAmina Bello,amina@company.com,+2348031112222,Shift Operator,Operations,180000,GTBank,0123456789\nTunde Adeyemi,tunde@company.com,+2348093334444,Supervisor,Logistics,280000,Access Bank,0987654321\n';
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        a.href = url;
         a.download = 'ShiftRelay-Staff-Roster-Template.csv';
+        document.body.appendChild(a);
         a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
       };
 
       document.getElementById('s3-csv-input')?.addEventListener('change', (ev) => {

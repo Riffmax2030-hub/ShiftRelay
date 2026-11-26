@@ -109,7 +109,7 @@ import { createServer } from 'node:http';
 import { createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
-import { createReadStream, readFileSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync } from 'node:fs';
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib';
 import { basename, extname, join, normalize, resolve } from 'node:path';
 import { databaseConfigured, demoMembers, demoOrganisation, getPool, initializeDatabase, isDatabaseConnectionError, sanitizeDatabaseError, query, seedDemoOrganisation, DEFAULT_DEMO_MEMBER_PASSWORD_HASH } from './database.mjs';
@@ -1116,10 +1116,12 @@ function enrichUserWithOrganisation(userObj, store) {
   const cardFields = buildSessionStaffCardFields(companyId, staffId, store);
   const geo = resolveOrgGeofenceConfig(matchedOrg || {}, profile);
   const wp = store?.workerProfiles?.[userObj.id] || store?.workerProfiles?.[userObj.user_id] || {};
+  const wpAlt = (userObj.user_id && store?.workerProfiles?.[userObj.user_id]) || {};
   const dailyChecklists = resolveOrgDailyChecklists(matchedOrg || {}, store);
   const attendancePolicy = getEffectiveAttendancePolicy(matchedOrg || {});
   const memberRecord = (store?.memberships || []).find(m => m.id === userObj.id || m.user_id === userObj.user_id) || {};
-  const userRecord = (store?.portalUsers || []).find(u => u.id === (userObj.user_id || userObj.id)) || {};
+  const userRecord = (store?.portalUsers || []).find(u => u.id === (userObj.user_id || userObj.id) || (userObj.email && u.email?.toLowerCase() === userObj.email.toLowerCase())) || {};
+  const resolvedAvatar = pickBestAvatar(userObj.avatar_data_url, userRecord.avatar_data_url, wp.avatarUrl, wpAlt.avatarUrl);
   const policyAcknowledgedVersion =
     userObj.policy_acknowledged_version ||
     memberRecord.policy_acknowledged_version ||
@@ -1135,7 +1137,7 @@ function enrichUserWithOrganisation(userObj, store) {
     company_name: legalName,
     company_id: companyId,
     staffId,
-    avatar_data_url: userObj.avatar_data_url || wp.avatarUrl || null,
+    avatar_data_url: resolvedAvatar,
     ...cardFields,
     hub_name: userObj.hub_name || geo.hubName,
     hub_lat: geo.hubLat,
@@ -1149,6 +1151,55 @@ function enrichUserWithOrganisation(userObj, store) {
     policyAcknowledgedVersion,
     policyRequiresAck: Boolean(policyAcknowledgedVersion !== attendancePolicy.policyVersion)
   };
+}
+
+function pickBestAvatar(...candidates) {
+  let fallbackUrl = null;
+  for (const raw of candidates) {
+    if (typeof raw !== 'string') continue;
+    const val = raw.trim();
+    if (!val) continue;
+    if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(val)) return val;
+    if (/^https?:\/\//i.test(val)) {
+      if (!fallbackUrl) fallbackUrl = val;
+      continue;
+    }
+    if (val.startsWith('/uploads/')) {
+      const diskPath = resolve(publicDirectory, val.replace(/^\/+/, ''));
+      if (existsSync(diskPath) && !fallbackUrl) fallbackUrl = val;
+    }
+  }
+  return fallbackUrl;
+}
+
+async function persistUserAvatarEverywhere(store, user, avatar) {
+  if (!avatar || typeof avatar !== 'string') return;
+  if (!store.workerProfiles) store.workerProfiles = {};
+  const keys = Array.from(new Set([user.id, user.user_id].filter(Boolean)));
+  for (const key of keys) {
+    const prev = store.workerProfiles[key] || { userId: key, fullName: user.name || '' };
+    store.workerProfiles[key] = { ...prev, avatarUrl: avatar };
+  }
+  const pu = (store.portalUsers || []).find((u) =>
+    u.id === user.user_id || u.id === user.id || (user.email && u.email?.toLowerCase() === user.email.toLowerCase())
+  );
+  if (pu) pu.avatar_data_url = avatar;
+  user.avatar_data_url = avatar;
+  await saveStore(store);
+
+  if (databaseReady) {
+    try {
+      const upd = await query(
+        'update portal_users set avatar_data_url = $1 where id = coalesce($2, (select user_id from memberships where id = $3)) or lower(email) = lower($4)',
+        [avatar, user.user_id || null, user.id, user.email || '']
+      );
+      if (!upd.rowCount && user.id) {
+        await query('update portal_users set avatar_data_url = $1 where id = $2', [avatar, user.id]);
+      }
+    } catch (dbErr) {
+      console.warn('Could not update avatar in database, preserved in store:', dbErr.message);
+    }
+  }
 }
 
 async function getUser(request) {
@@ -1173,7 +1224,7 @@ async function getUser(request) {
           const ackVer = row.policy_acknowledged_version || row.user_policy_ack_version || null;
           return {
             ...row,
-            avatar_data_url: row.avatar_data_url || storeForSecret?.workerProfiles?.[row.id]?.avatarUrl || storeForSecret?.workerProfiles?.[row.user_id]?.avatarUrl || null,
+            avatar_data_url: pickBestAvatar(row.avatar_data_url, storeForSecret?.workerProfiles?.[row.id]?.avatarUrl, storeForSecret?.workerProfiles?.[row.user_id]?.avatarUrl),
             staffId,
             ...cardFields,
             hub_name: geo.hubName,
@@ -1878,8 +1929,8 @@ async function signIn(body) {
       const staffId = member.staff_code || ('SR-' + String(member.user_id || member.id).slice(-4).toUpperCase());
       const storeForSecret = await loadSigningStoreForAuth();
       const cardFields = buildSessionStaffCardFields(org.organisation_code, staffId, storeForSecret);
-      const wpAvatar = storeForSecret?.workerProfiles?.[member.id]?.avatarUrl || storeForSecret?.workerProfiles?.[member.user_id]?.avatarUrl || null;
-      return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, user_id: member.user_id, staffId, ...cardFields, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: member.avatar_data_url || wpAvatar, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name, company_name: member.company_name, company_id: org.organisation_code, hub_name: geo.hubName, hub_lat: geo.hubLat, hub_lng: geo.hubLng, hub_perimeter: geo.perimeterMeters, industry: member.industry || dbProfile.label, industryKey: dbProfile.key, industryProfile: dbProfile } };
+      const resolvedSignInAvatar = pickBestAvatar(member.avatar_data_url, storeForSecret?.workerProfiles?.[member.id]?.avatarUrl, storeForSecret?.workerProfiles?.[member.user_id]?.avatarUrl);
+      return { sessionId: await createSession(member.user_id, member.id), user: { id: member.id, user_id: member.user_id, staffId, ...cardFields, name: member.name, email: member.email, role: member.role, title: member.title, department: member.department, avatar_data_url: resolvedSignInAvatar, time_zone: member.time_zone, country_code: member.country_code, shift_start: member.shift_start, shift_end: member.shift_end, shift_days: member.shift_days, organisation_id: member.organisation_id, organisation_name: member.organisation_name, company_name: member.company_name, company_id: org.organisation_code, hub_name: geo.hubName, hub_lat: geo.hubLat, hub_lng: geo.hubLng, hub_perimeter: geo.perimeterMeters, industry: member.industry || dbProfile.label, industryKey: dbProfile.key, industryProfile: dbProfile } };
     } catch (dbErr) {
       if (ALLOW_DEV_FALLBACK && isDatabaseConnectionError(dbErr)) {
         console.warn('[AUTH FALLBACK] DB connection error during signIn; falling back to local credentials:', dbErr.message);
@@ -6375,26 +6426,9 @@ async function handleApi(request, response, url) {
     await saveStore(store);
 
     if (avatar) {
-      user.avatar_data_url = avatar;
-      if (user.user_id && store.workerProfiles[user.user_id]) store.workerProfiles[user.user_id].avatarUrl = avatar;
-      const pu = (store.portalUsers || []).find((u) => u.id === (user.user_id || user.id) || (user.email && u.email?.toLowerCase() === user.email.toLowerCase()));
-      if (pu) pu.avatar_data_url = avatar;
-      await saveStore(store);
-      if (databaseReady) {
-        try {
-          const upd = await query(
-            'update portal_users set avatar_data_url = $1 where id = coalesce($2, (select user_id from memberships where id = $3)) or lower(email) = lower($4)',
-            [avatar, user.user_id || null, user.id, user.email || '']
-          );
-          if (!upd.rowCount && user.id) {
-            await query('update portal_users set avatar_data_url = $1 where id = $2', [avatar, user.id]);
-          }
-        } catch (dbErr) {
-          console.warn('Could not update avatar in database, preserved in store:', dbErr.message);
-        }
-      }
+      await persistUserAvatarEverywhere(store, user, avatar);
     }
-    return sendJson(response, 200, { avatarDataUrl: avatar, profile: store.workerProfiles[user.id] });
+    return sendJson(response, 200, { ok: true, avatarDataUrl: avatar || store.workerProfiles[user.id]?.avatarUrl || null, profile: store.workerProfiles[user.id] });
   }
 
   // Executive Self-Serve: Add New Staff & Assign Department (+ optional HR Reference Passport)
@@ -15613,6 +15647,16 @@ async function getUserRewards(user, store) {
     const orgName = orgSettings.trading_name || orgSettings.legal_name || user.organisation_name || 'ShiftRelay Global';
     const targetProfile = store.workerProfiles[targetId];
     if (targetProfile) {
+      const isSelfReq = targetId === user.id || targetId === user.user_id;
+      const altProfile = isSelfReq ? (store.workerProfiles[user.user_id] || store.workerProfiles[user.id] || {}) : {};
+      const bestAvatar = pickBestAvatar(
+        targetProfile.avatarUrl,
+        altProfile.avatarUrl,
+        isSelfReq ? user.avatar_data_url : null
+      );
+      if (bestAvatar && targetProfile.avatarUrl !== bestAvatar) {
+        targetProfile.avatarUrl = bestAvatar;
+      }
       targetProfile.employerAvatarUrl = orgLogo;
       targetProfile.organisationName = orgName;
       targetProfile.organisationCode = user.company_id || '246701';
@@ -15622,9 +15666,14 @@ async function getUserRewards(user, store) {
 
   if (url.pathname === '/api/worker-profile' && request.method === 'PUT') {
     const body = await readJson(request);
+    const incomingAvatar = body.avatarDataUrl !== undefined ? body.avatarDataUrl : body.avatarUrl;
+    if (incomingAvatar && typeof incomingAvatar === 'string' && incomingAvatar.startsWith('data:') && (!/^data:image\/(png|jpe?g|webp);base64,/i.test(incomingAvatar) || incomingAvatar.length > 7_000_000)) {
+      return sendJson(response, 400, { error: 'Please choose an image file (PNG, JPEG, WebP) under 5 MB.' });
+    }
     const store = await getStore();
     if (!store.workerProfiles) store.workerProfiles = {};
-    const existing = store.workerProfiles[user.id] || {};
+    const existing = store.workerProfiles[user.id] || store.workerProfiles[user.user_id] || {};
+    const nextAvatar = incomingAvatar !== undefined ? incomingAvatar : (existing.avatarUrl || user.avatar_data_url || null);
     store.workerProfiles[user.id] = {
       ...existing,
       userId: user.id,
@@ -15638,13 +15687,17 @@ async function getUserRewards(user, store) {
       workHistory: Array.isArray(body.workHistory) ? body.workHistory : existing.workHistory || [],
       experience: Array.isArray(body.experience) ? body.experience : existing.experience || [],
       education: Array.isArray(body.education) ? body.education : existing.education || [],
-      avatarUrl: body.avatarUrl !== undefined ? body.avatarUrl : existing.avatarUrl || null,
+      avatarUrl: nextAvatar,
       coverPhotoUrl: body.coverPhotoUrl !== undefined ? body.coverPhotoUrl : existing.coverPhotoUrl || null,
       linkedInUrl: body.linkedInUrl !== undefined ? body.linkedInUrl : existing.linkedInUrl || '',
       githubUrl: body.githubUrl !== undefined ? body.githubUrl : existing.githubUrl || '',
       workEmail: body.workEmail !== undefined ? body.workEmail : existing.workEmail || ''
     };
     await saveStore(store);
+
+    if (incomingAvatar) {
+      await persistUserAvatarEverywhere(store, user, incomingAvatar);
+    }
 
     // If currentJob was provided, reflect it on the live user session
     if (body.currentJob && typeof body.currentJob === 'object') {
@@ -15655,7 +15708,7 @@ async function getUserRewards(user, store) {
       if (body.currentJob.workingDays) user.shift_days = body.currentJob.workingDays;
     }
 
-    return sendJson(response, 200, { profile: store.workerProfiles[user.id] });
+    return sendJson(response, 200, { ok: true, avatarDataUrl: nextAvatar, profile: store.workerProfiles[user.id] });
   }
 
   // -- Profile CV, Experience, Skills, Certifications, Education & Password Persistence --
