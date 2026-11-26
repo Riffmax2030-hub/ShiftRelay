@@ -1600,8 +1600,8 @@
                 <div class="sub" id="owner-vault-arr-sub">ARR Run-Rate: ₦0 / yr</div>
               </div>
               <div class="kpi-tile">
-                <div class="lbl">TIERED BASE + PEPM</div>
-                <div class="val" id="owner-vault-pepm">₦2.5k–₦4.5k</div>
+                <div class="lbl">5-TIER BASE + PEPM</div>
+                <div class="val" id="owner-vault-pepm">₦1.75k–₦2.5k</div>
                 <div class="sub" id="owner-vault-pepm-sub">Employer-Paid Only • ₦0 Worker Fee</div>
               </div>
               <div class="kpi-tile">
@@ -1646,13 +1646,14 @@
             <div class="panel-card" style="border-color:rgba(16,185,129,0.28);">
               <div class="panel-head">
                 <div>
-                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">SAAS BILLING &amp; LIFECYCLE</span>
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--emerald);">5-TIER SAAS BILLING &amp; CLIENT METRICS</span>
                   <h2>Tenant Tiered Billing &amp; Invoices</h2>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                   <button type="button" class="btn-ghost" onclick="window.loadAdminBillingAndDisbursals(true)">Refresh Billing &amp; Float</button>
                 </div>
               </div>
+              <div id="owner-tier-metrics-strip" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:14px;"></div>
               <div class="table-scroll">
                 <table class="adm-table">
                   <thead>
@@ -1770,8 +1771,51 @@
           </div>
         </section>
 
-        <!-- VIEW 3: SETUP ENGINE (AI ONBOARDING AGENT) -->
+        <!-- VIEW 3: SETUP ENGINE (AI ONBOARDING AGENT & 3-STAGE CLIENT PIPELINE) -->
         <section class="adm-view" id="view-onboarding">
+          <div id="ob-pipeline-card" class="panel-card" style="margin-bottom:16px; border-color:rgba(16,185,129,0.32);">
+            <div class="panel-head" style="gap:12px; flex-wrap:wrap;">
+              <div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--emerald);">3-STAGE CLIENT ONBOARDING PIPELINE</span>
+                <h2>Intake Form &rarr; Paystack Setup Payment &rarr; Staff Roster Unlock</h2>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="btn-emerald" style="padding:7px 12px; font-size:12px;" onclick="window.copyOnboardingIntakeUrl()">Copy Shareable Form Link</button>
+                <a href="/onboard.html" target="_blank" rel="noopener" class="btn-ghost" style="padding:7px 12px; font-size:12px; text-decoration:none;">Preview Form &rarr;</a>
+                <button type="button" class="btn-ghost" style="padding:7px 11px; font-size:12px;" onclick="window.loadAdminOnboardingPipeline(true)">Refresh</button>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1.2fr 1.2fr auto; gap:10px; align-items:end; padding:12px 14px; border-radius:12px; background:var(--bg-input); border:1px solid var(--border-hairline); margin-bottom:14px;">
+              <div>
+                <label class="lbl-sm" style="margin-bottom:4px;">Prospect Company Name</label>
+                <input type="text" id="ob-invite-company" class="adm-input" style="margin:0;" placeholder="e.g. Prime Logistics Ltd" />
+              </div>
+              <div>
+                <label class="lbl-sm" style="margin-bottom:4px;">Prospect Executive / HR Email</label>
+                <input type="email" id="ob-invite-email" class="adm-input" style="margin:0;" placeholder="finance@company.com" />
+              </div>
+              <button type="button" id="ob-invite-send-btn" class="btn-emerald" style="padding:9px 14px; white-space:nowrap;" onclick="window.sendOnboardingIntakeInvite()">Email Intake Link &rarr;</button>
+            </div>
+
+            <div class="table-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Company &amp; Contact</th>
+                    <th>Workers &amp; Tier Group</th>
+                    <th>Setup / Est. Monthly</th>
+                    <th>Pipeline Stage</th>
+                    <th>Next Admin Action</th>
+                  </tr>
+                </thead>
+                <tbody id="ob-pipeline-tbody">
+                  <tr><td colspan="5" style="text-align:center; color:var(--text-slate); padding:16px;">Loading client onboarding pipeline...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div id="ob-agent-panel" class="ob-agent-shell">
             <div class="ob-agent-head">
               <div style="display:flex; align-items:center; gap:10px;">
@@ -1928,19 +1972,25 @@
 
               <div class="grid-2">
                 <div>
-                  <label class="lbl-sm">Subscription Plan Tier (Setup + Combined Monthly) *</label>
+                  <label class="lbl-sm">Estimated Company Workers (Auto-Selects Tier) *</label>
+                  <input type="number" id="ob-worker-count" class="adm-input" min="1" max="10000" value="20" oninput="window.syncManualOnboardingTier(this.value)" />
+                </div>
+                <div>
+                  <label class="lbl-sm">5-Tier Subscription Plan (Setup + Combined Monthly) *</label>
                   <select id="ob-plan-tier" class="adm-select">
-                    <option value="startup" selected>Startup (1–50 workers · ₦100k Setup · ₦50k + ₦2,500/worker/mo)</option>
-                    <option value="business">Business (51–100 workers · ₦250k Setup · ₦100k + ₦2,500/worker/mo)</option>
-                    <option value="enterprise">Enterprise (101–500 workers · ₦750k Setup · ₦250k + ₦2,000/worker/mo)</option>
+                    <option value="startup" selected>Startup (1–20 workers · ₦75k Setup · ₦30k + ₦2,500/worker)</option>
+                    <option value="business">Business (21–50 workers · ₦150k Setup · ₦60k + ₦2,500/worker)</option>
+                    <option value="enterprise">Enterprise (51–100 workers · ₦300k Setup · ₦120k + ₦2,250/worker)</option>
+                    <option value="corporate">Corporate (101–200 workers · ₦550k Setup · ₦200k + ₦2,000/worker)</option>
+                    <option value="mega">Mega (201+ workers · ₦1M Setup · ₦350k + ₦1,750/worker)</option>
                   </select>
                 </div>
-                <div style="display:flex; align-items:center; gap:10px; padding-top:18px;">
-                  <input type="checkbox" id="ob-send-payment-link" checked style="width:18px; height:18px; accent-color:var(--emerald); cursor:pointer;" />
-                  <label for="ob-send-payment-link" style="font-size:12.5px; color:var(--text-white); cursor:pointer; font-weight:600;">
-                    Auto-email secure Paystack Setup Payment Link to client
-                  </label>
-                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; margin:0 0 12px;">
+                <input type="checkbox" id="ob-send-payment-link" checked style="width:18px; height:18px; accent-color:var(--emerald); cursor:pointer;" />
+                <label for="ob-send-payment-link" style="font-size:12.5px; color:var(--text-white); cursor:pointer; font-weight:600;">
+                  Auto-email secure Paystack Setup Payment Link to client upon provisioning
+                </label>
               </div>
 
               <div id="ob-attendance-policy-panel" style="margin:12px 0 16px; padding:12px 14px; border-radius:12px; background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.24); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
@@ -1972,13 +2022,15 @@
           <div class="panel-card">
             <div class="panel-head" style="gap:12px; flex-wrap:wrap;">
               <div>
-                <h2>ShiftRelay Clients</h2>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--emerald);">5-TIER CLIENT PORTFOLIO METRICS</span>
+                <h2>ShiftRelay Clients by Plan Tier</h2>
               </div>
               <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                 <input type="search" id="adm-clients-search" class="adm-input" style="margin-bottom:0; min-width:220px;" placeholder="Filter client or code..." oninput="window.renderTenantsTable?.()" />
                 <button type="button" class="btn-emerald" id="ten-new-ent-btn" onclick="window.switchAdminView('onboarding')">+ New Client</button>
               </div>
             </div>
+            <div id="adm-tier-metrics-strip" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-top:14px;"></div>
             <div id="adm-clients-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px; margin-top:14px;"></div>
             <div class="table-scroll" style="display:none;">
               <table class="adm-table"><tbody id="adm-tenants-tbody"></tbody></table>
@@ -3942,6 +3994,7 @@
       window.loadAdminSystemFiles();
       window.loadAdminIntegrations();
       window.loadAdminBillingAndDisbursals();
+      window.loadAdminOnboardingPipeline?.();
 
       const monthInput = document.getElementById('adm-finance-month');
       if (monthInput && !monthInput.value) {
@@ -4002,6 +4055,7 @@
         if (tenRes && tenRes.ok) {
           const td = await tenRes.json();
           cachedTenants = td.tenants || [];
+          cachedTierMetrics = td.tierMetrics || cachedTierMetrics;
           renderTenantsTable();
         }
         if (leadRes && leadRes.ok) {
@@ -4232,9 +4286,196 @@
       }
     };
 
+    let cachedTierMetrics = null;
+    let cachedOnboardingPipeline = { applications: [], shareableIntakeUrl: `${window.location.origin}/onboard.html` };
+    let activeClientTierFilter = 'all';
+    let activeBillingTierFilter = 'all';
+
+    window.syncManualOnboardingTier = function (val) {
+      const n = Math.max(1, parseInt(val, 10) || 1);
+      const sel = document.getElementById('ob-plan-tier');
+      if (!sel) return;
+      sel.value = n <= 20 ? 'startup' : (n <= 50 ? 'business' : (n <= 100 ? 'enterprise' : (n <= 200 ? 'corporate' : 'mega')));
+    };
+
+    window.setClientTierFilter = function (tierKey) {
+      activeClientTierFilter = tierKey || 'all';
+      renderTenantsTable();
+    };
+
+    window.setBillingTierFilter = function (tierKey) {
+      activeBillingTierFilter = tierKey || 'all';
+      renderOwnerBillingTable();
+    };
+
+    function renderTierMetricsStrip(containerId, tierMetrics, activeFilter, clickHandlerName) {
+      const host = document.getElementById(containerId);
+      if (!host) return;
+      const tiers = tierMetrics?.tiers || [
+        { key: 'startup', label: 'Startup', workerBand: '1–20', clientCount: 0, totalWorkers: 0, projectedMrrNgn: 0 },
+        { key: 'business', label: 'Business', workerBand: '21–50', clientCount: 0, totalWorkers: 0, projectedMrrNgn: 0 },
+        { key: 'enterprise', label: 'Enterprise', workerBand: '51–100', clientCount: 0, totalWorkers: 0, projectedMrrNgn: 0 },
+        { key: 'corporate', label: 'Corporate', workerBand: '101–200', clientCount: 0, totalWorkers: 0, projectedMrrNgn: 0 },
+        { key: 'mega', label: 'Mega', workerBand: '201+', clientCount: 0, totalWorkers: 0, projectedMrrNgn: 0 }
+      ];
+      const totalClients = Number(tierMetrics?.totalClients ?? tiers.reduce((s, t) => s + Number(t.clientCount || 0), 0));
+      const allActive = activeFilter === 'all';
+      const allCard = `
+        <button type="button" onclick="window.${clickHandlerName}('all')" style="text-align:left; cursor:pointer; padding:12px 14px; border-radius:12px; border:1px solid ${allActive ? 'var(--emerald)' : 'var(--border-hairline)'}; background:${allActive ? 'rgba(16,185,129,0.12)' : 'var(--bg-input)'}; color:var(--text-white);">
+          <div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--emerald); text-transform:uppercase;">ALL 5 TIERS</div>
+          <div style="font-size:20px; font-weight:800; margin-top:2px;">${totalClients} <span style="font-size:11.5px; font-weight:600; color:var(--text-slate);">Clients</span></div>
+          <div style="font-size:10.5px; color:var(--text-slate); margin-top:2px;">Click any tier to filter</div>
+        </button>`;
+      const cards = tiers.map(t => {
+        const isOn = activeFilter === t.key;
+        const mrr = Number(t.projectedMrrNgn || t.monthlyMrrNgn || 0);
+        return `
+          <button type="button" onclick="window.${clickHandlerName}('${escapeHtml(t.key)}')" style="text-align:left; cursor:pointer; padding:12px 14px; border-radius:12px; border:1px solid ${isOn ? 'var(--emerald)' : 'var(--border-hairline)'}; background:${isOn ? 'rgba(16,185,129,0.12)' : 'var(--bg-input)'}; color:var(--text-white);">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+              <span style="font-size:11px; font-weight:800; color:${isOn ? 'var(--emerald)' : 'var(--sky)'}; text-transform:uppercase;">${escapeHtml(t.label)}</span>
+              <span style="font-size:10px; color:var(--text-slate); font-family:'JetBrains Mono',monospace;">${escapeHtml(String(t.workerBand || '').replace(' workers', ''))}</span>
+            </div>
+            <div style="font-size:20px; font-weight:800; margin-top:2px;">${Number(t.clientCount || 0)} <span style="font-size:11px; font-weight:600; color:var(--text-slate);">(${Number(t.totalWorkers || 0)} staff)</span></div>
+            <div style="font-size:10.5px; color:var(--amber); margin-top:2px;">${formatNgn(mrr)}/mo</div>
+          </button>`;
+      }).join('');
+      host.innerHTML = allCard + cards;
+    }
+
+    window.loadAdminOnboardingPipeline = async function (notify) {
+      if (!currentAdminUser || !['owner_root', 'onboarding_admin', 'finance_admin'].includes(currentAdminRole)) return;
+      try {
+        const res = await admFetch('/api/admin/onboarding/applications');
+        if (!res.ok) return;
+        const data = await res.json();
+        cachedOnboardingPipeline = data;
+        if (data.tierMetrics) cachedTierMetrics = data.tierMetrics;
+        renderOnboardingPipelineTable();
+        if (notify) showToast('Onboarding pipeline refreshed.');
+      } catch (_) {}
+    };
+
+    function renderOnboardingPipelineTable() {
+      const tbody = document.getElementById('ob-pipeline-tbody');
+      if (!tbody) return;
+      const apps = cachedOnboardingPipeline?.applications || [];
+      if (!apps.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-slate); padding:16px;">No company intake submissions yet. Copy or email the shareable onboarding form link above to your next prospect!</td></tr>';
+        return;
+      }
+      tbody.innerHTML = apps.map(a => {
+        const st = a.status || 'INTAKE_SUBMITTED';
+        const tone = st === 'LIVE' ? 'emerald' : (st === 'ROSTER_SUBMITTED' || st === 'PAID_AWAITING_ROSTER' ? 'cyan' : (st === 'PAYMENT_LINK_SENT' ? 'amber' : 'slate'));
+        const trackingUrl = `${window.location.origin}/onboard.html?token=${encodeURIComponent(a.token)}`;
+        let actionBtns = '';
+        if (st === 'INTAKE_SUBMITTED') {
+          actionBtns = `<button type="button" class="btn-emerald" style="padding:5px 10px;font-size:11px;" onclick="window.sendAppPaystackLink('${escapeHtml(a.id)}')">Send Secure Paystack Link</button>`;
+        } else if (st === 'PAYMENT_LINK_SENT') {
+          actionBtns = `
+            <a href="${escapeHtml(a.checkoutUrl || '#')}" target="_blank" rel="noopener" class="btn-ghost" style="padding:5px 9px;font-size:11px;text-decoration:none;">Paystack Link</a>
+            <button type="button" class="btn-ghost" style="padding:5px 9px;font-size:11px;" onclick="window.sendAppPaystackLink('${escapeHtml(a.id)}')">Resend</button>
+            ${a.tenantId && a.invoiceId ? `<button type="button" class="btn-emerald" style="padding:5px 9px;font-size:11px;" onclick="window.markAppPaidManual('${escapeHtml(a.tenantId)}','${escapeHtml(a.invoiceId)}')">Mark Paid + Unlock</button>` : ''}`;
+        } else if (st === 'PAID_AWAITING_ROSTER') {
+          actionBtns = `<button type="button" class="btn-ghost" style="padding:5px 9px;font-size:11px;" onclick="navigator.clipboard?.writeText('${escapeHtml(trackingUrl)}');showToast('Copied Step-3 Staff Roster link!');">Copy Roster Link</button>`;
+        } else if (st === 'ROSTER_SUBMITTED') {
+          actionBtns = `<button type="button" class="btn-emerald" style="padding:5px 10px;font-size:11px;" onclick="window.importAppRoster('${escapeHtml(a.id)}')">Import ${Number(a.rosterCount || 0)} Staff &amp; Go Live</button>`;
+        } else {
+          actionBtns = `<span class="chip emerald" style="font-size:10px;">LIVE (${Number(a.importedStaffCount || a.rosterCount || 0)} Staff)</span>`;
+        }
+        return `
+          <tr>
+            <td>
+              <strong>${escapeHtml(a.companyName)}</strong>
+              <div style="font-size:11px;color:var(--text-slate);">${escapeHtml(a.contactName)} &bull; ${escapeHtml(a.contactEmail)}</div>
+              ${a.companyCode ? `<code style="font-size:10.5px;color:var(--emerald);">${escapeHtml(a.companyCode)}</code>` : ''}
+            </td>
+            <td>
+              <strong>${Number(a.workerCount || 0)} workers</strong>
+              <div><span class="chip cyan" style="font-size:10px;margin-top:3px;">${escapeHtml(a.planLabel)} (${escapeHtml(a.workerBand || '')})</span></div>
+            </td>
+            <td>
+              <strong style="color:var(--emerald);">${formatNgn(a.setupFeeNgn)}</strong> <span style="font-size:10.5px;color:var(--text-slate);">setup</span>
+              <div style="font-size:11px;color:var(--amber);">${formatNgn(a.estimatedMonthlyTotalNgn)}/mo est.</div>
+            </td>
+            <td>
+              <span class="chip ${tone}" style="font-size:10px;">${escapeHtml(st.replace(/_/g, ' '))}</span>
+              ${a.receiptNumber ? `<div style="font-size:10px;color:var(--emerald);margin-top:3px;">Receipt: <code>${escapeHtml(a.receiptNumber)}</code></div>` : ''}
+            </td>
+            <td><div style="display:flex;gap:6px;flex-wrap:wrap;">${actionBtns}</div></td>
+          </tr>`;
+      }).join('');
+    }
+
+    window.copyOnboardingIntakeUrl = function () {
+      const url = cachedOnboardingPipeline?.shareableIntakeUrl || `${window.location.origin}/onboard.html`;
+      navigator.clipboard?.writeText(url).catch(() => {});
+      showToast('Copied Company Onboarding Form link: ' + url);
+    };
+
+    window.sendOnboardingIntakeInvite = async function () {
+      const companyName = document.getElementById('ob-invite-company')?.value.trim() || 'Your Organisation';
+      const contactEmail = document.getElementById('ob-invite-email')?.value.trim() || '';
+      if (!contactEmail || !contactEmail.includes('@')) return showToast('Enter a valid prospect email address.');
+      const btn = document.getElementById('ob-invite-send-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+      try {
+        const res = await admFetch('/api/admin/onboarding/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName, contactEmail })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not send invite');
+        if (document.getElementById('ob-invite-company')) document.getElementById('ob-invite-company').value = '';
+        if (document.getElementById('ob-invite-email')) document.getElementById('ob-invite-email').value = '';
+        showToast(`Emailed ShiftRelay Company Onboarding Form link to ${contactEmail}!`);
+      } catch (err) {
+        showToast('Invite error: ' + err.message);
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Email Intake Link →'; }
+      }
+    };
+
+    window.sendAppPaystackLink = async function (appId) {
+      try {
+        const res = await admFetch(`/api/admin/onboarding/applications/${encodeURIComponent(appId)}/send-payment-link`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not generate Paystack payment link');
+        await window.loadAdminOnboardingPipeline();
+        await window.loadAdminBillingAndDisbursals();
+        await refreshAdminData();
+        showToast(`Sent secure Paystack setup link (${formatNgn(data.invoice?.amountNgn || 0)}) to ${data.application?.contactEmail}!`);
+      } catch (err) {
+        showToast('Payment link error: ' + err.message);
+      }
+    };
+
+    window.markAppPaidManual = async function (tenantId, invoiceId) {
+      await window.updateTenantBillingStatus(tenantId, null, invoiceId);
+      await window.loadAdminOnboardingPipeline();
+    };
+
+    window.importAppRoster = async function (appId) {
+      try {
+        const res = await admFetch(`/api/admin/onboarding/applications/${encodeURIComponent(appId)}/import-roster`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not import roster');
+        await window.loadAdminOnboardingPipeline();
+        await refreshAdminData();
+        showToast(`Imported ${data.importedCount} staff into workspace — Client is now LIVE!`);
+      } catch (err) {
+        showToast('Roster import error: ' + err.message);
+      }
+    };
+
     window.renderTenantsTable = renderTenantsTable;
     function renderTenantsTable() {
       if (typeof renderObBatchHistory === 'function') renderObBatchHistory();
+      renderTierMetricsStrip('adm-tier-metrics-strip', cachedTierMetrics, activeClientTierFilter, 'setClientTierFilter');
       const grid = document.getElementById('adm-clients-grid');
       const tbody = document.getElementById('adm-tenants-tbody');
       const sel = document.getElementById('csv-tenant-select');
@@ -4247,8 +4488,9 @@
       if (sel) sel.innerHTML = cachedTenants.map(t => `<option value="${esc(t.id)}">${esc(t.tradingName || t.legalName || t.name)} (${esc(t.companyId || t.id)})</option>`).join('');
       const q = String(document.getElementById('adm-clients-search')?.value || '').trim().toLowerCase();
       const list = (cachedTenants || []).filter(t => {
+        if (activeClientTierFilter !== 'all' && String(t.planKey || t.planTier || 'startup').toLowerCase() !== activeClientTierFilter) return false;
         if (!q) return true;
-        const hay = `${t.tradingName || ''} ${t.legalName || ''} ${t.companyId || ''} ${t.industry || ''} ${t.masterAdminEmail || ''}`.toLowerCase();
+        const hay = `${t.tradingName || ''} ${t.legalName || ''} ${t.companyId || ''} ${t.industry || ''} ${t.masterAdminEmail || ''} ${t.planLabel || t.planTier || ''}`.toLowerCase();
         return hay.includes(q);
       });
       if (grid) {
@@ -4680,6 +4922,7 @@
         legalName: companyName,
         name: companyName,
         industry: document.getElementById('ob-industry').value,
+        estimatedHeadcount: Number(document.getElementById('ob-worker-count')?.value || 20),
         planTier: document.getElementById('ob-plan-tier')?.value || 'startup',
         sendOnboardingPaymentLink: Boolean(document.getElementById('ob-send-payment-link')?.checked),
         adminName: document.getElementById('ob-admin-name').value.trim(),
@@ -5682,9 +5925,13 @@
     function renderOwnerBillingTable() {
       const tbody = document.getElementById('owner-billing-tbody');
       if (!tbody || !cachedBillingData) return;
-      const list = cachedBillingData.tenants || [];
+      renderTierMetricsStrip('owner-tier-metrics-strip', cachedBillingData.tierMetrics || cachedTierMetrics, activeBillingTierFilter, 'setBillingTierFilter');
+      const allList = cachedBillingData.tenants || [];
+      const list = activeBillingTierFilter === 'all'
+        ? allList
+        : allList.filter(t => String(t.planKey || 'startup').toLowerCase() === activeBillingTierFilter);
       if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:18px;">No onboarded tenants yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-slate); padding:18px;">No clients registered under this tier yet.</td></tr>';
         return;
       }
       const isRoot = currentAdminRole === 'owner_root';
@@ -5705,9 +5952,11 @@
               <div style="font-size:11px;color:var(--text-slate);"><code>${escapeHtml(t.companyCode)}</code></div>
               ${isRoot ? `
                 <select class="adm-input" style="margin-top:6px;padding:4px 8px;font-size:11px;" onchange="window.changeTenantPlanTier('${escapeHtml(t.tenantId)}', this.value)">
-                  <option value="startup" ${t.planKey === 'startup' ? 'selected' : ''}>Startup 1–50 (₦50k + ₦2.5k/worker · ₦100k Setup)</option>
-                  <option value="business" ${t.planKey === 'business' ? 'selected' : ''}>Business 51–100 (₦100k + ₦2.5k/worker · ₦250k Setup)</option>
-                  <option value="enterprise" ${t.planKey === 'enterprise' ? 'selected' : ''}>Enterprise 101–500 (₦250k + ₦2k/worker · ₦750k Setup)</option>
+                  <option value="startup" ${t.planKey === 'startup' ? 'selected' : ''}>Startup 1–20 (₦30k + ₦2.5k/w · ₦75k Setup)</option>
+                  <option value="business" ${t.planKey === 'business' ? 'selected' : ''}>Business 21–50 (₦60k + ₦2.5k/w · ₦150k Setup)</option>
+                  <option value="enterprise" ${t.planKey === 'enterprise' ? 'selected' : ''}>Enterprise 51–100 (₦120k + ₦2.25k/w · ₦300k Setup)</option>
+                  <option value="corporate" ${t.planKey === 'corporate' ? 'selected' : ''}>Corporate 101–200 (₦200k + ₦2k/w · ₦550k Setup)</option>
+                  <option value="mega" ${t.planKey === 'mega' ? 'selected' : ''}>Mega 201+ (₦350k + ₦1.75k/w · ₦1M Setup)</option>
                 </select>
               ` : `<div style="font-size:11px;color:var(--emerald);">${escapeHtml(t.planLabel || t.planKey)}</div>`}
             </td>

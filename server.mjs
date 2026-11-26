@@ -161,7 +161,8 @@ import {
   renderNewsletterWelcomeEmail,
   renderMonthlyComplianceNewsletterEmail,
   renderBillingPaymentLinkEmail,
-  renderOfficialPaymentReceiptEmail
+  renderOfficialPaymentReceiptEmail,
+  renderOnboardingIntakeInviteEmail
 } from './email-engine.mjs';
 import {
   LEGAL_ENTITY,
@@ -244,12 +245,14 @@ import {
   applyAutoShiftEndClosure
 } from './attendance-security.mjs';
 import {
+  SAAS_PLAN_TIER_ORDER,
   SAAS_PLAN_TIERS,
   SANDBOX_PILOT_CONFIG,
   BILLING_LIFECYCLE_STATES,
   FLOAT_BUCKETS,
   resolvePlanTier,
   recommendPlanTierForHeadcount,
+  computeTierDistributionMetrics,
   normalizeBillingLifecycleStatus,
   countTenantBillableHeadcount,
   calculateTenantMonthlyInvoice,
@@ -362,9 +365,9 @@ function applyStoreDefaults(store) {
         pilot_credit_ngn: 0,
         verification_status: 'verified',
         onboarding_fee_paid: true,
-        base_fee_ngn: 250000,
-        monthly_fee_ngn: 250000,
-        pepm_ngn: 2000,
+        base_fee_ngn: 120000,
+        monthly_fee_ngn: 120000,
+        pepm_ngn: 2250,
         created_at: new Date().toISOString()
       }
     ];
@@ -2678,6 +2681,49 @@ export function ensureTenantBillingState(store) {
   return store.tenantBilling;
 }
 
+export function ensureOnboardingApplicationsState(store) {
+  if (!Array.isArray(store.onboardingApplications)) store.onboardingApplications = [];
+  return store.onboardingApplications;
+}
+
+function serializePublicOnboardingApp(app) {
+  const tier = resolvePlanTier(app.planTier || recommendPlanTierForHeadcount(app.workerCount || 1).key);
+  const unlocked = ['PAID_AWAITING_ROSTER', 'ROSTER_SUBMITTED', 'LIVE'].includes(app.status);
+  return {
+    id: app.id,
+    token: app.token,
+    status: app.status,
+    companyName: app.companyName,
+    tradingName: app.tradingName,
+    rcNumber: app.rcNumber || '',
+    industryKey: app.industryKey || 'operations',
+    contactName: app.contactName,
+    contactEmail: app.contactEmail,
+    contactPhone: app.contactPhone || '',
+    siteName: app.siteName || '',
+    state: app.state || 'Lagos',
+    address: app.address || '',
+    workerCount: Number(app.workerCount || 1),
+    planTier: tier.key,
+    planLabel: tier.label,
+    workerBand: tier.workerBand,
+    setupFeeNgn: Number(app.setupFeeNgn ?? tier.onboardingFeeNgn),
+    monthlyBaseFeeNgn: Number(app.monthlyBaseFeeNgn ?? tier.baseFeeNgn),
+    pepmRateNgn: Number(app.pepmRateNgn ?? tier.pepmRateNgn),
+    estimatedMonthlyTotalNgn: Number(app.estimatedMonthlyTotalNgn ?? (tier.baseFeeNgn + Number(app.workerCount || 1) * tier.pepmRateNgn)),
+    companyCode: app.companyCode || null,
+    invoiceId: app.invoiceId || null,
+    checkoutUrl: app.checkoutUrl || null,
+    receiptNumber: app.receiptNumber || null,
+    paidAt: app.paidAt || null,
+    rosterUnlocked: unlocked,
+    rosterCount: Array.isArray(app.submittedRoster) ? app.submittedRoster.length : 0,
+    importedStaffCount: Number(app.importedStaffCount || 0),
+    createdAt: app.createdAt,
+    updatedAt: app.updatedAt
+  };
+}
+
 function getInvoiceTypeDisplayLabel(invoiceType) {
   const norm = String(invoiceType || '').toUpperCase();
   if (norm === 'SANDBOX_PILOT_30D' || norm === 'PILOT') return '30-Day Sandbox Pilot';
@@ -2863,6 +2909,21 @@ async function settleTenantInvoiceAndSendReceipt({
     if (tb.receipts.length > 200) tb.receipts.length = 200;
   }
 
+  // Unlock Stage 3 (Staff Roster Submission) on any linked Onboarding Application
+  const apps = ensureOnboardingApplicationsState(store);
+  const linkedApp = apps.find(a =>
+    (a.invoiceId && a.invoiceId === invoice.invoiceId) ||
+    (a.tenantId && a.tenantId === invoice.tenantId)
+  );
+  if (linkedApp && invoice.invoiceType === 'ONBOARDING_ONE_TIME') {
+    linkedApp.receiptNumber = receiptNumber;
+    linkedApp.paidAt = paidAtIso;
+    if (!['ROSTER_SUBMITTED', 'LIVE'].includes(linkedApp.status)) {
+      linkedApp.status = 'PAID_AWAITING_ROSTER';
+    }
+    linkedApp.updatedAt = paidAtIso;
+  }
+
   if (databaseReady && getPool()) {
     await query(`UPDATE tenant_billing_invoices SET status = 'PAID', paid_at = $2 WHERE id = $1`, [invoice.invoiceId, paidAtIso]).catch(() => {});
     if (org) {
@@ -2875,7 +2936,8 @@ async function settleTenantInvoiceAndSendReceipt({
 
   if (recipientEmail && !recipientEmail.endsWith('@shiftrelayos.com')) {
     const appOrigin = String(process.env.APP_URL || LEGAL_ENTITY.appOrigin || 'https://app.shiftrelayos.com').replace(/\/+$/, '');
-    const loginPortalUrl = companyCode ? `${appOrigin}/?companyId=${encodeURIComponent(companyCode)}` : appOrigin;
+    const rosterPortalUrl = linkedApp?.token ? `${appOrigin}/onboard.html?token=${encodeURIComponent(linkedApp.token)}` : '';
+    const loginPortalUrl = rosterPortalUrl || (companyCode ? `${appOrigin}/?companyId=${encodeURIComponent(companyCode)}` : appOrigin);
     const html = renderOfficialPaymentReceiptEmail({
       companyName,
       companyCode,
@@ -2896,7 +2958,7 @@ async function settleTenantInvoiceAndSendReceipt({
       to: recipientEmail,
       subject: `Official Payment Receipt [${receiptNumber}] — ShiftRelay (${tier.label} · ₦${receipt.totalPaidNgn.toLocaleString('en-NG')})`,
       html,
-      text: `Official Payment Receipt ${receiptNumber}\nShiftRelay · Powered by ${LEGAL_ENTITY.companyLegalName} (${LEGAL_ENTITY.rcNumber})\nOrganisation: ${companyName} (${companyCode})\nInvoice: ${invoice.invoiceId}\nPaystack Reference: ${invoice.paystackReference}\nAmount Paid: NGN ${receipt.totalPaidNgn.toLocaleString('en-NG')}\nStatus: PAID & VERIFIED`,
+      text: `Official Payment Receipt ${receiptNumber}\nShiftRelay · Powered by ${LEGAL_ENTITY.companyLegalName} (${LEGAL_ENTITY.rcNumber})\nOrganisation: ${companyName} (${companyCode})\nInvoice: ${invoice.invoiceId}\nPaystack Reference: ${invoice.paystackReference}\nAmount Paid: NGN ${receipt.totalPaidNgn.toLocaleString('en-NG')}\nStatus: PAID & VERIFIED${rosterPortalUrl ? `\nSubmit Your Staff Roster Now: ${rosterPortalUrl}` : ''}`,
       source: 'ShiftRelay Official Billing Receipt'
     }).catch(() => {});
   }
@@ -5841,6 +5903,147 @@ async function handleApi(request, response, url) {
       error: 'Public self-enrolment is disabled. Frontline specialist accounts are provisioned exclusively via administrative bulk upload or encrypted invitation tokens.'
     });
   }
+  // -- Public 3-Stage Company Onboarding Portal (/onboard.html) ----------------
+  if (url.pathname === '/api/public/onboarding/intake' && request.method === 'POST') {
+    const body = await readJson(request);
+    const companyName = String(body.companyName || '').trim();
+    const contactName = String(body.contactName || '').trim();
+    const contactEmail = String(body.contactEmail || '').trim().toLowerCase();
+    const workerCount = Math.max(1, Math.min(50000, Math.round(Number(body.workerCount || 1))));
+    if (!companyName || !contactName || !contactEmail || !contactEmail.includes('@')) {
+      return sendJson(response, 400, { error: 'Company legal name, contact name, and valid official work email are required.' });
+    }
+    const store = await getStore();
+    const apps = ensureOnboardingApplicationsState(store);
+    const tier = recommendPlanTierForHeadcount(workerCount);
+    const estMonthly = tier.baseFeeNgn + (workerCount * tier.pepmRateNgn);
+    const nowIso = new Date().toISOString();
+    const appRec = {
+      id: `APP-SR-${Date.now().toString().slice(-6)}`,
+      token: randomBytes(16).toString('hex'),
+      status: 'INTAKE_SUBMITTED',
+      companyName,
+      tradingName: String(body.tradingName || companyName).trim(),
+      rcNumber: String(body.rcNumber || '').trim(),
+      industryKey: String(body.industryKey || 'operations').trim(),
+      contactName,
+      contactEmail,
+      contactPhone: String(body.contactPhone || '').trim(),
+      siteName: String(body.siteName || 'Primary Operations Hub').trim(),
+      state: String(body.state || 'Lagos').trim(),
+      address: String(body.address || '').trim(),
+      workerCount,
+      planTier: tier.key,
+      planLabel: tier.label,
+      workerBand: tier.workerBand,
+      setupFeeNgn: tier.onboardingFeeNgn,
+      monthlyBaseFeeNgn: tier.baseFeeNgn,
+      pepmRateNgn: tier.pepmRateNgn,
+      estimatedMonthlyTotalNgn: estMonthly,
+      tenantId: null,
+      companyCode: null,
+      invoiceId: null,
+      checkoutUrl: null,
+      paystackLive: false,
+      receiptNumber: null,
+      paidAt: null,
+      submittedRoster: [],
+      rosterSubmittedAt: null,
+      importedStaffCount: 0,
+      createdAt: nowIso,
+      updatedAt: nowIso
+    };
+    apps.unshift(appRec);
+    await saveStore(store);
+
+    const reqProto = String(request.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+    const reqHost = String(request.headers.host || '').trim();
+    const origin = (process.env.APP_URL || (reqHost ? `${reqProto}://${reqHost}` : LEGAL_ENTITY.appOrigin)).replace(/\/+$/, '');
+    const trackingUrl = `${origin}/onboard.html?token=${encodeURIComponent(appRec.token)}`;
+
+    sendShiftRelayEmail({
+      to: contactEmail,
+      subject: `[${appRec.id}] Onboarding Intake Received (${tier.label} Tier) — ShiftRelay`,
+      html: renderOnboardingIntakeInviteEmail({
+        companyName,
+        recipientName: contactName,
+        intakeUrl: trackingUrl,
+        note: `We received your company onboarding details (${workerCount} workers → ${tier.label} Tier: ₦${tier.onboardingFeeNgn.toLocaleString('en-NG')} one-time setup, ₦${estMonthly.toLocaleString('en-NG')}/mo combined). Our team is reviewing your application and will send your secure Paystack payment link next. Track status anytime via the link below.`
+      }),
+      text: `ShiftRelay (${LEGAL_ENTITY.companyLegalName}) received your onboarding intake ${appRec.id} for ${companyName} (${workerCount} workers -> ${tier.label} Tier). Track status: ${trackingUrl}`,
+      source: 'ShiftRelay Onboarding Intake'
+    }).catch(() => {});
+
+    return sendJson(response, 201, {
+      ok: true,
+      application: serializePublicOnboardingApp(appRec),
+      trackingUrl
+    });
+  }
+
+  if (url.pathname === '/api/public/onboarding/status' && request.method === 'GET') {
+    const token = String(url.searchParams.get('token') || '').trim();
+    if (!token) return sendJson(response, 400, { error: 'Missing onboarding token.' });
+    const store = await getStore();
+    const apps = ensureOnboardingApplicationsState(store);
+    const appRec = apps.find(a => a.token === token);
+    if (!appRec) return sendJson(response, 404, { error: 'Onboarding application not found.' });
+    return sendJson(response, 200, { ok: true, application: serializePublicOnboardingApp(appRec) });
+  }
+
+  if (url.pathname === '/api/public/onboarding/roster' && request.method === 'POST') {
+    const body = await readJson(request);
+    const token = String(body.token || '').trim();
+    const staffInput = Array.isArray(body.staff) ? body.staff : [];
+    if (!token) return sendJson(response, 400, { error: 'Missing onboarding token.' });
+    const store = await getStore();
+    const apps = ensureOnboardingApplicationsState(store);
+    const appRec = apps.find(a => a.token === token);
+    if (!appRec) return sendJson(response, 404, { error: 'Onboarding application not found.' });
+
+    // Strict Payment Gate: company can only submit staff details AFTER tier payment is verified!
+    if (!['PAID_AWAITING_ROSTER', 'ROSTER_SUBMITTED', 'LIVE'].includes(appRec.status)) {
+      return sendJson(response, 402, {
+        error: 'Tier setup payment must be completed via Paystack before submitting staff details.',
+        code: 'PAYMENT_REQUIRED_BEFORE_ROSTER',
+        status: appRec.status,
+        checkoutUrl: appRec.checkoutUrl || null
+      });
+    }
+
+    const cleanedStaff = staffInput
+      .map((r, idx) => ({
+        index: idx + 1,
+        fullName: String(r.fullName || r.name || '').trim(),
+        email: String(r.email || '').trim().toLowerCase(),
+        phone: String(r.phone || '').trim(),
+        roleTitle: String(r.roleTitle || r.role || 'Frontline Specialist').trim(),
+        department: String(r.department || 'Operations').trim(),
+        monthlySalaryNgn: Math.max(0, Math.round(Number(r.monthlySalaryNgn || r.monthlySalary || 150000))),
+        bankName: String(r.bankName || 'Guaranty Trust Bank (GTBank)').trim(),
+        accountNumber: String(r.accountNumber || '').replace(/\D+/g, '').slice(0, 10),
+        pencomRsaPin: String(r.pencomRsaPin || '').trim()
+      }))
+      .filter(r => r.fullName && r.email);
+
+    if (!cleanedStaff.length) {
+      return sendJson(response, 400, { error: 'Please include at least one staff member with Full Name and Work Email.' });
+    }
+
+    const nowIso = new Date().toISOString();
+    appRec.submittedRoster = cleanedStaff;
+    appRec.rosterSubmittedAt = nowIso;
+    if (appRec.status !== 'LIVE') appRec.status = 'ROSTER_SUBMITTED';
+    appRec.updatedAt = nowIso;
+    await saveStore(store);
+
+    return sendJson(response, 200, {
+      ok: true,
+      submittedCount: cleanedStaff.length,
+      application: serializePublicOnboardingApp(appRec)
+    });
+  }
+
   if (url.pathname === '/api/webhooks/paystack' && request.method === 'POST') {
     const rawBody = (await readBuffer(request).catch(() => Buffer.alloc(0))).toString('utf8');
     const sig = String(request.headers['x-paystack-signature'] || '');
@@ -12424,11 +12627,14 @@ async function getUserRewards(user, store) {
     const pilotCount = tenants.filter(t => t.billingStatus === 'pilot_active').length;
     const onboardingPendingCount = tenants.filter(t => t.billingStatus === 'onboarding_pending').length;
 
+    const tierMetrics = computeTierDistributionMetrics(tenants);
     return sendJson(response, 200, {
       ok: true,
+      planTierOrder: SAAS_PLAN_TIER_ORDER,
       planTiers: SAAS_PLAN_TIERS,
       sandboxPilot: SANDBOX_PILOT_CONFIG,
       lifecycleStates: BILLING_LIFECYCLE_STATES,
+      tierMetrics,
       totalMrrNgn,
       projectedFullMrrNgn,
       totalArrNgn: totalMrrNgn * 12,
@@ -13246,6 +13452,7 @@ async function getUserRewards(user, store) {
       const orgProfile = resolveIndustryProfile(org.industryKey || org.industry, org.trading_name || org.legal_name);
       const effectivePolicy = getEffectiveAttendancePolicy(org);
       const checklists = Array.isArray(org.settings?.dailyChecklists) ? org.settings.dailyChecklists : [];
+      const billingProfile = getTenantBillingProfile(store, org);
       return {
         id: org.id,
         companyId: org.organisation_code,
@@ -13269,10 +13476,371 @@ async function getUserRewards(user, store) {
         masterAdminEmail: ownerUser ? ownerUser.email : (org.work_email || 'hr@shiftrelayos.com'),
         complianceFlags: org.compliance_flags || { pencom: true, nhf: true, nsitf: true, paye: true },
         attendancePolicy: effectivePolicy,
+        planTier: billingProfile.planKey,
+        planKey: billingProfile.planKey,
+        planLabel: billingProfile.planLabel,
+        workerBand: resolvePlanTier(billingProfile.planKey).workerBand,
+        billingStatus: billingProfile.billingStatus,
+        subscriptionStatus: billingProfile.billingStatus === 'overdue_readonly'
+          ? 'LOCKED_READONLY'
+          : (billingProfile.billingStatus === 'onboarding_pending' ? 'PENDING_SETUP' : (billingProfile.billingStatus === 'pilot_active' ? 'PILOT' : 'ACTIVE')),
+        monthlyFeeNgn: billingProfile.recurringMonthlyTotalNgn,
+        setupFeeNgn: billingProfile.grossOnboardingFeeNgn,
+        onboardingFeePaid: billingProfile.onboardingFeePaid,
         createdAt: org.created_at || '2026-01-01T00:00:00Z'
       };
     });
-    return sendJson(response, 200, { tenants });
+    const billingProfiles = (store.organisations || []).map(o => getTenantBillingProfile(store, o));
+    const tierMetrics = computeTierDistributionMetrics(billingProfiles);
+    return sendJson(response, 200, { tenants, tierMetrics, planTiers: SAAS_PLAN_TIERS, planTierOrder: SAAS_PLAN_TIER_ORDER });
+  }
+
+  // 3b. Admin 3-Stage Company Onboarding Pipeline (Intake -> Paystack Payment -> Post-Payment Staff Roster)
+  if (url.pathname === '/api/admin/onboarding/applications' && request.method === 'GET') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin', 'finance_admin']);
+    if (!adminCtx) return;
+    const apps = ensureOnboardingApplicationsState(store);
+    const billingProfiles = (store.organisations || []).map(o => getTenantBillingProfile(store, o));
+    const tierMetrics = computeTierDistributionMetrics(billingProfiles);
+    const reqProto = String(request.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+    const reqHost = String(request.headers.host || '').trim();
+    const origin = (process.env.APP_URL || (reqHost ? `${reqProto}://${reqHost}` : LEGAL_ENTITY.appOrigin)).replace(/\/+$/, '');
+    const pipelineCounts = {
+      total: apps.length,
+      intakeSubmitted: apps.filter(a => a.status === 'INTAKE_SUBMITTED').length,
+      paymentLinkSent: apps.filter(a => a.status === 'PAYMENT_LINK_SENT').length,
+      paidAwaitingRoster: apps.filter(a => a.status === 'PAID_AWAITING_ROSTER').length,
+      rosterSubmitted: apps.filter(a => a.status === 'ROSTER_SUBMITTED').length,
+      live: apps.filter(a => a.status === 'LIVE').length
+    };
+    return sendJson(response, 200, {
+      ok: true,
+      shareableIntakeUrl: `${origin}/onboard.html`,
+      pipelineCounts,
+      tierMetrics,
+      applications: apps.map(a => ({
+        ...serializePublicOnboardingApp(a),
+        tenantId: a.tenantId || null,
+        submittedRoster: Array.isArray(a.submittedRoster) ? a.submittedRoster : []
+      }))
+    });
+  }
+
+  if (url.pathname === '/api/admin/onboarding/invite' && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin']);
+    if (!adminCtx) return;
+    const body = await readJson(request);
+    const contactEmail = String(body.contactEmail || body.email || '').trim().toLowerCase();
+    const companyName = String(body.companyName || 'Your Organisation').trim();
+    const contactName = String(body.contactName || 'Executive Team').trim();
+    const note = String(body.note || '').trim();
+    if (!contactEmail || !contactEmail.includes('@')) {
+      return sendJson(response, 400, { error: 'Valid prospect email is required to send the onboarding intake form link.' });
+    }
+    const reqProto = String(request.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+    const reqHost = String(request.headers.host || '').trim();
+    const origin = (process.env.APP_URL || (reqHost ? `${reqProto}://${reqHost}` : LEGAL_ENTITY.appOrigin)).replace(/\/+$/, '');
+    const intakeUrl = `${origin}/onboard.html`;
+
+    const html = renderOnboardingIntakeInviteEmail({ companyName, recipientName: contactName, intakeUrl, note });
+    await sendShiftRelayEmail({
+      to: contactEmail,
+      subject: `ShiftRelay Company Onboarding Form — ${companyName}`,
+      html,
+      text: `Hello ${contactName},\n\nComplete your ShiftRelay company onboarding intake form here: ${intakeUrl}\n\nPowered by ${LEGAL_ENTITY.companyLegalName}.`,
+      source: 'Admin Onboarding Intake Invite'
+    });
+
+    return sendJson(response, 200, { ok: true, intakeUrl, sentTo: contactEmail });
+  }
+
+  if (url.pathname.startsWith('/api/admin/onboarding/applications/') && url.pathname.endsWith('/send-payment-link') && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin', 'finance_admin']);
+    if (!adminCtx) return;
+    const appId = decodeURIComponent(url.pathname.split('/')[5] || '');
+    const apps = ensureOnboardingApplicationsState(store);
+    const appRec = apps.find(a => a.id === appId);
+    if (!appRec) return sendJson(response, 404, { error: 'Onboarding application not found.' });
+
+    const body = await readJson(request).catch(() => ({}));
+    if (body.workerCount && Number(body.workerCount) > 0) {
+      appRec.workerCount = Math.round(Number(body.workerCount));
+    }
+    const tier = body.planTier
+      ? resolvePlanTier(body.planTier)
+      : recommendPlanTierForHeadcount(appRec.workerCount || 1);
+    appRec.planTier = tier.key;
+    appRec.planLabel = tier.label;
+    appRec.workerBand = tier.workerBand;
+    appRec.setupFeeNgn = tier.onboardingFeeNgn;
+    appRec.monthlyBaseFeeNgn = tier.baseFeeNgn;
+    appRec.pepmRateNgn = tier.pepmRateNgn;
+    appRec.estimatedMonthlyTotalNgn = tier.baseFeeNgn + (appRec.workerCount * tier.pepmRateNgn);
+
+    // Provision tenant shell if not yet linked
+    if (!Array.isArray(store.organisations)) store.organisations = [];
+    if (!Array.isArray(store.portalUsers)) store.portalUsers = [];
+    if (!Array.isArray(store.memberships)) store.memberships = [];
+    if (!Array.isArray(store.contracts)) store.contracts = [];
+
+    let org = appRec.tenantId ? store.organisations.find(o => o.id === appRec.tenantId) : null;
+    if (!org) {
+      const prefix = appRec.companyName.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'SR';
+      const generatedCompanyId = `${prefix}-NG-${Math.floor(1000 + Math.random() * 9000)}`;
+      const tenantId = crypto.randomUUID();
+      const adminUserId = crypto.randomUUID();
+      const tempPassword = `ShiftRelay@${Math.floor(1000 + Math.random() * 9000)}!`;
+      const hashedTempPw = await hashPassword(tempPassword);
+      const tenantProfile = resolveIndustryProfile(appRec.industryKey, appRec.companyName);
+      org = {
+        id: tenantId,
+        organisation_code: generatedCompanyId,
+        aliases: [generatedCompanyId, generatedCompanyId.replace(/[^A-Za-z0-9]/g, '').toUpperCase()],
+        legal_name: appRec.companyName,
+        trading_name: appRec.tradingName || appRec.companyName,
+        work_email: appRec.contactEmail,
+        owner_email: appRec.contactEmail,
+        contact_name: appRec.contactName,
+        industry: tenantProfile.label,
+        industryKey: tenantProfile.key,
+        country: 'Nigeria',
+        state: appRec.state || 'Lagos',
+        address: appRec.address || '',
+        time_zone: 'Africa/Lagos',
+        currency: 'NGN',
+        hub_name: appRec.siteName || tenantProfile.defaultHubName || 'Primary Operations Hub',
+        hub_lat: 6.5244,
+        hub_lng: 3.3792,
+        hub_perimeter: 250,
+        rc_number: appRec.rcNumber || 'RC-' + Math.floor(100000 + Math.random() * 900000),
+        plan_tier: tier.key,
+        subscription_tier: tier.key,
+        estimated_headcount: appRec.workerCount,
+        base_fee_ngn: tier.baseFeeNgn,
+        pepm_ngn: tier.pepmRateNgn,
+        billing_status: 'onboarding_pending',
+        onboarding_completed: false,
+        onboarding_fee_paid: false,
+        compliance_flags: { pencom: true, nhf: true, nsitf: true, paye_finance_act: true },
+        settings: {
+          handoverReminderMinutes: 30,
+          payModel: 'monthly_salaried',
+          disbursementDay: '25',
+          attendancePolicy: normalizeAttendancePolicy({}, { policyVersion: `v${Date.now()}` }),
+          dailyChecklists: []
+        },
+        created_at: new Date().toISOString()
+      };
+      store.organisations.push(org);
+      store.portalUsers.push({
+        id: adminUserId,
+        tenant_id: tenantId,
+        organisation_id: tenantId,
+        full_name: appRec.contactName,
+        email: appRec.contactEmail,
+        phone: appRec.contactPhone || '',
+        password_hash: hashedTempPw,
+        status: 'active',
+        created_at: new Date().toISOString()
+      });
+      store.memberships.push({
+        id: adminUserId,
+        organisation_id: tenantId,
+        user_id: adminUserId,
+        role: 'owner',
+        title: 'Executive Sponsor',
+        department: 'Executive Operations',
+        status: 'active'
+      });
+      appRec.tenantId = tenantId;
+      appRec.companyCode = generatedCompanyId;
+    } else {
+      org.plan_tier = tier.key;
+      org.subscription_tier = tier.key;
+      org.estimated_headcount = appRec.workerCount;
+      org.base_fee_ngn = tier.baseFeeNgn;
+      org.pepm_ngn = tier.pepmRateNgn;
+    }
+
+    const tb = ensureTenantBillingState(store);
+    tb.tenantPlans[org.id] = {
+      ...(tb.tenantPlans[org.id] || {}),
+      planKey: tier.key,
+      billingStatus: 'onboarding_pending',
+      onboardingCompleted: false,
+      onboardingFeePaid: false
+    };
+    tb.statuses[org.id] = 'onboarding_pending';
+
+    const month = new Date().toISOString().slice(0, 7);
+    const invoiceId = `INV-SR-${month.replace('-', '')}-${Date.now().toString().slice(-4)}`;
+    const reqProto = String(request.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+    const reqHost = String(request.headers.host || '').trim();
+    const appOrigin = (process.env.APP_URL || (reqHost ? `${reqProto}://${reqHost}` : LEGAL_ENTITY.appOrigin)).replace(/\/+$/, '');
+    const trackingUrl = `${appOrigin}/onboard.html?token=${encodeURIComponent(appRec.token)}`;
+
+    const psInit = await initializePaystackBillingCheckout({
+      email: appRec.contactEmail,
+      amountNgn: tier.onboardingFeeNgn,
+      reference: invoiceId,
+      callbackUrl: `${trackingUrl}&paid=1`,
+      metadata: {
+        type: 'saas_billing_invoice',
+        invoiceId,
+        applicationId: appRec.id,
+        tenantId: org.id,
+        companyName: appRec.companyName,
+        companyCode: org.organisation_code,
+        invoiceType: 'ONBOARDING_ONE_TIME',
+        planKey: tier.key,
+        planLabel: tier.label,
+        workerCount: appRec.workerCount,
+        billedTo: 'EMPLOYER_ONLY'
+      }
+    });
+
+    const invoice = {
+      invoiceId,
+      tenantId: org.id,
+      applicationId: appRec.id,
+      companyName: appRec.companyName,
+      companyCode: org.organisation_code,
+      recipientEmail: appRec.contactEmail,
+      month,
+      billedTo: 'EMPLOYER_ONLY',
+      workerChargeNgn: 0,
+      invoiceType: 'ONBOARDING_ONE_TIME',
+      planKey: tier.key,
+      planLabel: tier.label,
+      grossOnboardingFeeNgn: tier.onboardingFeeNgn,
+      pilotCreditAppliedNgn: 0,
+      baseFeeNgn: tier.onboardingFeeNgn,
+      pepmFeeNgn: 0,
+      overageFeeNgn: 0,
+      surgeFeeNgn: 0,
+      amountNgn: tier.onboardingFeeNgn,
+      status: 'UNPAID',
+      checkoutUrl: psInit.checkoutUrl,
+      paystackLive: psInit.paystackLive,
+      issuedAt: new Date().toISOString(),
+      paidAt: null
+    };
+    tb.invoices.unshift(invoice);
+
+    appRec.invoiceId = invoiceId;
+    appRec.checkoutUrl = psInit.checkoutUrl;
+    appRec.paystackLive = psInit.paystackLive;
+    appRec.status = 'PAYMENT_LINK_SENT';
+    appRec.updatedAt = new Date().toISOString();
+    await saveStore(store);
+
+    const html = renderBillingPaymentLinkEmail({
+      companyName: appRec.companyName,
+      companyCode: org.organisation_code,
+      recipientName: appRec.contactName,
+      invoiceId,
+      invoiceTypeLabel: `One-Time Setup & Deployment (${appRec.workerCount} workers)`,
+      planLabel: `${tier.label} (${tier.workerBand})`,
+      cycleMonth: month,
+      breakdownLines: buildInvoiceBreakdownLines(invoice),
+      totalAmountNgn: tier.onboardingFeeNgn,
+      checkoutUrl: psInit.checkoutUrl,
+      isOnboarding: true,
+      loginPortalUrl: trackingUrl
+    });
+
+    sendShiftRelayEmail({
+      to: appRec.contactEmail,
+      subject: `[${invoiceId}] Step 2: Complete ${tier.label} Setup Payment (₦${tier.onboardingFeeNgn.toLocaleString('en-NG')}) — ShiftRelay`,
+      html,
+      text: `ShiftRelay (${LEGAL_ENTITY.companyLegalName})\nTier: ${tier.label} (${tier.workerBand})\nSetup Payment Due: NGN ${tier.onboardingFeeNgn.toLocaleString('en-NG')}\nPay securely via Paystack: ${psInit.checkoutUrl}\nAfter payment, upload your staff roster at: ${trackingUrl}`,
+      source: 'Onboarding Stage 2 Paystack Link'
+    }).catch(() => {});
+
+    return sendJson(response, 200, {
+      ok: true,
+      application: serializePublicOnboardingApp(appRec),
+      invoice,
+      trackingUrl
+    });
+  }
+
+  if (url.pathname.startsWith('/api/admin/onboarding/applications/') && url.pathname.endsWith('/import-roster') && request.method === 'POST') {
+    const store = await getStore();
+    const adminCtx = await requireAdminGate(request, response, store, ['owner_root', 'onboarding_admin']);
+    if (!adminCtx) return;
+    const appId = decodeURIComponent(url.pathname.split('/')[5] || '');
+    const apps = ensureOnboardingApplicationsState(store);
+    const appRec = apps.find(a => a.id === appId);
+    if (!appRec) return sendJson(response, 404, { error: 'Onboarding application not found.' });
+    if (!appRec.tenantId) return sendJson(response, 409, { error: 'Tenant has not been provisioned yet.' });
+    const org = (store.organisations || []).find(o => o.id === appRec.tenantId);
+    if (!org) return sendJson(response, 404, { error: 'Linked tenant organisation not found.' });
+
+    const rows = Array.isArray(appRec.submittedRoster) ? appRec.submittedRoster : [];
+    if (!rows.length) return sendJson(response, 400, { error: 'No staff roster submitted by client yet.' });
+
+    const prefix = String(org.organisation_code || 'SR').slice(0, 3).toUpperCase();
+    let importedCount = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r.fullName || !r.email) continue;
+      const alreadyUser = (store.portalUsers || []).find(u => u.organisation_id === org.id && String(u.email || '').toLowerCase() === r.email.toLowerCase());
+      if (alreadyUser) continue;
+      const uid = crypto.randomUUID();
+      const tempPwHash = await hashPassword(`SR#${Math.floor(100000 + Math.random() * 900000)}!`);
+      store.portalUsers.push({
+        id: uid,
+        tenant_id: org.id,
+        organisation_id: org.id,
+        full_name: r.fullName,
+        email: r.email.toLowerCase(),
+        phone: r.phone || '',
+        password_hash: tempPwHash,
+        status: 'active',
+        created_at: new Date().toISOString()
+      });
+      store.memberships.push({
+        id: uid,
+        organisation_id: org.id,
+        user_id: uid,
+        role: /supervisor|manager|lead/i.test(r.roleTitle) ? 'supervisor' : 'worker',
+        title: r.roleTitle || 'Frontline Specialist',
+        department: r.department || 'Operations',
+        status: 'active'
+      });
+      store.contracts.push({
+        userId: uid,
+        tenant_id: org.id,
+        userName: r.fullName,
+        staffId: `${prefix}-${String(i + 101).padStart(4, '0')}`,
+        role: r.roleTitle || 'Frontline Specialist',
+        department: r.department || 'Operations',
+        compensation_type: 'fixed_monthly',
+        monthly_rate: Number(r.monthlySalaryNgn || 150000),
+        hourly_rate: Math.round(Number(r.monthlySalaryNgn || 150000) / 160),
+        currency: 'NGN',
+        bank_name: r.bankName || 'Guaranty Trust Bank (GTBank)',
+        account_number: r.accountNumber || '0123456789',
+        account_name: r.fullName,
+        pencom_rsa_pin: r.pencomRsaPin || ''
+      });
+      importedCount += 1;
+    }
+
+    appRec.importedStaffCount = (appRec.importedStaffCount || 0) + importedCount;
+    appRec.status = 'LIVE';
+    appRec.updatedAt = new Date().toISOString();
+    await saveStore(store);
+
+    return sendJson(response, 200, {
+      ok: true,
+      importedCount,
+      application: serializePublicOnboardingApp(appRec)
+    });
   }
 
   // 4. Admin Tenant Creation Wizard (Owner & Onboarding Clearances)
@@ -15638,9 +16206,10 @@ const ADMIN_HOSTS = new Set(
     .split(',').map(h => h.trim().toLowerCase()).filter(Boolean)
 );
 
-const CLEAN_HTML_ROUTES = {
+  const CLEAN_HTML_ROUTES = {
   admin: 'admin.html',
   activate: 'activate.html',
+  onboard: 'onboard.html',
   website: 'website.html',
   pricing: 'pricing.html',
   privacy: 'privacy.html',

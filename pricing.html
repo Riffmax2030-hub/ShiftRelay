@@ -233,16 +233,22 @@
 
     .tiers-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
       margin-bottom: 24px;
+    }
+
+    @media (max-width: 1120px) {
+      .tiers-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
     }
 
     .tier-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 28px;
+      border-radius: 18px;
+      padding: 20px 18px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -546,137 +552,190 @@
 
   <main class="container">
     <section class="hero-card">
-      <span class="badge">Employer-Provisioned Multi-Tenant OS</span>
-      <h1>Simple, Scalable Workforce &amp; Payroll Pricing</h1>
+      <span class="badge">5-Tier Scalable Workforce &amp; Payroll OS</span>
+      <h1>Transparent 5-Tier Pricing Built for Every Workforce Size</h1>
       <p>
-        ShiftRelay (powered by <strong>Riffmax Technology Limited</strong>) uses a transparent 2-part billing model — <strong>100% employer-paid (₦0 ever deducted from workers)</strong>: a <strong>One-Time Setup &amp; Deployment Fee</strong> to launch your company in 48 hours, followed by a single <strong>Combined Monthly Subscription</strong> (Monthly Maintenance Base + Active Workers &times; Per-Worker Rate) paid securely via <strong>Paystack</strong> with automated official receipts.
+        ShiftRelay (powered by <strong>Riffmax Technology Limited</strong>) scales smoothly across <strong>5 headcount tiers</strong> — <strong>Startup (1–20)</strong>, <strong>Business (21–50)</strong>, <strong>Enterprise (51–100)</strong>, <strong>Corporate (101–200)</strong>, and <strong>Mega (201+)</strong>. 100% employer-paid (₦0 deducted from workers): complete our 2-minute <a href="/onboard.html" style="color:var(--em);font-weight:700;">Company Onboarding Form</a>, pay securely via <strong>Paystack</strong>, receive your official receipt, and submit your staff roster to go live in 48 hours.
       </p>
     </section>
 
-    <section class="tiers-grid" aria-label="ShiftRelay Pricing Tiers">
+    <section class="tiers-grid" aria-label="ShiftRelay 5-Tier Pricing Plans">
       <article class="tier-card" id="tier-card-startup">
         <div>
-          <span class="tier-tag">1 – 50 Workers</span>
+          <span class="tier-tag">1 – 20 Workers</span>
           <h2>Startup</h2>
-          <p class="tier-target">Growing teams, clinics, retail hubs, restaurants &amp; agile offices</p>
+          <p class="tier-target">Growing teams, clinics, cafes &amp; small offices</p>
           <div class="price-block">
             <div class="price-row onboarding">
-              <span>One-Time Setup Fee</span>
-              <strong>₦100,000</strong>
+              <span>One-Time Setup</span>
+              <strong>₦75,000</strong>
             </div>
             <div class="price-row">
-              <span>Monthly Maintenance</span>
-              <strong>₦50,000 / mo</strong>
+              <span>Monthly Maint.</span>
+              <strong>₦30,000</strong>
             </div>
             <div class="price-row">
-              <span>Per-Worker Rate</span>
-              <strong>₦2,500 / worker</strong>
+              <span>Per Worker</span>
+              <strong>₦2,500/mo</strong>
             </div>
           </div>
           <ul class="features-list">
-            <li>Isolated Company Code &amp; multi-tenant PostgreSQL workspace</li>
-            <li>GPS Geofencing, Fingerprint Clock-In &amp; Peer-Assisted Face Scan</li>
-            <li>CR80 Digital &amp; Print-Ready Staff ID Cards with cryptographic QR</li>
-            <li>Automated Nigerian Statutory Engine (NTA 2025 PAYE, PenCom 8%/10%, NHF, NSITF)</li>
-            <li>Email &amp; Push attendance alerts + Business Hours Support</li>
+            <li>Dedicated Company Code &amp; GPS Geofence Clock-In</li>
+            <li>CR80 Digital &amp; Printable Staff ID Cards</li>
+            <li>Automated NTA 2025 PAYE, PenCom, NHF &amp; NSITF</li>
           </ul>
         </div>
-        <a href="/website.html#demo-request-section" class="btn-tier">Start with Startup Plan</a>
+        <a href="/onboard.html" class="btn-tier">Onboard Startup</a>
       </article>
 
-      <article class="tier-card featured" id="tier-card-business">
+      <article class="tier-card" id="tier-card-business">
         <div>
-          <span class="tier-tag">51 – 100 Workers · Most Popular</span>
+          <span class="tier-tag">21 – 50 Workers</span>
           <h2>Business</h2>
-          <p class="tier-target">Multi-shift factories, logistics depots, hotels &amp; regional hospitals</p>
+          <p class="tier-target">Multi-shift retail, hotels, depots &amp; medium firms</p>
           <div class="price-block">
             <div class="price-row onboarding">
-              <span>One-Time Setup Fee</span>
-              <strong>₦250,000</strong>
+              <span>One-Time Setup</span>
+              <strong>₦150,000</strong>
             </div>
             <div class="price-row">
-              <span>Monthly Maintenance</span>
-              <strong>₦100,000 / mo</strong>
+              <span>Monthly Maint.</span>
+              <strong>₦60,000</strong>
             </div>
             <div class="price-row">
-              <span>Per-Worker Rate</span>
-              <strong>₦2,500 / worker</strong>
+              <span>Per Worker</span>
+              <strong>₦2,500/mo</strong>
             </div>
           </div>
           <ul class="features-list">
-            <li>Everything in Startup + WebAuthn biometric sign-in &amp; offline punch sync</li>
-            <li>3-Step Peer ID Scanner + Live Selfie vs. HR Passport verification</li>
-            <li>Drag-and-Drop Shift Calendar, Leave Workflow &amp; Handover Audits</li>
-            <li>Month-End Banking CSV (Paystack, GTBank, Zenith, Access) &amp; Payment Vouchers</li>
-            <li>Priority WhatsApp/Email SLA &amp; Dedicated Onboarding Engineer</li>
+            <li>Everything in Startup + Peer Face-Match Scanner</li>
+            <li>Drag-and-Drop Shift Calendar &amp; Leave Approvals</li>
+            <li>Month-End Banking CSV &amp; Payment Vouchers</li>
           </ul>
         </div>
-        <a href="/website.html#demo-request-section" class="btn-tier">Launch Business Plan</a>
+        <a href="/onboard.html" class="btn-tier">Onboard Business</a>
       </article>
 
-      <article class="tier-card" id="tier-card-enterprise">
+      <article class="tier-card featured" id="tier-card-enterprise">
         <div>
-          <span class="tier-tag">101 – 500 Workers (500+ Custom)</span>
+          <span class="tier-tag">51 – 100 · Popular</span>
           <h2>Enterprise</h2>
-          <p class="tier-target">24/7 industrial plants, FMCG bottling, security fleets &amp; port terminals</p>
+          <p class="tier-target">24/7 plants, logistics hubs &amp; regional hospitals</p>
           <div class="price-block">
             <div class="price-row onboarding">
-              <span>One-Time Setup Fee</span>
-              <strong>₦750,000</strong>
+              <span>One-Time Setup</span>
+              <strong>₦300,000</strong>
             </div>
             <div class="price-row">
-              <span>Monthly Maintenance</span>
-              <strong>₦250,000 / mo</strong>
+              <span>Monthly Maint.</span>
+              <strong>₦120,000</strong>
             </div>
             <div class="price-row">
-              <span>Per-Worker Rate</span>
-              <strong>₦2,000 / worker</strong>
+              <span>Per Worker</span>
+              <strong>₦2,250/mo</strong>
             </div>
           </div>
           <ul class="features-list">
-            <li>Everything in Business + Multi-site perimeter command &amp; custom overtime rules</li>
-            <li>Lower per-worker volume rate (₦2,000/worker) across 101–500 active staff</li>
-            <li>Zero-Fee Earned Wage Access (0% interest) &amp; Prefunded Treasury Float Ledger</li>
-            <li>Custom ERP batch exports, forensic compliance reviews &amp; 24/7 Critical SLA</li>
-            <li>Need 500+ workers? Custom volume enterprise licensing available</li>
+            <li>Everything in Business + Offline Punch Queue Sync</li>
+            <li>Lower volume PEPM rate (₦2,250/worker)</li>
+            <li>Dedicated Onboarding Engineer &amp; Priority SLA</li>
           </ul>
         </div>
-        <a href="/website.html#demo-request-section" class="btn-tier">Contact Enterprise Sales</a>
+        <a href="/onboard.html" class="btn-tier">Onboard Enterprise</a>
+      </article>
+
+      <article class="tier-card" id="tier-card-corporate">
+        <div>
+          <span class="tier-tag">101 – 200 Workers</span>
+          <h2>Corporate</h2>
+          <p class="tier-target">Multi-branch corporations, fleets &amp; factories</p>
+          <div class="price-block">
+            <div class="price-row onboarding">
+              <span>One-Time Setup</span>
+              <strong>₦550,000</strong>
+            </div>
+            <div class="price-row">
+              <span>Monthly Maint.</span>
+              <strong>₦200,000</strong>
+            </div>
+            <div class="price-row">
+              <span>Per Worker</span>
+              <strong>₦2,000/mo</strong>
+            </div>
+          </div>
+          <ul class="features-list">
+            <li>Multi-site perimeter &amp; custom overtime rules</li>
+            <li>Corporate volume rate (₦2,000/worker)</li>
+            <li>Zero-Fee Earned Wage Access &amp; Treasury Float</li>
+          </ul>
+        </div>
+        <a href="/onboard.html" class="btn-tier">Onboard Corporate</a>
+      </article>
+
+      <article class="tier-card" id="tier-card-mega">
+        <div>
+          <span class="tier-tag">201+ Workers</span>
+          <h2>Mega</h2>
+          <p class="tier-target">Conglomerates, port terminals &amp; mega plants</p>
+          <div class="price-block">
+            <div class="price-row onboarding">
+              <span>One-Time Setup</span>
+              <strong>₦1,000,000</strong>
+            </div>
+            <div class="price-row">
+              <span>Monthly Maint.</span>
+              <strong>₦350,000</strong>
+            </div>
+            <div class="price-row">
+              <span>Per Worker</span>
+              <strong>₦1,750/mo</strong>
+            </div>
+          </div>
+          <ul class="features-list">
+            <li>Best volume rate (₦1,750/worker) for 201+ staff</li>
+            <li>Custom ERP exports &amp; quarterly payroll audits</li>
+            <li>24/7 Critical SLA &amp; On-Site Launch Support</li>
+          </ul>
+        </div>
+        <a href="/onboard.html" class="btn-tier">Onboard Mega</a>
       </article>
     </section>
 
     <section class="estimator-card" aria-label="Interactive Monthly & Setup Cost Calculator">
       <div class="estimator-top">
         <div>
-          <span class="badge" style="margin-bottom:6px;">Live Combined Subscription Estimator</span>
-          <h2 style="font-size:20px;">Estimate Your Exact Monthly Total</h2>
+          <span class="badge" style="margin-bottom:6px;">Live 5-Tier Combined Subscription Estimator</span>
+          <h2 style="font-size:20px;">Select Your Workforce Size</h2>
         </div>
         <div style="font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:var(--em-deep);">
-          <span id="est-workers-display">50</span> Active Workers &rarr; <span id="est-tier-badge">Startup</span>
+          <span id="est-workers-display">60</span> Active Workers &rarr; <span id="est-tier-badge">Enterprise (51–100)</span>
         </div>
       </div>
-      <input type="range" id="est-workers-slider" class="estimator-slider" min="5" max="500" step="5" value="50" aria-label="Active Worker Headcount" />
+      <input type="range" id="est-workers-slider" class="estimator-slider" min="5" max="400" step="5" value="60" aria-label="Active Worker Headcount" />
       <div class="estimator-grid">
         <div class="estimator-metric">
           <span>One-Time Setup Fee</span>
-          <strong id="est-setup-fee">₦100,000</strong>
-          <small>Paid once at onboarding via Paystack</small>
+          <strong id="est-setup-fee">₦300,000</strong>
+          <small>Paid once via Paystack after intake</small>
         </div>
         <div class="estimator-metric">
           <span>Monthly Maintenance</span>
-          <strong id="est-base-fee">₦50,000</strong>
+          <strong id="est-base-fee">₦120,000</strong>
           <small>Platform hosting, updates &amp; support</small>
         </div>
         <div class="estimator-metric">
           <span>Headcount Fee</span>
-          <strong id="est-pepm-fee">₦125,000</strong>
-          <small id="est-pepm-formula">50 workers &times; ₦2,500/mo</small>
+          <strong id="est-pepm-fee">₦135,000</strong>
+          <small id="est-pepm-formula">60 workers &times; ₦2,250/mo</small>
         </div>
         <div class="estimator-metric highlight">
           <span>Combined Monthly Total</span>
-          <strong id="est-monthly-total">₦175,000 / mo</strong>
+          <strong id="est-monthly-total">₦255,000 / mo</strong>
           <small>Single itemized invoice · ₦0 to workers</small>
         </div>
+      </div>
+      <div style="margin-top:18px; display:flex; justify-content:flex-end;">
+        <a href="/onboard.html" class="btn-cta">Start Company Onboarding Form &rarr;</a>
       </div>
     </section>
 
@@ -773,12 +832,16 @@
       if (!slider) return;
       var fmt = function (n) { return '₦' + Math.round(n).toLocaleString('en-NG'); };
       function updateEstimator() {
-        var workers = Math.max(1, parseInt(slider.value, 10) || 50);
-        var tier = workers <= 50
-          ? { key: 'startup', label: 'Startup (1–50)', setup: 100000, base: 50000, pepm: 2500 }
-          : (workers <= 100
-            ? { key: 'business', label: 'Business (51–100)', setup: 250000, base: 100000, pepm: 2500 }
-            : { key: 'enterprise', label: 'Enterprise (101–500)', setup: 750000, base: 250000, pepm: 2000 });
+        var workers = Math.max(1, parseInt(slider.value, 10) || 60);
+        var tier = workers <= 20
+          ? { key: 'startup', label: 'Startup (1–20)', setup: 75000, base: 30000, pepm: 2500 }
+          : (workers <= 50
+            ? { key: 'business', label: 'Business (21–50)', setup: 150000, base: 60000, pepm: 2500 }
+            : (workers <= 100
+              ? { key: 'enterprise', label: 'Enterprise (51–100)', setup: 300000, base: 120000, pepm: 2250 }
+              : (workers <= 200
+                ? { key: 'corporate', label: 'Corporate (101–200)', setup: 550000, base: 200000, pepm: 2000 }
+                : { key: 'mega', label: 'Mega (201+)', setup: 1000000, base: 350000, pepm: 1750 })));
         var pepmTotal = workers * tier.pepm;
         var monthlyTotal = tier.base + pepmTotal;
         document.getElementById('est-workers-display').textContent = workers;
@@ -788,7 +851,7 @@
         document.getElementById('est-pepm-fee').textContent = fmt(pepmTotal);
         document.getElementById('est-pepm-formula').textContent = workers + ' workers × ' + fmt(tier.pepm) + '/mo';
         document.getElementById('est-monthly-total').textContent = fmt(monthlyTotal) + ' / mo';
-        ['startup', 'business', 'enterprise'].forEach(function (k) {
+        ['startup', 'business', 'enterprise', 'corporate', 'mega'].forEach(function (k) {
           var card = document.getElementById('tier-card-' + k);
           if (card) card.classList.toggle('featured', k === tier.key);
         });

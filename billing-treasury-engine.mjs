@@ -1,44 +1,71 @@
 import { calculatePayeTax, calculateStatutoryDeductions } from './compliance-engine.mjs';
 
 // ── 1. Employer-Paid SaaS Plans (Workers NEVER Charged) ──────────────────────
-// 3-Tier Scalable Model: One-Time Setup & Deployment + Combined Monthly Subscription
+// 5-Tier Scalable Model based on company headcount selected during onboarding:
+// One-Time Setup & Deployment + Combined Monthly Subscription
 // (Monthly Maintenance Base + Active Workers × Per-Worker Fee)
+export const SAAS_PLAN_TIER_ORDER = ['startup', 'business', 'enterprise', 'corporate', 'mega'];
+
 export const SAAS_PLAN_TIERS = {
   startup: {
     key: 'startup',
     label: 'Startup',
-    workerBand: '1–50 workers',
+    workerBand: '1–20 workers',
     minWorkers: 1,
-    maxWorkers: 50,
-    baseFeeNgn: 50000,
+    maxWorkers: 20,
+    baseFeeNgn: 30000,
     pepmRateNgn: 2500,
-    onboardingFeeNgn: 100000,
+    onboardingFeeNgn: 75000,
     overagePepmNgn: 2500,
     surgePepmNgn: 2000
   },
   business: {
     key: 'business',
     label: 'Business',
-    workerBand: '51–100 workers',
-    minWorkers: 51,
-    maxWorkers: 100,
-    baseFeeNgn: 100000,
+    workerBand: '21–50 workers',
+    minWorkers: 21,
+    maxWorkers: 50,
+    baseFeeNgn: 60000,
     pepmRateNgn: 2500,
-    onboardingFeeNgn: 250000,
+    onboardingFeeNgn: 150000,
     overagePepmNgn: 2500,
     surgePepmNgn: 2000
   },
   enterprise: {
     key: 'enterprise',
     label: 'Enterprise',
-    workerBand: '101–500 workers',
-    minWorkers: 101,
-    maxWorkers: 500,
-    baseFeeNgn: 250000,
-    pepmRateNgn: 2000,
-    onboardingFeeNgn: 750000,
-    overagePepmNgn: 2000,
+    workerBand: '51–100 workers',
+    minWorkers: 51,
+    maxWorkers: 100,
+    baseFeeNgn: 120000,
+    pepmRateNgn: 2250,
+    onboardingFeeNgn: 300000,
+    overagePepmNgn: 2250,
     surgePepmNgn: 1800
+  },
+  corporate: {
+    key: 'corporate',
+    label: 'Corporate',
+    workerBand: '101–200 workers',
+    minWorkers: 101,
+    maxWorkers: 200,
+    baseFeeNgn: 200000,
+    pepmRateNgn: 2000,
+    onboardingFeeNgn: 550000,
+    overagePepmNgn: 2000,
+    surgePepmNgn: 1600
+  },
+  mega: {
+    key: 'mega',
+    label: 'Mega',
+    workerBand: '201+ workers',
+    minWorkers: 201,
+    maxWorkers: 10000,
+    baseFeeNgn: 350000,
+    pepmRateNgn: 1750,
+    onboardingFeeNgn: 1000000,
+    overagePepmNgn: 1750,
+    surgePepmNgn: 1500
   }
 };
 
@@ -60,7 +87,9 @@ export function recommendPlanTierForHeadcount(headcount = 1) {
   const n = Math.max(1, Math.round(Number(headcount || 1)));
   if (n <= SAAS_PLAN_TIERS.startup.maxWorkers) return SAAS_PLAN_TIERS.startup;
   if (n <= SAAS_PLAN_TIERS.business.maxWorkers) return SAAS_PLAN_TIERS.business;
-  return SAAS_PLAN_TIERS.enterprise;
+  if (n <= SAAS_PLAN_TIERS.enterprise.maxWorkers) return SAAS_PLAN_TIERS.enterprise;
+  if (n <= SAAS_PLAN_TIERS.corporate.maxWorkers) return SAAS_PLAN_TIERS.corporate;
+  return SAAS_PLAN_TIERS.mega;
 }
 
 export function resolvePlanTier(planKeyOrOrg) {
@@ -68,13 +97,63 @@ export function resolvePlanTier(planKeyOrOrg) {
     ? planKeyOrOrg
     : (planKeyOrOrg?.plan_tier || planKeyOrOrg?.planTier || planKeyOrOrg?.subscription_tier || 'startup');
   const norm = String(raw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-  if (norm === 'enterprise' || norm === 'enterprise_plus' || norm === 'ent_plus' || norm === 'enterprise_founding_partner') {
+  if (norm === 'mega' || norm === 'enterprise_plus' || norm === 'ent_plus' || norm === 'conglomerate') {
+    return SAAS_PLAN_TIERS.mega;
+  }
+  if (norm === 'corporate' || norm === 'scale' || norm === 'growth_plus') {
+    return SAAS_PLAN_TIERS.corporate;
+  }
+  if (norm === 'enterprise' || norm === 'enterprise_founding_partner') {
     return SAAS_PLAN_TIERS.enterprise;
   }
   if (norm === 'business' || norm === 'professional' || norm === 'growth') {
     return SAAS_PLAN_TIERS.business;
   }
   return SAAS_PLAN_TIERS.startup;
+}
+
+export function computeTierDistributionMetrics(tenantProfiles = []) {
+  const totalClients = Array.isArray(tenantProfiles) ? tenantProfiles.length : 0;
+  const byTier = {};
+  for (const key of SAAS_PLAN_TIER_ORDER) {
+    const t = SAAS_PLAN_TIERS[key];
+    byTier[key] = {
+      key: t.key,
+      label: t.label,
+      workerBand: t.workerBand,
+      minWorkers: t.minWorkers,
+      maxWorkers: t.maxWorkers,
+      onboardingFeeNgn: t.onboardingFeeNgn,
+      baseFeeNgn: t.baseFeeNgn,
+      pepmRateNgn: t.pepmRateNgn,
+      clientCount: 0,
+      activeClients: 0,
+      pendingClients: 0,
+      totalWorkers: 0,
+      monthlyMrrNgn: 0,
+      projectedMrrNgn: 0,
+      sharePct: 0
+    };
+  }
+  for (const p of (tenantProfiles || [])) {
+    const tier = resolvePlanTier(p.planKey || p.plan_tier || p.subscription_tier || 'startup');
+    const bucket = byTier[tier.key];
+    if (!bucket) continue;
+    bucket.clientCount += 1;
+    if (p.billingStatus === 'active_subscription') bucket.activeClients += 1;
+    else bucket.pendingClients += 1;
+    bucket.totalWorkers += Number(p.totalActiveHeadcount ?? p.coreHeadcount ?? p.activeWorkers ?? p.estimatedHeadcount ?? 0);
+    bucket.monthlyMrrNgn += Number(p.billableThisCycleNgn ?? 0);
+    bucket.projectedMrrNgn += Number(p.recurringMonthlyTotalNgn ?? p.monthlyFeeNgn ?? 0);
+  }
+  for (const key of SAAS_PLAN_TIER_ORDER) {
+    byTier[key].sharePct = totalClients > 0 ? Math.round((byTier[key].clientCount / totalClients) * 100) : 0;
+  }
+  return {
+    totalClients,
+    tiers: SAAS_PLAN_TIER_ORDER.map(k => byTier[k]),
+    byTier
+  };
 }
 
 export function normalizeBillingLifecycleStatus(rawStatus) {

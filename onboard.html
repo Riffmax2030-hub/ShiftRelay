@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Company Onboarding Portal | ShiftRelay · Riffmax Technology Limited</title>
+  <meta name="description" content="Official 3-step ShiftRelay company onboarding portal by Riffmax Technology Limited: submit company details, complete secure Paystack tier payment, and upload your staff roster." />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg?v=214" />
+  <style>
+    @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('/assets/fonts/plus-jakarta-sans-latin-400-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('/assets/fonts/plus-jakarta-sans-latin-600-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-weight: 700; font-display: swap; src: url('/assets/fonts/plus-jakarta-sans-latin-700-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 700; font-display: swap; src: url('/assets/fonts/space-grotesk-latin-700-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 600; font-display: swap; src: url('/assets/fonts/jetbrains-mono-latin-600-normal.woff2') format('woff2'); }
+
+    :root {
+      --bg: #050a14;
+      --surface: #0b1324;
+      --surface-2: #0f1a30;
+      --border: rgba(148, 163, 184, 0.18);
+      --em: #10b981;
+      --em-bright: #00f5a0;
+      --sky: #38bdf8;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.12), transparent 40%),
+                  radial-gradient(circle at 85% 20%, rgba(56, 189, 248, 0.1), transparent 40%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.55;
+    }
+
+    header.topbar {
+      border-bottom: 1px solid var(--border);
+      background: rgba(5, 10, 20, 0.9);
+      backdrop-filter: blur(16px);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      display: block;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--em-bright);
+      letter-spacing: 0.04em;
+      font-weight: 600;
+    }
+
+    .nav-pills { display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav-pill {
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #cbd5e1;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+    }
+    .nav-pill:hover { border-color: var(--em); color: var(--em-bright); }
+
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 18px 72px;
+    }
+
+    /* 3-Step Progress Stepper */
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .step-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+
+    .step-pill.active {
+      border-color: var(--em);
+      background: rgba(16, 185, 129, 0.09);
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25);
+    }
+
+    .step-pill.done {
+      border-color: rgba(16, 185, 129, 0.45);
+      background: rgba(16, 185, 129, 0.06);
+    }
+
+    .step-num {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.07);
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .step-pill.active .step-num,
+    .step-pill.done .step-num {
+      background: var(--em);
+      color: #03180f;
+    }
+
+    .step-meta strong { display: block; font-size: 13px; color: var(--text); }
+    .step-meta span { display: block; font-size: 11.5px; color: var(--muted); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .card h1, .card h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      letter-spacing: -0.02em;
+    }
+
+    .card h1 { font-size: clamp(22px, 3.2vw, 30px); margin-bottom: 8px; }
+    .card p.lead { color: var(--muted); font-size: 14px; margin-bottom: 22px; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    label.lbl {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+
+    input.inp, select.inp, textarea.inp {
+      width: 100%;
+      padding: 11px 13px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    input.inp:focus, select.inp:focus, textarea.inp:focus {
+      border-color: var(--em);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16);
+    }
+
+    .tier-preview {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(56, 189, 248, 0.08));
+      border: 1px solid rgba(16, 185, 129, 0.38);
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin: 18px 0 22px;
+    }
+
+    .tier-preview-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .tier-chip {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: var(--em);
+      color: #03180f;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tier-nums {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .tier-num-box {
+      background: rgba(5, 10, 20, 0.65);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .tier-num-box span {
+      display: block;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .tier-num-box strong {
+      display: block;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 17px;
+      color: var(--text);
+      margin-top: 3px;
+    }
+
+    .tier-num-box.accent strong { color: var(--em-bright); }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 24px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #00f5a0, #10b981);
+      color: #03180f;
+      font-weight: 800;
+      font-size: 14.5px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-ghost:hover { border-color: var(--sky); color: var(--sky); }
+
+    .status-banner {
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: rgba(56, 189, 248, 0.08);
+      margin-bottom: 18px;
+      font-size: 13.5px;
+    }
+
+    .status-banner.paid {
+      border-color: rgba(16, 185, 129, 0.45);
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    .status-banner.warn {
+      border-color: rgba(245, 158, 11, 0.45);
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .roster-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin: 14px 0 18px;
+    }
+
+    table.roster-tbl {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      min-width: 780px;
+    }
+
+    table.roster-tbl th {
+      text-align: left;
+      padding: 10px 8px;
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    table.roster-tbl td {
+      padding: 7px 6px;
+      border-bottom: 1px solid rgba(148,163,184,0.1);
+    }
+
+    table.roster-tbl input {
+      width: 100%;
+      padding: 7px 8px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 12.5px;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 24px;
+    }
+
+    .err-msg {
+      color: #fda4af;
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 14px;
+      display: none;
+    }
+
+    @media (max-width: 760px) {
+      .stepper, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .tier-nums { grid-template-columns: repeat(2, 1fr); }
+      .card { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a href="/website.html" class="brand">
+      <img src="/icon.svg?v=214" width="36" height="36" alt="ShiftRelay" style="border-radius:9px;" />
+      <span>
+        <span class="brand-title">ShiftRelay Onboarding</span>
+        <span class="brand-sub">Powered by Riffmax Technology Limited</span>
+      </span>
+    </a>
+    <nav class="nav-pills">
+      <a href="/pricing.html" class="nav-pill">View 5-Tier Pricing</a>
+      <a href="/website.html" class="nav-pill">Home</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <div class="stepper">
+      <div class="step-pill active" id="step-pill-1">
+        <div class="step-num">1</div>
+        <div class="step-meta">
+          <strong>Company Details &amp; Size</strong>
+          <span>Auto-selects your plan tier</span>
+        </div>
+      </div>
+      <div class="step-pill" id="step-pill-2">
+        <div class="step-num">2</div>
+        <div class="step-meta">
+          <strong>Secure Paystack Payment</strong>
+          <span>Setup fee + official receipt</span>
+        </div>
+      </div>
+      <div class="step-pill" id="step-pill-3">
+        <div class="step-num">3</div>
+        <div class="step-meta">
+          <strong>Submit Staff Roster</strong>
+          <span>Unlocks immediately after payment</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="global-err" class="err-msg"></div>
+
+    <!-- STAGE 1: COMPANY INTAKE FORM -->
+    <section class="card" id="stage-1-card">
+      <h1>Start Your ShiftRelay Company Onboarding</h1>
+      <p class="lead">
+        Provide your basic company details and number of active workers below. We automatically match your organisation to the right tier (<strong>Startup, Business, Enterprise, Corporate, or Mega</strong>), then email your secure <strong>Paystack</strong> payment link. Staff details are only submitted <em>after</em> payment is confirmed.
+      </p>
+
+      <form id="intake-form">
+        <div class="grid-2">
+          <div>
+            <label class="lbl" for="in-company-name">Company Legal Name *</label>
+            <input id="in-company-name" class="inp" type="text" required placeholder="e.g. Prime Logistics Nigeria Ltd" />
+          </div>
+          <div>
+            <label class="lbl" for="in-trading-name">Trading / Brand Name</label>
+            <input id="in-trading-name" class="inp" type="text" placeholder="e.g. Prime Logistics" />
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div>
+            <label class="lbl" for="in-rc-number">CAC RC / BN Number</label>
+            <input id="in-rc-number" class="inp" type="text" placeholder="e.g. RC 1849201" />
+          </div>
+          <div>
+            <label class="lbl" for="in-industry">Industry Sector *</label>
+            <select id="in-industry" class="inp" required>
+              <option value="logistics">Logistics &amp; Warehousing</option>
+              <option value="manufacturing">Manufacturing &amp; Industrial</option>
+              <option value="healthcare">Healthcare &amp; Clinics</option>
+              <option value="hospitality">Hospitality &amp; Hotels</option>
+              <option value="restaurant">Restaurants &amp; Quick Service</option>
+              <option value="retail">Retail &amp; Supermarkets</option>
+              <option value="security">Security Operations</option>
+              <option value="gas_station">Oil, Gas &amp; Forecourts</option>
+              <option value="tech">Technology &amp; Corporate Offices</option>
+              <option value="facility">Facility &amp; Property Management</option>
+              <option value="agriculture">Agriculture &amp; Agribusiness</option>
+              <option value="transportation">Fleet &amp; Transportation</option>
+              <option value="operations">General Shift Operations</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl" for="in-state">State / Location *</label>
+            <input id="in-state" class="inp" type="text" required value="Lagos" placeholder="e.g. Lagos, Abuja FCT, Rivers" />
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div>
+            <label class="lbl" for="in-contact-name">Executive / HR Contact Full Name *</label>
+            <input id="in-contact-name" class="inp" type="text" required placeholder="e.g. Chinedu Okafor" />
+          </div>
+          <div>
+            <label class="lbl" for="in-contact-email">Official Work / Billing Email *</label>
+            <input id="in-contact-email" class="inp" type="email" required placeholder="finance@company.com" />
+          </div>
+          <div>
+            <label class="lbl" for="in-contact-phone">Phone / WhatsApp Number *</label>
+            <input id="in-contact-phone" class="inp" type="tel" required placeholder="+234 803 000 0000" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label class="lbl" for="in-site-name">Primary Site / Plant / Office Name *</label>
+            <input id="in-site-name" class="inp" type="text" required placeholder="e.g. Ikeja Industrial Depot" />
+          </div>
+          <div>
+            <label class="lbl" for="in-worker-count">Number of Company Workers *</label>
+            <input id="in-worker-count" class="inp" type="number" min="1" max="5000" value="25" required />
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label class="lbl" for="in-address">Primary Site Street Address</label>
+          <input id="in-address" class="inp" type="text" placeholder="e.g. Plot 14 Oba Akran Avenue, Ikeja, Lagos" />
+        </div>
+
+        <div class="tier-preview" aria-live="polite">
+          <div class="tier-preview-head">
+            <div>
+              <div style="font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Auto-Matched Plan Tier Based on Headcount</div>
+              <div style="font-size:18px;font-weight:800;margin-top:2px;" id="tp-title">Business Tier (21–50 workers)</div>
+            </div>
+            <span class="tier-chip" id="tp-badge">BUSINESS</span>
+          </div>
+          <div class="tier-nums">
+            <div class="tier-num-box">
+              <span>One-Time Setup</span>
+              <strong id="tp-setup">₦150,000</strong>
+            </div>
+            <div class="tier-num-box">
+              <span>Monthly Maintenance</span>
+              <strong id="tp-base">₦60,000</strong>
+            </div>
+            <div class="tier-num-box">
+              <span>Per-Worker Rate</span>
+              <strong id="tp-pepm">₦2,500/mo</strong>
+            </div>
+            <div class="tier-num-box accent">
+              <span>Est. Combined Monthly</span>
+              <strong id="tp-monthly">₦122,500/mo</strong>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:10px;">
+            100% employer-paid (₦0 deducted from worker wages). Monthly billing begins only after your 48-hour Go-Live sign-off.
+          </div>
+        </div>
+
+        <button type="submit" id="intake-submit-btn" class="btn-primary" style="width:100%;">
+          Submit Company Info &amp; Request Secure Paystack Link &rarr;
+        </button>
+      </form>
+    </section>
+
+    <!-- STAGE 2: WAITING FOR PAYMENT / PAYSTACK LINK -->
+    <section class="card" id="stage-2-card" style="display:none;">
+      <div id="s2-banner" class="status-banner"></div>
+      <h2 id="s2-heading" style="font-size:22px;margin-bottom:8px;">Company Details Received</h2>
+      <p class="lead" id="s2-desc" style="margin-bottom:18px;"></p>
+
+      <div class="tier-preview" style="margin-top:0;">
+        <div class="tier-preview-head">
+          <div>
+            <div style="font-size:12px;color:var(--muted);" id="s2-company-meta"></div>
+            <div style="font-size:18px;font-weight:800;" id="s2-tier-title"></div>
+          </div>
+          <span class="tier-chip" id="s2-status-chip">INTAKE SUBMITTED</span>
+        </div>
+        <div class="tier-nums">
+          <div class="tier-num-box">
+            <span>Selected Workers</span>
+            <strong id="s2-workers">0</strong>
+          </div>
+          <div class="tier-num-box accent">
+            <span>One-Time Setup Due</span>
+            <strong id="s2-setup">₦0</strong>
+          </div>
+          <div class="tier-num-box">
+            <span>Monthly Maintenance</span>
+            <strong id="s2-base">₦0</strong>
+          </div>
+          <div class="tier-num-box">
+            <span>Est. Combined Monthly</span>
+            <strong id="s2-monthly">₦0</strong>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px;">
+        <a id="s2-paystack-btn" href="#" target="_blank" rel="noopener" class="btn-primary" style="display:none;">
+          Pay Setup Fee Securely via Paystack &rarr;
+        </a>
+        <button type="button" class="btn-ghost" onclick="window.refreshApplicationStatus(true)">
+          Refresh Payment Status
+        </button>
+        <button type="button" class="btn-ghost" onclick="window.copyTrackingLink()">
+          Copy My Onboarding Link
+        </button>
+      </div>
+
+      <div style="margin-top:20px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid var(--border);font-size:12.5px;color:var(--muted);">
+        <strong style="color:var(--text);">Why is Step 3 (Staff Roster Upload) locked?</strong><br>
+        To keep your workspace secure and provisioned cleanly, staff roster upload unlocks automatically the instant Paystack confirms your tier setup payment and emails your official <strong>ShiftRelay (Powered by Riffmax Technology Limited)</strong> payment receipt.
+      </div>
+    </section>
+
+    <!-- STAGE 3: UNLOCKED AFTER PAYMENT — STAFF ROSTER SUBMISSION -->
+    <section class="card" id="stage-3-card" style="display:none;">
+      <div class="status-banner paid">
+        <strong>Payment Confirmed ✓</strong> — Official receipt <code id="s3-receipt-code" style="color:var(--em-bright);font-weight:700;"></code> has been emailed by <strong>ShiftRelay · Powered by Riffmax Technology Limited</strong>. Your Staff Roster Submission portal is now unlocked!
+      </div>
+      <h2 style="font-size:22px;margin-bottom:6px;">Step 3: Submit Your Staff Information &amp; Roster</h2>
+      <p class="lead" style="margin-bottom:14px;">
+        Upload a CSV file or enter your employees below for <strong id="s3-company-name"></strong> (<code id="s3-company-code" style="color:var(--em-bright);"></code>). Our engineering team will activate every staff profile, CR80 Staff ID card, and statutory payroll record.
+      </p>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+        <label class="btn-ghost" style="cursor:pointer;">
+          Upload Staff CSV File
+          <input type="file" id="s3-csv-input" accept=".csv,.txt" style="display:none;" />
+        </label>
+        <button type="button" class="btn-ghost" onclick="window.downloadSampleCsv()">Download CSV Template</button>
+        <button type="button" class="btn-ghost" onclick="window.addRosterRow()">+ Add Staff Row</button>
+      </div>
+
+      <div class="roster-table-wrap">
+        <table class="roster-tbl">
+          <thead>
+            <tr>
+              <th>Full Name *</th>
+              <th>Work Email *</th>
+              <th>Phone</th>
+              <th>Role / Title</th>
+              <th>Department</th>
+              <th>Monthly Salary (₦)</th>
+              <th>Bank Name</th>
+              <th>10-Digit NUBAN</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="s3-roster-tbody"></tbody>
+        </table>
+      </div>
+
+      <button type="button" id="s3-submit-roster-btn" class="btn-primary" style="width:100%;" onclick="window.submitStaffRoster()">
+        Submit Staff Roster to ShiftRelay Onboarding Team &rarr;
+      </button>
+
+      <div id="s3-done-box" style="display:none;margin-top:18px;padding:18px;border-radius:14px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.4);">
+        <strong style="color:var(--em-bright);font-size:15px;">Staff Roster Submitted Successfully ✓</strong>
+        <p style="font-size:13.5px;color:#e2e8f0;margin-top:6px;" id="s3-done-text"></p>
+        <a id="s3-portal-link" href="/" class="btn-primary" style="margin-top:12px;">Open ShiftRelay Workspace &rarr;</a>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      &copy; 2026 <strong>ShiftRelay</strong> &middot; Powered by <strong>Riffmax Technology Limited</strong> &middot; Secured by Paystack &amp; NDPA 2023 Compliance
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      const TIERS = [
+        { key: 'startup', label: 'Startup', band: '1–20 workers', max: 20, setup: 75000, base: 30000, pepm: 2500 },
+        { key: 'business', label: 'Business', band: '21–50 workers', max: 50, setup: 150000, base: 60000, pepm: 2500 },
+        { key: 'enterprise', label: 'Enterprise', band: '51–100 workers', max: 100, setup: 300000, base: 120000, pepm: 2250 },
+        { key: 'corporate', label: 'Corporate', band: '101–200 workers', max: 200, setup: 550000, base: 200000, pepm: 2000 },
+        { key: 'mega', label: 'Mega', band: '201+ workers', max: 100000, setup: 1000000, base: 350000, pepm: 1750 }
+      ];
+
+      function fmtNgn(n) { return '₦' + Math.round(Number(n || 0)).toLocaleString('en-NG'); }
+      function pickTier(count) {
+        const n = Math.max(1, parseInt(count, 10) || 1);
+        return TIERS.find(t => n <= t.max) || TIERS[TIERS.length - 1];
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      let activeToken = params.get('token') || '';
+      let activeApp = null;
+
+      function showErr(msg) {
+        const el = document.getElementById('global-err');
+        if (!el) return;
+        if (!msg) { el.style.display = 'none'; el.textContent = ''; return; }
+        el.textContent = msg;
+        el.style.display = 'block';
+      }
+
+      function updateTierPreview() {
+        const count = Math.max(1, parseInt(document.getElementById('in-worker-count')?.value, 10) || 1);
+        const t = pickTier(count);
+        const monthly = t.base + (count * t.pepm);
+        document.getElementById('tp-title').textContent = `${t.label} Tier (${t.band})`;
+        document.getElementById('tp-badge').textContent = t.label.toUpperCase();
+        document.getElementById('tp-setup').textContent = fmtNgn(t.setup);
+        document.getElementById('tp-base').textContent = fmtNgn(t.base);
+        document.getElementById('tp-pepm').textContent = `${fmtNgn(t.pepm)}/mo`;
+        document.getElementById('tp-monthly').textContent = `${fmtNgn(monthly)}/mo`;
+      }
+
+      document.getElementById('in-worker-count')?.addEventListener('input', updateTierPreview);
+      updateTierPreview();
+
+      function setStepper(activeStep) {
+        for (let i = 1; i <= 3; i++) {
+          const el = document.getElementById('step-pill-' + i);
+          if (!el) continue;
+          el.classList.remove('active', 'done');
+          if (i < activeStep) el.classList.add('done');
+          else if (i === activeStep) el.classList.add('active');
+        }
+      }
+
+      function renderApplication(app) {
+        activeApp = app;
+        showErr('');
+        document.getElementById('stage-1-card').style.display = 'none';
+        const unlocked = ['PAID_AWAITING_ROSTER', 'ROSTER_SUBMITTED', 'LIVE'].includes(app.status);
+
+        if (!unlocked) {
+          setStepper(2);
+          document.getElementById('stage-2-card').style.display = 'block';
+          document.getElementById('stage-3-card').style.display = 'none';
+          const banner = document.getElementById('s2-banner');
+          const payBtn = document.getElementById('s2-paystack-btn');
+          const hasLink = Boolean(app.checkoutUrl && app.status === 'PAYMENT_LINK_SENT');
+          banner.className = hasLink ? 'status-banner warn' : 'status-banner';
+          banner.innerHTML = hasLink
+            ? `<strong>Secure Paystack Payment Link Ready:</strong> Complete your one-time setup payment (${fmtNgn(app.setupFeeNgn)}) to receive your official <strong>ShiftRelay · Powered by Riffmax Technology Limited</strong> receipt and unlock Step 3 (Staff Roster Upload).`
+            : `<strong>Application Logged (${app.id}):</strong> Our onboarding desk has received your company details. As soon as your account is verified, we will email your secure <strong>Paystack</strong> payment link to <strong>${app.contactEmail}</strong> (and it will also appear right here).`;
+          document.getElementById('s2-heading').textContent = hasLink
+            ? `Step 2: Complete ${app.planLabel} Setup Payment`
+            : 'Step 1 Complete — Awaiting Secure Payment Link';
+          document.getElementById('s2-desc').textContent = hasLink
+            ? `Your ${app.planLabel} tier (${app.workerCount} workers) is approved. Pay via Nigerian Bank Transfer, Corporate/Debit Card, or USSD through Paystack.`
+            : 'Keep this page bookmarked or click "Refresh Payment Status" once you receive our email.';
+          document.getElementById('s2-company-meta').textContent = `${app.companyName} · ${app.contactEmail}${app.companyCode ? ' · Code: ' + app.companyCode : ''}`;
+          document.getElementById('s2-tier-title').textContent = `${app.planLabel} Tier (${app.workerBand || ''})`;
+          document.getElementById('s2-status-chip').textContent = app.status.replace(/_/g, ' ');
+          document.getElementById('s2-workers').textContent = `${app.workerCount} workers`;
+          document.getElementById('s2-setup').textContent = fmtNgn(app.setupFeeNgn);
+          document.getElementById('s2-base').textContent = fmtNgn(app.monthlyBaseFeeNgn);
+          document.getElementById('s2-monthly').textContent = `${fmtNgn(app.estimatedMonthlyTotalNgn)}/mo`;
+          if (hasLink) {
+            payBtn.href = app.checkoutUrl;
+            payBtn.style.display = 'inline-flex';
+          } else {
+            payBtn.style.display = 'none';
+          }
+          return;
+        }
+
+        // Stage 3 unlocked!
+        setStepper(3);
+        document.getElementById('stage-2-card').style.display = 'none';
+        document.getElementById('stage-3-card').style.display = 'block';
+        document.getElementById('s3-receipt-code').textContent = app.receiptNumber || app.invoiceId || 'VERIFIED';
+        document.getElementById('s3-company-name').textContent = app.companyName;
+        document.getElementById('s3-company-code').textContent = app.companyCode || 'PROVISIONED';
+
+        const tbody = document.getElementById('s3-roster-tbody');
+        if (tbody && !tbody.children.length) {
+          for (let i = 0; i < 3; i++) window.addRosterRow();
+        }
+
+        if (app.status === 'ROSTER_SUBMITTED' || app.status === 'LIVE') {
+          document.getElementById('s3-done-box').style.display = 'block';
+          document.getElementById('s3-done-text').textContent = app.status === 'LIVE'
+            ? `Your workspace is LIVE with ${app.importedStaffCount || app.rosterCount || 0} active staff profiles! You can add additional rows above anytime if needed.`
+            : `${app.rosterCount || 0} staff records received and queued for final activation by our ShiftRelay onboarding engineers.`;
+          const portalLink = document.getElementById('s3-portal-link');
+          if (portalLink && app.companyCode) portalLink.href = `/?companyId=${encodeURIComponent(app.companyCode)}`;
+        }
+      }
+
+      window.addRosterRow = function (prefill = {}) {
+        const tbody = document.getElementById('s3-roster-tbody');
+        if (!tbody) return;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input data-f="fullName" placeholder="e.g. Amina Bello" value="${(prefill.fullName || '').replace(/"/g, '&quot;')}" /></td>
+          <td><input data-f="email" type="email" placeholder="amina@company.com" value="${(prefill.email || '').replace(/"/g, '&quot;')}" /></td>
+          <td><input data-f="phone" placeholder="+23480..." value="${(prefill.phone || '').replace(/"/g, '&quot;')}" /></td>
+          <td><input data-f="roleTitle" placeholder="Operator" value="${(prefill.roleTitle || '').replace(/"/g, '&quot;')}" /></td>
+          <td><input data-f="department" placeholder="Operations" value="${(prefill.department || '').replace(/"/g, '&quot;')}" /></td>
+          <td><input data-f="monthlySalaryNgn" type="number" placeholder="180000" value="${prefill.monthlySalaryNgn || ''}" /></td>
+          <td><input data-f="bankName" placeholder="GTBank" value="${(prefill.bankName || '').replace(/"/g, '&quot;')}" /></td>
+          <td><input data-f="accountNumber" maxlength="10" placeholder="0123456789" value="${(prefill.accountNumber || '').replace(/"/g, '&quot;')}" /></td>
+          <td><button type="button" class="btn-ghost" style="padding:5px 8px;font-size:11px;" onclick="this.closest('tr').remove()">&times;</button></td>
+        `;
+        tbody.appendChild(tr);
+      };
+
+      window.downloadSampleCsv = function () {
+        const csv = 'Full Name,Work Email,Phone,Role,Department,Monthly Salary NGN,Bank Name,Account Number\nAmina Bello,amina@company.com,+2348031112222,Shift Operator,Operations,180000,GTBank,0123456789\nTunde Adeyemi,tunde@company.com,+2348093334444,Supervisor,Logistics,280000,Access Bank,0987654321\n';
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'ShiftRelay-Staff-Roster-Template.csv';
+        a.click();
+      };
+
+      document.getElementById('s3-csv-input')?.addEventListener('change', (ev) => {
+        const file = ev.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const lines = String(reader.result || '').replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim());
+          if (lines.length < 2) return;
+          const tbody = document.getElementById('s3-roster-tbody');
+          if (tbody) tbody.innerHTML = '';
+          for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+            if (!cols[0] && !cols[1]) continue;
+            window.addRosterRow({
+              fullName: cols[0] || '',
+              email: cols[1] || '',
+              phone: cols[2] || '',
+              roleTitle: cols[3] || 'Frontline Specialist',
+              department: cols[4] || 'Operations',
+              monthlySalaryNgn: cols[5] || '',
+              bankName: cols[6] || '',
+              accountNumber: cols[7] || ''
+            });
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      window.submitStaffRoster = async function () {
+        showErr('');
+        const rows = Array.from(document.querySelectorAll('#s3-roster-tbody tr')).map(tr => {
+          const obj = {};
+          tr.querySelectorAll('input[data-f]').forEach(inp => { obj[inp.dataset.f] = inp.value.trim(); });
+          return obj;
+        }).filter(r => r.fullName && r.email);
+
+        if (!rows.length) {
+          return showErr('Please add at least one staff member with Full Name and Work Email (or upload a CSV file).');
+        }
+        const btn = document.getElementById('s3-submit-roster-btn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Submitting Staff Roster...'; }
+        try {
+          const res = await fetch('/api/public/onboarding/roster', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: activeToken, staff: rows })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Could not submit roster.');
+          renderApplication(data.application);
+        } catch (err) {
+          showErr(err.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = 'Submit Staff Roster to ShiftRelay Onboarding Team →'; }
+        }
+      };
+
+      window.copyTrackingLink = function () {
+        const url = `${window.location.origin}/onboard.html?token=${encodeURIComponent(activeToken)}`;
+        navigator.clipboard?.writeText(url).catch(() => {});
+        alert('Onboarding link copied:\n' + url);
+      };
+
+      window.refreshApplicationStatus = async function (silentCheck) {
+        if (!activeToken) return;
+        try {
+          const res = await fetch(`/api/public/onboarding/status?token=${encodeURIComponent(activeToken)}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Onboarding link not found.');
+          renderApplication(data.application);
+        } catch (err) {
+          if (!silentCheck) showErr(err.message);
+        }
+      };
+
+      document.getElementById('intake-form')?.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        showErr('');
+        const btn = document.getElementById('intake-submit-btn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Submitting Company Details...'; }
+        try {
+          const payload = {
+            companyName: document.getElementById('in-company-name').value.trim(),
+            tradingName: document.getElementById('in-trading-name').value.trim(),
+            rcNumber: document.getElementById('in-rc-number').value.trim(),
+            industryKey: document.getElementById('in-industry').value,
+            state: document.getElementById('in-state').value.trim(),
+            contactName: document.getElementById('in-contact-name').value.trim(),
+            contactEmail: document.getElementById('in-contact-email').value.trim(),
+            contactPhone: document.getElementById('in-contact-phone').value.trim(),
+            siteName: document.getElementById('in-site-name').value.trim(),
+            address: document.getElementById('in-address').value.trim(),
+            workerCount: Number(document.getElementById('in-worker-count').value || 1)
+          };
+          const res = await fetch('/api/public/onboarding/intake', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to submit onboarding details.');
+          activeToken = data.application.token;
+          const nextUrl = `${window.location.pathname}?token=${encodeURIComponent(activeToken)}`;
+          window.history.replaceState({}, '', nextUrl);
+          renderApplication(data.application);
+        } catch (err) {
+          showErr(err.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = 'Submit Company Info & Request Secure Paystack Link →'; }
+        }
+      });
+
+      if (activeToken) {
+        window.refreshApplicationStatus(false);
+      }
+    })();
+  </script>
+</body>
+</html>

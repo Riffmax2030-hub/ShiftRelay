@@ -1024,6 +1024,51 @@ export function renderOfficialPaymentReceiptEmail({
   });
 }
 
+/**
+ * 11. Company Onboarding Intake Form Invite Email (Stage 1 Link sent by Admin to Prospect)
+ */
+export function renderOnboardingIntakeInviteEmail({
+  companyName = 'Your Organisation',
+  recipientName = 'Executive Team',
+  intakeUrl,
+  note = ''
+}) {
+  const bodyHtml = `
+    <div style="background:linear-gradient(135deg, rgba(0,245,160,0.09) 0%, rgba(56,189,248,0.06) 100%);border:1px solid rgba(0,245,160,0.28);border-radius:12px;padding:16px 18px;margin:0 0 18px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#00f5a0;">
+        Stage 1 of 3 · Company Onboarding Intake
+      </div>
+      <div style="font-size:17px;font-weight:800;color:#ffffff;margin-top:4px;">
+        ShiftRelay Onboarding Form — Powered by ${escapeHtml(COMPANY_LEGAL)}
+      </div>
+    </div>
+    <p style="margin:0 0 14px;">
+      We are ready to onboard <strong>${escapeHtml(companyName)}</strong> onto <strong>ShiftRelay</strong>. Click the secure link below to provide your basic company details and number of active workers so we can assign the right plan tier (<strong>Startup, Business, Enterprise, Corporate, or Mega</strong>).
+    </p>
+    ${note ? `<div style="background:#0d182b;border-left:3px solid #38bdf8;padding:12px 14px;border-radius:0 8px 8px 0;margin:0 0 16px;font-size:13px;color:#cbd5e1;">${escapeHtml(note)}</div>` : ''}
+    <div style="background:#0d182b;border:1px solid #1e293b;border-radius:10px;padding:14px 16px;margin:16px 0;font-size:13px;color:#cbd5e1;">
+      <strong style="color:#ffffff;display:block;margin-bottom:6px;">How Your 3-Step Onboarding Works:</strong>
+      <div>1. <strong>Submit Company Info &amp; Worker Count</strong> using the secure link below (2 minutes).</div>
+      <div style="margin-top:4px;">2. <strong>Pay Securely via Paystack</strong> using the itemized payment link we email for your selected tier.</div>
+      <div style="margin-top:4px;">3. <strong>Upload Staff Roster &amp; Details</strong> — unlocked immediately upon payment along with your official <strong>ShiftRelay · Powered by ${escapeHtml(COMPANY_LEGAL)}</strong> receipt!</div>
+    </div>
+  `;
+  return wrapEnterpriseEmail({
+    title: `Complete Your ShiftRelay Company Onboarding Form — ${companyName}`,
+    preheader: `Submit your basic company details & headcount to begin ShiftRelay onboarding`,
+    recipientName,
+    deliveryReason: `ShiftRelay onboarding invitation issued by ${COMPANY_LEGAL}.`,
+    bodyHtml,
+    primaryCtaText: 'Open Company Onboarding Form',
+    primaryCtaUrl: intakeUrl,
+    secondaryNote: 'No staff details or payment are required on Step 1 — staff roster upload unlocks immediately after your tier payment is confirmed.',
+    securityMetadata: {
+      'Onboarding Stage': 'STAGE_1_COMPANY_INTAKE',
+      'Issuer': `ShiftRelay · Powered by ${COMPANY_LEGAL} (${COMPANY_RC})`
+    }
+  });
+}
+
 function escapeHtml(str) {
   if (typeof str !== 'string') return String(str ?? '');
   return str
