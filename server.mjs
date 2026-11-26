@@ -76,8 +76,8 @@ export async function sendShiftRelayEmail({ to, subject, html, text, headers = {
     }
   }
 
-  // Optional: If RESEND_API_KEY is configured in .env, dispatch live transactional email
-  if (process.env.RESEND_API_KEY) {
+  // Optional: If RESEND_API_KEY is configured and SMTP did not already send live, dispatch via Resend
+  if (process.env.RESEND_API_KEY && emailRecord.status !== 'SENT_LIVE') {
     try {
       const resendFrom = process.env.RESEND_FROM_EMAIL || (from && !/@(gmail|yahoo|outlook|hotmail)\.com/i.test(from) ? from : 'ShiftRelay <onboarding@resend.dev>');
       const resendRes = await fetch('https://api.resend.com/emails', {

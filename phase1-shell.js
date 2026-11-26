@@ -3555,7 +3555,7 @@
                   </div>
                   <span class="sr-water-btn-label" id="sr-water-btn-label">CLOCK IN</span>
                   <div class="sr-orbital-time-readout sr-orbital-time-idle sr-v2-num" id="sr-elapsed-timer">${initialElapsedStr}</div>
-                  <span class="sr-orbital-time-sub" id="sr-clock-sub-hint">${hasCompletedShiftToday ? 'OFF DUTY · TOUCH FINGERPRINT' : 'TOUCH FINGERPRINT TO CLOCK IN'}</span>
+                  <span class="sr-orbital-time-sub" id="sr-clock-sub-hint">${hasCompletedShiftToday ? 'OFF DUTY · TAP TO START' : 'TAP TO CLOCK IN'}</span>
                 `}
               </div>
             </button>

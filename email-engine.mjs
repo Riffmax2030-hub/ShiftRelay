@@ -43,6 +43,13 @@ export function getEmailMarketingBaseUrl() {
   return (raw || 'https://shiftrelayos.com').replace(/\/+$/, '');
 }
 
+export function getEmailLogoUrl() {
+  const explicit = String(process.env.EMAIL_LOGO_URL || '').trim();
+  if (explicit) return explicit;
+  // Use live HTTPS Render origin until custom domain DNS is live so Gmail/iOS Mail always loads the real ShiftRelay logo PNG
+  return 'https://shiftrelay-vjkf.onrender.com/icon-192.png';
+}
+
 /**
  * Universal Executive HTML Email Envelope Wrapper
  * - Clean Obsidian Command Header (#070d19) + Emerald 4px accent bar
@@ -116,47 +123,45 @@ export function wrapEnterpriseEmail({
       <td align="center" style="padding:28px 12px 48px;">
         <table role="presentation" class="sr-container" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #cbd5e1;border-radius:16px;overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,0.08);">
 
-          <!-- Top Emerald Signal Bar -->
+          <!-- Canva-Aligned Obsidian Corporate Header with Real ShiftRelay Logo PNG -->
           <tr>
-            <td style="height:4px;background:linear-gradient(90deg,#10b981 0%,#059669 60%,#0284c7 100%);font-size:0;line-height:0;">&nbsp;</td>
-          </tr>
-
-          <!-- Obsidian Corporate Header -->
-          <tr>
-            <td class="sr-pad" style="background-color:#070d19;padding:24px 32px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+            <td class="sr-pad" align="center" style="background-color:#050a14;padding:28px 28px 24px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center">
                 <tr>
-                  <td valign="middle">
-                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                      <tr>
-                        <td style="width:38px;height:38px;background-color:#10b981;border-radius:10px;text-align:center;vertical-align:middle;">
-                          <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:16px;font-weight:900;color:#03180f;letter-spacing:-0.04em;line-height:38px;display:block;">SR</span>
-                        </td>
-                        <td style="padding-left:12px;vertical-align:middle;">
-                          <span style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#ffffff;display:block;line-height:1.15;">ShiftRelay</span>
-                          <span style="font-size:10px;color:#34d399;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;display:block;margin-top:2px;">Powered by ${escapeHtml(COMPANY_LEGAL)}</span>
-                        </td>
-                      </tr>
-                    </table>
+                  <td valign="middle" style="padding-right:14px;">
+                    <img src="${escapeHtml(getEmailLogoUrl())}" width="52" height="52" alt="ShiftRelay Logo" style="display:block;width:52px;height:52px;border-radius:13px;border:1.5px solid rgba(16,185,129,0.45);background-color:#071915;" />
                   </td>
-                  <td align="right" valign="middle">
-                    <span style="display:inline-block;padding:4px 10px;background-color:rgba(16,185,129,0.14);border:1px solid rgba(52,211,153,0.45);border-radius:999px;font-size:10px;font-weight:800;color:#34d399;text-transform:uppercase;letter-spacing:0.06em;">
-                      ${escapeHtml(badgeLabel)}
-                    </span>
+                  <td valign="middle" align="left">
+                    <div style="font-size:24px;font-weight:800;letter-spacing:-0.025em;color:#ffffff;line-height:1.1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                      Shift<span style="color:#10b981;">Relay</span>
+                    </div>
+                    <div style="font-size:11.5px;color:#cbd5e1;font-weight:600;letter-spacing:0.01em;margin-top:4px;">
+                      Powered by ${escapeHtml(COMPANY_LEGAL)}
+                    </div>
                   </td>
                 </tr>
               </table>
+              <div style="margin-top:14px;">
+                <span style="display:inline-block;padding:4px 12px;background-color:rgba(16,185,129,0.14);border:1px solid rgba(52,211,153,0.45);border-radius:999px;font-size:10px;font-weight:800;color:#34d399;text-transform:uppercase;letter-spacing:0.08em;">
+                  ${escapeHtml(badgeLabel)}
+                </span>
+              </div>
             </td>
+          </tr>
+
+          <!-- Signature 4px Emerald Divider Bar (Canva Brand Accent) -->
+          <tr>
+            <td style="height:4px;background-color:#10b981;font-size:0;line-height:0;">&nbsp;</td>
           </tr>
 
           <!-- Delivery Reason Strip -->
           ${deliveryReason ? `
           <tr>
-            <td style="background-color:#f8fafc;padding:11px 32px;border-bottom:1px solid #e2e8f0;">
+            <td style="background-color:#f8fafc;padding:10px 32px;border-bottom:1px solid #e2e8f0;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td style="font-size:12px;color:#475569;line-height:1.45;">
-                    <strong style="color:#0284c7;">Why you received this:</strong> ${escapeHtml(deliveryReason)}
+                    <strong style="color:#059669;">Why you received this:</strong> ${escapeHtml(deliveryReason)}
                   </td>
                 </tr>
               </table>
@@ -164,96 +169,95 @@ export function wrapEnterpriseEmail({
           </tr>
           ` : ''}
 
-          <!-- Pure White High-Readability Main Canvas -->
+          <!-- Pure White High-Readability Main Canvas (Canva Clean Card Layout) -->
           <tr>
-            <td class="sr-pad" style="padding:30px 32px 26px;background-color:#ffffff;">
+            <td class="sr-pad" style="padding:32px 34px 28px;background-color:#ffffff;">
               ${recipientName ? `
-                <p style="margin:0 0 14px;font-size:16px;font-weight:700;color:#0f172a;">
+                <p style="margin:0 0 12px;font-size:18px;font-weight:800;color:#0f172a;letter-spacing:-0.01em;">
                   Hello ${escapeHtml(recipientName)},
                 </p>
               ` : ''}
 
-              <div style="font-size:14.5px;line-height:1.65;color:#334155;">
+              <div style="font-size:14.5px;line-height:1.68;color:#334155;">
                 ${bodyHtml}
               </div>
 
-              <!-- Bulletproof Primary Call To Action Button -->
+              <!-- Canva-Styled Bulletproof Emerald Pill CTA Button -->
               ${primaryCtaText && primaryCtaUrl ? `
                 <div style="margin:28px 0 20px;text-align:center;">
                   <!--[if mso]>
-                  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${primaryCtaUrl}" style="height:48px;v-text-anchor:middle;width:300px;" arcsize="18%" stroke="f" fillcolor="#059669">
+                  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${primaryCtaUrl}" style="height:50px;v-text-anchor:middle;width:320px;" arcsize="20%" stroke="f" fillcolor="#0ea572">
                     <w:anchorlock/>
                     <center style="color:#ffffff;font-family:sans-serif;font-size:15px;font-weight:bold;">${escapeHtml(primaryCtaText)}</center>
                   </v:roundrect>
                   <![endif]-->
                   <!--[if !mso]><!-->
-                  <a href="${primaryCtaUrl}" class="sr-btn" style="display:inline-block;padding:14px 30px;background-color:#059669;color:#ffffff;font-size:15px;font-weight:700;letter-spacing:-0.01em;text-decoration:none;border-radius:10px;text-align:center;">
+                  <a href="${primaryCtaUrl}" class="sr-btn" style="display:inline-block;padding:15px 38px;background-color:#0ea572;color:#ffffff;font-size:15px;font-weight:800;letter-spacing:-0.01em;text-decoration:none;border-radius:10px;text-align:center;">
                     ${escapeHtml(primaryCtaText)} &rarr;
                   </a>
                   <!--<![endif]-->
                 </div>
 
                 <!-- Unbroken Raw Fallback Link -->
-                <div style="background-color:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0;margin:16px 0 20px;word-break:break-all;">
-                  <p style="margin:0 0 5px;font-size:11.5px;color:#64748b;font-weight:600;">
-                    Button not working? Copy and paste this exact link into your browser:
+                <div style="background-color:#f8fafc;padding:11px 14px;border-radius:10px;border:1px solid #e2e8f0;margin:14px 0 20px;word-break:break-all;">
+                  <p style="margin:0 0 4px;font-size:11.5px;color:#64748b;font-weight:600;">
+                    Button not working? Copy and paste this secure link into your browser:
                   </p>
-                  <a href="${primaryCtaUrl}" style="font-size:11.5px;color:#0284c7;text-decoration:underline;font-family:'JetBrains Mono',Consolas,monospace;">
+                  <a href="${primaryCtaUrl}" style="font-size:11.5px;color:#059669;text-decoration:underline;font-family:'JetBrains Mono',Consolas,monospace;">
                     ${primaryCtaUrl}
                   </a>
                 </div>
               ` : ''}
 
               ${secondaryNote ? `
-                <p style="margin:18px 0 0;font-size:13px;color:#64748b;line-height:1.55;">
+                <p style="margin:16px 0 0;font-size:13px;color:#64748b;line-height:1.55;">
                   ${secondaryNote}
                 </p>
               ` : ''}
 
-              <!-- Enterprise Security & Audit Trace -->
-              <div style="margin-top:26px;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;">
+              <!-- Canva Mint-Bordered Security Verification & Audit Card -->
+              <div style="margin-top:24px;background-color:#f0fdf4;border:1px solid #a7f3d0;border-radius:12px;padding:14px 16px;">
                 <table role="presentation" class="sr-meta-table" width="100%" cellspacing="0" cellpadding="0" border="0">
                   <tr>
-                    <td colspan="2" style="padding-bottom:8px;font-size:11px;font-weight:800;color:#059669;letter-spacing:0.06em;text-transform:uppercase;">
-                      Enterprise Security &amp; Audit Trace
+                    <td colspan="2" style="padding-bottom:6px;font-size:11.5px;font-weight:800;color:#065f46;letter-spacing:0.04em;text-transform:uppercase;">
+                      Enterprise Security &amp; Audit Trace &middot; Verified &amp; Logged
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding:6px 8px 5px;font-size:11px;color:#64748b;font-family:'JetBrains Mono',Consolas,monospace;text-transform:uppercase;border-top:1px solid #e2e8f0;">Dispatched At</td>
-                    <td style="padding:6px 8px 5px;font-size:11.5px;color:#0f172a;font-family:'JetBrains Mono',Consolas,monospace;font-weight:700;text-align:right;border-top:1px solid #e2e8f0;">${watTime}</td>
+                    <td style="padding:6px 8px 5px;font-size:11px;color:#475569;font-family:'JetBrains Mono',Consolas,monospace;text-transform:uppercase;border-top:1px solid #d1fae5;">Dispatched At</td>
+                    <td style="padding:6px 8px 5px;font-size:11.5px;color:#0f172a;font-family:'JetBrains Mono',Consolas,monospace;font-weight:700;text-align:right;border-top:1px solid #d1fae5;">${watTime}</td>
                   </tr>
                   ${metaRows}
                 </table>
               </div>
 
-              <!-- Anti-Phishing Advisory -->
-              <div style="margin-top:16px;padding:11px 14px;background-color:#fef2f2;border-left:3px solid #dc2626;border-radius:0 8px 8px 0;">
-                <p style="margin:0;font-size:11.5px;color:#991b1b;line-height:1.5;">
-                  <strong>Security Advisory:</strong> ShiftRelay personnel will <em>never</em> ask for your password, PIN, or BVN over email or telephone. If you did not expect this message, contact <a href="mailto:${SUPPORT_EMAIL}" style="color:#b91c1c;font-weight:700;">${SUPPORT_EMAIL}</a> immediately.
+              <!-- Subtle Anti-Phishing Advisory -->
+              <div style="margin-top:14px;padding:10px 14px;background-color:#f8fafc;border-left:3px solid #94a3b8;border-radius:0 8px 8px 0;">
+                <p style="margin:0;font-size:11.5px;color:#475569;line-height:1.5;">
+                  <strong>Security Notice:</strong> ShiftRelay staff will <em>never</em> ask for your password, PIN, or BVN by email or phone. Need help? Contact <a href="mailto:${SUPPORT_EMAIL}" style="color:#059669;font-weight:700;">${SUPPORT_EMAIL}</a>.
                 </p>
               </div>
             </td>
           </tr>
 
-          <!-- Corporate Legal Footer -->
+          <!-- Sleek Obsidian Corporate Footer (Canva Exact Footer Style) -->
           <tr>
-            <td style="background-color:#070d19;padding:24px 32px;text-align:center;">
-              <p style="margin:0 0 6px;font-size:12.5px;font-weight:700;color:#f8fafc;">
+            <td style="background-color:#050a14;padding:22px 28px;text-align:center;">
+              <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#f8fafc;">
                 ${escapeHtml(BRAND_NAME)} by ${escapeHtml(COMPANY_LEGAL)} (${escapeHtml(COMPANY_RC)})
               </p>
-              <p style="margin:0 0 12px;font-size:11px;color:#94a3b8;line-height:1.5;">
-                ${escapeHtml(HEADQUARTERS)}<br>
-                Licensed Workforce &amp; Statutory Payroll OS &middot; Zero-Lending Boundary Enforced
+              <p style="margin:0 0 10px;font-size:11px;color:#94a3b8;line-height:1.5;">
+                ${escapeHtml(HEADQUARTERS)}
               </p>
               <div style="font-size:11.5px;color:#cbd5e1;">
                 <a href="${escapeHtml(getEmailMarketingBaseUrl())}/terms.html" style="color:#cbd5e1;text-decoration:none;margin:0 7px;">Terms</a> &middot;
                 <a href="${escapeHtml(getEmailMarketingBaseUrl())}/privacy.html" style="color:#cbd5e1;text-decoration:none;margin:0 7px;">Privacy</a> &middot;
                 <a href="${escapeHtml(getEmailMarketingBaseUrl())}/trust.html" style="color:#cbd5e1;text-decoration:none;margin:0 7px;">Trust Center</a> &middot;
-                <a href="mailto:${SUPPORT_EMAIL}" style="color:#cbd5e1;text-decoration:none;margin:0 7px;">Support Desk</a>
+                <a href="mailto:${SUPPORT_EMAIL}" style="color:#cbd5e1;text-decoration:none;margin:0 7px;">Support</a>
                 ${unsubUrl ? `&middot; <a href="${escapeHtml(unsubUrl)}" style="color:#34d399;text-decoration:none;margin:0 7px;">Unsubscribe</a>` : ''}
               </div>
-              <p style="margin:14px 0 0;font-size:10.5px;color:#64748b;">
-                &copy; ${currentYear} ${escapeHtml(BRAND_NAME)} by ${escapeHtml(COMPANY_LEGAL)}. All operational handovers encrypted with 256-bit SHA-2.
+              <p style="margin:12px 0 0;font-size:10.5px;color:#64748b;">
+                &copy; ${currentYear} ${escapeHtml(BRAND_NAME)} by ${escapeHtml(COMPANY_LEGAL)}. All operational records cryptographically logged.
               </p>
             </td>
           </tr>
@@ -881,9 +885,9 @@ export function renderBillingPaymentLinkEmail({
         </thead>
         <tbody>
           ${rowsHtml}
-          <tr style="background-color:#070d19;">
-            <td style="padding:13px 12px;font-size:14px;font-weight:800;color:#ffffff;">Total Payable via Paystack</td>
-            <td style="padding:13px 12px;font-size:18px;font-weight:900;color:#34d399;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',Consolas,monospace;">
+          <tr style="background-color:#ecfdf5;">
+            <td style="padding:13px 12px;font-size:14px;font-weight:800;color:#065f46;border-top:1px solid #a7f3d0;">Total Payable via Paystack</td>
+            <td style="padding:13px 12px;font-size:18px;font-weight:900;color:#059669;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',Consolas,monospace;border-top:1px solid #a7f3d0;">
               ${fmtNgn(totalAmountNgn)}
             </td>
           </tr>
@@ -1031,9 +1035,9 @@ export function renderOfficialPaymentReceiptEmail({
         </thead>
         <tbody>
           ${rowsHtml}
-          <tr style="background-color:#070d19;">
-            <td style="padding:13px 12px;font-size:14px;font-weight:800;color:#ffffff;">Total Paid (Balance Due: ₦0)</td>
-            <td style="padding:13px 12px;font-size:18px;font-weight:900;color:#34d399;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',Consolas,monospace;">
+          <tr style="background-color:#ecfdf5;">
+            <td style="padding:13px 12px;font-size:14px;font-weight:800;color:#065f46;border-top:1px solid #a7f3d0;">Total Paid (Balance Due: ₦0)</td>
+            <td style="padding:13px 12px;font-size:18px;font-weight:900;color:#059669;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',Consolas,monospace;border-top:1px solid #a7f3d0;">
               ${fmtNgn(totalPaidNgn)}
             </td>
           </tr>
