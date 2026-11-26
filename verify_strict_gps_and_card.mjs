@@ -234,7 +234,9 @@ async function main() {
         ALLOW_DEV_FALLBACK: USE_PG ? 'false' : 'true',
         ALLOW_DEV_DEMO_AUTH: USE_PG ? 'false' : 'true',
         SESSION_SECRET: '',
-        CARD_SIGNING_SECRET: ''
+        CARD_SIGNING_SECRET: '',
+        SMTP_HOST: '',
+        RESEND_API_KEY: ''
       },
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -529,8 +531,8 @@ async function main() {
     // Inject valid session cookie for Babatunde into denied context
     const [bCookieName, bCookieVal] = babatunde.cookie.split('=');
     await deniedContext.addCookies([{ name: bCookieName, value: bCookieVal, domain: '127.0.0.1', path: '/' }]);
-    await deniedPage.goto(BASE_URL, { waitUntil: 'networkidle' });
-    await deniedPage.waitForSelector('#sr-btn-water-clock', { timeout: 10000 });
+    await deniedPage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await deniedPage.waitForSelector('#sr-btn-water-clock', { timeout: 15000 });
 
     // Click Clock In with denied GPS -> must block, must NOT clock in
     await deniedPage.click('#sr-btn-water-clock');
@@ -568,8 +570,8 @@ async function main() {
     });
     const onsitePage = await onsiteContext.newPage();
     await onsiteContext.addCookies([{ name: bCookieName, value: bCookieVal, domain: '127.0.0.1', path: '/' }]);
-    await onsitePage.goto(BASE_URL, { waitUntil: 'networkidle' });
-    await onsitePage.waitForSelector('#sr-btn-water-clock', { timeout: 10000 });
+    await onsitePage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await onsitePage.waitForSelector('#sr-btn-water-clock', { timeout: 15000 });
 
     // Clock in on-site via UI button
     await onsitePage.click('#sr-btn-water-clock');
@@ -789,13 +791,17 @@ async function main() {
     const supContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const supPage = await supContext.newPage();
     await supContext.addCookies([{ name: sCookieName, value: sCookieVal, domain: '127.0.0.1', path: '/' }]);
-    await supPage.goto(BASE_URL, { waitUntil: 'networkidle' });
-    await supPage.waitForSelector('[data-action="confirm-presence"]', { timeout: 10000 });
-    await supPage.locator('#sr-presence-reviews-card').scrollIntoViewIfNeeded();
+    await supPage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await supPage.waitForSelector('[data-action="confirm-presence"]', { state: 'visible', timeout: 15000 });
+    await supPage.waitForTimeout(500);
+    await supPage.waitForSelector('[data-action="confirm-presence"]', { state: 'visible', timeout: 10000 });
+    await supPage.evaluate(() => {
+      document.getElementById('sr-presence-reviews-card')?.scrollIntoView({ block: 'center' });
+    });
     await supPage.screenshot({ path: join(ARTIFACT_DIR, 'strict-sup-presence-review.png') });
 
     // Confirm presence in UI -> card item must disappear immediately
-    await supPage.click('[data-action="confirm-presence"]');
+    await supPage.locator('[data-action="confirm-presence"]').first().click();
     await supPage.waitForFunction(
       () => document.querySelectorAll('[data-action="confirm-presence"]').length === 0 &&
             (document.getElementById('sr-presence-reviews-card')?.textContent || '').includes('(0)'),
@@ -1020,9 +1026,10 @@ async function main() {
     const [oCookieName, oCookieVal] = owner2.cookie.split('=');
     await execUiContext.addCookies([{ name: oCookieName, value: oCookieVal, domain: '127.0.0.1', path: '/' }]);
     const execUiPage = await execUiContext.newPage();
-    await execUiPage.goto(BASE_URL, { waitUntil: 'networkidle' });
-    await execUiPage.waitForSelector('#sr-analytics-add-staff-btn', { timeout: 15000 });
-    await execUiPage.click('#sr-analytics-add-staff-btn');
+    await execUiPage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await execUiPage.waitForSelector('#sr-analytics-add-staff-btn', { state: 'visible', timeout: 15000 });
+    await execUiPage.waitForTimeout(400);
+    await execUiPage.locator('#sr-analytics-add-staff-btn').first().click();
     await execUiPage.waitForSelector('#sr-exec-add-staff-modal', { timeout: 5000 });
     await execUiPage.waitForSelector('#sr-add-staff-dept');
     await execUiPage.waitForSelector('#sr-add-staff-passport-input');

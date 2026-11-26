@@ -470,7 +470,7 @@
     <script src="push-notifications.js?v=212" defer></script>
     <script src="facility-switcher.js?v=212" defer></script>
     <script src="emergency-broadcast.js?v=212" defer></script>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js?v=212',{updateViaCache:'none'}).then((registration)=>registration.update()).catch(()=>{});</script>
+    <script>if('serviceWorker' in navigator){var srHadSw=Boolean(navigator.serviceWorker.controller);var srSwRefreshed=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!srHadSw||srSwRefreshed)return;if(sessionStorage.getItem('sr_sw_reloaded_v218'))return;srSwRefreshed=true;sessionStorage.setItem('sr_sw_reloaded_v218','1');window.location.reload();});navigator.serviceWorker.register('/service-worker.js?v=218',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(){});}</script>
   </body>
 </html>
 
