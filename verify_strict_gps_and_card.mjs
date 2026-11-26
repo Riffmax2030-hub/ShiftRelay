@@ -635,6 +635,7 @@ async function main() {
       null,
       { timeout: 6000 }
     );
+    const checkInFaceSrc = await onsitePage.$eval('#sr-facial-preview-img', (el) => el.src);
     await onsitePage.screenshot({ path: join(ARTIFACT_DIR, 'strict-peer-facial-capture.png') });
     await onsitePage.click('#sr-btn-submit-face-checkin');
 
@@ -691,15 +692,23 @@ async function main() {
       null,
       { timeout: 10000 }
     );
-    await onsitePage.click('#sr-btn-capture-face');
-    await onsitePage.waitForFunction(
-      () => {
-        const btn = document.getElementById('sr-btn-submit-face-checkin');
-        return btn && !btn.disabled;
-      },
-      null,
-      { timeout: 6000 }
-    );
+    // Wait briefly so Chromium's synthetic fake camera advances to a distinct live frame (anti-replay check stays strict!)
+    await onsitePage.waitForTimeout(1100);
+    for (let attempt = 0; attempt < 6; attempt++) {
+      await onsitePage.click('#sr-btn-capture-face');
+      await onsitePage.waitForFunction(
+        () => {
+          const btn = document.getElementById('sr-btn-submit-face-checkin');
+          const img = document.getElementById('sr-facial-preview-img');
+          return btn && !btn.disabled && img && img.src.startsWith('data:image/jpeg;base64,');
+        },
+        null,
+        { timeout: 6000 }
+      );
+      const exitFaceSrc = await onsitePage.$eval('#sr-facial-preview-img', (el) => el.src);
+      if (exitFaceSrc && exitFaceSrc !== checkInFaceSrc) break;
+      await onsitePage.waitForTimeout(500);
+    }
     const exitScanRespPromise = onsitePage.waitForResponse(
       r => r.url().includes('/api/time-entries/peer-card-scan') && r.request().method() === 'POST',
       { timeout: 15000 }
