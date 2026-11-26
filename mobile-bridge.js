@@ -7,7 +7,8 @@
   'use strict';
 
   // Fallback production URL if packaged as native app without origin server
-  const DEFAULT_REMOTE_BACKEND = 'https://app.shiftrelayos.com';
+  // Live Render production host (switch back to https://app.shiftrelayos.com once custom domain DNS is live)
+  const DEFAULT_REMOTE_BACKEND = 'https://shiftrelay-vjkf.onrender.com';
 
   function getBackendBase() {
     const metaBase = document.querySelector('meta[name="shiftrelay-api-base"]')?.getAttribute('content') || '';

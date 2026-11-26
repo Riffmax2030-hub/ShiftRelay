@@ -205,8 +205,8 @@
             <button type="button" id="sr-cal-prev-month" class="sr-btn sr-btn-secondary" aria-label="Previous month" style="min-height:30px;padding:3px 10px;font-size:14px;font-weight:800;">&lsaquo;</button>
             <button type="button" id="sr-cal-today-btn" class="sr-btn sr-btn-secondary" style="min-height:30px;padding:3px 10px;font-size:11.5px;font-weight:700;">Today</button>
             <button type="button" id="sr-cal-next-month" class="sr-btn sr-btn-secondary" aria-label="Next month" style="min-height:30px;padding:3px 10px;font-size:14px;font-weight:800;">&rsaquo;</button>
-            <button class="btn-ics-export" id="btn-export-ics" type="button" title="Sync shifts to phone calendar" style="margin-left:4px;">
-              ${window.Icons?.download ? window.Icons.download(13) : ''} .ics
+            <button class="sr-btn sr-btn-secondary btn-ics-export" id="btn-export-ics" type="button" title="Sync shifts to phone calendar" style="margin-left:2px;min-height:30px;height:30px;padding:0 9px;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;">
+              ${window.Icons?.download ? window.Icons.download(13) : ''}<span>.ics</span>
             </button>
           </div>
         </div>

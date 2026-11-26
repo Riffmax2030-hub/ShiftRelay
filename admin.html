@@ -2365,7 +2365,7 @@
                 <span class="chip emerald">support@shiftrelayos.com</span>
                 <span class="chip cyan">security@shiftrelayos.com</span>
                 <span class="chip amber">onboarding@shiftrelayos.com</span>
-                <span class="chip">finance@shiftrelayos.com</span>
+                <span class="chip emerald">finance@shiftrelayos.com</span>
               </div>
               <button type="button" class="btn-ghost" id="email-cfg-relay-btn" style="padding:6px 11px; font-size:11.5px;" onclick="window.switchAdminView('integrations'); setTimeout(()=>window.openConfigurePluginModal('email_relay'), 150);">
                 Configure Resend / SMTP Relay Key &rarr;
@@ -2640,14 +2640,14 @@
         title: 'ACTIVE SESSION: FOUNDER / SOVEREIGN OWNER (ROOT CLEARANCE)',
         desc: 'Full Sovereign access to Owner Vault, Master Approvals, Payroll Disbursal, Staff Governance, and Bridges.',
         workerName: 'Founder & Sovereign Owner',
-        allowedViews: ['overview', 'owner-vault', 'onboarding', 'tenants', 'rectifications', 'finance', 'leads', 'integrations', 'email-station', 'hosting']
+        allowedViews: ['overview', 'owner-vault', 'onboarding', 'tenants', 'calendar', 'rectifications', 'finance', 'leads', 'integrations', 'email-station', 'hosting']
       },
       onboarding_admin: {
         badge: 'DEPT 01 // ONBOARDING',
         title: 'ACTIVE SESSION: ONBOARDING & IMPLEMENTATION SPECIALIST',
         desc: 'Scoped to Setup Engine & Tenants/Roster. Owner Vault, Finance, Bridges & System Files are locked.',
         workerName: 'Onboarding Specialist',
-        allowedViews: ['overview', 'onboarding', 'tenants']
+        allowedViews: ['overview', 'onboarding', 'tenants', 'calendar']
       },
       ops_support_admin: {
         badge: 'DEPT 02 // OPS SUPPORT',
@@ -2661,7 +2661,7 @@
         title: 'ACTIVE SESSION: FINANCE & STATUTORY COMPLIANCE AUDITOR',
         desc: 'Scoped to Payroll Audit & Tenants. Final Treasury Release & Owner Vault require Owner Root clearance.',
         workerName: 'Finance Auditor',
-        allowedViews: ['overview', 'finance', 'tenants']
+        allowedViews: ['overview', 'finance', 'tenants', 'calendar']
       }
     };
 
