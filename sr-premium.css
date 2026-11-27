@@ -3409,3 +3409,45 @@ body {
 [data-sr-perf="lite"] #sr-app-shell #sr-content-area > * {
   animation: none !important;
 }
+
+/* ==========================================================================
+   TIGHT FLUSH TAB SPACING — ZERO DEAD GAPS ABOVE MOBILE DOCK (v226)
+   ========================================================================== */
+@media (max-width: 767px) {
+  #sr-app-shell .sr-main-content {
+    padding: 8px 10px calc(62px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  #sr-app-shell .sr-v2-page-head {
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+
+  #sr-app-shell .sr-card {
+    padding: 13px !important;
+    margin-bottom: 10px !important;
+  }
+
+  #sr-app-shell .sr-card:last-child,
+  #sr-app-shell .sr-page-wrap > :last-child,
+  #sr-app-shell .sr-modern-cv-wrap > :last-child {
+    margin-bottom: 4px !important;
+  }
+
+  #sr-app-shell .sr-v2-kpi-4,
+  #sr-app-shell .sr-v2-kpi-3 {
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+
+  #sr-app-shell .sr-v2-2col,
+  #sr-app-shell .sr-v2-fintech-grid,
+  #sr-app-shell .sr-v2-2col-even {
+    gap: 10px !important;
+  }
+
+  #sr-app-shell .sr-v2-shift-bar,
+  #sr-app-shell .sr-v2-filter-row {
+    margin-bottom: 10px !important;
+  }
+}

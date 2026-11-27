@@ -9828,6 +9828,10 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 <span>Export Dossier</span>
               </button>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-profile-law-guide" style="min-height:36px;padding:0 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                <span>Rights &amp; Laws</span>
+              </button>
             </div>
           </div>
         </div>
@@ -10168,6 +10172,13 @@
     // Bind Export CV Dossier -> High-Tech Print-Ready PDF & Document Viewer
     document.getElementById('sr-btn-export-cv')?.addEventListener('click', () => {
       openCvDossierModal();
+    });
+
+    document.getElementById('sr-btn-profile-law-guide')?.addEventListener('click', () => {
+      window.ShiftRelayLawGuide?.open({
+        initialTab: 'work',
+        isExecutive: isExecutiveRole(user.role) || ['supervisor', 'manager'].includes(String(user.role || '').toLowerCase())
+      });
     });
 
     document.getElementById('sr-btn-profile-view-terms')?.addEventListener('click', () => {
@@ -15022,9 +15033,12 @@
           <div class="sr-card" style="margin:0;">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
               <h4 style="font-size:15px;font-weight:800;color:var(--p-text);margin:0;">Statutory Breakdown</h4>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:11px;color:var(--p-text-3);">NIBSS &amp; NTA 2025</span>
-                <button type="button" id="sr-btn-claim-rent-relief" class="sr-btn sr-btn-secondary" style="font-size:11px;min-height:26px;padding:3px 9px;">Claim Rent Relief</button>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <button type="button" id="sr-btn-open-law-guide" class="sr-btn sr-btn-secondary" style="font-size:11px;min-height:28px;height:28px;padding:0 10px;display:inline-flex;align-items:center;gap:5px;border-color:rgba(16,185,129,0.35);color:var(--p-teal);">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                  <span>Tax &amp; Law Guide</span>
+                </button>
+                <button type="button" id="sr-btn-claim-rent-relief" class="sr-btn sr-btn-secondary" style="font-size:11px;min-height:28px;height:28px;padding:0 10px;">Claim Rent Relief</button>
               </div>
             </div>
             <p style="font-size:12px;color:var(--p-text-3);margin:0 0 16px;">Employer handles direct salary disbursement and statutory remittances.</p>
@@ -15266,6 +15280,16 @@
 
     // Ensure Monthly Salary is active by default and Rewards panel starts hidden
     activateSalariedTab();
+
+    document.getElementById('sr-btn-open-law-guide')?.addEventListener('click', () => {
+      const roleStr = String(activeUser?.role || '').toLowerCase();
+      window.ShiftRelayLawGuide?.open({
+        initialTab: 'tax',
+        isExecutive: isExecutiveRole(roleStr) || ['supervisor', 'manager'].includes(roleStr),
+        paySnapshot: { gross, taxes, preTax, net },
+        onClaimRentRelief: () => document.getElementById('sr-btn-claim-rent-relief')?.click()
+      });
+    });
 
     document.getElementById('sr-btn-claim-rent-relief')?.addEventListener('click', () => {
       document.getElementById('sr-rent-modal-root')?.remove();
@@ -15682,6 +15706,10 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               <span>Attendance Sheet</span>
             </button>
+            <button class="sr-btn sr-btn-secondary" id="sr-payroll-open-law-guide" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+              <span>2026 Tax Guide</span>
+            </button>
             <button class="sr-btn sr-btn-secondary" id="sr-btn-print-audit" style="min-height:34px;padding:0 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
               <span>Print Ledger</span>
@@ -16026,6 +16054,9 @@
 
     // Hook Print Audit -> Dedicated Printable Monthly Payment Data & Statutory Sheet
     const printAuditBtn = document.getElementById('sr-btn-print-audit');
+    document.getElementById('sr-payroll-open-law-guide')?.addEventListener('click', () => {
+      window.ShiftRelayLawGuide?.open({ initialTab: 'tax', isExecutive: true });
+    });
     document.getElementById('sr-btn-payroll-my-payout')?.addEventListener('click', () => {
       navigate('earnings');
     });
@@ -16969,6 +17000,10 @@
             <p class="sr-v2-page-sub">${escapeHtml(hubLabel)} &middot; Statutory regulations, payroll taxes &amp; access controls</p>
           </div>
           <div class="sr-v2-page-actions">
+            <button type="button" class="sr-btn sr-btn-secondary" id="sr-gov-open-law-guide" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+              <span>2026 Law Guide</span>
+            </button>
             <a href="/api/reports/dpa" target="_blank" rel="noopener noreferrer" class="sr-btn sr-btn-secondary" style="padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               <span>Download DPA</span>
@@ -17012,6 +17047,9 @@
         </div>
       </div>`;
 
+    document.getElementById('sr-gov-open-law-guide')?.addEventListener('click', () => {
+      window.ShiftRelayLawGuide?.open({ initialTab: 'tax', isExecutive: true });
+    });
     document.getElementById('sr-gov-open-settings')?.addEventListener('click', () => {
       navigate('settings');
     });
