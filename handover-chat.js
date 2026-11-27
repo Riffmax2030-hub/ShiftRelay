@@ -131,21 +131,25 @@
         50%      { opacity: 0.25; }
       }
 
-      /* ── Main 2026 Spatial Chat Shell ── */
+      /* ── Main 2026 Full-Page Edge-to-Edge Spatial Chat Shell ── */
+      body:has(#sr-ho-chat-shell) #sr-app-shell .sr-main-content {
+        padding: 12px 18px 14px !important;
+        max-width: 100% !important;
+      }
       .sr-ho-chat-shell {
         position: relative;
         display: flex;
         flex-direction: column;
-        border-radius: 24px;
+        border-radius: 20px;
         border: 1px solid rgba(15, 23, 42, 0.08);
         background: #ffffff;
         overflow: hidden;
         box-shadow:
           0 16px 42px -12px rgba(15, 23, 42, 0.1),
           0 2px 6px rgba(15, 23, 42, 0.04);
-        height: calc(100dvh - 152px);
-        min-height: 460px;
-        max-height: 760px;
+        height: calc(100dvh - 88px);
+        min-height: 480px;
+        max-height: none;
       }
       [data-theme="dark"] .sr-ho-chat-shell {
         background: #0a121b;
@@ -155,16 +159,23 @@
           inset 0 1px 0 rgba(255, 255, 255, 0.06);
       }
       @media (max-width: 767px) {
-        .sr-ho-chat-shell {
-          height: calc(100dvh - 144px);
-          min-height: 420px;
-          max-height: none;
-          border-radius: 22px;
+        body:has(#sr-ho-chat-shell) #sr-app-shell .sr-main-content,
+        body:has(#sr-ho-chat-shell) #sr-app-shell #sr-content-area {
+          padding: 0 !important;
+          margin: 0 !important;
         }
-        /* Extra clearance when Supervisor dual-mode bar is visible */
-        body:has(.sr-sup-mobile-mode-bar) .sr-ho-chat-shell {
-          height: calc(100dvh - 196px);
-          min-height: 390px;
+        .sr-ho-chat-shell {
+          position: relative;
+          width: 100%;
+          height: calc(var(--sr-ho-vh, 100dvh) - var(--sr-ho-top, 52px) - var(--sr-ho-bottom, 58px));
+          min-height: 0;
+          max-height: none;
+          border-radius: 0;
+          border-left: none;
+          border-right: none;
+          border-top: none;
+          border-bottom: none;
+          box-shadow: none;
         }
       }
 
@@ -1174,6 +1185,16 @@
     document.head.appendChild(style);
   }
 
+  function isSaveDataActive() {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    return Boolean(
+      document.documentElement.dataset.srSaveData === '1' ||
+      conn?.saveData === true ||
+      conn?.effectiveType === '2g' ||
+      conn?.effectiveType === 'slow-2g'
+    );
+  }
+
   function compressImageFile(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -1182,7 +1203,9 @@
         const img = new Image();
         img.onerror = () => resolve({ dataUrl: reader.result, mimeType: file.type || 'image/jpeg' });
         img.onload = () => {
-          const maxDim = 1440;
+          const saveData = isSaveDataActive();
+          const maxDim = saveData ? 960 : 1440;
+          const quality = saveData ? 0.68 : 0.82;
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
           if (w > maxDim || h > maxDim) {
@@ -1195,7 +1218,7 @@
           canvas.height = h;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
-          const out = canvas.toDataURL('image/jpeg', 0.82);
+          const out = canvas.toDataURL('image/jpeg', quality);
           resolve({ dataUrl: out, mimeType: 'image/jpeg' });
         };
         img.src = String(reader.result || '');
@@ -1384,9 +1407,17 @@
     `;
   }
 
+  let activeMountCleanup = null;
+
   async function mount(container, { user, profile, mode = 'worker', headerActionsHtml = '', onHeaderBind = null } = {}) {
     if (!container || !user) return;
+    if (typeof activeMountCleanup === 'function') {
+      try { activeMountCleanup(); } catch (_) {}
+      activeMountCleanup = null;
+    }
     injectStyles();
+    const mountAc = new AbortController();
+    const signal = mountAc.signal;
 
     const isSup = mode === 'supervisor';
     const secondCondLabel = profile?.key === 'tech' ? 'Service / Build Flag' : 'Operational Flag';
@@ -1860,7 +1891,36 @@
       if (plusMenu.classList.contains('is-open') && !plusMenu.contains(e.target) && e.target !== plusBtn) {
         togglePlusMenu(false);
       }
-    });
+    }, { signal });
+
+    // Full-page exact edge-to-edge bounds on mobile (zero gap to header/supervisor bar & bottom tab dock)
+    const chatShellEl = document.getElementById('sr-ho-chat-shell');
+    function syncShellBounds() {
+      if (!chatShellEl || !chatShellEl.isConnected) return;
+      if (window.innerWidth >= 768) {
+        chatShellEl.style.removeProperty('--sr-ho-vh');
+        chatShellEl.style.removeProperty('--sr-ho-top');
+        chatShellEl.style.removeProperty('--sr-ho-bottom');
+        return;
+      }
+      const headerEl = document.querySelector('#sr-app-shell .sr-header');
+      const supBarEl = document.querySelector('#sr-app-shell .sr-sup-mobile-mode-bar');
+      const dockEl = document.querySelector('#sr-app-shell .sr-mobile-dock');
+      const topAnchor = (supBarEl && supBarEl.offsetHeight > 0) ? supBarEl : headerEl;
+      const topPx = topAnchor ? Math.max(0, Math.round(topAnchor.getBoundingClientRect().bottom)) : 52;
+      const dockPx = (dockEl && dockEl.offsetHeight > 0) ? Math.round(dockEl.getBoundingClientRect().height) : 58;
+      const vhPx = Math.round(window.visualViewport?.height || window.innerHeight);
+      chatShellEl.style.setProperty('--sr-ho-vh', `${vhPx}px`);
+      chatShellEl.style.setProperty('--sr-ho-top', `${topPx}px`);
+      chatShellEl.style.setProperty('--sr-ho-bottom', `${dockPx}px`);
+    }
+    syncShellBounds();
+    requestAnimationFrame(syncShellBounds);
+    window.addEventListener('resize', syncShellBounds, { passive: true, signal });
+    window.addEventListener('orientationchange', syncShellBounds, { passive: true, signal });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncShellBounds, { passive: true, signal });
+    }
 
     const camInput = document.getElementById('sr-ho-input-camera');
     const galInput = document.getElementById('sr-ho-input-gallery');
@@ -2012,6 +2072,21 @@
         setTimeout(() => refreshBtn.classList.remove('is-spinning'), 420);
       }
     });
+
+    // Clean up listeners, recording tracks & audio cleanly when leaving Handover view (prevents dead-context leaks)
+    const unmountObserver = new MutationObserver(() => {
+      if (!chatShellEl || !chatShellEl.isConnected) {
+        if (typeof activeMountCleanup === 'function') activeMountCleanup();
+      }
+    });
+    unmountObserver.observe(container, { childList: true });
+    activeMountCleanup = () => {
+      try { unmountObserver.disconnect(); } catch (_) {}
+      try { mountAc.abort(); } catch (_) {}
+      try { stopRecordingTracks(); } catch (_) {}
+      try { msgBox?.querySelectorAll('audio').forEach((a) => { if (!a.paused) a.pause(); }); } catch (_) {}
+      activeMountCleanup = null;
+    };
 
     renderThread(true);
   }

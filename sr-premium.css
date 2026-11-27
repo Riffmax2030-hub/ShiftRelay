@@ -3270,8 +3270,8 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-#sr-app-shell #sr-content-area > * {
-  animation: sr2026ViewIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+#sr-app-shell #sr-content-area > :not(#sr-ho-chat-shell) {
+  animation: sr2026ViewIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Specular card depth in Light & Dark modes */
@@ -3368,4 +3368,44 @@ body {
 
 #sr-app-shell .sr-btn:active:not(:disabled) {
   transform: scale(0.97);
+}
+
+/* ==========================================================================
+   ADAPTIVE CPU TIER & SAVE-DATA MODE (Chrome 155/156 Modern Web Guidance)
+   Keeps ShiftRelay 60fps & data-light on budget frontline Android devices
+   ========================================================================== */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  #sr-app-shell .sr-header,
+  #sr-app-shell .sr-mobile-dock,
+  .sr-ho-chat-topbar,
+  .sr-ho-composer-wrap,
+  .sr-ho-plus-menu {
+    background: var(--sr-bg-card, #ffffff) !important;
+  }
+  [data-theme="dark"] #sr-app-shell .sr-header,
+  [data-theme="dark"] #sr-app-shell .sr-mobile-dock,
+  [data-theme="dark"] .sr-ho-chat-topbar,
+  [data-theme="dark"] .sr-ho-composer-wrap,
+  [data-theme="dark"] .sr-ho-plus-menu {
+    background: #0d1621 !important;
+  }
+}
+
+[data-sr-perf="lite"] #sr-app-shell .sr-header,
+[data-sr-perf="lite"] #sr-app-shell .sr-mobile-dock,
+[data-sr-perf="lite"] .sr-ho-chat-topbar,
+[data-sr-perf="lite"] .sr-ho-composer-wrap,
+[data-sr-perf="lite"] .sr-ho-plus-menu,
+[data-sr-perf="lite"] .sr-toast,
+[data-sr-save-data="1"] #sr-app-shell .sr-header,
+[data-sr-save-data="1"] #sr-app-shell .sr-mobile-dock {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-sr-perf="lite"] .sr-ho-live-dot,
+[data-sr-perf="lite"] .sr-prism-halo,
+[data-sr-perf="lite"] .sr-prism-beam,
+[data-sr-perf="lite"] #sr-app-shell #sr-content-area > * {
+  animation: none !important;
 }

@@ -26,25 +26,42 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-    <link rel="preload" href="sr-premium.css?v=224" as="style" />
-    <link rel="preload" href="phase1-shell.js?v=224" as="script" />
-    <link rel="stylesheet" href="styles.css?v=224" />
-    <link rel="stylesheet" href="theme.css?v=224" />
-    <link rel="stylesheet" href="bento-ui.css?v=224" />
-    <link rel="stylesheet" href="dark-mode.css?v=224" />
-    <link rel="stylesheet" href="splash.css?v=224" />
-    <link rel="stylesheet" href="offline-queue.css?v=224" />
-    <link rel="stylesheet" href="me-profile.css?v=224" />
-    <link rel="stylesheet" href="phase1-shell.css?v=224" />
-    <link rel="stylesheet" href="sr-premium.css?v=224" />
+    <link rel="preload" href="sr-premium.css?v=225" as="style" />
+    <link rel="preload" href="phase1-shell.js?v=225" as="script" />
+    <link rel="stylesheet" href="styles.css?v=225" />
+    <link rel="stylesheet" href="theme.css?v=225" />
+    <link rel="stylesheet" href="bento-ui.css?v=225" />
+    <link rel="stylesheet" href="dark-mode.css?v=225" />
+    <link rel="stylesheet" href="splash.css?v=225" />
+    <link rel="stylesheet" href="offline-queue.css?v=225" />
+    <link rel="stylesheet" href="me-profile.css?v=225" />
+    <link rel="stylesheet" href="phase1-shell.css?v=225" />
+    <link rel="stylesheet" href="sr-premium.css?v=225" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v224' && 'caches' in window) {
+          function applyAdaptiveHints() {
+            var root = document.documentElement;
+            var cpuTier = navigator.cpuPerformance;
+            var lowCpu = cpuTier === 'low' || (typeof cpuTier === 'number' && cpuTier <= 1) ||
+              (typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 2) ||
+              (typeof navigator.hardwareConcurrency === 'number' && navigator.hardwareConcurrency <= 2);
+            var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            var saveData = Boolean(conn && (conn.saveData === true || conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g'));
+            if (lowCpu) root.dataset.srPerf = 'lite'; else delete root.dataset.srPerf;
+            if (saveData) root.dataset.srSaveData = '1'; else delete root.dataset.srSaveData;
+          }
+          applyAdaptiveHints();
+          if (navigator.connection && navigator.connection.addEventListener) {
+            navigator.connection.addEventListener('change', applyAdaptiveHints);
+          }
+        } catch (e) {}
+        try {
+          if (localStorage.getItem('sr_restored_build') !== 'v225' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v224');
+              localStorage.setItem('sr_restored_build', 'v225');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { Promise.resolve(r.update()).catch(function() {}); });
@@ -487,8 +504,8 @@
     <script type="module" src="qr-svg-generator.js?v=212"></script>
     <script src="attendance-exceptions-ui.js?v=212" defer></script>
     <script src="/vendor/read-excel-file.min.js" defer></script>
-    <script src="phase1-shell.js?v=224" defer></script>
-    <script src="handover-chat.js?v=224" defer></script>
+    <script src="phase1-shell.js?v=225" defer></script>
+    <script src="handover-chat.js?v=225" defer></script>
     <script src="signin-motion.js?v=222" defer></script>
     <script src="splash.js?v=222" defer></script>
     <script src="notifications.js?v=212" defer></script>
@@ -517,7 +534,7 @@
     <script src="push-notifications.js?v=212" defer></script>
     <script src="facility-switcher.js?v=212" defer></script>
     <script src="emergency-broadcast.js?v=212" defer></script>
-    <script>if('serviceWorker' in navigator){var srHadSw=Boolean(navigator.serviceWorker.controller);var srSwRefreshed=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!srHadSw||srSwRefreshed)return;if(sessionStorage.getItem('sr_sw_reloaded_v224'))return;srSwRefreshed=true;sessionStorage.setItem('sr_sw_reloaded_v224','1');window.location.reload();});navigator.serviceWorker.register('/service-worker.js?v=224',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(){});}</script>
+    <script>if('serviceWorker' in navigator){var srHadSw=Boolean(navigator.serviceWorker.controller);var srSwRefreshed=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!srHadSw||srSwRefreshed)return;if(sessionStorage.getItem('sr_sw_reloaded_v225'))return;srSwRefreshed=true;sessionStorage.setItem('sr_sw_reloaded_v225','1');window.location.reload();});navigator.serviceWorker.register('/service-worker.js?v=225',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(){});}</script>
   </body>
 </html>
 

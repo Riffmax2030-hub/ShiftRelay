@@ -1469,6 +1469,18 @@
               <strong style="display:inline-flex;align-items:center;gap:5px;">Download APK <span class="apk-version-chip" id="sr-apk-version-badge">v2.0.5</span></strong>
             </span>
           </a>
+          <button type="button" id="sr-web-install-btn" class="store-badge-btn" style="display:none;cursor:pointer;" aria-label="Install ShiftRelay Web App in one tap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+              <path d="M12 18h.01"/>
+              <path d="M12 7v6"/>
+              <path d="m9 10 3 3 3-3"/>
+            </svg>
+            <span class="store-badge-text">
+              <small>1-TAP WEB INSTALL</small>
+              <strong>Install App</strong>
+            </span>
+          </button>
         </div>
 
         <div class="hero-trust-row gsap-hero">
@@ -2787,6 +2799,41 @@
           if (meta.downloadUrl) footerLink.setAttribute('href', meta.downloadUrl);
         }
       } catch (_) {}
+    })();
+
+    // Chrome 155/156 Web Install API (navigator.install) + beforeinstallprompt 1-Tap PWA Install
+    (function setupWebInstall() {
+      const btn = document.getElementById('sr-web-install-btn');
+      if (!btn) return;
+      let deferredPrompt = null;
+      const appUrl = `${window.location.origin}/?source=pwa`;
+
+      if (typeof navigator.install === 'function') {
+        btn.style.display = 'inline-flex';
+      }
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        btn.style.display = 'inline-flex';
+      });
+      window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        btn.style.display = 'none';
+      });
+      btn.addEventListener('click', async () => {
+        try {
+          if (typeof navigator.install === 'function') {
+            await navigator.install(appUrl, '/?source=pwa');
+            return;
+          }
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            btn.style.display = 'none';
+          }
+        } catch (_) {}
+      });
     })();
   </script>
 </body>
