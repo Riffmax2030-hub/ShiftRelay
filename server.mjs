@@ -16799,6 +16799,8 @@ const ADMIN_HOSTS = new Set(
   activate: 'activate.html',
   onboard: 'onboard.html',
   website: 'website.html',
+  'book-demo': 'book-demo.html',
+  demo: 'book-demo.html',
   pricing: 'pricing.html',
   privacy: 'privacy.html',
   terms: 'terms.html',
@@ -17122,6 +17124,8 @@ const server = createServer((request, response) => {
       const robotsTxt = [
         'User-agent: *',
         'Allow: /website.html',
+        'Allow: /book-demo',
+        'Allow: /book-demo.html',
         'Allow: /pricing.html',
         'Allow: /trust.html',
         'Allow: /dpa.html',
@@ -17156,6 +17160,7 @@ const server = createServer((request, response) => {
       const urls = [
         '/',
         '/website.html',
+        '/book-demo',
         '/pricing.html',
         '/calculator.html',
         '/trust.html',
