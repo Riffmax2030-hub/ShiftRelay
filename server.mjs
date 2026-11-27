@@ -1338,7 +1338,7 @@ async function databaseHandovers(user) {
     `select wi.id, wi.status, wi.payload, wi.created_at, wi.updated_at, wi.acknowledged_at,
             wi.created_by_membership_id, wi.assigned_to_membership_id,
             coalesce(pu.full_name, '') as author_name,
-            coalesce(m.job_title, m.role, 'Shift Specialist') as author_role,
+            coalesce(m.title, m.role, 'Shift Specialist') as author_role,
             coalesce(m.department, '') as author_department,
             coalesce(pu.avatar_data_url, '') as author_avatar
      from work_items wi
