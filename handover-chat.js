@@ -1454,12 +1454,9 @@
         <div class="sr-ho-chat-topbar">
           <div class="sr-ho-topbar-main">
             <div class="sr-ho-chat-title-row">
-              <span class="sr-ho-channel-avatar" aria-hidden="true">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-              </span>
               <div class="sr-ho-chat-title-meta">
                 <div class="sr-ho-title-line">
-                  <h3>${isSup ? 'Handovers' : 'Handover'}</h3>
+                  <h3 style="font-size:19px;font-weight:900;letter-spacing:-0.03em;">${isSup ? 'Handovers' : 'Handover'}</h3>
                   ${pendingCount > 0 ? `<span class="sr-ho-pending-pill" id="sr-ho-pending-pill">${pendingCount} Active</span>` : '<span class="sr-ho-pending-pill" id="sr-ho-pending-pill" style="display:none;"></span>'}
                 </div>
                 <p>

@@ -7,6 +7,7 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.Uri;
+import android.provider.Settings;
 import android.util.Base64;
 import androidx.core.content.FileProvider;
 import androidx.work.Constraints;
@@ -162,5 +163,38 @@ public class ShiftRelayNativePlugin extends Plugin {
         JSObject ret = new JSObject();
         ret.put("value", prefs.getString(key, null));
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void openLocationSettings(PluginCall call) {
+        String target = call.getString("target", "location");
+        try {
+            Intent intent;
+            if ("app".equalsIgnoreCase(target)) {
+                intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                intent.setData(Uri.fromParts("package", getContext().getPackageName(), null));
+            } else {
+                intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("opened", true);
+            ret.put("target", target);
+            call.resolve(ret);
+        } catch (Exception e) {
+            try {
+                Intent fallback = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                fallback.setData(Uri.fromParts("package", getContext().getPackageName(), null));
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(fallback);
+                JSObject ret = new JSObject();
+                ret.put("opened", true);
+                ret.put("target", "app");
+                call.resolve(ret);
+            } catch (Exception ex) {
+                call.reject("Could not open location settings: " + ex.getMessage(), ex);
+            }
+        }
     }
 }

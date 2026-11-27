@@ -1483,6 +1483,10 @@
                   <path d="M 289 2 L 301 23 V 42 H 310 V 23 L 322 2 H 312.5 L 305.5 15 L 298.5 2 Z" transform="translate(8,1)" fill="currentColor"/>
                 </svg>
               </span>
+              <span class="sr-mobile-org-title" aria-label="${escapeHtml(companyName)}">
+                <span class="sr-mobile-org-name">${escapeHtml(companyName)}</span>
+                <span class="sr-mobile-org-sub"><span class="sr-mobile-org-dot"></span>${escapeHtml(deptOrSite)}</span>
+              </span>
             </a>
           </div>
 
@@ -2217,171 +2221,131 @@
     const backdrop = document.createElement('div');
     backdrop.id = 'sr-qr-scanner-modal';
     backdrop.className = 'sr-modal-backdrop';
-    backdrop.style.cssText = 'display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;';
+    backdrop.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:99999;padding:0;background:rgba(2,10,8,0.94);';
     backdrop.innerHTML = `
-      <div class="sr-modal-card" style="max-width:440px;width:100%;max-height:92vh;display:flex;flex-direction:column;background:var(--sr-bg-card);border:1px solid var(--sr-border-medium);border-radius:22px;box-shadow:0 24px 56px rgba(4,27,20,0.28);overflow:hidden;" role="dialog" aria-modal="true" aria-label="Peer Check-In">
-        <div class="sr-modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);flex-shrink:0;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:36px;height:36px;border-radius:10px;background:rgba(13,148,136,0.12);color:#0d9488;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/><path d="M20 14v3h-3"/><path d="M14 20h6"/></svg>
-            </div>
-            <div>
-              <h3 style="margin:0;font-size:16px;color:var(--sr-text-main);font-weight:800;letter-spacing:-0.01em;">Peer Check-In</h3>
-              <div id="sr-scanner-gps-pill" style="display:inline-flex;align-items:center;gap:5px;margin-top:2px;font-size:11px;font-weight:600;color:#b45309;">
-                <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
-                <span id="sr-scanner-gps-text">Checking location...</span>
-              </div>
+      <div class="sr-modal-card sr-peer-wide-shell" style="width:100%;height:100dvh;max-width:560px;max-height:100dvh;display:flex;flex-direction:column;background:#040d0a;color:#f8fafc;border:none;border-radius:0;overflow:hidden;position:relative;" role="dialog" aria-modal="true" aria-label="Peer Check-In Scanner">
+        <!-- Single Crisp Floating X Close Button (top-right only — zero duplicate top buttons) -->
+        <button type="button" class="sr-icon-btn" id="sr-btn-close-scanner" aria-label="Close scanner" style="position:absolute;top:calc(14px + env(safe-area-inset-top, 0px));right:14px;z-index:25;width:40px;height:40px;border-radius:50%;background:rgba(4,20,15,0.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);color:#ffffff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+
+        <!-- Floating GPS Status Pill (top-left, tappable to enable location directly in-app) -->
+        <button type="button" id="sr-scanner-gps-pill" style="position:absolute;top:calc(16px + env(safe-area-inset-top, 0px));left:14px;z-index:25;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:rgba(4,20,15,0.74);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(52,211,153,0.32);font-size:11.5px;font-weight:700;color:#fcd34d;cursor:pointer;max-width:calc(100% - 82px);">
+          <span style="width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;display:inline-block;"></span>
+          <span id="sr-scanner-gps-text" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Checking location...</span>
+        </button>
+
+        <!-- Floating Alert Toast Banner inside Scanner -->
+        <div id="sr-peer-scan-result" style="display:none;position:absolute;top:calc(64px + env(safe-area-inset-top, 0px));left:14px;right:14px;z-index:24;padding:11px 14px;border-radius:14px;font-size:12.5px;line-height:1.45;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);"></div>
+
+        <!-- VIEW 1: Full-Bleed Wide-Screen Live QR Scanner (Zero manual input clutter) -->
+        <div id="sr-scan-step-1" style="position:relative;flex:1;width:100%;height:100%;display:flex;flex-direction:column;background:#030c09;overflow:hidden;">
+          <video id="sr-scanner-video" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></video>
+
+          <!-- Wide Centered Optical QR Reticle -->
+          <div style="position:relative;z-index:5;flex:1;display:flex;align-items:center;justify-content:center;pointer-events:none;padding:24px;">
+            <div id="sr-qr-hud-reticle" style="position:relative;width:min(76vw, 290px);height:min(76vw, 290px);border-radius:26px;box-shadow:0 0 0 9999px rgba(2,10,8,0.56);transition:transform 0.2s ease,border-color 0.2s ease;">
+              <span style="position:absolute;top:0;left:0;width:36px;height:36px;border-top:4px solid #10b981;border-left:4px solid #10b981;border-top-left-radius:22px;"></span>
+              <span style="position:absolute;top:0;right:0;width:36px;height:36px;border-top:4px solid #10b981;border-right:4px solid #10b981;border-top-right-radius:22px;"></span>
+              <span style="position:absolute;bottom:0;left:0;width:36px;height:36px;border-bottom:4px solid #10b981;border-left:4px solid #10b981;border-bottom-left-radius:22px;"></span>
+              <span style="position:absolute;bottom:0;right:0;width:36px;height:36px;border-bottom:4px solid #10b981;border-right:4px solid #10b981;border-bottom-right-radius:22px;"></span>
+              <div style="position:absolute;top:14px;left:14px;right:14px;height:2.5px;background:linear-gradient(90deg,transparent,#34d399,#10b981,transparent);box-shadow:0 0 14px #10b981;animation:srScanLine 2.1s ease-in-out infinite;"></div>
             </div>
           </div>
-          <button type="button" class="sr-icon-btn" id="sr-btn-close-scanner" aria-label="Close" style="background:transparent;border:none;cursor:pointer;color:var(--sr-text-muted);padding:6px;border-radius:8px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+
+          <!-- Bottom Translucent Scan Control Dock -->
+          <div style="position:relative;z-index:10;padding:12px 16px calc(22px + env(safe-area-inset-bottom, 0px));background:linear-gradient(180deg,transparent 0%, rgba(2,10,8,0.88) 32%, rgba(2,10,8,0.96) 100%);display:flex;flex-direction:column;gap:10px;align-items:center;">
+            <div id="sr-scanner-status" style="display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;background:rgba(4,20,15,0.82);border:1px solid rgba(52,211,153,0.34);color:#ecfdf5;font-size:12.5px;font-weight:700;text-align:center;">
+              <span style="width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;flex-shrink:0;"></span>
+              <span>Point camera at Staff ID QR to check in</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;width:100%;max-width:300px;border-radius:999px;background:rgba(255,255,255,0.1);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.16);">
+              <button type="button" class="sr-btn sr-btn-primary" id="sr-scan-mode-in" data-scan-mode="clock-in" style="min-height:36px;height:36px;font-size:12.5px;font-weight:800;border-radius:999px;">Check In</button>
+              <button type="button" class="sr-btn sr-btn-secondary" id="sr-scan-mode-out" data-scan-mode="clock-out" style="min-height:36px;height:36px;font-size:12.5px;font-weight:800;border-radius:999px;background:transparent;color:#e2e8f0;border-color:transparent;">Clock Out</button>
+            </div>
+          </div>
         </div>
 
-        <div class="sr-modal-body" style="padding:18px 20px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
-          <div id="sr-peer-scan-result" style="display:none;padding:11px 14px;border-radius:12px;font-size:12.5px;line-height:1.45;"></div>
-
-          <!-- VIEW 1: 2026 Optical QR & Badge HUD -->
-          <div id="sr-scan-step-1" style="display:flex;flex-direction:column;gap:14px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <button type="button" class="sr-btn sr-btn-primary" id="sr-scan-mode-in" data-scan-mode="clock-in" style="min-height:36px;font-size:12.5px;font-weight:700;border-radius:9px;">Check In</button>
-              <button type="button" class="sr-btn sr-btn-secondary" id="sr-scan-mode-out" data-scan-mode="clock-out" style="min-height:36px;font-size:12.5px;font-weight:700;border-radius:9px;">Exit Scan</button>
-            </div>
-
-            <div style="position:relative;width:100%;height:186px;background:radial-gradient(circle at 50% 50%, #09221b 0%, #04100c 100%);border-radius:18px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid rgba(16,185,129,0.32);box-shadow:inset 0 0 28px rgba(0,0,0,0.65);">
-              <video id="sr-scanner-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>
-              <!-- Top 2026 HUD Telemetry Bar -->
-              <div style="position:absolute;top:10px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;z-index:2;">
-                <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:99px;background:rgba(4,20,15,0.78);backdrop-filter:blur(8px);border:1px solid rgba(52,211,153,0.35);color:#ecfdf5;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.04em;">
-                  <span style="width:6px;height:6px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;"></span>
-                  QR &middot; CODE-128
-                </span>
-                <span style="padding:4px 9px;border-radius:99px;background:rgba(4,20,15,0.78);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.14);color:#a7f3d0;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.04em;">AUTO-FILL</span>
-              </div>
-              <!-- Precision Corner-Bracket Reticle + Laser Beam -->
-              <div id="sr-qr-hud-reticle" style="position:absolute;width:134px;height:134px;border-radius:18px;box-shadow:0 0 0 9999px rgba(2,12,9,0.52);pointer-events:none;transition:transform 0.2s ease,box-shadow 0.2s ease;">
-                <span style="position:absolute;top:0;left:0;width:24px;height:24px;border-top:3px solid #10b981;border-left:3px solid #10b981;border-top-left-radius:14px;"></span>
-                <span style="position:absolute;top:0;right:0;width:24px;height:24px;border-top:3px solid #10b981;border-right:3px solid #10b981;border-top-right-radius:14px;"></span>
-                <span style="position:absolute;bottom:0;left:0;width:24px;height:24px;border-bottom:3px solid #10b981;border-left:3px solid #10b981;border-bottom-left-radius:14px;"></span>
-                <span style="position:absolute;bottom:0;right:0;width:24px;height:24px;border-bottom:3px solid #10b981;border-right:3px solid #10b981;border-bottom-right-radius:14px;"></span>
-                <div style="position:absolute;top:6px;left:8px;right:8px;height:2px;background:linear-gradient(90deg,transparent,#34d399,#10b981,transparent);box-shadow:0 0 12px #10b981;animation:srScanLine 2.1s ease-in-out infinite;"></div>
-              </div>
-              <div id="sr-scanner-status" style="position:absolute;bottom:10px;left:12px;right:12px;background:rgba(4,20,15,0.86);backdrop-filter:blur(8px);border:1px solid rgba(52,211,153,0.28);color:#f8fafc;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:99px;text-align:center;">
-                Scan Staff ID QR to auto-fill below
+        <!-- VIEW 2: Confirm Identity & Live Face Verify -->
+        <div id="sr-scan-step-2" style="display:none;flex:1;flex-direction:column;gap:14px;padding:calc(68px + env(safe-area-inset-top, 0px)) 18px calc(20px + env(safe-area-inset-bottom, 0px));background:var(--sr-bg-card);color:var(--sr-text-main);overflow-y:auto;">
+          <div style="font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#10b981;">Badge Scanned &middot; Confirm Your Identity</div>
+          <div id="sr-facial-worker-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border-radius:16px;background:var(--sr-bg-card-subtle);border:1px solid rgba(16,185,129,0.3);">
+            <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+              <div id="sr-facial-profile-avatar" style="width:48px;height:48px;border-radius:50%;background:rgba(16,185,129,0.16);color:#059669;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:2px solid rgba(16,185,129,0.35);"></div>
+              <div style="min-width:0;flex:1;">
+                <strong id="sr-facial-worker-name" style="display:block;font-size:15px;font-weight:800;color:var(--sr-text-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Worker</strong>
+                <small id="sr-facial-worker-meta" style="display:block;font-size:12px;color:var(--sr-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></small>
               </div>
             </div>
-
-            <form id="sr-peer-id-form" style="display:flex;flex-direction:column;gap:10px;">
-              <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:8px;align-items:end;">
-                <div style="display:flex;flex-direction:column;gap:5px;min-width:0;">
-                  <div style="display:flex;align-items:center;justify-content:space-between;height:15px;font-size:10.5px;font-weight:800;color:var(--sr-text-muted);letter-spacing:0.04em;text-transform:uppercase;">
-                    <span>Staff ID</span>
-                  </div>
-                  <input type="text" id="sr-peer-staff-id-input" class="sr-input" placeholder="e.g. RIF-0023" autocomplete="off" style="min-width:0;height:42px;padding:0 12px;font-size:13px;font-weight:700;border:1px solid var(--sr-border-medium);border-radius:11px;background:var(--sr-bg-card);color:var(--sr-text-main);transition:border-color 0.2s,box-shadow 0.2s;" />
-                </div>
-                <div style="display:flex;flex-direction:column;gap:5px;min-width:0;">
-                  <div title="6-character cryptographic security code printed on the worker's physical Staff ID badge (auto-filled when scanning QR)" style="display:flex;align-items:center;justify-content:space-between;height:15px;font-size:10.5px;font-weight:800;color:var(--sr-text-muted);letter-spacing:0.04em;text-transform:uppercase;white-space:nowrap;">
-                    <span>Card SEC</span>
-                    <span style="font-size:9.5px;font-weight:700;color:#0d9488;text-transform:none;">6-char PIN</span>
-                  </div>
-                  <input type="text" id="sr-peer-card-code-input" class="sr-input" placeholder="Badge PIN" maxlength="8" autocomplete="off" style="min-width:0;height:42px;padding:0 12px;font-size:13px;font-family:'JetBrains Mono',monospace;font-weight:700;text-transform:uppercase;border:1px solid var(--sr-border-medium);border-radius:11px;background:var(--sr-bg-card);color:var(--sr-text-main);transition:border-color 0.2s,box-shadow 0.2s;" />
-                </div>
-              </div>
-              <div style="font-size:11px;color:var(--sr-text-muted);line-height:1.35;margin-top:-2px;">
-                QR scan auto-fills both boxes &middot; Or type Staff ID + 6-char <strong>Card SEC</strong> printed on badge.
-              </div>
-              <button type="submit" class="sr-btn sr-btn-primary" id="sr-peer-submit-id-btn" style="min-height:44px;font-size:13.5px;font-weight:700;width:100%;border-radius:12px;">Continue to Face Verify</button>
-            </form>
+            <button type="button" id="sr-btn-back-to-step1" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#059669;font-size:11.5px;font-weight:800;cursor:pointer;padding:6px 10px;border-radius:999px;flex-shrink:0;">Rescan</button>
           </div>
 
-          <!-- VIEW 2: 2026 Biometric Face Identity HUD -->
-          <div id="sr-scan-step-2" style="display:none;flex-direction:column;gap:14px;">
-            <div id="sr-facial-worker-card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
-                <div id="sr-facial-profile-avatar" style="width:40px;height:40px;border-radius:50%;background:rgba(13,148,136,0.14);color:#0f766e;font-weight:800;font-size:13.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid rgba(13,148,136,0.28);"></div>
-                <div style="min-width:0;flex:1;">
-                  <strong id="sr-facial-worker-name" style="display:block;font-size:13.5px;color:var(--sr-text-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Worker</strong>
-                  <small id="sr-facial-worker-meta" style="display:block;font-size:11.5px;color:var(--sr-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></small>
-                </div>
-              </div>
-              <button type="button" id="sr-btn-back-to-step1" style="background:transparent;border:none;color:#0d9488;font-size:12px;font-weight:700;cursor:pointer;padding:6px 8px;border-radius:8px;flex-shrink:0;">Change</button>
+          <div style="position:relative;width:100%;flex:1;min-height:240px;max-height:340px;background:radial-gradient(circle at 50% 50%, #09221b 0%, #04100c 100%);border-radius:20px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid rgba(16,185,129,0.32);box-shadow:inset 0 0 28px rgba(0,0,0,0.65);">
+            <video id="sr-facial-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+            <img id="sr-facial-preview-img" alt="Captured face preview" style="display:none;width:100%;height:100%;object-fit:cover;" />
+            <div id="sr-facial-ref-mini" style="display:none;position:absolute;top:10px;left:10px;width:44px;height:44px;border-radius:10px;overflow:hidden;border:2px solid rgba(255,255,255,0.85);box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:3;"></div>
+            <div id="sr-facial-guide-ring" style="position:absolute;width:152px;height:184px;border:2.5px solid rgba(52,211,153,0.92);border-radius:50%;box-shadow:0 0 0 9999px rgba(2,12,9,0.48), 0 0 22px rgba(16,185,129,0.28);pointer-events:none;transition:border-color 0.2s ease;overflow:hidden;">
+              <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#34d399,#10b981,transparent);box-shadow:0 0 10px #10b981;animation:srScanLine 2.2s ease-in-out infinite;"></div>
             </div>
-
-            <div style="position:relative;width:100%;height:236px;background:radial-gradient(circle at 50% 50%, #09221b 0%, #04100c 100%);border-radius:18px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid rgba(16,185,129,0.32);box-shadow:inset 0 0 28px rgba(0,0,0,0.65);">
-              <video id="sr-facial-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
-              <img id="sr-facial-preview-img" alt="Captured face preview" style="display:none;width:100%;height:100%;object-fit:cover;" />
-              <div id="sr-facial-ref-mini" style="display:none;position:absolute;top:10px;left:10px;width:44px;height:44px;border-radius:10px;overflow:hidden;border:2px solid rgba(255,255,255,0.85);box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:3;"></div>
-              <!-- Top 2026 Biometric Sensor Pill -->
-              <div style="position:absolute;top:10px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;z-index:2;">
-                <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:99px;background:rgba(4,20,15,0.78);backdrop-filter:blur(8px);border:1px solid rgba(52,211,153,0.35);color:#ecfdf5;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.04em;">
-                  <span style="width:6px;height:6px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;"></span>
-                  LIVE BIOMETRIC
-                </span>
-                <span style="padding:4px 9px;border-radius:99px;background:rgba(4,20,15,0.78);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.14);color:#a7f3d0;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.04em;">LIVENESS 3D</span>
-              </div>
-              <div id="sr-facial-guide-ring" style="position:absolute;width:142px;height:168px;border:2.5px solid rgba(52,211,153,0.92);border-radius:50%;box-shadow:0 0 0 9999px rgba(2,12,9,0.48), 0 0 22px rgba(16,185,129,0.28);pointer-events:none;transition:border-color 0.2s ease;overflow:hidden;">
-                <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#34d399,#10b981,transparent);box-shadow:0 0 10px #10b981;animation:srScanLine 2.2s ease-in-out infinite;"></div>
-              </div>
-              <div id="sr-facial-status" style="position:absolute;bottom:10px;left:12px;right:12px;background:rgba(4,20,15,0.88);backdrop-filter:blur(8px);border:1px solid rgba(52,211,153,0.28);color:#f8fafc;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:99px;text-align:center;">
-                Center face inside oval
-              </div>
-            </div>
-
-            <!-- Live Identity Verified Tech Readout -->
-            <div id="sr-face-verified-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-radius:12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.38);color:#047857;">
-              <div style="display:flex;align-items:center;gap:9px;min-width:0;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><polyline points="9 12 11 14 15 10"/></svg>
-                <div style="min-width:0;">
-                  <div id="sr-face-verified-title" style="font-size:13px;font-weight:800;letter-spacing:-0.01em;">Identity Verified</div>
-                  <div id="sr-face-verified-sub" style="font-size:11.5px;font-weight:600;opacity:0.9;">Live face confirmed</div>
-                </div>
-              </div>
-              <span id="sr-face-verified-score" style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;padding:4px 9px;border-radius:99px;background:#10b981;color:#ffffff;flex-shrink:0;">96%</span>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:8px;">
-              <button type="button" id="sr-btn-capture-face" class="sr-btn sr-btn-secondary" style="min-height:44px;font-size:13px;font-weight:700;border-radius:12px;">Capture Face</button>
-              <button type="button" id="sr-btn-submit-face-checkin" class="sr-btn sr-btn-primary" disabled style="min-height:44px;font-size:13px;font-weight:700;border-radius:12px;opacity:0.55;cursor:not-allowed;">Confirm Check-In</button>
+            <div id="sr-facial-status" style="position:absolute;bottom:10px;left:12px;right:12px;background:rgba(4,20,15,0.88);backdrop-filter:blur(8px);border:1px solid rgba(52,211,153,0.28);color:#f8fafc;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:99px;text-align:center;">
+              Center your face inside oval to confirm
             </div>
           </div>
 
-          <!-- VIEW 3: Identity Verified & Shift Handover Confirmation -->
-          <div id="sr-scan-step-3" style="display:none;flex-direction:column;gap:12px;">
-            <div id="sr-assisted-worker-header" style="padding:12px 14px;border-radius:12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);font-size:12.5px;color:#047857;font-weight:700;display:flex;align-items:center;gap:8px;"></div>
-
-            <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
-                <strong id="sr-assisted-ho-summary" style="font-size:13px;color:var(--sr-text-main);">Shift Handover</strong>
-                <span id="sr-assisted-ho-status-pill" style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:99px;background:rgba(245,158,11,0.15);color:#b45309;white-space:nowrap;">PENDING</span>
+          <div id="sr-face-verified-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-radius:12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.38);color:#047857;">
+            <div style="display:flex;align-items:center;gap:9px;min-width:0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><polyline points="9 12 11 14 15 10"/></svg>
+              <div style="min-width:0;">
+                <div id="sr-face-verified-title" style="font-size:13px;font-weight:800;letter-spacing:-0.01em;">Identity Verified</div>
+                <div id="sr-face-verified-sub" style="font-size:11.5px;font-weight:600;opacity:0.9;">Live face confirmed</div>
               </div>
-              <div id="sr-assisted-ho-author" style="font-size:11.5px;color:var(--sr-text-muted);margin-bottom:6px;"></div>
-              <div id="sr-assisted-ho-notes" style="font-size:12px;line-height:1.45;color:var(--sr-text-secondary);background:var(--sr-bg-card);padding:8px 10px;border-radius:9px;border:1px solid var(--sr-border-subtle);"></div>
             </div>
-
-            <div id="sr-assisted-readiness-wrap" style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <strong style="display:block;font-size:12px;color:var(--sr-text-main);margin-bottom:6px;">Readiness Checks</strong>
-              <div id="sr-assisted-readiness-list" style="display:flex;flex-direction:column;gap:6px;"></div>
-            </div>
-
-            <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <strong style="font-size:12px;color:var(--sr-text-main);">Shift Checklist</strong>
-                <span id="sr-assisted-task-count" style="font-size:11px;font-weight:700;color:#0f766e;">0 / 0 Verified</span>
-              </div>
-              <div id="sr-assisted-task-list" style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;"></div>
-            </div>
-
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button type="button" id="sr-btn-assisted-complete" class="sr-btn sr-btn-primary" style="flex:1;min-height:44px;font-size:13px;font-weight:700;border-radius:12px;">Complete Check-In</button>
-              <button type="button" id="sr-btn-assisted-close" class="sr-btn sr-btn-secondary" style="display:none;min-height:44px;padding:0 18px;font-size:13px;font-weight:700;border-radius:12px;">Done</button>
-            </div>
+            <span id="sr-face-verified-score" style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;padding:4px 9px;border-radius:99px;background:#10b981;color:#ffffff;flex-shrink:0;">96%</span>
           </div>
 
-          <!-- Exit Scan Complete Summary -->
-          <div id="sr-scan-step-done" style="display:none;flex-direction:column;gap:14px;">
-            <div id="sr-done-summary-box" style="padding:14px 16px;border-radius:14px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);color:#047857;font-size:13px;line-height:1.5;"></div>
-            <button type="button" id="sr-btn-finish-scan-done" class="sr-btn sr-btn-primary" style="min-height:44px;font-size:13.5px;font-weight:700;width:100%;border-radius:12px;">Done</button>
+          <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:8px;margin-top:auto;">
+            <button type="button" id="sr-btn-capture-face" class="sr-btn sr-btn-secondary" style="min-height:46px;font-size:13px;font-weight:700;border-radius:13px;">Capture Face</button>
+            <button type="button" id="sr-btn-submit-face-checkin" class="sr-btn sr-btn-primary" disabled style="min-height:46px;font-size:13px;font-weight:800;border-radius:13px;opacity:0.55;cursor:not-allowed;">Confirm Check-In</button>
           </div>
+        </div>
+
+        <!-- VIEW 3: Identity Verified & Shift Handover Confirmation -->
+        <div id="sr-scan-step-3" style="display:none;flex:1;flex-direction:column;gap:12px;padding:calc(68px + env(safe-area-inset-top, 0px)) 18px calc(20px + env(safe-area-inset-bottom, 0px));background:var(--sr-bg-card);color:var(--sr-text-main);overflow-y:auto;">
+          <div id="sr-assisted-worker-header" style="padding:12px 14px;border-radius:12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);font-size:12.5px;color:#047857;font-weight:700;display:flex;align-items:center;gap:8px;"></div>
+
+          <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+              <strong id="sr-assisted-ho-summary" style="font-size:13px;color:var(--sr-text-main);">Shift Handover</strong>
+              <span id="sr-assisted-ho-status-pill" style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:99px;background:rgba(245,158,11,0.15);color:#b45309;white-space:nowrap;">PENDING</span>
+            </div>
+            <div id="sr-assisted-ho-author" style="font-size:11.5px;color:var(--sr-text-muted);margin-bottom:6px;"></div>
+            <div id="sr-assisted-ho-notes" style="font-size:12px;line-height:1.45;color:var(--sr-text-secondary);background:var(--sr-bg-card);padding:8px 10px;border-radius:9px;border:1px solid var(--sr-border-subtle);"></div>
+          </div>
+
+          <div id="sr-assisted-readiness-wrap" style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+            <strong style="display:block;font-size:12px;color:var(--sr-text-main);margin-bottom:6px;">Readiness Checks</strong>
+            <div id="sr-assisted-readiness-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+
+          <div style="padding:12px 14px;border-radius:12px;background:var(--sr-bg-card-subtle);border:1px solid var(--sr-border-subtle);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <strong style="font-size:12px;color:var(--sr-text-main);">Shift Checklist</strong>
+              <span id="sr-assisted-task-count" style="font-size:11px;font-weight:700;color:#0f766e;">0 / 0 Verified</span>
+            </div>
+            <div id="sr-assisted-task-list" style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;"></div>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;">
+            <button type="button" id="sr-btn-assisted-complete" class="sr-btn sr-btn-primary" style="flex:1;min-height:46px;font-size:13.5px;font-weight:800;border-radius:13px;">Complete Check-In</button>
+            <button type="button" id="sr-btn-assisted-close" class="sr-btn sr-btn-secondary" style="display:none;min-height:46px;padding:0 18px;font-size:13px;font-weight:700;border-radius:13px;">Done</button>
+          </div>
+        </div>
+
+        <!-- VIEW 4: Clock-Out Complete Summary -->
+        <div id="sr-scan-step-done" style="display:none;flex:1;flex-direction:column;justify-content:center;gap:16px;padding:24px 20px;background:var(--sr-bg-card);color:var(--sr-text-main);">
+          <div id="sr-done-summary-box" style="padding:16px;border-radius:16px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);color:#047857;font-size:13.5px;line-height:1.5;"></div>
+          <button type="button" id="sr-btn-finish-scan-done" class="sr-btn sr-btn-primary" style="min-height:46px;font-size:13.5px;font-weight:800;width:100%;border-radius:13px;">Done</button>
         </div>
       </div>
     `;
@@ -2410,6 +2374,10 @@
 
     const stopCameraStream = () => {
       stopFaceDetectorLoop();
+      if (typeof jsQrTimer !== 'undefined' && jsQrTimer) {
+        clearTimeout(jsQrTimer);
+        jsQrTimer = null;
+      }
       if (stream) {
         try { stream.getTracks().forEach(t => t.stop()); } catch (_) {}
         stream = null;
@@ -2432,8 +2400,9 @@
       const pill = document.getElementById('sr-scanner-gps-pill');
       const label = document.getElementById('sr-scanner-gps-text');
       if (!pill || !label) return;
-      label.textContent = text;
-      pill.style.color = stateType === 'error' ? '#dc2626' : (stateType === 'ok' ? '#059669' : '#b45309');
+      label.textContent = stateType === 'error' ? 'Location off · Tap to enable' : text;
+      pill.style.color = stateType === 'error' ? '#fca5a5' : (stateType === 'ok' ? '#34d399' : '#fcd34d');
+      pill.style.borderColor = stateType === 'error' ? 'rgba(248,113,113,0.45)' : (stateType === 'ok' ? 'rgba(52,211,153,0.38)' : 'rgba(252,211,77,0.38)');
     };
 
     const showResultBanner = (type, title, detail) => {
@@ -2457,17 +2426,38 @@
       scanAction = mode === 'clock-out' ? 'clock-out' : 'clock-in';
       const btnIn = document.getElementById('sr-scan-mode-in');
       const btnOut = document.getElementById('sr-scan-mode-out');
-      const subBtn = document.getElementById('sr-peer-submit-id-btn');
       const faceSubBtn = document.getElementById('sr-btn-submit-face-checkin');
+      const statusSpan = document.querySelector('#sr-scanner-status span:last-child');
       if (btnIn && btnOut) {
         btnIn.className = scanAction === 'clock-in' ? 'sr-btn sr-btn-primary' : 'sr-btn sr-btn-secondary';
         btnOut.className = scanAction === 'clock-out' ? 'sr-btn sr-btn-primary' : 'sr-btn sr-btn-secondary';
+        btnIn.style.background = scanAction === 'clock-in' ? '' : 'transparent';
+        btnIn.style.color = scanAction === 'clock-in' ? '' : '#e2e8f0';
+        btnIn.style.borderColor = scanAction === 'clock-in' ? '' : 'transparent';
+        btnOut.style.background = scanAction === 'clock-out' ? '' : 'transparent';
+        btnOut.style.color = scanAction === 'clock-out' ? '' : '#e2e8f0';
+        btnOut.style.borderColor = scanAction === 'clock-out' ? '' : 'transparent';
       }
-      if (subBtn) subBtn.textContent = 'Continue to Face Verify';
+      if (statusSpan) {
+        statusSpan.textContent = scanAction === 'clock-out'
+          ? 'Point camera at Staff ID QR to clock out'
+          : 'Point camera at Staff ID QR to check in';
+      }
       if (faceSubBtn) {
-        faceSubBtn.textContent = scanAction === 'clock-out' ? 'Confirm Exit Scan' : 'Confirm Check-In';
+        faceSubBtn.textContent = scanAction === 'clock-out' ? 'Confirm Clock-Out' : 'Confirm Check-In';
       }
     };
+
+    document.getElementById('sr-scanner-gps-pill')?.addEventListener('click', () => {
+      window.ShiftRelayGps?.openLocationPromptModal?.({
+        reason: 'Turn on Location so ShiftRelay can verify you are at your workplace muster point.',
+        onRetry: () => {
+          window.ShiftRelayGps?.captureStrictLiveGps?.({ actionLabel: 'open Peer Check-In' })
+            .then((c) => updateScannerGpsPill('ok', `GPS Ready (±${Math.round(c.accuracy || 10)}m)`))
+            .catch((e) => updateScannerGpsPill('error', e.message || 'Tap to enable Location'));
+        }
+      });
+    });
 
     document.getElementById('sr-scan-mode-in')?.addEventListener('click', () => setScanAction('clock-in'));
     document.getElementById('sr-scan-mode-out')?.addEventListener('click', () => setScanAction('clock-out'));
@@ -2515,46 +2505,29 @@
     const applyScannedBadgeToInputs = (rawScanned, { autoSubmit = true } = {}) => {
       const parsed = parseBadgeQrForInputs(rawScanned);
       if (!parsed.staffId) return;
-      const staffInput = document.getElementById('sr-peer-staff-id-input');
-      const secInput = document.getElementById('sr-peer-card-code-input');
       const statusEl = document.getElementById('sr-scanner-status');
       const reticleEl = document.getElementById('sr-qr-hud-reticle');
-
-      if (staffInput) {
-        staffInput.value = parsed.staffId;
-        staffInput.style.borderColor = '#10b981';
-        staffInput.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.22)';
-      }
-      if (secInput && parsed.cardSec) {
-        secInput.value = parsed.cardSec;
-        secInput.style.borderColor = '#10b981';
-        secInput.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.22)';
-      }
-      if (reticleEl) {
-        reticleEl.style.transform = 'scale(1.04)';
-      }
+      if (reticleEl) reticleEl.style.transform = 'scale(1.04)';
       triggerVibration([30]);
 
-      const finalSec = parsed.cardSec || (secInput?.value?.trim().toUpperCase() || '');
-      if (finalSec) {
-        if (statusEl) statusEl.textContent = `QR Decoded (${parsed.staffId}) · Auto-filled`;
-        if (autoSubmit) handleStep1VerifyBadge(parsed.raw, finalSec);
-      } else {
-        if (statusEl) statusEl.textContent = `Staff ID ${parsed.staffId} filled · Enter 6-char Card SEC`;
-        if (secInput) secInput.focus();
-      }
+      if (statusEl) statusEl.textContent = `Badge scanned (${parsed.staffId}) · Loading details...`;
+      if (autoSubmit) handleStep1VerifyBadge(parsed.raw, parsed.cardSec || '');
     };
     window._srApplyScannedBadge = applyScannedBadgeToInputs;
 
+    let jsQrTimer = null;
     const startBadgeScannerCamera = () => {
       scanActive = true;
+      if (jsQrTimer) { clearTimeout(jsQrTimer); jsQrTimer = null; }
       stopCameraStream();
       const statusEl = document.getElementById('sr-scanner-status');
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        if (statusEl) statusEl.textContent = 'Enter Staff ID & Card SEC below';
+        if (statusEl) statusEl.textContent = 'Camera access required to scan Staff ID QR';
         return;
       }
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      })
         .catch(() => navigator.mediaDevices.getUserMedia({ video: true }))
         .then(s => {
           if (currentStep !== 1) {
@@ -2567,28 +2540,63 @@
             video.srcObject = s;
             video.play().catch(() => {});
           }
+
+          // Engine 1: Hardware-accelerated BarcodeDetector when available
+          let hasNativeDetector = false;
           if ('BarcodeDetector' in window) {
-            const detector = new window.BarcodeDetector({ formats: ['qr_code', 'code_128'] });
-            const scanLoop = async () => {
+            try {
+              const detector = new window.BarcodeDetector({ formats: ['qr_code', 'code_128'] });
+              hasNativeDetector = true;
+              const scanLoop = async () => {
+                if (!scanActive || currentStep !== 1) return;
+                if (video && video.readyState >= 2 && video.videoWidth > 0) {
+                  try {
+                    const codes = await detector.detect(video);
+                    if (codes.length > 0 && codes[0].rawValue) {
+                      applyScannedBadgeToInputs(codes[0].rawValue, { autoSubmit: true });
+                      return;
+                    }
+                  } catch (_) {}
+                }
+                if (scanActive && currentStep === 1) requestAnimationFrame(scanLoop);
+              };
+              requestAnimationFrame(scanLoop);
+            } catch (_) {
+              hasNativeDetector = false;
+            }
+          }
+
+          // Engine 2: Universal pure-JS jsQR fallback (iOS Safari, Android WebView, Firefox)
+          if (typeof window.jsQR === 'function') {
+            const offCanvas = document.createElement('canvas');
+            const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+            const jsQrTick = () => {
               if (!scanActive || currentStep !== 1) return;
-              if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
+              if (video && video.readyState >= 2 && video.videoWidth > 0) {
                 try {
-                  const codes = await detector.detect(video);
-                  if (codes.length > 0 && codes[0].rawValue) {
-                    applyScannedBadgeToInputs(codes[0].rawValue, { autoSubmit: true });
+                  const targetW = Math.min(640, video.videoWidth);
+                  const scale = targetW / video.videoWidth;
+                  const targetH = Math.max(1, Math.round(video.videoHeight * scale));
+                  if (offCanvas.width !== targetW || offCanvas.height !== targetH) {
+                    offCanvas.width = targetW;
+                    offCanvas.height = targetH;
+                  }
+                  offCtx.drawImage(video, 0, 0, targetW, targetH);
+                  const imgData = offCtx.getImageData(0, 0, targetW, targetH);
+                  const decoded = window.jsQR(imgData.data, targetW, targetH, { inversionAttempts: 'attemptBoth' });
+                  if (decoded && decoded.data) {
+                    applyScannedBadgeToInputs(decoded.data, { autoSubmit: true });
                     return;
                   }
                 } catch (_) {}
               }
-              if (scanActive && currentStep === 1) requestAnimationFrame(scanLoop);
+              jsQrTimer = setTimeout(jsQrTick, hasNativeDetector ? 320 : 140);
             };
-            requestAnimationFrame(scanLoop);
-          } else if (statusEl) {
-            statusEl.textContent = 'Scan Staff ID QR to auto-fill below';
+            jsQrTimer = setTimeout(jsQrTick, 180);
           }
         })
         .catch(() => {
-          if (statusEl) statusEl.textContent = 'Enter Staff ID & Card SEC below';
+          if (statusEl) statusEl.textContent = 'Allow Camera permission to scan Staff ID QR';
         });
     };
 
@@ -3739,13 +3747,19 @@
         window.ShiftRelayGps.checkPermissionStatus().then((perm) => {
           if (perm === 'denied' || perm === 'unsupported') {
             setGpsPillState('error', perm === 'denied'
-              ? 'GPS Blocked — Enable device location to clock in or out'
-              : 'GPS Unavailable on this device — Location required to clock in or out');
+              ? 'Location Off — Tap to enable Location in ShiftRelay'
+              : 'Location Unavailable — Tap to check Phone Location');
           } else if (perm === 'granted') {
-            setGpsPillState('ok', 'Strict Live GPS Ready · Workplace perimeter enforced');
+            setGpsPillState('ok', 'Live GPS Ready · Workplace perimeter enforced');
           }
         }).catch(() => {});
       }
+      document.getElementById('sr-gps-status-pill')?.addEventListener('click', () => {
+        window.ShiftRelayGps?.openLocationPromptModal?.({
+          reason: 'Turn on Location so ShiftRelay can verify you are at your workplace muster point.',
+          onRetry: () => setGpsPillState('ok', 'Live GPS Ready · Workplace perimeter enforced')
+        });
+      });
 
       // Helper to execute direct or scheduled auto Clock-Out
       const performWaterClockOut = async (isAuto = false) => {
@@ -3937,6 +3951,13 @@
           setGpsPillState('ok', 'Live GPS Locked · Verifying workplace perimeter...');
         } catch (gpsErr) {
           resetClockInUi(gpsErr?.message || 'Location access is required before you can clock in.');
+          if (gpsErr?.isStrictGpsError && typeof window.ShiftRelayGps?.openLocationPromptModal === 'function') {
+            window.ShiftRelayGps.openLocationPromptModal({
+              code: gpsErr.code,
+              reason: gpsErr.message,
+              onRetry: () => performWaterClockIn()
+            });
+          }
           return;
         }
 

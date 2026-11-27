@@ -26,17 +26,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-    <link rel="preload" href="sr-premium.css?v=226" as="style" />
-    <link rel="preload" href="phase1-shell.js?v=226" as="script" />
-    <link rel="stylesheet" href="styles.css?v=226" />
-    <link rel="stylesheet" href="theme.css?v=226" />
-    <link rel="stylesheet" href="bento-ui.css?v=226" />
-    <link rel="stylesheet" href="dark-mode.css?v=226" />
-    <link rel="stylesheet" href="splash.css?v=226" />
-    <link rel="stylesheet" href="offline-queue.css?v=226" />
-    <link rel="stylesheet" href="me-profile.css?v=226" />
-    <link rel="stylesheet" href="phase1-shell.css?v=226" />
-    <link rel="stylesheet" href="sr-premium.css?v=226" />
+    <link rel="preload" href="sr-premium.css?v=227" as="style" />
+    <link rel="preload" href="phase1-shell.js?v=227" as="script" />
+    <link rel="stylesheet" href="styles.css?v=227" />
+    <link rel="stylesheet" href="theme.css?v=227" />
+    <link rel="stylesheet" href="bento-ui.css?v=227" />
+    <link rel="stylesheet" href="dark-mode.css?v=227" />
+    <link rel="stylesheet" href="splash.css?v=227" />
+    <link rel="stylesheet" href="offline-queue.css?v=227" />
+    <link rel="stylesheet" href="me-profile.css?v=227" />
+    <link rel="stylesheet" href="phase1-shell.css?v=227" />
+    <link rel="stylesheet" href="sr-premium.css?v=227" />
     <script>
       (function() {
         try {
@@ -57,11 +57,11 @@
           }
         } catch (e) {}
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v226' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v227' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v226');
+              localStorage.setItem('sr_restored_build', 'v227');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { Promise.resolve(r.update()).catch(function() {}); });
@@ -72,8 +72,8 @@
         } catch (e) {}
       })();
     </script>
-    <script src="mobile-bridge.js?v=221"></script>
-    <script src="gps-guard.js?v=177"></script>
+    <script src="mobile-bridge.js?v=227"></script>
+    <script src="gps-guard.js?v=227"></script>
     <script src="theme.js"></script>
     <script src="alarm-engine.js?v=177"></script>
   </head>
@@ -501,11 +501,12 @@
     <script src="language.js?v=212" defer></script>
     <script src="app.js?v=212" defer></script>
     <script src="biometrics.js?v=212" defer></script>
-    <script type="module" src="qr-svg-generator.js?v=212"></script>
+    <script type="module" src="qr-svg-generator.js?v=227"></script>
     <script src="attendance-exceptions-ui.js?v=212" defer></script>
     <script src="/vendor/read-excel-file.min.js" defer></script>
-    <script src="phase1-shell.js?v=226" defer></script>
-    <script src="handover-chat.js?v=226" defer></script>
+    <script src="/vendor/jsqr.js" defer></script>
+    <script src="phase1-shell.js?v=227" defer></script>
+    <script src="handover-chat.js?v=227" defer></script>
     <script src="compliance-law-guide.js?v=226" defer></script>
     <script src="signin-motion.js?v=222" defer></script>
     <script src="splash.js?v=222" defer></script>
@@ -535,7 +536,7 @@
     <script src="push-notifications.js?v=212" defer></script>
     <script src="facility-switcher.js?v=212" defer></script>
     <script src="emergency-broadcast.js?v=212" defer></script>
-    <script>if('serviceWorker' in navigator){var srHadSw=Boolean(navigator.serviceWorker.controller);var srSwRefreshed=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!srHadSw||srSwRefreshed)return;if(sessionStorage.getItem('sr_sw_reloaded_v226'))return;srSwRefreshed=true;sessionStorage.setItem('sr_sw_reloaded_v226','1');window.location.reload();});navigator.serviceWorker.register('/service-worker.js?v=226',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(){});}</script>
+    <script>if('serviceWorker' in navigator){var srHadSw=Boolean(navigator.serviceWorker.controller);var srSwRefreshed=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!srHadSw||srSwRefreshed)return;if(sessionStorage.getItem('sr_sw_reloaded_v227'))return;srSwRefreshed=true;sessionStorage.setItem('sr_sw_reloaded_v227','1');window.location.reload();});navigator.serviceWorker.register('/service-worker.js?v=227',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(){});}</script>
   </body>
 </html>
 

@@ -3450,4 +3450,66 @@ body {
   #sr-app-shell .sr-v2-filter-row {
     margin-bottom: 10px !important;
   }
+
+  /* Option A Logged-In Mobile Header: Crisp ShiftRelay Icon + Client Company Workspace Name */
+  #sr-app-shell .sr-header {
+    gap: 6px !important;
+  }
+  #sr-app-shell .sr-header-left {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  #sr-app-shell .sr-brand-link {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  #sr-app-shell .sr-header-right {
+    flex-shrink: 0 !important;
+  }
+  #sr-app-shell .sr-brand-text {
+    display: none !important;
+  }
+  #sr-app-shell .sr-mobile-org-title {
+    display: flex !important;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    line-height: 1.15;
+  }
+  #sr-app-shell .sr-mobile-org-name {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--p-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #sr-app-shell .sr-mobile-org-sub {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--p-text-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #sr-app-shell .sr-mobile-org-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    flex-shrink: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  #sr-app-shell .sr-mobile-org-title {
+    display: none !important;
+  }
 }

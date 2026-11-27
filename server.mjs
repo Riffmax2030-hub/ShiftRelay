@@ -16825,7 +16825,8 @@ const VENDOR_BUNDLES = {
   '/vendor/mammoth.browser.min.js': ['node_modules', 'mammoth', 'mammoth.browser.min.js'],
   '/vendor/pdf-lib.min.js': ['node_modules', 'pdf-lib', 'dist', 'pdf-lib.min.js'],
   '/vendor/pdf.min.mjs': ['node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.min.mjs'],
-  '/vendor/pdf.worker.min.mjs': ['node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.min.mjs']
+  '/vendor/pdf.worker.min.mjs': ['node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.min.mjs'],
+  '/vendor/jsqr.js': ['node_modules', 'jsqr', 'dist', 'jsQR.js']
 };
 
 const STATIC_ASSET_CACHE = new Map();

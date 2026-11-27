@@ -149,6 +149,16 @@
       } catch (_) {}
       return false;
     },
+    async openLocationSettings({ target = 'location' } = {}) {
+      try {
+        const nativePlugin = window.Capacitor?.Plugins?.ShiftRelayNative;
+        if (nativePlugin?.openLocationSettings && this.isNative()) {
+          const res = await nativePlugin.openLocationSettings({ target });
+          return Boolean(res?.opened);
+        }
+      } catch (_) {}
+      return false;
+    },
     async setStatusBarTheme(isDark = true) {
       try {
         const sb = window.Capacitor?.Plugins?.StatusBar;

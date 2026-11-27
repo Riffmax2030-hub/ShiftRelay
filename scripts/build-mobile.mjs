@@ -103,4 +103,12 @@ function copyDir(src, dest) {
 }
 
 copyDir(ROOT, WWW);
+// Bundle universal pure-JS QR decoder for offline/WebView Peer Check-In scanning
+const jsqrSrc = join(ROOT, 'node_modules', 'jsqr', 'dist', 'jsQR.js');
+if (existsSync(jsqrSrc)) {
+  mkdirSync(join(WWW, 'vendor'), { recursive: true });
+  cpSync(jsqrSrc, join(WWW, 'vendor', 'jsqr.js'));
+  copiedCount += 1;
+  copiedBytes += statSync(jsqrSrc).size;
+}
 console.log(`Mobile web packaging complete: ${copiedCount} files (${(copiedBytes / (1024 * 1024)).toFixed(2)} MB) in www/ directory.`);
