@@ -130,17 +130,23 @@ function runUnitTests() {
   assert.equal(mega.pepmRateNgn, 1750);
   assert.equal(mega.recurringMonthlyTotalNgn, 350000 + 300 * 1750);
 
-  // Annual 12-Month Full-Year Plan calculation (with & without Setup Fee)
+  // Optional Annual 12-Month Plan calculation (15% executive discount — Monthly remains default)
   const annualBizWithSetup = calculateTenantAnnualInvoice({
     planKey: 'business',
     coreHeadcount: 40,
     includeSetupFee: true
   });
+  const expectedAnnualGross = (60000 + 40 * 2500) * 12;
+  const expectedAnnualSavings = Math.round(expectedAnnualGross * 0.15);
+  const expectedAnnualDiscounted = expectedAnnualGross - expectedAnnualSavings;
   assert.equal(annualBizWithSetup.invoiceType, 'ANNUAL_ONBOARDING_BUNDLE');
   assert.equal(annualBizWithSetup.annualBaseFeeNgn, 60000 * 12);
   assert.equal(annualBizWithSetup.annualCorePepmFeeNgn, 40 * 2500 * 12);
-  assert.equal(annualBizWithSetup.annualSubscriptionTotalNgn, (60000 + 40 * 2500) * 12);
-  assert.equal(annualBizWithSetup.totalDueNgn, 150000 + (60000 + 40 * 2500) * 12);
+  assert.equal(annualBizWithSetup.annualGrossSubscriptionNgn, expectedAnnualGross);
+  assert.equal(annualBizWithSetup.annualDiscountPct, 15);
+  assert.equal(annualBizWithSetup.annualDiscountSavingsNgn, expectedAnnualSavings);
+  assert.equal(annualBizWithSetup.annualSubscriptionTotalNgn, expectedAnnualDiscounted);
+  assert.equal(annualBizWithSetup.totalDueNgn, 150000 + expectedAnnualDiscounted);
 
   // Tier Distribution Metrics
   const dist = computeTierDistributionMetrics([startup, biz, ent, corp, mega]);

@@ -407,6 +407,20 @@ const schema = `
     status varchar(24) not null default 'requested',
     requested_at timestamptz not null default now()
   );
+  create table if not exists handover_media (
+    id uuid primary key default gen_random_uuid(),
+    organisation_id uuid not null references organisations(id) on delete cascade,
+    work_item_id uuid references work_items(id) on delete set null,
+    uploader_membership_id uuid references memberships(id) on delete set null,
+    media_type varchar(16) not null default 'file',
+    mime_type varchar(120) not null default 'application/octet-stream',
+    file_name text not null,
+    size_bytes integer not null default 0,
+    duration_sec integer not null default 0,
+    data_base64 text not null,
+    created_at timestamptz not null default now()
+  );
+  create index if not exists idx_handover_media_org on handover_media(organisation_id, created_at desc);
   create index if not exists idx_memberships_org on memberships(organisation_id);
   create index if not exists idx_work_items_org_status on work_items(organisation_id, status);
   create index if not exists idx_notifications_recipient on notifications(recipient_membership_id, read_at);

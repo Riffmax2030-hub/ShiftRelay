@@ -5815,6 +5815,15 @@
     if (!container) return;
 
     const activeWorkerHoProfile = getUserIndustryProfile(user);
+    if (window.ShiftRelayHandoverChat?.mount) {
+      await window.ShiftRelayHandoverChat.mount(container, {
+        user,
+        profile: activeWorkerHoProfile,
+        mode: 'worker'
+      });
+      return;
+    }
+
     let backendItems = [];
     try {
       const hoRes = await fetch('/api/handovers');
@@ -6390,6 +6399,50 @@
     `;
 
     try {
+      const activeMgrProfile = getUserIndustryProfile(user);
+      if (window.ShiftRelayHandoverChat?.mount) {
+        const mgrHeaderActions = `
+          <button id="sr-btn-print-turnover-mgr" class="sr-btn sr-btn-secondary" title="Print Shift Turnover Log" style="min-height:34px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            <span>Print Log</span>
+          </button>
+          <button id="sr-btn-export-all-mgr" class="sr-btn sr-btn-secondary" title="Export all handovers to CSV" style="min-height:34px;padding:0 12px;font-size:12px;display:flex;align-items:center;gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            <span>Export CSV</span>
+          </button>
+        `;
+        await window.ShiftRelayHandoverChat.mount(container, {
+          user,
+          profile: activeMgrProfile,
+          mode: 'supervisor',
+          headerActionsHtml: mgrHeaderActions,
+          onHeaderBind: (liveHandovers) => {
+            document.getElementById('sr-btn-print-turnover-mgr')?.addEventListener('click', () => {
+              const orgName = user.organisation_name || 'ShiftRelay Operations';
+              const printWin = window.open('', '_blank');
+              if (!printWin) { window.print(); return; }
+              const rows = (liveHandovers || []).map((h, i) => `
+                <tr style="border-bottom:1px solid #ddd;padding:8px 0;">
+                  <td style="padding:8px;">#${i + 1}</td>
+                  <td style="padding:8px;"><strong>${escapeHtml(h.summary || 'Shift Turnover')}</strong>${h.attachments?.length ? `<br><small style="color:#059669;">${h.attachments.length} attachment(s)</small>` : ''}</td>
+                  <td style="padding:8px;">${escapeHtml(h.authorName || 'Floor Lead')}</td>
+                  <td style="padding:8px;">${escapeHtml(h.status || 'Verified')}</td>
+                  <td style="padding:8px;">${new Date(h.createdAt || Date.now()).toLocaleString()}</td>
+                </tr>
+              `).join('');
+              printWin.document.write(`<!DOCTYPE html><html><head><title>Shift Turnover Log &bull; ${escapeHtml(orgName)}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:24px;color:#1e293b}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;padding:8px;background:#f1f5f9;border-bottom:2px solid #cbd5e1}@media print{button{display:none}}</style></head><body><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:16px;"><div><h1>ShiftRelay &bull; Shift Turnover Audit Log</h1><p>${escapeHtml(orgName)} &bull; Supervisor: ${escapeHtml(user.name)}</p></div><button onclick="window.print()" style="padding:8px 16px;font-weight:700;cursor:pointer;">Print / Save PDF</button></div><table><thead><tr><th>Ref</th><th>Handover Message</th><th>Lead Specialist</th><th>Status</th><th>Timestamp</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+              printWin.document.close();
+            });
+            document.getElementById('sr-btn-export-all-mgr')?.addEventListener('click', () => {
+              const orgName = user.organisation_name || 'ShiftRelay';
+              const csv = generateRosterCSV(liveHandovers || [], orgName);
+              downloadFile(csv, `ShiftRelay_ManagerHandovers_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8;');
+            });
+          }
+        });
+        return;
+      }
+
       const res = await fetch('/api/handovers');
       const data = res.ok ? await res.json() : { handovers: [] };
       const handovers = data.handovers || [];

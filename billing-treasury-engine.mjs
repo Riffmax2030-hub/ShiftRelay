@@ -76,6 +76,9 @@ export const SANDBOX_PILOT_CONFIG = {
   creditOnConversionPct: 100
 };
 
+// Optional executive annual commitment discount (Monthly is always the default; yearly is never enforced)
+export const ANNUAL_BILLING_DISCOUNT_PCT = 15;
+
 export const BILLING_LIFECYCLE_STATES = [
   'pilot_active',
   'onboarding_pending',
@@ -306,7 +309,10 @@ export function calculateTenantAnnualInvoice({
   const annualCorePepmFeeNgn = monthly.corePepmFeeNgn * 12;
   const annualOverageFeeNgn = monthly.overageFeeNgn * 12;
   const annualSurgeFeeNgn = monthly.surgeFeeNgn * 12;
-  const annualSubscriptionTotalNgn = monthly.recurringMonthlyTotalNgn * 12;
+  const annualGrossSubscriptionNgn = monthly.recurringMonthlyTotalNgn * 12;
+  const annualDiscountPct = ANNUAL_BILLING_DISCOUNT_PCT;
+  const annualDiscountSavingsNgn = Math.round(annualGrossSubscriptionNgn * (annualDiscountPct / 100));
+  const annualSubscriptionTotalNgn = Math.max(0, annualGrossSubscriptionNgn - annualDiscountSavingsNgn);
   const netOnboardingFeeNgn = onboarding ? onboarding.netOnboardingFeeNgn : 0;
   const grossOnboardingFeeNgn = onboarding ? onboarding.grossOnboardingFeeNgn : 0;
   const pilotCreditAppliedNgn = onboarding ? onboarding.pilotCreditAppliedNgn : 0;
@@ -330,6 +336,9 @@ export function calculateTenantAnnualInvoice({
     annualCorePepmFeeNgn,
     annualOverageFeeNgn,
     annualSurgeFeeNgn,
+    annualGrossSubscriptionNgn,
+    annualDiscountPct,
+    annualDiscountSavingsNgn,
     annualSubscriptionTotalNgn,
     includeSetupFee: Boolean(includeSetupFee),
     grossOnboardingFeeNgn,

@@ -506,11 +506,11 @@
           <input id="in-address" class="inp" type="text" placeholder="e.g. Plot 14 Oba Akran Avenue, Ikeja, Lagos" />
         </div>
 
-        <label for="in-billing-annual" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:14px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.34);cursor:pointer;margin-bottom:16px;">
+        <label for="in-billing-annual" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:14px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.34);cursor:pointer;margin-bottom:16px;">
           <input id="in-billing-annual" type="checkbox" style="width:20px;height:20px;margin-top:2px;accent-color:var(--em);cursor:pointer;flex-shrink:0;" />
           <span>
-            <strong style="display:block;font-size:14px;color:var(--text);">Pay Annually (Settle for a Full Year — 12 Months)</strong>
-            <span style="display:block;font-size:12.5px;color:var(--muted);margin-top:2px;">Check this box to calculate and settle your full 12-month subscription together with your One-Time Setup Fee in one single Paystack payment. Leave unchecked for monthly billing after setup.</span>
+            <strong style="display:block;font-size:14px;color:var(--text);">Optional for Executives: Pay Annually &amp; Save 15% (12 Months)</strong>
+            <span style="display:block;font-size:12.5px;color:var(--muted);margin-top:2px;">Monthly billing is the standard default — yearly payment is completely optional. Check this box only if you want to lock in a <strong>15% annual discount (~2 months free)</strong> together with your One-Time Setup Fee in one Paystack payment.</span>
           </span>
         </label>
 
@@ -694,24 +694,26 @@
         const isAnnual = Boolean(document.getElementById('in-billing-annual')?.checked);
         const t = pickTier(count);
         const monthly = t.base + (count * t.pepm);
-        const annualSub = monthly * 12;
+        const annualGross = monthly * 12;
+        const annualSavings = Math.round(annualGross * 0.15);
+        const annualSub = annualGross - annualSavings;
         const annualFullDue = t.setup + annualSub;
         document.getElementById('tp-title').textContent = `${t.label} Tier (${t.band})`;
-        document.getElementById('tp-badge').textContent = `${t.label.toUpperCase()} · ${isAnnual ? 'ANNUAL (12 MO)' : 'MONTHLY'}`;
+        document.getElementById('tp-badge').textContent = `${t.label.toUpperCase()} · ${isAnnual ? 'ANNUAL (15% OFF)' : 'MONTHLY (DEFAULT)'}`;
         document.getElementById('tp-setup').textContent = fmtNgn(t.setup);
         if (isAnnual) {
           document.getElementById('tp-base-lbl').textContent = '12-Mo Maintenance';
           document.getElementById('tp-base').textContent = fmtNgn(t.base * 12);
-          document.getElementById('tp-pepm-lbl').textContent = '12-Mo Headcount';
-          document.getElementById('tp-pepm').textContent = fmtNgn(count * t.pepm * 12);
-          document.getElementById('tp-total-lbl').textContent = '12-Month Subscription';
+          document.getElementById('tp-pepm-lbl').textContent = 'Annual Discount (15%)';
+          document.getElementById('tp-pepm').textContent = `-${fmtNgn(annualSavings)}`;
+          document.getElementById('tp-total-lbl').textContent = 'Discounted 12-Mo Plan';
           document.getElementById('tp-monthly').textContent = `${fmtNgn(annualSub)}/yr`;
           const bar = document.getElementById('tp-annual-bar');
           if (bar) bar.style.display = 'flex';
           const dueEl = document.getElementById('tp-annual-due-now');
           if (dueEl) dueEl.textContent = fmtNgn(annualFullDue);
           const fn = document.getElementById('tp-foot-note');
-          if (fn) fn.textContent = `Annual Plan selected: settle your One-Time Setup (${fmtNgn(t.setup)}) + Full 12-Month Subscription (${fmtNgn(annualSub)}) = ${fmtNgn(annualFullDue)} once via Paystack — zero monthly invoices for the next 12 months.`;
+          if (fn) fn.textContent = `Optional Annual Executive Plan selected: you save ${fmtNgn(annualSavings)} (15% off ${fmtNgn(annualGross)}). Total due via Paystack = Setup (${fmtNgn(t.setup)}) + Discounted 12-Month Plan (${fmtNgn(annualSub)}) = ${fmtNgn(annualFullDue)}.`;
         } else {
           document.getElementById('tp-base-lbl').textContent = 'Monthly Maintenance';
           document.getElementById('tp-base').textContent = fmtNgn(t.base);
@@ -722,7 +724,7 @@
           const bar = document.getElementById('tp-annual-bar');
           if (bar) bar.style.display = 'none';
           const fn = document.getElementById('tp-foot-note');
-          if (fn) fn.textContent = '100% employer-paid (₦0 deducted from worker wages). Monthly billing begins only after your 48-hour Go-Live sign-off.';
+          if (fn) fn.textContent = 'Monthly default (no annual lock-in). 100% employer-paid (₦0 deducted from worker wages). Monthly billing begins only after your 48-hour Go-Live sign-off.';
         }
       }
 

@@ -1334,8 +1334,41 @@ async function deliverOrgNotification({ store, organisationId, recipientId, mess
 }
 
 async function databaseHandovers(user) {
-  const result = await query(`select wi.id, wi.status, wi.payload, wi.created_at, wi.updated_at, wi.acknowledged_at, wi.created_by_membership_id, wi.assigned_to_membership_id, reviewer.full_name as reviewer_name from work_items wi left join portal_users reviewer on reviewer.id = wi.created_by_membership_id where wi.organisation_id = $1 and ($2 in ('supervisor', 'manager', 'owner') or wi.created_by_membership_id = $3 or wi.assigned_to_membership_id = $3) order by wi.created_at desc`, [user.organisation_id, user.role, user.id]);
-  return result.rows.map((row) => ({ id: row.id, createdBy: row.created_by_membership_id, assignedTo: row.assigned_to_membership_id, handover: row.payload, status: row.status, acknowledgement: row.acknowledged_at ? { by: row.assigned_to_membership_id, at: row.acknowledged_at } : null, createdAt: row.created_at, updatedAt: row.updated_at, reviewedBy: row.reviewer_name }));
+  const result = await query(
+    `select wi.id, wi.status, wi.payload, wi.created_at, wi.updated_at, wi.acknowledged_at,
+            wi.created_by_membership_id, wi.assigned_to_membership_id,
+            coalesce(pu.full_name, '') as author_name,
+            coalesce(m.job_title, m.role, 'Shift Specialist') as author_role,
+            coalesce(m.department, '') as author_department,
+            coalesce(pu.avatar_data_url, '') as author_avatar
+     from work_items wi
+     left join memberships m on m.id = wi.created_by_membership_id
+     left join portal_users pu on pu.id = m.user_id
+     where wi.organisation_id = $1 and wi.item_type = 'handover'
+     order by wi.created_at desc
+     limit 150`,
+    [user.organisation_id]
+  );
+  return result.rows.map((row) => {
+    const payload = row.payload && typeof row.payload === 'object' ? row.payload : {};
+    return {
+      id: row.id,
+      organisationId: user.organisation_id,
+      createdBy: row.created_by_membership_id,
+      assignedTo: row.assigned_to_membership_id,
+      authorName: row.author_name || payload.author || 'Shift Specialist',
+      authorRole: row.author_role || payload.authorRole || 'Shift Specialist',
+      department: row.author_department || payload.station || '',
+      authorAvatar: row.author_avatar || '',
+      handover: payload,
+      attachments: Array.isArray(payload.attachments) ? payload.attachments : [],
+      status: row.status,
+      acknowledgement: row.acknowledged_at ? { by: row.assigned_to_membership_id, at: row.acknowledged_at } : null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      reviewedBy: payload.reviewedBy || row.author_name || ''
+    };
+  });
 }
 
 // -- Batch 4: Idempotency Key Helpers -----------------------------------------
@@ -1462,20 +1495,35 @@ async function withIdempotency(user, operation, clientKey, body, businessFn) {
 async function createDatabaseHandover(user, body) {
   const runId = crypto.randomUUID();
   const workItemId = crypto.randomUUID();
-  const supervisor = (await query("select id from memberships where organisation_id = $1 and role in ('supervisor', 'owner') and status = 'active' order by case when role = 'supervisor' then 1 else 2 end, created_at limit 1", [user.organisation_id])).rows[0];
-  const incomingWorker = (await query("select id from memberships where organisation_id = $1 and role = 'incoming' and status = 'active' order by created_at limit 1", [user.organisation_id])).rows[0];
-  if (!supervisor || !incomingWorker) {
-    const err = new Error('Your organisation needs an active supervisor and incoming worker before sending handovers.');
-    err.statusCode = 422;
-    throw err;
-  }
+  const supervisor = (await query(
+    "select id from memberships where organisation_id = $1 and role in ('supervisor', 'manager', 'owner') and status = 'active' order by case when role = 'supervisor' then 1 when role = 'manager' then 2 else 3 end, created_at limit 1",
+    [user.organisation_id]
+  )).rows[0];
+  const incomingWorker = (await query(
+    "select id from memberships where organisation_id = $1 and status = 'active' and id <> $2 order by case when role = 'incoming' then 1 when role = 'worker' then 2 when role = 'outgoing' then 3 else 4 end, created_at limit 1",
+    [user.organisation_id, user.id]
+  )).rows[0];
   const isUuid = (str) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
-  const requested = (body.assignedTo && isUuid(body.assignedTo)) ? (await query('select id from memberships where id = $1 and organisation_id = $2 and role = \'incoming\' and status = \'active\'', [body.assignedTo, user.organisation_id])).rows[0] : null;
-  const assignedTo = requested?.id || incomingWorker.id;
+  const requested = (body.assignedTo && isUuid(body.assignedTo))
+    ? (await query("select id from memberships where id = $1 and organisation_id = $2 and status = 'active'", [body.assignedTo, user.organisation_id])).rows[0]
+    : null;
+  const assignedTo = requested?.id || incomingWorker?.id || supervisor?.id || user.id;
+  const initialStatus = ['supervisor', 'manager', 'owner'].includes(user.role) ? 'relayed' : 'awaiting_review';
+  const summaryTitle = String(body.handover?.summary || body.notes || 'Shift Handover').slice(0, 240);
+
   await query('insert into workflow_runs (id, organisation_id, created_by_membership_id, status, priority) values ($1, $2, $3, $4, $5)', [runId, user.organisation_id, user.id, 'in_progress', 'normal']);
-  await query('insert into work_items (id, workflow_run_id, organisation_id, assigned_to_membership_id, created_by_membership_id, item_type, title, status, priority, payload) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)', [workItemId, runId, user.organisation_id, assignedTo, user.id, 'handover', body.handover.summary, 'awaiting_review', 'normal', JSON.stringify(body.handover)]);
-  await query('insert into work_events (id, organisation_id, workflow_run_id, work_item_id, actor_membership_id, event_type, message) values ($1, $2, $3, $4, $5, $6, $7)', [crypto.randomUUID(), user.organisation_id, runId, workItemId, user.id, 'submitted', `${user.name} submitted a handover for review.`]);
-  await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, supervisor.id, workItemId, `${user.name} created a handover for review.`]);
+  await query('insert into work_items (id, workflow_run_id, organisation_id, assigned_to_membership_id, created_by_membership_id, item_type, title, status, priority, payload) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)', [workItemId, runId, user.organisation_id, assignedTo, user.id, 'handover', summaryTitle, initialStatus, 'normal', JSON.stringify(body.handover)]);
+  await query('insert into work_events (id, organisation_id, workflow_run_id, work_item_id, actor_membership_id, event_type, message) values ($1, $2, $3, $4, $5, $6, $7)', [crypto.randomUUID(), user.organisation_id, runId, workItemId, user.id, 'submitted', `${user.name} posted a shift handover.`]);
+  if (supervisor?.id && supervisor.id !== user.id) {
+    await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, supervisor.id, workItemId, `${user.name} posted a shift handover.`]).catch(() => {});
+  }
+  if (Array.isArray(body.handover?.attachments) && body.handover.attachments.length > 0) {
+    for (const att of body.handover.attachments) {
+      if (att?.id && isUuid(att.id)) {
+        await query('update handover_media set work_item_id = $1 where id = $2 and organisation_id = $3', [workItemId, att.id, user.organisation_id]).catch(() => {});
+      }
+    }
+  }
   if (body.handover) {
     const rawPayload = JSON.stringify(body.handover);
     for (const match of rawPayload.matchAll(/\/uploads\/([a-zA-Z0-9._-]+)/g)) {
@@ -1499,12 +1547,15 @@ async function updateDatabaseHandover(user, id, action) {
     if (!['supervisor', 'manager', 'owner'].includes(user.role)) throw new Error('Only a supervisor, manager, or owner can approve and relay this handover.');
     if (item.status !== 'awaiting_review') throw new Error('This handover cannot be relayed in its current state.');
     await query('update work_items set status = $1, updated_at = now() where id = $2 and organisation_id = $3', ['relayed', id, user.organisation_id]);
-    await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, item.assigned_to_membership_id, id, 'A supervisor approved a handover for your shift.']);
+    if (item.assigned_to_membership_id) {
+      await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, item.assigned_to_membership_id, id, 'A supervisor approved a handover for your shift.']).catch(() => {});
+    }
   } else {
-    if (item.status !== 'relayed') throw new Error('This handover cannot be acknowledged in its current state.');
-    if (user.id !== item.assigned_to_membership_id && user.role !== 'owner') throw new Error('This handover is assigned to another worker.');
+    if (!['relayed', 'awaiting_review'].includes(item.status)) throw new Error('This handover cannot be acknowledged in its current state.');
     await query('update work_items set status = $1, acknowledged_at = now(), updated_at = now() where id = $2 and organisation_id = $3', ['acknowledged', id, user.organisation_id]);
-    await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, item.created_by_membership_id, id, `${user.name} acknowledged the handover.`]);
+    if (item.created_by_membership_id && item.created_by_membership_id !== user.id) {
+      await query('insert into notifications (id, organisation_id, recipient_membership_id, work_item_id, message) values ($1, $2, $3, $4, $5)', [crypto.randomUUID(), user.organisation_id, item.created_by_membership_id, id, `${user.name} acknowledged the handover.`]).catch(() => {});
+    }
   }
   const updated = (await databaseHandovers(user)).find((handover) => handover.id === id);
   broadcastEvent(action === 'relay' ? 'handover-relayed' : 'handover-acknowledged', { organisationId: user.organisation_id, handover: updated }, { organisationId: user.organisation_id });
@@ -2767,8 +2818,10 @@ function serializePublicOnboardingApp(app) {
     pepmRateNgn: Number(app.pepmRateNgn ?? tier.pepmRateNgn),
     billingCycle: app.billingCycle === 'annual' ? 'annual' : 'monthly',
     estimatedMonthlyTotalNgn: Number(app.estimatedMonthlyTotalNgn ?? (tier.baseFeeNgn + Number(app.workerCount || 1) * tier.pepmRateNgn)),
-    estimatedAnnualTotalNgn: Number(app.estimatedAnnualTotalNgn ?? ((tier.baseFeeNgn + Number(app.workerCount || 1) * tier.pepmRateNgn) * 12)),
-    annualFullDueNgn: Number(app.annualFullDueNgn ?? (Number(app.setupFeeNgn ?? tier.onboardingFeeNgn) + ((tier.baseFeeNgn + Number(app.workerCount || 1) * tier.pepmRateNgn) * 12))),
+    annualDiscountPct: Number(app.annualDiscountPct ?? 15),
+    annualDiscountSavingsNgn: Number(app.annualDiscountSavingsNgn ?? Math.round(((tier.baseFeeNgn + Number(app.workerCount || 1) * tier.pepmRateNgn) * 12) * 0.15)),
+    estimatedAnnualTotalNgn: Number(app.estimatedAnnualTotalNgn ?? Math.round(((tier.baseFeeNgn + Number(app.workerCount || 1) * tier.pepmRateNgn) * 12) * 0.85)),
+    annualFullDueNgn: Number(app.annualFullDueNgn ?? (Number(app.setupFeeNgn ?? tier.onboardingFeeNgn) + Math.round(((tier.baseFeeNgn + Number(app.workerCount || 1) * tier.pepmRateNgn) * 12) * 0.85))),
     companyCode: app.companyCode || null,
     invoiceId: app.invoiceId || null,
     checkoutUrl: app.checkoutUrl || null,
@@ -2838,6 +2891,15 @@ function buildInvoiceBreakdownLines(inv = {}) {
     }
     if (Number(inv.surgeFeeNgn || 0) > 0) {
       lines.push({ label: '12-Month Seasonal / Surge Staff', amountNgn: Number(inv.surgeFeeNgn) });
+    }
+    const annualDiscountSavings = Number(inv.annualDiscountSavingsNgn || 0);
+    if (annualDiscountSavings > 0) {
+      lines.push({
+        label: `Optional Annual Executive Discount (${Number(inv.annualDiscountPct || 15)}% Off)`,
+        note: 'Optional 12-month upfront commitment savings (~2 months free)',
+        amountNgn: annualDiscountSavings,
+        isCredit: true
+      });
     }
     return lines;
   }
@@ -6114,8 +6176,9 @@ async function handleApi(request, response, url) {
     const tier = recommendPlanTierForHeadcount(workerCount);
     const billingCycle = String(body.billingCycle || 'monthly').toLowerCase() === 'annual' ? 'annual' : 'monthly';
     const estMonthly = tier.baseFeeNgn + (workerCount * tier.pepmRateNgn);
-    const estAnnual = estMonthly * 12;
-    const annualFullDue = tier.onboardingFeeNgn + estAnnual;
+    const annualQuote = calculateTenantAnnualInvoice({ planKey: tier.key, coreHeadcount: workerCount, includeSetupFee: true });
+    const estAnnual = annualQuote.annualSubscriptionTotalNgn;
+    const annualFullDue = annualQuote.totalDueNgn;
     const nowIso = new Date().toISOString();
     const appRec = {
       id: `APP-SR-${Date.now().toString().slice(-6)}`,
@@ -6140,6 +6203,8 @@ async function handleApi(request, response, url) {
       monthlyBaseFeeNgn: tier.baseFeeNgn,
       pepmRateNgn: tier.pepmRateNgn,
       estimatedMonthlyTotalNgn: estMonthly,
+      annualDiscountPct: annualQuote.annualDiscountPct,
+      annualDiscountSavingsNgn: annualQuote.annualDiscountSavingsNgn,
       estimatedAnnualTotalNgn: estAnnual,
       annualFullDueNgn: annualFullDue,
       tenantId: null,
@@ -12958,6 +13023,9 @@ async function getUserRewards(user, store) {
         annualCorePepmFeeNgn: annual.annualCorePepmFeeNgn,
         overageFeeNgn: annual.annualOverageFeeNgn,
         surgeFeeNgn: annual.annualSurgeFeeNgn,
+        annualGrossSubscriptionNgn: annual.annualGrossSubscriptionNgn,
+        annualDiscountPct: annual.annualDiscountPct,
+        annualDiscountSavingsNgn: annual.annualDiscountSavingsNgn,
         annualSubscriptionTotalNgn: annual.annualSubscriptionTotalNgn
       };
       subject = `[${invoiceId}] ShiftRelay ${annual.planLabel} ${includeSetup ? 'Full-Year Setup + 12-Month' : '12-Month Annual'} Plan — ₦${amountNgn.toLocaleString('en-NG')}`;
@@ -13997,6 +14065,10 @@ async function getUserRewards(user, store) {
       annualCorePepmFeeNgn: isAnnual ? annualCalc.annualCorePepmFeeNgn : 0,
       overageFeeNgn: isAnnual ? annualCalc.annualOverageFeeNgn : 0,
       surgeFeeNgn: 0,
+      annualGrossSubscriptionNgn: isAnnual ? annualCalc.annualGrossSubscriptionNgn : 0,
+      annualDiscountPct: isAnnual ? annualCalc.annualDiscountPct : 0,
+      annualDiscountSavingsNgn: isAnnual ? annualCalc.annualDiscountSavingsNgn : 0,
+      annualSubscriptionTotalNgn: isAnnual ? annualCalc.annualSubscriptionTotalNgn : 0,
       amountNgn: invoiceAmountNgn,
       status: 'UNPAID',
       checkoutUrl: psInit.checkoutUrl,
@@ -14339,6 +14411,10 @@ async function getUserRewards(user, store) {
         annualCorePepmFeeNgn: isAnnual ? annualCalc.annualCorePepmFeeNgn : 0,
         overageFeeNgn: isAnnual ? annualCalc.annualOverageFeeNgn : 0,
         surgeFeeNgn: 0,
+        annualGrossSubscriptionNgn: isAnnual ? annualCalc.annualGrossSubscriptionNgn : 0,
+        annualDiscountPct: isAnnual ? annualCalc.annualDiscountPct : 0,
+        annualDiscountSavingsNgn: isAnnual ? annualCalc.annualDiscountSavingsNgn : 0,
+        annualSubscriptionTotalNgn: isAnnual ? annualCalc.annualSubscriptionTotalNgn : 0,
         amountNgn: invoiceAmountNgn,
         status: 'UNPAID',
         checkoutUrl: psInit.checkoutUrl,
@@ -14888,22 +14964,204 @@ async function getUserRewards(user, store) {
     return sendJson(response, 200, { ok: true, industry: profile.label, industryKey: profile.key, label: profile.label, profile, tenantId: orgKey });
   }
 
+  // ── Persistent Handover Media Upload (Camera Photo, Document/File, Voice Note) ──
+  if (url.pathname === '/api/handovers/media' && request.method === 'POST') {
+    const body = await readJson(request);
+    const rawType = String(body.type || 'file').toLowerCase();
+    const mediaType = ['image', 'voice', 'file'].includes(rawType) ? rawType : 'file';
+    const rawName = String(body.name || (mediaType === 'voice' ? 'voice-note.webm' : mediaType === 'image' ? 'handover-photo.jpg' : 'attachment.bin'))
+      .replace(/[^\w.\-() ]+/g, '_')
+      .slice(0, 140) || 'attachment';
+    const rawDataUrl = String(body.dataUrl || body.dataBase64 || '').trim();
+    if (!rawDataUrl) return sendJson(response, 400, { error: 'Attachment file payload is required.' });
+
+    let mimeType = String(body.mimeType || '').split(';')[0].trim().toLowerCase();
+    let base64Body = rawDataUrl;
+    const dataUrlMatch = rawDataUrl.match(/^data:([^;]+)(?:;[^,]*)?,(.*)$/s);
+    if (dataUrlMatch) {
+      if (!mimeType) mimeType = String(dataUrlMatch[1] || '').trim().toLowerCase();
+      base64Body = dataUrlMatch[2];
+    }
+    if (!mimeType) {
+      mimeType = mediaType === 'voice' ? 'audio/webm' : mediaType === 'image' ? 'image/jpeg' : 'application/octet-stream';
+    }
+
+    const ALLOWED_MEDIA_MIMES = new Set([
+      'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic',
+      'audio/webm', 'audio/mp4', 'audio/m4a', 'audio/x-m4a', 'audio/ogg', 'audio/mpeg', 'audio/wav', 'audio/aac',
+      'application/pdf', 'text/plain', 'text/csv', 'application/csv',
+      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/octet-stream'
+    ]);
+    if (!ALLOWED_MEDIA_MIMES.has(mimeType)) {
+      return sendJson(response, 400, { error: `Unsupported attachment format (${mimeType}).` });
+    }
+
+    let decoded;
+    try {
+      decoded = Buffer.from(base64Body, 'base64');
+    } catch {
+      return sendJson(response, 400, { error: 'Invalid base64 attachment payload.' });
+    }
+    const maxBytes = mediaType === 'file' ? 5 * 1024 * 1024 : 4 * 1024 * 1024;
+    if (!decoded.length || decoded.length > maxBytes) {
+      return sendJson(response, 413, { error: `Attachment must be under ${Math.round(maxBytes / (1024 * 1024))} MB.` });
+    }
+
+    const mediaId = crypto.randomUUID();
+    const durationSec = Math.max(0, Math.min(600, Math.round(Number(body.durationSec || 0))));
+    const cleanBase64 = decoded.toString('base64');
+
+    if (databaseReady) {
+      await query(
+        `insert into handover_media (id, organisation_id, uploader_membership_id, media_type, mime_type, file_name, size_bytes, duration_sec, data_base64)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [mediaId, user.organisation_id, user.id, mediaType, mimeType, rawName, decoded.length, durationSec, cleanBase64]
+      );
+    } else {
+      const store = await getStore();
+      if (!Array.isArray(store.handoverMedia)) store.handoverMedia = [];
+      store.handoverMedia.unshift({
+        id: mediaId,
+        organisationId: user.organisation_id,
+        uploaderId: user.id,
+        mediaType,
+        mimeType,
+        fileName: rawName,
+        sizeBytes: decoded.length,
+        durationSec,
+        dataBase64: cleanBase64,
+        createdAt: new Date().toISOString()
+      });
+      if (store.handoverMedia.length > 250) store.handoverMedia.length = 250;
+      await saveStore(store);
+    }
+
+    return sendJson(response, 201, {
+      ok: true,
+      attachment: {
+        id: mediaId,
+        type: mediaType,
+        name: rawName,
+        mimeType,
+        sizeBytes: decoded.length,
+        durationSec,
+        url: `/api/handovers/media/${mediaId}`
+      }
+    });
+  }
+
+  // ── Authenticated Tenant-Scoped Handover Media Stream (Supports HTTP Range for iOS/Android Audio) ──
+  const hoMediaMatch = url.pathname.match(/^\/api\/handovers\/media\/([0-9a-fA-F-]+)$/);
+  if (hoMediaMatch && (request.method === 'GET' || request.method === 'HEAD')) {
+    const mediaId = hoMediaMatch[1];
+    let rec = null;
+    if (databaseReady) {
+      const r = await query(
+        'select id, media_type, mime_type, file_name, size_bytes, data_base64 from handover_media where id = $1 and organisation_id = $2',
+        [mediaId, user.organisation_id]
+      );
+      if (r.rows[0]) {
+        rec = {
+          mediaType: r.rows[0].media_type,
+          mimeType: r.rows[0].mime_type,
+          fileName: r.rows[0].file_name,
+          dataBase64: r.rows[0].data_base64
+        };
+      }
+    } else {
+      const store = await getStore();
+      const found = (store.handoverMedia || []).find(
+        (m) => m.id === mediaId && (!m.organisationId || m.organisationId === user.organisation_id)
+      );
+      if (found) rec = found;
+    }
+    if (!rec || !rec.dataBase64) return sendJson(response, 404, { error: 'Handover attachment not found.' });
+
+    const buf = Buffer.from(rec.dataBase64, 'base64');
+    const safeFileName = String(rec.fileName || 'attachment').replace(/["\r\n]/g, '_');
+    const isInline = rec.mediaType === 'image' || rec.mediaType === 'voice';
+    const rangeHeader = request.headers.range;
+    const baseHeaders = {
+      'Content-Type': rec.mimeType || 'application/octet-stream',
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'private, max-age=86400',
+      'Content-Disposition': `${isInline ? 'inline' : 'attachment'}; filename="${safeFileName}"`,
+      'X-Content-Type-Options': 'nosniff'
+    };
+
+    if (rangeHeader && /^bytes=/i.test(rangeHeader)) {
+      const [startStr, endStr] = rangeHeader.replace(/^bytes=/i, '').split('-');
+      const start = Math.max(0, parseInt(startStr, 10) || 0);
+      const end = endStr ? Math.min(buf.length - 1, parseInt(endStr, 10)) : buf.length - 1;
+      if (start >= buf.length || start > end) {
+        response.writeHead(416, { 'Content-Range': `bytes */${buf.length}` });
+        response.end();
+        return;
+      }
+      const slice = buf.subarray(start, end + 1);
+      response.writeHead(206, {
+        ...baseHeaders,
+        'Content-Range': `bytes ${start}-${end}/${buf.length}`,
+        'Content-Length': slice.length
+      });
+      if (request.method === 'HEAD') response.end();
+      else response.end(slice);
+      return;
+    }
+
+    response.writeHead(200, { ...baseHeaders, 'Content-Length': buf.length });
+    if (request.method === 'HEAD') response.end();
+    else response.end(buf);
+    return;
+  }
+
   if (url.pathname === '/api/handovers' && request.method === 'GET') {
     if (databaseReady) return sendJson(response, 200, { handovers: await databaseHandovers(user), user });
     const store = await getStore();
-    const handovers = ['supervisor', 'owner'].includes(user.role)
-      ? store.handovers
-      : store.handovers.filter((handover) => handover.createdBy === user.id || handover.assignedTo === user.id || handover.assignedTo === 'team' || !handover.assignedTo);
-    return sendJson(response, 200, { handovers, user });
+    const orgHandovers = (store.handovers || []).filter(
+      (h) => !h.organisationId || h.organisationId === user.organisation_id
+    );
+    return sendJson(response, 200, { handovers: orgHandovers, user });
   }
 
   if (url.pathname === '/api/handovers' && request.method === 'POST') {
-    if (!['outgoing', 'supervisor', 'owner', 'worker'].includes(user.role)) return sendJson(response, 403, { error: 'Only workers, supervisors, or owners can create handovers.' });
+    if (!['outgoing', 'incoming', 'supervisor', 'manager', 'owner', 'worker'].includes(user.role)) return sendJson(response, 403, { error: 'Only verified staff can post handovers.' });
     const body = await readJson(request);
-    const { notes, handover, assignedTo = 'faith', shiftStatus = 'green', tasks = [] } = body;
-    if (!handover?.summary) return sendJson(response, 400, { error: 'Generate a handover before saving.' });
+    const { notes = '', assignedTo = 'team', shiftStatus = 'green', tasks = [] } = body;
+    const handover = (body.handover && typeof body.handover === 'object') ? { ...body.handover } : {};
+    const attachments = Array.isArray(body.attachments)
+      ? body.attachments
+      : (Array.isArray(handover.attachments) ? handover.attachments : []);
+    const cleanAttachments = attachments.slice(0, 8).map((att) => ({
+      id: String(att.id || ''),
+      type: ['image', 'voice', 'file'].includes(att.type) ? att.type : 'file',
+      name: String(att.name || 'attachment').slice(0, 140),
+      mimeType: String(att.mimeType || 'application/octet-stream').slice(0, 100),
+      sizeBytes: Math.max(0, Number(att.sizeBytes || 0)),
+      durationSec: Math.max(0, Number(att.durationSec || 0)),
+      url: String(att.url || (att.id ? `/api/handovers/media/${att.id}` : ''))
+    })).filter((a) => a.url);
+
+    const summaryText = String(handover.summary || notes || '').trim();
+    if (!summaryText && cleanAttachments.length === 0) {
+      return sendJson(response, 400, { error: 'Write a handover message, attach a photo/file, or record a voice note.' });
+    }
+    handover.summary = summaryText || (
+      cleanAttachments[0].type === 'voice'
+        ? `Voice handover note (${cleanAttachments[0].durationSec || 0}s)`
+        : cleanAttachments[0].type === 'image'
+          ? `Photo handover (${cleanAttachments.length} image${cleanAttachments.length > 1 ? 's' : ''})`
+          : `Attached file: ${cleanAttachments[0].name}`
+    );
     handover.shiftStatus = shiftStatus;
-    handover.notes = notes;
+    handover.notes = notes || handover.summary;
+    handover.author = handover.author || user.name || 'Shift Specialist';
+    handover.authorRole = handover.authorRole || user.title || user.role || 'Shift Specialist';
+    handover.station = handover.station || user.department || 'Operations Desk';
+    handover.attachments = cleanAttachments;
+
     if (!Array.isArray(handover.tasks) || !handover.tasks.length) {
       handover.tasks = (Array.isArray(tasks) && tasks.length) ? tasks : (handover.actions || []).map((action, i) => ({
         id: `task-${i + 1}-${crypto.randomUUID().slice(0, 6)}`,
@@ -14918,14 +15176,31 @@ async function getUserRewards(user, store) {
     try {
       const { statusCode, result, replay } = await withIdempotency(user, 'create-handover', clientKey, body, async (client) => {
         if (databaseReady) {
-          const created = await createDatabaseHandover(user, { notes, handover, assignedTo });
+          const created = await createDatabaseHandover(user, { notes: handover.notes, handover, assignedTo });
           return { statusCode: 201, result: { handover: created } };
         }
         const store = await getStore();
-        const record = { id: crypto.randomUUID(), createdBy: user.id, assignedTo, notes, handover, status: user.role === 'supervisor' ? 'relayed' : 'awaiting_review', acknowledgement: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        if (!Array.isArray(store.handovers)) store.handovers = [];
+        const record = {
+          id: crypto.randomUUID(),
+          organisationId: user.organisation_id,
+          createdBy: user.id,
+          authorName: user.name || handover.author,
+          authorRole: user.title || user.role || 'Shift Specialist',
+          department: user.department || handover.station || '',
+          authorAvatar: user.avatarDataUrl || user.avatar || '',
+          assignedTo,
+          notes: handover.notes,
+          handover,
+          attachments: cleanAttachments,
+          status: ['supervisor', 'manager', 'owner'].includes(user.role) ? 'relayed' : 'awaiting_review',
+          acknowledgement: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
         store.handovers.unshift(record);
-        notify(store, 'david', record.id, `${user.name} created a handover for review.`);
-        if (record.status === 'relayed') notify(store, assignedTo, record.id, 'A reviewed handover is ready for your shift.');
+        notify(store, 'david', record.id, `${user.name} posted a shift handover.`, user.organisation_id);
+        if (record.status === 'relayed') notify(store, assignedTo, record.id, 'A reviewed handover is ready for your shift.', user.organisation_id);
         await saveStore(store);
         broadcastEvent('handover-submitted', { organisationId: user.organisation_id, handover: record });
         return { statusCode: 201, result: { handover: record } };

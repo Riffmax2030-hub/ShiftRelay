@@ -186,6 +186,22 @@ CREATE TABLE IF NOT EXISTS file_attachments ( id UUID PRIMARY KEY DEFAULT gen_ra
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 9b. Persistent Handover Chat Media (Photos, Documents & Voice Notes — survives redeploys)
+CREATE TABLE IF NOT EXISTS handover_media (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organisation_id UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  work_item_id UUID REFERENCES work_items(id) ON DELETE SET NULL,
+  uploader_membership_id UUID REFERENCES memberships(id) ON DELETE SET NULL,
+  media_type VARCHAR(16) NOT NULL DEFAULT 'file',
+  mime_type VARCHAR(120) NOT NULL DEFAULT 'application/octet-stream',
+  file_name TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL DEFAULT 0,
+  duration_sec INTEGER NOT NULL DEFAULT 0,
+  data_base64 TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_handover_media_org ON handover_media(organisation_id, created_at DESC);
+
 -- 10. Dayforce-Style SaaS Billing, Continuous Pay Ledgers & Settlement Float
 CREATE TABLE IF NOT EXISTS tenant_billing_invoices (
   id TEXT PRIMARY KEY,

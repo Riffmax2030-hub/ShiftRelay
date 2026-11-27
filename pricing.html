@@ -714,7 +714,7 @@
       <input type="range" id="est-workers-slider" class="estimator-slider" min="5" max="400" step="5" value="60" aria-label="Active Worker Headcount" />
       <label for="est-annual-checkbox" style="display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(5,150,105,0.08);border:1px solid var(--border-emerald);cursor:pointer;margin-bottom:16px;font-size:13.5px;font-weight:700;color:var(--text);">
         <input type="checkbox" id="est-annual-checkbox" style="width:18px;height:18px;accent-color:var(--em);cursor:pointer;" />
-        Calculate Annual Plan (Settle Full 12 Months at Once)
+        Optional for Executives: Calculate Annual Plan (Save 15% &mdash; ~2 Months Free)
       </label>
       <div class="estimator-grid">
         <div class="estimator-metric">
@@ -850,19 +850,21 @@
                 : { key: 'mega', label: 'Mega (201+)', setup: 1000000, base: 350000, pepm: 1750 })));
         var pepmTotal = workers * tier.pepm;
         var monthlyTotal = tier.base + pepmTotal;
-        var annualSub = monthlyTotal * 12;
+        var annualGross = monthlyTotal * 12;
+        var annualSavings = Math.round(annualGross * 0.15);
+        var annualSub = annualGross - annualSavings;
         var yearOneTotal = tier.setup + annualSub;
         document.getElementById('est-workers-display').textContent = workers;
-        document.getElementById('est-tier-badge').textContent = tier.label + (isAnnual ? ' · Annual' : '');
+        document.getElementById('est-tier-badge').textContent = tier.label + (isAnnual ? ' · Optional Annual (15% Off)' : ' · Monthly');
         document.getElementById('est-setup-fee').textContent = fmt(tier.setup);
         if (isAnnual) {
           document.getElementById('est-base-lbl').textContent = '12-Mo Maintenance';
           document.getElementById('est-base-fee').textContent = fmt(tier.base * 12);
           document.getElementById('est-base-sub').textContent = fmt(tier.base) + '/mo × 12 months';
-          document.getElementById('est-pepm-lbl').textContent = '12-Mo Headcount';
-          document.getElementById('est-pepm-fee').textContent = fmt(pepmTotal * 12);
-          document.getElementById('est-pepm-formula').textContent = workers + ' workers × ' + fmt(tier.pepm) + ' × 12 mos';
-          document.getElementById('est-total-lbl').textContent = 'Full 12-Month Plan';
+          document.getElementById('est-pepm-lbl').textContent = 'Executive Discount (15%)';
+          document.getElementById('est-pepm-fee').textContent = '-' + fmt(annualSavings);
+          document.getElementById('est-pepm-formula').textContent = 'Optional 12-mo savings (~2 mos free)';
+          document.getElementById('est-total-lbl').textContent = 'Discounted 12-Month Plan';
           document.getElementById('est-monthly-total').textContent = fmt(annualSub) + ' / yr';
           document.getElementById('est-total-sub').textContent = 'With Setup (Year 1): ' + fmt(yearOneTotal);
         } else {
