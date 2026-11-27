@@ -1,14 +1,14 @@
 {
   "appName": "ShiftRelay",
   "packageId": "com.shiftrelayos.app",
-  "version": "2.0.4",
-  "versionCode": 204,
+  "version": "2.0.5",
+  "versionCode": 205,
   "buildType": "release",
-  "fileName": "ShiftRelay-v2.0.4.apk",
-  "sizeBytes": 8994360,
+  "fileName": "ShiftRelay-v2.0.5.apk",
+  "sizeBytes": 9000420,
   "sizeLabel": "8.6 MB",
-  "sha256": "5a00a069275fbfcf6a98dd1d38ecd6d9780fc1d60ab92634a89a624d3ceb3335",
-  "updatedAt": "2026-11-27T07:52:55.561Z",
+  "sha256": "478721bdaefba8d514f674f982579f39ca3ec82b34ce1cfe31d74f386a6e4e64",
+  "updatedAt": "2026-11-27T10:06:27.219Z",
   "downloadUrl": "/download/apk",
   "releaseNotes": "Universal Android & Apple mobile screen optimization (320px–767px), 5-tab locked bottom dock, and verified shift & payroll OS."
 }

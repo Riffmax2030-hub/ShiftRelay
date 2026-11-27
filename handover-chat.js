@@ -1,10 +1,11 @@
 /**
- * ShiftRelay WhatsApp-Style Persistent Shift Handover Chat Engine
+ * ShiftRelay 2026 Flagship Shift Handover Chat Engine
  * - Chronological persistent thread backed 100% by PostgreSQL / server API (/api/handovers)
- * - '+' Attachment menu: Camera Photo (auto-compressed), Photo Gallery, Document/File
- * - Live Voice Note recorder (MediaRecorder with iOS Safari mp4 + Chrome/Android webm support)
- * - Inline Voice Note player, Photo lightbox, Safari/Android-safe File downloads
- * - Supervisor Relay & Incoming Takeover badges right inside the conversation stream
+ * - 2026 Spatial Liquid-Glass UI: unified header, quick filter pills, sender avatars,
+ *   precision Lucide SVG checkmarks, floating pill composer, frosted 2x2 '+' attachment sheet
+ * - 26-bar interactive acoustic waveform Voice Note player with 1x / 1.5x / 2x playback speed
+ * - Live animated equalizer Voice Note recorder (iOS Safari audio/mp4 + Chrome/Android audio/webm)
+ * - Supervisor Relay & Incoming Takeover actions inline inside the conversation stream
  */
 (function () {
   'use strict';
@@ -18,6 +19,45 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function getInitials(name) {
+    const parts = String(name || 'SR').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'SR';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  function avatarHue(name) {
+    let h = 0;
+    const s = String(name || 'ShiftRelay');
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+    const palettes = [
+      'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
+      'linear-gradient(135deg, #10b981 0%, #0d9488 100%)',
+      'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+      'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)',
+      'linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)'
+    ];
+    return palettes[h % palettes.length];
+  }
+
+  function generateWaveformBars(seedStr, count = 26) {
+    let seed = 2166136261;
+    const s = String(seedStr || 'voice');
+    for (let i = 0; i < s.length; i++) {
+      seed ^= s.charCodeAt(i);
+      seed = Math.imul(seed, 16777619);
+    }
+    const bars = [];
+    for (let i = 0; i < count; i++) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      const env = Math.sin(((i + 0.5) / count) * Math.PI); // gentle speech envelope
+      const raw = (seed % 100) / 100;
+      const heightPct = Math.round(24 + (0.35 + 0.65 * env) * (raw * 72));
+      bars.push(Math.max(22, Math.min(98, heightPct)));
+    }
+    return bars;
   }
 
   function formatBytes(bytes) {
@@ -53,11 +93,12 @@
   }
 
   function injectStyles() {
-    if (document.getElementById(STYLE_ID)) return;
+    const prev = document.getElementById(STYLE_ID);
+    if (prev) prev.remove();
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      /* Hide floating global support FAB while inside Handover Chat so Mic & Send buttons are never overlapped */
+      /* Hide floating support FAB inside Handover Chat so composer controls stay 100% unobstructed */
       body:has(#sr-ho-chat-shell) #sr-btn-floating-ai,
       body:has(#sr-ho-chat-shell) .sr-floating-ai-beacon,
       body:has(#sr-ho-chat-shell) #sr-chat-fab,
@@ -65,80 +106,159 @@
         display: none !important;
       }
 
+      @keyframes srHoMsgIn {
+        from { opacity: 0; transform: translateY(8px) scale(0.985); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes srHoSheetPop {
+        from { opacity: 0; transform: translateY(12px) scale(0.95); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes srHoSpin {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+      @keyframes srHoPulseBeacon {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+        50%      { box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+      }
+      @keyframes srHoEqWave {
+        0%, 100% { transform: scaleY(0.32); }
+        50%      { transform: scaleY(1); }
+      }
+      @keyframes srRecBlink {
+        0%, 100% { opacity: 1; }
+        50%      { opacity: 0.25; }
+      }
+
+      /* ── Main 2026 Spatial Chat Shell ── */
       .sr-ho-chat-shell {
+        position: relative;
         display: flex;
         flex-direction: column;
-        border-radius: 18px;
-        border: 1px solid var(--sr-border-subtle, #e2e8f0);
-        background: var(--sr-bg-card, #ffffff);
+        border-radius: 24px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: #ffffff;
         overflow: hidden;
-        box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
-        min-height: 440px;
-        max-height: calc(100vh - 210px);
+        box-shadow:
+          0 16px 42px -12px rgba(15, 23, 42, 0.1),
+          0 2px 6px rgba(15, 23, 42, 0.04);
+        height: calc(100dvh - 152px);
+        min-height: 460px;
+        max-height: 760px;
       }
       [data-theme="dark"] .sr-ho-chat-shell {
-        background: #0b141c;
-        border-color: rgba(148, 163, 184, 0.16);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+        background: #0a121b;
+        border-color: rgba(148, 163, 184, 0.14);
+        box-shadow:
+          0 22px 54px -14px rgba(0, 0, 0, 0.65),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
       }
       @media (max-width: 767px) {
         .sr-ho-chat-shell {
-          min-height: 360px;
-          max-height: calc(100dvh - 255px);
-          border-radius: 16px;
+          height: calc(100dvh - 144px);
+          min-height: 420px;
+          max-height: none;
+          border-radius: 22px;
+        }
+        /* Extra clearance when Supervisor dual-mode bar is visible */
+        body:has(.sr-sup-mobile-mode-bar) .sr-ho-chat-shell {
+          height: calc(100dvh - 196px);
+          min-height: 390px;
         }
       }
 
+      /* ── Unified Frosted Spatial Top Bar ── */
       .sr-ho-chat-topbar {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        padding: 12px 14px 10px;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        flex-shrink: 0;
+        z-index: 4;
+      }
+      [data-theme="dark"] .sr-ho-chat-topbar {
+        background: rgba(13, 22, 33, 0.86);
+        border-bottom-color: rgba(148, 163, 184, 0.12);
+      }
+      .sr-ho-topbar-main {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        padding: 12px 14px;
-        border-bottom: 1px solid var(--sr-border-subtle, #e2e8f0);
-        background: var(--sr-bg-card, #ffffff);
-        flex-shrink: 0;
-      }
-      [data-theme="dark"] .sr-ho-chat-topbar {
-        background: #0f1b24;
-        border-bottom-color: rgba(148, 163, 184, 0.14);
+        min-width: 0;
       }
       .sr-ho-chat-title-row {
         display: flex;
         align-items: center;
         gap: 10px;
         min-width: 0;
+        flex: 1;
       }
       .sr-ho-channel-avatar {
         width: 38px;
         height: 38px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+        border-radius: 13px;
+        background: linear-gradient(145deg, #10b981 0%, #059669 55%, #0d9488 100%);
         color: #ffffff;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
+        box-shadow: 0 6px 16px -4px rgba(5, 150, 105, 0.45), inset 0 1px 0 rgba(255,255,255,0.28);
       }
       .sr-ho-chat-title-meta {
+        min-width: 0;
+        flex: 1;
+      }
+      .sr-ho-title-line {
+        display: flex;
+        align-items: center;
+        gap: 7px;
         min-width: 0;
       }
       .sr-ho-chat-title-meta h3 {
         margin: 0;
-        font-size: 14.5px;
+        font-size: 15px;
         font-weight: 800;
+        letter-spacing: -0.02em;
         color: var(--sr-text-main, #0f172a);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
+      .sr-ho-pending-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(245, 158, 11, 0.14);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        color: #b45309;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        flex-shrink: 0;
+      }
+      [data-theme="dark"] .sr-ho-pending-pill {
+        background: rgba(245, 158, 11, 0.18);
+        color: #fcd34d;
+      }
       .sr-ho-chat-title-meta p {
-        margin: 1px 0 0;
+        margin: 2px 0 0;
         font-size: 11.5px;
+        font-weight: 500;
         color: var(--sr-text-muted, #64748b);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        display: flex;
+        align-items: center;
+        gap: 5px;
       }
       .sr-ho-live-dot {
         display: inline-block;
@@ -146,93 +266,257 @@
         height: 7px;
         border-radius: 50%;
         background: #10b981;
-        margin-right: 4px;
-        vertical-align: middle;
+        flex-shrink: 0;
+        animation: srHoPulseBeacon 2.4s ease-in-out infinite;
       }
 
+      .sr-ho-topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .sr-ho-icon-pill {
+        height: 34px;
+        min-width: 34px;
+        padding: 0 9px;
+        border-radius: 11px;
+        border: 1px solid rgba(15, 23, 42, 0.09);
+        background: rgba(15, 23, 42, 0.035);
+        color: var(--sr-text-main, #0f172a);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        font-size: 11.5px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.16s ease, border-color 0.16s ease, transform 0.12s ease;
+      }
+      .sr-ho-icon-pill.is-icon-only { padding: 0; width: 34px; }
+      .sr-ho-icon-pill:hover {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.35);
+        color: #059669;
+      }
+      .sr-ho-icon-pill:active { transform: scale(0.93); }
+      .sr-ho-icon-pill.is-spinning svg { animation: srHoSpin 0.7s linear infinite; }
+      [data-theme="dark"] .sr-ho-icon-pill {
+        background: rgba(255, 255, 255, 0.055);
+        border-color: rgba(148, 163, 184, 0.16);
+        color: #e2e8f0;
+      }
+      [data-theme="dark"] .sr-ho-icon-pill:hover {
+        background: rgba(16, 185, 129, 0.16);
+        border-color: rgba(52, 211, 153, 0.38);
+        color: #34d399;
+      }
+
+      /* ── Filter Pills Strip inside Top Bar ── */
+      .sr-ho-filter-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding-bottom: 1px;
+      }
+      .sr-ho-filter-row::-webkit-scrollbar { display: none; }
+      .sr-ho-filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: rgba(15, 23, 42, 0.03);
+        color: var(--sr-text-muted, #475569);
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.16s ease;
+      }
+      [data-theme="dark"] .sr-ho-filter-chip {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(148, 163, 184, 0.14);
+        color: #94a3b8;
+      }
+      .sr-ho-filter-chip.is-active {
+        background: #0f172a;
+        border-color: #0f172a;
+        color: #ffffff;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.16);
+      }
+      [data-theme="dark"] .sr-ho-filter-chip.is-active {
+        background: rgba(16, 185, 129, 0.2);
+        border-color: rgba(52, 211, 153, 0.45);
+        color: #6ee7b7;
+        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.16);
+      }
+      .sr-ho-filter-count {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 10px;
+        opacity: 0.78;
+      }
+
+      /* ── Architectural Spatial Chat Canvas ── */
       .sr-ho-messages {
         flex: 1;
         overflow-y: auto;
-        padding: 14px 12px;
+        padding: 14px 12px 16px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        background:
-          radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.045), transparent 50%),
-          radial-gradient(circle at 80% 80%, rgba(2, 132, 199, 0.04), transparent 55%),
-          var(--sr-bg-subtle, #f1f5f9);
+        gap: 11px;
+        background-color: #f4f7f9;
+        background-image:
+          radial-gradient(rgba(15, 23, 42, 0.055) 1px, transparent 1px),
+          radial-gradient(circle at 12% 18%, rgba(16, 185, 129, 0.07), transparent 46%),
+          radial-gradient(circle at 88% 82%, rgba(14, 165, 233, 0.06), transparent 50%);
+        background-size: 20px 20px, 100% 100%, 100% 100%;
         scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
       }
       [data-theme="dark"] .sr-ho-messages {
-        background:
-          radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.06), transparent 50%),
-          #081017;
+        background-color: #070e15;
+        background-image:
+          radial-gradient(rgba(148, 163, 184, 0.075) 1px, transparent 1px),
+          radial-gradient(circle at 14% 16%, rgba(16, 185, 129, 0.08), transparent 48%),
+          radial-gradient(circle at 86% 84%, rgba(56, 189, 248, 0.055), transparent 52%);
+        background-size: 22px 22px, 100% 100%, 100% 100%;
       }
 
+      /* Jump to Latest Floating Glass Pill */
+      .sr-ho-jump-latest {
+        position: absolute;
+        right: 14px;
+        bottom: 112px;
+        z-index: 12;
+        display: none;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        color: #0f172a;
+        font-size: 11.5px;
+        font-weight: 700;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+      .sr-ho-jump-latest.is-visible { display: inline-flex; }
+      .sr-ho-jump-latest:active { transform: scale(0.95); }
+      [data-theme="dark"] .sr-ho-jump-latest {
+        background: rgba(15, 27, 39, 0.9);
+        border-color: rgba(148, 163, 184, 0.22);
+        color: #e2e8f0;
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.48);
+      }
+
+      /* ── Frosted Date Divider Pill ── */
       .sr-ho-date-divider {
         align-self: center;
         padding: 4px 12px;
         border-radius: 999px;
-        background: rgba(15, 23, 42, 0.07);
-        color: var(--sr-text-muted, #475569);
-        font-size: 11px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(15, 23, 42, 0.07);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        color: #475569;
+        font-size: 10.5px;
         font-weight: 700;
-        letter-spacing: 0.02em;
-        margin: 4px 0;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        margin: 4px 0 2px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
       }
       [data-theme="dark"] .sr-ho-date-divider {
-        background: rgba(148, 163, 184, 0.14);
-        color: #cbd5e1;
+        background: rgba(22, 34, 48, 0.84);
+        border-color: rgba(148, 163, 184, 0.16);
+        color: #94a3b8;
       }
 
+      /* ── Message Rows & Avatars ── */
       .sr-ho-row {
         display: flex;
-        flex-direction: column;
-        max-width: 84%;
+        align-items: flex-end;
+        gap: 8px;
+        max-width: 86%;
+        animation: srHoMsgIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
       }
       @media (max-width: 480px) {
-        .sr-ho-row { max-width: 90%; }
+        .sr-ho-row { max-width: 92%; }
       }
       .sr-ho-row.is-me {
         align-self: flex-end;
-        align-items: flex-end;
+        flex-direction: row-reverse;
       }
       .sr-ho-row.is-other {
         align-self: flex-start;
-        align-items: flex-start;
+      }
+      .sr-ho-sender-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+        color: #ffffff;
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.16);
       }
 
+      /* ── 2026 Tactile Message Bubbles ── */
       .sr-ho-bubble {
         position: relative;
         padding: 10px 12px 8px;
-        border-radius: 16px;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+        border-radius: 19px;
         word-break: break-word;
         overflow-wrap: break-word;
-        width: 100%;
+        min-width: 0;
+        flex: 1;
         box-sizing: border-box;
       }
       .sr-ho-row.is-me .sr-ho-bubble {
-        background: #dcfce7;
-        border: 1px solid rgba(5, 150, 105, 0.22);
-        border-bottom-right-radius: 4px;
+        background: linear-gradient(155deg, #ecfdf5 0%, #d7f8e8 100%);
+        border: 1px solid rgba(5, 150, 105, 0.2);
+        border-bottom-right-radius: 5px;
         color: #064e3b;
+        box-shadow:
+          0 4px 14px -4px rgba(5, 150, 105, 0.16),
+          inset 0 1px 0 rgba(255, 255, 255, 0.72);
       }
       [data-theme="dark"] .sr-ho-row.is-me .sr-ho-bubble {
-        background: #0b3b2e;
-        border-color: rgba(26, 208, 121, 0.28);
+        background: linear-gradient(155deg, #064e3b 0%, #042f26 100%);
+        border-color: rgba(52, 211, 153, 0.28);
         color: #ecfdf5;
+        box-shadow:
+          0 8px 22px -6px rgba(0, 0, 0, 0.45),
+          inset 0 1px 0 rgba(52, 211, 153, 0.18);
       }
       .sr-ho-row.is-other .sr-ho-bubble {
         background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-bottom-left-radius: 4px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-bottom-left-radius: 5px;
         color: #0f172a;
+        box-shadow:
+          0 4px 14px -4px rgba(15, 23, 42, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
       }
       [data-theme="dark"] .sr-ho-row.is-other .sr-ho-bubble {
-        background: #13202c;
-        border-color: rgba(148, 163, 184, 0.18);
+        background: linear-gradient(155deg, #132130 0%, #0f1a26 100%);
+        border-color: rgba(148, 163, 184, 0.16);
         color: #f1f5f9;
+        box-shadow:
+          0 8px 22px -6px rgba(0, 0, 0, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
       }
 
       .sr-ho-bubble-head {
@@ -244,39 +528,50 @@
         margin-bottom: 5px;
       }
       .sr-ho-sender {
-        font-size: 12px;
+        font-size: 11.5px;
         font-weight: 800;
+        letter-spacing: -0.01em;
         color: #047857;
       }
       [data-theme="dark"] .sr-ho-sender { color: #34d399; }
-      .sr-ho-row.is-other .sr-ho-sender { color: #0369a1; }
+      .sr-ho-row.is-other .sr-ho-sender { color: #0284c7; }
       [data-theme="dark"] .sr-ho-row.is-other .sr-ho-sender { color: #38bdf8; }
+      .sr-ho-station-tag {
+        font-weight: 600;
+        opacity: 0.72;
+      }
 
       .sr-ho-cond-chip {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        padding: 2px 7px;
-        border-radius: 99px;
+        padding: 2px 8px;
+        border-radius: 999px;
         font-size: 10px;
         font-weight: 800;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.015em;
+      }
+      .sr-ho-cond-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
       }
       .sr-ho-cond-chip.is-normal {
         background: rgba(16, 185, 129, 0.14);
         color: #047857;
       }
-      [data-theme="dark"] .sr-ho-cond-chip.is-normal { color: #6ee7b7; }
+      [data-theme="dark"] .sr-ho-cond-chip.is-normal { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; }
       .sr-ho-cond-chip.is-flag {
         background: rgba(245, 158, 11, 0.16);
         color: #b45309;
       }
-      [data-theme="dark"] .sr-ho-cond-chip.is-flag { color: #fcd34d; }
+      [data-theme="dark"] .sr-ho-cond-chip.is-flag { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
       .sr-ho-cond-chip.is-blocker {
-        background: rgba(239, 68, 68, 0.16);
+        background: rgba(239, 68, 68, 0.15);
         color: #b91c1c;
       }
-      [data-theme="dark"] .sr-ho-cond-chip.is-blocker { color: #fca5a5; }
+      [data-theme="dark"] .sr-ho-cond-chip.is-blocker { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
 
       .sr-ho-text {
         font-size: 13.5px;
@@ -285,42 +580,54 @@
         margin: 0;
       }
 
+      /* ── Attachments: Photos, Docs, 2026 Waveform Voice Notes ── */
       .sr-ho-attachments {
         display: flex;
         flex-direction: column;
-        gap: 7px;
-        margin-top: 7px;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .sr-ho-img-wrap {
+        position: relative;
+        display: inline-block;
+        max-width: 248px;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        cursor: zoom-in;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
       }
       .sr-ho-img-thumb {
         width: 100%;
-        max-width: 240px;
-        max-height: 165px;
+        max-height: 172px;
         object-fit: cover;
-        border-radius: 12px;
         display: block;
-        cursor: zoom-in;
-        border: 1px solid rgba(15, 23, 42, 0.12);
+        transition: transform 0.22s ease;
       }
+      .sr-ho-img-wrap:hover .sr-ho-img-thumb { transform: scale(1.025); }
+
       .sr-ho-file-card {
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 8px 10px;
-        border-radius: 11px;
-        background: rgba(15, 23, 42, 0.055);
-        border: 1px solid rgba(15, 23, 42, 0.09);
+        padding: 9px 11px;
+        border-radius: 13px;
+        background: rgba(15, 23, 42, 0.048);
+        border: 1px solid rgba(15, 23, 42, 0.08);
         text-decoration: none;
         color: inherit;
         cursor: pointer;
+        transition: background 0.15s ease, transform 0.12s ease;
       }
+      .sr-ho-file-card:hover { background: rgba(16, 185, 129, 0.1); }
       [data-theme="dark"] .sr-ho-file-card {
-        background: rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.055);
         border-color: rgba(255, 255, 255, 0.1);
       }
       .sr-ho-file-icon {
-        width: 34px;
-        height: 34px;
-        border-radius: 9px;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
         background: rgba(5, 150, 105, 0.14);
         color: #059669;
         display: inline-flex;
@@ -328,11 +635,8 @@
         justify-content: center;
         flex-shrink: 0;
       }
-      [data-theme="dark"] .sr-ho-file-icon { color: #34d399; }
-      .sr-ho-file-meta {
-        flex: 1;
-        min-width: 0;
-      }
+      [data-theme="dark"] .sr-ho-file-icon { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+      .sr-ho-file-meta { flex: 1; min-width: 0; }
       .sr-ho-file-name {
         font-size: 12.5px;
         font-weight: 700;
@@ -341,145 +645,233 @@
         text-overflow: ellipsis;
         display: block;
       }
-      .sr-ho-file-size {
-        font-size: 10.5px;
-        opacity: 0.72;
-      }
+      .sr-ho-file-size { font-size: 10.5px; opacity: 0.72; }
 
+      /* 2026 Acoustic Waveform Voice Note Card */
       .sr-ho-voice-card {
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 8px 10px;
-        border-radius: 12px;
-        background: rgba(15, 23, 42, 0.06);
-        border: 1px solid rgba(15, 23, 42, 0.09);
-        min-width: 210px;
-        max-width: 280px;
+        padding: 9px 11px;
+        border-radius: 15px;
+        background: rgba(15, 23, 42, 0.05);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        min-width: 215px;
+        max-width: 286px;
       }
       [data-theme="dark"] .sr-ho-voice-card {
-        background: rgba(255, 255, 255, 0.07);
-        border-color: rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.065);
+        border-color: rgba(255, 255, 255, 0.11);
       }
       .sr-ho-voice-play {
-        width: 34px;
-        height: 34px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         border: none;
-        background: #059669;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         color: #ffffff;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.34);
+        transition: transform 0.14s ease, box-shadow 0.15s ease;
       }
+      .sr-ho-voice-play:active { transform: scale(0.92); }
       .sr-ho-voice-track-wrap {
         flex: 1;
         min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 5px;
       }
-      .sr-ho-voice-bar {
-        width: 100%;
-        height: 5px;
-        border-radius: 99px;
-        background: rgba(100, 116, 139, 0.28);
-        overflow: hidden;
+      .sr-ho-waveform {
+        display: flex;
+        align-items: center;
+        gap: 2.5px;
+        height: 24px;
         cursor: pointer;
+        user-select: none;
       }
-      .sr-ho-voice-fill {
-        height: 100%;
-        width: 0%;
+      .sr-ho-wave-bar {
+        flex: 1;
+        min-width: 2px;
+        border-radius: 999px;
+        background: rgba(100, 116, 139, 0.32);
+        transition: background 0.12s ease, transform 0.12s ease;
+      }
+      [data-theme="dark"] .sr-ho-wave-bar {
+        background: rgba(148, 163, 184, 0.32);
+      }
+      .sr-ho-wave-bar.is-played {
         background: #10b981;
-        border-radius: 99px;
-        transition: width 0.1s linear;
+      }
+      [data-theme="dark"] .sr-ho-wave-bar.is-played {
+        background: #34d399;
       }
       .sr-ho-voice-meta {
         display: flex;
+        align-items: center;
         justify-content: space-between;
+        gap: 6px;
         font-size: 10.5px;
         font-family: 'JetBrains Mono', ui-monospace, monospace;
-        opacity: 0.78;
+        opacity: 0.82;
+      }
+      .sr-ho-speed-btn {
+        height: 22px !important;
+        min-height: 22px !important;
+        min-width: 30px !important;
+        padding: 0 7px !important;
+        border-radius: 999px !important;
+        border: 1px solid rgba(100, 116, 139, 0.28);
+        background: rgba(15, 23, 42, 0.055);
+        color: inherit;
+        font-size: 10px !important;
+        font-weight: 800;
+        line-height: 20px !important;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      [data-theme="dark"] .sr-ho-speed-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.18);
       }
 
+      /* ── Bubble Footer & Precision Status Checkmarks ── */
       .sr-ho-bubble-foot {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        margin-top: 6px;
+        margin-top: 7px;
         flex-wrap: wrap;
       }
       .sr-ho-time-status {
         margin-left: auto;
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 5px;
         font-size: 10.5px;
-        opacity: 0.75;
+        font-weight: 600;
+        opacity: 0.78;
+      }
+      .sr-ho-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-weight: 700;
       }
       .sr-ho-inline-action {
-        padding: 4px 9px;
-        border-radius: 8px;
-        border: 1px solid rgba(5, 150, 105, 0.35);
-        background: rgba(16, 185, 129, 0.14);
+        height: 30px !important;
+        min-height: 30px !important;
+        padding: 0 12px !important;
+        border-radius: 999px !important;
+        border: 1px solid rgba(5, 150, 105, 0.34);
+        background: rgba(16, 185, 129, 0.13);
         color: #047857;
-        font-size: 11px;
-        font-weight: 700;
+        font-size: 11px !important;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .sr-ho-inline-action:hover {
+        background: #059669;
+        color: #ffffff;
+        border-color: #059669;
       }
       [data-theme="dark"] .sr-ho-inline-action {
         color: #34d399;
         border-color: rgba(52, 211, 153, 0.35);
       }
+      [data-theme="dark"] .sr-ho-inline-action:hover {
+        background: #10b981;
+        color: #032219;
+      }
 
-      /* Composer Area */
+      /* ── 2026 Floating Glass Pill Composer Area ── */
       .sr-ho-composer-wrap {
         position: relative;
-        border-top: 1px solid var(--sr-border-subtle, #e2e8f0);
-        background: var(--sr-bg-card, #ffffff);
+        border-top: 1px solid rgba(15, 23, 42, 0.07);
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
         padding: 8px 10px 10px;
         flex-shrink: 0;
+        z-index: 6;
       }
       [data-theme="dark"] .sr-ho-composer-wrap {
-        background: #0f1b24;
-        border-top-color: rgba(148, 163, 184, 0.14);
+        background: rgba(13, 22, 33, 0.92);
+        border-top-color: rgba(148, 163, 184, 0.12);
       }
 
+      /* Compact Segmented Condition Bar — fits 100% cleanly on 320px+ phones */
       .sr-ho-cond-strip {
-        display: flex;
-        align-items: center;
-        gap: 6px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        padding: 3px;
         margin-bottom: 8px;
-        overflow-x: auto;
-        scrollbar-width: none;
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.045);
+        border: 1px solid rgba(15, 23, 42, 0.06);
       }
-      .sr-ho-cond-strip::-webkit-scrollbar { display: none; }
+      [data-theme="dark"] .sr-ho-cond-strip {
+        background: rgba(255, 255, 255, 0.045);
+        border-color: rgba(148, 163, 184, 0.12);
+      }
       .sr-ho-cond-pill {
-        padding: 4px 10px;
-        border-radius: 999px;
-        border: 1px solid var(--sr-border-subtle, #cbd5e1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 5px 6px;
+        border-radius: 9px;
+        border: 1px solid transparent;
         background: transparent;
-        color: var(--sr-text-muted, #475569);
+        color: var(--sr-text-muted, #64748b);
         font-size: 11px;
         font-weight: 700;
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
         cursor: pointer;
-        transition: all 0.15s ease;
+        transition: all 0.16s ease;
       }
+      .sr-ho-cond-pill-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .sr-ho-cond-pill[data-level="green"] .sr-ho-cond-pill-dot { background: #10b981; }
+      .sr-ho-cond-pill[data-level="amber"] .sr-ho-cond-pill-dot { background: #f59e0b; }
+      .sr-ho-cond-pill[data-level="red"] .sr-ho-cond-pill-dot   { background: #ef4444; }
       .sr-ho-cond-pill.is-active {
-        border-color: #10b981;
-        background: rgba(16, 185, 129, 0.14);
-        color: #047857;
+        background: #ffffff;
+        border-color: rgba(15, 23, 42, 0.08);
+        color: #0f172a;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
       }
-      [data-theme="dark"] .sr-ho-cond-pill.is-active { color: #34d399; }
+      [data-theme="dark"] .sr-ho-cond-pill.is-active {
+        background: #172536;
+        border-color: rgba(148, 163, 184, 0.22);
+        color: #f8fafc;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      }
 
+      /* Staged Attachments Chips */
       .sr-ho-staging {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
         flex-wrap: wrap;
         margin-bottom: 8px;
       }
@@ -487,12 +879,12 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 4px 8px;
-        border-radius: 10px;
+        padding: 4px 9px;
+        border-radius: 11px;
         background: rgba(16, 185, 129, 0.12);
         border: 1px solid rgba(16, 185, 129, 0.3);
         font-size: 11.5px;
-        font-weight: 600;
+        font-weight: 700;
         color: var(--sr-text-main, #0f172a);
         max-width: 220px;
       }
@@ -514,184 +906,269 @@
         cursor: pointer;
         font-weight: 800;
         padding: 0 2px;
-        font-size: 14px;
+        font-size: 15px;
         line-height: 1;
       }
 
+      /* Unified Floating Pill Input Bar */
       .sr-ho-bar {
         display: flex;
         align-items: flex-end;
-        gap: 8px;
+        gap: 6px;
+        padding: 4px 5px;
+        border-radius: 26px;
+        border: 1.5px solid rgba(15, 23, 42, 0.1);
+        background: #f8fafc;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
       }
+      .sr-ho-bar:focus-within {
+        border-color: #10b981;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+      }
+      [data-theme="dark"] .sr-ho-bar {
+        background: #081018;
+        border-color: rgba(148, 163, 184, 0.2);
+      }
+      [data-theme="dark"] .sr-ho-bar:focus-within {
+        border-color: #34d399;
+        background: #0a1520;
+        box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.16);
+      }
+
+      /* Perfect Circular Tactile Controls (+, Mic, Send) */
       .sr-ho-plus-btn,
-      .sr-ho-voice-trigger {
-        background: rgba(100, 116, 139, 0.14);
-        color: var(--sr-text-main, #0f172a);
-        box-shadow: none;
-      }
-      [data-theme="dark"] .sr-ho-voice-trigger {
-        background: rgba(148, 163, 184, 0.16);
-        color: #f1f5f9;
-      }
-      .sr-ho-action-btn {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
+      .sr-ho-voice-trigger,
+      .sr-ho-send-btn {
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
         border: none;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         flex-shrink: 0;
-        transition: transform 0.14s ease, background 0.15s ease;
+        transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
       }
-      .sr-ho-plus-btn {
-        background: rgba(100, 116, 139, 0.14);
+      .sr-ho-plus-btn,
+      .sr-ho-voice-trigger {
+        background: rgba(15, 23, 42, 0.065);
         color: var(--sr-text-main, #0f172a);
       }
-      [data-theme="dark"] .sr-ho-plus-btn {
-        background: rgba(148, 163, 184, 0.16);
-        color: #f1f5f9;
+      .sr-ho-plus-btn:hover,
+      .sr-ho-voice-trigger:hover {
+        background: rgba(16, 185, 129, 0.14);
+        color: #059669;
+      }
+      [data-theme="dark"] .sr-ho-plus-btn,
+      [data-theme="dark"] .sr-ho-voice-trigger {
+        background: rgba(148, 163, 184, 0.14);
+        color: #e2e8f0;
+      }
+      [data-theme="dark"] .sr-ho-plus-btn:hover,
+      [data-theme="dark"] .sr-ho-voice-trigger:hover {
+        background: rgba(52, 211, 153, 0.18);
+        color: #34d399;
       }
       .sr-ho-plus-btn.is-open {
         transform: rotate(45deg);
         background: rgba(16, 185, 129, 0.18);
         color: #059669;
       }
-      .sr-ho-voice-trigger {
-        background: rgba(100, 116, 139, 0.14);
-        color: var(--sr-text-main, #0f172a);
-        box-shadow: none;
-      }
-      [data-theme="dark"] .sr-ho-voice-trigger {
-        background: rgba(148, 163, 184, 0.16);
-        color: #f1f5f9;
-      }
-      .sr-ho-action-btn {
+      [data-theme="dark"] .sr-ho-plus-btn.is-open { color: #34d399; }
+
+      .sr-ho-send-btn {
         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         color: #ffffff;
-        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.28);
+        box-shadow: 0 5px 14px -3px rgba(5, 150, 105, 0.45);
       }
-      .sr-ho-action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+      .sr-ho-send-btn:hover:not(:disabled) {
+        transform: scale(1.05);
+        box-shadow: 0 7px 18px -3px rgba(5, 150, 105, 0.55);
+      }
+      .sr-ho-send-btn:active:not(:disabled),
+      .sr-ho-plus-btn:active,
+      .sr-ho-voice-trigger:active {
+        transform: scale(0.92);
+      }
+      .sr-ho-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      #sr-app-shell .sr-ho-input,
       .sr-ho-input {
         flex: 1;
         min-width: 0;
-        min-height: 40px;
+        min-height: 38px !important;
         max-height: 112px;
-        padding: 9px 14px;
-        border-radius: 20px;
-        border: 1.5px solid var(--sr-border-subtle, #cbd5e1);
-        background: var(--sr-bg-subtle, #f8fafc);
-        color: var(--sr-text-main, #0f172a);
-        font-size: 13.5px;
+        padding: 8px 6px !important;
+        border: none !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        color: var(--sr-text-main, #0f172a) !important;
+        font-size: 15px !important;
         font-family: inherit;
         line-height: 1.38;
         resize: none;
         outline: none;
         box-sizing: border-box;
       }
-      .sr-ho-input:focus { border-color: #10b981; }
+      [data-theme="dark"] #sr-app-shell .sr-ho-input,
       [data-theme="dark"] .sr-ho-input {
-        background: #081017;
-        border-color: rgba(148, 163, 184, 0.22);
-        color: #f8fafc;
+        background: transparent !important;
+        background-color: transparent !important;
+        color: #f8fafc !important;
       }
+      .sr-ho-input::placeholder { color: var(--sr-text-muted, #94a3b8); }
 
-      /* '+' Popover Menu */
+      /* ── Frosted Glass 2x2 '+' Attachment Sheet ── */
       .sr-ho-plus-menu {
         position: absolute;
         left: 10px;
-        bottom: 62px;
+        right: 10px;
+        bottom: 66px;
         z-index: 30;
-        min-width: 196px;
-        padding: 6px;
-        border-radius: 14px;
-        background: var(--sr-bg-card, #ffffff);
-        border: 1px solid var(--sr-border-subtle, #e2e8f0);
-        box-shadow: 0 16px 38px rgba(15, 23, 42, 0.18);
+        max-width: 312px;
+        padding: 10px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(22px) saturate(180%);
+        -webkit-backdrop-filter: blur(22px) saturate(180%);
+        border: 1px solid rgba(15, 23, 42, 0.09);
+        box-shadow: 0 22px 48px -12px rgba(15, 23, 42, 0.24);
         display: none;
-        flex-direction: column;
-        gap: 2px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
       }
       [data-theme="dark"] .sr-ho-plus-menu {
-        background: #13202c;
-        border-color: rgba(148, 163, 184, 0.22);
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+        background: rgba(17, 29, 43, 0.94);
+        border-color: rgba(148, 163, 184, 0.2);
+        box-shadow: 0 24px 54px rgba(0, 0, 0, 0.6);
       }
-      .sr-ho-plus-menu.is-open { display: flex; }
+      .sr-ho-plus-menu.is-open {
+        display: grid;
+        animation: srHoSheetPop 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
       .sr-ho-menu-item {
         display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 9px 10px;
-        border-radius: 10px;
-        border: none;
-        background: transparent;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 7px;
+        padding: 11px 11px;
+        border-radius: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.06);
+        background: rgba(15, 23, 42, 0.025);
         color: var(--sr-text-main, #0f172a);
-        font-size: 13px;
+        font-size: 12.5px;
         font-weight: 700;
         cursor: pointer;
         text-align: left;
+        transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease;
       }
-      .sr-ho-menu-item:hover { background: rgba(16, 185, 129, 0.1); }
+      .sr-ho-menu-item:hover {
+        background: rgba(16, 185, 129, 0.09);
+        border-color: rgba(16, 185, 129, 0.3);
+        transform: translateY(-1px);
+      }
+      [data-theme="dark"] .sr-ho-menu-item {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(148, 163, 184, 0.12);
+        color: #f1f5f9;
+      }
+      [data-theme="dark"] .sr-ho-menu-item:hover {
+        background: rgba(52, 211, 153, 0.12);
+        border-color: rgba(52, 211, 153, 0.35);
+      }
       .sr-ho-menu-ico {
-        width: 30px;
-        height: 30px;
-        border-radius: 9px;
+        width: 34px;
+        height: 34px;
+        border-radius: 11px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
       }
-
-      /* Recording Bar */
-      @keyframes srRecBlink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.25; }
+      .sr-ho-menu-sub {
+        font-size: 10.5px;
+        font-weight: 500;
+        color: var(--sr-text-muted, #64748b);
+        margin-top: -5px;
       }
+
+      /* ── Live Animated Equalizer Recording Bar ── */
       .sr-ho-rec-bar {
         display: none;
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        padding: 6px 10px;
-        border-radius: 20px;
-        background: rgba(239, 68, 68, 0.1);
-        border: 1.5px solid rgba(239, 68, 68, 0.35);
+        padding: 7px 10px;
+        border-radius: 26px;
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(244, 63, 94, 0.06) 100%);
+        border: 1.5px solid rgba(239, 68, 68, 0.34);
       }
       .sr-ho-rec-bar.is-active { display: flex; }
       .sr-ho-rec-dot {
-        width: 10px;
-        height: 10px;
+        width: 9px;
+        height: 9px;
         border-radius: 50%;
         background: #ef4444;
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.65);
         animation: srRecBlink 1s infinite;
+        flex-shrink: 0;
       }
       .sr-ho-rec-timer {
         font-family: 'JetBrains Mono', ui-monospace, monospace;
         font-size: 13px;
         font-weight: 800;
         color: #ef4444;
+        min-width: 42px;
       }
+      .sr-ho-rec-eq {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        height: 18px;
+      }
+      .sr-ho-rec-eq i {
+        display: block;
+        width: 3px;
+        height: 16px;
+        border-radius: 99px;
+        background: #ef4444;
+        animation: srHoEqWave 0.72s ease-in-out infinite;
+      }
+      .sr-ho-rec-eq i:nth-child(2) { animation-delay: 0.1s; height: 12px; }
+      .sr-ho-rec-eq i:nth-child(3) { animation-delay: 0.22s; height: 18px; }
+      .sr-ho-rec-eq i:nth-child(4) { animation-delay: 0.34s; height: 10px; }
+      .sr-ho-rec-eq i:nth-child(5) { animation-delay: 0.16s; height: 15px; }
+      .sr-ho-rec-eq i:nth-child(6) { animation-delay: 0.28s; height: 13px; }
 
-      /* Lightbox */
+      /* ── 2026 Frosted Glass Lightbox ── */
       .sr-ho-lightbox {
         position: fixed;
         inset: 0;
         z-index: 2147482000;
-        background: rgba(2, 6, 23, 0.9);
+        background: rgba(2, 6, 23, 0.86);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         padding: 20px;
-        gap: 14px;
+        gap: 16px;
+        animation: srHoMsgIn 0.2s ease both;
       }
       .sr-ho-lightbox img {
-        max-width: 94vw;
-        max-height: 78vh;
-        border-radius: 14px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        max-width: 92vw;
+        max-height: 76vh;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65);
       }
     `;
     document.head.appendChild(style);
@@ -754,10 +1231,11 @@
     const lb = document.createElement('div');
     lb.className = 'sr-ho-lightbox';
     lb.innerHTML = `
+      <div style="color:#e2e8f0;font-size:13px;font-weight:700;letter-spacing:-0.01em;max-width:90vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(name || 'Handover Photo')}</div>
       <img src="${esc(url)}" alt="${esc(name || 'Handover Photo')}" />
       <div style="display:flex;gap:10px;align-items:center;">
-        <a href="${esc(url)}" download="${esc(name || 'handover-photo.jpg')}" class="sr-btn sr-btn-primary" style="text-decoration:none;min-height:36px;padding:0 16px;">Download</a>
-        <button type="button" class="sr-btn sr-btn-secondary" id="sr-ho-lb-close" style="min-height:36px;padding:0 16px;">Close</button>
+        <a href="${esc(url)}" download="${esc(name || 'handover-photo.jpg')}" class="sr-btn sr-btn-primary" style="text-decoration:none;min-height:38px;padding:0 18px;border-radius:999px;">Download</a>
+        <button type="button" class="sr-btn sr-btn-secondary" id="sr-ho-lb-close" style="min-height:38px;padding:0 18px;border-radius:999px;">Close</button>
       </div>
     `;
     lb.addEventListener('click', (e) => {
@@ -797,22 +1275,28 @@
   function renderAttachmentHtml(att) {
     if (!att || !att.url) return '';
     if (att.type === 'image') {
-      return `<img src="${esc(att.url)}" alt="${esc(att.name || 'Photo')}" class="sr-ho-img-thumb" data-ho-lightbox-url="${esc(att.url)}" data-ho-lightbox-name="${esc(att.name || 'handover-photo.jpg')}" loading="lazy" />`;
+      return `
+        <div class="sr-ho-img-wrap" data-ho-lightbox-url="${esc(att.url)}" data-ho-lightbox-name="${esc(att.name || 'handover-photo.jpg')}">
+          <img src="${esc(att.url)}" alt="${esc(att.name || 'Photo')}" class="sr-ho-img-thumb" loading="lazy" />
+        </div>
+      `;
     }
     if (att.type === 'voice') {
       const uid = 'vo_' + String(att.id || Math.random()).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+      const bars = generateWaveformBars(att.id || att.url || uid, 26);
+      const barsHtml = bars.map((h, i) => `<span class="sr-ho-wave-bar" data-wave-idx="${i}" style="height:${h}%;"></span>`).join('');
       return `
         <div class="sr-ho-voice-card" data-voice-card="${uid}">
           <button type="button" class="sr-ho-voice-play" data-voice-play="${uid}" aria-label="Play voice note">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 20 12 7 20 7 4"/></svg>
           </button>
           <div class="sr-ho-voice-track-wrap">
-            <div class="sr-ho-voice-bar" data-voice-bar="${uid}">
-              <div class="sr-ho-voice-fill" data-voice-fill="${uid}"></div>
+            <div class="sr-ho-waveform" data-voice-bar="${uid}" role="slider" aria-label="Voice note waveform">
+              ${barsHtml}
             </div>
             <div class="sr-ho-voice-meta">
-              <span>Voice Note</span>
               <span data-voice-time="${uid}">${formatDuration(att.durationSec || 0)}</span>
+              <button type="button" class="sr-ho-speed-btn" data-voice-speed="${uid}" title="Playback speed">1x</button>
             </div>
           </div>
           <audio preload="metadata" src="${esc(att.url)}" data-voice-audio="${uid}" style="display:none;"></audio>
@@ -828,8 +1312,33 @@
           <span class="sr-ho-file-name">${esc(att.name || 'Attachment')}</span>
           <span class="sr-ho-file-size">${formatBytes(att.sizeBytes)} &middot; Tap to download</span>
         </span>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
       </a>
+    `;
+  }
+
+  function renderStatusCheckSvg(status) {
+    if (status === 'acknowledged') {
+      return `
+        <span class="sr-ho-status-badge" style="color:#0284c7;" title="Acknowledged by incoming shift">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
+          <span>Ack</span>
+        </span>
+      `;
+    }
+    if (status === 'relayed') {
+      return `
+        <span class="sr-ho-status-badge" style="color:#059669;" title="Approved &amp; relayed">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
+          <span>Relayed</span>
+        </span>
+      `;
+    }
+    return `
+      <span class="sr-ho-status-badge" title="Saved to shift database">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>Saved</span>
+      </span>
     `;
   }
 
@@ -837,12 +1346,6 @@
     const condClass = item.shiftStatus === 'red' ? 'is-blocker' : item.shiftStatus === 'amber' ? 'is-flag' : 'is-normal';
     const condShort = item.condition === 'All Systems Normal' ? 'Normal' : item.condition;
     const isSupervisorUser = isSupervisorView || ['supervisor', 'manager', 'owner'].includes(String(user.role || '').toLowerCase());
-
-    const statusIcon = item.status === 'acknowledged'
-      ? '<span title="Acknowledged" style="color:#0284c7;font-weight:800;">&#10003;&#10003; Acknowledged</span>'
-      : item.status === 'relayed'
-        ? '<span title="Relayed" style="color:#059669;font-weight:700;">&#10003;&#10003; Relayed</span>'
-        : '<span title="Sent">&#10003; Sent</span>';
 
     let actionBtn = '';
     if (isSupervisorUser && item.status === 'awaiting_review' && !item.isMe) {
@@ -855,12 +1358,17 @@
       ? `<div class="sr-ho-attachments">${item.attachments.map(renderAttachmentHtml).join('')}</div>`
       : '';
 
+    const avatarHtml = !item.isMe
+      ? `<span class="sr-ho-sender-avatar" style="background:${avatarHue(item.authorName)};" aria-hidden="true">${esc(getInitials(item.authorName))}</span>`
+      : '';
+
     return `
       <div class="sr-ho-row ${item.isMe ? 'is-me' : 'is-other'}" data-ho-msg-id="${esc(item.id)}">
+        ${avatarHtml}
         <div class="sr-ho-bubble">
           <div class="sr-ho-bubble-head">
-            <span class="sr-ho-sender">${item.isMe ? 'You' : esc(item.authorName)} &middot; <span style="font-weight:600;opacity:0.78;">${esc(item.station)}</span></span>
-            <span class="sr-ho-cond-chip ${condClass}">${esc(condShort)}</span>
+            <span class="sr-ho-sender">${item.isMe ? 'You' : esc(item.authorName)} <span class="sr-ho-station-tag">&middot; ${esc(item.station)}</span></span>
+            <span class="sr-ho-cond-chip ${condClass}"><span class="sr-ho-cond-dot"></span>${esc(condShort)}</span>
           </div>
           ${item.summary ? `<p class="sr-ho-text">${esc(item.summary)}</p>` : ''}
           ${attHtml}
@@ -868,8 +1376,7 @@
             ${actionBtn}
             <span class="sr-ho-time-status">
               <span>${esc(formatTime(item.createdAt))}</span>
-              <span>&middot;</span>
-              ${statusIcon}
+              ${renderStatusCheckSvg(item.status)}
             </span>
           </div>
         </div>
@@ -894,61 +1401,95 @@
       }
     } catch (_) {}
 
-    // Sort oldest -> newest like WhatsApp so latest sits right above composer
     handovers.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     const pendingCount = handovers.filter((h) => h.status !== 'acknowledged' && !h.isMe).length;
+    const deptName = user.department || profile?.departments?.[0] || 'Operations';
+
+    // Compact supervisor Print/CSV action buttons integrated right into unified 2026 topbar
+    const supToolbarHtml = isSup
+      ? `
+        <button type="button" id="sr-btn-print-turnover-mgr" class="sr-ho-icon-pill is-icon-only" title="Print shift turnover log" aria-label="Print shift turnover log">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+        <button type="button" id="sr-btn-export-all-mgr" class="sr-ho-icon-pill is-icon-only" title="Export handovers CSV" aria-label="Export handovers CSV">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        </button>
+      `
+      : '';
 
     container.innerHTML = `
-      <div class="sr-v2-page-head" style="margin-bottom:12px;">
-        <div class="sr-v2-page-title-wrap">
-          <h2 class="sr-v2-page-title">
-            <span>${isSup ? 'Handovers' : 'Handover'}</span>
-            ${pendingCount > 0 ? `<span class="sr-v2-tab-badge">${pendingCount} Active</span>` : ''}
-          </h2>
-          <p class="sr-v2-page-sub">${esc(user.department || profile?.departments?.[0] || 'Operations')} &middot; Persistent Shift Handover Stream</p>
-        </div>
-        <div class="sr-v2-page-actions">
-          ${headerActionsHtml || `<span class="sr-v2-pill-meta" id="sr-ho-total-count">${handovers.length} Saved in DB</span>`}
-        </div>
-      </div>
-
       <div class="sr-ho-chat-shell" id="sr-ho-chat-shell">
         <div class="sr-ho-chat-topbar">
-          <div class="sr-ho-chat-title-row">
-            <span class="sr-ho-channel-avatar" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-            </span>
-            <div class="sr-ho-chat-title-meta">
-              <h3>${esc(user.organisation_name || 'ShiftRelay Team')} &bull; Shift Relay</h3>
-              <p><span class="sr-ho-live-dot"></span>Persistent database log &middot; Photos, files &amp; voice notes</p>
+          <div class="sr-ho-topbar-main">
+            <div class="sr-ho-chat-title-row">
+              <span class="sr-ho-channel-avatar" aria-hidden="true">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              </span>
+              <div class="sr-ho-chat-title-meta">
+                <div class="sr-ho-title-line">
+                  <h3>${isSup ? 'Handovers' : 'Handover'}</h3>
+                  ${pendingCount > 0 ? `<span class="sr-ho-pending-pill" id="sr-ho-pending-pill">${pendingCount} Active</span>` : '<span class="sr-ho-pending-pill" id="sr-ho-pending-pill" style="display:none;"></span>'}
+                </div>
+                <p>
+                  <span class="sr-ho-live-dot"></span>
+                  <span id="sr-ho-sub-status">${esc(deptName)} &middot; <span id="sr-ho-total-count">${handovers.length} saved</span></span>
+                </p>
+              </div>
+            </div>
+            <div class="sr-ho-topbar-actions">
+              ${supToolbarHtml}
+              <button type="button" id="sr-ho-refresh-btn" class="sr-ho-icon-pill is-icon-only" title="Sync latest handovers" aria-label="Sync latest handovers">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+              </button>
             </div>
           </div>
-          <button type="button" id="sr-ho-refresh-btn" class="sr-btn sr-btn-secondary" style="min-height:32px;height:32px;padding:0 10px;font-size:11.5px;" title="Sync latest handovers">Sync</button>
+
+          <div class="sr-ho-filter-row" id="sr-ho-filter-row" role="tablist" aria-label="Filter handovers">
+            <button type="button" class="sr-ho-filter-chip is-active" data-ho-filter="all">All <span class="sr-ho-filter-count" data-fc="all">${handovers.length}</span></button>
+            <button type="button" class="sr-ho-filter-chip" data-ho-filter="flags">Flags <span class="sr-ho-filter-count" data-fc="flags">0</span></button>
+            <button type="button" class="sr-ho-filter-chip" data-ho-filter="media">Photos &amp; Files <span class="sr-ho-filter-count" data-fc="media">0</span></button>
+            <button type="button" class="sr-ho-filter-chip" data-ho-filter="voice">Voice <span class="sr-ho-filter-count" data-fc="voice">0</span></button>
+          </div>
         </div>
 
         <div class="sr-ho-messages" id="sr-ho-messages" aria-live="polite"></div>
 
+        <button type="button" class="sr-ho-jump-latest" id="sr-ho-jump-latest" aria-label="Jump to latest message">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+          <span>Latest</span>
+        </button>
+
         <div class="sr-ho-composer-wrap">
-          <!-- '+' Popover Menu -->
+          <!-- Frosted Glass 2x2 '+' Attachment Sheet -->
           <div class="sr-ho-plus-menu" id="sr-ho-plus-menu" role="menu">
             <button type="button" class="sr-ho-menu-item" id="sr-ho-pick-camera" role="menuitem">
-              <span class="sr-ho-menu-ico" style="background:rgba(16,185,129,0.14);color:#059669;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+              <span class="sr-ho-menu-ico" style="background:rgba(16,185,129,0.16);color:#059669;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
               </span>
-              <span>Camera Photo</span>
+              <span>Camera</span>
+              <span class="sr-ho-menu-sub">Snap site photo</span>
             </button>
             <button type="button" class="sr-ho-menu-item" id="sr-ho-pick-gallery" role="menuitem">
-              <span class="sr-ho-menu-ico" style="background:rgba(2,132,199,0.14);color:#0284c7;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              <span class="sr-ho-menu-ico" style="background:rgba(14,165,233,0.16);color:#0284c7;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
               </span>
-              <span>Photo Gallery</span>
+              <span>Photos</span>
+              <span class="sr-ho-menu-sub">From gallery</span>
             </button>
             <button type="button" class="sr-ho-menu-item" id="sr-ho-pick-file" role="menuitem">
               <span class="sr-ho-menu-ico" style="background:rgba(245,158,11,0.16);color:#d97706;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
               </span>
-              <span>Attach Document</span>
+              <span>Document</span>
+              <span class="sr-ho-menu-sub">PDF, CSV, XLSX</span>
+            </button>
+            <button type="button" class="sr-ho-menu-item" id="sr-ho-pick-voice" role="menuitem">
+              <span class="sr-ho-menu-ico" style="background:rgba(239,68,68,0.14);color:#e11d48;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              </span>
+              <span>Voice Note</span>
+              <span class="sr-ho-menu-sub">Audio briefing</span>
             </button>
           </div>
 
@@ -956,40 +1497,46 @@
           <input type="file" id="sr-ho-input-gallery" accept="image/*" style="display:none;" />
           <input type="file" id="sr-ho-input-file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/pdf,text/plain,text/csv" style="display:none;" />
 
-          <!-- Status Selector Pills -->
+          <!-- Segmented 3-State Status Strip -->
           <div class="sr-ho-cond-strip" id="sr-ho-cond-strip">
-            <button type="button" class="sr-ho-cond-pill is-active" data-cond="All Systems Normal" data-level="green">Normal</button>
-            <button type="button" class="sr-ho-cond-pill" data-cond="${esc(secondCondLabel)}" data-level="amber">${esc(secondCondLabel)}</button>
-            <button type="button" class="sr-ho-cond-pill" data-cond="${esc(thirdCondLabel)}" data-level="red">${esc(thirdCondLabel)}</button>
+            <button type="button" class="sr-ho-cond-pill is-active" data-cond="All Systems Normal" data-level="green">
+              <span class="sr-ho-cond-pill-dot"></span><span>Normal</span>
+            </button>
+            <button type="button" class="sr-ho-cond-pill" data-cond="${esc(secondCondLabel)}" data-level="amber" title="${esc(secondCondLabel)}">
+              <span class="sr-ho-cond-pill-dot"></span><span>Flag</span>
+            </button>
+            <button type="button" class="sr-ho-cond-pill" data-cond="${esc(thirdCondLabel)}" data-level="red" title="${esc(thirdCondLabel)}">
+              <span class="sr-ho-cond-pill-dot"></span><span>Blocker</span>
+            </button>
           </div>
 
           <!-- Staged Attachments Preview -->
           <div class="sr-ho-staging" id="sr-ho-staging" style="display:none;"></div>
 
-          <!-- Live Voice Recording Strip -->
+          <!-- Live Animated Equalizer Recording Strip -->
           <div class="sr-ho-rec-bar" id="sr-ho-rec-bar">
-            <div style="display:flex;align-items:center;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;min-width:0;">
               <span class="sr-ho-rec-dot"></span>
               <span class="sr-ho-rec-timer" id="sr-ho-rec-timer">00:00</span>
-              <span style="font-size:12px;color:var(--sr-text-muted);">Recording voice note…</span>
+              <span class="sr-ho-rec-eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
             </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <button type="button" id="sr-ho-rec-cancel" class="sr-btn sr-btn-secondary" style="min-height:32px;height:32px;padding:0 10px;font-size:11.5px;">Cancel</button>
-              <button type="button" id="sr-ho-rec-send" class="sr-btn sr-btn-primary" style="min-height:32px;height:32px;padding:0 12px;font-size:11.5px;">Send Voice</button>
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+              <button type="button" id="sr-ho-rec-cancel" class="sr-ho-icon-pill" style="height:32px;border-radius:999px;" title="Cancel recording">Cancel</button>
+              <button type="button" id="sr-ho-rec-send" class="sr-btn sr-btn-primary" style="min-height:32px;height:32px;padding:0 13px;font-size:11.5px;border-radius:999px;">Send Voice</button>
             </div>
           </div>
 
-          <!-- Standard Input Bar -->
+          <!-- Floating 2026 Glass Pill Input Bar -->
           <div class="sr-ho-bar" id="sr-ho-bar">
-            <button type="button" class="sr-ho-plus-btn" id="sr-ho-plus-btn" aria-label="Attach camera photo or file" title="Camera, photo, or file">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <button type="button" class="sr-ho-plus-btn" id="sr-ho-plus-btn" aria-label="Attach camera photo, file, or voice note" title="Camera, photo, or file">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
-            <textarea id="sr-ho-text-input" class="sr-ho-input" rows="1" placeholder="Write a handover update for the next shift…"></textarea>
-            <button type="button" class="sr-ho-action-btn sr-ho-voice-trigger" id="sr-ho-voice-btn" aria-label="Record voice note" title="Record voice note">
+            <textarea id="sr-ho-text-input" class="sr-ho-input" rows="1" placeholder="Message next shift…"></textarea>
+            <button type="button" class="sr-ho-voice-trigger" id="sr-ho-voice-btn" aria-label="Record voice note" title="Record voice note">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
             </button>
-            <button type="button" class="sr-ho-action-btn" id="sr-ho-send-btn" aria-label="Send handover" title="Send handover">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <button type="button" class="sr-ho-send-btn" id="sr-ho-send-btn" aria-label="Send handover" title="Send handover">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
             </button>
           </div>
         </div>
@@ -1010,7 +1557,12 @@
     const barEl = document.getElementById('sr-ho-bar');
     const recBar = document.getElementById('sr-ho-rec-bar');
     const recTimerEl = document.getElementById('sr-ho-rec-timer');
+    const jumpLatestBtn = document.getElementById('sr-ho-jump-latest');
+    const subStatusEl = document.getElementById('sr-ho-sub-status');
+    const pendingPillEl = document.getElementById('sr-ho-pending-pill');
+    const refreshBtn = document.getElementById('sr-ho-refresh-btn');
 
+    let activeFilter = 'all';
     let selectedCond = 'All Systems Normal';
     let selectedLevel = 'green';
     let stagedAttachments = [];
@@ -1021,18 +1573,58 @@
     let recStartedAt = 0;
     let recCancelFlag = false;
 
+    function updateFilterCounts() {
+      const counts = {
+        all: handovers.length,
+        flags: handovers.filter((h) => h.shiftStatus === 'amber' || h.shiftStatus === 'red').length,
+        media: handovers.filter((h) => h.attachments.some((a) => a.type === 'image' || a.type === 'file')).length,
+        voice: handovers.filter((h) => h.attachments.some((a) => a.type === 'voice')).length
+      };
+      container.querySelectorAll('[data-fc]').forEach((el) => {
+        const k = el.getAttribute('data-fc');
+        el.textContent = String(counts[k] ?? 0);
+      });
+      const actCount = handovers.filter((h) => h.status !== 'acknowledged' && !h.isMe).length;
+      if (pendingPillEl) {
+        if (actCount > 0) {
+          pendingPillEl.textContent = `${actCount} Active`;
+          pendingPillEl.style.display = 'inline-flex';
+        } else {
+          pendingPillEl.style.display = 'none';
+        }
+      }
+      const countEl = document.getElementById('sr-ho-total-count');
+      if (countEl) countEl.textContent = `${handovers.length} saved`;
+    }
+
+    function getFilteredHandovers() {
+      if (activeFilter === 'flags') return handovers.filter((h) => h.shiftStatus === 'amber' || h.shiftStatus === 'red');
+      if (activeFilter === 'media') return handovers.filter((h) => h.attachments.some((a) => a.type === 'image' || a.type === 'file'));
+      if (activeFilter === 'voice') return handovers.filter((h) => h.attachments.some((a) => a.type === 'voice'));
+      return handovers;
+    }
+
     function bindVoicePlayers() {
       msgBox.querySelectorAll('[data-voice-card]').forEach((card) => {
         const uid = card.getAttribute('data-voice-card');
         const audio = card.querySelector(`[data-voice-audio="${uid}"]`);
         const playBtn = card.querySelector(`[data-voice-play="${uid}"]`);
-        const fill = card.querySelector(`[data-voice-fill="${uid}"]`);
-        const bar = card.querySelector(`[data-voice-bar="${uid}"]`);
+        const wave = card.querySelector(`[data-voice-bar="${uid}"]`);
+        const bars = Array.from(wave?.querySelectorAll('.sr-ho-wave-bar') || []);
         const timeEl = card.querySelector(`[data-voice-time="${uid}"]`);
+        const speedBtn = card.querySelector(`[data-voice-speed="${uid}"]`);
         if (!audio || !playBtn) return;
 
-        const PLAY_ICO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>';
-        const PAUSE_ICO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+        const speeds = [1, 1.5, 2];
+        let speedIdx = 0;
+
+        const PLAY_ICO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="7 4 20 12 7 20 7 4"/></svg>';
+        const PAUSE_ICO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+
+        function paintWave(pct) {
+          const activeCount = Math.round(pct * bars.length);
+          bars.forEach((b, idx) => b.classList.toggle('is-played', idx < activeCount));
+        }
 
         playBtn.addEventListener('click', () => {
           if (audio.paused) {
@@ -1044,40 +1636,55 @@
             audio.pause();
           }
         });
+        speedBtn?.addEventListener('click', () => {
+          speedIdx = (speedIdx + 1) % speeds.length;
+          audio.playbackRate = speeds[speedIdx];
+          speedBtn.textContent = `${speeds[speedIdx]}x`;
+        });
         audio.addEventListener('play', () => { playBtn.innerHTML = PAUSE_ICO; });
         audio.addEventListener('pause', () => { playBtn.innerHTML = PLAY_ICO; });
         audio.addEventListener('ended', () => {
           playBtn.innerHTML = PLAY_ICO;
-          if (fill) fill.style.width = '0%';
-        });
-        audio.addEventListener('timeupdate', () => {
-          const dur = audio.duration && Number.isFinite(audio.duration) ? audio.duration : 0;
-          if (dur > 0 && fill) fill.style.width = `${Math.min(100, (audio.currentTime / dur) * 100)}%`;
-          if (timeEl && dur > 0) timeEl.textContent = formatDuration(audio.currentTime);
-        });
-        audio.addEventListener('loadedmetadata', () => {
+          paintWave(0);
           if (timeEl && audio.duration && Number.isFinite(audio.duration)) {
             timeEl.textContent = formatDuration(audio.duration);
           }
         });
-        bar?.addEventListener('click', (e) => {
+        audio.addEventListener('timeupdate', () => {
+          const dur = audio.duration && Number.isFinite(audio.duration) ? audio.duration : 0;
+          if (dur > 0) paintWave(Math.min(1, audio.currentTime / dur));
+          if (timeEl && dur > 0) timeEl.textContent = formatDuration(audio.currentTime);
+        });
+        audio.addEventListener('loadedmetadata', () => {
+          if (timeEl && audio.duration && Number.isFinite(audio.duration) && audio.duration >= 1) {
+            timeEl.textContent = formatDuration(audio.duration);
+          }
+        });
+        wave?.addEventListener('click', (e) => {
           if (!audio.duration || !Number.isFinite(audio.duration)) return;
-          const rect = bar.getBoundingClientRect();
+          const rect = wave.getBoundingClientRect();
           const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
           audio.currentTime = pct * audio.duration;
+          paintWave(pct);
         });
       });
     }
 
     function renderThread(scrollToBottom = true) {
-      if (!handovers.length) {
+      updateFilterCounts();
+      const visible = getFilteredHandovers();
+      if (!visible.length) {
+        const emptyTitle = activeFilter === 'all' ? 'Your Shift Handover Thread' : `No ${activeFilter} messages yet`;
+        const emptyCopy = activeFilter === 'all'
+          ? 'Send notes, camera photos, documents, or voice notes below. Everything stays permanently saved in your team database.'
+          : 'Switch back to All to view the complete persistent handover stream.';
         msgBox.innerHTML = `
-          <div style="margin:auto;text-align:center;max-width:290px;padding:24px 12px;color:var(--sr-text-muted);">
-            <div style="width:46px;height:46px;border-radius:14px;background:rgba(16,185,129,0.12);color:#059669;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;">
+          <div style="margin:auto;text-align:center;max-width:290px;padding:28px 14px;color:var(--sr-text-muted);">
+            <div style="width:48px;height:48px;border-radius:16px;background:rgba(16,185,129,0.12);color:#059669;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
-            <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-bottom:4px;">Your Shift Handover Thread</div>
-            <div style="font-size:12.5px;line-height:1.5;">Send notes, camera photos, documents, or voice notes below. Everything stays permanently saved in your team's handover history.</div>
+            <div style="font-size:14px;font-weight:800;color:var(--sr-text-main);margin-bottom:4px;">${esc(emptyTitle)}</div>
+            <div style="font-size:12.5px;line-height:1.5;">${esc(emptyCopy)}</div>
           </div>
         `;
         return;
@@ -1085,7 +1692,7 @@
 
       let lastGroup = '';
       const chunks = [];
-      for (const item of handovers) {
+      for (const item of visible) {
         const g = formatDateGroup(item.createdAt);
         if (g !== lastGroup) {
           chunks.push(`<div class="sr-ho-date-divider">${esc(g)}</div>`);
@@ -1095,8 +1702,8 @@
       }
       msgBox.innerHTML = chunks.join('');
 
-      msgBox.querySelectorAll('[data-ho-lightbox-url]').forEach((img) => {
-        img.addEventListener('click', () => openLightbox(img.dataset.hoLightboxUrl, img.dataset.hoLightboxName));
+      msgBox.querySelectorAll('[data-ho-lightbox-url]').forEach((el) => {
+        el.addEventListener('click', () => openLightbox(el.dataset.hoLightboxUrl, el.dataset.hoLightboxName));
       });
 
       msgBox.querySelectorAll('[data-ho-action]').forEach((btn) => {
@@ -1120,7 +1727,7 @@
             else if (idx >= 0) handovers[idx].status = act === 'relay' ? 'relayed' : 'acknowledged';
             renderThread(false);
             if (typeof window.toast === 'function') {
-              window.toast(act === 'relay' ? 'Handover approved and relayed to incoming shift.' : 'Handover takeover acknowledged.');
+              window.toast(act === 'relay' ? 'Handover approved and relayed.' : 'Handover takeover acknowledged.');
             }
           } catch (err) {
             btn.disabled = false;
@@ -1130,8 +1737,6 @@
       });
 
       bindVoicePlayers();
-      const countEl = document.getElementById('sr-ho-total-count');
-      if (countEl) countEl.textContent = `${handovers.length} Saved in DB`;
       if (scrollToBottom) {
         requestAnimationFrame(() => { msgBox.scrollTop = msgBox.scrollHeight; });
       }
@@ -1202,6 +1807,8 @@
         }
         stagedAttachments = [];
         renderStaging();
+        activeFilter = 'all';
+        container.querySelectorAll('.sr-ho-filter-chip').forEach((c) => c.classList.toggle('is-active', c.dataset.hoFilter === 'all'));
         renderThread(true);
         if (typeof window.SRAudio?.playClockIn === 'function') window.SRAudio.playClockIn();
       } catch (err) {
@@ -1211,7 +1818,25 @@
       }
     }
 
-    // Condition pill switching
+    // Scroll observer for floating "Jump to Latest" glass pill
+    msgBox?.addEventListener('scroll', () => {
+      const distFromBottom = msgBox.scrollHeight - msgBox.scrollTop - msgBox.clientHeight;
+      jumpLatestBtn?.classList.toggle('is-visible', distFromBottom > 140);
+    });
+    jumpLatestBtn?.addEventListener('click', () => {
+      msgBox.scrollTo({ top: msgBox.scrollHeight, behavior: 'smooth' });
+    });
+
+    // Quick filter chips
+    container.querySelectorAll('.sr-ho-filter-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        activeFilter = chip.dataset.hoFilter || 'all';
+        container.querySelectorAll('.sr-ho-filter-chip').forEach((c) => c.classList.toggle('is-active', c === chip));
+        renderThread(true);
+      });
+    });
+
+    // Condition segmented selector
     container.querySelectorAll('.sr-ho-cond-pill').forEach((pill) => {
       pill.addEventListener('click', () => {
         container.querySelectorAll('.sr-ho-cond-pill').forEach((p) => p.classList.remove('is-active'));
@@ -1221,7 +1846,7 @@
       });
     });
 
-    // '+' Menu toggle
+    // '+' Frosted Attachment Sheet toggle
     function togglePlusMenu(force) {
       const next = typeof force === 'boolean' ? force : !plusMenu.classList.contains('is-open');
       plusMenu.classList.toggle('is-open', next);
@@ -1244,10 +1869,11 @@
     document.getElementById('sr-ho-pick-camera')?.addEventListener('click', () => { togglePlusMenu(false); camInput?.click(); });
     document.getElementById('sr-ho-pick-gallery')?.addEventListener('click', () => { togglePlusMenu(false); galInput?.click(); });
     document.getElementById('sr-ho-pick-file')?.addEventListener('click', () => { togglePlusMenu(false); fileInput?.click(); });
+    document.getElementById('sr-ho-pick-voice')?.addEventListener('click', () => { togglePlusMenu(false); voiceBtn?.click(); });
 
     async function handleSelectedFile(file, kind) {
       if (!file) return;
-      if (typeof window.toast === 'function') window.toast(`Uploading ${file.name}…`);
+      if (subStatusEl) subStatusEl.textContent = `Uploading ${file.name}…`;
       try {
         let dataUrl, mimeType;
         if (kind === 'image') {
@@ -1267,8 +1893,9 @@
         });
         stagedAttachments.push(att);
         renderStaging();
-        if (typeof window.toast === 'function') window.toast(`${att.name} ready to send.`);
+        if (subStatusEl) subStatusEl.innerHTML = `${esc(deptName)} &middot; <span id="sr-ho-total-count">${handovers.length} saved</span> &middot; Attachment ready`;
       } catch (err) {
+        if (subStatusEl) subStatusEl.innerHTML = `${esc(deptName)} &middot; <span id="sr-ho-total-count">${handovers.length} saved</span> &middot; Live DB`;
         if (typeof window.toast === 'function') window.toast(err.message || 'Upload failed.');
       }
     }
@@ -1277,7 +1904,7 @@
     galInput?.addEventListener('change', async (e) => { await handleSelectedFile(e.target.files?.[0], 'image'); galInput.value = ''; });
     fileInput?.addEventListener('change', async (e) => { await handleSelectedFile(e.target.files?.[0], 'file'); fileInput.value = ''; });
 
-    // Voice Note Recording (iOS Safari + Android Chrome)
+    // Voice Note Recording (iOS Safari audio/mp4 + Chrome/Android audio/webm)
     function stopRecordingTracks() {
       if (recInterval) { clearInterval(recInterval); recInterval = null; }
       if (recStream) {
@@ -1313,7 +1940,7 @@
           if (recCancelFlag || !recChunks.length) return;
           const blob = new Blob(recChunks, { type: mime });
           try {
-            if (typeof window.toast === 'function') window.toast('Saving voice note…');
+            if (subStatusEl) subStatusEl.textContent = 'Saving voice note…';
             const dataUrl = await readFileAsDataUrl(blob);
             const att = await uploadHandoverMedia({
               type: 'voice',
@@ -1323,6 +1950,7 @@
               durationSec
             });
             await sendHandoverMessage([att]);
+            if (subStatusEl) subStatusEl.innerHTML = `${esc(deptName)} &middot; <span id="sr-ho-total-count">${handovers.length} saved</span> &middot; Live DB`;
           } catch (err) {
             if (typeof window.toast === 'function') window.toast(err.message || 'Could not save voice note.');
           }
@@ -1365,7 +1993,9 @@
     });
     sendBtn?.addEventListener('click', () => sendHandoverMessage());
 
-    document.getElementById('sr-ho-refresh-btn')?.addEventListener('click', async () => {
+    // Silent inline sync animation (never blocks composer with bottom toast!)
+    refreshBtn?.addEventListener('click', async () => {
+      refreshBtn.classList.add('is-spinning');
       try {
         const res = await fetch('/api/handovers', { credentials: 'include' });
         if (res.ok) {
@@ -1373,9 +2003,14 @@
           handovers = (data.handovers || []).map((h) => normalizeHandoverItem(h, user));
           handovers.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
           renderThread(true);
-          if (typeof window.toast === 'function') window.toast('Handover history synced.');
+          if (subStatusEl) {
+            subStatusEl.innerHTML = `${esc(deptName)} &middot; <span id="sr-ho-total-count">${handovers.length} saved</span> &middot; Synced`;
+          }
         }
-      } catch (_) {}
+      } catch (_) {
+      } finally {
+        setTimeout(() => refreshBtn.classList.remove('is-spinning'), 420);
+      }
     });
 
     renderThread(true);

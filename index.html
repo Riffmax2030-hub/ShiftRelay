@@ -15,7 +15,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="ShiftRelay" />
     <meta property="og:title" content="ShiftRelay — Verified Frontline Attendance, Shift Handovers &amp; Payroll" />
-    <meta property="og:description" content="Audit-grade NFC &amp; Colleague Card attendance, automated clock-in reminders, AI shift handovers, and Finance Act statutory payroll built for Africa's frontline workforce." />
+    <meta property="og:description" content="Audit-grade NFC &amp; Colleague Card attendance, automated clock-in reminders, AI shift handovers, and Nigeria Tax Act 2025 statutory payroll built for Africa's frontline workforce." />
     <meta property="og:url" content="https://app.shiftrelayos.com/" />
     <meta property="og:image" content="https://shiftrelayos.com/assets/site/shiftrelay-og-social-card.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -26,25 +26,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-    <link rel="preload" href="sr-premium.css?v=223" as="style" />
-    <link rel="preload" href="phase1-shell.js?v=223" as="script" />
-    <link rel="stylesheet" href="styles.css?v=223" />
-    <link rel="stylesheet" href="theme.css?v=223" />
-    <link rel="stylesheet" href="bento-ui.css?v=223" />
-    <link rel="stylesheet" href="dark-mode.css?v=223" />
-    <link rel="stylesheet" href="splash.css?v=223" />
-    <link rel="stylesheet" href="offline-queue.css?v=223" />
-    <link rel="stylesheet" href="me-profile.css?v=223" />
-    <link rel="stylesheet" href="phase1-shell.css?v=223" />
-    <link rel="stylesheet" href="sr-premium.css?v=223" />
+    <link rel="preload" href="sr-premium.css?v=224" as="style" />
+    <link rel="preload" href="phase1-shell.js?v=224" as="script" />
+    <link rel="stylesheet" href="styles.css?v=224" />
+    <link rel="stylesheet" href="theme.css?v=224" />
+    <link rel="stylesheet" href="bento-ui.css?v=224" />
+    <link rel="stylesheet" href="dark-mode.css?v=224" />
+    <link rel="stylesheet" href="splash.css?v=224" />
+    <link rel="stylesheet" href="offline-queue.css?v=224" />
+    <link rel="stylesheet" href="me-profile.css?v=224" />
+    <link rel="stylesheet" href="phase1-shell.css?v=224" />
+    <link rel="stylesheet" href="sr-premium.css?v=224" />
     <script>
       (function() {
         try {
-          if (localStorage.getItem('sr_restored_build') !== 'v223' && 'caches' in window) {
+          if (localStorage.getItem('sr_restored_build') !== 'v224' && 'caches' in window) {
             caches.keys().then(function(names) {
               return Promise.all(names.map(function(n) { return caches.delete(n); }));
             }).then(function() {
-              localStorage.setItem('sr_restored_build', 'v223');
+              localStorage.setItem('sr_restored_build', 'v224');
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(regs) {
                   regs.forEach(function(r) { Promise.resolve(r.update()).catch(function() {}); });
@@ -487,8 +487,8 @@
     <script type="module" src="qr-svg-generator.js?v=212"></script>
     <script src="attendance-exceptions-ui.js?v=212" defer></script>
     <script src="/vendor/read-excel-file.min.js" defer></script>
-    <script src="phase1-shell.js?v=223" defer></script>
-    <script src="handover-chat.js?v=223" defer></script>
+    <script src="phase1-shell.js?v=224" defer></script>
+    <script src="handover-chat.js?v=224" defer></script>
     <script src="signin-motion.js?v=222" defer></script>
     <script src="splash.js?v=222" defer></script>
     <script src="notifications.js?v=212" defer></script>
@@ -517,7 +517,7 @@
     <script src="push-notifications.js?v=212" defer></script>
     <script src="facility-switcher.js?v=212" defer></script>
     <script src="emergency-broadcast.js?v=212" defer></script>
-    <script>if('serviceWorker' in navigator){var srHadSw=Boolean(navigator.serviceWorker.controller);var srSwRefreshed=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!srHadSw||srSwRefreshed)return;if(sessionStorage.getItem('sr_sw_reloaded_v223'))return;srSwRefreshed=true;sessionStorage.setItem('sr_sw_reloaded_v223','1');window.location.reload();});navigator.serviceWorker.register('/service-worker.js?v=223',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(){});}</script>
+    <script>if('serviceWorker' in navigator){var srHadSw=Boolean(navigator.serviceWorker.controller);var srSwRefreshed=false;navigator.serviceWorker.addEventListener('controllerchange',function(){if(!srHadSw||srSwRefreshed)return;if(sessionStorage.getItem('sr_sw_reloaded_v224'))return;srSwRefreshed=true;sessionStorage.setItem('sr_sw_reloaded_v224','1');window.location.reload();});navigator.serviceWorker.register('/service-worker.js?v=224',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(){});}</script>
   </body>
 </html>
 
