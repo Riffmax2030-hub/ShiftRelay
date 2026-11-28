@@ -1,4 +1,4 @@
-const CACHE = 'shiftrelay-v232-live';
+const CACHE = 'shiftrelay-v234-live';
 const CORE_SHELL_ASSETS = [
   '/',
   '/index.html',
@@ -27,7 +27,7 @@ const CORE_SHELL_ASSETS = [
   '/qr-svg-generator.js?v=227',
   '/vendor/jsqr.js',
   '/attendance-exceptions-ui.js?v=212',
-  '/phase1-shell.js?v=232',
+  '/phase1-shell.js?v=234',
   '/handover-chat.js?v=227',
   '/compliance-law-guide.js?v=226',
   '/signin-motion.js?v=222',

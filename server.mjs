@@ -17337,18 +17337,39 @@ const server = createServer((request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/health/readiness') {
       const emailSmtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
       const emailResendConfigured = Boolean(process.env.RESEND_API_KEY);
+      const geminiLive = Boolean(String(process.env.GEMINI_API_KEY || '').trim());
+      const openaiLive = Boolean(String(process.env.OPENAI_API_KEY || '').trim());
+      const paystackLive = Boolean(String(process.env.PAYSTACK_SECRET_KEY || '').trim());
+      let apkVersion = '2.0.8';
+      try {
+        const metaRaw = JSON.parse(readFileSync(join(process.cwd(), 'downloads', 'release-meta.json'), 'utf8'));
+        if (metaRaw?.version) apkVersion = String(metaRaw.version);
+      } catch (_) {}
       return sendJson(response, 200, {
         status: 'READY',
         service: 'ShiftRelay OS Enterprise HCM Engine',
-        version: '2026.11.v184',
+        version: '2026.11.v234',
+        apkVersion,
         databaseMode: databaseReady ? 'postgres-primary' : 'local-resilient-store',
         uptimeSeconds: Math.round(process.uptime()),
-        compliance: ['NDPA-2023', 'NITDA-BIOMETRIC', 'PENCOM-PRA-2014', 'FINANCE-ACT-CRA', LEGAL_ENTITY.securityPostureClaim],
+        compliance: ['NDPA-2023', 'NITDA-BIOMETRIC', 'PENCOM-PRA-2014', 'NTA-2025-PAYE', LEGAL_ENTITY.securityPostureClaim],
         operationalZones: ['Victoria Island Tech Hub', 'Ikeja Operations Hub', 'Lekki Service Zone', 'Abuja Regional Hub'],
         components: {
           webApp: { name: 'Web & Mobile App (app.shiftrelayos.com)', status: 'OPERATIONAL', latencyMs: 12 },
           attendanceWatchdog: { name: 'Attendance Exceptions & Reminder Watchdog', status: 'OPERATIONAL', tickSeconds: 60 },
-          payrollEngine: { name: 'Nigerian PAYE / PenCom / NIBSS CSV Engine', status: 'OPERATIONAL', variance: '₦0.00' },
+          payrollEngine: { name: 'Nigerian NTA 2025 PAYE / PenCom / NIBSS CSV Engine', status: 'OPERATIONAL', variance: '₦0.00' },
+          aiSupportHub: {
+            name: 'ShiftRelay Live Support Hub API',
+            status: (geminiLive || openaiLive) ? 'OPERATIONAL_AI_LIVE' : 'OPERATIONAL_SMART_LOCAL',
+            activeEngine: geminiLive ? 'gemini-api' : (openaiLive ? 'openai-api' : 'smart-local'),
+            geminiLive,
+            openaiLive
+          },
+          paystackTreasury: {
+            name: 'Paystack Checkout & Treasury Custody',
+            status: paystackLive ? 'OPERATIONAL_LIVE' : 'SANDBOX_MODE',
+            paystackLive
+          },
           emailAutoStation: {
             name: 'Email Auto-Station & Newsletter Dispatcher',
             status: (emailSmtpConfigured || emailResendConfigured) ? 'OPERATIONAL_LIVE_RELAY' : 'OPERATIONAL_SANDBOX_OUTBOX',

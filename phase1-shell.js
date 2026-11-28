@@ -8252,8 +8252,8 @@
                   ` : isRevoked ? `
                     <span style="font-size:11px;color:var(--sr-text-muted);">Deactivated</span>
                   ` : `
-                    <button type="button" class="sr-btn sr-btn-primary sr-btn-send-invite" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-email="${escapeHtml(m.email || '')}" style="min-height:26px;padding:0 7px;font-size:10.5px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;">Invite</button>
-                    <button type="button" class="sr-btn sr-btn-revoke-member" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-title="${escapeHtml(m.title || roleLabel)}" style="min-height:26px;padding:0 7px;font-size:10.5px;font-weight:600;background:rgba(239,68,68,0.08);color:#dc2626;border:1px solid rgba(239,68,68,0.35);border-radius:6px;">Revoke</button>
+                    <button type="button" class="sr-btn sr-btn-send-invite" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-email="${escapeHtml(m.email || '')}" style="min-height:28px;height:28px;padding:0 11px;font-size:11.5px;font-weight:700;background:rgba(5,150,105,0.1);color:#047857;border:1px solid rgba(5,150,105,0.32);border-radius:8px;display:inline-flex;align-items:center;gap:4px;">Invite</button>
+                    <button type="button" class="sr-btn sr-btn-revoke-member" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-title="${escapeHtml(m.title || roleLabel)}" style="min-height:28px;height:28px;padding:0 11px;font-size:11.5px;font-weight:700;background:rgba(239,68,68,0.08);color:#dc2626;border:1px solid rgba(239,68,68,0.3);border-radius:8px;">Revoke</button>
                   `}
                 </div>
               ` : ''}
@@ -8813,57 +8813,81 @@
           const code = m.staffId || ('RIF-' + String(m.id || '').slice(-4));
           const secCode = m.cardVerifyCode || '';
           const payload = m.cardQrPayload || (secCode ? `SHIFTRELAY:ID:${companyCode}:${code}:${secCode}` : `SHIFTRELAY:ID:${companyCode}:${code}`);
-          const qr = (typeof window.generateQrSvg === 'function') ? window.generateQrSvg(payload, 118) : '';
+          const qr = (typeof window.generateQrSvg === 'function') ? window.generateQrSvg(payload, 128) : '';
           const roleRaw = String(m.role || 'worker').toLowerCase();
           const roleLabel = roleRaw === 'owner' ? 'Executive' : (roleRaw === 'supervisor' || roleRaw === 'manager' ? 'Supervisor' : 'Full-Time');
           const roleBg = roleRaw === 'owner' ? '#fef3c7' : (roleRaw === 'supervisor' || roleRaw === 'manager' ? '#e0f2fe' : '#dcfce7');
           const roleFg = roleRaw === 'owner' ? '#92400e' : (roleRaw === 'supervisor' || roleRaw === 'manager' ? '#075985' : '#166534');
           const initials = String(m.name || 'SR').split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0].toUpperCase()).join('');
-          const photoUrl = m.passportPhotoDataUrl || m.avatarUrl || '';
+          const rawPhoto = String(m.passportPhotoDataUrl || m.avatarUrl || '').trim();
+          const isValidPhoto = rawPhoto && !rawPhoto.includes('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE') && rawPhoto.length > 10;
+          const photoUrl = isValidPhoto ? rawPhoto : '';
           csvRows.push([code, m.name || '', m.title || '', m.department || '', roleLabel, companyCode, companyTitle, secCode, payload, photoUrl].map(v => `"${String(v).replace(/"/g, '""')}"`));
+          const initialsBadgeHtml = `<div class="sr-id-initials" style="width:74px;height:74px;border-radius:14px;background:${brandPrimary};color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;border:2.5px solid #ffffff;box-shadow:0 4px 12px rgba(15,23,42,0.16);">${escapeHtml(initials)}</div>`;
           const avatarHtml = photoUrl
-            ? `<img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(m.name)}" style="width:74px;height:74px;border-radius:14px;object-fit:cover;border:2.5px solid #ffffff;box-shadow:0 4px 12px rgba(15,23,42,0.16);" />`
-            : `<div style="width:74px;height:74px;border-radius:14px;background:${brandPrimary};color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;border:2.5px solid #ffffff;box-shadow:0 4px 12px rgba(15,23,42,0.16);">${escapeHtml(initials)}</div>`;
+            ? `<img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(m.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" style="width:74px;height:74px;border-radius:14px;object-fit:cover;border:2.5px solid #ffffff;box-shadow:0 4px 12px rgba(15,23,42,0.16);background:${brandPrimary};" /><div class="sr-id-initials" style="display:none;width:74px;height:74px;border-radius:14px;background:${brandPrimary};color:#ffffff;align-items:center;justify-content:center;font-size:24px;font-weight:800;border:2.5px solid #ffffff;box-shadow:0 4px 12px rgba(15,23,42,0.16);">${escapeHtml(initials)}</div>`
+            : initialsBadgeHtml;
           return `
-            <div class="sr-cr80-pair" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;break-inside:avoid;padding:8px;border:1px dashed #cbd5e1;border-radius:14px;background:#f8fafc;">
-              <!-- FRONT (CR80 Portrait 54x86mm) -->
-              <div class="sr-cr80-card" style="width:204px;height:325px;border-radius:12px;background:#ffffff;color:#0f172a;border:1px solid #cbd5e1;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 6px 18px rgba(15,23,42,0.08);">
-                <div style="background:linear-gradient(135deg,${brandPrimary},${brandSecondary});padding:16px 12px 12px;color:#ffffff;text-align:center;">
-                  <div style="width:28px;height:4px;border-radius:99px;background:rgba(255,255,255,0.45);margin:0 auto 8px;" title="Lanyard Slot Safe Zone"></div>
-                  <div style="font-size:9.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;line-height:1.25;">${escapeHtml(companyTitle)}</div>
+            <div class="sr-cr80-pair" data-card-code="${escapeHtml(code)}" style="display:flex;flex-direction:column;gap:10px;break-inside:avoid;padding:12px;border:1px dashed #cbd5e1;border-radius:14px;background:#f8fafc;">
+              <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                <!-- FRONT (CR80 Portrait 54x86mm) -->
+                <div class="sr-cr80-card" style="width:204px;height:325px;border-radius:12px;background:#ffffff;color:#0f172a;border:1px solid #cbd5e1;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 6px 18px rgba(15,23,42,0.08);">
+                  <div style="background:linear-gradient(135deg,${brandPrimary},${brandSecondary});padding:16px 12px 26px;color:#ffffff;text-align:center;">
+                    <div style="width:28px;height:4px;border-radius:99px;background:rgba(255,255,255,0.45);margin:0 auto 8px;" title="Lanyard Slot Safe Zone"></div>
+                    <div style="font-size:9.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;line-height:1.25;">${escapeHtml(companyTitle)}</div>
+                  </div>
+                  <div style="flex:1;padding:12px 14px;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;">
+                    <div style="margin-top:-32px;z-index:1;">${avatarHtml}</div>
+                    <div style="font-size:14.5px;font-weight:800;color:#0f172a;margin-top:10px;line-height:1.2;z-index:1;">${escapeHtml(m.name)}</div>
+                    <div style="font-size:10.5px;font-weight:600;color:#475569;margin-top:3px;z-index:1;">${escapeHtml(m.title)}</div>
+                    <div style="font-size:9.5px;color:#64748b;margin-top:2px;z-index:1;">${escapeHtml(m.department)}</div>
+                    <span style="margin-top:10px;padding:3px 10px;border-radius:99px;background:${roleBg};color:${roleFg};font-size:9.5px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;z-index:1;">${escapeHtml(roleLabel)}</span>
+                    <div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:16px;font-weight:900;letter-spacing:0.16em;color:${brandPrimary};opacity:0.06;pointer-events:none;user-select:none;white-space:nowrap;">${escapeHtml(companyCode)}</div>
+                  </div>
+                  <div style="padding:8px 12px;border-top:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-family:monospace;font-size:10.5px;font-weight:800;color:#0f172a;">${escapeHtml(code)}</span>
+                    <span style="font-size:8.5px;font-weight:700;color:${brandPrimary};text-transform:uppercase;">FRONT</span>
+                  </div>
                 </div>
-                <div style="flex:1;padding:12px 14px;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;">
-                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:900;color:${brandPrimary};opacity:0.04;pointer-events:none;user-select:none;">${escapeHtml(companyCode)}</div>
-                  <div style="margin-top:-24px;z-index:1;">${avatarHtml}</div>
-                  <div style="font-size:14.5px;font-weight:800;color:#0f172a;margin-top:10px;line-height:1.2;">${escapeHtml(m.name)}</div>
-                  <div style="font-size:10.5px;font-weight:600;color:#475569;margin-top:3px;">${escapeHtml(m.title)}</div>
-                  <div style="font-size:9.5px;color:#64748b;margin-top:2px;">${escapeHtml(m.department)}</div>
-                  <span style="margin-top:8px;padding:3px 10px;border-radius:99px;background:${roleBg};color:${roleFg};font-size:9.5px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">${escapeHtml(roleLabel)}</span>
-                </div>
-                <div style="padding:8px 12px;border-top:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
-                  <span style="font-family:monospace;font-size:10.5px;font-weight:800;color:#0f172a;">${escapeHtml(code)}</span>
-                  <span style="font-size:8.5px;font-weight:700;color:${brandPrimary};text-transform:uppercase;">FRONT</span>
+                <!-- BACK (CR80 Portrait 54x86mm - Upper-Half QR + Fallback) -->
+                <div class="sr-cr80-card" style="width:204px;height:325px;border-radius:12px;background:#ffffff;color:#0f172a;border:1px solid #cbd5e1;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 6px 18px rgba(15,23,42,0.08);">
+                  <div style="padding:14px 12px 6px;display:flex;flex-direction:column;align-items:center;text-align:center;">
+                    <div style="width:28px;height:4px;border-radius:99px;background:#e2e8f0;margin:0 auto 10px;"></div>
+                    <div style="padding:8px;background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;display:inline-flex;">${qr}</div>
+                    <div style="margin-top:8px;font-family:monospace;font-size:11px;font-weight:800;color:#0f172a;">${escapeHtml(code)}${secCode ? ` &middot; PIN ${escapeHtml(secCode)}` : ''}</div>
+                    <div style="font-size:8.5px;font-weight:700;color:#059669;letter-spacing:0.05em;text-transform:uppercase;margin-top:2px;">Scan for Peer Clock-In</div>
+                  </div>
+                  <div style="padding:0 14px 10px;text-align:center;font-size:8.5px;color:#64748b;line-height:1.4;">
+                    If found, please return to <strong>${escapeHtml(companyTitle)}</strong> (${escapeHtml(hubLabel)}).
+                  </div>
+                  <div style="padding:7px 12px;background:#0f172a;color:#94a3b8;display:flex;justify-content:space-between;align-items:center;font-size:8.5px;font-weight:700;">
+                    <span>Verified by <strong style="color:#34d399;">ShiftRelay</strong></span>
+                    <span>BACK</span>
+                  </div>
                 </div>
               </div>
-              <!-- BACK (CR80 Portrait 54x86mm - Upper-Half QR + Fallback) -->
-              <div class="sr-cr80-card" style="width:204px;height:325px;border-radius:12px;background:#ffffff;color:#0f172a;border:1px solid #cbd5e1;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 6px 18px rgba(15,23,42,0.08);">
-                <div style="padding:14px 12px 6px;display:flex;flex-direction:column;align-items:center;text-align:center;">
-                  <div style="width:28px;height:4px;border-radius:99px;background:#e2e8f0;margin:0 auto 10px;"></div>
-                  <div style="padding:6px;background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;display:inline-flex;">${qr}</div>
-                  <div style="margin-top:8px;font-family:monospace;font-size:11px;font-weight:800;color:#0f172a;">${escapeHtml(code)}${secCode ? ` &middot; PIN ${escapeHtml(secCode)}` : ''}</div>
-                  <div style="font-size:8.5px;font-weight:700;color:#059669;letter-spacing:0.05em;text-transform:uppercase;margin-top:2px;">Scan for Peer Clock-In</div>
-                </div>
-                <div style="padding:0 14px 10px;text-align:center;font-size:8.5px;color:#64748b;line-height:1.4;">
-                  If found, please return to <strong>${escapeHtml(companyTitle)}</strong> (${escapeHtml(hubLabel)}).
-                </div>
-                <div style="padding:7px 12px;background:#0f172a;color:#94a3b8;display:flex;justify-content:space-between;align-items:center;font-size:8.5px;font-weight:700;">
-                  <span>Verified by <strong style="color:#34d399;">ShiftRelay</strong></span>
-                  <span>BACK</span>
-                </div>
+              <div class="sr-no-print" style="display:flex;justify-content:space-between;align-items:center;padding:2px 4px 0;">
+                <span style="font-size:11px;font-weight:600;color:#475569;">CR80 (54&times;86mm) &middot; ISO Level-M QR</span>
+                <button type="button" class="sr-btn sr-btn-secondary sr-print-single-card-btn" data-card-code="${escapeHtml(code)}" style="min-height:26px;height:26px;padding:0 10px;font-size:11px;font-weight:700;">Print This Card</button>
               </div>
             </div>
           `;
         }).join('');
+        const openCleanIdPrintSheet = (sheetMarkup, sheetTitle) => {
+          const w = window.open('', '_blank', 'width=960,height=780');
+          if (!w) { window.print(); return; }
+          w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(sheetTitle)}</title><style>
+            @page { size: A4 portrait; margin: 10mm; }
+            * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body { margin: 0; padding: 12px; font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; background: #ffffff; color: #0f172a; }
+            .sr-print-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(430px, 1fr)); gap: 14px; }
+            .sr-cr80-pair { break-inside: avoid; page-break-inside: avoid; border: 1px dashed #cbd5e1 !important; background: #ffffff !important; }
+            .sr-no-print { display: none !important; }
+            .sr-cr80-card { box-shadow: none !important; }
+            svg { shape-rendering: crispEdges; }
+          </style></head><body><div class="sr-print-grid">${sheetMarkup}</div><script>window.onload=function(){setTimeout(function(){window.print();},250);};<\/script></body></html>`);
+          w.document.close();
+        };
         const idModal = document.createElement('div');
         idModal.id = 'sr-print-id-cards-modal';
         idModal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -8872,11 +8896,11 @@
             <div style="padding:16px 20px;border-bottom:1px solid var(--sr-border-subtle);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
               <div>
                 <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--sr-text-main);">CR80 Portrait Staff ID Cards (${cardMembers.length} Personnel · Front &amp; Back)</h3>
-                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">54mm × 86mm print-ready layout with ISO quiet-zone QR &amp; manual PIN fallback.</div>
+                <div style="font-size:12px;color:var(--sr-text-muted);margin-top:2px;">54mm × 86mm print-ready A4 sheet with ISO-18004 Level-M quiet-zone QR &amp; manual PIN fallback.</div>
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button type="button" class="sr-btn sr-btn-secondary" id="sr-export-id-csv-btn" style="padding:7px 12px;font-size:12px;">Export Print-Shop CSV</button>
-                <button type="button" class="sr-btn sr-btn-primary" id="sr-print-ids-now-btn" style="padding:7px 14px;font-size:12px;">Print Sheet</button>
+                <button type="button" class="sr-btn sr-btn-primary" id="sr-print-ids-now-btn" style="padding:7px 14px;font-size:12px;">Print Full A4 Sheet</button>
                 <button type="button" class="sr-btn sr-btn-secondary" id="sr-print-ids-close-btn" style="padding:7px 12px;font-size:12px;">Close</button>
               </div>
             </div>
@@ -8888,7 +8912,13 @@
         document.body.appendChild(idModal);
         idModal.querySelector('#sr-print-ids-close-btn')?.addEventListener('click', () => idModal.remove());
         idModal.addEventListener('click', (e) => { if (e.target === idModal) idModal.remove(); });
-        idModal.querySelector('#sr-print-ids-now-btn')?.addEventListener('click', () => window.print());
+        idModal.querySelector('#sr-print-ids-now-btn')?.addEventListener('click', () => openCleanIdPrintSheet(cardsMarkup, `${companyTitle} — Staff ID Cards`));
+        idModal.querySelectorAll('.sr-print-single-card-btn').forEach(singleBtn => {
+          singleBtn.addEventListener('click', () => {
+            const pairEl = singleBtn.closest('.sr-cr80-pair');
+            if (pairEl) openCleanIdPrintSheet(pairEl.outerHTML, `${companyTitle} — ID Card ${singleBtn.dataset.cardCode || ''}`);
+          });
+        });
         idModal.querySelector('#sr-export-id-csv-btn')?.addEventListener('click', () => {
           const csvText = '\uFEFF' + csvRows.map(r => r.join(',')).join('\n');
           downloadFile(csvText, `${companyCode}-print-shop-id-cards.csv`, 'text/csv;charset=utf-8;');
@@ -15319,7 +15349,7 @@
                     <span>-${payslipData?.formatted?.pensionEmployee || '₦0.00'}</span>
                   </div>
                   <div class="sr-payslip-line-item">
-                    <span>PAYE Income Tax (Finance Act)</span>
+                    <span>PAYE Income Tax (NTA 2025)</span>
                     <span>-${payslipData?.formatted?.payeTax || '₦0.00'}</span>
                   </div>
                   <div class="sr-payslip-line-item">
@@ -15871,9 +15901,9 @@
             <span class="sr-v2-kpi-sub">Base salaries + OT hours</span>
           </div>
           <div class="sr-v2-kpi-card" style="border-top:3px solid #d97706;padding:14px 15px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span class="sr-v2-kpi-label">PenCom + PAYE</span>
-              <span style="font-size:10px;padding:2px 7px;background:rgba(217,119,6,0.12);color:var(--sr-status-yellow-text);border-radius:99px;font-weight:700;">Statutory</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+              <span class="sr-v2-kpi-label" style="white-space:nowrap;">PenCom + PAYE</span>
+              <span style="font-size:10px;padding:2px 7px;background:rgba(217,119,6,0.12);color:var(--sr-status-yellow-text);border-radius:99px;font-weight:700;flex-shrink:0;">Statutory</span>
             </div>
             <span class="sr-v2-kpi-val" style="color:var(--sr-status-yellow-text);font-size:clamp(0.95rem,1.2vw,1.16rem);white-space:nowrap;">${summary.totalStatutoryFormatted || '₦0.00'}</span>
             <span class="sr-v2-kpi-sub">NTA 2025 compliant</span>
@@ -17945,9 +17975,9 @@
           </div>
           <div class="sr-v2-page-actions">
             <span class="sr-v2-pill-meta" style="background:var(--p-surface-hover);color:var(--p-text-2);border-color:var(--p-border);">${escapeHtml(tenant.reportPeriod || '')}</span>
-            <button type="button" class="sr-btn sr-btn-primary" id="sr-analytics-add-staff-btn" style="min-height:34px;font-size:12px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;" title="Add a new staff member and assign department">
+            <button type="button" class="sr-btn sr-btn-primary" id="sr-analytics-add-staff-btn" style="min-height:36px;height:36px;font-size:12.5px;padding:0 15px;display:inline-flex;align-items:center;gap:6px;border-radius:10px;" title="Add a new staff member and assign department">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-              <span>+ Add Staff</span>
+              <span>Add Staff</span>
             </button>
             <button type="button" class="sr-btn sr-btn-secondary" id="sr-btn-switch-to-shiftops" style="min-height:34px;font-size:12px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;border-color:rgba(16,185,129,0.3);color:var(--sr-primary);" title="Switch to Frontline Shift Operations Layer">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
@@ -17990,12 +18020,11 @@
           <div class="sr-v2-kpi-card" style="border-top:3px solid #f59e0b;padding:18px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
               <span class="sr-v2-kpi-label">Payroll Burn</span>
-              <span style="width:28px;height:28px;border-radius:8px;background:rgba(245,158,11,0.14);color:#d97706;display:inline-flex;align-items:center;justify-content:center;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              </span>
+              <span style="width:28px;height:28px;border-radius:8px;background:rgba(245,158,11,0.14);color:#d97706;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;font-family:'JetBrains Mono',monospace;">₦</span>
             </div>
-            <div class="sr-v2-kpi-val" style="font-size:1.55rem;">${fmtM(payrollBurn.monthlyGrossBurnNgn)} <span style="font-size:0.8rem;font-weight:600;color:var(--p-text-3);">/ ${fmtM(payrollBurn.monthlyBudgetNgn)}</span></div>
-            <div style="background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:5px;overflow:hidden;margin:6px 0 4px;">
+            <div class="sr-v2-kpi-val" style="font-size:1.55rem;white-space:nowrap;">${fmtM(payrollBurn.monthlyGrossBurnNgn)}</div>
+            <div style="font-size:11.5px;font-weight:600;color:var(--p-text-3);margin-top:2px;">of ${fmtM(payrollBurn.monthlyBudgetNgn)} monthly budget</div>
+            <div style="background:var(--sr-border-subtle,#e2e8f0);border-radius:999px;height:5px;overflow:hidden;margin:7px 0 4px;">
               <div style="width:${budgetUsed}%;height:100%;background:${budgetColor};border-radius:999px;"></div>
             </div>
             <div class="sr-v2-kpi-sub sr-v2-num" style="color:${budgetColor};font-weight:700;">${pct(payrollBurn.budgetUtilizationPercent)} budget utilized</div>
@@ -18097,7 +18126,7 @@
 
             ${[
               { label: 'PenCom Pension (Employee 8% + Employer 10%)', value: payrollBurn.penComTotalNgn, sub: `${statutory.penComPercent}% of Gross`, color: '#a78bfa' },
-              { label: 'PAYE Income Tax (Finance Act CRA)', value: payrollBurn.payeTaxNgn, sub: `Eff. ${statutory.payePercent}% rate`, color: '#fbbf24' },
+              { label: 'PAYE Income Tax (NTA 2025)', value: payrollBurn.payeTaxNgn, sub: `Eff. ${statutory.payePercent}% rate`, color: '#d97706' },
               { label: 'NSITF Contribution (1%)', value: payrollBurn.nsitfNgn, sub: '1.0% of Gross', color: '#38bdf8' },
               { label: 'NHF Housing Fund (2.5%)', value: payrollBurn.nhfNgn, sub: '2.5% of Basic', color: '#34d399' },
             ].map(s => `
