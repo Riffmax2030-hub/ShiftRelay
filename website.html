@@ -409,6 +409,27 @@
       gap: 10px;
       flex-wrap: wrap;
     }
+    .playstore-pill-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 9px 18px;
+      border-radius: var(--radius-pill);
+      background: var(--navy);
+      border: 1.5px solid var(--navy);
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 8px 20px -6px rgba(6, 24, 46, 0.32);
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .playstore-pill-btn:hover {
+      background: var(--navy-soft);
+      transform: translateY(-1px);
+    }
     .apk-pill-btn {
       display: inline-flex;
       align-items: center;
@@ -1266,7 +1287,9 @@
         grid-template-columns: 1fr;
       }
       .hero-action-row .btn-pill-primary,
+      .hero-action-row .btn-pill-navy,
       .hero-action-row .btn-pill-outline,
+      .playstore-pill-btn,
       .apk-pill-btn {
         width: 100%;
         justify-content: center;
@@ -1400,15 +1423,24 @@
       <div class="hero-utility-bar" id="hero-download">
         <div class="utility-note">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><polyline points="9 12 11 14 15 10"/></svg>
-          <span id="sr-apk-eyebrow">Direct Android App &middot; 8.7 MB &middot; Works on Android &amp; iOS</span>
+          <span id="sr-apk-eyebrow">ShiftRelay Mobile App &middot; Available on Android &amp; iOS</span>
         </div>
         <div class="utility-downloads">
+          <a href="https://play.google.com/store/apps/details?id=com.shiftrelayos.app" target="_blank" rel="noopener noreferrer" id="sr-hero-playstore-btn" class="playstore-pill-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3.6 2.4c-.3.3-.5.8-.5 1.4v16.4c0 .6.2 1.1.5 1.4l.1.1 9.2-9.2v-.2L3.7 2.3l-.1.1z" fill="#32BBFF"/>
+              <path d="M16 15.6l-3.1-3.1v-.2L16 9.2l.1.1 3.6 2.1c1 .6 1 1.6 0 2.1l-3.6 2.1h-.1z" fill="#FFCE00"/>
+              <path d="M16.1 15.5L12.9 12.3 3.6 21.6c.3.4.9.4 1.6 0l10.9-6.1z" fill="#F14336"/>
+              <path d="M16.1 9.3L5.2 3.2c-.7-.4-1.3-.4-1.6 0l9.3 9.3 3.2-3.2z" fill="#28B446"/>
+            </svg>
+            <span>Get it on Google Play</span>
+          </a>
           <a href="/download/apk" download id="sr-hero-apk-btn" class="apk-pill-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             <span>Download Android APK</span>
             <span class="apk-ver-badge" id="sr-apk-version-badge">v2.0.6</span>
           </a>
-          <a href="https://apps.apple.com/search?term=ShiftRelay" target="_blank" rel="noopener noreferrer" class="store-mini-link">iOS App</a>
+          <a href="https://apps.apple.com/search?term=ShiftRelay" target="_blank" rel="noopener noreferrer" class="store-mini-link">App Store (iOS)</a>
           <button type="button" id="sr-web-install-btn" class="store-mini-link" style="display:none;">Install Web App</button>
         </div>
       </div>
@@ -2109,21 +2141,19 @@
       if (nEl) nEl.textContent = '₦' + annualMillions + 'M / yr';
     };
 
-    // Hydrate Direct Android APK Download Button with Live Latest Release Version & Size
+    // Hydrate Direct Android APK Download Button with Live Latest Release Version
     (async function hydrateLatestApkBadge() {
       try {
         const res = await fetch('/api/app/apk-release', { cache: 'no-store' });
         if (!res.ok) return;
         const meta = await res.json();
         const badge = document.getElementById('sr-apk-version-badge');
-        const eyebrow = document.getElementById('sr-apk-eyebrow');
         const btn = document.getElementById('sr-hero-apk-btn');
         const footerLink = document.getElementById('sr-footer-apk-link');
         if (badge && meta.version) badge.textContent = `v${meta.version}`;
-        if (eyebrow && meta.sizeLabel) eyebrow.textContent = `Direct Android App · ${meta.sizeLabel} · Works on Android & iOS`;
         if (btn && meta.downloadUrl) btn.setAttribute('href', meta.downloadUrl);
         if (footerLink && meta.version) {
-          footerLink.textContent = `Download Latest Android APK (v${meta.version}${meta.sizeLabel ? ' · ' + meta.sizeLabel : ''})`;
+          footerLink.textContent = `Download Latest Android APK (v${meta.version})`;
           if (meta.downloadUrl) footerLink.setAttribute('href', meta.downloadUrl);
         }
       } catch (_) {}

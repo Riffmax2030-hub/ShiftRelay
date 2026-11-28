@@ -1432,7 +1432,7 @@
       fetch('/api/app/apk-release', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((meta) => {
         const apkLink = document.getElementById('sr-success-apk');
         if (apkLink && meta && meta.version) {
-          apkLink.textContent = `Download Android App (v${meta.version}${meta.sizeLabel ? ' · ' + meta.sizeLabel : ''})`;
+          apkLink.textContent = `Download Android App (v${meta.version})`;
           if (meta.downloadUrl) apkLink.setAttribute('href', meta.downloadUrl);
         }
       }).catch(() => {});
