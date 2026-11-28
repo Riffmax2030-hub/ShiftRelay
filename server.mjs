@@ -7718,6 +7718,132 @@ async function verifyPeerCardBadgeAndGps(user, body, options = {}) {
     const id = crypto.randomUUID(); await query('insert into direct_messages (id, organisation_id, sender_membership_id, recipient_membership_id, body) values ($1,$2,$3,$4,$5)', [id, user.organisation_id, user.id, recipient.id, body.body.trim()]); await notifyMembership(user.organisation_id, recipient.id, `${user.name} sent you a private message.`); broadcastEvent('private-message', { organisationId: user.organisation_id, recipientMembershipId: recipient.id, senderMembershipId: user.id, body: body.body.trim(), id }); return sendJson(response, 201, { id });
   }
 
+  // -- Live API-Powered ShiftRelay Support Chat (Gemini / OpenAI + Smart Local Engine) --
+  if (url.pathname === '/api/support/chat' && request.method === 'POST') {
+    const body = await readJson(request);
+    const message = String(body.message || body.question || '').trim();
+    const history = Array.isArray(body.history) ? body.history.slice(-6) : [];
+    if (!message) {
+      return sendJson(response, 400, { error: 'Please enter a support question.' });
+    }
+
+    const userFirstName = String(user.name || 'Team Member').split(/\s+/)[0];
+    const orgName = user.organisation_name || 'your workplace';
+    const roleLabel = user.role || 'worker';
+    const sysPrompt = [
+      'You are ShiftRelay Support AI, a concise, helpful frontline workforce & Nigerian payroll specialist for ShiftRelay by Riffmax Technology Limited.',
+      `Current user: ${user.name || 'Staff'} (role: ${roleLabel}, company: ${orgName}, department: ${user.department || 'Operations'}).`,
+      'Key product facts to cite accurately:',
+      '- Clock-In & GPS: ShiftRelay verifies GPS inside the site perimeter. If location is off, tap the Location prompt inside the app to open Phone Location Settings directly — GPS retries automatically when returning.',
+      '- Peer Check-In (No smartphone needed): Open Peer Check-In -> scan the colleague\'s printed ISO-18004 Level M Staff ID QR card on the wide-screen camera -> confirm identity & live face -> complete check-in/out.',
+      '- Handover Chat: Open the Handover tab to post text, photos, PDF checklists, and voice notes with Normal, Flag, or Blocker tags stored permanently in the tenant database.',
+      '- Earnings & 2026 Nigeria Tax Act (NTA 2025): Effective Jan 1, 2026 — first ₦800,000 taxable income/yr is 0%, ₦70,000/mo minimum wage is PAYE-exempt, verified Rent Relief is 20% of annual rent (capped at ₦500,000/yr, claimable in Earnings -> Claim Rent Relief), PenCom is 8% employee / 10% employer on BHT, NHF is 2.5% of Basic. Workers can also open the "Tax & Law Guide" in Earnings or Profile (English & Pidgin).',
+      '- Shift Swaps & Leave: Open Schedule -> tap Swap on any upcoming shift, or open the Leave tab to submit dates.',
+      'Keep answers warm, crisp (2-4 short sentences max), zero emojis, and suggest creating a Support Ticket if the user needs an account/salary/human admin change.'
+    ].join('\n');
+
+    let reply = '';
+    let engine = 'smart-local';
+
+    // 1. Live Gemini API when configured
+    const geminiKey = String(process.env.GEMINI_API_KEY || '').trim();
+    if (geminiKey) {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 8500);
+      try {
+        const modelName = process.env.GEMINI_SUPPORT_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const safeModel = /gemini-3\.(5|8)/i.test(modelName) ? 'gemini-2.5-flash' : modelName;
+        const convoContents = history.map(h => ({
+          role: h.role === 'user' ? 'user' : 'model',
+          parts: [{ text: String(h.text || '').slice(0, 600) }]
+        }));
+        convoContents.push({ role: 'user', parts: [{ text: message.slice(0, 1200) }] });
+        const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(safeModel)}:generateContent`, {
+          method: 'POST',
+          signal: ac.signal,
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: sysPrompt }] },
+            contents: convoContents,
+            generationConfig: { temperature: 0.35, maxOutputTokens: 320 }
+          })
+        });
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          const candidate = gData?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
+          if (candidate) {
+            reply = candidate;
+            engine = 'gemini-api';
+          }
+        }
+      } catch (_) {} finally { clearTimeout(timer); }
+    }
+
+    // 2. Live OpenAI API fallback when configured
+    if (!reply && process.env.OPENAI_API_KEY) {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 8500);
+      try {
+        const oRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          signal: ac.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+            max_tokens: 320,
+            temperature: 0.35,
+            messages: [
+              { role: 'system', content: sysPrompt },
+              ...history.map(h => ({ role: h.role === 'user' ? 'user' : 'assistant', content: String(h.text || '').slice(0, 600) })),
+              { role: 'user', content: message.slice(0, 1200) }
+            ]
+          })
+        });
+        if (oRes.ok) {
+          const oData = await oRes.json();
+          const candidate = oData?.choices?.[0]?.message?.content?.trim();
+          if (candidate) {
+            reply = candidate;
+            engine = 'openai-api';
+          }
+        }
+      } catch (_) {} finally { clearTimeout(timer); }
+    }
+
+    // 3. Deterministic Instant ShiftRelay Operations & Statutory Engine fallback
+    const q = message.toLowerCase();
+    let suggestTicket = /bug|error|wrong|broken|missing|human|agent|ticket|refund|dispute|can't login|locked|missing salary|deducted wrongly/.test(q);
+    if (!reply) {
+      if (/gps|location|clock.?in|clock.?out|geofence|site|perimeter/.test(q)) {
+        reply = `Hi ${userFirstName}, if Clock-In says location is unavailable, tap the GPS status pill or "Open Phone Location Settings" in the pop-up prompt to enable Location directly on your phone. Once you return to ShiftRelay, GPS retries automatically — and if signal drops on site, ShiftRelay queues your punch offline and syncs once data returns.`;
+      } else if (/qr|peer|id card|badge|scan|colleague/.test(q)) {
+        reply = `To clock in a colleague without a smartphone, tap Peer Check-In on the My Shift screen and point the wide-screen camera at their printed Staff ID QR code. Their profile loads automatically — capture their live face photo to verify and log them in under 5 seconds.`;
+      } else if (/tax|paye|pencom|pension|rent|relief|salary|payslip|deduction|earning|nhf|nta/.test(q)) {
+        reply = `Under the Nigeria Tax Act (NTA) 2025 (effective Jan 1, 2026), your first ₦800,000 taxable income per year is taxed at 0%, PenCom is 8% employee / 10% employer on Basic + Housing + Transport, and you can claim 20% Rent Relief (up to ₦500,000/yr) via Earnings -> Claim Rent Relief. Open "Tax & Law Guide" in Earnings for an English or Pidgin breakdown of your exact pay.`;
+      } else if (/handover|voice|audio|photo|chat|blocker|flag/.test(q)) {
+        reply = `Open the Handover tab to relay shift updates with text, photos, PDF checklists, or voice notes. Tag critical updates as Flag or Blocker so the incoming shift and supervisor see them immediately — all messages are saved permanently in ${orgName}'s database.`;
+      } else if (/swap|leave|schedule|roster|shift|off/.test(q)) {
+        reply = `Open the Schedule tab to view your weekly shifts, tap Swap on any upcoming shift to offer a peer cover or trade, or switch to the Leave tab to submit time-off dates for supervisor approval.`;
+      } else if (/password|profile|bank|account|email|human|ticket|agent/.test(q)) {
+        suggestTicket = true;
+        reply = `For profile updates, head to the Profile tab -> Edit Profile. If you need a ShiftRelay Support Engineer to adjust your account, salary record, or company settings for ${orgName}, tap "Create Support Ticket" below and our Customer Care desk will respond directly here.`;
+      } else {
+        reply = `Thanks for reaching out, ${userFirstName}. I can help right away with GPS Clock-In, Peer QR ID scanning, Shift Handovers, Schedule Swaps & Leave, or 2026 Nigerian PAYE & PenCom payslip questions. Ask anything specific or tap "Create Support Ticket" below to message a human Support Engineer.`;
+      }
+    }
+
+    return sendJson(response, 200, {
+      ok: true,
+      engine,
+      reply,
+      suggestTicket,
+      timestamp: new Date().toISOString()
+    });
+  }
+
   // -- User App Support & Rectification Tickets (Wired to Admin Customer Care) -
   if (url.pathname === '/api/support/tickets' && request.method === 'GET') {
     const store = await getStore();

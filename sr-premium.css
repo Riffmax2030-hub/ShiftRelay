@@ -3515,3 +3515,331 @@ body {
   background: #10b981;
   flex-shrink: 0;
 }
+
+/* ==========================================================================
+   MODERN 2026 WORKER SCHEDULE & API SUPPORT HUB (v232)
+   ========================================================================== */
+.sr-sched-modern-wrap {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sr-sched-spotlight {
+  border-radius: 18px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #06182e 0%, #064e3b 100%);
+  color: #ffffff;
+  box-shadow: 0 16px 38px -14px rgba(6, 24, 46, 0.35);
+}
+.sr-sched-spotlight-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.sr-sched-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #d1fae5;
+}
+.sr-sched-count-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ecfdf5;
+}
+.sr-sched-spotlight-main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.sr-sched-spotlight-time {
+  font-size: clamp(20px, 3.2vw, 26px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+  line-height: 1.15;
+}
+.sr-sched-spotlight-meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a7f3d0;
+  margin-top: 4px;
+}
+.sr-sched-spotlight-sup {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  margin-top: 2px;
+}
+.sr-sched-spotlight-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sr-sched-act-primary {
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: none;
+  background: #10b981;
+  color: #041d15;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.sr-sched-act-ghost {
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sr-sched-week-bar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.sr-sched-day-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 4px;
+  border-radius: 14px;
+  border: 1px solid var(--p-border);
+  background: var(--p-surface);
+  color: var(--p-text);
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.sr-sched-day-pill.is-today {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+.sr-sched-day-pill.active {
+  background: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+.sr-sched-day-name {
+  font-size: 9.5px;
+  font-weight: 700;
+  opacity: 0.72;
+  letter-spacing: 0.04em;
+}
+.sr-sched-day-num {
+  font-size: 14.5px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.sr-sched-day-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+}
+.sr-sched-day-pill.active .sr-sched-day-dot {
+  background: #ffffff;
+}
+
+.sr-sched-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--p-text-3);
+  margin-top: 2px;
+}
+.sr-sched-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sr-sched-timeline-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  background: var(--p-surface);
+  border: 1px solid var(--p-border);
+  border-left: 4px solid var(--sr-shift-accent, #10b981);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.sr-sched-date-box {
+  width: 44px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sr-sched-date-mon { font-size: 9.5px; font-weight: 800; letter-spacing: 0.04em; line-height: 1; }
+.sr-sched-date-num { font-size: 16px; font-weight: 800; line-height: 1.2; }
+.sr-sched-card-body { flex: 1; min-width: 0; }
+.sr-sched-card-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sr-sched-rot-title { font-size: 14px; font-weight: 800; color: var(--p-text); }
+.sr-sched-badge-today { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(16,185,129,0.14); color: #059669; }
+.sr-sched-badge-lead { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(2,132,199,0.14); color: #0284c7; }
+.sr-sched-card-time { font-size: 13px; font-weight: 700; color: var(--p-text-2); margin-top: 2px; }
+.sr-sched-card-sub { font-size: 11.5px; color: var(--p-text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-sched-swap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--p-border);
+  background: var(--p-bg-subtle, rgba(148,163,184,0.08));
+  color: var(--p-text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sr-sched-swap-pill:hover { border-color: #10b981; color: #059669; }
+
+/* Modern 2026 Support Hub Styling */
+.sr-support-popout {
+  border-radius: 22px !important;
+  border: 1px solid var(--p-border) !important;
+  background: var(--p-surface) !important;
+  box-shadow: 0 28px 64px -16px rgba(6, 24, 46, 0.36) !important;
+}
+.sr-support-header {
+  background: linear-gradient(135deg, #06182e 0%, #064e3b 100%) !important;
+  padding: 15px 16px !important;
+}
+.sr-support-header-title { color: #ffffff !important; }
+.sr-sup-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  padding: 8px 12px;
+  background: var(--p-surface);
+  border-bottom: 1px solid var(--p-border);
+}
+.sr-sup-tab {
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--p-text-3);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.sr-sup-tab.active {
+  background: rgba(16, 185, 129, 0.14);
+  color: #059669;
+}
+[data-theme="dark"] .sr-sup-tab.active { color: #34d399; }
+.sr-sup-count-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #059669;
+  color: #ffffff;
+}
+.sr-sup-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sr-sup-quick-pill {
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.08);
+  color: var(--p-text);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sr-sup-quick-pill:hover { background: rgba(16, 185, 129, 0.18); }
+.sr-sup-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 2px;
+}
+.sr-sup-typing i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  display: inline-block;
+  animation: srSupBounce 1.1s infinite ease-in-out;
+}
+.sr-sup-typing i:nth-child(2) { animation-delay: 0.16s; }
+.sr-sup-typing i:nth-child(3) { animation-delay: 0.32s; }
+@keyframes srSupBounce {
+  0%, 80%, 100% { transform: scale(0.65); opacity: 0.45; }
+  40% { transform: scale(1); opacity: 1; }
+}
+.sr-sup-inline-escalate {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  background: #059669;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sr-sup-ticket-form {
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--p-bg-subtle, rgba(148,163,184,0.08));
+  border: 1px solid var(--p-border);
+}
+.sr-sup-field {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--p-border);
+  background: var(--p-surface);
+  color: var(--p-text);
+  font-family: inherit;
+  font-size: 12.5px;
+}
+.sr-sup-primary-btn {
+  width: 100%;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #059669;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sr-sup-ticket-card {
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--p-surface);
+  border: 1px solid var(--p-border);
+}

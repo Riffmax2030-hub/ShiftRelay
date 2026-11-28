@@ -1267,8 +1267,11 @@
       border-radius: 5px;
       object-fit: cover;
     }
+    @keyframes admSpin {
+      to { transform: rotate(360deg); }
+    }
   </style>
-  <meta property="og:image" content="https://shiftrelayos.com/assets/site/shiftrelay-og-social-card.jpg" /
+  <meta property="og:image" content="https://shiftrelayos.com/assets/site/shiftrelay-og-social-card.jpg" />
 </head>
 <body>
 
@@ -3007,22 +3010,52 @@
       showToast('Account selected: ' + email);
     };
 
+    let lastClickedAdmActionBtn = null;
+    let lastClickedAdmActionTs = 0;
+    document.addEventListener('click', (ev) => {
+      const btn = ev.target && ev.target.closest ? ev.target.closest('#console-root button') : null;
+      if (btn && !btn.classList.contains('adm-nav-btn')) {
+        lastClickedAdmActionBtn = btn;
+        lastClickedAdmActionTs = Date.now();
+      }
+    }, true);
+
     async function admFetch(url, options = {}) {
       const reqEpoch = adminSessionEpoch;
-      const res = await fetch(url, {
-        ...options,
-        credentials: 'same-origin'
-      });
-      if (res.status === 401 && currentAdminUser && reqEpoch === adminSessionEpoch) {
-        adminSessionEpoch++;
-        currentAdminUser = null;
-        currentAdminRole = '';
-        document.getElementById('console-root').classList.remove('active');
-        document.getElementById('auth-barrier').style.display = 'flex';
-        window.setAdminLoginStep(1);
-        showToast('Session expired. Sign in again.');
+      const method = String(options.method || 'GET').toUpperCase();
+      let busyBtn = null;
+      let prevHtml = '';
+      if (method !== 'GET' && lastClickedAdmActionBtn && (Date.now() - lastClickedAdmActionTs) < 450 && !lastClickedAdmActionBtn.disabled) {
+        busyBtn = lastClickedAdmActionBtn;
+        prevHtml = busyBtn.innerHTML;
+        busyBtn.disabled = true;
+        busyBtn.dataset.admBusy = '1';
+        busyBtn.style.opacity = '0.72';
+        busyBtn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:admSpin 0.8s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Working...</span>';
       }
-      return res;
+      try {
+        const res = await fetch(url, {
+          ...options,
+          credentials: 'same-origin'
+        });
+        if (res.status === 401 && currentAdminUser && reqEpoch === adminSessionEpoch) {
+          adminSessionEpoch++;
+          currentAdminUser = null;
+          currentAdminRole = '';
+          document.getElementById('console-root').classList.remove('active');
+          document.getElementById('auth-barrier').style.display = 'flex';
+          window.setAdminLoginStep(1);
+          showToast('Session expired. Sign in again.');
+        }
+        return res;
+      } finally {
+        if (busyBtn && busyBtn.dataset.admBusy === '1') {
+          busyBtn.disabled = false;
+          busyBtn.style.opacity = '';
+          busyBtn.innerHTML = prevHtml;
+          delete busyBtn.dataset.admBusy;
+        }
+      }
     }
 
     function getEmailStationLogs() {
@@ -3272,7 +3305,41 @@
       startAdminSse();
     }
 
-    window.logoutAdminConsole = async function () {
+    window.logoutAdminConsole = async function (confirmed = false) {
+      if (!confirmed) {
+        document.getElementById('adm-logout-confirm-modal')?.remove();
+        const modal = document.createElement('div');
+        modal.id = 'adm-logout-confirm-modal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(2,6,16,0.72);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+        const who = currentAdminUser ? `${currentAdminUser.fullName || 'Admin'} (${currentAdminUser.email || ''})` : 'your Super Admin session';
+        modal.innerHTML = `
+          <div role="dialog" aria-modal="true" aria-label="Confirm Admin Sign Out" style="background:var(--bg-panel, #0f172a);border:1px solid var(--border-glass, rgba(255,255,255,0.14));border-radius:18px;max-width:400px;width:100%;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,0.45);color:var(--text-white, #f8fafc);">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              <span style="width:40px;height:40px;border-radius:12px;background:rgba(244,63,94,0.14);color:#f43f5e;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              </span>
+              <div>
+                <h3 style="margin:0;font-size:17px;font-weight:800;">Sign out of Admin Console?</h3>
+                <div style="font-size:12px;color:var(--text-slate, #94a3b8);margin-top:2px;">You will need to re-authenticate to access admin controls.</div>
+              </div>
+            </div>
+            <p style="font-size:13px;color:var(--text-slate, #94a3b8);margin:0 0 18px;line-height:1.5;">Currently signed in as <strong style="color:var(--text-white, #f8fafc);">${escapeHtml(who)}</strong>.</p>
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+              <button type="button" id="adm-logout-cancel" class="btn-ghost" style="padding:9px 16px;">Cancel</button>
+              <button type="button" id="adm-logout-confirm" style="padding:9px 18px;border-radius:10px;border:none;background:#e11d48;color:#ffffff;font-weight:700;font-size:13px;cursor:pointer;">Yes, Sign Out</button>
+            </div>
+          </div>`;
+        document.body.appendChild(modal);
+        const closeM = () => modal.remove();
+        document.getElementById('adm-logout-cancel')?.addEventListener('click', closeM);
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeM(); });
+        document.getElementById('adm-logout-confirm')?.addEventListener('click', () => {
+          closeM();
+          window.logoutAdminConsole(true);
+        });
+        return;
+      }
+
       adminSessionEpoch++;
       if (adminSseSource) {
         try { adminSseSource.close(); } catch (_) {}
@@ -4435,8 +4502,8 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not record decision');
-        await refreshAdminData();
         showToast(`Owner Root Decision Recorded: ${approvalId} -> ${decision}`);
+        void refreshAdminData();
       } catch (err) {
         showToast('Approval error: ' + err.message);
       }
@@ -4705,10 +4772,12 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not generate Paystack payment link');
-        await window.loadAdminOnboardingPipeline();
-        await window.loadAdminBillingAndDisbursals();
-        await refreshAdminData();
         showToast(`Sent secure Paystack setup link (${formatNgn(data.invoice?.amountNgn || 0)}) to ${data.application?.contactEmail}!`);
+        Promise.allSettled([
+          window.loadAdminOnboardingPipeline(),
+          window.loadAdminBillingAndDisbursals(),
+          refreshAdminData()
+        ]);
       } catch (err) {
         showToast('Payment link error: ' + err.message);
       }
@@ -4716,7 +4785,7 @@
 
     window.markAppPaidManual = async function (tenantId, invoiceId) {
       await window.updateTenantBillingStatus(tenantId, null, invoiceId);
-      await window.loadAdminOnboardingPipeline();
+      window.loadAdminOnboardingPipeline().catch(() => {});
     };
 
     window.importAppRoster = async function (appId) {
@@ -4724,9 +4793,11 @@
         const res = await admFetch(`/api/admin/onboarding/applications/${encodeURIComponent(appId)}/import-roster`, { method: 'POST' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not import roster');
-        await window.loadAdminOnboardingPipeline();
-        await refreshAdminData();
         showToast(`Imported ${data.importedCount} staff into workspace — Client is now LIVE!`);
+        Promise.allSettled([
+          window.loadAdminOnboardingPipeline(),
+          refreshAdminData()
+        ]);
       } catch (err) {
         showToast('Roster import error: ' + err.message);
       }

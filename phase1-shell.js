@@ -1794,46 +1794,73 @@
           </svg>
         </button>
 
-        <!-- Pop-out Support Chat Widget with Close Button (No dedicated tab) -->
+        <!-- Modern API-Powered ShiftRelay Support Hub (Live AI + Persistent Ticket Desk) -->
         <div id="sr-support-popout" class="sr-support-popout hidden" role="dialog" aria-modal="true" aria-label="ShiftRelay Support">
           <div class="sr-support-header">
             <div class="sr-support-header-left">
               <span class="sr-support-avatar-badge">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
               </span>
               <div>
                 <div class="sr-support-header-title">ShiftRelay Support</div>
-                <div class="sr-support-header-status"><span class="sr-support-live-dot"></span> Online · Support Team</div>
+                <div class="sr-support-header-status"><span class="sr-support-live-dot"></span> <span id="sr-support-engine-label">Live Support API</span></div>
               </div>
             </div>
             <button type="button" class="sr-support-close-btn" id="sr-btn-close-support" aria-label="Close Support">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
+
+          <div class="sr-sup-tabs" role="tablist">
+            <button type="button" class="sr-sup-tab active" id="sr-sup-tab-chat" data-sup-tab="chat" role="tab" aria-selected="true">Live Help</button>
+            <button type="button" class="sr-sup-tab" id="sr-sup-tab-tickets" data-sup-tab="tickets" role="tab" aria-selected="false">My Tickets <span id="sr-sup-ticket-count" class="sr-sup-count-badge" style="display:none;">0</span></button>
+          </div>
+
+          <!-- TAB 1: Live API Chat -->
           <div class="sr-support-body" id="sr-support-body">
-            <div class="sr-support-faq-wrap" id="sr-support-faq-wrap">
-              <div class="sr-support-faq-title">Frequently Asked Questions</div>
-              <div class="sr-support-faq-chips" id="sr-support-faq-chips">
-                <button type="button" class="sr-support-faq-btn" data-faq-id="swap">How do I swap an assigned shift?</button>
-                <button type="button" class="sr-support-faq-btn" data-faq-id="pay">When is monthly salary paid?</button>
-                <button type="button" class="sr-support-faq-btn" data-faq-id="profile">How do I update my profile details?</button>
-                <button type="button" class="sr-support-faq-btn" data-faq-id="offline">How does offline clock-in work?</button>
-                <button type="button" class="sr-support-faq-btn" data-faq-id="hazard">How do I report a workplace safety issue?</button>
-              </div>
+            <div class="sr-sup-chip-row" id="sr-support-faq-chips">
+              <button type="button" class="sr-sup-quick-pill" data-quick-q="My location or clock-in isn't working">GPS &amp; Clock-In</button>
+              <button type="button" class="sr-sup-quick-pill" data-quick-q="Explain my 2026 NTA PAYE tax, PenCom and Rent Relief">2026 Tax &amp; Pay</button>
+              <button type="button" class="sr-sup-quick-pill" data-quick-q="How do I scan a colleague's Peer QR ID card?">Peer QR Scan</button>
+              <button type="button" class="sr-sup-quick-pill" data-quick-q="How do I swap a shift or request leave?">Swaps &amp; Leave</button>
             </div>
             <div class="sr-support-msgs" id="sr-support-msgs"></div>
           </div>
-          <div class="sr-support-footer">
-            <button type="button" class="sr-support-cta-btn" id="sr-btn-chat-team">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-              <span>Chat with Support Team</span>
-            </button>
-            <form class="sr-support-input-row" id="sr-support-input-form" style="display:none;margin-top:8px;">
-              <input type="text" id="sr-support-chat-input" class="sr-support-input" placeholder="Type your message to support..." autocomplete="off" />
+
+          <!-- TAB 2: Live Support Tickets (Wired to /api/support/tickets & Admin Customer Care) -->
+          <div class="sr-support-body" id="sr-support-tickets-pane" style="display:none;">
+            <form id="sr-sup-new-ticket-form" class="sr-sup-ticket-form">
+              <div style="font-size:12px;font-weight:800;color:var(--p-text);margin-bottom:8px;">Log a Support Ticket to Human Desk</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                <select id="sr-sup-t-cat" class="sr-sup-field">
+                  <option value="Clock-In & GPS">Clock-In &amp; GPS</option>
+                  <option value="Payroll & Tax">Payroll &amp; Tax</option>
+                  <option value="Schedule & Leave">Schedule &amp; Leave</option>
+                  <option value="Account & Access">Account &amp; Access</option>
+                </select>
+                <select id="sr-sup-t-prio" class="sr-sup-field">
+                  <option value="NORMAL">Normal Priority</option>
+                  <option value="URGENT">Urgent</option>
+                </select>
+              </div>
+              <textarea id="sr-sup-t-details" rows="2" required class="sr-sup-field" placeholder="Describe the issue and our Support Engineer will reply here..." style="resize:none;margin-bottom:8px;"></textarea>
+              <button type="submit" id="sr-sup-t-submit" class="sr-sup-primary-btn">Create Support Ticket</button>
+            </form>
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--p-text-3);margin:4px 0 2px;">Your Ticket History</div>
+            <div id="sr-sup-tickets-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+
+          <div class="sr-support-footer" id="sr-support-chat-footer">
+            <form class="sr-support-input-row" id="sr-support-input-form">
+              <input type="text" id="sr-support-chat-input" class="sr-support-input" placeholder="Ask ShiftRelay Support anything..." autocomplete="off" />
               <button type="submit" id="sr-support-send-btn" class="sr-support-send-btn" aria-label="Send message">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </form>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--p-text-3);">
+              <span>Need a human engineer?</span>
+              <button type="button" id="sr-btn-open-ticket-tab" style="background:none;border:none;color:var(--p-teal);font-weight:700;font-size:11px;cursor:pointer;padding:0;">Create Support Ticket &rarr;</button>
+            </div>
           </div>
         </div>
       </div>
@@ -6717,83 +6744,126 @@
     const mine = merged.filter(s =>
       s.membership_id === myId || s.membershipId === myId
     );
-    const displayList = mine.length > 0 ? mine : [];
+    const displayList = (mine.length > 0 ? mine : []).slice().sort((a, b) => {
+      const da = a.date || (a.starts_at ? a.starts_at.slice(0, 10) : '');
+      const db = b.date || (b.starts_at ? b.starts_at.slice(0, 10) : '');
+      return da.localeCompare(db);
+    });
 
+    const todayIso = new Date().toISOString().slice(0, 10);
     const MONTH_ABBR = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const DAY_ABBR = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const defaultStation = getUserIndustryProfile(getUser()).zones?.[0]?.name || 'Core Operations Zone';
+
+    // Build interactive 7-day rolling week strip starting Monday of current week
+    const refNow = new Date();
+    const dow = (refNow.getDay() + 6) % 7; // Mon=0..Sun=6
+    const weekStart = new Date(refNow.getFullYear(), refNow.getMonth(), refNow.getDate() - dow);
+    const scheduledDateSet = new Set(displayList.map(s => s.date || (s.starts_at ? s.starts_at.slice(0, 10) : '')));
+    const weekStripHtml = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const isToday = iso === todayIso;
+      const hasShift = scheduledDateSet.has(iso);
+      return `
+        <button type="button" class="sr-sched-day-pill ${isToday ? 'is-today' : ''} ${hasShift ? 'has-shift' : ''}" data-week-day="${escapeHtml(iso.slice(-2))}" data-week-iso="${escapeHtml(iso)}" aria-label="${DAY_ABBR[d.getDay()]} ${d.getDate()}">
+          <span class="sr-sched-day-name">${DAY_ABBR[d.getDay()]}</span>
+          <span class="sr-sched-day-num">${d.getDate()}</span>
+          <span class="sr-sched-day-dot" style="opacity:${hasShift ? '1' : '0.18'};"></span>
+        </button>`;
+    }).join('');
+
+    // Next / Active Shift Spotlight Card
+    const nextShift = displayList.find(s => (s.date || (s.starts_at ? s.starts_at.slice(0, 10) : '')) >= todayIso) || displayList[0];
+    const nextDateStr = nextShift ? (nextShift.date || (nextShift.starts_at ? nextShift.starts_at.slice(0, 10) : todayIso)) : todayIso;
+    const nextTime = nextShift
+      ? ((nextShift.start_time && nextShift.end_time) ? `${nextShift.start_time} – ${nextShift.end_time} WAT` : `${formatScheduleDate(nextShift.starts_at, tz)} – ${formatScheduleDate(nextShift.ends_at, tz)}`)
+      : '06:00 – 14:00 WAT';
+    const nextRot = nextShift?.rotation || 'Assigned Shift';
+    const nextStation = nextShift?.station || defaultStation;
+    const nextSup = nextShift?.supervisor_name || 'Shift Lead';
+
+    const spotlightHtml = `
+      <div class="sr-sched-spotlight">
+        <div class="sr-sched-spotlight-top">
+          <span class="sr-sched-live-pill">
+            <span style="width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399;"></span>
+            <span>${nextDateStr === todayIso ? 'Today’s Shift' : 'Next Upcoming Shift'} &middot; ${escapeHtml(nextDateStr)}</span>
+          </span>
+          <span class="sr-sched-count-pill">${displayList.length} ${displayList.length === 1 ? 'Shift' : 'Shifts'} Rostered</span>
+        </div>
+        <div class="sr-sched-spotlight-main">
+          <div>
+            <div class="sr-sched-spotlight-time sr-v2-num">${escapeHtml(nextTime)}</div>
+            <div class="sr-sched-spotlight-meta">${escapeHtml(nextRot)} &bull; ${escapeHtml(nextStation)}</div>
+            <div class="sr-sched-spotlight-sup">Supervisor: <strong>${escapeHtml(nextSup)}</strong></div>
+          </div>
+          <div class="sr-sched-spotlight-actions">
+            <button type="button" class="sr-sched-act-primary" onclick="window.Phase1Shell?.navigate?.('today')">Go to Clock-In</button>
+            ${nextShift ? `<button type="button" class="sr-sched-act-ghost" data-swap-shift-btn data-shift-date="${escapeHtml(nextDateStr)}" data-shift-rotation="${escapeHtml(nextRot + ' (' + nextTime + ')')}">Offer Swap</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+
     const cardsHtml = displayList.map(s => {
-      const dateStr = s.date || (s.starts_at ? s.starts_at.slice(0, 10) : new Date().toISOString().slice(0, 10));
+      const dateStr = s.date || (s.starts_at ? s.starts_at.slice(0, 10) : todayIso);
       const mIdx = Math.max(0, Math.min(11, parseInt(dateStr.slice(5, 7), 10) - 1 || 0));
+      const dObj = new Date(dateStr + 'T12:00:00');
+      const dayTag = isNaN(dObj.getTime()) ? '' : DAY_ABBR[dObj.getDay()];
       const timeWindow = (s.start_time && s.end_time)
         ? `${s.start_time} – ${s.end_time} WAT`
         : `${formatScheduleDate(s.starts_at, tz)} – ${formatScheduleDate(s.ends_at, tz)}`;
       const rotationLabel = s.rotation || 'Assigned Shift';
-      const stationLabel = s.station || getUserIndustryProfile(getUser()).zones?.[0]?.name || 'Core Operations Zone';
-      const supLabel = s.supervisor_name || 'Olaide Emmanuela';
+      const stationLabel = s.station || defaultStation;
+      const supLabel = s.supervisor_name || 'Shift Lead';
+      const isNight = /night|23:|22:|21:/i.test(rotationLabel + ' ' + timeWindow);
+      const isAfternoon = /afternoon|evening|14:|15:|16:/i.test(rotationLabel + ' ' + timeWindow);
+      const accentColor = isNight ? '#6366f1' : (isAfternoon ? '#f59e0b' : '#10b981');
+      const accentBg = isNight ? 'rgba(99,102,241,0.12)' : (isAfternoon ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.12)');
+      const isTodayRow = dateStr === todayIso;
 
       return `
-        <div class="sr-review-item" data-shift-date-row="${escapeHtml(dateStr.slice(-2))}" style="align-items:center;gap:12px;padding:15px 16px;border-bottom:1px solid var(--sr-border-subtle);">
-          <div style="width:44px;height:44px;border-radius:12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#059669;">
-            <span style="font-size:10px;font-weight:800;text-transform:uppercase;line-height:1;">${MONTH_ABBR[mIdx]}</span>
-            <span class="sr-v2-num" style="font-size:15px;font-weight:800;line-height:1.15;">${escapeHtml(dateStr.slice(-2))}</span>
+        <div class="sr-sched-timeline-card" data-shift-date-row="${escapeHtml(dateStr.slice(-2))}" style="--sr-shift-accent:${accentColor};">
+          <div class="sr-sched-date-box" style="background:${accentBg};color:${accentColor};">
+            <span class="sr-sched-date-mon">${dayTag || MONTH_ABBR[mIdx]}</span>
+            <span class="sr-sched-date-num sr-v2-num">${escapeHtml(dateStr.slice(-2))}</span>
           </div>
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
-              <span style="font-size:13.5px;font-weight:800;color:var(--sr-text-main);">${escapeHtml(rotationLabel)}</span>
-              ${s.is_shift_supervisor ? '<span style="font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:99px;background:#e0f2fe;color:#0369a1;">Shift Lead</span>' : ''}
+          <div class="sr-sched-card-body">
+            <div class="sr-sched-card-head">
+              <span class="sr-sched-rot-title">${escapeHtml(rotationLabel)}</span>
+              ${isTodayRow ? '<span class="sr-sched-badge-today">Today</span>' : ''}
+              ${s.is_shift_supervisor ? '<span class="sr-sched-badge-lead">Shift Lead</span>' : ''}
             </div>
-            <div class="sr-v2-num" style="font-size:12.5px;color:var(--sr-text-main);font-weight:600;">${escapeHtml(timeWindow)} &bull; ${escapeHtml(stationLabel)}</div>
-            <div style="font-size:11.5px;color:var(--sr-text-muted);margin-top:2px;">Supervisor: <strong>${escapeHtml(supLabel)}</strong></div>
+            <div class="sr-sched-card-time sr-v2-num">${escapeHtml(timeWindow)}</div>
+            <div class="sr-sched-card-sub">${escapeHtml(stationLabel)} &middot; Sup: <strong>${escapeHtml(supLabel)}</strong></div>
           </div>
-          <button type="button" class="sr-btn sr-btn-secondary sr-btn-sm" 
-                  data-swap-shift-btn 
+          <button type="button" class="sr-sched-swap-pill"
+                  data-swap-shift-btn
                   data-shift-date="${escapeHtml(dateStr)}"
-                  data-shift-rotation="${escapeHtml(rotationLabel + ' (' + timeWindow + ')')}"
-                  style="padding:7px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px;flex-shrink:0;">
+                  data-shift-rotation="${escapeHtml(rotationLabel + ' (' + timeWindow + ')')}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
             <span>Swap</span>
           </button>
         </div>`;
     }).join('');
 
-    const teamPartnersHtml = `
-      <div style="padding:16px;background:var(--sr-bg-card-subtle);border-top:1px solid var(--sr-border-subtle);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--p-text-3);">Shift Crew &amp; Relay Contacts</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
-          <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;gap:10px;">
-            <div style="width:32px;height:32px;border-radius:8px;background:rgba(13,148,136,0.12);color:#0d9488;font-weight:800;font-size:11.5px;display:flex;align-items:center;justify-content:center;">BA</div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);">Babatunde Adeleke</div>
-              <div style="font-size:11px;color:var(--sr-text-muted);">Lead Frontend &bull; Morning Relay</div>
-            </div>
-            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;" title="Active on duty"></span>
-          </div>
-          <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;gap:10px;">
-            <div style="width:32px;height:32px;border-radius:8px;background:rgba(2,132,199,0.12);color:#0284c7;font-weight:800;font-size:11.5px;display:flex;align-items:center;justify-content:center;">CO</div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);">Chidinma Okonjo</div>
-              <div style="font-size:11px;color:var(--sr-text-muted);">Mobile Lead &bull; Afternoon Relay</div>
-            </div>
-            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;" title="Scheduled today"></span>
-          </div>
-          <div style="padding:10px 12px;border-radius:10px;background:var(--sr-bg-card);border:1px solid var(--sr-border-subtle);display:flex;align-items:center;gap:10px;">
-            <div style="width:32px;height:32px;border-radius:8px;background:rgba(245,158,11,0.12);color:#d97706;font-weight:800;font-size:11.5px;display:flex;align-items:center;justify-content:center;">OE</div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:12.5px;font-weight:700;color:var(--sr-text-main);">Olaide Emmanuela</div>
-              <div style="font-size:11px;color:var(--sr-text-muted);">Operations Lead &bull; Supervisor</div>
-            </div>
-            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;" title="Shift Supervisor"></span>
-          </div>
-        </div>
-      </div>
-    `;
-
     const emptyShiftNotice = displayList.length === 0
-      ? ''
+      ? `<div style="text-align:center;padding:30px 18px;border-radius:16px;background:var(--sr-bg-card-subtle);border:1px dashed var(--sr-border-subtle);">
+           <div style="font-size:14px;font-weight:700;color:var(--sr-text-main);margin-bottom:4px;">No shifts rostered for this month</div>
+           <div style="font-size:12.5px;color:var(--sr-text-muted);">Check Open Shifts &amp; Swaps to pick up available coverage.</div>
+         </div>`
       : '';
 
-    return (cardsHtml || emptyShiftNotice) + teamPartnersHtml;
+    return `
+      <div class="sr-sched-modern-wrap">
+        ${spotlightHtml}
+        <div class="sr-sched-week-bar" role="group" aria-label="Filter by day of week">${weekStripHtml}</div>
+        <div class="sr-sched-section-label">
+          <span>Upcoming Shift Timeline</span>
+          <span style="font-weight:600;color:var(--sr-text-muted);text-transform:none;letter-spacing:0;">Tap a day above to filter</span>
+        </div>
+        <div class="sr-sched-timeline-list">${cardsHtml || emptyShiftNotice}</div>
+      </div>`;
   }
 
   function renderLeaveTab(requests, tz) {
@@ -6994,17 +7064,7 @@
             shifts = Array.isArray(data.shifts) ? data.shifts : [];
           }
         } catch (_) {}
-        const obsidianCalHtml = (typeof window.renderShiftCalendarCard === 'function')
-          ? `<div style="padding:14px 16px 6px;">${window.renderShiftCalendarCard()}</div>`
-          : '';
-        panel.innerHTML = `
-          <div style="display:flex;flex-direction:column;gap:0;">
-            ${obsidianCalHtml}
-            ${renderShiftsTab(shifts, user.id, tz)}
-          </div>`;
-        if (typeof window.bindShiftCalendarEvents === 'function') {
-          window.bindShiftCalendarEvents(panel);
-        }
+        panel.innerHTML = renderShiftsTab(shifts, user.id, tz);
 
         panel.querySelectorAll('[data-swap-shift-btn]').forEach(btn => {
           btn.addEventListener('click', () => {
@@ -14868,14 +14928,28 @@
       accruedGrossFormatted: '₦0.00'
     };
 
-    const netPct = gross > 0 ? Math.round((net / gross) * 100) : 0;
-    const preTaxPct = gross > 0 ? Math.round((preTax / gross) * 100) : 0;
-    const taxesPct = gross > 0 ? Math.max(0, 100 - netPct - preTaxPct) : 0;
+    // Exact proportional math (clockwise from 12 o'clock: Green Take-Home -> Amber PenCom -> Red PAYE)
+    const chartTotal = Math.max(0, net) + Math.max(0, preTax) + Math.max(0, taxes);
+    const netExactPct = chartTotal > 0 ? (Math.max(0, net) / chartTotal) * 100 : 0;
+    const preTaxExactPct = chartTotal > 0 ? (Math.max(0, preTax) / chartTotal) * 100 : 0;
+    const taxesExactPct = chartTotal > 0 ? Math.max(0, 100 - netExactPct - preTaxExactPct) : 0;
+
+    const netPct = chartTotal > 0 ? Math.round(netExactPct) : 0;
+    const preTaxPct = chartTotal > 0 ? Math.round(preTaxExactPct) : 0;
+    const taxesPct = chartTotal > 0 ? Math.max(0, 100 - netPct - preTaxPct) : 0;
 
     const circumference = 2 * Math.PI * 45;
-    const seg1 = (netPct / 100) * circumference;
-    const seg2 = (preTaxPct / 100) * circumference;
-    const seg3 = gross > 0 ? Math.max(0, circumference - seg1 - seg2) : 0;
+    const activeSegCount = [netExactPct, preTaxExactPct, taxesExactPct].filter(v => v > 0.25).length;
+    const gapLen = activeSegCount > 1 ? 2.4 : 0;
+    const seg1Raw = (netExactPct / 100) * circumference;
+    const seg2Raw = (preTaxExactPct / 100) * circumference;
+    const seg3Raw = (taxesExactPct / 100) * circumference;
+    const seg1 = seg1Raw > gapLen ? seg1Raw - gapLen : seg1Raw;
+    const seg2 = seg2Raw > gapLen ? seg2Raw - gapLen : seg2Raw;
+    const seg3 = seg3Raw > gapLen ? seg3Raw - gapLen : seg3Raw;
+    const deg1 = 0;
+    const deg2 = (netExactPct / 100) * 360;
+    const deg3 = ((netExactPct + preTaxExactPct) / 100) * 360;
 
     const unassignedBannerHtml = isUnassignedContract ? `
       <div class="sr-card" style="margin-bottom:14px;padding:14px 18px;border-left:4px solid #f59e0b;background:rgba(245,158,11,0.08);">
@@ -15066,17 +15140,17 @@
 
             <div class="sr-earnings-donut-wrap">
               <div class="sr-earnings-donut">
-                <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="60" cy="60" r="45" fill="none" stroke="var(--sr-bg-elevated)" stroke-width="18"/>
-                  <circle cx="60" cy="60" r="45" fill="none" stroke="#10b981" stroke-width="18"
-                    stroke-dasharray="${seg1.toFixed(2)} ${(circumference - seg1).toFixed(2)}"
-                    stroke-dashoffset="0"/>
-                  <circle cx="60" cy="60" r="45" fill="none" stroke="#f59e0b" stroke-width="18"
-                    stroke-dasharray="${seg2.toFixed(2)} ${(circumference - seg2).toFixed(2)}"
-                    stroke-dashoffset="${(-seg1).toFixed(2)}"/>
-                  <circle cx="60" cy="60" r="45" fill="none" stroke="#ef4444" stroke-width="18"
-                    stroke-dasharray="${seg3.toFixed(2)} ${(circumference - seg3).toFixed(2)}"
-                    stroke-dashoffset="${(-(seg1 + seg2)).toFixed(2)}"/>
+                <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pay split: ${netPct}% Take-Home, ${preTaxPct}% PenCom, ${taxesPct}% PAYE Tax">
+                  <circle cx="60" cy="60" r="45" fill="none" stroke="var(--sr-bg-elevated, rgba(148,163,184,0.18))" stroke-width="16"/>
+                  ${seg1 > 0.2 ? `<circle data-exact-donut="1" cx="60" cy="60" r="45" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="butt"
+                    stroke-dasharray="${seg1.toFixed(2)} ${circumference.toFixed(2)}"
+                    stroke-dashoffset="0" transform="rotate(${deg1.toFixed(2)} 60 60)"/>` : ''}
+                  ${seg2 > 0.2 ? `<circle data-exact-donut="1" cx="60" cy="60" r="45" fill="none" stroke="#f59e0b" stroke-width="16" stroke-linecap="butt"
+                    stroke-dasharray="${seg2.toFixed(2)} ${circumference.toFixed(2)}"
+                    stroke-dashoffset="0" transform="rotate(${deg2.toFixed(2)} 60 60)"/>` : ''}
+                  ${seg3 > 0.2 ? `<circle data-exact-donut="1" cx="60" cy="60" r="45" fill="none" stroke="#ef4444" stroke-width="16" stroke-linecap="butt"
+                    stroke-dasharray="${seg3.toFixed(2)} ${circumference.toFixed(2)}"
+                    stroke-dashoffset="0" transform="rotate(${deg3.toFixed(2)} 60 60)"/>` : ''}
                 </svg>
                 <div class="sr-earnings-donut-center">
                   <span class="sr-earnings-donut-pct sr-v2-num">${netPct}%</span>
@@ -15099,6 +15173,15 @@
                   <span class="sr-earnings-legend-label">PAYE Tax Withheld</span>
                   <span class="sr-earnings-legend-pct sr-v2-num">${taxesPct}%</span>
                 </div>
+              </div>
+            </div>
+
+            <!-- Linear Left-to-Right Proportional Bar (Take-Home -> PenCom -> PAYE) -->
+            <div style="margin:6px 0 14px;">
+              <div style="display:flex;height:8px;border-radius:999px;overflow:hidden;background:var(--sr-bg-elevated,rgba(148,163,184,0.18));gap:2px;" aria-hidden="true">
+                ${netExactPct > 0 ? `<div style="width:${netExactPct.toFixed(2)}%;background:#10b981;border-radius:999px 0 0 999px;"></div>` : ''}
+                ${preTaxExactPct > 0 ? `<div style="width:${preTaxExactPct.toFixed(2)}%;background:#f59e0b;"></div>` : ''}
+                ${taxesExactPct > 0 ? `<div style="width:${taxesExactPct.toFixed(2)}%;background:#ef4444;border-radius:0 999px 999px 0;"></div>` : ''}
               </div>
             </div>
 
@@ -16328,8 +16411,8 @@
   function createRectificationReceipt() { return { id: 'SR-SUP-001' }; }
   function openRectificationReceiptModal() {}
 
-  // ── Support Pop-out Chat & Frontline Assistance Engine ─────────────────────
-  let supportChatInitialized = false;
+  // ── Modern API-Powered Support Chat & Persistent Ticket Hub ──────────────────
+  let supportChatHistory = [];
 
   function toggleSupportPopout(forceOpen) {
     const popout = document.getElementById('sr-support-popout');
@@ -16345,97 +16428,168 @@
 
   function appendSupportBubble(role, html) {
     const msgsEl = document.getElementById('sr-support-msgs');
-    if (!msgsEl) return;
+    if (!msgsEl) return null;
     const bubble = document.createElement('div');
     bubble.className = `sr-support-bubble ${role}`;
     bubble.innerHTML = html;
     msgsEl.appendChild(bubble);
-    msgsEl.scrollTop = msgsEl.scrollHeight;
+    const bodyEl = document.getElementById('sr-support-body');
+    if (bodyEl) bodyEl.scrollTop = bodyEl.scrollHeight;
+    return bubble;
+  }
+
+  async function loadSupportTicketsPanel() {
+    const listEl = document.getElementById('sr-sup-tickets-list');
+    const countEl = document.getElementById('sr-sup-ticket-count');
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="font-size:12px;color:var(--p-text-3);padding:12px;text-align:center;">Loading your tickets...</div>';
+    try {
+      const res = await fetch('/api/support/tickets');
+      const data = await res.json().catch(() => ({}));
+      const tickets = Array.isArray(data.tickets) ? data.tickets : [];
+      if (countEl) {
+        countEl.textContent = String(tickets.length);
+        countEl.style.display = tickets.length > 0 ? 'inline-flex' : 'none';
+      }
+      if (!tickets.length) {
+        listEl.innerHTML = '<div style="font-size:12.5px;color:var(--p-text-3);padding:16px;text-align:center;border:1px dashed var(--p-border);border-radius:12px;">No support tickets yet. Submit one above and our Customer Care desk will reply here.</div>';
+        return;
+      }
+      listEl.innerHTML = tickets.slice(0, 12).map(t => {
+        const st = String(t.status || 'OPEN').toUpperCase();
+        const stColor = st.includes('RESOLV') || st.includes('CLOSE') ? '#10b981' : '#f59e0b';
+        const replies = Array.isArray(t.replies) ? t.replies : [];
+        return `
+          <div class="sr-sup-ticket-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;">
+              <strong style="font-size:12px;color:var(--p-text);font-family:'JetBrains Mono',monospace;">${escapeHtml(t.id || 'TKT')}</strong>
+              <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;background:${stColor}22;color:${stColor};">${escapeHtml(st)}</span>
+            </div>
+            <div style="font-size:11.5px;font-weight:700;color:var(--p-teal);margin-bottom:3px;">${escapeHtml(t.category || 'General Support')}</div>
+            <div style="font-size:12.5px;color:var(--p-text-2);line-height:1.45;">${escapeHtml(t.details || '')}</div>
+            ${replies.length ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--p-border);display:flex;flex-direction:column;gap:5px;">
+              ${replies.slice(-2).map(r => `<div style="font-size:11.5px;color:var(--p-text-2);"><strong style="color:var(--p-text);">${escapeHtml(r.authorName || 'Support')}:</strong> ${escapeHtml(r.message || '')}</div>`).join('')}
+            </div>` : ''}
+          </div>`;
+      }).join('');
+    } catch (_) {
+      listEl.innerHTML = '<div style="font-size:12px;color:#ef4444;padding:12px;text-align:center;">Unable to load tickets right now.</div>';
+    }
   }
 
   function initSupportChat() {
-    const user = getUser();
-    const firstName = (user?.name || 'Staff').split(' ')[0];
+    const popout = document.getElementById('sr-support-popout');
     const msgsEl = document.getElementById('sr-support-msgs');
-    if (!msgsEl) return;
+    if (!popout || !msgsEl) return;
+    if (popout.dataset.supBound === '1') return;
+    popout.dataset.supBound = '1';
 
-    if (!supportChatInitialized) {
-      supportChatInitialized = true;
-      msgsEl.innerHTML = '';
-      appendSupportBubble('bot', `Hi <strong>${escapeHtml(firstName)}</strong>! Welcome to ShiftRelay Support. How can our team help you with your shifts, hours, or account today?`);
+    const user = getUser();
+    const firstName = (user?.name || 'there').split(' ')[0];
+    msgsEl.innerHTML = '';
+    supportChatHistory = [];
+    appendSupportBubble('bot', `Hi <strong>${escapeHtml(firstName)}</strong>! Ask me anything about GPS clock-in, Peer QR ID cards, shift handovers, or your 2026 PAYE &amp; PenCom payslip.`);
 
-      const FAQS = {
-        swap: {
-          q: 'How do I swap an assigned shift?',
-          a: 'To swap an assigned shift, open <strong>Schedule</strong>, select your upcoming shift, and tap <strong>Offer Swap</strong>. Your shift supervisor is notified immediately to verify and approve the exchange.'
-        },
-        pay: {
-          q: 'When is monthly salary paid?',
-          a: 'Statutory salary payouts are processed at month end. You can review your accrued shift hours, take-home earnings, and statutory PenCom &amp; PAYE breakdowns anytime under the <strong>Earnings</strong> tab.'
-        },
-        profile: {
-          q: 'How do I update my profile details?',
-          a: 'Go to the <strong>Profile</strong> tab to view your Verified Digital Work Pass and scannable barcode. To update personal details or bank payout information, tap <strong>Edit Profile</strong>.'
-        },
-        offline: {
-          q: 'How does offline clock-in work?',
-          a: 'ShiftRelay stores your clock-in timestamps, GPS coordinates, and handover checklists in an encrypted local offline queue. All entries sync automatically to the cloud the moment connectivity returns.'
-        },
-        hazard: {
-          q: 'How do I report a workplace safety issue?',
-          a: 'Tap <strong>Report Hazard</strong> on your My Shift console or add an urgent safety note in your Shift Handover turnover so incoming teams and site supervisors are alerted instantly.'
-        }
-      };
+    const switchSupTab = (tabName) => {
+      const isTickets = tabName === 'tickets';
+      document.getElementById('sr-sup-tab-chat')?.classList.toggle('active', !isTickets);
+      document.getElementById('sr-sup-tab-tickets')?.classList.toggle('active', isTickets);
+      const chatBody = document.getElementById('sr-support-body');
+      const tktPane = document.getElementById('sr-support-tickets-pane');
+      const chatFoot = document.getElementById('sr-support-chat-footer');
+      if (chatBody) chatBody.style.display = isTickets ? 'none' : 'flex';
+      if (chatFoot) chatFoot.style.display = isTickets ? 'none' : 'block';
+      if (tktPane) tktPane.style.display = isTickets ? 'flex' : 'none';
+      if (isTickets) loadSupportTicketsPanel();
+    };
 
-      document.querySelectorAll('[data-faq-id]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const item = FAQS[btn.dataset.faqId];
-          if (!item) return;
-          appendSupportBubble('user', item.q);
-          setTimeout(() => {
-            appendSupportBubble('bot', item.a);
-          }, 200);
+    popout.querySelectorAll('[data-sup-tab]').forEach(btn => {
+      btn.addEventListener('click', () => switchSupTab(btn.dataset.supTab));
+    });
+    document.getElementById('sr-btn-open-ticket-tab')?.addEventListener('click', () => switchSupTab('tickets'));
+
+    const sendSupportMessage = async (rawText) => {
+      const text = String(rawText || '').trim();
+      if (!text) return;
+      appendSupportBubble('user', escapeHtml(text));
+      supportChatHistory.push({ role: 'user', text });
+
+      const typingEl = appendSupportBubble('bot', '<span class="sr-sup-typing"><i></i><i></i><i></i></span>');
+      try {
+        const res = await fetch('/api/support/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, history: supportChatHistory.slice(-6) })
         });
-      });
+        const data = await res.json().catch(() => ({}));
+        typingEl?.remove();
+        const replyText = data.reply || data.answer || 'Thanks for reaching out. Tap Create Support Ticket below to connect with an engineer.';
+        supportChatHistory.push({ role: 'assistant', text: replyText });
 
-      const chatCtaBtn = document.getElementById('sr-btn-chat-team');
-      const inputForm = document.getElementById('sr-support-input-form');
-      const chatInput = document.getElementById('sr-support-chat-input');
-
-      chatCtaBtn?.addEventListener('click', () => {
-        chatCtaBtn.style.display = 'none';
-        if (inputForm) inputForm.style.display = 'flex';
-        appendSupportBubble('bot', 'You are now connected with ShiftRelay Support. Send your question below and a member of our team will respond shortly.');
-        chatInput?.focus();
-      });
-
-      inputForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const text = (chatInput?.value || '').trim();
-        if (!text) return;
-        chatInput.value = '';
-        appendSupportBubble('user', escapeHtml(text));
-
-        try {
-          const res = await fetch('/api/work-assistant', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text, question: text, userId: user?.id })
-          });
-          const data = await res.json().catch(() => ({}));
-          const reply = data.answer || data.response || data.message || 'Thank you for contacting ShiftRelay Support. Our frontline operations team has received your message and will follow up promptly.';
-          appendSupportBubble('bot', reply);
-          const chatKey = 'chat_consult_' + new Date().toISOString().slice(0, 10);
-          await recordStarActivity(20, 'Chat Consultation Completed', chatKey);
-        } catch (_) {
-          appendSupportBubble('bot', 'Your message has been received by ShiftRelay Support. Our team will review your inquiry shortly.');
+        const engLbl = document.getElementById('sr-support-engine-label');
+        if (engLbl && data.engine) {
+          engLbl.textContent = data.engine === 'gemini-api' ? 'Gemini AI · Live' : (data.engine === 'openai-api' ? 'OpenAI · Live' : 'Live Support API');
         }
-      });
+        const escalateBtnHtml = data.suggestTicket
+          ? `<div style="margin-top:8px;"><button type="button" class="sr-sup-inline-escalate">Create Support Ticket &rarr;</button></div>`
+          : '';
+        const b = appendSupportBubble('bot', escapeHtml(replyText).replace(/\n/g, '<br>') + escalateBtnHtml);
+        b?.querySelector('.sr-sup-inline-escalate')?.addEventListener('click', () => switchSupTab('tickets'));
 
-      document.getElementById('sr-btn-close-support')?.addEventListener('click', () => {
-        toggleSupportPopout(false);
-      });
-    }
+        const chatKey = 'chat_consult_' + new Date().toISOString().slice(0, 10);
+        recordStarActivity(20, 'Chat Consultation Completed', chatKey).catch(() => {});
+      } catch (_) {
+        typingEl?.remove();
+        appendSupportBubble('bot', 'Could not reach the support API right now. You can log a ticket under <strong>My Tickets</strong> anytime.');
+      }
+    };
+
+    popout.querySelectorAll('[data-quick-q]').forEach(btn => {
+      btn.addEventListener('click', () => sendSupportMessage(btn.getAttribute('data-quick-q')));
+    });
+
+    const inputForm = document.getElementById('sr-support-input-form');
+    const chatInput = document.getElementById('sr-support-chat-input');
+    inputForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const val = (chatInput?.value || '').trim();
+      if (!val) return;
+      chatInput.value = '';
+      await sendSupportMessage(val);
+    });
+
+    document.getElementById('sr-sup-new-ticket-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const subBtn = document.getElementById('sr-sup-t-submit');
+      const detailsEl = document.getElementById('sr-sup-t-details');
+      const details = (detailsEl?.value || '').trim();
+      if (!details) return;
+      if (subBtn) { subBtn.disabled = true; subBtn.textContent = 'Submitting...'; }
+      try {
+        const res = await fetch('/api/support/tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: document.getElementById('sr-sup-t-cat')?.value || 'General Support',
+            priority: document.getElementById('sr-sup-t-prio')?.value || 'NORMAL',
+            details
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to log ticket');
+        if (detailsEl) detailsEl.value = '';
+        showToast(`Support Ticket ${data.ticket?.id || ''} logged! Customer Care has been notified.`, 'success');
+        await loadSupportTicketsPanel();
+      } catch (err) {
+        showToast(err.message || 'Could not submit ticket.', 'error');
+      } finally {
+        if (subBtn) { subBtn.disabled = false; subBtn.textContent = 'Create Support Ticket'; }
+      }
+    });
+
+    document.getElementById('sr-btn-close-support')?.addEventListener('click', () => {
+      toggleSupportPopout(false);
+    });
   }
 
   async function renderAssistant() {
@@ -17277,31 +17431,22 @@
 
 (function patchDonutAnimation() {
   'use strict';
-  // Run after DOM is ready and earnings chart has rendered
+  // Preserve exact proportional SVG stroke-dashoffset values on multi-segment donuts
+  // (previous total-minus-filled animation shifted arcs out of sequence).
   function applyDonutAnimation() {
-    document.querySelectorAll('.sr-donut-segment, [class*="donut"] circle[stroke-dasharray]').forEach(function(seg, i) {
-      const dashArray = seg.getAttribute('stroke-dasharray');
-      if (dashArray) {
-        const parts = dashArray.split(/[\s,]+/);
-        const filled = parseFloat(parts[0]) || 0;
-        const total = parseFloat(parts[1]) || 283;
-        const offset = total - filled;
-        seg.style.setProperty('--sr-dash-offset', offset);
-        seg.style.setProperty('--sr-segment-delay', (i * 0.12) + 's');
-        seg.classList.add('sr-donut-segment');
+    document.querySelectorAll('.sr-donut-segment, [class*="donut"] circle[stroke-dasharray]').forEach(function(seg) {
+      if (seg.dataset.exactDonut === '1' || seg.hasAttribute('transform')) {
+        seg.classList.remove('sr-donut-segment');
+        seg.style.removeProperty('--sr-dash-offset');
+        return;
+      }
+      const origOffset = seg.getAttribute('stroke-dashoffset');
+      if (origOffset !== null) {
+        seg.style.setProperty('--sr-dash-offset', origOffset);
       }
     });
   }
-
-  // Try immediately and also after any dynamic render
   setTimeout(applyDonutAnimation, 100);
-  let debounceTimer = null;
-  const observer = new MutationObserver(function(mutations) {
-    if (!mutations.some(function(m) { return m.addedNodes && m.addedNodes.length > 0; })) return;
-    if (debounceTimer) return;
-    debounceTimer = setTimeout(function() { debounceTimer = null; requestAnimationFrame(applyDonutAnimation); }, 120);
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
 })();
 
 /* ==========================================================================
