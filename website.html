@@ -1222,6 +1222,24 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* Silky Scroll-Reveal Choreography (GPU-composited, reduced-motion safe) */
+    .sr-reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1), transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .sr-reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .sr-ring-progress {
+      transition: stroke-dashoffset 1.05s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .sr-reveal { opacity: 1; transform: none; transition: none; }
+      .sr-ring-progress { transition: none; }
+    }
+
     /* ── RESPONSIVE (320px TO 1440px+) ── */
     @media (max-width: 1024px) {
       .hero-top-split,
@@ -1931,6 +1949,22 @@
           prog.style.width = max > 0 ? Math.min(100, (window.scrollY / max) * 100) + '%' : '0%';
         }
       }, { passive: true });
+
+      // 0. Silky Scroll-Reveal & SVG Ring Draw Choreography
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const revealTargets = document.querySelectorAll('.showcase-shell, .split-feature, .roi-band, .story-stage, .compliance-grid, .final-banner');
+      if (!reduceMotion && 'IntersectionObserver' in window) {
+        revealTargets.forEach((el) => el.classList.add('sr-reveal'));
+        const obs = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              obs.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+        revealTargets.forEach((el) => obs.observe(el));
+      }
 
       // 1. Module Switcher ("All Shift & Payroll Functions, Simplified.")
       document.querySelectorAll('.mod-tab').forEach((btn) => {

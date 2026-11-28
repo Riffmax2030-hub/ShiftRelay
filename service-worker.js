@@ -1,8 +1,9 @@
-const CACHE = 'shiftrelay-v227-live';
+const CACHE = 'shiftrelay-v231-live';
 const CORE_SHELL_ASSETS = [
   '/',
   '/index.html',
   '/website.html',
+  '/book-demo.html',
   '/pricing.html',
   '/onboard.html',
   '/trust.html',
@@ -14,7 +15,7 @@ const CORE_SHELL_ASSETS = [
   '/bento-ui.css?v=227',
   '/dark-mode.css?v=227',
   '/splash.css?v=227',
-  '/sr-premium.css?v=227',
+  '/sr-premium.css?v=231',
   '/phase1-shell.css?v=227',
   '/me-profile.css?v=227',
   '/offline-queue.css?v=227',
