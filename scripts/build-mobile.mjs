@@ -27,6 +27,7 @@ const excludedFiles = new Set([
   // Marketing / Admin / Public prospect pages (hosted on web, not needed inside native mobile APK)
   'admin.html',
   'website.html',
+  'book-demo.html',
   'pricing.html',
   'calculator.html',
   'healthcare.html',

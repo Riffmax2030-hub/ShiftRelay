@@ -49,7 +49,7 @@ const meta = {
   sha256,
   updatedAt: new Date().toISOString(),
   downloadUrl: '/download/apk',
-  releaseNotes: 'Universal Android & Apple mobile screen optimization (320px–767px), 5-tab locked bottom dock, and verified shift & payroll OS.'
+  releaseNotes: 'Modern redesigned Worker Schedule, fixed Earnings Take-Home/PenCom/PAYE donut chart, live API-powered ShiftRelay Support Hub, direct native Location Settings, and universal 320px-767px mobile fit.'
 };
 
 writeFileSync(META_PATH, JSON.stringify(meta, null, 2) + '\n', 'utf8');

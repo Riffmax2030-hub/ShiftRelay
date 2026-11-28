@@ -1,14 +1,14 @@
 {
   "appName": "ShiftRelay",
   "packageId": "com.shiftrelayos.app",
-  "version": "2.0.6",
-  "versionCode": 206,
+  "version": "2.0.7",
+  "versionCode": 207,
   "buildType": "release",
-  "fileName": "ShiftRelay-v2.0.6.apk",
-  "sizeBytes": 9076201,
+  "fileName": "ShiftRelay-v2.0.7.apk",
+  "sizeBytes": 9080201,
   "sizeLabel": "8.7 MB",
-  "sha256": "baa62ce34a96c621fe4b845d16c183174f3033c74f58c97b11ed65b2a202c83c",
-  "updatedAt": "2026-11-27T13:15:35.660Z",
+  "sha256": "a507b72e4e8fb7ad343148f852fcfd8fe5f5ec6446ea5e1b6d51371b9419d191",
+  "updatedAt": "2026-11-28T09:58:30.405Z",
   "downloadUrl": "/download/apk",
-  "releaseNotes": "Universal Android & Apple mobile screen optimization (320px–767px), 5-tab locked bottom dock, and verified shift & payroll OS."
+  "releaseNotes": "Modern redesigned Worker Schedule, fixed Earnings Take-Home/PenCom/PAYE donut chart, live API-powered ShiftRelay Support Hub, direct native Location Settings, and universal 320px-767px mobile fit."
 }
